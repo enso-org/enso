@@ -8,7 +8,7 @@ import project.Test_Reporter
 
 polyglot java import java.lang.StringBuilder
 
-type Suite
+type Test_Suite
     ## PRIVATE
 
        The top-level entry point for a test suite.
@@ -28,9 +28,9 @@ type Suite
        > Example
          Building a basic test suite.
 
-             import Standard.Test
+             from Standard.Test import Test, Test_Suite
 
-             example_run_main = Test.Suite.run_main <|
+             example_run_main = Test_Suite.run_main <|
                  Test.group "Number" <|
                      Test.specify "should define addition" <|
                          2+3 . should_equal 5
@@ -39,7 +39,7 @@ type Suite
     run_main : Any -> Nothing
     run_main ~specs =
         config = Suite_Config.from_environment
-        r = Suite.run specs config
+        r = Test_Suite.run specs config
         code = if r.is_fail then 1 else 0
         System.exit code
 
@@ -52,9 +52,9 @@ type Suite
        > Example
          Building a basic test suite.
 
-             import Standard.Test
+             from Standard.Test import Test, Test_Suite
 
-             example_run = Test.Suite.run <|
+             example_run = Test_Suite.run <|
                  Test.group "Number" <|
                      Test.specify "should define addition" <|
                          2+3 . should_equal 5
@@ -64,9 +64,9 @@ type Suite
     run ~specs config =
         builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config builder <|
-            State.run Suite (Suite_Data config Nil builder) <|
+            State.run Test_Suite (Test_Suite.Value config Nil builder) <|
                 specs
-                State.get Suite
+                State.get Test_Suite
 
     ## PRIVATE
 

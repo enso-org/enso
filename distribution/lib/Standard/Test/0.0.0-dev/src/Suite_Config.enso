@@ -15,7 +15,7 @@ find_project_root path =
 find_caller_script : [Stack_Trace_Element] -> File
 find_caller_script stack =
     find_main idx =
-        if stack.at idx . name == "Suite.type.run_main" then idx else
+        if stack.at idx . name == "Test_Suite.type.run_main" then idx else
             @Tail_Call find_main (idx + 1)
     main_index = find_main 0
 
@@ -27,7 +27,7 @@ find_caller_script stack =
 
     find_caller (main_index + 1)
 
-## Holds configuration for a Test.Suite
+## Holds configuration for a Test_Suite
 type Suite_Config
     ## Creates an Suite_Config based off environment and caller location
     from_environment : Suite_Config

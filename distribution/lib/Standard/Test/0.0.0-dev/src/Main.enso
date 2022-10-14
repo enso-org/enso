@@ -1,13 +1,17 @@
 from Standard.Base import all
 
+import project.Bench.Bench
 import project.Faker.Faker
-import project.Suite.Suite
+import project.Problems
+import project.Test_Suite.Test_Suite
 import project.Test.Test
 import project.Test_Result.Test_Result
 import project.Extensions
 
+export project.Bench.Bench
 export project.Faker.Faker
-export project.Suite.Suite
+export project.Problems
+export project.Test_Suite.Test_Suite
 export project.Test.Test
 export project.Test_Result.Test_Result
 export project.Extensions

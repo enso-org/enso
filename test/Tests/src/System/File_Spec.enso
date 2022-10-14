@@ -7,8 +7,7 @@ import Standard.Base.System.Process
 from Standard.Base.System.File.File_Permissions import all
 from Standard.Base.System.Process.Exit_Code import Exit_Success
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec =
     sample_file = enso_project.data / "sample.txt"
@@ -391,4 +390,4 @@ spec =
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

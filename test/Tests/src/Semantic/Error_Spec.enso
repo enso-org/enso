@@ -6,7 +6,7 @@ polyglot java import java.util.Random
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type My_Type
     Value foo
@@ -235,4 +235,4 @@ spec =
             Panic.recover Text throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
 
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

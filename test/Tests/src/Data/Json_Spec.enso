@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Result
+from Standard.Test import Test, Test_Suite, Test_Result
 
 type Author
     Value name year_of_birth
@@ -125,4 +125,4 @@ spec =
             object.get "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with Json.No_Such_Field_Error_Data
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

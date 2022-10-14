@@ -2,9 +2,9 @@ from Standard.Base import all
 import Standard.Base.Runtime.State
 import Standard.Base.Data.Time.Duration
 
-import project.Suite.Suite
 import project.Test_Reporter
 import project.Test_Result.Test_Result
+import project.Test_Suite.Test_Suite
 
 type Test
     ## Creates a new test group, describing properties of the object
@@ -19,13 +19,13 @@ type Test
        > Example
          Adding a test group.
 
-             import Standard.Test
+             from Standard.Test import Test, Test_Suite
 
-             example_group = Test.Suite.run <|
+             example_group = Test_Suite.run <|
                  Test.group "Number" <| Nothing
     group : Text -> Any -> (Text | Nothing) -> Nothing
     group name ~behaviors pending=Nothing =
-        suite = State.get Suite
+        suite = State.get Test_Suite
         config = suite.config
         if config.should_run_group name then
             case pending of
@@ -34,8 +34,8 @@ type Test
                         behaviors
                         State.get Spec
                     Test_Reporter.print_report r config suite.builder
-                    new_suite = Suite_Data suite.config (Cons r suite.specs) suite.builder
-                    State.put Suite new_suite
+                    new_suite = Test_Suite.Value suite.config (Cons r suite.specs) suite.builder
+                    State.put Test_Suite new_suite
                 reason ->
                     Test_Reporter.report_pending_group name reason config suite.builder
 
@@ -50,18 +50,18 @@ type Test
        > Example
          Adding a specification to the test group.
 
-             import Standard.Test
+             from Standard.Test import Test, Test_Suite
 
-             example_group = Test.Suite.run <|
+             example_group = Test_Suite.run <|
                  Test.group "Number" <|
                      Test.specify "should define addition" <|
                          2+3 . should_equal 5
        > Example
          Adding a pending specification to the test group.
 
-             import Standard.Test
+             from Standard.Test import Test, Test_Suite
 
-             example_group = Test.Suite.run <|
+             example_group = Test_Suite.run <|
                  Test.group "Number" <|
                      Test.specify "should define addition" pending="Reason" <|
                          2+3 . should_equal 5
@@ -86,7 +86,7 @@ type Test
          Expect that a computation should panic as part of a test.
 
              import Standard.Examples
-             import Standard.Test
+             from Standard.Test import Test
 
              example_expect_panic_with =
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
@@ -124,9 +124,9 @@ type Test
    > Example
      Failing a test manually.
 
-         import Standard.Test
+         from Standard.Test.Test import fail
 
-         example_fail = Test.fail "Something went wrong."
+         example_fail = fail "Something went wrong."
 fail : Text -> Test_Result
 fail message details=Nothing =
     failure = Test_Result.Failure message details

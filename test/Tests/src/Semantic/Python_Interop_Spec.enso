@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 foreign python my_method a b = """
     return a + b
@@ -176,5 +176,5 @@ spec =
             error = Error.throw 42
             my_method error 0 . should_fail_with Integer
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
 

@@ -3,8 +3,7 @@ from Standard.Base import all
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec =
     Test.group "ReportingStreamEncoder" <|
@@ -85,4 +84,4 @@ spec =
             result.should_succeed
             f.read_text encoding . should_equal ""
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
