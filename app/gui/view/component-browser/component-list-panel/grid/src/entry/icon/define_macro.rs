@@ -14,10 +14,10 @@
 /// # Example
 ///
 /// ```
-/// use ensogl::prelude::*;
-/// use ensogl::display::shape::*;
-/// use ide_view_component_group::icon;
-/// use ide_view_component_group::define_icons;
+/// use ensogl_core::prelude::*;
+/// use ensogl_core::display::shape::*;
+/// use ide_view_component_list_panel_grid::entry::icon;
+/// use ide_view_component_list_panel_grid::define_icons;
 ///
 /// define_icons! {
 ///     /// The example of icon.
@@ -26,7 +26,7 @@
 ///         // define shape system with the macro below; otherwise the generated code wont compile.
 ///         //
 ///         // `use super::*` import is added silently.
-///         ensogl::define_shape_system! {
+///         ensogl_core::define_shape_system! {
 ///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
 ///                 Plane().into()
 ///             }
@@ -34,7 +34,7 @@
 ///     }
 ///
 ///     pub mod icon2(Icon2) {
-///         ensogl::define_shape_system! {
+///         ensogl_core::define_shape_system! {
 ///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
 ///                 Plane().fill(strong_color).into()
 ///             }
@@ -43,7 +43,7 @@
 /// }
 ///
 /// fn main () {
-///     let app = ensogl::application::Application::new("root");
+///     let app = ensogl_core::application::Application::new("root");
 ///     let icon1 = Id::Icon1.create_shape(Vector2(10.0, 10.0));
 ///     let icon2_id: Id = "Icon2".parse().unwrap();
 ///     assert_eq!(icon2_id, Id::Icon2);
@@ -80,7 +80,7 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, size: Vector2) -> $crate::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::entry::icon::Any {
                 match self {$(
                     Self::$variant => {
                         let view = $name::View::new();
@@ -88,7 +88,7 @@ macro_rules! define_icons {
                         let strong_color = view.strong_color.clone_ref();
                         let weak_color = view.weak_color.clone_ref();
                         let view = Box::new(view);
-                        $crate::icon::Any {view, strong_color, weak_color}
+                        $crate::entry::icon::Any {view, strong_color, weak_color}
                     }
                 )*}
             }
@@ -107,7 +107,7 @@ macro_rules! define_icons {
         }
 
         impl FromStr for Id {
-            type Err = $crate::icon::UnknownIcon;
+            type Err = $crate::entry::icon::UnknownIcon;
             fn from_str(s: &str) -> Result<Id, Self::Err> {
                 match s {
                     $(stringify!($variant) => Ok(Self::$variant),)*
