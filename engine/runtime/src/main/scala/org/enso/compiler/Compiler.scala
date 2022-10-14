@@ -456,23 +456,8 @@ class Compiler(
       val took = System.currentTimeMillis() - now
       val size = src.getCharacters().length()
       System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
-      if (size < 41) {
-        val ensoIr = ensoCompiler.generateIR(tree)
-        val oldIr = oldParse(true)
-        def filter(ir : IR): String = ir.pretty.replaceAll("id = [0-9a-f\\-]*", "id = _")
-
-        if (filter(ensoIr) != filter(oldIr)) {
-
-          System.err.println("============ Difference =========")
-          System.err.println(filter(oldIr));
-          System.err.println("============ End of old IR =========")
-          System.err.println(filter(ensoIr));
-          System.err.println("============ End of new IR =========")
-        }
-        ensoIr
-      } else {
-        oldParse(false)
-      }
+      val ensoIr = ensoCompiler.generateIR(tree)
+      ensoIr
     } catch {
       case ex : Throwable => {
         val fail = System.currentTimeMillis() - now
@@ -697,11 +682,19 @@ class Compiler(
     module: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    passManager.runPassesOnModule(
-      module,
-      moduleContext,
-      passes.moduleDiscoveryPasses
-    )
+    try {
+      passManager.runPassesOnModule(
+        module,
+        moduleContext,
+        passes.moduleDiscoveryPasses
+      )
+    } catch {
+      case npe: Throwable => {
+        System.err.println("Error processing " + moduleContext)
+        npe.printStackTrace()
+        module
+      }
+    }
   }
 
   /** Lowers the input AST to the compiler's high-level intermediate
