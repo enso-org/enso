@@ -150,7 +150,10 @@ impl<'s> ExpressionBuilder<'s> {
             // Application is a token-less operator implied by juxtaposition of operands.
             let precedence = token::Precedence::application();
             let associativity = token::Associativity::Left;
-            let arity = Arity::Binary { tokens: default(), lhs_section_termination: default() };
+            let arity = Arity::Binary {
+                tokens:                  default(),
+                lhs_section_termination: default(),
+            };
             self.push_operator(precedence, associativity, arity);
         }
         if let box syntax::tree::Variant::OprApp(
