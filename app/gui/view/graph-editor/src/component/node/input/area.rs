@@ -418,7 +418,7 @@ impl Area {
 
             width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
             frp.output.source.width      <+ width;
-            frp.output.source.expression <+ model.label.content;
+            frp.output.source.expression <+ model.label.content.gate(&edit_mode);
 
 
             // === Expression Type ===

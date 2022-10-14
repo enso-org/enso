@@ -444,13 +444,13 @@ impl<'a> ControllerChange<'a> {
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
-        tracing::debug!(
-            "Setting node expression from controller: {} -> {}",
-            displayed.expression,
-            new_displayed_expr
-        );
 
         if displayed.expression != new_displayed_expr {
+            tracing::debug!(
+                "Setting node expression from controller: {} -> {}",
+                displayed.expression,
+                new_displayed_expr
+            );
             displayed.expression = new_displayed_expr.clone();
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
@@ -659,18 +659,24 @@ impl<'a> ViewChange<'a> {
     }
 
     /// Set the node expression.
-    pub fn set_node_expression(&self, id: ViewNodeId, expression: String) -> Option<AstNodeId> {
+    pub fn set_node_expression(&self, id: ViewNodeId, expression: String) -> Option<()> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
-        let expression = node_view::Expression::new_plain(expression);
-        tracing::debug!(
-            "Setting node expression from view: {} -> {}",
-            displayed.expression,
-            expression
-        );
-        let expression_has_changed = displayed.expression != expression;
-        expression_has_changed.as_some(ast_id)
+
+        let expression_has_changed = displayed.expression.code != expression;
+        if expression_has_changed {
+            let expression = node_view::Expression::new_plain(expression);
+            tracing::debug!(
+                "Setting node expression from view: {} -> {}",
+                displayed.expression,
+                expression
+            );
+            displayed.expression = expression;
+            Some(())
+        } else {
+            None
+        }
     }
 }
 
