@@ -48,7 +48,6 @@ public final class Function implements TruffleObject {
    * @param oversaturatedArguments the oversaturated arguments this function may have accumulated.
    *     The layout of this array must be conforming to the {@code schema}. @{code null} is allowed
    *     if the function does not carry any oversaturated arguments.
-   * @param builtin true if this function is a builtin function, false otherwise.
    */
   public Function(
       RootCallTarget callTarget,
@@ -88,7 +87,7 @@ public final class Function implements TruffleObject {
   public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(args);
-    return new Function(callTarget, null, schema, null, null);
+    return new Function(callTarget, null, schema);
   }
 
   /**
@@ -105,7 +104,7 @@ public final class Function implements TruffleObject {
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
-    return new Function(callTarget, null, schema, null, null);
+    return new Function(callTarget, null, schema);
   }
 
   /**

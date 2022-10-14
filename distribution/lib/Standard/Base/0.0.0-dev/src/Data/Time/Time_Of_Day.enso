@@ -122,7 +122,6 @@ parse text pattern=Nothing locale=Locale.default =
 
 parse_builtin text pattern locale = @Builtin_Method "Time_Of_Day.parse_builtin"
 
-
 ## PRIVATE
 
    This type is a date-time object that represents a time, often viewed

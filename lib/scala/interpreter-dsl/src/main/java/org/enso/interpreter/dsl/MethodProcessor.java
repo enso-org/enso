@@ -481,7 +481,6 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     methods.put(name, new String[] { clazzName, String.valueOf(isStatic) });
   }
 
-
   @Override
   protected String metadataPath() {
     return MethodDefinition.META_PATH;

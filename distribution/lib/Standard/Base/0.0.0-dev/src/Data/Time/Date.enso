@@ -321,8 +321,6 @@ type Date
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
-    to_time_builtin self time_of_day zone = @Builtin_Method "Date.to_time_builtin"
-
     ## Add the specified amount of time to this instant to get another date.
 
        Arguments:
@@ -489,8 +487,6 @@ type Date
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
-
-    internal_local_date self = @Builtin_Method "Date.internal_local_date"
 
     ## A Date to Json conversion.
 
