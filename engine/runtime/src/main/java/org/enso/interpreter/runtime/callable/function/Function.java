@@ -33,18 +33,8 @@ public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
-  private final boolean builtin;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
-
-  public Function(
-      RootCallTarget callTarget,
-      MaterializedFrame scope,
-      FunctionSchema schema,
-      Object[] preappliedArguments,
-      Object[] oversaturatedArguments) {
-    this(callTarget, scope, schema, preappliedArguments, oversaturatedArguments, false);
-  }
 
   /**
    * Creates a new function.
@@ -65,14 +55,12 @@ public final class Function implements TruffleObject {
       MaterializedFrame scope,
       FunctionSchema schema,
       Object[] preappliedArguments,
-      Object[] oversaturatedArguments,
-      boolean builtin) {
+      Object[] oversaturatedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
     this.schema = schema;
     this.preAppliedArguments = preappliedArguments;
     this.oversaturatedArguments = oversaturatedArguments;
-    this.builtin = builtin;
   }
 
   /**
@@ -83,7 +71,7 @@ public final class Function implements TruffleObject {
    * @param schema the {@link FunctionSchema} with which the function was defined
    */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
-    this(callTarget, scope, schema, null, null, false);
+    this(callTarget, scope, schema, null, null);
   }
 
   public static Function thunk(RootCallTarget callTarget, MaterializedFrame scope) {
@@ -100,7 +88,7 @@ public final class Function implements TruffleObject {
   public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(args);
-    return new Function(callTarget, null, schema, null, null, true);
+    return new Function(callTarget, null, schema, null, null);
   }
 
   /**
@@ -117,7 +105,7 @@ public final class Function implements TruffleObject {
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
-    return new Function(callTarget, null, schema, null, null, true);
+    return new Function(callTarget, null, schema, null, null);
   }
 
   /**
@@ -386,10 +374,6 @@ public final class Function implements TruffleObject {
 
   public boolean isThunk() {
     return schema == FunctionSchema.THUNK;
-  }
-
-  public boolean isBuiltin() {
-    return builtin;
   }
 
   public boolean isFullyApplied() {

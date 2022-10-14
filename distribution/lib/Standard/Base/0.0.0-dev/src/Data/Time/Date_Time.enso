@@ -333,7 +333,7 @@ type Date_Time
 
              example_time_of_day = Date_Time.now.time_of_day
     time_of_day : Time_Of_Day
-    time_of_day self = @Builtin_Method "Date_Time.to_localtime_builtin"
+    time_of_day self = @Builtin_Method "Date_Time.time_of_day"
 
     ## Returns the number of week of year this date falls into.
 
@@ -423,7 +423,7 @@ type Date_Time
 
              example_date = Date_Time.now.date
     date : Date
-    date self = @Builtin_Method "Date_Time.to_localdate_builtin"
+    date self = @Builtin_Method "Date_Time.date"
 
     ## ALIAS Change Time Zone
 

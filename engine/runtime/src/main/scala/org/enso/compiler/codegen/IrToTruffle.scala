@@ -374,7 +374,10 @@ class IrToTruffle(
                   cons == context.getBuiltins.number().getInteger
                 ) Right(None)
                 else Left(l)
+              // The non-static builtins have already been registered with
+              // types during Builtins initialization.
               )
+              .map(_.filter(f => f.isStatic).map(_.getFunction))
           case fn: IR.Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(

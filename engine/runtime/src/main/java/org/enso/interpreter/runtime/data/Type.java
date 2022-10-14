@@ -92,12 +92,7 @@ public final class Type implements TruffleObject {
       CompilerAsserts.neverPartOfCompilation();
       Map<String, Function> methods = this.definitionScope.getMethods().get(this);
       if (methods != null) {
-        methods.forEach(
-            (name, fun) -> {
-              if (!fun.isBuiltin()) {
-                scope.registerMethod(this, name, fun);
-              }
-            });
+        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
       }
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {

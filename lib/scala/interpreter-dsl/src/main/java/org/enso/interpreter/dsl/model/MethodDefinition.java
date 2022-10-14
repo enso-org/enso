@@ -8,7 +8,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
@@ -199,6 +198,14 @@ public class MethodDefinition {
     return constructorExpression;
   }
 
+  public boolean isStatic() {
+    return arguments.stream()
+        .filter(arg -> arg.isSelf())
+        .findFirst()
+        .map(arg -> arg.isSyntheticSelf())
+        .orElseGet(() -> false);
+  }
+
   public interface ArgumentDefinition {
 
     boolean validate(ProcessingEnvironment processingEnvironment);
@@ -241,6 +248,8 @@ public class MethodDefinition {
     boolean acceptsWarning();
 
     boolean isSelf();
+
+    boolean isSyntheticSelf();
 
     boolean shouldCheckErrors();
 
@@ -329,6 +338,11 @@ public class MethodDefinition {
 
     @Override
     public boolean isSelf() {
+      return true;
+    }
+
+    @Override
+    public boolean isSyntheticSelf() {
       return true;
     }
 
@@ -516,6 +530,11 @@ public class MethodDefinition {
 
     public boolean isSelf() {
       return name.equals(SELF);
+    }
+
+    @Override
+    public boolean isSyntheticSelf() {
+      return false;
     }
 
     public boolean shouldCheckErrors() {
