@@ -1,5 +1,6 @@
 ## Utilities for working with Java polyglot objects.
 type Java
+
     ## Adds the provided entry to the host class path.
 
        Arguments:
@@ -13,7 +14,7 @@ type Java
 
             Java.add_to_class_path "java.util.Random"
     add_to_class_path : Text -> Nothing
-    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+    add_to_class_path self path = @Builtin_Method "Java.add_to_class_path"
 
 ## Looks up a java symbol on the classpath by name.
 

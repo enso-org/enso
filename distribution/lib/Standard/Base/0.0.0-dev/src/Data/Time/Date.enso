@@ -67,6 +67,8 @@ new year (month = 1) (day = 1) =
         Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
         ex -> ex
 
+## PRIVATE
+internal_new : Integer -> Integer -> Integer -> Date
 internal_new year month day = @Builtin_Method "Date.internal_new"
 
 ## ALIAS Date from Text
@@ -141,6 +143,8 @@ parse text pattern=Nothing =
         Polyglot_Error_Data err -> Time_Error_Data err.getMessage
         ex -> ex
 
+## PRIVATE
+internal_parse : Text -> (Text | Nothing) -> Date
 internal_parse text pattern = @Builtin_Method "Date.internal_parse"
 
 

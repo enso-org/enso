@@ -50,6 +50,8 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Panic.catch_java Any (new_builtin hour minute second nanosecond) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
+## PRIVATE
+new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new_builtin hour minute second = @Builtin_Method "Time_Of_Day.new_builtin"
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
@@ -120,6 +122,8 @@ parse text pattern=Nothing locale=Locale.default =
             Nothing -> parse_builtin text
             _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
+## PRIVATE
+parse_builtin : Text -> Text | Nothing -> Locale -> Time_Of_Day
 parse_builtin text pattern locale = @Builtin_Method "Time_Of_Day.parse_builtin"
 
 ## PRIVATE
@@ -209,8 +213,6 @@ type Time_Of_Day
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
     to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
-
-    to_date_time_builtin self date zone = @Builtin_Method "Time_Of_Day.to_date_time_builtin"
 
     ## Add the specified amount of time to this instant to get a new instant.
 

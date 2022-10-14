@@ -89,6 +89,8 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
     Panic.catch_java Any (new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
+## PRIVATE
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
 new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
 
 ## ALIAS Time from Text
@@ -176,6 +178,8 @@ parse text pattern=Nothing locale=Locale.default =
             Nothing -> parse_builtin text
             _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
+## PRIVATE
+parse_builtin : Text -> Text | Nothing -> Locale -> Date_Time
 parse_builtin text pattern locale = @Builtin_Method "Date_Time.parse_builtin"
 
 ## PRIVATE

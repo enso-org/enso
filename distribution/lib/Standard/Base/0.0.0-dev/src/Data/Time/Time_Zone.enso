@@ -62,6 +62,8 @@ new : Integer -> Integer -> Integer -> Time_Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
     new_builtin hours minutes seconds
 
+## PRIVATE
+new_builtin : Integer -> Integer -> Integer -> Time_Zone
 new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
 
 ## ALIAS Time Zone from Text
@@ -103,6 +105,8 @@ parse text =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         parse_builtin text
 
+## PRIVATE
+parse_builtin : Text -> Time_Zone
 parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 
 ## PRIVATE
