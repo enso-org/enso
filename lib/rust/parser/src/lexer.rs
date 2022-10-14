@@ -622,7 +622,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         // Operators that can be unary.
         "\\" =>
             return operator
-                .with_unary_prefix_mode(token::Precedence::min())
+                .with_unary_prefix_mode(token::Precedence::min_valid())
                 .as_compile_time_operation(),
         "~" =>
             return operator
