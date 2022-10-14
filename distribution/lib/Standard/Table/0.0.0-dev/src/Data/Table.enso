@@ -760,7 +760,7 @@ type Table
            time it is matched.
          - If a column in columns does not have a storage type of `Text`, or `Any`,
            thus it is guaranteed that it can't contain any text values, a
-            'Invalid_Value_Type'.
+           `Invalid_Value_Type`.
 
        > Example
          Replace dashes with underscores in a column named "variable_names".
