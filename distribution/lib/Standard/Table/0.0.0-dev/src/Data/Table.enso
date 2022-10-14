@@ -773,7 +773,7 @@ type Table
              table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Regex_Matcher_Data
 
        > Example
-          Replace texts in quotes with parentheses in column at index 1.
+         Replace texts in quotes with parentheses in column at index 1.
 
              table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Regex_Matcher_Data
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
