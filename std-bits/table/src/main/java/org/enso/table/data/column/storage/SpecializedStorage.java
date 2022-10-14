@@ -62,11 +62,6 @@ public abstract class SpecializedStorage<T> extends Storage implements TypedStor
     return data[idx];
   }
 
-  @Override
-  public T getItemTyped(int idx) {
-    return getItemBoxed(idx);
-  }
-
   /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {

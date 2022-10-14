@@ -50,12 +50,6 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   public Boolean getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : getItem(idx);
   }
-
-  @Override
-  public Boolean getItemTyped(int idx) {
-    return getItemBoxed(idx);
-  }
-
   public boolean getItem(long idx) {
     return negated != values.get((int) idx);
   }

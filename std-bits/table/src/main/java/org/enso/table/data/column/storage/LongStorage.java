@@ -73,11 +73,6 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  @Override
-  public Long getItemTyped(int idx) {
-    return getItemBoxed(idx);
-  }
-
   /** @inheritDoc */
   @Override
   public int getType() {

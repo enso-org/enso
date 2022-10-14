@@ -61,11 +61,6 @@ public final class DoubleStorage extends NumericStorage implements TypedStorage<
   }
 
   @Override
-  public Double getItemTyped(int idx) {
-    return getItemBoxed(idx);
-  }
-
-  @Override
   public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }

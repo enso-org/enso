@@ -86,7 +86,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i) && compactRepresentation.hasNulls) {
         newVals.set(i);
-      } else if (compactRepresentation.coercedValues.contains(storage.getItemTyped(i))) {
+      } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
         newVals.set(i);
       }
     }
