@@ -531,6 +531,7 @@ final class TreeToIr {
       }
       case Tree.App app ->
         translateTypeApplication(app);
+      case Tree.Array arr -> translateExpression(arr, true);
       default ->
         throw new UnhandledEntity(type, "translateTypeBodyExpression");
     };
