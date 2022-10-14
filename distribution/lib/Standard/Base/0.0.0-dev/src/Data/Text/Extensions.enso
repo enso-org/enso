@@ -385,9 +385,9 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
    - new_text: The new text to replace occurrences of `term` with.
      If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
      patterns (such as `$<n>`) for a marked group.
-   - mode: Specifies which instances of term the engine tries to find. When the
-     mode is `First` or `Last`, this method replaces the first or last instance
-     of term in the input. If set to `All`, it replaces all instances of term in
+   - mode: Specifies which occurences of term the engine tries to find. When the
+     mode is `First` or `Last`, this method replaces the first or last occurence
+     of term in the input. If set to `All`, it replaces all occurences of term in
      the input.
    - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
      rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
