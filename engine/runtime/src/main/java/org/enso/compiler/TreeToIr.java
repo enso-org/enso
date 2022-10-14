@@ -1702,6 +1702,12 @@ final class TreeToIr {
           segments = cons(buildName(id), segments);
           return segments;
         }
+        case Tree.Wildcard wild -> {
+          var underscore = new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
+          segments = cons(underscore, segments);
+          return segments;
+        }
+
         default -> {
           if (fail) {
             throw new UnhandledEntity(t, "buildNames");
