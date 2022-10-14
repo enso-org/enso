@@ -6,13 +6,12 @@ from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Col
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
+import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data, Floating_Point_Grouping_Data, Invalid_Value_Type
 
 import Standard.Visualization
 
-import Standard.Test
-import Standard.Test.Problems
-import Standard.Table.Data.Value_Type.Value_Type
+from Standard.Test import Test, Test_Suite, Problems
 
 import project.Common_Table_Spec
 from project.Util import all
@@ -1028,7 +1027,7 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
 
 ## JS indexes months form 0, so we need to subtract 1.
 foreign js js_make_date year month day = """

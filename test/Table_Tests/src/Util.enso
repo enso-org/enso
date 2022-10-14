@@ -3,7 +3,8 @@ import Standard.Base.System
 
 from Standard.Table import Table, Column
 
-import Standard.Test
+from Standard.Test import Test
+from Standard.Test.Test import fail
 
 Table.should_equal self expected =
     self_cols = self.columns
@@ -13,9 +14,9 @@ Table.should_equal self expected =
 
 Column.should_equal self expected =
     if self.name != expected.name then
-        Test.fail "Expected column name "+expected.name+", but got "+self.name+"."
+        fail "Expected column name "+expected.name+", but got "+self.name+"."
     if self.length != expected.length then
-        Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+"."
+        fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+"."
     self.to_vector.should_equal expected.to_vector
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =

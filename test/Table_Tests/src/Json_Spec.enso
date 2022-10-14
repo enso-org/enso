@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Table import Table
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 import project.Util
 
@@ -20,4 +20,4 @@ spec = Test.group 'JSON conversion' <|
         (Json.parse out.read_text).to_table ['a', 'b', 'c'] . should_equal simple_empty
         out.delete_if_exists
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

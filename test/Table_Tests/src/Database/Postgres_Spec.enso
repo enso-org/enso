@@ -13,7 +13,7 @@ import Standard.Database.Data.SQL_Type.SQL_Type
 
 import Standard.Database.Internal.Postgres.Pgpass
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec
@@ -360,4 +360,4 @@ spec =
     pgpass_spec
     connection_setup_spec
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

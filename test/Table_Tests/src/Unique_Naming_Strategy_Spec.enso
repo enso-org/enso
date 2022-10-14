@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group 'Unique_Name_Strategy Helper' <|
     Test.specify 'should change an empty name to "Column"' <|
@@ -40,4 +40,4 @@ spec = Test.group 'Unique_Name_Strategy Helper' <|
         strategy.renames.length . should_equal 2
         strategy.invalid_names.length . should_equal 0
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
