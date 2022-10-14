@@ -1893,8 +1893,7 @@ lazy val `std-table` = project
         .copyDependencies(
           `table-polyglot-root`,
           Some("std-table.jar"),
-          ignoreScalaLibrary = true,
-          unpackedDeps       = Set("xmlbeans")
+          ignoreScalaLibrary = true
         )
         .value
       result

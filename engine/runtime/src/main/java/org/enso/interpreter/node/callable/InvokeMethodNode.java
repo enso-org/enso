@@ -14,11 +14,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
@@ -28,12 +23,24 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.*;
+import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.EnsoDateTime;
+import org.enso.interpreter.runtime.data.EnsoDuration;
+import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
+import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
@@ -312,6 +319,35 @@ public abstract class InvokeMethodNode extends BaseNode {
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
 
       arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
+      })
+  Stateful doConvertDuration(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = Context.get(this);
+    try {
+      var duration = interop.asDuration(self);
+      var ensoDuration = new EnsoDuration(duration);
+      Function function =
+          methodResolverNode.expectNonNull(ensoDuration, ctx.getBuiltins().duration(), symbol);
+
+      arguments[0] = ensoDuration;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);

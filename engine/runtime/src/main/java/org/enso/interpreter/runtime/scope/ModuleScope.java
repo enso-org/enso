@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
 /** A representation of Enso's per-file top-level scope. */
-public class ModuleScope implements TruffleObject {
+public final class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols = new HashMap<>();
