@@ -186,48 +186,71 @@ define_themes! { [light:0, dark:1]
             documentation {
                 width = 369.0, 369.0;
             }
-            searcher {
-                list_panel {
-                    content_width = 400.0, 400.0;
-                    content_height = 398.0, 398.0;
-                    content_padding = 3.0, 3.0;
-                    content_corner_radius = 15.0, 15.0;
-                    content_background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+            component_list_panel {
+                background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+                corners_radius = 15.0, 15.0;
+                grid {
+                    width = 400.0, 400.0;
+                    height = 398.0, 398.0;
+                    padding = 3.0, 3.0;
+                    column_gap = 3.0, 3.0;
+                    entry_height = 30.0, 30.0;
 
-                    breadcrumbs_crop_left = 9.0, 9.0;
-                    breadcrumbs_crop_right = 3.0, 3.0;
-
-                    section_divider_height = 2.0, 2.0;
-                    section_heading_size = 16.0, 16.0;
-                    section_heading_offset = 50.0, 50.0;
-                    section_heading_text_offset = 13.0, 13.0;
-                    section_heading_font = "default", "default";
-                    section_heading_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
-                    section_divider_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
-
-                    menu_height = 35.0, 35.0;
-                    menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                    menu_divider_height = 0.5,0.5;
-
-                    navigator_width = 37.0, 37.0;
-                    navigator_icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    navigator_icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    navigator_top_padding = -3.0, -3.0;
-                    navigator_bottom_padding = 7.0, 7.0;
-                    navigator_list_view_width = 39.0, 39.0;
-                    navigator_list_view {
-                        background = Rgba::transparent() , Rgba::transparent();
-                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                    entry {
+                        background.color_intensity = 0.2, 0.2;
+                        dimmed.color_intensity = 0.5, 0.5;
+                        padding = 17.0, 17.0;
+                        text {
+                            font = "default", "default";
+                            size = 12.0, 12.0;
+                            color_intensity = 1.0, 1.0;
+                            highlight_bold = 0.04, 0.04;
+                        }
+                        icon {
+                            size = 16.0, 16.0;
+                            text_padding = 8.0, 8.0;
+                            strong_color_intensity = 1.0, 1.0;
+                            weak_color_intensity = 0.5, 0.5;
+                        }
                         highlight {
-                            height = 29.0, 29.0;
-                            corner_radius = 10.0, 10.0;
+                            corners_radius = 12.0, 12.0;
+                            hover.color_intensity = 0.4, 0.4;
+                            selection {
+                                background.color_intensity = 1.0, 1.0;
+                                dimmed.color_intensity = 0.5, 0.5;
+                                text.color_intensity = 0.2, 0.2;
+                                icon_strong.color_intensity = 0.5, 0.5;
+                                icon_weak.color_intensity = 0.2, 0.2;
+                            }
                         }
-                        entry {
-                            padding = 14.5, 14.5;
+                        shadow = shadow , shadow;
+                        shadow {
+                            size     = 27.0 , 27.0;
+                            spread   = shadow::spread   , shadow::spread;
+                            fading   = shadow::fading   , shadow::fading;
+                            exponent = shadow::exponent , shadow::exponent;
+                            offset_x = shadow::offset_x , shadow::offset_x;
+                            offset_y = shadow::offset_y , shadow::offset_y;
                         }
-                        padding = 5.0, 5.0;
                     }
+
+                    group_colors {
+                        group_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                        group_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
+                        group_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                        group_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
+                        group_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
+                        group_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
+                        local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
+                    }
+                }
+                menu_height = 35.0, 35.0;
+                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                menu_divider_height = 0.5,0.5;
+                menu {
                     breadcrumbs {
+                        crop_left = 9.0, 9.0;
+                        crop_right = 3.0, 3.0;
                         height = 28.0, 28.0;
                         separator {
                             width = 8.0, 8.0;
@@ -253,78 +276,25 @@ define_themes! { [light:0, dark:1]
                             greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);
                         }
                     }
-
-                    favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
-
-                    section {
-                        column_grid {
-                            column_gap = 3.0, 3.0;
-                            entry_color_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
-                            entry_color_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
-                            entry_color_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
-                            entry_color_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
-                            entry_color_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
-                            entry_color_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
+                }
+                navigator {
+                    width = 37.0, 37.0;
+                    icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    top_padding = -3.0, -3.0;
+                    bottom_padding = 7.0, 7.0;
+                    list_view_width = 39.0, 39.0;
+                    list_view {
+                        background = Rgba::transparent() , Rgba::transparent();
+                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        highlight {
+                            height = 29.0, 29.0;
+                            corner_radius = 10.0, 10.0;
                         }
-                    }
-                }
-            }
-            component_group {
-                header {
-                    text {
-                        font = "default", "default";
-                        size = 12.0, 12.0;
-                        color_intensity = 1.0, 1.0;
-                    }
-                    height = 27.0, 27.0;
-                    padding {
-                        left   = 11.0, 11.0;
-                        right  = 2.5, 2.5;
-                        bottom = 5.0, 5.0;
-                    }
-                    shadow = shadow , shadow;
-                    shadow {
-                        size     = 27.0 , 27.0;
-                        spread   = shadow::spread   , shadow::spread;
-                        fading   = shadow::fading   , shadow::fading;
-                        exponent = shadow::exponent , shadow::exponent;
-                        offset_x = shadow::offset_x , shadow::offset_x;
-                        offset_y = shadow::offset_y , shadow::offset_y;
-                    }
-                }
-                selection {
-                    corners_radius = 10.0, 10.0;
-                    header_corners_radius = 5.0, 5.0;
-                    horizontal_padding = 3.0, 3.0;
-                    height = 30.0, 30.0;
-                    wide_group_column_padding = 18.0, 18.0;
-                    header_height = 21.0, 21.0;
-                }
-                background_color_intensity = 0.2, 0.2;
-                selection_color_intensity = 1.0, 1.0;
-                dimmed_color_intensity = 0.5, 0.5;
-                entry_list {
-                    background = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
-                    highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
-                    selected_color = Rgba::white(), Rgba::white();
-                    text {
-                        font = "default", "default";
-                        size = 12.0, 12.0;
-                        color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
-                        highlight_bold = 0.02, 0.02;
-                    }
-                    icon_text_gap = 5.0, 5.0;
-                    icon {
-                        size = 16.0, 16.0;
-                        weak_color_intensity = 0.5, 0.5;
-                    }
-                    padding = 4.0, 4.0;
-                    entry {
-                        padding = 7.0, 7.0;
-                    }
-                    highlight {
-                        height = 30.0, 30.0;
-                        corner_radius = 0.0, 0.0;
+                        entry {
+                            padding = 14.5, 14.5;
+                        }
+                        padding = 5.0, 5.0;
                     }
                 }
             }

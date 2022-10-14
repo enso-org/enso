@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use ensogl_core::display::shape::AnyShape;
 use std::f32::consts::PI;
 
 

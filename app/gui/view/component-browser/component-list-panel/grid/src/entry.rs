@@ -1,11 +1,14 @@
 //! A module containing definition for Component Browser Entry [`View`] and related structures.
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
-use crate::icon;
-use crate::new_entry::style::Colors;
-use crate::set::GroupId;
-use crate::set::SectionId;
+use crate::content::GroupId;
+use crate::content::SectionId;
+use crate::entry::style::ColorIntensities;
+use crate::entry::style::Colors;
+use crate::GroupColors;
+use crate::Style as GridStyle;
 
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -14,11 +17,12 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::Scene;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::MovedHeaderPosition;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 
@@ -27,9 +31,10 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
+pub mod icon;
 pub mod style;
 
-pub use crate::new_entry::style::Style;
+pub use crate::entry::style::Style;
 
 
 
@@ -40,7 +45,7 @@ pub use crate::new_entry::style::Style;
 /// The number of pixels the entries inside one group overlap each other.
 ///
 /// The entries need to overlap, otherwise we see artifacts at their boundaries.
-const ENTRIES_OVERLAP_PX: f32 = 1.0;
+const ENTRIES_OVERLAP_PX: f32 = 2.0;
 
 
 
@@ -57,8 +62,7 @@ pub mod background {
     // We don't use the usual padding of sprites, because we clip the shadow under the background
     // and clipping the shadow shape with `*` operator causes glitches.
     // See https://www.pivotaltracker.com/story/show/182593513
-
-    ensogl::define_shape_system! {
+    ensogl_core::define_shape_system! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
@@ -74,7 +78,7 @@ pub mod background {
             //    when the shadow rect has the exact same size as the background. We shrink the
             //    height by 1 pixel to avoid it.
             let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
-            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::shadow);
             shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
             let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
@@ -99,8 +103,47 @@ pub enum Kind {
     /// A group header; there is no icon, the text id stronger and there is a gap above header
     /// being a group separator.
     Header,
-    /// The entry in LocalScope section which leave no gap to the left or right.
-    LocalScopeEntry,
+    /// The entry in LocalScope section which leave no gap to the left or right, and is pushed down
+    /// a little to create a gap between Local Scope section and other groups.
+    LocalScopeEntry {
+        /// Entries in the first line will not add an (overlap)[ENTRIES_OVERLAP_PX].
+        first_line: bool,
+    },
+}
+
+
+// === MainColor ===
+
+/// The structure describing how entry is colored.
+///
+/// Each group has devined "main color" for entries, from which are derived colros of various
+/// entries' elements: text, icon, background, etc. (see [`style::Colors`] documentation).
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+pub enum MainColor {
+    /// The entry should use one variant of predefined color taken from the style sheet.
+    Predefined { variant_index: usize },
+    /// The entry's color is defined by library's author.
+    Custom(color::Lcha),
+    /// The entry should have color defined for the Local Scope section.
+    LocalScope,
+}
+
+impl Default for MainColor {
+    fn default() -> Self {
+        Self::Predefined { variant_index: 0 }
+    }
+}
+
+impl MainColor {
+    fn obtain(self, group_colors: &GroupColors) -> color::Lcha {
+        match self {
+            Self::Predefined { variant_index: variant } =>
+                group_colors.variants[variant % group_colors.variants.len()],
+            Self::Custom(color) => color,
+            Self::LocalScope => group_colors.local_scope_group,
+        }
+    }
 }
 
 
@@ -111,7 +154,7 @@ pub enum Kind {
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub kind:        Kind,
-    pub color:       color::Rgba,
+    pub color:       MainColor,
     pub caption:     ImString,
     pub highlighted: Rc<Vec<text::Range<text::Byte>>>,
     pub icon:        Option<icon::Id>,
@@ -153,8 +196,11 @@ impl DimmedGroups {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
-    pub style:         Style,
-    pub dimmed_groups: DimmedGroups,
+    pub style:             Style,
+    pub grid_style:        GridStyle,
+    pub color_intensities: ColorIntensities,
+    pub group_colors:      GroupColors,
+    pub dimmed_groups:     DimmedGroups,
 }
 
 
@@ -170,8 +216,8 @@ pub struct Params {
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
-    strong_color:   color::Rgba,
-    weak_color:     color::Rgba,
+    strong_color:   color::Lcha,
+    weak_color:     color::Lcha,
     shape:          Option<icon::Any>,
     id:             Option<icon::Id>,
 }
@@ -194,9 +240,8 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                tracing::debug!("Creating new icon {icon_id:?}.");
-                shape.strong_color.set(self.strong_color.into());
-                shape.weak_color.set(self.weak_color.into());
+                shape.strong_color.set(color::Rgba::from(self.strong_color).into());
+                shape.weak_color.set(color::Rgba::from(self.weak_color).into());
                 self.display_object.add_child(&shape);
                 self.shape = Some(shape);
             } else {
@@ -205,17 +250,17 @@ impl CurrentIcon {
         }
     }
 
-    fn set_strong_color(&mut self, color: color::Rgba) {
+    fn set_strong_color(&mut self, color: color::Lcha) {
         self.strong_color = color;
         if let Some(shape) = &self.shape {
-            shape.strong_color.set(color.into());
+            shape.strong_color.set(color::Rgba::from(color).into());
         }
     }
 
-    fn set_weak_color(&mut self, color: color::Rgba) {
+    fn set_weak_color(&mut self, color: color::Lcha) {
         self.weak_color = color;
         if let Some(shape) = &self.shape {
-            shape.weak_color.set(color.into());
+            shape.weak_color.set(color::Rgba::from(color).into());
         }
     }
 }
@@ -256,33 +301,52 @@ impl Data {
         Self { display_object, label, background, icon: Rc::new(RefCell::new(icon)), style }
     }
 
-    fn update_layout(&self, kind: Kind, style: &Style, entry_size: Vector2) {
+    fn update_layout(
+        &self,
+        kind: Kind,
+        style: &Style,
+        grid_style: &GridStyle,
+        entry_size: Vector2,
+    ) {
         // For explanation how differend kinds of entry should behave, see documentation of
         // [`Kind`].
-        let bg_width = if kind == Kind::LocalScopeEntry { entry_size.x } else { style.group_width };
-        let bg_height = entry_size.y
-            + if kind == Kind::Header { -style.gap_between_groups } else { ENTRIES_OVERLAP_PX };
+        let local_scope_offset = match kind {
+            Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
+            _ => 0.0,
+        };
+        let overlap = match kind {
+            Kind::Entry | Kind::LocalScopeEntry { first_line: false } => ENTRIES_OVERLAP_PX,
+            _ => 0.0,
+        };
+        let gap_over_header = match kind {
+            Kind::Header => grid_style.column_gap,
+            _ => 0.0,
+        };
+        let bg_width = match kind {
+            Kind::LocalScopeEntry { .. } => entry_size.x,
+            _ => grid_style.column_width(),
+        };
+        let bg_height = entry_size.y - gap_over_header + overlap;
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = if kind == Kind::Header {
-            -style.gap_between_groups / 2.0
-        } else {
-            ENTRIES_OVERLAP_PX / 2.0
-        };
+        let bg_y = -gap_over_header / 2.0 + overlap / 2.0 + local_scope_offset;
         self.background.set_position_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
-        self.icon.borrow().set_position_x(left + style.icon_size / 2.0);
-        let text_x = Self::text_x_position(kind, style);
-        self.label.set_position_xy(Vector2(text_x, style.text_size.value / 2.0));
+        let icon_x = left + style.icon_size / 2.0;
+        let icon_y = local_scope_offset;
+        self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
+        let text_x = Self::text_x_position(kind, style, grid_style);
+        let text_y = style.text_size / 2.0 + local_scope_offset;
+        self.label.set_position_xy(Vector2(text_x, text_y));
     }
 
-    fn contour(kind: Kind, style: &Style, entry_size: Vector2) -> Contour {
-        let optional_gap = if kind == Kind::Header { style.gap_between_groups } else { 0.0 };
+    fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
+        let optional_gap = if kind == Kind::Header { grid_style.column_gap } else { 0.0 };
         let height = entry_size.y - optional_gap;
-        Contour::rectangular(Vector2(style.group_width, height))
+        Contour::rectangular(Vector2(grid_style.column_width(), height))
     }
 
     fn highlight_contour(contour: Contour, style: &Style) -> Contour {
@@ -290,19 +354,23 @@ impl Data {
         Contour { corners_radius, ..contour }
     }
 
-    fn contour_offset(kind: Kind, style: &Style) -> Vector2 {
-        let y = if kind == Kind::Header { -style.gap_between_groups / 2.0 } else { 0.0 };
+    fn contour_offset(kind: Kind, grid_style: &GridStyle) -> Vector2 {
+        let y = match kind {
+            Kind::Header => -grid_style.column_gap / 2.0,
+            Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
+            _ => 0.0,
+        };
         Vector2(0.0, y)
     }
 
-    fn max_text_width(kind: Kind, style: &Style) -> f32 {
-        let right = style.group_width / 2.0 - style.padding;
-        let text_x = Self::text_x_position(kind, style);
+    fn max_text_width(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
+        let right = grid_style.column_width() / 2.0 - style.padding;
+        let text_x = Self::text_x_position(kind, style, grid_style);
         right - text_x
     }
 
-    fn text_x_position(kind: Kind, style: &Style) -> f32 {
-        let left = -style.group_width / 2.0 + style.padding;
+    fn text_x_position(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
+        let left = -grid_style.column_width() / 2.0 + style.padding;
         if kind == Kind::Header {
             left
         } else {
@@ -376,31 +444,39 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
-            kind_and_style <- all(kind, style);
+            color_intensities <- input.set_params.map(|p| p.color_intensities).on_change();
+            group_colors <- input.set_params.map(|p| p.group_colors).on_change();
+            grid_style <- input.set_params.map(|p| p.grid_style).on_change();
+            kind_and_style <- all(kind, style, grid_style);
             layout_data <- all(kind_and_style, input.set_size);
-            eval layout_data ((((kind, style), entry_sz))
-                data.update_layout(*kind, style, *entry_sz)
+            eval layout_data ((((kind, style, grid_style), entry_sz))
+                data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ layout_data.map(|((kind, style), entry_sz)| {
-                Data::contour(*kind, style, *entry_sz)
+            out.contour <+ layout_data.map(|((kind, _, grid_style), entry_sz)| {
+                Data::contour(*kind, grid_style, *entry_sz)
             });
-            out.contour_offset <+ kind_and_style.map(|(k, s)| Data::contour_offset(*k, s));
+            out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
             out.highlight_contour <+ out.contour.map2(&style, |c, s| Data::highlight_contour(*c, s));
             out.highlight_contour_offset <+ out.contour_offset;
 
 
             // === Colors ===
 
-            color <- input.set_model.map(|m| m.color);
+            color_variant <- input.set_model.map(|m| m.color);
+            color <- all_with(&color_variant, &group_colors, |c, g| c.obtain(g));
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            let colors = Colors::from_main_color(network, &data.style, &color, &style, &is_dimmed);
-            eval colors.background ((c) data.background.color.set(c.into()));
+            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
+            eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
             eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
+            // We want to animate only when params changed (the different section is highlighted).
+            // Other case, where entry receives new model with new section means it is reused
+            // at another location, so it should not animate anything.
+            colors.skip_animations <+ input.set_model.constant(());
 
 
             // === Header Shadow ===
@@ -411,7 +487,7 @@ impl grid_view::Entry for View {
 
             // === Icon and Text ===
 
-            max_text_width <- kind_and_style.map(|(kind, style)| Data::max_text_width(*kind, style));
+            max_text_width <- kind_and_style.map(|(k, s, gs)| Data::max_text_width(*k, s, gs));
             caption <- input.set_model.map(|m| m.caption.clone_ref());
             icon <- input.set_model.map(|m| m.icon);
             data.label.set_content <+ caption;
@@ -427,7 +503,7 @@ impl grid_view::Entry for View {
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
-            data.label.set_property_default <+ style.map(|s| s.text_size).ref_into_some();
+            data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
             data.label.set_font <+ style.map(|s| s.font.clone_ref()).on_change();
         }

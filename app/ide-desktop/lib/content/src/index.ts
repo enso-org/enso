@@ -781,7 +781,7 @@ class Config {
     public test_workflow: string = undefined
     public skip_min_version_check: boolean = Versions.isDevVersion()
     public preferred_engine_version: SemVer = Versions.ideVersion
-    public enable_new_component_browser: boolean = false
+    public enable_new_component_browser: boolean = true
 
     updateFromObject(other: any) {
         if (!ok(other)) {
