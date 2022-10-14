@@ -8,7 +8,7 @@
 use crate::prelude::*;
 
 use double_representation::tp;
-use ide_view_component_group::icon::Id as IconId;
+use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
 

@@ -53,8 +53,8 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The panel is unstable, and thus is
-  available under the `--enable-new-component-browser` flag.
+  popular tools are available at hand. The panel is unstable, and can be
+  disabled with the `--enable-new-component-browser=false` flag.
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.

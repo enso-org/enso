@@ -2554,10 +2554,10 @@ impl application::View for GraphEditor {
             // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
             (Release, "", "cmd", "edit_mode_off"),
-            (Press, "", "cmd enter", "edit_selected_node"),
+            (Press, "!node_editing", "cmd enter", "edit_selected_node"),
             (Press, "", "cmd left-mouse-button", "edit_mode_on"),
             (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Release, "", "enter", "stop_editing"),
+            (Press, "node_editing", "cmd enter", "stop_editing"),
             // === Profiling Mode ===
             (Press, "", "cmd p", "toggle_profiling_mode"),
             // === Debug ===

@@ -11,11 +11,11 @@ enso-frp = { path = "../../../../../lib/rust/frp" }
 enso-profiler = { path = "../../../../../lib/rust/profiler" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
-ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
+ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
+ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
-ide-view-component-group = { path = "../../component-browser/component-group" }
-ide-view-component-list-panel = { path = "../../component-browser/searcher-list-panel" }
+ide-view-component-list-panel = { path = "../../component-browser/component-list-panel" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 js-sys = { version = "0.3" }
 

@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
-ide-view-component-group = { path = "../../component-browser/component-group" }
+ide-view-component-list-panel-grid = { path = "../../component-browser/component-list-panel/grid" }
 wasm-bindgen = { version = "=0.2.78" }
