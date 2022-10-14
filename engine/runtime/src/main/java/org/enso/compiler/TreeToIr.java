@@ -711,6 +711,12 @@ final class TreeToIr {
               );
               List<IR.DefinitionArgument> args = cons(arg_, nil());
               var body = translateExpression(app.getRhs(), false);
+              if (body == null) {
+                body = new IR$Expression$Block(
+                  nil(), new IR$Name$Blank(Option.empty(), meta(), diag()),
+                  Option.empty(), true, meta(), diag()
+                );
+              }
               yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
             }
           }
