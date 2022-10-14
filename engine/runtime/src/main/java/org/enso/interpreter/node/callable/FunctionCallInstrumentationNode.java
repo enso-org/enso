@@ -54,7 +54,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
 
   /** A simple value class for function call information. */
   @ExportLibrary(InteropLibrary.class)
-  public static class FunctionCall implements TruffleObject {
+  public static final class FunctionCall implements TruffleObject {
     private final Function function;
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
