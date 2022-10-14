@@ -39,7 +39,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     return Type.STRING;
   }
 
-  private static final MapOpStorage<SpecializedStorage<String>> ops = buildOps();
+  private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
 
   @Override
   protected boolean isOpVectorized(String name) {
@@ -47,17 +47,17 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
       return fillMissingHelper(arg, new StringBuilder(size()));
     } else {
@@ -65,12 +65,12 @@ public final class StringStorage extends SpecializedStorage<String> {
     }
   }
 
-  private static MapOpStorage<SpecializedStorage<String>> buildOps() {
-    MapOpStorage<SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
         new MapOperation<>(Maps.EQ) {
           @Override
-          public Storage runMap(SpecializedStorage<String> storage, Object arg) {
+          public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -84,7 +84,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
 
           @Override
-          public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
+          public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -101,7 +101,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected Storage run(SpecializedStorage<String> storage) {
+          protected BoolStorage run(SpecializedStorage<String> storage) {
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {
               String s = storage.data[i];

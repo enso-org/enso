@@ -142,7 +142,7 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     if (isDouble) {
       return new DoubleStorage(data, currentSize, isMissing);
     } else {

@@ -7,7 +7,6 @@ import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.TypedStorage;
 
 /**
  * A specialized implementation for the IS_IN operation for builtin types, relying on hashing. Since
@@ -15,7 +14,7 @@ import org.enso.table.data.column.storage.TypedStorage;
  * do not match that type and then rely on a consistent definition of hashcode for these builtin
  * types (which is not available in general for custom objects).
  */
-public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends MapOperation<S> {
+public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, S> {
   /**
    * An optimized representation of the vector of values to match.
    *
@@ -39,7 +38,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
    * fractional part need to be converted into a Long. These conversions can be achieved with the
    * {@code NumericConverter} class.
    */
-  public static <T, S extends Storage & TypedStorage<T>> SpecializedIsInOp<T, S> make(
+  public static <T, S extends Storage<T>> SpecializedIsInOp<T, S> make(
       Function<List<?>, CompactRepresentation<T>> prepareList) {
     return new SpecializedIsInOp<>(prepareList);
   }
@@ -50,7 +49,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
    * <p>It uses the provided {@code storageClass} to only keep the elements that are of the same
    * type as expected in the storage.
    */
-  public static <T, S extends Storage & TypedStorage<T>> SpecializedIsInOp<T, S> makeForTimeColumns(Class<T> storageClass) {
+  public static <T, S extends Storage<T>> SpecializedIsInOp<T, S> makeForTimeColumns(Class<T> storageClass) {
     return SpecializedIsInOp.make(
         list -> {
           HashSet<T> set = new HashSet<>();
@@ -72,7 +71,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
   }
 
   @Override
-  public Storage runMap(S storage, Object arg) {
+  public Storage<?> runMap(S storage, Object arg) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -80,7 +79,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
     }
   }
 
-  public Storage runMap(S storage, List<?> arg) {
+  public Storage<?> runMap(S storage, List<?> arg) {
     CompactRepresentation<T> compactRepresentation = prepareList.apply(arg);
     BitSet newVals = new BitSet();
     for (int i = 0; i < storage.size(); i++) {
@@ -94,7 +93,7 @@ public class SpecializedIsInOp<T, S extends Storage & TypedStorage<T>> extends M
   }
 
   @Override
-  public Storage runZip(S storage, Storage arg) {
+  public Storage<?> runZip(S storage, Storage<?> arg) {
     throw new IllegalStateException("Zip mode is not supported for this operation.");
   }
 }

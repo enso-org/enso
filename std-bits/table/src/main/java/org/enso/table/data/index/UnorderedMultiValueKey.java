@@ -21,12 +21,12 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final int hashCodeValue;
   private final TextFoldingStrategy textFoldingStrategy;
 
-  public UnorderedMultiValueKey(Storage[] storages, int rowIndex) {
+  public UnorderedMultiValueKey(Storage<?>[] storages, int rowIndex) {
     this(storages, rowIndex, TextFoldingStrategy.unicodeNormalizedFold);
   }
 
   public UnorderedMultiValueKey(
-      Storage[] storages, int rowIndex, TextFoldingStrategy textFoldingStrategy) {
+      Storage<?>[] storages, int rowIndex, TextFoldingStrategy textFoldingStrategy) {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 

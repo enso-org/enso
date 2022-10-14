@@ -14,10 +14,10 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
     super(data, size, ops);
   }
 
-  private static final MapOpStorage<SpecializedStorage<LocalDate>> ops = buildOps();
+  private static final MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> ops = buildOps();
 
-  private static MapOpStorage<SpecializedStorage<LocalDate>> buildOps() {
-    MapOpStorage<SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
+  private static MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
+    MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
     t.add(SpecializedIsInOp.makeForTimeColumns(LocalDate.class));
     return t;
   }

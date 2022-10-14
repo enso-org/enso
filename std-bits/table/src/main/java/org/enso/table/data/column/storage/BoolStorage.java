@@ -14,8 +14,8 @@ import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
-public final class BoolStorage extends Storage implements TypedStorage<Boolean> {
-  private static final MapOpStorage<BoolStorage> ops = buildOps();
+public final class BoolStorage extends Storage<Boolean> {
+  private static final MapOpStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isMissing;
   private final int size;
@@ -65,12 +65,12 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
@@ -100,7 +100,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {
@@ -109,7 +109,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   }
 
   @Override
-  public Storage mask(BitSet mask, int cardinality) {
+  public BoolStorage mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     BitSet newValues = new BitSet();
     int resultIx = 0;
@@ -130,7 +130,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   }
 
   @Override
-  public Storage applyMask(OrderMask mask) {
+  public BoolStorage applyMask(OrderMask mask) {
     int[] positions = mask.getPositions();
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
@@ -145,7 +145,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
   }
 
   @Override
-  public Storage countMask(int[] counts, int total) {
+  public BoolStorage countMask(int[] counts, int total) {
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
     int pos = 0;
@@ -164,12 +164,12 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
     return negated;
   }
 
-  private static MapOpStorage<BoolStorage> buildOps() {
-    MapOpStorage<BoolStorage> ops = new MapOpStorage<>();
+  private static MapOpStorage<Boolean, BoolStorage> buildOps() {
+    MapOpStorage<Boolean, BoolStorage> ops = new MapOpStorage<>();
     ops.add(
             new UnaryMapOperation<>(Maps.NOT) {
               @Override
-              protected Storage run(BoolStorage storage) {
+              protected BoolStorage run(BoolStorage storage) {
                 return new BoolStorage(
                     storage.values, storage.isMissing, storage.size, !storage.negated);
               }
@@ -177,7 +177,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
         .add(
             new MapOperation<>(Maps.EQ) {
               @Override
-              public Storage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
@@ -191,7 +191,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
               }
 
               @Override
-              public Storage runZip(BoolStorage storage, Storage arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
@@ -209,7 +209,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
         .add(
             new MapOperation<>(Maps.AND) {
               @Override
-              public Storage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
@@ -222,7 +222,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
               }
 
               @Override
-              public Storage runZip(BoolStorage storage, Storage arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -251,7 +251,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
         .add(
             new MapOperation<>(Maps.OR) {
               @Override
-              public Storage runMap(BoolStorage storage, Object arg) {
+              public BoolStorage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean v) {
                   if (v) {
                     return new BoolStorage(new BitSet(), storage.isMissing, storage.size, true);
@@ -264,7 +264,7 @@ public final class BoolStorage extends Storage implements TypedStorage<Boolean> 
               }
 
               @Override
-              public Storage runZip(BoolStorage storage, Storage arg) {
+              public BoolStorage runZip(BoolStorage storage, Storage<?> arg) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);

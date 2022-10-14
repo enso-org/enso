@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.Objects;
 
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,13 +12,13 @@ import org.enso.table.data.column.storage.Storage;
  * possible values we can have a highly efficient implementation that does not even rely on hashmap
  * and after processing the input vector, performs the checks in constant time.
  */
-public class BooleanIsInOp extends MapOperation<BoolStorage> {
+public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
   public BooleanIsInOp() {
     super(Storage.Maps.IS_IN);
   }
 
   @Override
-  public Storage runMap(BoolStorage storage, Object arg) {
+  public BoolStorage runMap(BoolStorage storage, Object arg) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -27,7 +26,7 @@ public class BooleanIsInOp extends MapOperation<BoolStorage> {
     }
   }
 
-  public Storage runMap(BoolStorage storage, List<?> arg) {
+  public BoolStorage runMap(BoolStorage storage, List<?> arg) {
     boolean hadTrue = false;
     boolean hadFalse = false;
     boolean hadNull = false;
@@ -84,7 +83,7 @@ public class BooleanIsInOp extends MapOperation<BoolStorage> {
   }
 
   @Override
-  public Storage runZip(BoolStorage storage, Storage arg) {
+  public Storage<?> runZip(BoolStorage storage, Storage<?> arg) {
     throw new IllegalStateException("Zip mode is not supported for this operation.");
   }
 }

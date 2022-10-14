@@ -8,7 +8,7 @@ import java.util.List;
 
 /** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
 
   public Sum(String name, Column column) {
     super(name, Storage.Type.DOUBLE);

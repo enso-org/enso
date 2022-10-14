@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class FunctionAggregator extends Aggregator {
   private final Function<List<Object>, Value> aggregateFunction;
   private final boolean skipNa;
-  private final Storage storage;
+  private final Storage<?> storage;
   private final InferredBuilder builder;
 
   /**
@@ -27,7 +27,7 @@ public class FunctionAggregator extends Aggregator {
    */
   public FunctionAggregator(
       Function<List<Object>, Value> aggregateFunction,
-      Storage storage,
+      Storage<?> storage,
       boolean skipNa,
       int resultSize) {
     this.aggregateFunction = aggregateFunction;
@@ -53,7 +53,7 @@ public class FunctionAggregator extends Aggregator {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     return builder.seal();
   }
 }

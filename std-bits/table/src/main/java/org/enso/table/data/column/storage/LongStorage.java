@@ -21,11 +21,11 @@ import java.util.OptionalLong;
 import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends NumericStorage implements TypedStorage<Long> {
+public final class LongStorage extends NumericStorage<Long> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<LongStorage> ops = buildOps();
+  private static final MapOpStorage<Long, LongStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -91,12 +91,12 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
@@ -140,7 +140,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
     };
   }
 
-  private Storage fillMissingDouble(double arg) {
+  private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
@@ -154,7 +154,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
     return builder.seal();
   }
 
-  private Storage fillMissingLong(long arg) {
+  private Storage<?> fillMissingLong(long arg) {
     final var builder = NumericBuilder.createLongBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -167,7 +167,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingLong(arg.asLong());
@@ -180,7 +180,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
   }
 
   @Override
-  public LongStorage mask(BitSet mask, int cardinality) {
+  public Storage<Long> mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
@@ -197,7 +197,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
   }
 
   @Override
-  public Storage applyMask(OrderMask mask) {
+  public Storage<Long> applyMask(OrderMask mask) {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
@@ -212,7 +212,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
   }
 
   @Override
-  public Storage countMask(int[] counts, int total) {
+  public Storage<Long> countMask(int[] counts, int total) {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
@@ -233,8 +233,8 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
     return isMissing;
   }
 
-  private static MapOpStorage<LongStorage> buildOps() {
-    MapOpStorage<LongStorage> ops = new MapOpStorage<>();
+  private static MapOpStorage<Long, LongStorage> buildOps() {
+    MapOpStorage<Long, LongStorage> ops = new MapOpStorage<>();
     ops.add(
             new LongNumericOp(Maps.ADD) {
               @Override
@@ -363,7 +363,7 @@ public final class LongStorage extends NumericStorage implements TypedStorage<Lo
         .add(
             new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
-              public Storage run(LongStorage storage) {
+              public BoolStorage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
