@@ -729,21 +729,23 @@ type Table
         result = Table.new new_columns
         on_problems.attach_problems_after result problem_builder.to_vector
 
-    ## Replaces the first, last, or all occurrences of term with new_text in each text row of selected columns.
+    ## Replaces the first, last, or all occurrences of `term` with
+       `new_text` in each text row of selected columns.
        If `term` is empty, the function returns the table unchanged.
 
-       This method follows the exact replacement semantics of the `Text.replace` method.
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
 
        Arguments:
-       - columns: The columns of the table in which to perform text replacement.
+       - columns: Column selection criteria or a column name or index.
        - term: The term to find.
        - new_text: The new text to replace occurrences of `term` with.
          If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
          patterns (such as `$<n>`) for a marked group.
-       - mode: Specifies which instances of term the engine tries to find. When the
-         mode is `First` or `Last`, this method replaces the first or last instance
+       - mode: Specifies which occurences of term the engine tries to find. When the
+         mode is `First` or `Last`, this method replaces the first or last occurence
          of term in each individual table cell. If set to `All`, it replaces all
-         instances of term.
+         occurences of term.
        - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
          rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
          regular expression and matched using the associated options.
