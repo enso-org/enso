@@ -5,7 +5,6 @@ import project.Faker.Faker
 import project.Problems
 import project.Test_Suite.Test_Suite
 import project.Test.Test
-import project.Test_Result.Test_Result
 import project.Extensions
 
 export project.Bench.Bench
@@ -13,5 +12,4 @@ export project.Faker.Faker
 export project.Problems
 export project.Test_Suite.Test_Suite
 export project.Test.Test
-export project.Test_Result.Test_Result
 export project.Extensions

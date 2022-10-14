@@ -2,9 +2,9 @@ from Standard.Base import all
 
 from Standard.Table import Column
 
-from Standard.Test import Test_Result
+import Standard.Test.Test_Result.Test_Result
 
-Column.expect : Text -> Vector -> Test_Result.Success
+Column.expect : Text -> Vector -> Test_Result
 Column.expect self name contents =
     self.name.should_equal name
     self.to_vector.should_equal contents
