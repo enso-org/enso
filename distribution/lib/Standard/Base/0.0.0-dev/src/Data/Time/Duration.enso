@@ -92,9 +92,9 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_add = 1.month + (Duration.new hours=12)
-    + : Duration -> Duration ! Polyglot_Error
+    + : Duration -> Duration ! Time_Error
     + self that =
-        Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Polyglot_Error_Data err.getMessage))
+        Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Time_Error_Data err.getMessage))
 
     ## Subtract the specified amount of time from this duration.
 
@@ -114,9 +114,9 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
-    - : Duration -> Duration ! Polyglot_Error
+    - : Duration -> Duration ! Time_Error
     - self that =
-        Panic.catch ArithmeticException (self.minus_builtin that) (err -> Error.throw (Polyglot_Error_Data err.getMessage))
+        Panic.catch ArithmeticException (self.minus_builtin that) (err -> Error.throw (Time_Error_Data err.getMessage))
 
     ## Check two durations for equality.
 
@@ -206,24 +206,24 @@ type Duration
 
     ## UNSTABLE
        Convert the duration to total milliseconds.
-    total_milliseconds : Integer ! Illegal_Argument_Error
+    total_milliseconds : Integer ! Illegal_State_Error
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
-            Error.throw (Illegal_Argument_Error_Data "The duration is too large to convert it to milliseconds")
+            Error.throw (Illegal_State_Error_Data "The duration is too large to convert it to milliseconds")
 
     ## UNSTABLE
        Convert the duration to total seconds.
-    total_seconds : Decimal ! Illegal_Argument_Error
+    total_seconds : Decimal ! Illegal_State_Error
     total_seconds self = self.total_milliseconds / 1000.0
 
     ## UNSTABLE
        Convert the duration to total minutes.
-    total_minutes : Decimal ! Illegal_Argument_Error
+    total_minutes : Decimal ! Illegal_State_Error
     total_minutes self = self.total_seconds / 60.0
 
     ## UNSTABLE
        Convert the duration to total minutes.
-    total_hours : Decimal ! Illegal_Argument_Error
+    total_hours : Decimal ! Illegal_State_Error
     total_hours self = self.total_minutes / 60.0
 
     ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds

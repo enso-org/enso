@@ -107,7 +107,7 @@ public final class EnsoDuration implements TruffleObject {
         return LocalDateTime.of(date, time);
       }
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(e.getMessage(), interop);
+      throw new IllegalStateException(e);
     }
   }
 
