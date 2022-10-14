@@ -44,6 +44,18 @@ new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
     Duration.new_builtin hours minutes seconds milliseconds nanoseconds
 
+
+## Create a zero (empty) duration.
+   > Example
+     Folding a vector of durations.
+
+         import Standard.Base.Data.Time.Duration
+
+         durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
+         example_sum = durations.fold Duration.zero (+)
+zero : Duration
+zero = new
+
 ## ADVANCED
 
    Time the evaluation of a function, return a Pair of Duration and Result
