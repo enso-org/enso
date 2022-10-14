@@ -4,14 +4,16 @@ use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::component;
+use crate::model::suggestion_database::entry::for_each_kind_variant;
 use crate::presenter;
 
+use enso_frp as frp;
 use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
-use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
-use ide_view_component_group as component_group_view;
+use ide_view::component_browser::component_list_panel;
+use ide_view::component_browser::component_list_panel::grid as component_grid;
 
 
 
@@ -146,27 +148,133 @@ impl ide_view::searcher::DocumentationProvider for Action {
 
 
 
-// ===========================
-// === provider::Component ===
-// ===========================
+// =======================================
+// === ControllerComponentsProviderExt ===
+// =======================================
 
-/// Component Provider getting entries from a [`controller::searcher::component::Group`].
-#[derive(Clone, CloneRef, Debug)]
-pub struct Component {
-    group: controller::searcher::component::Group,
+/// An extension for controller's component provider adding useful functions for conversions between
+/// controller and view structures.
+pub trait ControllerComponentsProviderExt {
+    /// Return the component from controllers by view's id.
+    fn component_by_view_id(
+        &self,
+        id: component_grid::GroupEntryId,
+    ) -> Option<component::Component>;
+
+    /// Return the group from controllers by view's id.
+    fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group>;
+
+    /// Create information about content for the view.
+    fn create_grid_content_info(&self) -> component_grid::content::Info;
+
+    /// Create a view's model for given entry.
+    fn get_entry_model(
+        &self,
+        entry_id: component_grid::GroupEntryId,
+    ) -> Option<component_grid::EntryModel>;
+
+    /// Create a view's model for header of given group.
+    fn get_header_model(
+        &self,
+        group_id: component_grid::GroupId,
+    ) -> Option<component_grid::HeaderModel>;
 }
 
-impl Component {
-    /// Create component provider based of the given group.
-    pub fn new(group: controller::searcher::component::Group) -> Self {
-        Self { group }
+
+// === Implementation ===
+
+impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvider {
+    fn component_by_view_id(
+        &self,
+        id: component_grid::GroupEntryId,
+    ) -> Option<component::Component> {
+        let group = self.group_by_view_id(id.group);
+        group.and_then(|group| group.get_entry(id.entry))
     }
+
+    fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group> {
+        let opt_group = match id.section {
+            component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
+            component_grid::SectionId::LocalScope =>
+                (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
+            component_grid::SectionId::SubModules => self.top_modules().get(id.index).cloned(),
+        };
+        opt_group
+    }
+
+    fn create_grid_content_info(&self) -> component_grid::content::Info {
+        let favorites = self.favorites();
+        let popular_section =
+            group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
+        let top_modules = self.top_modules();
+        let submodules_section = group_list_to_grid_group_infos(
+            component_grid::SectionId::SubModules,
+            top_modules.deref(),
+        );
+        component_list_panel::grid::content::Info {
+            groups:                  popular_section.chain(submodules_section).collect(),
+            local_scope_entry_count: self.local_scope().matched_items.get(),
+        }
+    }
+
+    fn get_entry_model(
+        &self,
+        entry_id: component_grid::GroupEntryId,
+    ) -> Option<component_grid::EntryModel> {
+        let component = self.component_by_view_id(entry_id)?;
+        Some(component_to_entry_model(&component))
+    }
+
+    fn get_header_model(
+        &self,
+        group_id: component_grid::GroupId,
+    ) -> Option<component_grid::HeaderModel> {
+        let group = self.group_by_view_id(group_id)?;
+        let can_be_entered = match group_id.section {
+            component_grid::SectionId::Popular => false,
+            component_grid::SectionId::LocalScope => true,
+            component_grid::SectionId::SubModules => true,
+        };
+        Some(group_to_header_model(&group, can_be_entered))
+    }
+}
+
+
+// === ControllerComponentsProviderExt Helper Functions ===
+
+fn controller_group_to_grid_group_info(
+    id: component_grid::GroupId,
+    group: &component::Group,
+) -> component_grid::content::Group {
+    component_grid::content::Group {
+        id,
+        height: group.matched_items.get(),
+        original_height: group.len(),
+        color: group.color,
+    }
+}
+
+fn group_list_to_grid_group_infos(
+    section: component_grid::SectionId,
+    list: &component::group::List,
+) -> impl Iterator<Item = component_grid::content::Group> + '_ {
+    list.iter().enumerate().map(move |(index, group)| {
+        let id = component_grid::GroupId { section, index };
+        controller_group_to_grid_group_info(id, group)
+    })
+}
+
+fn group_to_header_model(
+    group: &component::Group,
+    can_be_entered: bool,
+) -> component_grid::HeaderModel {
+    component_grid::HeaderModel { caption: group.name.clone_ref(), can_be_entered }
 }
 
 macro_rules! kind_to_icon {
     ([ $( $variant:ident ),* ] $kind:ident) => {
         {
-            use component_group_view::icon::Id;
+            use component_grid::entry::icon::Id;
             use model::suggestion_database::entry::Kind;
             match $kind {
                 $( Kind::$variant => Id::$variant, )*
@@ -175,37 +283,27 @@ macro_rules! kind_to_icon {
     }
 }
 
-impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
-    fn entry_count(&self) -> usize {
-        self.group.matched_items.get()
-    }
-
-    fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
-        use model::suggestion_database::entry::for_each_kind_variant;
-        let component = self.group.get_entry(id)?;
-        let is_enterable = component.can_be_entered();
-        let match_info = component.match_info.borrow();
-        let label = component.label();
-        let highlighted = bytes_of_matched_letters(&match_info, &label);
-        let icon = match component.data {
-            component::Data::FromDatabase { entry, .. } => {
-                let kind = entry.kind;
-                let icon_name = entry.icon_name.as_ref();
-                let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
-                icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
-            }
-            component::Data::Virtual { snippet } => snippet.icon,
-        };
-        Some(component_group_view::entry::Model {
-            icon,
-            highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
-            is_enterable,
-        })
+fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
+    let can_be_entered = component.can_be_entered();
+    let match_info = component.match_info.borrow();
+    let caption = component.label();
+    let highlighted = bytes_of_matched_letters(&match_info, &caption);
+    let icon = match &component.data {
+        component::Data::FromDatabase { entry, .. } => {
+            let kind = entry.kind;
+            let icon_name = entry.icon_name.as_ref();
+            let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
+            icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
+        }
+        component::Data::Virtual { snippet } => snippet.icon,
+    };
+    component_grid::EntryModel {
+        caption: caption.into(),
+        highlighted: Rc::new(highlighted),
+        icon,
+        can_be_entered,
     }
 }
-
-
-// === Component Provider helpers ===
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
     if let MatchInfo::Matches { subsequence } = match_info {
@@ -234,23 +332,48 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
 
 
 // ===========================
-// === Converter functions ===
+// === provider::Component ===
 // ===========================
 
-/// Get [`LabeledAnyModelProvider`] for given component group.
-pub fn from_component_group(
-    group: &controller::searcher::component::Group,
-) -> LabeledAnyModelProvider {
-    LabeledAnyModelProvider {
-        label:                group.name.clone_ref(),
-        content:              Rc::new(Component::new(group.clone_ref())).into(),
-        original_entry_count: group.entries.borrow().len(),
-    }
+/// An object providing element models for view's [grid](component_list_panel::grid::View) derived
+/// from [controller's provider](ontroller::searcher::ComponentsProvider).
+///
+/// During construction an FRP network is set up to answer the `model_for_header_needed` and
+/// `model_for_entry_needed` events received from the view. These connections are removed once this
+/// structure is dropped.
+#[derive(Debug)]
+pub struct Component {
+    _network: frp::Network,
 }
 
-/// Get vector of [`LabeledAnyModelProvider`] for given component group list.
-pub fn from_component_group_list(
-    groups: &impl AsRef<controller::searcher::component::group::List>,
-) -> Vec<LabeledAnyModelProvider> {
-    groups.as_ref().iter().map(from_component_group).collect()
+impl Component {
+    /// Initialize the [`Component`] provider, setting up proper connections to feed
+    /// [grid](component_list_panel::grid::View) with entries and headers models.
+    pub fn provide_new_list(
+        provider: controller::searcher::ComponentsProvider,
+        grid: &component_list_panel::grid::View,
+    ) -> Self {
+        let network = frp::Network::new("presenter::searcher::provider::Component");
+
+        frp::extend! { network
+            // Beware! We cannot connect the expression `grid.model_for...` to grid inputs, because
+            // the connections alone does not belong to network - thus when provider's network would
+            // be dropped, the connections would remain. Therefore we create intermediate nodes
+            // `entry_model` and `header_model`.
+            entry_model <- grid.model_for_entry_needed.filter_map(f!([provider](&id)
+                Some((id, provider.get_entry_model(id)?))
+            ));
+            header_model <- grid.model_for_header_needed.filter_map(f!([provider](&id)
+                Some((id, provider.get_header_model(id)?))
+            ));
+            grid.model_for_entry <+ entry_model;
+            grid.model_for_header <+ header_model;
+        }
+        let content = provider.create_grid_content_info();
+        grid.reset(content);
+        if provider.displaying_module() {
+            grid.switch_section_no_animation(component_grid::content::SectionId::LocalScope)
+        }
+        Self { _network: network }
+    }
 }

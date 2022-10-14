@@ -94,10 +94,10 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
     }
     view.set_entries_size(Vector2(130.0, ENTRY_HEIGHT));
     let params = grid_view::simple::EntryParams {
-        bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
+        bg_color: color::Lcha::from(color::Rgba(0.8, 0.8, 0.9, 1.0)),
         bg_margin: 1.0,
-        hover_color: color::Rgba(0.0, 1.0, 0.0, 1.0),
-        selection_color: color::Rgba(1.0, 0.0, 0.0, 1.0),
+        hover_color: color::Lcha::from(color::Rgba(0.0, 1.0, 0.0, 1.0)),
+        selection_color: color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)),
         ..default()
     };
     view.set_entries_params(params);
@@ -203,10 +203,10 @@ fn init(app: &Application) {
     for view in with_hover_mask {
         view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
         let params = grid_view::simple::EntryParams {
-            bg_color: color::Rgba(0.7, 0.7, 0.9, 1.0),
+            bg_color: color::Lcha::from(color::Rgba(0.7, 0.7, 0.9, 1.0)),
             bg_margin: 0.0,
             text_offset: 8.0,
-            text_color: color::Rgba(0.9, 0.9, 0.9, 1.0),
+            text_color: color::Lcha::from(color::Rgba(0.9, 0.9, 0.9, 1.0)),
             ..default()
         };
         view.hover_highlight_frp().set_entries_params(params);
@@ -215,9 +215,9 @@ fn init(app: &Application) {
     for view in with_selection_mask {
         view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
         let params = grid_view::simple::EntryParams {
-            bg_color: color::Rgba(0.5, 0.5, 0.5, 1.0),
+            bg_color: color::Lcha::from(color::Rgba(0.5, 0.5, 0.5, 1.0)),
             bg_margin: 0.0,
-            text_color: color::Rgba(1.0, 1.0, 1.0, 1.0),
+            text_color: color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 1.0)),
             text_offset: 8.0,
             ..default()
         };

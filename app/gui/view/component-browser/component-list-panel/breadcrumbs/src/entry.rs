@@ -3,7 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -14,7 +13,7 @@ use ensogl_core::Animation;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
-use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::menu::breadcrumbs as theme;
 use ensogl_text as text;
 
 
@@ -186,10 +185,10 @@ impl EntryData {
         self.ellipsis.size.set(size);
     }
 
-    fn set_default_color(&self, color: color::Rgba) {
+    fn set_default_color(&self, color: color::Lcha) {
         self.text.set_property_default(color);
         self.ellipsis.alpha.set(color.alpha);
-        self.separator.color.set(color.into());
+        self.separator.color.set(color::Rgba::from(color).into());
     }
 
     fn set_font(&self, font: String) {
@@ -213,11 +212,17 @@ impl EntryData {
         }
     }
 
-    fn width(&self, text_offset: f32) -> f32 {
+    fn is_text_displayed(&self) -> bool {
+        self.state.get() == State::Text
+    }
+
+    /// Return the width of the entry if it is known. If the entry displays text, the width needs to
+    /// be calculated separately.
+    fn fixed_width(&self) -> Option<f32> {
         match self.state.get() {
-            State::Text => self.text.width.value() + text_offset * 2.0,
-            State::Separator => separator::ICON_WIDTH,
-            State::Ellipsis => ellipsis::ICON_WIDTH,
+            State::Text => None,
+            State::Separator => Some(separator::ICON_WIDTH),
+            State::Ellipsis => Some(ellipsis::ICON_WIDTH),
         }
     }
 }
@@ -231,13 +236,13 @@ pub struct Params {
     /// The margin of the entry's [`Contour`]. The [`Contour`] specifies the size of the
     /// clickable area of the entry. If the margin is zero, the contour covers the entire entry.
     pub margin:                   f32,
-    pub hover_color:              color::Rgba,
+    pub hover_color:              color::Lcha,
     pub font_name:                ImString,
     pub text_padding_left:        f32,
     pub text_size:                text::Size,
-    pub selected_color:           color::Rgba,
+    pub selected_color:           color::Lcha,
     pub highlight_corners_radius: f32,
-    pub greyed_out_color:         color::Rgba,
+    pub greyed_out_color:         color::Lcha,
     /// The first greyed out column. All columns to the right will also be greyed out.
     pub greyed_out_start:         Option<Col>,
 }
@@ -263,7 +268,7 @@ impl ensogl_grid_view::Entry for Entry {
         let network = frp.network();
         let color_anim = Animation::new(network);
         let appear_anim = Animation::new(network);
-        fn mix(c1: &color::Rgba, c2: &color::Rgba, coefficient: &f32) -> color::Rgba {
+        fn mix(c1: &color::Lcha, c2: &color::Lcha, coefficient: &f32) -> color::Lcha {
             color::mix(*c1, *c2, *coefficient)
         }
 
@@ -279,7 +284,7 @@ impl ensogl_grid_view::Entry for Entry {
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.highlight_corners_radius).on_change();
-            transparent_color <- init.constant(color::Rgba::transparent());
+            transparent_color <- init.constant(color::Lcha::transparent());
 
             col <- input.set_location._1();
             should_grey_out <- all_with(&col, &greyed_out_from,
@@ -307,21 +312,29 @@ impl ensogl_grid_view::Entry for Entry {
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
-            width <- map2(&input.set_model, &text_offset,
-                f!((model, text_offset) {
-                    data.set_model(model);
-                    data.width(*text_offset)
-                })
-            );
-            out.override_column_width <+ width;
-
             out.disabled <+ is_disabled;
             out.contour <+ contour;
             out.highlight_contour <+ contour.map2(&highlight_corners_radius,
                 |c, r| Contour { corners_radius: *r, ..*c }
             );
             out.hover_highlight_color <+ hover_color;
-            out.selection_highlight_color <+ init.constant(color::Rgba::transparent());
+            out.selection_highlight_color <+ init.constant(color::Lcha::transparent());
+
+
+            // === Override column width ===
+
+            // We need to adjust the width of the grid view column depending on the width of
+            // the entry. For entries displaying icons we use [`EntryData::fixed_width`] method.
+            // For text entries, we listen for [`Text::width`] changes.
+            out.override_column_width <+ input.set_model.map(
+                f!((model) {
+                    data.set_model(model);
+                    data.fixed_width()
+                })
+            ).filter_map(|w| *w);
+            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
+            entry_width <- text_width.map2(&text_offset, |w, text_offset| w + text_offset * 2.0);
+            out.override_column_width <+ entry_width;
         }
         init.emit(());
         Self { frp, data }
