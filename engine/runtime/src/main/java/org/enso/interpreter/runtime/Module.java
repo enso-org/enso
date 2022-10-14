@@ -46,7 +46,7 @@ import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
-public class Module implements TruffleObject {
+public final class Module implements TruffleObject {
 
   /** Defines a stage of compilation of the module. */
   public enum CompilationStage {

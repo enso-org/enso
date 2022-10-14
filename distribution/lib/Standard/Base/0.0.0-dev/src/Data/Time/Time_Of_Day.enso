@@ -215,10 +215,9 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
-             example_plus = Time_Of_Day.new + 3.seconds
+             example_plus = Time_Of_Day.new + (Duration.new seconds=3)
     + : Duration -> Time_Of_Day
-    + self amount = if amount.is_date then Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals") else
-        Time_Utils.time_adjust self Time_Utils.AdjustOp.PLUS amount.internal_duration
+    + self amount = self.plus_builtin amount
 
     ## Subtract the  specified amount of time from this instant to get a new
        instant.
@@ -232,10 +231,9 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
-             example_minus = Time_Of_Day.now - 12.hours
+             example_minus = Time_Of_Day.now - (Duration.new hours=12)
     - : Duration -> Time_Of_Day
-    - self amount = if amount.is_date then Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals") else
-        Time_Utils.time_adjust self Time_Utils.AdjustOp.MINUS amount.internal_duration
+    - self amount = self.minus_builtin amount
 
     ## Format this time of day as text using the default formatter.
 

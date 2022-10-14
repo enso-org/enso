@@ -12,7 +12,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 
 @ExportLibrary(InteropLibrary.class)
-class ArraySlice implements TruffleObject {
+public final class ArraySlice implements TruffleObject {
   private final Object storage;
   private final long start;
   private final long end;

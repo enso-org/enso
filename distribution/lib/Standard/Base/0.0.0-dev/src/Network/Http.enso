@@ -36,7 +36,7 @@ polyglot java import org.enso.base.Http_Utils
 
    > Example
      Create an HTTP client with extended timeout.
-         Http.new timeout=30.seconds
+         Http.new timeout=(Duration.new seconds=30)
 
    > Example
      Create an HTTP client with extended timeout and proxy settings.
@@ -48,7 +48,7 @@ polyglot java import org.enso.base.Http_Utils
          example_new =
             Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http_Data timeout follow_redirects proxy version
 
 ## Send an Options request.
@@ -662,9 +662,7 @@ type Http
     internal_http_client : HttpClient
     internal_http_client self =
         builder = HttpClient.newBuilder
-        # timeout
-        if self.timeout.is_date then Panic.throw (Time_Error_Data "Connection timeout does not support date intervals") else
-            builder.connectTimeout self.timeout.internal_duration
+        builder.connectTimeout self.timeout
         # redirect
         redirect = HttpClient.Redirect
         redirect_policy = case self.follow_redirects of
