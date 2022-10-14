@@ -58,13 +58,13 @@ spec = Test.group "Examples" <|
         Examples.no_such_method
 
     Test.specify "should provide a dummy error type" <|
-        Examples.My_Error_Data
+        Examples.My_Error.Error
 
     Test.specify "should provide a method that throws an error" <|
-        Examples.throw_error.should_fail_with Examples.My_Error_Data
+        Examples.throw_error.should_fail_with Examples.My_Error.Error
 
     Test.specify "should provide a method that throws a panic" <|
-        Test.expect_panic_with Examples.throw_panic Examples.My_Error_Data
+        Test.expect_panic_with Examples.throw_panic Examples.My_Error.Error
 
     Test.specify "should provide a URL for some geo data" <|
         (Examples.geo_data_url.length > 0) . should_be_true
