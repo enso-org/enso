@@ -1,9 +1,8 @@
 package org.enso.table.data.column.storage;
 
+import java.time.LocalDate;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-
-import java.time.LocalDate;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**

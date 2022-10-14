@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.HashSet;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -134,17 +133,19 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(new LikeOp());
-    t.add(SpecializedIsInOp.make(list -> {
-      HashSet<String> set = new HashSet<>();
-      boolean hasNulls = false;
-      for (Object o : list) {
-        hasNulls |= o == null;
-        if (o instanceof String s) {
-          set.add(s);
-        }
-      }
-      return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-    }));
+    t.add(
+        SpecializedIsInOp.make(
+            list -> {
+              HashSet<String> set = new HashSet<>();
+              boolean hasNulls = false;
+              for (Object o : list) {
+                hasNulls |= o == null;
+                if (o instanceof String s) {
+                  set.add(s);
+                }
+              }
+              return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
+            }));
     return t;
   }
 }

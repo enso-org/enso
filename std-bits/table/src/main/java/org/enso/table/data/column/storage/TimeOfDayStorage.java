@@ -1,9 +1,8 @@
 package org.enso.table.data.column.storage;
 
+import java.time.LocalTime;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-
-import java.time.LocalTime;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**

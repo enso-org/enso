@@ -1,5 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.stream.LongStream;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
@@ -13,12 +18,6 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends NumericStorage<Long> {
@@ -43,13 +42,17 @@ public final class LongStorage extends NumericStorage<Long> {
     this(data, data.length, new BitSet());
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -73,13 +76,17 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int getType() {
     return Type.LONG;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
@@ -367,18 +374,20 @@ public final class LongStorage extends NumericStorage<Long> {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
-        .add(SpecializedIsInOp.make(list -> {
-          HashSet<Long> set = new HashSet<>();
-          boolean hasNulls = false;
-          for (Object o : list) {
-            hasNulls |= o == null;
-            Long x = NumericConverter.tryConvertingToLong(o);
-            if (x != null) {
-              set.add(x);
-            }
-          }
-          return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-        }));
+        .add(
+            SpecializedIsInOp.make(
+                list -> {
+                  HashSet<Long> set = new HashSet<>();
+                  boolean hasNulls = false;
+                  for (Object o : list) {
+                    hasNulls |= o == null;
+                    Long x = NumericConverter.tryConvertingToLong(o);
+                    if (x != null) {
+                      set.add(x);
+                    }
+                  }
+                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
+                }));
     return ops;
   }
 

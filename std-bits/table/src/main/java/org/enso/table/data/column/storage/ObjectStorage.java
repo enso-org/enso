@@ -1,9 +1,8 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
-
-import java.util.BitSet;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {

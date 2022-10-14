@@ -14,10 +14,12 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     super(data, size, ops);
   }
 
-  private static final MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> ops = buildOps();
+  private static final MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> ops =
+      buildOps();
 
   private static MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
-    MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t = ObjectStorage.buildObjectOps();
+    MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
+        ObjectStorage.buildObjectOps();
     t.add(SpecializedIsInOp.makeForTimeColumns(ZonedDateTime.class));
     return t;
   }
