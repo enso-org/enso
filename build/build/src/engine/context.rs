@@ -88,7 +88,7 @@ impl RunContext {
         Sbt.require_present().await?;
 
         // Other programs.
-        ide_ci::programs::Git::new_current().await?.require_present().await?;
+        ide_ci::programs::Git.require_present().await?;
         ide_ci::programs::Go.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
@@ -97,7 +97,7 @@ impl RunContext {
         let prepare_simple_library_server = {
             if self.config.test_scala {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::Git::new(simple_server_path)
+                ide_ci::programs::git::Context::new(simple_server_path)
                     .await?
                     .cmd()?
                     .clean()

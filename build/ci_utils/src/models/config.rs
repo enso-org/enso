@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::github::IsOrganization;
 use crate::github::IsRepo;
-use crate::github::OrganizationPointer;
 use crate::github::Repo;
 use crate::serde::regex_vec;
 use crate::serde::single_or_sequence;
@@ -75,7 +75,7 @@ pub struct OrganizationContext {
     pub name: String,
 }
 
-impl OrganizationPointer for OrganizationContext {
+impl IsOrganization for OrganizationContext {
     fn name(&self) -> &str {
         &self.name
     }

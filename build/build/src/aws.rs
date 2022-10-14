@@ -4,11 +4,9 @@ use crate::version::BuildKind;
 
 use anyhow::Context;
 use aws_sdk_s3::model::ObjectCannedAcl;
-use aws_sdk_s3::output::PutObjectOutput;
 use aws_sdk_s3::types::ByteStream;
-use bytes::Buf;
 use ide_ci::github::Repo;
-use serde::de::DeserializeOwned;
+use s3::BucketContext;
 
 
 // ==============
@@ -16,6 +14,7 @@ use serde::de::DeserializeOwned;
 // ==============
 
 pub mod ecr;
+pub mod s3;
 
 
 
@@ -84,50 +83,6 @@ impl Manifest {
 
         let new_manifest = Manifest { editions: new_editions.into_iter().cloned().collect() };
         (new_manifest, nightlies_to_remove.to_vec())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct BucketContext {
-    pub client:     aws_sdk_s3::Client,
-    pub bucket:     String,
-    pub upload_acl: ObjectCannedAcl,
-    pub key_prefix: String,
-}
-
-impl BucketContext {
-    pub async fn get(&self, path: &str) -> Result<ByteStream> {
-        Ok(self
-            .client
-            .get_object()
-            .bucket(&self.bucket)
-            .key(format!("{}/{}", self.key_prefix, path))
-            .send()
-            .await?
-            .body)
-    }
-
-    pub async fn put(&self, path: &str, data: ByteStream) -> Result<PutObjectOutput> {
-        dbg!(self
-            .client
-            .put_object()
-            .bucket(&self.bucket)
-            .acl(self.upload_acl.clone())
-            .key(format!("{}/{}", self.key_prefix, path))
-            .body(data))
-        .send()
-        .await
-        .anyhow_err()
-    }
-
-    pub async fn get_yaml<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        let text = self.get(path).await?.collect().await?;
-        serde_yaml::from_reader(text.reader()).anyhow_err()
-    }
-
-    pub async fn put_yaml(&self, path: &str, data: &impl Serialize) -> Result<PutObjectOutput> {
-        let buf = serde_yaml::to_string(data)?;
-        self.put(path, ByteStream::from(buf.into_bytes())).await
     }
 }
 

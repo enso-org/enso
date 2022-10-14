@@ -11,9 +11,10 @@ use ide_ci::programs::Docker;
 use octocrab::models::repos::Release;
 use tempfile::tempdir;
 
+const BUCKET_FOR_GUI: &str = "ensocdn";
 
 
-pub async fn create_release(context: &BuildContext) -> Result<Release> {
+pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
     let versions = &context.triple.versions;
     let commit = ide_ci::actions::env::GITHUB_SHA.get()?;
 
@@ -101,18 +102,17 @@ pub async fn get_engine_package(
     Ok(engine_package)
 }
 
-/// Download the Enso Engine distribution from the GitHub release and build RUntime Docker image
+/// Download the Enso Engine distribution from the GitHub release and build Runtime Docker image
 /// from it.
 pub async fn generate_runtime_image(
     context: &BuildContext,
     tag: impl Into<String>,
 ) -> Result<ide_ci::programs::docker::ImageId> {
-    let octocrab = &context.octocrab;
     // Our runtime images always target Linux.
     let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
     let temp_for_extraction = tempdir()?;
     let engine_package = get_engine_package(
-        octocrab,
+        &context.octocrab,
         &context.remote_repo,
         temp_for_extraction.path(),
         &linux_triple,
@@ -126,29 +126,74 @@ pub async fn generate_runtime_image(
     .await
 }
 
+/// Perform deploy of the backend to the ECR.
+///
+/// Downloads the Engine package from the release, builds the runtime image from it and pushes it
+/// to our ECR.
 pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result {
-    let config = &aws_config::load_from_env().await;
-    let client = aws_sdk_ecr::Client::new(config);
+    let client = crate::aws::ecr::client_from_env().await;
     let repository_uri = crate::aws::ecr::get_repository_uri(&client, &repository).await?;
     let tag = format!("{}:{}", repository_uri, context.triple.versions.version);
     // We don't care about the image ID, we will refer to it by the tag.
-    let _image_id = generate_runtime_image(context, &repository).await?;
+    let _image_id = generate_runtime_image(context, &tag).await?;
     let credentials = crate::aws::ecr::get_credentials(&client).await?;
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
     Ok(())
 }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::setup_octocrab;
-//
-//     #[tokio::test]
-//     #[ignore]
-//     async fn dispatch_workflow() -> Result {
-//         let octo = setup_octocrab().await?;
-//         let version = Version::parse("2022.1.1-nightly.2022-10-11.1")?;
-//         dispatch_cloud_image_build_action(&octo, &version).await?;
-//         Ok(())
-//     }
-// }
+
+/// Upload GUI to the cloud (AWS S3).
+pub async fn upload_gui_to_cloud(
+    assets: &crate::paths::generated::RepoRootDistGuiAssets,
+    version: &Version,
+) -> Result {
+    let path = format!("ide/{version}");
+    let bucket = crate::aws::s3::BucketContext {
+        bucket:     BUCKET_FOR_GUI.into(),
+        upload_acl: aws_sdk_s3::model::ObjectCannedAcl::PublicRead,
+        client:     crate::aws::s3::client_from_env().await,
+        key_prefix: path,
+    };
+
+    let files_to_upload = [
+        assets.ide_wasm.as_path(),
+        assets.index_js.as_path(),
+        assets.style_css.as_path(),
+        assets.wasm_imports_js.as_path(),
+    ];
+
+    for file in files_to_upload.iter() {
+        bucket.put_file(file).await?;
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn upload_gui() -> Result {
+        setup_logging()?;
+        let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
+            r"H:\NBO\enso4\dist\gui\assets",
+        );
+        let version = "2022.1.1-dev.provisional.test.1".parse2()?;
+        upload_gui_to_cloud(&assets, &version).await?;
+
+        let body = json!({
+            "version_number": version.to_string(),
+            "version_type": "Ide"
+        });
+        let response = reqwest::Client::new()
+            .post("https://uhso47ta0i.execute-api.eu-west-1.amazonaws.com/versions")
+            .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await?;
+        trace!("{:?}", response);
+        Ok(())
+    }
+}

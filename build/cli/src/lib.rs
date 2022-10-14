@@ -801,15 +801,17 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
         // TODO: consider if out-of-source ./dist should be removed
         Target::GitClean(options) => {
+            let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
-            if !options.build_script {
+            if !build_script {
                 exclusions.push("target/enso-build");
             }
 
-            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions);
+            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
             let clean_cache = async {
-                if options.cache {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
+                if cache {
+                    ide_ci::fs::tokio::perhaps_remove_dir_if_exists(dry_run, ctx.cache.path())
+                        .await?;
                 }
                 Result::Ok(())
             };
@@ -851,7 +853,7 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
-                enso_build::release::create_release(&ctx).await?;
+                enso_build::release::draft_a_new_release(&ctx).await?;
             }
             Action::DeployToEcr(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;

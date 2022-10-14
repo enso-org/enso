@@ -3,7 +3,7 @@ use enso_build::prelude::*;
 use aws_sdk_s3::model::ObjectCannedAcl;
 use aws_sdk_s3::types::ByteStream;
 use aws_sdk_s3::Client;
-use enso_build::aws::BucketContext;
+use enso_build::aws::s3::BucketContext;
 use enso_build::aws::EDITIONS_BUCKET_NAME;
 
 

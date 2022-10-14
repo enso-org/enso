@@ -50,6 +50,12 @@ pub async fn create_parent_dir_if_missing(path: impl AsRef<Path>) -> Result<Path
     }
 }
 
+#[context("Failed to write file: {}", path.as_ref().display())]
+pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
+    create_parent_dir_if_missing(&path).await?;
+    crate::fs::wrappers::tokio::write(&path, &contents).await.anyhow_err()
+}
+
 pub async fn copy_to_file(
     mut content: impl AsyncRead + Unpin,
     output_path: impl AsRef<Path>,
@@ -68,6 +74,15 @@ pub async fn remove_dir_if_exists(path: impl AsRef<Path>) -> Result {
     match result {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         result => result.context(format!("Failed to remove directory {}.", path.display())),
+    }
+}
+
+pub async fn perhaps_remove_dir_if_exists(dry_run: bool, path: impl AsRef<Path>) -> Result {
+    if dry_run {
+        info!("Would remove directory {}.", path.as_ref().display());
+        Ok(())
+    } else {
+        remove_dir_if_exists(path).await
     }
 }
 

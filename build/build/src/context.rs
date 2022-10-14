@@ -4,7 +4,7 @@ use crate::paths::TargetTriple;
 
 use derivative::Derivative;
 use ide_ci::github::Repo;
-use ide_ci::programs::Git;
+use ide_ci::programs::git;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 
@@ -34,7 +34,7 @@ impl BuildContext {
         async move {
             match ide_ci::actions::env::GITHUB_SHA.get() {
                 Ok(commit) => Ok(commit),
-                Err(_e) => Git::new(root).await?.head_hash().await,
+                Err(_e) => git::Context::new(root).await?.head_hash().await,
             }
         }
         .boxed()

@@ -229,7 +229,7 @@ pub trait IsRepo: Display {
 }
 
 #[async_trait]
-pub trait OrganizationPointer {
+pub trait IsOrganization {
     /// Organization name.
     fn name(&self) -> &str;
 
@@ -252,7 +252,7 @@ pub trait OrganizationPointer {
 
 /// Get the biggest asset containing given text.
 #[instrument(skip(release), fields(id = %release.id, url = %release.url), err)]
-pub fn find_asset_by_text<'a>(release: &'a Release, text: &str) -> anyhow::Result<&'a Asset> {
+pub fn find_asset_by_text<'a>(release: &'a Release, text: &str) -> Result<&'a Asset> {
     release
         .assets
         .iter()
@@ -266,7 +266,7 @@ pub fn find_asset_by_text<'a>(release: &'a Release, text: &str) -> anyhow::Resul
 
 /// Get the biggest asset containing given text.
 #[instrument(skip(release), fields(id = %release.id, url = %release.url), ret(Display), err)]
-pub fn find_asset_url_by_text<'a>(release: &'a Release, text: &str) -> anyhow::Result<&'a Url> {
+pub fn find_asset_url_by_text<'a>(release: &'a Release, text: &str) -> Result<&'a Url> {
     let matching_asset = find_asset_by_text(release, text)?;
     Ok(&matching_asset.browser_download_url)
 }
@@ -275,7 +275,7 @@ pub fn find_asset_url_by_text<'a>(release: &'a Release, text: &str) -> anyhow::R
 ///
 /// Octocrab client does not need to bo authorized with a PAT for this. However, being authorized
 /// will help with GitHub API query rate limits.
-pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> anyhow::Result<Url> {
+pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
     let latest_release = octocrab.repos("actions", "runner").releases().get_latest().await?;
 
     let os_name = match os {
