@@ -72,11 +72,6 @@ fn section_simple() {
 }
 
 #[test]
-fn comments() {
-    test("# a b c", block![()()]);
-}
-
-#[test]
 fn inline_if() {
     #[rustfmt::skip]
     test("if True then True else False", block![
@@ -99,6 +94,43 @@ fn else_block() {
        (MultiSegmentApp #(((Ident if) (Ident True))
                           ((Ident then) (Ident True))
                           ((Ident else) (BodyBlock #((Ident False))))))]);
+}
+
+
+// === Comments ===
+
+#[test]
+fn plain_comments() {
+    test("# a b c", block![()()]);
+}
+
+#[test]
+fn doc_comments() {
+    #[rustfmt::skip]
+    let lines = vec![
+        "## The Identity Function",
+        "",
+        "   Arguments:",
+        "   - x: value to do nothing to",
+        "id x = x",
+    ];
+    #[rustfmt::skip]
+    test(&lines.join("\n"), block![
+        (Documented
+         #((Section "# The Identity Function\n")
+           (Section "\n")
+           (Section "Arguments:\n")
+           (Section "- x: value to do nothing to"))
+         #(())
+         (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
+    #[rustfmt::skip]
+    let lines = vec![
+        " ## Test indent handling",
+        " foo",
+    ];
+    #[rustfmt::skip]
+    test(&lines.join("\n"), block![
+        (Documented #((Section "# Test indent handling")) #(()) (Ident foo))]);
 }
 
 
@@ -491,11 +523,15 @@ fn multiple_operator_error() {
 
 #[test]
 fn precedence() {
-    let code = ["x * y + z"];
-    let expected = block![
-        (OprApp (OprApp (Ident x) (Ok "*") (Ident y)) (Ok "+") (Ident z))
+    #[rustfmt::skip]
+    let cases = [
+        ("x * y + z", block![(OprApp (OprApp (Ident x) (Ok "*") (Ident y)) (Ok "+") (Ident z))]),
+        ("x + y * z", block![(OprApp (Ident x) (Ok "+") (OprApp (Ident y) (Ok "*") (Ident z)))]),
+        ("w + x + y * z", block![
+            (OprApp (OprApp (Ident w) (Ok "+") (Ident x)) (Ok "+")
+                    (OprApp (Ident y) (Ok "*") (Ident z)))]),
     ];
-    test(&code.join("\n"), expected);
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
@@ -503,6 +539,15 @@ fn right_associative_operators() {
     let code = ["x --> y ---> z"];
     let expected = block![
         (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z)))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn left_associative_operators() {
+    let code = ["x + y + z"];
+    let expected = block![
+        (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z))
     ];
     test(&code.join("\n"), expected);
 }
@@ -841,6 +886,27 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
+    let code = "  x = \"\"\"\n    Indented multiline\n  x";
+    #[rustfmt::skip]
+    let expected = block![
+        (Assignment (Ident x) "=" (TextLiteral #((Section "Indented multiline"))))
+        (Ident x)
+    ];
+    test(code, expected);
+    let code = "'''\n    \\nEscape at start\n";
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral #((Escape '\n') (Section "Escape at start\n")))
+    ];
+    test(code, expected);
+    let code = "x =\n x = '''\n  x\nx";
+    #[rustfmt::skip]
+    let expected = block![
+        (Function (Ident x) #() "="
+         (BodyBlock #((Assignment (Ident x) "=" (TextLiteral #((Section "x")))))))
+        (Ident x)
+    ];
+    test(code, expected);
 }
 
 #[test]
@@ -910,6 +976,8 @@ fn old_lambdas() {
         ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
         ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
         ("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
+        ("f x->\n y", block![
+            (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
