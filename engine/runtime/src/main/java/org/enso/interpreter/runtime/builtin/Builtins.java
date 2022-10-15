@@ -88,6 +88,7 @@ public class Builtins {
   private final Builtin file;
   private final Builtin date;
   private final Builtin dateTime;
+  private final Builtin duration;
   private final Builtin timeOfDay;
   private final Builtin timeZone;
   private final Builtin warning;
@@ -129,6 +130,7 @@ public class Builtins {
     file = builtins.get(File.class);
     date = builtins.get(org.enso.interpreter.node.expression.builtin.date.Date.class);
     dateTime = builtins.get(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    duration = builtins.get(org.enso.interpreter.node.expression.builtin.date.Duration.class);
     timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     special = new Special(language);
@@ -455,6 +457,15 @@ public class Builtins {
    */
   public Type timeOfDay() {
     return timeOfDay.getType();
+  }
+
+  /**
+   * Returns the {@code Duration} atom constructor.
+   *
+   * @return the {@code Duration} atom constructor.
+   */
+  public Type duration() {
+    return duration.getType();
   }
 
   /**

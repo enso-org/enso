@@ -38,7 +38,7 @@
 
 use ensogl_core::prelude::*;
 
-use component_browser_theme::searcher::list_panel::breadcrumbs as theme;
+use component_browser_theme::component_list_panel::menu::breadcrumbs as theme;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -211,12 +211,12 @@ impl Model {
                     entry::Params {
                         margin,
                         text_padding_left: *text_padding,
-                        text_size: text::Size::from(*text_size),
-                        hover_color:*hover_color,
-                        font_name: font.clone(),
-                        selected_color: *selected_color,
+                        text_size:         text::Size::from(*text_size),
+                        hover_color:       hover_color.into(),
+                        font_name:         font.clone(),
+                        selected_color:    selected_color.into(),
                         highlight_corners_radius,
-                        greyed_out_color: *greyed_out_color,
+                        greyed_out_color:  greyed_out_color.into(),
                         greyed_out_start
                     }
                 }

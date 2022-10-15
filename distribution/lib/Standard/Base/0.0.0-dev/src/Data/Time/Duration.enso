@@ -1,17 +1,18 @@
 from Standard.Base import all
 import Standard.Base.System
 
-polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
+polyglot java import java.lang.ArithmeticException
 
 ## Create an interval representing the duration between two points in time.
 
    Arguments:
-   - start_inclusive: The start time of the duration.
-   - end_inclusive: The end time of the duration.
-   - timezone_aware: Should the creation of the interval be timezone-aware.
+   - start_inclusive: The start datetime of the duration.
+   - end_inclusive: The end datetime of the duration.
+   - timezone_aware: Whether the duration between two given times should be
+     aware of the timezone, that can be set for start or end times.
 
    > Example
      An hour interval between two points in time.
@@ -20,12 +21,40 @@ polyglot java import org.enso.base.Time_Utils
          import Standard.Base.Data.Time.Duration
 
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
-between : Date_Time -> Date_Time -> Duration
+between : Date_Time -> Date_Time -> Boolean -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
-    period = Java_Period.ofDays 0 . normalized
-    duration = Time_Utils.duration_between start_inclusive end_exclusive timezone_aware
-    Duration_Data period duration
+    Duration.between_builtin start_inclusive end_exclusive timezone_aware
 
+## Create a duration from time units.
+
+   Arguments:
+   - hours: hours
+   - minutes: minutes
+   - seconds: seconds
+   - milliseconds: milliseconds
+   - nanoseconds: nanoseconds
+
+   > Example
+     Duration of 2 hours.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_duration = Duration.new hours=2
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
+    Duration.new_builtin hours minutes seconds milliseconds nanoseconds
+
+
+## Create a zero (empty) duration.
+   > Example
+     Folding a vector of durations.
+
+         import Standard.Base.Data.Time.Duration
+
+         durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
+         example_sum = durations.fold Duration.zero (+)
+zero : Duration
+zero = new
 
 ## ADVANCED
 
@@ -38,24 +67,12 @@ time_execution ~function =
     start = System.nano_time
     result = Runtime.no_inline function
     end = System.nano_time
-    duration = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofNanos (end - start))
+    duration = new nanoseconds=(end - start)
     Pair_Data duration result
 
 
-# TODO Dubious constructor export
-from project.Data.Time.Duration.Duration import all
-from project.Data.Time.Duration.Duration export all
-
+@Builtin_Type
 type Duration
-
-    ## An amount of time in terms of years, months, days, hours, minutes,
-       seconds and nanoseconds.
-
-       Arguments:
-       - internal_period: The internal representation of the time as a period.
-       - internal_duration: The internal representation of the time as a
-         duration.
-    Duration_Data internal_period internal_duration
 
     ## Add the specified amount of time to this duration.
 
@@ -67,19 +84,17 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 3.minutes + 6.seconds
+             example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
        > Example
          Add 12 hours to a duration of a month.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 1.month + 12.hours
-    + : Duration -> Duration
+             example_add = 1.month + (Duration.new hours=12)
+    + : Duration -> Duration ! Time_Error
     + self that =
-        period = self.internal_period . plus that.internal_period . normalized
-        duration = self.internal_duration . plus that.internal_duration
-        Duration_Data period duration
+        Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Time_Error_Data err.getMessage))
 
     ## Subtract the specified amount of time from this duration.
 
@@ -94,186 +109,14 @@ type Duration
              example_subtract = 3.years - 11.months
 
        > Example
-         Substract 30 minutes from a duration of 7 months.
+         Substract 30 minutes from a duration of 6 hours.
 
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = 7.months - 30.minutes
-    - : Duration -> Duration
+             example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
+    - : Duration -> Duration ! Time_Error
     - self that =
-        period = self.internal_period . minus that.internal_period . normalized
-        duration = self.internal_duration . minus that.internal_duration
-        Duration_Data period duration
-
-    ## Get the portion of the duration expressed in nanoseconds.
-
-       > Example
-         Get the portion of the duration expressed in nanoseconds.
-
-             import Standard.Examples
-
-             example_nanos = Examples.duration.nanoseconds
-    nanoseconds : Integer
-    nanoseconds self = self.internal_duration . toNanosPart
-
-    ## Get the portion of the duration expressed in milliseconds.
-
-       > Example
-         Get the portion of the duration expressed in milliseconds.
-
-             import Standard.Examples
-
-             example_millis = Examples.duration.milliseconds
-    milliseconds : Integer
-    milliseconds self = self.internal_duration . toMillisPart
-
-    ## UNSTABLE
-       Convert the duration to total milliseconds.
-    total_milliseconds : Integer ! Illegal_Argument_Error
-    total_milliseconds self =
-        Panic.catch ArithmeticException (self.internal_duration . toMillis) _->
-            Error.throw (Illegal_Argument_Error_Data "The duration is too large to convert it to milliseconds.")
-
-    ## Get the portion of the duration expressed in seconds.
-
-       > Example
-         Get the portion of the duration expressed in seconds.
-
-             import Standard.Examples
-
-             example_seconds = Examples.duration.milliseconds
-    seconds : Integer
-    seconds self = self.internal_duration . toSecondsPart
-
-    ## Get the portion of the duration expressed in minutes.
-
-       > Example
-         Get the portion of the duration expressed in minutes.
-
-             import Standard.Examples
-
-             example_minutes = Examples.duration.milliseconds
-    minutes : Integer
-    minutes self = self.internal_duration . toMinutesPart
-
-    ## Get the portion of the duration expressed in hours.
-
-       > Example
-         Get the portion of the duration expressed in hours.
-
-             import Standard.Examples
-
-             example_hours = Examples.duration.milliseconds
-    hours : Integer
-    hours self = self.internal_duration . toHours
-
-    ## Get the portion of the duration expressed in days.
-
-       > Example
-         Get the portion of the duration expressed in days.
-
-             import Standard.Examples
-
-             example_days = Examples.duration.milliseconds
-    days : Integer
-    days self = self.internal_period . getDays
-
-    ## Get the portion of the duration expressed in months.
-
-       > Example
-         Get the portion of the duration expressed in months.
-
-             import Standard.Examples
-
-             example_months = Examples.duration.months
-    months : Integer
-    months self = self.internal_period . getMonths
-
-    ## Get the portion of the duration expressed in years.
-
-       > Example
-         Get the portion of the duration expressed in years.
-
-             import Standard.Examples
-
-             example_years = Examples.duration.years
-    years : Integer
-    years self = self.internal_period . getYears
-
-    ## Convert this duration to a Vector of years, months, days, hours, minutes,
-       seconds and nanosecnods.
-
-       > Example
-         Convert duration of a year and a hour to a vector returning
-         `[1, 0, 0, 1, 0, 0, 0]`.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = (1.year + 1.hour).to_vector
-
-       > Example
-         Convert duration of 800 nanoseconds to a vector returning
-         `[0, 0, 0, 0, 0, 0, 800]`
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_vec = 800.nanoseconds . to_vector
-    to_vector : Vector.Vector Integer
-    to_vector self = [self.years, self.months, self.days, self.hours, self.minutes, self.seconds, self.nanoseconds]
-
-    ## A Duration to Json conversion.
-
-       > Example
-         Convert a duration of 10 seconds to Json.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_to_json = 10.seconds.to_json
-    to_json : Json.Object
-    to_json self =
-        b = Vector.new_builder
-        b.append ["type", "Duration"]
-        if self.years==0 . not then b.append ["years", self.years]
-        if self.months==0 . not then b.append ["months", self.months]
-        if self.days==0 . not then b.append ["days", self.days]
-        if self.hours==0 . not then b.append ["hours", self.hours]
-        if self.minutes==0 . not then b.append ["minutes", self.minutes]
-        if self.seconds==0 . not then b.append ["seconds", self.seconds]
-        if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
-        Json.from_pairs b.to_vector
-
-    ## Check if this duration is date-based.
-
-       > Example
-         Check if the duration of 10 seconds is date-based.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_date = 10.seconds.is_date
-    is_date : Boolean
-    is_date self = (self.years==0 . not) || (self.months==0 . not) || (self.days==0 . not)
-
-    ## Check if this duration is time-based.
-
-       > Example
-         Check if the duration of 10 seconds is time-based.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_time = 10.seconds.is_time
-    is_time : Boolean
-    is_time self = (self.hours==0 . not) || (self.minutes==0 . not) || (self.seconds==0 . not) || (self.nanoseconds==0 . not)
-
-    ## Check if this duration represents an empty time-span.
-
-       > Example
-         Check if the duration of 10 seconds is empty.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_is_empty = 10.seconds.is_empty
-    is_empty : Boolean
-    is_empty self = self.is_date.not && self.is_time.not
+        Panic.catch ArithmeticException (self.minus_builtin that) (err -> Error.throw (Time_Error_Data err.getMessage))
 
     ## Check two durations for equality.
 
@@ -285,9 +128,9 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_eq = 60.seconds == 1.minute
+             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
     == : Duration -> Boolean
-    == self that = self.to_vector == that.to_vector
+    == self that = self.equals_builtin that
 
     ## Compares `self` to `that` to produce an ordering.
 
@@ -300,193 +143,136 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_compare_to =
-                 duration_1 = 1.year
-                 duration_2 = 12.months + 1.day
+                 duration_1 = (Duration.new hour=1)
+                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to self that =
-        if self.years > that.years then Ordering.Greater else
-            if self.years < that.years then Ordering.Less else
-                if self.months > that.months then Ordering.Greater else
-                    if self.months < that.months then Ordering.Less else
-                        if self.days > that.days then Ordering.Greater else
-                            if self.days < that.days then Ordering.Less else
-                                duration_sign = self.internal_duration.compareTo that.internal_duration
-                                Ordering.from_sign duration_sign
+    compare_to self that = Ordering.from_sign (self.compare_to_builtin that)
 
-## Create a duration of `self` nanoseconds.
+    ## Get the portion of the duration expressed in nanoseconds.
 
-   > Examples
-     Create a duration of 1 nanosecond.
+       > Example
+         Get the portion of the duration expressed in nanoseconds.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Examples
 
-         example_nano = 1.nanosecond
-Integer.nanosecond : Duration
-Integer.nanosecond self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofNanos self)
+             example_nanos = Examples.duration.nanoseconds
+    nanoseconds : Integer
+    nanoseconds self = @Builtin_Method "Duration.nanoseconds"
 
-## Create a duration of `self` nanoseconds.
+    ## Get the portion of the duration expressed in milliseconds.
 
-   > Examples
-     Create a duration of 20 nanoseconds.
+       > Example
+         Get the portion of the duration expressed in milliseconds.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Examples
 
-         example_nano = 20.nanoseconds
-Integer.nanoseconds : Duration
-Integer.nanoseconds self = self.nanosecond
+             example_millis = Examples.duration.milliseconds
+    milliseconds : Integer
+    milliseconds self = @Builtin_Method "Duration.milliseconds"
 
-## Create a duration of `self` milliseconds.
+    ## Get the portion of the duration expressed in seconds.
 
-   > Example
-     Create a duration of 1 millisecond.
+       > Example
+         Get the portion of the duration expressed in seconds.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Examples
 
-         example_milli = 1.millisecond
-Integer.millisecond : Duration
-Integer.millisecond self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofMillis self)
+             example_seconds = Examples.duration.seconds
+    seconds : Integer
+    seconds self = @Builtin_Method "Duration.seconds"
 
-## Create a duration of `self` milliseconds.
+    ## Get the portion of the duration expressed in minutes.
 
-   > Example
-     Create a duration of 20 milliseconds.
+       > Example
+         Get the portion of the duration expressed in minutes.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Examples
 
-         example_milli = 20.milliseconds
-Integer.milliseconds : Duration
-Integer.milliseconds self = self.millisecond
+             example_minutes = Examples.duration.minutes
+    minutes : Integer
+    minutes self = @Builtin_Method "Duration.minutes"
 
-## Create a duration of `self` seconds.
+    ## Get the portion of the duration expressed in hours.
 
-   > Example
-     Create a duration of 1 second.
+       > Example
+         Get the portion of the duration expressed in hours.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Examples
 
-         example_second = 1.second
-Integer.second : Duration
-Integer.second self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
+             example_hours = Examples.duration.milliseconds
+    hours : Integer
+    hours self = @Builtin_Method "Duration.hours"
 
-## Create a duration of `self` seconds.
+    ## UNSTABLE
+       Convert the duration to total milliseconds.
+    total_milliseconds : Integer ! Illegal_State_Error
+    total_milliseconds self =
+        Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
+            Error.throw (Illegal_State_Error_Data "The duration is too large to convert it to milliseconds")
 
-   > Example
-     Create a duration of 20 seconds.
+    ## UNSTABLE
+       Convert the duration to total seconds.
+    total_seconds : Decimal ! Illegal_State_Error
+    total_seconds self = self.total_milliseconds / 1000.0
 
-         import Standard.Base.Data.Time.Duration
+    ## UNSTABLE
+       Convert the duration to total minutes.
+    total_minutes : Decimal ! Illegal_State_Error
+    total_minutes self = self.total_seconds / 60.0
 
-         example_second = 20.seconds
-Integer.seconds : Duration
-Integer.seconds self = self.second
+    ## UNSTABLE
+       Convert the duration to total minutes.
+    total_hours : Decimal ! Illegal_State_Error
+    total_hours self = self.total_minutes / 60.0
 
-## Create a duration of `self` minutes.
+    ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds
+       and nanoseconds.
 
-   > Example
-     Create a duration of 1 minute.
+       > Example
+         Convert a duration of one hour to a vector resulting in
+         `[1, 0, 30, 0, 0]`.
 
-         import Standard.Base.Data.Time.Duration
+             import Standard.Base.Data.Time.Duration
 
-         example_min = 1.minute
-Integer.minute : Duration
-Integer.minute self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
+             example_to_vec = (Duration.new hours=1 seconds=30).to_vector
 
-## Create a duration of `self` minutes.
+       > Example
+         Convert duration of 800 nanoseconds to a vector returning
+         `[0, 0, 0, 0, 0, 800]`
 
-   > Example
-     Create a duration of 20 minutes.
+             import Standard.Base.Data.Time.Duration
 
-         import Standard.Base.Data.Time.Duration
+             example_to_vec = (Duration.new nanoseconds=800)).to_vector
+    to_vector : Vector.Vector Integer
+    to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
-         example_min = 20.minutes
-Integer.minutes : Duration
-Integer.minutes self = self.minute
-
-## Create a duration of `self` hours.
-
-   > Example
-     Create a duration of 1 hour.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_hour = 1.hour
-Integer.hour : Duration
-Integer.hour self = Duration_Data (Java_Period.ofDays 0) (Java_Duration.ofHours self)
-
-## Create a duration of `self` hours.
-
-   > Example
-     Create a duration of 20 hours.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_hour = 20.hours
-Integer.hours : Duration
-Integer.hours self = self.hour
-
-## Create a duration of `self` days.
-
-   > Example
-     Create a duration of 1 day.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_day = 1.day
-Integer.day : Duration
-Integer.day self = Duration_Data (Java_Period.ofDays self . normalized) (Java_Duration.ofSeconds 0)
-
-## Create a duration of `self` days.
-
-   > Example
-     Create a duration of 20 days.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_day = 20.days
-Integer.days : Duration
-Integer.days self = self.day
-
-## Create a duration of `self` months.
-
-   > Example
-     Create a duration of 1 month.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_month = 1.month
-Integer.month : Duration
-Integer.month self = Duration_Data (Java_Period.ofMonths self . normalized) (Java_Duration.ofSeconds 0)
-
-## Create a duration of `self` months.
-
-   > Example
-     Create a duration of 6 months.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_month = 6.months
-Integer.months : Duration
-Integer.months self = self.month
-
-## Create a duration of `self` years.
-
-   > Example
-     Create a duration of 1 year.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_year = 1.year
-Integer.year : Duration
-Integer.year self = Duration_Data (Java_Period.ofYears self . normalized) (Java_Duration.ofSeconds 0)
-
-## Create a duration of `self` years.
-
-   > Example
-     Create a duration of 20 years.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_year = 20.years
-Integer.years : Duration
-Integer.years self = self.year
-
+    ## A Duration to Json conversion.
+
+       > Example
+         Convert a duration of 10 seconds to Json.
+
+             import Standard.Base.Data.Time.Duration
+
+             example_to_json = (Duration.new seconds=10).to_json
+    to_json : Json.Object
+    to_json self =
+        b = Vector.new_builder
+        b.append ["type", "Duration"]
+        if self.hours==0 . not then b.append ["hours", self.hours]
+        if self.minutes==0 . not then b.append ["minutes", self.minutes]
+        if self.seconds==0 . not then b.append ["seconds", self.seconds]
+        if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
+        if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
+        Json.from_pairs b.to_vector
+
+    ## Check if this duration represents an empty time-span.
+
+       > Example
+         Check if the duration of 10 seconds is empty.
+
+             import Standard.Base.Data.Time.Duration
+
+             example_is_empty = 10.seconds.is_empty
+    is_empty : Boolean
+    is_empty self = self.to_vector . all (==0)

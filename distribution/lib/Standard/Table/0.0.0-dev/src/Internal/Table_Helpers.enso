@@ -363,7 +363,7 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         _ : Vector.Vector ->

@@ -166,7 +166,7 @@ specify : Text -> Any -> (Text | Nothing) -> Nothing
 specify label ~behavior pending=Nothing =
     pair = case pending of
         Nothing -> Duration.time_execution (run_spec behavior)
-        reason -> Pair_Data 0.milliseconds (Pending reason)
+        reason -> Pair_Data Duration.zero (Pending reason)
     result = pair.second
     time_taken = pair.first
     spec = State.get Spec
@@ -838,14 +838,14 @@ report_pending_group name reason config builder =
    Prints a report on the tests to standard output.
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report self config builder =
-    total_time = self.behaviors.fold 0.milliseconds acc-> behavior->
+    total_time = self.behaviors.fold Duration.zero acc-> behavior->
         acc + behavior.time_taken
     if config.should_output_junit then
         builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
-        builder.append (' time="' + (total_time.total_milliseconds / 1000.0).to_text + '"')
+        builder.append (' time="' + (total_time.total_seconds).to_text + '"')
         builder.append ('>\n')
 
         self.behaviors.reverse.each behavior->
