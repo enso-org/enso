@@ -132,8 +132,15 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         TextLiteral {
             pub open:     Option<token::TextStart<'s>>,
+            /// If there is no text on the first line of a multi-line literal, the initial newline
+            /// is non-semantic and included here. If there is text on the line with the opening
+            /// quote, this will be empty and the first newline, if any, will be in a text section.
+            pub newline:  Option<token::Newline<'s>>,
             pub elements: Vec<TextElement<'s>>,
             pub close:    Option<token::TextEnd<'s>>,
+            #[serde(skip)]
+            #[reflect(skip)]
+            pub closed:   bool,
             #[serde(skip)]
             #[reflect(skip)]
             pub trim:     VisibleOffset,
@@ -325,6 +332,19 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub token:      token::Operator<'s>,
             pub annotation: token::Ident<'s>,
             pub newlines:   Vec<token::Newline<'s>>,
+            pub expression: Option<Tree<'s>>,
+        },
+        /// An expression preceded by a doc comment.
+        Documented {
+            pub open:       token::TextStart<'s>,
+            /// The documentation text.
+            pub elements:   Vec<TextElement<'s>>,
+            #[serde(skip)]
+            #[reflect(skip)]
+            pub trim:       VisibleOffset,
+            /// Empty lines between the comment and the item.
+            pub newlines:   Vec<token::Newline<'s>>,
+            /// The item being documented.
             pub expression: Option<Tree<'s>>,
         },
     }
@@ -736,8 +756,17 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
-        (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if lhs.close.is_none() => {
-            join_text_literals(lhs, rhs.clone(), mem::take(&mut arg.span));
+        (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if !lhs.closed => {
+            join_text_literals(lhs, rhs, mem::take(&mut arg.span));
+            if lhs.open.is_some() && lhs.closed {
+                trim_text(lhs.trim, &mut lhs.elements);
+            }
+            if let TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None, trim } = lhs && open.code.starts_with('#') {
+                let mut open = open.clone();
+                open.left_offset += func.span.left_offset;
+                let elements = mem::take(elements);
+                return Tree::documented(open, elements, *trim, default(), default());
+            }
             func
         }
         (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
@@ -804,8 +833,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
 }
 
 fn join_text_literals<'s>(
-    lhs: &'_ mut TextLiteral<'s>,
-    mut rhs: TextLiteral<'s>,
+    lhs: &mut TextLiteral<'s>,
+    rhs: &mut TextLiteral<'s>,
     rhs_span: Span<'s>,
 ) {
     if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
@@ -817,28 +846,32 @@ fn join_text_literals<'s>(
         Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
         None => (),
     }
+    if let Some(newline) = rhs.newline.take() {
+        lhs.newline = newline.into();
+    }
     lhs.elements.append(&mut rhs.elements);
     lhs.close = rhs.close.take();
-    if lhs.open.is_some() {
-        let trim = lhs.trim;
-        let mut remaining = lhs.elements.len();
-        let mut carried_offset = Offset::default();
-        lhs.elements.retain_mut(|e| {
-            remaining -= 1;
-            let (offset, code) = match e {
-                TextElement::Section { text } => (&mut text.left_offset, &mut text.code),
-                TextElement::Escape { token } => (&mut token.left_offset, &mut token.code),
-                TextElement::Splice { open, .. } => (&mut open.left_offset, &mut open.code),
-            };
-            *offset += mem::take(&mut carried_offset);
-            crate::lexer::untrim(trim, offset, code);
-            if remaining != 0 && code.is_empty() {
-                carried_offset = mem::take(offset);
-                return false;
-            }
-            true
-        });
-    }
+    lhs.closed = rhs.closed;
+}
+
+fn trim_text(trim: VisibleOffset, elements: &mut Vec<TextElement>) {
+    let mut remaining = elements.len();
+    let mut carried_offset = Offset::default();
+    elements.retain_mut(|e| {
+        remaining -= 1;
+        let (offset, code) = match e {
+            TextElement::Section { text } => (&mut text.left_offset, &mut text.code),
+            TextElement::Escape { token } => (&mut token.left_offset, &mut token.code),
+            TextElement::Splice { open, .. } => (&mut open.left_offset, &mut open.code),
+        };
+        *offset += mem::take(&mut carried_offset);
+        crate::lexer::untrim(trim, offset, code);
+        if remaining != 0 && code.is_empty() {
+            carried_offset = mem::take(offset);
+            return false;
+        }
+        true
+    });
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.
@@ -920,20 +953,24 @@ impl<'s> From<Token<'s>> for Tree<'s> {
             token::Variant::NumberBase(base) =>
                 Tree::number(Some(token.with_variant(base)), None, None),
             token::Variant::TextStart(open) =>
-                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default()),
+                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default(), default()),
             token::Variant::TextSection(section) => {
                 let trim = token.left_offset.visible;
                 let section = TextElement::Section { text: token.with_variant(section) };
-                Tree::text_literal(default(), vec![section], default(), trim)
+                Tree::text_literal(default(), default(), vec![section], default(), default(), trim)
             }
             token::Variant::TextEscape(escape) => {
                 let trim = token.left_offset.visible;
                 let token = token.with_variant(escape);
                 let section = TextElement::Escape { token };
-                Tree::text_literal(default(), vec![section], default(), trim)
+                Tree::text_literal(default(), default(), vec![section], default(), default(), trim)
             }
+            token::Variant::TextEnd(_) if token.code.is_empty() =>
+                Tree::text_literal(default(), default(), default(), default(), true, default()),
             token::Variant::TextEnd(close) =>
-                Tree::text_literal(default(), default(), Some(token.with_variant(close)), default()),
+                Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true, default()),
+            token::Variant::TextInitialNewline(_) =>
+                Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default(), default()),
             token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
             token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
             token::Variant::OpenSymbol(s) =>
@@ -993,6 +1030,7 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Annotated(_)
             | Variant::OperatorFunction(_)
             | Variant::OperatorTypeSignature(_)
+            | Variant::Documented(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
@@ -1209,6 +1247,17 @@ impl<'a, 's> SpanVisitable<'s, 'a> for u32 {}
 impl<'a, 's> SpanVisitableMut<'s, 'a> for u32 {}
 impl<'a, 's> ItemVisitable<'s, 'a> for u32 {}
 impl<'s> span::Builder<'s> for u32 {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for bool {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for bool {}
+impl<'a, 's> SpanVisitable<'s, 'a> for bool {}
+impl<'a, 's> SpanVisitableMut<'s, 'a> for bool {}
+impl<'a, 's> ItemVisitable<'s, 'a> for bool {}
+impl<'s> span::Builder<'s> for bool {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
     }

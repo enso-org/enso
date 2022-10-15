@@ -290,6 +290,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(as = "char")]
             pub value: Option<char>,
         },
+        TextInitialNewline,
         Invalid,
     }
 }}}
@@ -350,11 +351,14 @@ impl OperatorProperties {
 
     /// Return a copy of this operator, with the given binary infix precedence.
     pub fn with_binary_infix_precedence(self, value: usize) -> Self {
-        Self { binary_infix_precedence: Some(Precedence { value }), ..self }
+        let precedence = Precedence { value };
+        debug_assert!(precedence > Precedence::min());
+        Self { binary_infix_precedence: Some(precedence), ..self }
     }
 
     /// Return a copy of this operator, with unary prefix parsing allowed.
     pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
+        debug_assert!(precedence > Precedence::min());
         Self { unary_prefix_precedence: Some(precedence), ..self }
     }
 
@@ -489,18 +493,28 @@ impl OperatorProperties {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
 pub struct Precedence {
     /// A numeric value determining precedence order.
-    pub value: usize,
+    value: usize,
 }
 
 impl Precedence {
-    /// Return a precedence that is not higher than any other precedence.
+    /// Return a precedence that is lower than the precedence of any operator.
     pub fn min() -> Self {
         Precedence { value: 0 }
+    }
+
+    /// Return the precedence for any operator.
+    pub fn min_valid() -> Self {
+        Precedence { value: 1 }
     }
 
     /// Return a precedence that is not lower than any other precedence.
     pub fn max() -> Self {
         Precedence { value: 100 }
+    }
+
+    /// Return the precedence of application.
+    pub fn application() -> Self {
+        Precedence { value: 80 }
     }
 }
 
