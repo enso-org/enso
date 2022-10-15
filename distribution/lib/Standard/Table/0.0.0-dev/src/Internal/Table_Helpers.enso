@@ -554,3 +554,23 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
         column = column_extractor selector
         column.name
     select_columns_by_name internal_columns column_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor
+
+## PRIVATE
+   A helper method gathering the common logic for constructing expressions that
+   can filter out blank rows.
+filter_blank_rows : Table -> (Column -> Boolean) -> (Column -> Boolean) -> Boolean -> Boolean -> Table
+filter_blank_rows table can_contain_text can_contain_double when_any treat_nans_as_blank =
+    cols = table.columns
+    case cols.not_empty of
+        True ->
+            is_missing_or_empty col = case can_contain_text col of
+                True -> col.is_empty
+                False -> col.is_missing
+            join = if when_any then (||) else (&&)
+            newcols = cols.map c->
+                (is_missing_or_empty c).rename c.name
+            missing_mask = cols.map is_missing_or_empty . reduce join
+            non_missing_mask = missing_mask.not
+            non_missing_mask . rename "non_missing_mask" . join [missing_mask . rename "missing_mask"]+newcols . print
+            table.filter non_missing_mask
+        False -> table

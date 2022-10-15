@@ -769,7 +769,7 @@ type Table
        > Example
          Replace dashes with underscores in a column named "variable_names".
 
-             table.replace_text "variable_names" "-" "_" 
+             table.replace_text "variable_names" "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
@@ -783,7 +783,7 @@ type Table
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
-        
+
         selector = case columns of
             _ : Column_Selector -> columns
             name : Text -> Column_Selector.By_Name [name]
@@ -807,11 +807,11 @@ type Table
 
         new_columns = self.columns.map column->
             is_selected = selected_names.get_or_else column.name False
-            if is_selected then transform column else column 
-            
+            if is_selected then transform column else column
+
         result = Table.new new_columns
         problem_builder.attach_problems_after on_problems result
-      
+
     ## ALIAS Filter Rows
 
        Selects only the rows of this table that correspond to `True` values of
@@ -1016,20 +1016,14 @@ type Table
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Boolean -> Boolean -> Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        cols = self.columns
-        case cols.not_empty of
-            True ->
-                is_missing_or_empty col = case col.storage_type of
-                    Storage.Text -> col.is_empty
-                    _ -> col.is_missing || ((col == "").fill_missing False)
-                join = if when_any then (||) else (&&)
-                newcols = cols.map c->
-                    (is_missing_or_empty c).rename c.name
-                missing_mask = cols.map is_missing_or_empty . reduce join
-                non_missing_mask = missing_mask.not
-                non_missing_mask . rename "non_missing_mask" . join [missing_mask . rename "missing_mask"]+newcols . print
-                self.filter non_missing_mask
-            False -> self
+        can_contain_text col = case col.storage_type of
+            Storage.Text -> True
+            Storage.Any -> True
+            _ -> False
+        can_contain_double col = case col.storage_type of
+            Storage.Decimal -> True
+            Storage.Any -> True
+        Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table

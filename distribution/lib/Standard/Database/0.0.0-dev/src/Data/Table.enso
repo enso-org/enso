@@ -797,17 +797,9 @@ type Table
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Boolean -> Boolean -> Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        cols = self.columns
-        case cols.not_empty of
-            True ->
-                is_missing_or_empty col = case col.sql_type.is_definitely_text of
-                    True -> col.is_empty
-                    False -> col.is_missing
-                join = if when_any then (||) else (&&)
-                missing_mask = cols.map is_missing_or_empty . reduce join
-                non_missing_mask = missing_mask.not
-                self.filter non_missing_mask
-            False -> self
+        can_contain_text col = col.sql_type.is_definitely_text
+        can_contain_double col = col.sql_type.is_definitely_double
+        Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table
