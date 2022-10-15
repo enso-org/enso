@@ -1,28 +1,29 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "TimeOfDay", stdlibName = "Standard.Base.Data.Time.Time_Of_Day")
-public class EnsoTimeOfDay implements TruffleObject {
+public final class EnsoTimeOfDay implements TruffleObject {
   private LocalTime localTime;
 
   public EnsoTimeOfDay(LocalTime localTime) {
@@ -75,6 +76,28 @@ public class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(description = "Gets a value nanosecond")
   public long nanosecond() {
     return localTime.getNano();
+  }
+
+  @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
+  public EnsoTimeOfDay plus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    assert interop.isDuration(durationObject);
+    return new EnsoTimeOfDay(localTime.plus(interop.asDuration(durationObject)));
+  }
+
+  @Builtin.Method(
+      name = "minus_builtin",
+      description = "Subtracts a duration from this Time_Of_Day")
+  @Builtin.Specialize
+  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @TruffleBoundary
+  public EnsoTimeOfDay minus(Object durationObject, InteropLibrary interop)
+      throws UnsupportedMessageException {
+    assert interop.isDuration(durationObject);
+    return new EnsoTimeOfDay(localTime.minus(interop.asDuration(durationObject)));
   }
 
   @Builtin.Method(description = "Gets a value second")

@@ -146,27 +146,35 @@ struct ExpressionBuilder<'s> {
 impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, mut operand: Operand<syntax::Tree<'s>>) {
-        if self.prev_type.replace(ItemType::Ast) == Some(ItemType::Ast) {
-            if let syntax::tree::Variant::OprApp(
-                    syntax::tree::OprApp { lhs: Some(_), opr: Ok(opr), rhs: None })
-                = &*self.output.last().unwrap().value.variant
-                    && opr.properties.associativity() == token::Associativity::Right
-                    && opr.left_offset.is_empty() {
-                let syntax::Tree { span, variant: box syntax::tree::Variant::OprApp(
-                        syntax::tree::OprApp { lhs: Some(mut lhs), opr: Ok(operator), rhs: None }) }
-                    = self.output.pop().unwrap().value
-                else { unreachable!() };
-                lhs.span.left_offset += span.left_offset;
-                let precedence = operator.properties.binary_infix_precedence().unwrap();
-                let associativity = operator.properties.associativity();
-                let opr = Arity::Unary(Unary::LeftCurriedBinary { lhs, operator });
-                self.operator_stack.push(Operator { precedence, associativity, opr });
-            } else {
-                operand =
-                    self.output.pop().unwrap().map(|lhs| syntax::tree::apply(lhs, operand.into()));
-            }
+        if self.prev_type == Some(ItemType::Ast) {
+            // Application is a token-less operator implied by juxtaposition of operands.
+            let precedence = token::Precedence::application();
+            let associativity = token::Associativity::Left;
+            let arity = Arity::Binary {
+                tokens:                  default(),
+                lhs_section_termination: default(),
+            };
+            self.push_operator(precedence, associativity, arity);
+        }
+        if let box syntax::tree::Variant::OprApp(
+            syntax::tree::OprApp { lhs, opr: Ok(operator), rhs: None })
+        = &mut operand.value.variant
+            && lhs.is_some()
+            && operator.properties.associativity() == token::Associativity::Right
+            && operator.left_offset.is_empty() {
+            // Right-associative operators become unary-prefix operators when left-curried.
+            // E.g. `f = x-> y-> z` contains lambdas, not partially-applied arrow operators.
+            let mut lhs = lhs.take().unwrap();
+            lhs.span.left_offset += operand.value.span.left_offset;
+            let associativity = operator.properties.associativity();
+            let precedence = operator.properties.binary_infix_precedence().unwrap();
+            let operator = operator.clone();
+            let arity = Arity::Unary(Unary::LeftCurriedBinary { lhs, operator });
+            self.push_operator(precedence, associativity, arity);
+            return;
         }
         self.output.push(operand);
+        self.prev_type = Some(ItemType::Ast);
     }
 
     /// Extend the expression with an operator.

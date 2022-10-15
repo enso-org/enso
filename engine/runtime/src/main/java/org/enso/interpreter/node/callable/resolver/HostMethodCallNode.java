@@ -1,7 +1,15 @@
 package org.enso.interpreter.node.callable.resolver;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -59,6 +67,11 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
+     * Standard.Base.Data.Time.Duration} and dispatching natively.
+     */
+    CONVERT_TO_DURATION,
+    /**
+     * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Time_Of_Day} and dispatching natively.
      */
     CONVERT_TO_TIME_OF_DAY,
@@ -83,6 +96,7 @@ public abstract class HostMethodCallNode extends Node {
           && this != CONVERT_TO_TEXT
           && this != CONVERT_TO_DATE
           && this != CONVERT_TO_DATE_TIME
+          && this != CONVERT_TO_DURATION
           && this != CONVERT_TO_ZONED_DATE_TIME
           && this != CONVERT_TO_TIME_OF_DAY
           && this != CONVERT_TO_TIME_ZONE;
@@ -134,6 +148,8 @@ public abstract class HostMethodCallNode extends Node {
       }
     } else if (library.isTime(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_OF_DAY;
+    } else if (library.isDuration(self)) {
+      return PolyglotCallType.CONVERT_TO_DURATION;
     } else if (library.isTimeZone(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_ZONE;
     } else if (library.isString(self)) {

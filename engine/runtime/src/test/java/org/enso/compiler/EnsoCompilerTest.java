@@ -666,7 +666,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testLambdaBody() throws Exception {
     parseTest("""
     list =

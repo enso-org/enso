@@ -475,7 +475,7 @@ fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let expression = segment.result.tokens();
     let expression = operator::resolve_operator_precedence_if_non_empty(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
-    syntax::Tree::text_literal(default(), vec![splice], default(), default())
+    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default(), default())
 }
 
 fn into_open_symbol(token: syntax::token::Token) -> syntax::token::OpenSymbol {

@@ -28,7 +28,7 @@ import org.enso.polyglot.MethodNames;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
-public class TopLevelScope implements TruffleObject {
+public final class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final PackageRepository packageRepository;
 

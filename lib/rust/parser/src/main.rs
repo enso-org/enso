@@ -57,7 +57,18 @@ fn check_file(path: &str, mut code: &str) {
     let errors = RefCell::new(vec![]);
     ast.map(|tree| {
         if let enso_parser::syntax::tree::Variant::Invalid(err) = &*tree.variant {
-            errors.borrow_mut().push((err.clone(), tree.span.clone()));
+            let error = format!("{}: {}", err.error.message, tree.code());
+            errors.borrow_mut().push((error, tree.span.clone()));
+        } else if let enso_parser::syntax::tree::Variant::TextLiteral(text) = &*tree.variant {
+            for element in &text.elements {
+                if let enso_parser::syntax::tree::TextElement::Escape { token } = element {
+                    if token.variant.value.is_none() {
+                        let escape = token.code.to_string();
+                        let error = format!("Invalid escape sequence: {escape}");
+                        errors.borrow_mut().push((error, tree.span.clone()));
+                    }
+                }
+            }
         }
     });
     for (error, span) in &*errors.borrow() {
@@ -77,9 +88,9 @@ fn check_file(path: &str, mut code: &str) {
                     char += 1;
                 }
             }
-            eprintln!("{path}:{line}:{char}: {}", &error.error.message);
+            eprintln!("{path}:{line}:{char}: {}", &error);
         } else {
-            eprintln!("{path}:?:?: {}", &error.error.message);
+            eprintln!("{path}:?:?: {}", &error);
         };
     }
     for (parsed, original) in ast.code().lines().zip(code.lines()) {

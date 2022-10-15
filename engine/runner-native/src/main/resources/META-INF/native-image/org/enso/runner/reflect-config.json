@@ -263,6 +263,90 @@
     "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,
   {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MillisecondsDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.BetweenBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.CompareToBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.TotalMillisecondsBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.Duration",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.EqualsBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.HoursDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MillisecondsDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinutesDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.MinusBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NanosecondsDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.NewBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.PlusBuiltinDateTimeMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.PlusBuiltinDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.PlusBuiltinTimeOfDayMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
+    "name":"org.enso.interpreter.node.expression.builtin.date.SecondsDurationMethodGen",
+    "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
+,
+  {
     "name":"org.enso.interpreter.node.expression.builtin.date.ToTextTimeZoneMethodGen",
     "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.Language"] }]}
 ,

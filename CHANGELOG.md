@@ -209,6 +209,7 @@
 - [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
 - [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
   `Not_Like`.][3775]
+- [Reimplemented `Duration` as a built-in type.][3759]
 - [Implemented `Table.replace_text` for in-memory table.][3793]
 - [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
 
@@ -337,6 +338,7 @@
 [3750]: https://github.com/enso-org/enso/pull/3750
 [3770]: https://github.com/enso-org/enso/pull/3770
 [3775]: https://github.com/enso-org/enso/pull/3775
+[3759]: https://github.com/enso-org/enso/pull/3759
 [3793]: https://github.com/enso-org/enso/pull/3793
 [3790]: https://github.com/enso-org/enso/pull/3790
 
