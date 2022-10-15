@@ -994,7 +994,7 @@ spec =
 
         Test.specify "should perform `Is_In` efficiently for builtin types" <|
             first_day = Date_Time.new 2000 1 1
-            make_date x = first_day + x.seconds
+            make_date x = first_day + (Duration.new seconds=x)
             init = Duration.time_execution <|
                 t = Table.new [["X", (200.up_to 10000 . to_vector)]]
                 vec = 4000.up_to 13000 . to_vector

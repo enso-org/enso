@@ -273,6 +273,6 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_is_empty = 10.seconds.is_empty
+             example_is_empty = Duration.zero.is_empty
     is_empty : Boolean
     is_empty self = self.to_vector . all (==0)
