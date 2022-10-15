@@ -60,10 +60,10 @@ impl<'s> Precedence<'s> {
         }
         match item {
             syntax::Item::Token(Token {
-                                    variant: token::Variant::Operator(opr),
-                                    left_offset,
-                                    code,
-                                }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
+                variant: token::Variant::Operator(opr),
+                left_offset,
+                code,
+            }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
             syntax::Item::Token(token) =>
                 self.nospace_builder.operand(syntax::Tree::from(token).into()),
             syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
@@ -83,7 +83,7 @@ impl<'s> Precedence<'s> {
 }
 
 impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
-    fn extend<T: IntoIterator<Item=syntax::Item<'s>>>(&mut self, iter: T) {
+    fn extend<T: IntoIterator<Item = syntax::Item<'s>>>(&mut self, iter: T) {
         for token in iter {
             self.push(token);
         }
@@ -149,7 +149,7 @@ fn starts_new_no_space_group(item: &syntax::item::Item) -> bool {
 ///
 /// [^1](https://en.wikipedia.org/wiki/Operator-precedence_parser)
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct ExpressionBuilder<'s> {
     output:         Vec<Operand<syntax::Tree<'s>>>,
     operator_stack: Vec<Operator<'s>>,
@@ -159,36 +159,22 @@ struct ExpressionBuilder<'s> {
 
 impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
-    pub fn operand(&mut self, mut operand: Operand<syntax::Tree<'s>>) {
+    pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type == Some(ItemType::Ast) {
-            // Application is a token-less operator implied by juxtaposition of operands.
-            let precedence = token::Precedence::application();
-            let associativity = token::Associativity::Left;
-            let arity = Arity::Binary {
-                tokens:                  default(),
-                lhs_section_termination: default(),
-            };
-            self.push_operator(precedence, associativity, arity);
-        }
-        if let box syntax::tree::Variant::OprApp(
-            syntax::tree::OprApp { lhs, opr: Ok(operator), rhs: None })
-        = &mut operand.value.variant
-            && lhs.is_some()
-            && operator.properties.associativity() == token::Associativity::Right
-            && operator.left_offset.is_empty() {
-            // Right-associative operators become unary-prefix operators when left-curried.
-            // E.g. `f = x-> y-> z` contains lambdas, not partially-applied arrow operators.
-            let mut lhs = lhs.take().unwrap();
-            lhs.span.left_offset += operand.value.span.left_offset;
-            let associativity = operator.properties.associativity();
-            let precedence = operator.properties.binary_infix_precedence().unwrap();
-            let operator = operator.clone();
-            let arity = Arity::Unary(Unary::LeftCurriedBinary { lhs, operator });
-            self.push_operator(precedence, associativity, arity);
-            return;
+            self.application();
         }
         self.output.push(operand);
         self.prev_type = Some(ItemType::Ast);
+    }
+
+    fn application(&mut self) {
+        let precedence = token::Precedence::application();
+        let associativity = token::Associativity::Left;
+        let arity = Arity::Binary {
+            tokens:                  default(),
+            lhs_section_termination: default(),
+        };
+        self.push_operator(precedence, associativity, arity);
     }
 
     /// Extend the expression with an operator.
@@ -205,7 +191,7 @@ impl<'s> ExpressionBuilder<'s> {
                 self.binary_operator(prec, assoc, opr),
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
             // it's acting as unary.
-            (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::unary(opr)),
+            (true, _, Some(prec)) => self.unary_operator(prec, assoc, Unary::Simple(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
             (false, None, Some(_)) =>
                 self.operand(syntax::tree::apply_unary_operator(opr, None).into()),
@@ -214,6 +200,18 @@ impl<'s> ExpressionBuilder<'s> {
             // Failed to compute a role for the operator; this should not be possible.
             (_, None, None) => unreachable!(),
         }
+    }
+
+    fn unary_operator(
+        &mut self,
+        prec: token::Precedence,
+        assoc: token::Associativity,
+        arity: Unary<'s>,
+    ) {
+        if self.prev_type == Some(ItemType::Ast) {
+            self.application();
+        }
+        self.push_operator(prec, assoc, Arity::Unary(arity));
     }
 
     /// Extend the expression with a binary operator, by pushing it to the `operator_stack` or
@@ -276,11 +274,11 @@ impl<'s> ExpressionBuilder<'s> {
             let ast = match opr.opr {
                 Arity::Unary(Unary::Simple(opr)) =>
                     Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
-                Arity::Unary(Unary::LeftCurriedBinary { lhs, operator }) => {
-                    let lhs = lhs.into();
-                    let opr = vec![operator];
-                    let rhs = rhs_.unwrap().value.into();
-                    syntax::tree::apply_operator(lhs, opr, rhs, self.nospace).into()
+                Arity::Unary(Unary::Fragment { mut fragment }) => {
+                    if let Some(rhs_) = rhs_ {
+                        fragment.operand(rhs_);
+                    }
+                    fragment.finish().unwrap()
                 }
                 Arity::Binary { tokens, lhs_section_termination } => {
                     let lhs = self.output.pop();
@@ -317,8 +315,9 @@ impl<'s> ExpressionBuilder<'s> {
         let mut out = (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop());
         self.reduce(token::Precedence::min(), &mut out);
         debug_assert!(self.operator_stack.is_empty());
-        debug_assert!(
-            self.output.is_empty(),
+        debug_assert_eq!(
+            &self.output,
+            &[],
             "Internal error. Not all tokens were consumed while constructing the expression."
         );
         self.prev_type = None;
@@ -329,10 +328,27 @@ impl<'s> ExpressionBuilder<'s> {
         if child.output.is_empty() && let Some(op) = child.operator_stack.pop() {
             match op.opr {
                 Arity::Unary(Unary::Simple(un)) => self.operator(un),
-                Arity::Unary(Unary::LeftCurriedBinary{ .. }) => unreachable!(),
+                Arity::Unary(Unary::Fragment{ .. }) => unreachable!(),
                 Arity::Binary { tokens, .. } => tokens.into_iter().for_each(|op| self.operator(op)),
             };
             child.prev_type = None;
+            debug_assert_eq!(&child.operator_stack, &[]);
+            return;
+        }
+        if child.prev_type == Some(ItemType::Opr)
+                && let Arity::Binary { tokens, .. } = &child.operator_stack.last().unwrap().opr
+                && let Some(token) = tokens.last()
+                && token.properties.is_arrow() {
+            let precedence = token.properties.binary_infix_precedence().unwrap();
+            let associativity = token::Associativity::Right;
+            let fragment = ExpressionBuilder {
+                output:         mem::take(&mut child.output),
+                operator_stack: mem::take(&mut child.operator_stack),
+                prev_type:      mem::take(&mut child.prev_type),
+                nospace:        child.nospace,
+            };
+            let arity = Unary::Fragment { fragment };
+            self.unary_operator(precedence, associativity, arity);
             return;
         }
         if let Some(o) = child.finish() {
@@ -350,7 +366,7 @@ enum ItemType {
 }
 
 /// An operator, whose arity and precedence have been determined.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Operator<'s> {
     precedence:    token::Precedence,
     associativity: token::Associativity,
@@ -358,7 +374,7 @@ struct Operator<'s> {
 }
 
 /// Classifies the role of an operator.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Arity<'s> {
     Unary(Unary<'s>),
     Binary {
@@ -379,17 +395,17 @@ impl<'s> Arity<'s> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Unary<'s> {
     Simple(token::Operator<'s>),
-    LeftCurriedBinary { lhs: syntax::Tree<'s>, operator: token::Operator<'s> },
+    Fragment { fragment: ExpressionBuilder<'s> },
 }
 
 
 // === Operand ===
 
 /// Wraps a value, tracking the number of wildcards or elided operands within it.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct Operand<T> {
     value:     T,
     /// Number of elided operands in the subtree, potentially forming an *operator section*.

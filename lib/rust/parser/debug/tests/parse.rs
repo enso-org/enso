@@ -970,16 +970,14 @@ fn new_lambdas() {
 
 #[test]
 fn old_lambdas() {
-    let cases = [
-        ("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
-        ("x->y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
-        ("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]),
-        ("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
-        ("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]),
-        ("f x->\n y", block![
-            (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test("x -> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
+    test("x->y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
+    test("x-> y", block![(OprApp (Ident x) (Ok "->") (Ident y))]);
+    test("x->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]);
+    test("x ->\n y", block![(OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y))))]);
+    test("f x->\n y", block![
+        (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]);
+    test("x->y-> z", block![(OprApp (Ident x) (Ok "->") (OprApp (Ident y) (Ok "->") (Ident z)))]);
 }
 
 

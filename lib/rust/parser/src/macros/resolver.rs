@@ -231,9 +231,9 @@ impl<'s> TryAsRef<PartiallyMatchedMacro<'s>> for ItemOrPartiallyMatchedMacro<'s>
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    macro_stack:   Vec<PartiallyMatchedMacro<'s>>,
-    scopes:        Vec<Scope<'s>>,
-    open_blocks:   Vec<syntax::Item<'s>>,
+    macro_stack: Vec<PartiallyMatchedMacro<'s>>,
+    scopes:      Vec<Scope<'s>>,
+    open_blocks: Vec<syntax::Item<'s>>,
 }
 
 /// Result of the macro resolution step.
@@ -293,7 +293,9 @@ impl<'s> Resolver<'s> {
         let mut context = Context::Statement;
         loop {
             while let Some(token) = opt_item {
-                if let syntax::Item::Token(Token { variant: token::Variant::Newline(_), .. }) = &token {
+                if let syntax::Item::Token(Token { variant: token::Variant::Newline(_), .. }) =
+                    &token
+                {
                     self.finish_current_line();
                     self.open_blocks.push(token);
                     opt_item = tokens.next();
@@ -301,7 +303,8 @@ impl<'s> Resolver<'s> {
                     continue;
                 }
                 let step_result = match token {
-                    syntax::Item::Token(token) => self.process_token(root_macro_map, token, context),
+                    syntax::Item::Token(token) =>
+                        self.process_token(root_macro_map, token, context),
                     syntax::Item::Block(tokens_) => {
                         let parent_tokens = mem::replace(&mut tokens, tokens_.into_iter());
                         let macros_start = self.macro_stack.len();
