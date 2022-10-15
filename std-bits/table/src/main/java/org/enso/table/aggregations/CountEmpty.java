@@ -11,7 +11,7 @@ import java.util.List;
  * counts null or empty entries. If `isEmpty` is false, counts non-empty entries.
  */
 public class CountEmpty extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final boolean isEmpty;
 
   /**

@@ -1192,7 +1192,6 @@ lazy val parser = (project in file("lib/scala/parser"))
       s"-Djava.library.path=$root/target/rust/debug"
     },
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
       "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
     ),
     testFrameworks := List(

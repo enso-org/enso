@@ -1,10 +1,10 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.operation.map.MapOpStorage;
-
 import java.time.LocalDate;
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 
-public class DateStorage extends SpecializedStorage<LocalDate> {
+public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
@@ -13,10 +13,12 @@ public class DateStorage extends SpecializedStorage<LocalDate> {
     super(data, size, ops);
   }
 
-  private static final MapOpStorage<SpecializedStorage<LocalDate>> ops = buildOps();
+  private static final MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> ops = buildOps();
 
-  private static MapOpStorage<SpecializedStorage<LocalDate>> buildOps() {
-    return ObjectStorage.buildObjectOps();
+  private static MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
+    MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
+    t.add(SpecializedIsInOp.makeForTimeColumns(LocalDate.class));
+    return t;
   }
 
   @Override

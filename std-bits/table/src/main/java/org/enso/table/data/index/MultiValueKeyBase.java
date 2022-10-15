@@ -4,7 +4,7 @@ import org.enso.table.data.column.storage.Storage;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
-  protected final Storage[] storages;
+  protected final Storage<?>[] storages;
   protected final int rowIndex;
   protected boolean hasFloatValues = false;
   protected boolean floatsComputed = false;
@@ -13,7 +13,7 @@ public abstract class MultiValueKeyBase {
    * Constructs a key based on an array of column storages and the index of the row the key is
    * associated with.
    */
-  public MultiValueKeyBase(Storage[] storage, int rowIndex) {
+  public MultiValueKeyBase(Storage<?>[] storage, int rowIndex) {
     this.storages = storage;
     this.rowIndex = rowIndex;
   }
@@ -28,7 +28,7 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage value : storages) {
+    for (Storage<?> value : storages) {
       if (!value.isNa(rowIndex)) {
         return false;
       }

@@ -7,17 +7,17 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.Column;
 
 public class HashIndex extends Index {
-  private final Storage items;
+  private final Storage<?> items;
   private final Map<Object, List<Integer>> locs;
   private final String name;
 
-  private HashIndex(Storage items, Map<Object, List<Integer>> locs, String name) {
+  private HashIndex(Storage<?> items, Map<Object, List<Integer>> locs, String name) {
     this.items = items;
     this.locs = locs;
     this.name = name;
   }
 
-  private HashIndex(String name, Storage items, int size) {
+  private HashIndex(String name, Storage<?> items, int size) {
     Map<Object, List<Integer>> locations = new HashMap<>();
     for (int i = 0; i < size; i++) {
       List<Integer> its = locations.computeIfAbsent(items.getItemBoxed(i), x -> new ArrayList<>());
@@ -28,7 +28,7 @@ public class HashIndex extends Index {
     this.name = name;
   }
 
-  public static HashIndex fromStorage(String name, Storage storage) {
+  public static HashIndex fromStorage(String name, Storage<?> storage) {
     return new HashIndex(name, storage, storage.size());
   }
 
@@ -59,19 +59,19 @@ public class HashIndex extends Index {
 
   @Override
   public Index mask(BitSet mask, int cardinality) {
-    Storage newSt = items.mask(mask, cardinality);
+    Storage<?> newSt = items.mask(mask, cardinality);
     return HashIndex.fromStorage(name, newSt);
   }
 
   @Override
   public Index countMask(int[] counts, int total) {
-    Storage newSt = items.countMask(counts, total);
+    Storage<?> newSt = items.countMask(counts, total);
     return HashIndex.fromStorage(name, newSt);
   }
 
   @Override
   public Index applyMask(OrderMask mask) {
-    Storage newSt = items.applyMask(mask);
+    Storage<?> newSt = items.applyMask(mask);
     return HashIndex.fromStorage(name, newSt);
   }
 
@@ -86,7 +86,7 @@ public class HashIndex extends Index {
         mask.set(i);
       }
     }
-    Storage newItems = items.mask(mask, locs.size());
+    Storage<?> newItems = items.mask(mask, locs.size());
     return new HashIndex(newItems, newLocs, name);
   }
 

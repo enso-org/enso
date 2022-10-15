@@ -11,7 +11,7 @@ import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 from project.Data.SQL import code
 
-from project.Errors import Unsupported_Database_Operation_Error
+from project.Errors import Unsupported_Database_Operation_Error_Data
 
 type Internal_Dialect
 
@@ -169,14 +169,15 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [bin "+", bin "-", bin "*", bin "/"]
+    arith = [bin "+", bin "-", bin "*", bin "/", bin "%"]
     logic = [bin "AND", bin "OR", unary "NOT"]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [["ISEMPTY", make_is_empty], bin "LIKE"]
-    nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
-    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls)
+    text = [["IS_EMPTY", make_is_empty], bin "LIKE"]
+    nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
+    contains = [["IS_IN", make_is_in]]
+    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -188,7 +189,7 @@ make_is_empty arguments = case arguments.length of
         is_empty = (arg ++ " = ''").paren
         (is_null ++ " OR " ++ is_empty).paren
     _ ->
-        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation ISEMPTY")
+        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation IS_EMPTY")
 
 ## PRIVATE
 make_between : Vector Builder -> Builder
@@ -200,6 +201,21 @@ make_between arguments = case arguments.length of
         (expr ++ " BETWEEN " ++ lower ++ " AND " ++ upper).paren
     _ ->
         Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation BETWEEN")
+
+## PRIVATE
+make_is_in : Vector Builder -> Builder
+make_is_in arguments = case arguments.length of
+    0 -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN requires at least one argument.")
+    ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
+       `IN ()` would be more meaningful, but it is a syntax error.
+    1 -> code '2=1' . paren
+    _ ->
+        expr = arguments.first
+        list = arguments.tail
+        is_in = expr ++ " IN (" ++ (SQL.join ", " list) ++ ")"
+        ## We ensure that even `NULL IN (...)` is coalesced to False, so that
+           negation will work as expected.
+        code "COALESCE(" ++ is_in ++ ", 2=1)"
 
 ## PRIVATE
 
@@ -214,7 +230,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     Expression.Constant sql_type value -> SQL.interpolation sql_type value
     Expression.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
     _ : Order_Descriptor -> generate_order dialect expr
@@ -337,7 +353,7 @@ generate_query dialect query = case query of
         code "SELECT * " ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation_Error_Data "Unsupported query type."
 
 ## PRIVATE
    Arguments:
