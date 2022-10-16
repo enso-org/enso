@@ -4,6 +4,7 @@ use crate::github::Repo;
 
 use mime::Mime;
 use octocrab::models::repos::Asset;
+use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 use reqwest::Body;
 use tracing::instrument;
@@ -75,6 +76,24 @@ pub trait IsReleaseExt: IsRelease + Sync {
         }
         .await
         .context(error_msg)
+    }
+
+    async fn upload_compressed_dir(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
+        let dir_to_upload = path.as_ref();
+        let temp_dir = tempfile::tempdir()?;
+        let archive_path =
+            dir_to_upload.with_parent(temp_dir.path()).with_appended_extension("tar.gz");
+        crate::archive::compress_directory(&archive_path, &dir_to_upload).await?;
+        self.upload_asset_file(archive_path).await
+    }
+
+    async fn get(&self) -> Result<Release> {
+        self.octocrab()
+            .repos(self.repo().owner(), self.repo().name())
+            .releases()
+            .get_by_id(self.id())
+            .await
+            .anyhow_err()
     }
 }
 

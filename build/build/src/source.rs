@@ -23,6 +23,12 @@ pub enum ExternalSource {
     Release(ReleaseSource),
 }
 
+impl ExternalSource {
+    pub fn new_ongoing_ci_run(artifact_name: impl Into<String>) -> Self {
+        Self::OngoingCiRun(OngoingCiRunSource { artifact_name: artifact_name.into() })
+    }
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub enum Source<Target: IsTarget> {

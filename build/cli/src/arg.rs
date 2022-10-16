@@ -75,6 +75,7 @@ pub trait IsTargetSource {
     const SOURCE_NAME: &'static str;
     const PATH_NAME: &'static str;
     const OUTPUT_PATH_NAME: &'static str;
+    // const UPLOAD_ASSET_NAME: &'static str;
     const RUN_ID_NAME: &'static str;
     const RELEASE_DESIGNATOR_NAME: &'static str;
     const ARTIFACT_NAME_NAME: &'static str;
@@ -94,6 +95,7 @@ macro_rules! source_args_hlp {
             const SOURCE_NAME: &'static str = concat!($prefix, "-", "source");
             const PATH_NAME: &'static str = concat!($prefix, "-", "path");
             const OUTPUT_PATH_NAME: &'static str = concat!($prefix, "-", "output-path");
+            // const UPLOAD_ASSET_NAME: &'static str = concat!($prefix, "-", "upload-asset");
             const RUN_ID_NAME: &'static str = concat!($prefix, "-", "run-id");
             const RELEASE_DESIGNATOR_NAME: &'static str = concat!($prefix, "-", "release");
             const ARTIFACT_NAME_NAME: &'static str = concat!($prefix, "-", "artifact-name");
@@ -222,6 +224,9 @@ pub struct Source<Target: IsTargetSource> {
 
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
+    //
+    // #[clap(name = Target::UPLOAD_ASSET_NAME, long)]
+    // pub upload_asset: bool,
 }
 
 /// Discriminator denoting how some target artifact should be obtained.

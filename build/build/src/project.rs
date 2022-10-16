@@ -72,11 +72,6 @@ impl<T> PlainArtifact<T> {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self { path: path.into(), phantom: default() }
     }
-
-    fn from_existing(path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self>>
-    where T: Send + Sync + 'static {
-        ready(Ok(Self::new(path.as_ref()))).boxed()
-    }
 }
 
 /// State available to all project-related operations.
@@ -244,9 +239,33 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         .boxed()
     }
 
-    fn find_asset(&self, _assets: Vec<Asset>) -> Result<Asset> {
+    fn find_asset<'a>(&self, release: &'a octocrab::models::repos::Release) -> Result<&'a Asset> {
+        release.assets.iter().find(|asset| self.matches_asset(asset)).with_context(|| {
+            let asset_names = release.assets.iter().map(|asset| &asset.name).join(", ");
+            format!(
+                "No matching asset for target {:?} in release {:?}. Available assets: {}",
+                self, release, asset_names
+            )
+        })
+    }
+
+    fn matches_asset(&self, _asset: &Asset) -> bool {
         todo!("Not implemented for target {self:?}!")
     }
+
+    // /// Upload the artifact as an asset to the GitHub release.
+    // fn upload_asset(
+    //     &self,
+    //     release_handle: ReleaseHandle,
+    //     output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
+    // ) -> BoxFuture<'static, Result> {
+    //     async move {
+    //         let artifact = output.await?;
+    //         release_handle.upload_compressed_dir(&artifact).await?;
+    //         Ok(())
+    //     }
+    //     .boxed()
+    // }
 
     fn download_asset(
         &self,

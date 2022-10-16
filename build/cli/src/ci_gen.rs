@@ -271,12 +271,20 @@ pub fn nightly() -> Result<Workflow> {
             &backend_job_id,
             &build_wasm_job_id,
         ]);
-        packaging_job_ids.push(build_ide_job_id);
+        packaging_job_ids.push(build_ide_job_id.clone());
 
+        // Deploying our release to cloud needs to be done only once.
+        // We could do this on any platform, but we choose Linux, because it's most easily
+        // available and performant.
         if os == OS::Linux {
-            let upload_runtime_job_id = workflow
-                .add_dependent::<job::UploadRuntimeToEcr>(os, [&prepare_job_id, &backend_job_id]);
+            let runtime_requirements = [&prepare_job_id, &backend_job_id];
+            let upload_runtime_job_id =
+                workflow.add_dependent::<job::DeployRuntime>(os, runtime_requirements);
             packaging_job_ids.push(upload_runtime_job_id);
+
+            let gui_requirements = [build_ide_job_id];
+            let deploy_gui_job_id = workflow.add_dependent::<job::DeployGui>(os, gui_requirements);
+            packaging_job_ids.push(deploy_gui_job_id);
         }
     }
 

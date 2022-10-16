@@ -5,10 +5,15 @@ use crate::paths::generated;
 use crate::paths::TargetTriple;
 use crate::paths::EDITION_FILE_ARTIFACT_NAME;
 use crate::project;
+use crate::project::gui;
+use crate::project::Gui;
+use crate::project::IsTarget;
+use crate::source::ExternalSource;
+use crate::source::FetchTargetJob;
 
 use ide_ci::github;
+use ide_ci::github::release::ReleaseHandle;
 use ide_ci::io::web::handle_error_response;
-use ide_ci::programs::wasm_opt::Version;
 use ide_ci::programs::Docker;
 use ide_ci::programs::SevenZip;
 use octocrab::models::repos::Release;
@@ -16,8 +21,14 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
+
+
 const BUCKET_FOR_GUI: &str = "ensocdn";
 
+pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
+    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+    Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
+}
 
 pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
     let versions = &context.triple.versions;
@@ -143,6 +154,26 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     let _image_id = generate_runtime_image(context, &tag).await?;
     let credentials = crate::aws::ecr::get_credentials(&client).await?;
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
+    Ok(())
+}
+
+/// Download the GUI artifacts from the current CI run artifacts.
+pub async fn get_gui_from_current_ci_run(
+    context: &BuildContext,
+    out_dir: impl Into<PathBuf>,
+) -> Result<gui::Artifact> {
+    let target = Gui;
+    let source = ExternalSource::new_ongoing_ci_run(target.artifact_name());
+    let fetch_job = FetchTargetJob { destination: out_dir.into(), inner: source };
+    target.get_external(context.inner.clone(), fetch_job).await
+}
+
+/// Upload GUI to the cloud (AWS S3).
+pub async fn upload_gui_to_cloud_good(context: &BuildContext) -> Result {
+    let temp = tempdir()?;
+    let gui = get_gui_from_current_ci_run(context, temp.path()).await?;
+    upload_gui_to_cloud(&gui.assets, &context.triple.versions.version).await?;
+    notify_cloud_about_gui(&context.triple.versions.version).await?;
     Ok(())
 }
 

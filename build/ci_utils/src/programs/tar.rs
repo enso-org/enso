@@ -266,8 +266,8 @@ impl Tar {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::archive::compress_directory;
     use crate::archive::extract_to;
-    use crate::archive::pack_directory_contents;
     use crate::log::setup_logging;
 
     #[test]
@@ -296,7 +296,7 @@ pub mod tests {
         let linked_temp = archive_temp.path().join("linked");
         symlink::symlink_dir(temp.path(), &linked_temp)?;
 
-        pack_directory_contents(&archive_path, &linked_temp).await?;
+        compress_directory(&archive_path, &linked_temp).await?;
         assert!(archive_path.exists());
         assert!(archive_path.metadata()?.len() > 0);
 

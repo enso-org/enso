@@ -352,7 +352,7 @@ impl IdeDesktop {
 
         let content_build = self
             .npm()?
-            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env_opt(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
@@ -370,7 +370,7 @@ impl IdeDesktop {
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
-            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .workspace(Workspaces::Enso)

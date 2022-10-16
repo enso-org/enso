@@ -214,16 +214,8 @@ impl Processor {
         let release = self.resolve_release_designator(designator);
         release
             .and_then_sync(move |release| {
-                Ok(ReleaseSource {
-                    repository,
-                    asset_id: target
-                        .find_asset(release.assets)
-                        .context(format!(
-                            "Failed to find a relevant asset in the release '{}'.",
-                            release.tag_name
-                        ))?
-                        .id,
-                })
+                let asset = target.find_asset(&release)?;
+                Ok(ReleaseSource { repository, asset_id: asset.id })
             })
             .boxed()
     }
@@ -845,8 +837,6 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             let prettier = prettier::write(&ctx.repo_root);
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
-            // our_formatter.await?;
-            // prettier.await?;
             let (r1, r2) = join!(prettier, our_formatter).await;
             r1?;
             r2?;
@@ -855,13 +845,17 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             Action::CreateDraft => {
                 enso_build::release::draft_a_new_release(&ctx).await?;
             }
-            Action::DeployToEcr(args) => {
+            Action::DeployRuntime(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
                 enso_build::repo::cloud::build_image_workflow_dispatch_input(
                     &ctx.octocrab,
                     &ctx.triple.versions.version,
                 )
                 .await?;
+            }
+            Action::DeployGui(args) => {
+                let crate::arg::release::DeployGui {} = args;
+                enso_build::release::upload_gui_to_cloud_good(&ctx).await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
@@ -903,32 +897,3 @@ pub fn lib_main(config: enso_build::config::Config) -> Result {
     info!("Successfully ending.");
     Ok(())
 }
-
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use enso_build::version::Versions;
-//     use ide_ci::models::config::RepoContext;
-//
-//     #[tokio::test]
-//     async fn resolving_release() -> Result {
-//         setup_logging()?;
-//         let octocrab = Octocrab::default();
-//         let context = Processor {
-//             context: BuildContext {
-//                 remote_repo: RepoContext::from_str("enso-org/enso")?,
-//                 triple: TargetTriple::new(Versions::new(Version::new(2022, 1, 1))),
-//                 source_root: r"H:/NBO/enso5".into(),
-//                 octocrab,
-//                 cache: Cache::new_default().await?,
-//             },
-//         };
-//
-//         dbg!(
-//             context.resolve_release_source(Backend { target_os: TARGET_OS },
-//     "latest".into()).await     )?;
-//
-//         Ok(())
-//     }
-// }

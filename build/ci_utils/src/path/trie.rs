@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 
+
 /// A trie data structure, where each node represents a single fs path component.
 ///
 /// As such, a trie defines a set of fs paths (each being defined by a path within the trie).
