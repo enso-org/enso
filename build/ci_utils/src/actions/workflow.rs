@@ -48,7 +48,7 @@ pub fn set_env(name: impl AsRef<str>, value: &impl ToString) -> Result {
     let name = name.as_ref();
     let value_string = value.to_string();
     debug!("Will try writing Github Actions environment variable: {name}={value_string}");
-    std::env::set_var(name, value.to_string());
+    std::env::set_var(name, &value_string);
     if is_in_env() {
         let env_file = env::GITHUB_ENV.get()?;
         let mut file = std::fs::OpenOptions::new().create_new(false).append(true).open(env_file)?;
