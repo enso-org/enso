@@ -1,0 +1,23 @@
+from Standard.Base import all
+
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+
+## Convert from an integer to a Day_Of_Week
+
+   Arguments:
+   - `that`: The first day of the week.
+   - `first_day`: The first day of the week.
+   - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
+Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Day_Of_Week.Sunday) (start_at_zero:Boolean=False) =
+    shifted = if start_at_zero then that else that - 1
+
+    case (shifted < 0) || (shifted > 6) of
+        True ->
+            valid_range = if start_at_zero then "0-6" else "1-7"
+            message = "Invalid day of week (must be " + valid_range + ")."
+            Error.throw (Illegal_Argument_Error message)
+        False ->
+            day_number = if first_day == Day_Of_Week.Sunday then shifted else
+                (shifted + (first_day.to_integer start_at_zero=True)) % 7
+
+            [Day_Of_Week.Sunday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Wednesday, Day_Of_Week.Thursday, Day_Of_Week.Friday, Day_Of_Week.Saturday].at day_number

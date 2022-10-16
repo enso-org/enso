@@ -34,6 +34,7 @@ import project.Data.Time.Date_Time
 import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Zone
 import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Problem_Behavior
@@ -78,6 +79,7 @@ export project.Data.Time.Date_Time
 export project.Data.Time.Time_Of_Day
 export project.Data.Time.Time_Zone
 export project.Data.Time.Day_Of_Week.Day_Of_Week
+export project.Data.Time.Day_Of_Week_From
 export project.Data.Vector
 export project.Error.Problem_Behavior
 export project.IO
