@@ -154,7 +154,6 @@ pub fn expect_file(path: impl AsRef<Path>) -> Result {
 #[cfg(not(target_os = "windows"))]
 #[context("Failed to update permissions on `{}`", path.as_ref().display())]
 pub fn allow_owner_execute(path: impl AsRef<Path>) -> Result {
-    use crate::anyhow::ResultExt;
     use std::os::unix::prelude::*;
     debug!("Setting executable permission on {}", path.as_ref().display());
     let metadata = path.as_ref().metadata()?;
