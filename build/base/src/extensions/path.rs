@@ -87,6 +87,15 @@ pub trait PathExt: AsRef<Path> {
             .parent()
             .with_context(|| format!("Failed to get parent of path `{}`.", self.as_ref().display()))
     }
+
+    /// Returns the path with replaced parent. The filename is kept intact.
+    ///
+    /// If there is no filename in the path, it is fully replaced.
+    fn with_parent(&self, parent: impl AsRef<Path>) -> PathBuf {
+        let mut ret = parent.as_ref().to_path_buf();
+        ret.extend(self.as_ref().file_name());
+        ret
+    }
 }
 
 impl<T: AsRef<Path>> PathExt for T {}

@@ -7,8 +7,13 @@ use crate::paths::EDITION_FILE_ARTIFACT_NAME;
 use crate::project;
 
 use ide_ci::github;
+use ide_ci::io::web::handle_error_response;
+use ide_ci::programs::wasm_opt::Version;
 use ide_ci::programs::Docker;
+use ide_ci::programs::SevenZip;
 use octocrab::models::repos::Release;
+use reqwest::Response;
+use serde_json::json;
 use tempfile::tempdir;
 
 const BUCKET_FOR_GUI: &str = "ensocdn";
@@ -154,24 +159,55 @@ pub async fn upload_gui_to_cloud(
         key_prefix: path,
     };
 
-    let files_to_upload = [
-        assets.ide_wasm.as_path(),
-        assets.index_js.as_path(),
-        assets.style_css.as_path(),
-        assets.wasm_imports_js.as_path(),
-    ];
+    // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
+    let files_to_upload = [assets.ide_wasm.as_path(), assets.style_css.as_path()];
+    let files_to_upload_gzipped = [assets.index_js.as_path(), assets.wasm_imports_js.as_path()];
+
 
     for file in files_to_upload.iter() {
         bucket.put_file(file).await?;
     }
+    put_files_gzipping(&bucket, &files_to_upload_gzipped).await?;
 
     Ok(())
+}
+
+/// Packs given files with `gzip` and uploads them to the S3 bucket.
+///
+/// The files are uploaded with the same name, but with `.gz` extension.
+pub async fn put_files_gzipping(
+    bucket: &crate::aws::s3::BucketContext,
+    files: impl IntoIterator<Item = impl AsRef<Path>>,
+) -> Result {
+    let temp_for_gzipping = tempdir()?;
+    for file in files {
+        let gzipped_file = file.with_parent(&temp_for_gzipping).with_appended_extension("gz");
+        SevenZip.pack(&gzipped_file, [file]).await?;
+        bucket.put_file(&gzipped_file).await?;
+    }
+    Ok(())
+}
+
+#[context("Failed to notify the cloud about GUI upload in version {}.", version)]
+pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
+    let body = json!({
+        "version_number": version.to_string(),
+        "version_type": "Ide"
+    });
+    let response = reqwest::Client::new()
+        .post("https://uhso47ta0i.execute-api.eu-west-1.amazonaws.com/versions")
+        .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await?;
+    debug!("Response code from the cloud: {}.", response.status());
+    handle_error_response(response).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[tokio::test]
     async fn upload_gui() -> Result {
@@ -179,21 +215,9 @@ mod tests {
         let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
             r"H:\NBO\enso4\dist\gui\assets",
         );
-        let version = "2022.1.1-dev.provisional.test.1".parse2()?;
+        let version = "2022.1.1-dev.provisional.test.2".parse2()?;
         upload_gui_to_cloud(&assets, &version).await?;
-
-        let body = json!({
-            "version_number": version.to_string(),
-            "version_type": "Ide"
-        });
-        let response = reqwest::Client::new()
-            .post("https://uhso47ta0i.execute-api.eu-west-1.amazonaws.com/versions")
-            .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
-            .header("Content-Type", "application/json")
-            .json(&body)
-            .send()
-            .await?;
-        trace!("{:?}", response);
+        notify_cloud_about_gui(&version).await?;
         Ok(())
     }
 }

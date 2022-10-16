@@ -22,31 +22,35 @@ impl BucketContext {}
 
 impl BucketContext {
     pub async fn get(&self, path: &str) -> Result<ByteStream> {
+        let key = format!("{}/{}", self.key_prefix, path);
         Ok(self
             .client
             .get_object()
             .bucket(&self.bucket)
             .key(format!("{}/{}", self.key_prefix, path))
             .send()
-            .await?
+            .await
+            .with_context(|| format!("Failed to download {} from S3 bucket {}.", key, self.bucket))?
             .body)
     }
 
     pub async fn put(&self, path: &str, data: ByteStream) -> Result<PutObjectOutput> {
-        dbg!(self
-            .client
+        trace!("Uploading {path} at {self:?}.");
+        let key = format!("{}/{}", self.key_prefix, path);
+        self.client
             .put_object()
             .bucket(&self.bucket)
             .acl(self.upload_acl.clone())
-            .key(format!("{}/{}", self.key_prefix, path))
-            .body(data))
-        .send()
-        .await
-        .anyhow_err()
+            .key(&key)
+            .body(data)
+            .send()
+            .await
+            .with_context(|| format!("Failed to upload {} to S3 bucket {}.", key, self.bucket))
     }
 
-    #[instrument]
-    pub async fn put_file(&self, path: &Path) -> Result<PutObjectOutput> {
+    #[instrument(fields(path = %path.as_ref().display()))]
+    pub async fn put_file(&self, path: impl AsRef<Path>) -> Result<PutObjectOutput> {
+        let path = path.as_ref();
         let stream = ByteStream::from_path(path).await?;
         let path = path.file_name().with_context(|| format!("Path {:?} has no file name", path))?;
         self.put(path.as_str(), stream).await
