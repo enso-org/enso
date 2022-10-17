@@ -8,7 +8,7 @@ import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import SQL_Error_Data
+from Standard.Database.Errors import SQL_Error_Data, Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test, Problems
 
@@ -1294,7 +1294,7 @@ spec prefix table_builder test_selection pending=Nothing =
             problems = [Index_Out_Of_Bounds_Error_Data 4 1]
             Problems.test_problem_handling action problems tester
 
-    Test.group "Dropping Missing Values" pending=pending <|
+    Test.group prefix+"Dropping Missing Values" pending=pending <|
         t4 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
         Test.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
             d = t4.filter_blank_rows when_any=True
@@ -1312,11 +1312,32 @@ spec prefix table_builder test_selection pending=Nothing =
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
 
         t = table_builder [["X", [2.0, 1.5, Number.nan, Number.nan]], ["Y", [Nothing, 2.0, Nothing, 5.0]]]
-        ## TODO
-           NaN handling logic cannot be done in SQLite because if I upload a Number.nan there it gets downloaded back as Nothing - seems as it does not distinguish NaNs
-           Postgres does have a distinction - add a parameter to the test supports_nan and base the tests on that
         t.print
-        Test.specify "should not treat NaNs as blank by default" <|
-            Nothing
-        Test.specify "should allow to treat NaNs as blank if asked" <|
-            Nothing
+        t.at "X" . is_nan . rename "X is NaN" . print
+        if test_selection.is_nan_and_nothing_distinct then
+            Test.specify "should not treat NaNs as blank by default" <|
+                t1 = t.filter_blank_rows when_any=True
+                # We cannot use `Vector.==` because `NaN != NaN`.
+                t1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
+                t1.at "Y" . to_vector . should_equal [2.0, 5.0]
+
+                t2 = t.filter_blank_rows when_any=False
+                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN, NaN]"
+                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, Nothing, 5.0]
+
+            Test.specify "should allow to treat NaNs as blank if asked" <|
+                t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+
+                # We cannot use `Vector.==` because `NaN != NaN`.
+                t1.at "X" . to_vector . should_equal [1.5]
+                t1.at "Y" . to_vector . should_equal [2.0]
+
+                t2 = t.filter_blank_rows when_any=False treat_nans_as_blank=True
+                t2.print
+                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
+                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
+
+        if test_selection.is_nan_and_nothing_distinct.not then
+            Test.specify "this backend treats NaN as Nothing" <|
+                t.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
+                t.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data
