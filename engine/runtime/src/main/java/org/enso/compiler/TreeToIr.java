@@ -136,6 +136,8 @@ final class TreeToIr {
               var t = translateModuleSymbol(anno.getExpression());
               bindings = cons(t, bindings);
             }
+            case Tree.Documented doc -> {
+            }
             case null -> {
             }
             default -> {
