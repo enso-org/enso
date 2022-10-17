@@ -390,7 +390,8 @@ impl Searcher {
                     eval entry_selected((entry) model.suggestion_selected(*entry));
                     eval grid.module_entered((id) model.module_entered(*id));
                     eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
-                    eval grid.active_section((section) model.on_active_section_change(*section));
+                    active_section <- grid.active_section.filter_map(|s| *s);
+                    eval active_section((section) model.on_active_section_change(*section));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
