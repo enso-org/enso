@@ -674,6 +674,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  @Ignore // Crashes old parser
+  public void testAlternationTypes() throws Exception {
+    parseTest("""
+    foo : [Integer | Text] -> (Integer | Text)
+    foo v = v.at 0
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

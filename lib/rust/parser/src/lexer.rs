@@ -649,14 +649,14 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_assignment(),
         ":" =>
             return operator
-                .with_binary_infix_precedence(1)
+                .with_binary_infix_precedence(2)
                 .as_right_associative()
                 .with_lhs_section_termination(operator::SectionTermination::Reify)
                 .as_compile_time_operation()
                 .as_type_annotation(),
         "->" =>
             return operator
-                .with_binary_infix_precedence(1)
+                .with_binary_infix_precedence(2)
                 .as_right_associative()
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
@@ -671,6 +671,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
             return operator
                 .with_binary_infix_precedence(1)
                 .as_compile_time_operation()
+                .as_special()
                 .as_sequence(),
         "." =>
             return operator.with_binary_infix_precedence(21).with_decimal_interpretation().as_dot(),
@@ -1158,6 +1159,7 @@ impl<'s> Lexer<'s> {
             let start = self.mark();
             self.take_next();
             if let Some('#') = self.current_char {
+                self.take_next();
                 self.multiline_text(start, indent, TextType::Documentation);
             } else {
                 self.take_rest_of_line();
