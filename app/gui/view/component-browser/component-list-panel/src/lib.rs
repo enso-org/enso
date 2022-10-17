@@ -74,6 +74,7 @@ use ensogl_shadow as shadow;
 mod navigator;
 
 pub use breadcrumbs::BreadcrumbId;
+pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
 pub use ensogl_core::prelude;
 pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;

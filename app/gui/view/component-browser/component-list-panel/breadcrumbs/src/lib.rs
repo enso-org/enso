@@ -75,6 +75,8 @@ mod entry;
 /// the last one or if it is placed in the right region of the viewport. This way, we avoid
 /// unnecessary scrolling when the user selects some breadcrumb close to the end of the list.
 const SCROLLING_THRESHOLD_FRACTION: f32 = 0.5;
+/// An index of the breadcrumb that displays the name of the active section.
+pub const SECTION_NAME_CRUMB_INDEX: BreadcrumbId = 0;
 
 
 
@@ -210,7 +212,7 @@ impl Model {
                     let (_, hover_color,selected_color,greyed_out_color) = colors;
                     entry::Params {
                         margin,
-                        text_padding_left: *text_padding,
+                        text_padding:      *text_padding,
                         text_size:         text::Size::from(*text_size),
                         hover_color:       hover_color.into(),
                         font_name:         font.clone(),
@@ -441,7 +443,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the displayed breadcrumbs starting from the specific index.
         set_entries_from((Vec<Breadcrumb>, BreadcrumbId)),
         /// Set the breadcrumb at a specified index.
-        set_entry((Breadcrumb, BreadcrumbId)),
+        set_entry((BreadcrumbId, Breadcrumb)),
         /// Enable or disable displaying of the ellipsis icon at the end of the list.
         show_ellipsis(bool),
         /// Remove all breadcrumbs.
@@ -495,7 +497,7 @@ impl Breadcrumbs {
             selected <- selected_grid_col.map(|(_, col)| col / 2);
             eval input.push((b) model.push(b));
             eval input.set_entries_from(((entries, from)) model.set_entries(entries, *from));
-            eval input.set_entry(((entry, index)) model.set_entry(entry, *index));
+            eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
             scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid

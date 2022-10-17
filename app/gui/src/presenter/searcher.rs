@@ -21,6 +21,7 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
+use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
@@ -221,14 +222,15 @@ impl Model {
         }
     }
 
-    fn set_first_breadcrumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: &str) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
-            browser.model().list.model().breadcrumbs.set_entry((ImString::new(text).into(), 0));
+            let breadcrumbs = &browser.model().list.model().breadcrumbs;
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_first_breadcrumb(section_id.as_str());
+        self.set_section_name_crumb(section_id.as_str());
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
