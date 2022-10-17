@@ -744,8 +744,8 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 pub struct OperatorDelimitedTree<'s> {
     /// The delimiting operator.
     pub operator: token::Operator<'s>,
-    /// The expression.
-    pub body:     Tree<'s>,
+    /// The expression. It is an error for this to be absent.
+    pub body:     Option<Tree<'s>>,
 }
 
 impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
@@ -901,6 +901,10 @@ pub fn apply_operator<'s>(
         1 => Ok(opr.into_iter().next().unwrap()),
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
+    if let Ok(opr_) = &opr && opr_.properties.is_special() {
+        let tree = Tree::opr_app(lhs, opr, rhs);
+        return tree.with_error("Invalid use of special operator.");
+    }
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
         return match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => {

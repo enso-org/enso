@@ -671,6 +671,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
             return operator
                 .with_binary_infix_precedence(1)
                 .as_compile_time_operation()
+                .as_special()
                 .as_sequence(),
         "." =>
             return operator.with_binary_infix_precedence(21).with_decimal_interpretation().as_dot(),

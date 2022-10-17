@@ -71,19 +71,37 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut all = None;
     let mut as_ = None;
     let mut hiding = None;
+    let mut parser = operator::Precedence::new();
     for segment in segments {
         let header = segment.header;
-        let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let tokens = segment.result.tokens();
+        let body;
         let field = match header.code.as_ref() {
-            "polyglot" => &mut polyglot,
-            "from" => &mut from,
-            "import" => &mut import,
+            "polyglot" => {
+                body = parser.resolve(tokens);
+                &mut polyglot
+            }
+            "from" => {
+                body = parser.resolve(tokens);
+                &mut from
+            }
+            "import" => {
+                body = sequence_tree(&mut parser, tokens);
+                &mut import
+            }
             "all" => {
+                debug_assert!(tokens.is_empty());
                 all = Some(into_ident(header));
                 continue;
             }
-            "as" => &mut as_,
-            "hiding" => &mut hiding,
+            "as" => {
+                body = parser.resolve(tokens);
+                &mut as_
+            }
+            "hiding" => {
+                body = sequence_tree(&mut parser, tokens);
+                &mut hiding
+            }
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
@@ -119,18 +137,33 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut all = None;
     let mut as_ = None;
     let mut hiding = None;
+    let mut parser = operator::Precedence::new();
     for segment in segments {
         let header = segment.header;
-        let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let tokens = segment.result.tokens();
+        let body;
         let field = match header.code.as_ref() {
-            "from" => &mut from,
-            "export" => &mut export,
+            "from" => {
+                body = parser.resolve(tokens);
+                &mut from
+            }
+            "export" => {
+                body = sequence_tree(&mut parser, tokens);
+                &mut export
+            }
             "all" => {
+                debug_assert!(tokens.is_empty());
                 all = Some(into_ident(header));
                 continue;
             }
-            "as" => &mut as_,
-            "hiding" => &mut hiding,
+            "as" => {
+                body = parser.resolve(tokens);
+                &mut as_
+            }
+            "hiding" => {
+                body = sequence_tree(&mut parser, tokens);
+                &mut hiding
+            }
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
@@ -519,31 +552,74 @@ struct GroupedSequence<'s> {
 }
 
 fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
-    use syntax::tree::*;
     let (right, mut rest) = segments.pop();
-    let right_ = into_close_symbol(right.header);
+    let right = into_close_symbol(right.header);
     let left = rest.pop().unwrap();
     let left_ = into_open_symbol(left.header);
-    let expression = left.result.tokens();
-    let expression = operator::resolve_operator_precedence_if_non_empty(expression);
-    let mut rest = vec![];
-    let mut lhs_ = &expression;
-    let mut left_offset = crate::source::span::Offset::default();
-    while let Some(Tree {
-                       variant: box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs: Some(rhs) }), span
-                   }) = lhs_ && opr.properties.is_sequence() {
-        lhs_ = lhs;
-        let operator = opr.clone();
-        let body = rhs.clone();
-        rest.push(OperatorDelimitedTree { operator, body });
-        left_offset += span.left_offset.clone();
+    let mut parser = operator::Precedence::new();
+    let (first, rest) = sequence(&mut parser, left.result.tokens());
+    GroupedSequence { left: left_, first, rest, right }
+}
+
+fn sequence<'s>(
+    parser: &mut operator::Precedence<'s>,
+    tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+) -> (Option<syntax::Tree<'s>>, Vec<syntax::tree::OperatorDelimitedTree<'s>>) {
+    use syntax::tree::*;
+    let mut first = None;
+    let mut rest: Vec<OperatorDelimitedTree<'s>> = default();
+    for token in tokens {
+        match token {
+            syntax::Item::Token(syntax::Token {
+                left_offset,
+                code,
+                variant: syntax::token::Variant::Operator(op),
+            }) if op.properties.is_sequence() => {
+                *(match rest.last_mut() {
+                    Some(rest) => &mut rest.body,
+                    None => &mut first,
+                }) = parser.finish();
+                let operator = syntax::Token(left_offset, code, op);
+                rest.push(OperatorDelimitedTree { operator, body: default() });
+            }
+            _ => {
+                parser.push(token);
+            }
+        }
     }
-    rest.reverse();
-    let mut first = lhs_.clone();
-    if let Some(first) = &mut first {
-        first.span.left_offset += left_offset;
+    *(match rest.last_mut() {
+        Some(rest) => &mut rest.body,
+        None => &mut first,
+    }) = parser.finish();
+    (first, rest)
+}
+
+fn sequence_tree<'s>(
+    parser: &mut operator::Precedence<'s>,
+    tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+) -> Option<syntax::Tree<'s>> {
+    use syntax::tree::*;
+    let (first, rest) = sequence(parser, tokens);
+    let mut rest = rest.into_iter().rev();
+    let mut invalid = false;
+    if let Some(OperatorDelimitedTree { operator, body }) = rest.next() {
+        let mut tree = body;
+        invalid = invalid || tree.is_none();
+        let mut prev_op = operator;
+        for OperatorDelimitedTree { operator, body } in rest {
+            invalid = invalid || body.is_none();
+            tree = Tree::opr_app(body, Ok(prev_op), tree).into();
+            prev_op = operator;
+        }
+        invalid = invalid || first.is_none();
+        let mut tree = Tree::opr_app(first, Ok(prev_op), tree);
+        if invalid {
+            tree = tree.with_error("Malformed comma-delimited sequence.");
+        }
+        tree.into()
+    } else {
+        first
     }
-    GroupedSequence { left: left_, first, rest, right: right_ }
 }
 
 fn splice<'s>() -> Definition<'s> {

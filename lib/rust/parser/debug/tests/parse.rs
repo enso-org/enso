@@ -181,6 +181,13 @@ fn type_constructors() {
     let expected =
         block![(TypeDef type Foo #() #((((#((Section " Bar")) #(())) Baz #() #()))) #())];
     test(code, expected);
+    let code = [
+        "type A",
+        "    Foo (a : Integer, b : Integer)",
+    ];
+    #[rustfmt::skip]
+    let expected = block![(TypeDef type A #() #(((() Foo #((() (Invalid) () ())) #()))) #())];
+    test(&code.join("\n"), expected);
 }
 
 #[test]
