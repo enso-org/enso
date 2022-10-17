@@ -140,7 +140,7 @@ impl Model {
         padded_size
     }
 
-    fn set_content(&self, t: &str) { // -> Vector2 {
+    fn set_content(&self, t: &str) {
         self.label.set_content(t);
     }
 
