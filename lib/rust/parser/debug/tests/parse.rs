@@ -42,7 +42,7 @@ macro_rules! block {
 
 #[test]
 fn nothing() {
-    test("", block![()]);
+    test("", block![]);
 }
 
 #[test]
@@ -117,11 +117,11 @@ fn doc_comments() {
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
         (Documented
-         #((Section " The Identity Function\n")
+         (#((Section " The Identity Function\n")
            (Section "\n")
            (Section "Arguments:\n")
            (Section "- x: value to do nothing to"))
-         #(())
+         #(()))
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
     #[rustfmt::skip]
     let lines = vec![
@@ -130,7 +130,7 @@ fn doc_comments() {
     ];
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
-        (Documented #((Section " Test indent handling")) #(()) (Ident foo))]);
+        (Documented (#((Section " Test indent handling")) #(())) (Ident foo))]);
 }
 
 
@@ -164,9 +164,9 @@ fn type_constructors() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
-           ((Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
-           ((Point #() #())))
+         #(((() Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
+           ((() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
+           ((() Point #() #())))
          #())
     ];
     test(&code.join("\n"), expected);
@@ -174,8 +174,12 @@ fn type_constructors() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Foo #()
-         #(((Bar #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D))))) #())))
+         #(((() Bar #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D))))) #())))
          #())];
+    test(code, expected);
+    let code = "type Foo\n ## Bar\n Baz";
+    let expected =
+        block![(TypeDef type Foo #() #((((#((Section " Bar")) #(())) Baz #() #()))) #())];
     test(code, expected);
 }
 
@@ -227,11 +231,11 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Circle #() #(
+         #(((() Circle #() #(
              ((() (Ident radius) (":" (Ident float)) ()))
              ((() (Ident x) () ())))))
-           ((Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
-           ((Point #() #()))
+           ((() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
+           ((() Point #() #()))
            (()))
          #((Function (Ident number) #() "=" (BodyBlock #((Ident x))))
            (Function (Ident area) #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
@@ -246,8 +250,7 @@ fn type_def_defaults() {
     let expected = block![
         (TypeDef type Result #((() (Ident error) () ())
                                (() (Ident ok) () ("=" (Ident Nothing))))
-         #(((Ok #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing))))
-                #())))
+         #(((() Ok #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing)))) #())))
          #())
     ];
     test(&code.join("\n"), expected);
@@ -985,6 +988,8 @@ fn old_lambdas() {
     test("f x->\n y", block![
         (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]);
     test("x->y-> z", block![(OprApp (Ident x) (Ok "->") (OprApp (Ident y) (Ok "->") (Ident z)))]);
+    // - Lambda can be contained in a nospace group
+    //contents = 1.up_to 1000 . map _->fragment . join '\n'
 }
 
 

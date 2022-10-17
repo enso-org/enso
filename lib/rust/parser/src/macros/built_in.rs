@@ -199,73 +199,96 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     use syntax::tree::*;
     let segment = matched_segments.pop().0;
     let header = into_ident(segment.header);
-    let mut tokens = segment.result.tokens().into_iter();
-    let mut i = 0;
-    for (i_, item) in tokens.as_slice().iter().enumerate() {
-        if matches!(item, syntax::Item::Block(_)) {
-            break;
-        }
-        i = i_ + 1;
+    let mut tokens = segment.result.tokens();
+    let mut block = vec![];
+    if let Some(syntax::Item::Block(lines)) = tokens.last_mut() {
+        block = mem::take(lines);
+        tokens.pop();
     }
-    let Some(first_line) = operator::Precedence::new().resolve_non_section(tokens.by_ref().take(i)) else {
-        let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
-        return placeholder.with_error("Expected identifier after `type` keyword.");
-    };
-    let (name, params) = crate::collect_arguments(first_line);
-    let name = match name {
-        Tree { variant: box Variant::Ident(Ident { mut token }), span } => {
-            token.left_offset += span.left_offset;
-            token
-        }
-        other => {
-            return other.with_error("Expected identifier after `type` keyword.");
+    let mut tokens = tokens.into_iter();
+    let name = match tokens.next() {
+        Some(syntax::Item::Token(syntax::Token {
+            left_offset,
+            code,
+            variant: syntax::token::Variant::Ident(ident),
+        })) => syntax::Token(left_offset, code, ident),
+        _ => {
+            let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
+            return placeholder.with_error("Expected identifier after `type` keyword.");
         }
     };
+    let params = operator::Precedence::new()
+        .resolve_non_section(tokens)
+        .map(crate::collect_arguments_inclusive)
+        .unwrap_or_default();
     let mut builder = TypeDefBodyBuilder::default();
-    if let Some(syntax::Item::Block(block)) = tokens.next() {
-        for block::Line { newline, expression } in block::lines(block) {
-            builder.line(newline, expression);
-        }
+    for block::Line { newline, expression } in block::lines(block) {
+        builder.line(newline, expression);
     }
-    debug_assert_eq!(tokens.next(), None);
     let (constructors, body) = builder.finish();
     Tree::type_def(header, name, params, constructors, body)
 }
 
 #[derive(Default)]
 struct TypeDefBodyBuilder<'s> {
-    constructors: Vec<syntax::tree::TypeConstructorLine<'s>>,
-    body:         Vec<syntax::tree::block::Line<'s>>,
+    constructors:  Vec<syntax::tree::TypeConstructorLine<'s>>,
+    body:          Vec<syntax::tree::block::Line<'s>>,
+    documentation: Option<(syntax::token::Newline<'s>, syntax::tree::DocComment<'s>)>,
 }
 
 impl<'s> TypeDefBodyBuilder<'s> {
     /// Apply the line to the state.
     pub fn line(
         &mut self,
-        newline: syntax::token::Newline<'s>,
+        mut newline: syntax::token::Newline<'s>,
         expression: Option<syntax::Tree<'s>>,
     ) {
+        if self.documentation.is_none() &&
+                let Some(syntax::Tree { span, variant: box syntax::tree::Variant::Documented(
+                    syntax::tree::Documented { mut documentation, expression: None }) }) = expression {
+            documentation.open.left_offset += span.left_offset;
+            self.documentation = (newline, documentation).into();
+            return;
+        }
+        if let Some((_, doc)) = &mut self.documentation && expression.is_none() {
+            doc.newlines.push(newline);
+            return;
+        }
         if self.body.is_empty() {
             if let Some(expression) = expression {
                 match Self::to_constructor_line(expression) {
-                    Ok(expression) => {
+                    Ok(mut expression) => {
+                        if let Some((nl, mut doc)) = self.documentation.take() {
+                            let nl = mem::replace(&mut newline, nl);
+                            doc.newlines.push(nl);
+                            expression.documentation = doc.into();
+                        }
                         let expression = Some(expression);
                         let line = syntax::tree::TypeConstructorLine { newline, expression };
                         self.constructors.push(line);
                     }
-                    Err(expression) => {
-                        let expression = crate::expression_to_statement(expression);
-                        let expression = Some(expression);
-                        self.body.push(syntax::tree::block::Line { newline, expression });
-                    }
+                    Err(expression) => self.push_body(newline, expression.into()),
                 }
             } else {
                 self.constructors.push(newline.into());
             }
         } else {
-            let expression = expression.map(crate::expression_to_statement);
-            self.body.push(syntax::tree::block::Line { newline, expression });
+            self.push_body(newline, expression);
         }
+    }
+
+    fn push_body(
+        &mut self,
+        mut newline: syntax::token::Newline<'s>,
+        expression: Option<syntax::Tree<'s>>,
+    ) {
+        let mut expression = expression.map(crate::expression_to_statement);
+        if let Some((nl, mut doc)) = self.documentation.take() {
+            let nl = mem::replace(&mut newline, nl);
+            doc.newlines.push(nl);
+            expression = syntax::Tree::documented(doc, expression.take()).into();
+        }
+        self.body.push(syntax::tree::block::Line { newline, expression });
     }
 
     /// Return the constructor/body sequences.
@@ -280,15 +303,16 @@ impl<'s> TypeDefBodyBuilder<'s> {
         expression: syntax::Tree<'_>,
     ) -> Result<syntax::tree::TypeConstructorDef<'_>, syntax::Tree<'_>> {
         use syntax::tree::*;
-        let mut left_offset = crate::source::Offset::default();
         let mut last_argument_default = default();
+        let mut left_offset = crate::source::Offset::default();
+        let documentation = default();
         let lhs = match &expression {
             Tree {
                 variant:
                     box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
                 span,
             } if opr.properties.is_assignment() => {
-                left_offset += span.left_offset.clone();
+                left_offset = span.left_offset.clone();
                 last_argument_default = Some((opr.clone(), rhs.clone()));
                 lhs
             }
@@ -301,10 +325,8 @@ impl<'s> TypeDefBodyBuilder<'s> {
                 span,
             } => {
                 let mut constructor = ident.token.clone();
-                let mut left_offset = span.left_offset.clone();
-                left_offset += &span_.left_offset;
-                left_offset += constructor.left_offset;
-                constructor.left_offset = left_offset;
+                constructor.left_offset += &span.left_offset;
+                constructor.left_offset += &span_.left_offset;
                 let block = arguments
                     .iter()
                     .cloned()
@@ -314,22 +336,22 @@ impl<'s> TypeDefBodyBuilder<'s> {
                     })
                     .collect();
                 let arguments = default();
-                return Ok(TypeConstructorDef { constructor, arguments, block });
+                return Ok(TypeConstructorDef { documentation, constructor, arguments, block });
             }
             _ => &expression,
         };
         let (constructor, mut arguments) = crate::collect_arguments(lhs.clone());
         if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor && token.is_type {
             let mut constructor = token;
-            left_offset += span.left_offset;
             constructor.left_offset += left_offset;
+            constructor.left_offset += span.left_offset;
             if let Some((equals, expression)) = last_argument_default
                     && let Some(ArgumentDefinition { open: None, default, close: None, .. })
                     = arguments.last_mut() && default.is_none() {
                 *default = Some(ArgumentDefault { equals, expression });
             }
             let block = default();
-            return Ok(TypeConstructorDef{ constructor, arguments, block });
+            return Ok(TypeConstructorDef{ documentation, constructor, arguments, block });
         }
         Err(expression)
     }
