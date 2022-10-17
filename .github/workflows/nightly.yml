@@ -158,7 +158,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-          GITHUB_TOKEN: ${{ secrets.ENSO_PAT }}
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
@@ -223,7 +223,7 @@ jobs:
           AWS_DEFAULT_REGION: eu-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
           ENSO_BUILD_ECR_REPOSITORY: runtime
-          GITHUB_TOKEN: ${{ secrets.ENSO_PAT }}
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
