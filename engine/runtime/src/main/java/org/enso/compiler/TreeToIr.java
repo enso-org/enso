@@ -127,10 +127,6 @@ final class TreeToIr {
               var t = translateModuleSymbol(def);
               bindings = cons(t, bindings);
             }
-            case Tree.ArgumentBlockApplication app -> {
-              var t = translateComment(app);
-              bindings = cons(t, bindings);
-            }
             case Tree.Annotated anno -> {
               var n = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
               bindings = cons(n, bindings);
@@ -138,16 +134,7 @@ final class TreeToIr {
               bindings = cons(t, bindings);
             }
             case Tree.Documented doc -> {
-              var msg = new StringBuilder();
-              for (var t : doc.getElements()) {
-                switch (t) {
-                  case TextElement.Section s -> {
-                    msg.append(s.getText().codeRepr().substring(1));
-                  }
-                  default -> throw new UnhandledEntity(t, "translateModule, document");
-                }
-              }
-              var c = new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(doc), meta(), diag());
+              var c = translateComment(doc);
               bindings = cons(c, bindings);
               var t = translateModuleSymbol(doc.getExpression());
               bindings = cons(t, bindings);
@@ -442,7 +429,9 @@ final class TreeToIr {
             )
         }
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
-      case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      */
+      case Tree.Documented doc -> translateComment(doc);
+      /*
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
         Function.Binding(
           buildName(opr),
@@ -1898,26 +1887,28 @@ final class TreeToIr {
     * Currently this only supports documentation comments, and not standarc
     * types of comments as they can't currently be represented.
     *
-    * @param tree the comment to transform
+    * @param doc the comment to transform
     * @return the [[IR]] representation of `comment`
     */
-  IR.Comment translateComment(Tree tree) {
-    return switch (tree) {
-      case Tree.ArgumentBlockApplication comment -> {
-        var doc = new StringBuilder();
-        var sep = "";
-        for (var l : comment.getArguments()) {
-          if (l.getExpression() != null) {
-            doc.append(sep);
-            doc.append(l.getExpression().codeRepr());
-            sep = "\n";
+  IR.Comment translateComment(Tree.Documented doc) {
+      var msg = new StringBuilder();
+      for (var t : doc.getElements()) {
+        switch (t) {
+          case TextElement.Section s -> {
+            var txt = s.getText().codeRepr();
+            if (txt.startsWith("#")) {
+              txt = txt.substring(1);
+            }
+            if (msg.length() > 0) {
+              msg.append(" ");
+            }
+            msg.append(txt);
           }
+
+          default -> throw new UnhandledEntity(t, "translateComment");
         }
-        yield new IR$Comment$Documentation(doc.toString(), getIdentifiedLocation(comment), meta(), diag());
       }
-      default ->
-        throw new UnhandledEntity(tree, "translateComment");
-    };
+      return new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(doc), meta(), diag());
   }
 
   private IR$Name$Literal buildName(Token name) {
