@@ -339,7 +339,7 @@ impl<'s> ExpressionBuilder<'s> {
                 && let Arity::Binary { tokens, .. } = &child.operator_stack.last().unwrap().opr
                 && let Some(token) = tokens.last()
                 && token.properties.is_arrow() {
-            let precedence = token.properties.binary_infix_precedence().unwrap();
+            let precedence = token::Precedence::min_valid();
             let associativity = token::Associativity::Right;
             let fragment = ExpressionBuilder {
                 output:         mem::take(&mut child.output),

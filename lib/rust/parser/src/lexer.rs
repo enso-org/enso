@@ -649,14 +649,14 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_assignment(),
         ":" =>
             return operator
-                .with_binary_infix_precedence(1)
+                .with_binary_infix_precedence(2)
                 .as_right_associative()
                 .with_lhs_section_termination(operator::SectionTermination::Reify)
                 .as_compile_time_operation()
                 .as_type_annotation(),
         "->" =>
             return operator
-                .with_binary_infix_precedence(1)
+                .with_binary_infix_precedence(2)
                 .as_right_associative()
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
