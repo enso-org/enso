@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "JavaScript Objects, Arrays & Functions" <|
@@ -61,7 +61,7 @@ spec =
             (enso_vector.at 2).should_equal Nothing
             enso_vector.should_equal js_arr
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
 
 foreign js data = """
     var object = { name : "java.lang.Object", superclass: null };

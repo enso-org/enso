@@ -2,9 +2,9 @@ from Standard.Base import all
 
 from Standard.Database import Database, SQLite, SQL_Query
 
-import Standard.Visualization.SQL.Visualization as Visualization
+import Standard.Visualization.SQL.Visualization
 
-import Standard.Test
+from Standard.Test import Test
 
 visualization_spec connection =
     connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'

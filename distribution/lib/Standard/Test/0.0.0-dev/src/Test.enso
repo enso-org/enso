@@ -1,0 +1,209 @@
+from Standard.Base import all
+import Standard.Base.Runtime.State
+import Standard.Base.Data.Time.Duration
+
+import project.Test_Reporter
+import project.Test_Result.Test_Result
+import project.Test_Suite.Test_Suite
+
+type Test
+    ## Creates a new test group, describing properties of the object
+       described by `self`.
+
+       Arguments:
+       - name: The name of the test group.
+       - behaviors: An action containing a set of specs for the group.
+       - pending: A reason for why the test is pending, or `Nothing` when it is not
+         pending.
+
+       > Example
+         Adding a test group.
+
+             from Standard.Test import Test, Test_Suite
+
+             example_group = Test_Suite.run <|
+                 Test.group "Number" <| Nothing
+    group : Text -> Any -> (Text | Nothing) -> Nothing
+    group name ~behaviors pending=Nothing =
+        suite = State.get Test_Suite
+        config = suite.config
+        if config.should_run_group name then
+            case pending of
+                Nothing ->
+                    r = State.run Spec (Spec.Value name  Nil) <|
+                        behaviors
+                        State.get Spec
+                    Test_Reporter.print_report r config suite.builder
+                    new_suite = Test_Suite.Value suite.config (Cons r suite.specs) suite.builder
+                    State.put Test_Suite new_suite
+                reason ->
+                    Test_Reporter.report_pending_group name reason config suite.builder
+
+    ## Specifies a single behavior, described by `self`.
+
+       Arguments:
+       - label: A description of the behavior being tested.
+       - behavior: An action that executes tests.
+       - pending: A reason for why the test is pending, or `Nothing` when it is not
+         pending.
+
+       > Example
+         Adding a specification to the test group.
+
+             from Standard.Test import Test, Test_Suite
+
+             example_group = Test_Suite.run <|
+                 Test.group "Number" <|
+                     Test.specify "should define addition" <|
+                         2+3 . should_equal 5
+       > Example
+         Adding a pending specification to the test group.
+
+             from Standard.Test import Test, Test_Suite
+
+             example_group = Test_Suite.run <|
+                 Test.group "Number" <|
+                     Test.specify "should define addition" pending="Reason" <|
+                         2+3 . should_equal 5
+    specify : Text -> Any -> (Text | Nothing) -> Nothing
+    specify label ~behavior pending=Nothing =
+        pair = case pending of
+            Nothing -> Duration.time_execution (run_spec behavior)
+            reason -> Pair_Data Duration.zero (Test_Result.Pending reason)
+        result = pair.second
+        time_taken = pair.first
+        spec = State.get Spec
+        new_spec = Spec.Value spec.name (Cons (Behavior.Value label result time_taken) spec.behaviors)
+        State.put Spec new_spec
+
+    ## Expect a function to fail with the provided panic.
+
+       Arguments:
+       - action: The action to evaluate that is expected to fail with a panic.
+       - matcher: The expected type of the panic thrown by `action`.
+
+       > Example
+         Expect that a computation should panic as part of a test.
+
+             import Standard.Examples
+             from Standard.Test import Test
+
+             example_expect_panic_with =
+                 Test.expect_panic_with Examples.throw_panic Examples.My_Error
+    expect_panic_with : Any -> Any -> Test_Result
+    expect_panic_with ~action matcher =
+        res = Panic.recover Any action
+        case res of
+            _ ->
+                loc = Meta.get_source_location 2
+                return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
+                Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
+        err = res.catch
+        if err.is_a matcher then Nothing else
+            Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
+
+
+    ## Checks that the provided action returns without any errors or warnings.
+
+       If you just want to check for errors, usage of the `.should_succeed`
+       extension function is preferred.
+    assert_no_problems value frames_to_skip=0 =
+        value.catch Any _->
+            Test.fail_match_on_unexpected_error value 2+frames_to_skip
+        warnings = Warning.get_all value . map .value
+        if warnings.not_empty then
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
+            Test.fail msg
+
+    ## Fail a test with the given message.
+
+       Arguments:
+       - message: The message printed when failing the test.
+
+       > Example
+         Failing a test manually.
+
+             from Standard.Test import Test
+
+             example_fail = Test.fail "Something went wrong."
+    fail : Text -> Test_Result
+    fail message details=Nothing =
+        failure = Test_Result.Failure message details
+        Panic.throw failure
+
+    ## PRIVATE
+       Reports an unexpected dataflow error has occurred.
+    fail_match_on_unexpected_error : Error -> Integer -> Nothing
+    fail_match_on_unexpected_error error frames_to_skip =
+        payload = error.catch
+        loc = Meta.get_source_location 1+frames_to_skip
+        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+        Test.fail msg+'\n'+error.get_stack_trace_text
+
+## PRIVATE
+
+   Executes a behavior test.
+
+   Arguments:
+   - behavior: The behavior to execute.
+run_spec : Any -> Test_Result
+run_spec ~behavior =
+    recovery = Panic.recover Any <|
+        result = behavior
+        result.catch Any err->
+            Panic.throw (Finished_With.Error err result.get_stack_trace_text)
+        Nothing
+    maybeExc = case recovery of
+        _ -> Test_Result.Success
+    result = maybeExc.catch Any ex->
+        case ex of
+            Test_Result.Failure _ _ -> ex
+            Finished_With.Error err stack_trace_text ->
+                Test_Result.Failure ("An unexpected error was returned: " + err.to_text) details=stack_trace_text
+            _ -> Test_Result.Failure ("An unexpected panic was thrown: " + ex.to_text) details=maybeExc.get_stack_trace_text
+    result
+
+## PRIVATE
+
+   An error describing that a test finished with an unexpected error.
+
+   Arguments:
+   - err: The payload of the error that triggered this error.
+   - stack_trace_text: A textual representation of the stack trace for the
+     error.
+type Finished_With
+    Error err stack_trace_text
+
+## PRIVATE
+
+   A group of behaviors for a test.
+
+   Arguments:
+   - name: The name of the spec.
+   - behaviors: The results of the behaviors encapsulated in that spec.
+type Spec
+    Value name behaviors
+
+    ## PRIVATE
+
+       Checks if the spec group contains any failures and hence fails itself.
+    is_fail : Boolean
+    is_fail self = self.behaviors.any .is_fail
+
+## PRIVATE
+
+   A description of a behaviors in a test.
+
+   Arguments:
+   - name: The name of the behavior.
+   - result: The result of the behavior.
+   - time_taken: The duration that the behaviour took to run.
+type Behavior
+    Value name result time_taken
+
+    ## PRIVATE
+
+       Checks if the behavior is a failure.
+    is_fail : Boolean
+    is_fail self = self.result.is_fail

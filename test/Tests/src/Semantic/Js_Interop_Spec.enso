@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 foreign js my_method a b = """
     return a + b;
@@ -177,7 +177,7 @@ spec = Test.group "Polyglot JS" <|
 
     Test.specify "should properly handle parse errors" <|
         err = Panic.recover Any does_not_parse . catch
-        err.cause.message.should .contain "Expected }"
+        err.cause.message.should_contain "Expected }"
 
     Test.specify "allow access to properties of nested objects" <|
         value = test_multilevel
@@ -205,4 +205,4 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "allow use of JavaScript debugger statement" <|
         debug
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

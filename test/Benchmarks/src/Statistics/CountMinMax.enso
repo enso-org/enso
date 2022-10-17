@@ -1,8 +1,7 @@
 from Standard.Base import IO, Integer, Vector, Statistics
 from Standard.Base.Data.Statistics import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
+from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 

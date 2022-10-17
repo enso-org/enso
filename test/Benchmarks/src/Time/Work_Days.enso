@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import Sample
 import Standard.Base.Data.Time.Duration
 
-import Standard.Test.Bench
+from Standard.Test import Bench
 
 polyglot java import java.util.Random
 

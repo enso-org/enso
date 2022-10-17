@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Google_Api
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
-main = Test.Suite.run_main <|
+main = Test_Suite.run_main <|
     secret = enso_project.data / 'secret.json'
     api = Google_Api.initialize secret
 

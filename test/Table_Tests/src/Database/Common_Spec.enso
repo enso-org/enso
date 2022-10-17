@@ -7,8 +7,7 @@ from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Colum
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Problems
 
 import project.Database.Helpers.Name_Generator
 

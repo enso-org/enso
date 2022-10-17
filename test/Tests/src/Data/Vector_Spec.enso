@@ -1,14 +1,15 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type T
     Value a b
 
-T.== self that = self.a == that.a
-T.compare_to self that = if self == that then Ordering.Equal else
-    if self.a > that.a then Ordering.Greater else Ordering.Less
+    == self that = self.a == that.a
+
+    compare_to self that = if self == that then Ordering.Equal else
+        if self.a > that.a then Ordering.Greater else Ordering.Less
 
 type My_Error
     Value a
@@ -605,4 +606,4 @@ spec = Test.group "Vectors" <|
     Test.specify "array1 should be equal to array2" <|
         a1.should_equal a2
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

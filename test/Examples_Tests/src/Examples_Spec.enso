@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Examples
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 # While we're lacking the ability to run the documentation examples
 # automatically (#1706), these tests at least check that each of the examples
@@ -10,8 +10,8 @@ import Standard.Test
 
 spec = Test.group "Examples" <|
     Test.specify "should allow construction of Example_Error_Type" <|
-        val = Examples.Example_Error_Type_Data "Oh, no! Something went wrong!"
-        val.should_be_an Examples.Example_Error_Type_Data
+        val = Examples.Example_Error_Type.Error "Oh, no! Something went wrong!"
+        val.should_be_an Examples.Example_Error_Type.Error
 
     Test.specify "should allow getting the examples data directory" <|
         dir = Examples.data_dir
@@ -58,13 +58,13 @@ spec = Test.group "Examples" <|
         Examples.no_such_method
 
     Test.specify "should provide a dummy error type" <|
-        Examples.My_Error_Data
+        Examples.My_Error.Error
 
     Test.specify "should provide a method that throws an error" <|
-        Examples.throw_error.should_fail_with Examples.My_Error_Data
+        Examples.throw_error.should_fail_with Examples.My_Error.Error
 
     Test.specify "should provide a method that throws a panic" <|
-        Test.expect_panic_with Examples.throw_panic Examples.My_Error_Data
+        Test.expect_panic_with Examples.throw_panic Examples.My_Error.Error
 
     Test.specify "should provide a URL for some geo data" <|
         (Examples.geo_data_url.length > 0) . should_be_true
@@ -121,4 +121,4 @@ spec = Test.group "Examples" <|
         match.groups.length . should_equal 5
         match.named_groups.size . should_equal 2
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

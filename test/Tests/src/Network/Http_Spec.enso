@@ -13,14 +13,14 @@ import Standard.Base.Network.Http.Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
 
-import Standard.Test
+from Standard.Test import Test
 
 polyglot java import java.lang.System
 
 spec =
     base_url = System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending = if base_url != Nothing then Nothing else """
-        The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server
+    pending = if base_url != Nothing then Nothing else
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
     Test.group "Http" pending=pending <|
         # httpbin is picky about slashes in URL path. We need exactly one at the

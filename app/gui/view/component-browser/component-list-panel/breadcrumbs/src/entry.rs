@@ -178,9 +178,9 @@ impl EntryData {
         }
     }
 
-    fn update_layout(&self, contour: Contour, text_size: text::Size, text_offset: f32) {
+    fn update_layout(&self, contour: Contour, text_size: text::Size, text_padding: f32) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
+        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, text_size.value / 2.0));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }
@@ -216,14 +216,18 @@ impl EntryData {
         self.state.get() == State::Text
     }
 
-    /// Return the width of the entry if it is known. If the entry displays text, the width needs to
-    /// be calculated separately.
-    fn fixed_width(&self) -> Option<f32> {
+    fn width(&self, text_padding: f32) -> f32 {
         match self.state.get() {
-            State::Text => None,
-            State::Separator => Some(separator::ICON_WIDTH),
-            State::Ellipsis => Some(ellipsis::ICON_WIDTH),
+            State::Text => self.text_width(self.text.width.value(), text_padding),
+            State::Separator => separator::ICON_WIDTH,
+            State::Ellipsis => ellipsis::ICON_WIDTH,
         }
+    }
+
+    /// Width of the breadcrumb column filled with text of width [`text_width`] and with margin
+    /// [`text_padding`].
+    fn text_width(&self, text_width: f32, text_padding: f32) -> f32 {
+        text_width + text_padding * 2.0
     }
 }
 
@@ -238,7 +242,7 @@ pub struct Params {
     pub margin:                   f32,
     pub hover_color:              color::Lcha,
     pub font_name:                ImString,
-    pub text_padding_left:        f32,
+    pub text_padding:             f32,
     pub text_size:                text::Size,
     pub selected_color:           color::Lcha,
     pub highlight_corners_radius: f32,
@@ -278,7 +282,7 @@ impl ensogl_grid_view::Entry for Entry {
             margin <- input.set_params.map(|p| p.margin).on_change();
             hover_color <- input.set_params.map(|p| p.hover_color).on_change();
             font <- input.set_params.map(|p| p.font_name.clone_ref()).on_change();
-            text_offset <- input.set_params.map(|p| p.text_padding_left).on_change();
+            text_padding <- input.set_params.map(|p| p.text_padding).on_change();
             text_color <- input.set_params.map(|p| p.selected_color).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
@@ -306,7 +310,7 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-            layout <- all(contour, text_size, text_offset);
+            layout <- all(contour, text_size, text_padding);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
@@ -324,16 +328,16 @@ impl ensogl_grid_view::Entry for Entry {
             // === Override column width ===
 
             // We need to adjust the width of the grid view column depending on the width of
-            // the entry. For entries displaying icons we use [`EntryData::fixed_width`] method.
-            // For text entries, we listen for [`Text::width`] changes.
-            out.override_column_width <+ input.set_model.map(
-                f!((model) {
+            // the entry.
+            out.override_column_width <+ input.set_model.map2(&text_padding,
+                f!([data](model, text_padding) {
                     data.set_model(model);
-                    data.fixed_width()
+                    data.width(*text_padding)
                 })
-            ).filter_map(|w| *w);
+            );
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
-            entry_width <- text_width.map2(&text_offset, |w, text_offset| w + text_offset * 2.0);
+            // For text entries, we also listen for [`Text::width`] changes.
+            entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
         }
         init.emit(());

@@ -1,89 +1,12 @@
-from Standard.Base import all hiding Index_Out_Of_Bounds_Error
+from Standard.Base import all
+from Standard.Base import all
 
-import Standard.Image.Data.Histogram
-import Standard.Image.Data.Image
-import Standard.Image.Data.Matrix.Internal
+import project.Data.Image.Image
+import project.Data.Matrix_Error.Matrix_Error
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
-
-## UNSTABLE
-
-   Create a matrix with all elements set to zero.
-
-   Arguments:
-   - rows: the number of rows in the resulting matrix.
-   - columns: the number of columns in the resulitng matrix.
-   - channels: the number of channels in the resulting matrix.
-
-   > Example
-     Create a matrix.
-
-         import Standard.Image.Data.Matrix
-
-         example_zeros = Matrix.zeros rows=2 columns=2
-zeros : Integer -> Integer -> Integer -> Matrix
-zeros rows columns channels=1 =
-    Matrix_Data (Java_Matrix.zeros rows columns channels)
-
-## UNSTABLE
-
-   Create a matrix with all elements set to one.
-
-   Arguments:
-   - rows: the number of rows in the resulting matrix.
-   - columns: the number of columns in the resulitng matrix.
-   - channels: the number of channels in the resulting matrix.
-
-   > Example
-     Create a matrix.
-
-         import Standard.Image.Data.Matrix
-
-         example_ones = Matrix.zeros rows=2 columns=2 channels=3
-ones : Integer -> Integer -> Integer -> Matrix
-ones rows columns channels=1 =
-    Matrix_Data (Java_Matrix.ones rows columns channels)
-
-## UNSTABLE
-
-   Create an identity matrix containing ones on a main diagonal.
-
-   Arguments:
-   - rows: the number of rows in the resulting matrix.
-   - columns: the number of columns in the resulitng matrix.
-   - channels: the number of channels in the resulting matrix.
-
-   > Example
-     Create a matrix.
-
-         import Standard.Image.Data.Matrix
-
-         example_identity = Matrix.identity rows=2 columns=2 channels=3
-identity : Integer -> Integer -> Integer -> Matrix
-identity rows columns channels=1 =
-    Matrix_Data (Java_Matrix.identity rows columns channels)
-
-## UNSTABLE
-
-   Create a matrix from the provided vector.
-
-   Arguments:
-   - values: the vector of numbers.
-   - rows: the number of rows in the resulting matrix.
-   - channels: the number of channels in the resulting matrix.
-
-   > Example
-     Create a matrix.
-         import Standard.Image.Data.Matrix
-
-         example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
-from_vector : Vector -> Integer -> Integer -> Matrix
-from_vector values rows=1 channels=1 =
-    Matrix_Data (Java_Matrix.from_vector values.to_array channels rows)
-
-# TODO Dubious constructor export
-from project.Data.Matrix.Matrix import all
-from project.Data.Matrix.Matrix export all
+polyglot java import org.opencv.core.Mat
+polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE
 type Matrix
@@ -98,7 +21,82 @@ type Matrix
        Each value of the matrix is represented with an array of
        channels. In contrast to an Image data type, Matrix values are
        not normalized.
-    Matrix_Data opencv_mat
+    Value opencv_mat
+
+    ## UNSTABLE
+
+       Create a matrix with all elements set to zero.
+
+       Arguments:
+       - rows: the number of rows in the resulting matrix.
+       - columns: the number of columns in the resulting matrix.
+       - channels: the number of channels in the resulting matrix.
+
+       > Example
+         Create a matrix.
+
+             from Standard.Image import Matrix
+
+             example_zeros = Matrix.zeros rows=2 columns=2
+    zeros : Integer -> Integer -> Integer -> Matrix
+    zeros rows columns channels=1 =
+        Matrix.Value (Java_Matrix.zeros rows columns channels)
+
+    ## UNSTABLE
+
+       Create a matrix with all elements set to one.
+
+       Arguments:
+       - rows: the number of rows in the resulting matrix.
+       - columns: the number of columns in the resulting matrix.
+       - channels: the number of channels in the resulting matrix.
+
+       > Example
+         Create a matrix.
+
+             from Standard.Image import Matrix
+
+             example_ones = Matrix.zeros rows=2 columns=2 channels=3
+    ones : Integer -> Integer -> Integer -> Matrix
+    ones rows columns channels=1 =
+        Matrix.Value (Java_Matrix.ones rows columns channels)
+
+    ## UNSTABLE
+
+       Create an identity matrix containing ones on a main diagonal.
+
+       Arguments:
+       - rows: the number of rows in the resulting matrix.
+       - columns: the number of columns in the resulting matrix.
+       - channels: the number of channels in the resulting matrix.
+
+       > Example
+         Create a matrix.
+
+             from Standard.Image import Matrix
+
+             example_identity = Matrix.identity rows=2 columns=2 channels=3
+    identity : Integer -> Integer -> Integer -> Matrix
+    identity rows columns channels=1 =
+        Matrix.Value (Java_Matrix.identity rows columns channels)
+
+    ## PRIVATE
+
+       Create a matrix from the provided vector.
+
+       Arguments:
+       - values: the vector of numbers.
+       - rows: the number of rows in the resulting matrix.
+       - channels: the number of channels in the resulting matrix.
+
+       > Example
+         Create a matrix.
+             from Standard.Image import Matrix
+
+             example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
+    from_vector : Vector -> Integer -> Integer -> Matrix
+    from_vector values rows=1 channels=1 =
+        Matrix.Value (Java_Matrix.from_vector values.to_array channels rows)
 
     ## UNSTABLE
 
@@ -151,10 +149,10 @@ type Matrix
              import Standard.Examples
 
              example_get = Examples.matrix.get 0 0
-    get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
+    get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
                 arr = Java_Matrix.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
@@ -169,14 +167,14 @@ type Matrix
        > Example
          Reshape the matrix to a new shape of 3 rows and 1 column, with 1 channel.
 
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
-             example_rewhsape = Matrix.from_vector [0, 0, 0] . reshape rows=3 channels=1
+             example_reshape = Matrix.from_vector [0, 0, 0] . reshape rows=3 channels=1
     reshape : Integer -> Integer -> Matrix
     reshape self rows channels=Nothing =
         case channels of
-            Nothing -> Matrix_Data (self.opencv_mat.reshape self.channels rows)
-            _ -> Matrix_Data (self.opencv_mat.reshape channels rows)
+            Nothing -> Matrix.Value (self.opencv_mat.reshape self.channels rows)
+            _ -> Matrix.Value (self.opencv_mat.reshape channels rows)
 
     ## UNSTABLE
 
@@ -213,8 +211,8 @@ type Matrix
              import Standard.Examples
 
              example_plus = Examples.matrix + Examples.matrix
-    + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    + self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
+    + : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
+    + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch core_op_handler
 
     ## UNSTABLE
 
@@ -252,8 +250,8 @@ type Matrix
              import Standard.Examples
 
              example_minus = Examples.matrix - Examples.matrix
-    - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    - self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
+    - : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
+    - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch core_op_handler
 
     ## UNSTABLE
 
@@ -296,8 +294,8 @@ type Matrix
        > Example
          Multiply two matrices.
              m * m
-    * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    * self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
+    * : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
+    * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch core_op_handler
 
     ## UNSTABLE
 
@@ -334,8 +332,8 @@ type Matrix
               import Standard.Examples
 
               example_div = Examples.matrix / Examples.matrix
-    / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    / self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
+    / : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
+    / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch core_op_handler
 
     ## UNSTABLE
 
@@ -370,26 +368,26 @@ type Matrix
        > Example
          Normalize a matrix from vector.
 
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_normalize = Matrix.from_vector [0, 1, 2, 3, 4] . normalize
 
        > Example
          Normalize a matrix of ones.
 
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_normalize = Matrix.ones 2 3 . normalize
 
        > Example
          Normalize an identity matrix.
 
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_normalize = Matrix.identity 3 3 . normalize
     normalize : Number -> Number -> Matrix
     normalize self min_value=0.0 max_value=1.0 =
-        Matrix_Data (Java_Matrix.normalize self.opencv_mat min_value max_value)
+        Matrix.Value (Java_Matrix.normalize self.opencv_mat min_value max_value)
 
     ## UNSTABLE
 
@@ -401,12 +399,12 @@ type Matrix
              import Standard.Examples
 
              example_to_image = Examples.matrix.to_image
-    to_image : Image.Image
-    to_image self = Image.Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
+    to_image : Image
+    to_image self = Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
 
     ## UNSTABLE
 
-       Get the elemets of this matrix as a vector.
+       Get the elements of this matrix as a vector.
 
        > Example
          Convert a matrix to a vector.
@@ -432,36 +430,34 @@ type Matrix
     to_json : Json
     to_json self = Json.String self.opencv_mat.to_text
 
-# TODO Dubious constructor export
-from project.Data.Matrix.Matrix_Error import all
-from project.Data.Matrix.Matrix_Error export all
+## PRIVATE
 
-## UNSTABLE
-type Matrix_Error
+   Apply a core matrix operation.
 
-    ## UNSTABLE
+   Arguments:
+   - mat: The matrix to operate on.
+   - value: The value to apply to the matrix.
+   - function: The function with which to apply `value` to `mat`.
+core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
+core_op mat value function =
+    result = Mat.new
+    scalar = case value of
+        _ : Vector.Vector ->
+            Scalar.new value.to_array
+        Matrix.Value m ->
+            if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
+        _ ->
+            Scalar.all value
+    function mat scalar result
+    Matrix.Value result
 
-       Indicates that a matrix has been accessed with an illegal index.
+## PRIVATE
 
-       Arguments:
-       - rows: The number of rows in the matrix.
-       - columns: The number of columns in the matrix.
-       - index: The requested index in the matrix.
-    Index_Out_Of_Bounds_Error rows columns index
+   Handles errors in `core_op`.
 
-    ## UNSTABLE
-
-       An error indicating that an operation has failed due to a mismatch of
-       matrix dimensions.
-    Dimensions_Not_Equal
-
-    ## UNSTABLE
-
-       Pretty-prints a matrix error to be readable by the users.
-    to_display_text : Text
-    to_display_text self = case self of
-        Index_Out_Of_Bounds_Error rows columns index ->
-            'For a matrix with dimensions ' + rows.to_text + 'x' + columns.to_text + ', the index ' + index.to_text + ' is out of bounds.'
-        Dimensions_Not_Equal ->
-            'Dimensions are not equal.'
-
+   Arguments:
+   - error: The value to throw as an error.
+core_op_handler error =
+    case error of
+        Matrix_Error.Dimensions_Not_Equal -> Error.throw error
+        _ -> Panic.throw error

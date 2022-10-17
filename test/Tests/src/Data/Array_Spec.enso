@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.util.LinkedHashSet
 
@@ -62,4 +62,4 @@ spec =
             as_vec = json.into (Vector.fill 1 Number)
             as_vec.should_equal <| Vector.fill 100 0
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

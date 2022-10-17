@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
 import project.Database.Codegen_Spec
 import project.Database.SQLite_Spec
@@ -13,4 +13,4 @@ databases_spec =
     Postgres_Spec.spec
     Redshift_Spec.spec
 
-main = Test.Suite.run_main databases_spec
+main = Test_Suite.run_main databases_spec
