@@ -293,8 +293,12 @@ impl<'s> TypeDefBodyBuilder<'s> {
 
     /// Return the constructor/body sequences.
     pub fn finish(
-        self,
+        mut self,
     ) -> (Vec<syntax::tree::TypeConstructorLine<'s>>, Vec<syntax::tree::block::Line<'s>>) {
+        if let Some((newline, doc)) = self.documentation {
+            let expression = syntax::Tree::documented(doc, default()).into();
+            self.body.push(syntax::tree::block::Line { newline, expression });
+        }
         (self.constructors, self.body)
     }
 
