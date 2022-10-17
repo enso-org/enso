@@ -86,7 +86,7 @@ impl Configuration {
 
     pub fn set_enso_test_env(&self) -> Result {
         env::tests::ENSO_DATABASE_TEST_DB_NAME.set(&self.database_name)?;
-        env::tests::ENSO_DATABASE_TEST_HOST.set(match &self.endpoint {
+        env::tests::ENSO_DATABASE_TEST_HOST.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => format!("localhost:{port}"),
             EndpointConfiguration::Container { .. } =>
                 format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}"),

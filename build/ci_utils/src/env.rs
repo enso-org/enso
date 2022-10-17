@@ -4,7 +4,7 @@ use anyhow::Context;
 use std::collections::BTreeSet;
 use unicase::UniCase;
 
-
+pub mod known;
 
 pub fn current_dir() -> Result<PathBuf> {
     std::env::current_dir().context("Failed to get current directory.")
@@ -16,6 +16,20 @@ pub fn set_current_dir(path: impl AsRef<Path>) -> Result {
     std::env::set_current_dir(&path).anyhow_err()
 }
 
+/// Define typed accessors for environment variables. Supported types inclide `String`, `PathBuf`,
+/// and other types that implement `FromStr`.
+///
+/// Example:
+/// ```
+/// # use std::path::PathBuf;
+/// # use ide_ci::define_env_var;
+/// # use ide_ci::env::new::TypedVariable;
+/// define_env_var! {
+///     /// Documentation.
+///     ENV_VAR_NAME, PathBuf;
+/// };
+/// let path = ENV_VAR_NAME.get().unwrap_or_else(|_error| PathBuf::from("default"));
+/// ```
 #[macro_export]
 macro_rules! define_env_var {
     () => {};
@@ -41,10 +55,6 @@ macro_rules! define_env_var {
         $crate::define_env_var!($($tail)*);
     };
 }
-
-
-
-pub mod known;
 
 pub mod new {
     use super::*;
@@ -95,8 +105,8 @@ pub mod new {
             self.parse(self.get_raw()?.as_str())
         }
 
-        fn set(&self, value: impl AsRef<Self::Borrowed>) -> Result {
-            let value = self.generate(value.as_ref())?;
+        fn set(&self, value: &Self::Borrowed) -> Result {
+            let value = self.generate(value)?;
             self.set_raw(value);
             Ok(())
         }
@@ -336,13 +346,13 @@ const PATH_ENVIRONMENT_NAME: &str = "PATH";
 
 pub fn expect_var(name: impl AsRef<str>) -> Result<String> {
     let name = name.as_ref();
-    std::env::var(name).context(anyhow!("Missing environment variable {}.", name))
+    std::env::var(name).with_context(|| anyhow!("Missing environment variable {name}."))
 }
 
 pub fn expect_var_os(name: impl AsRef<OsStr>) -> Result<OsString> {
     let name = name.as_ref();
     std::env::var_os(name)
-        .ok_or_else(|| anyhow!("Missing environment variable {}.", name.to_string_lossy()))
+        .with_context(|| anyhow!("Missing environment variable {}.", name.to_string_lossy()))
 }
 
 pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
@@ -356,17 +366,17 @@ pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
     Ok(())
 }
 
-pub async fn fix_duplicated_env_var(var_name: impl AsRef<OsStr>) -> Result {
-    let var_name = var_name.as_ref();
-
-    let mut paths = indexmap::IndexSet::new();
-    while let Ok(path) = std::env::var(var_name) {
-        paths.extend(std::env::split_paths(&path));
-        std::env::remove_var(var_name);
-    }
-    std::env::set_var(var_name, std::env::join_paths(paths)?);
-    Ok(())
-}
+// pub async fn fix_duplicated_env_var(var_name: impl AsRef<OsStr>) -> Result {
+//     let var_name = var_name.as_ref();
+//
+//     let mut paths = indexmap::IndexSet::new();
+//     while let Ok(path) = std::env::var(var_name) {
+//         paths.extend(std::env::split_paths(&path));
+//         std::env::remove_var(var_name);
+//     }
+//     std::env::set_var(var_name, std::env::join_paths(paths)?);
+//     Ok(())
+// }
 
 #[derive(Clone, Debug)]
 pub enum Action {

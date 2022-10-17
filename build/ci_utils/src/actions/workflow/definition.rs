@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::env::new::RawVariable;
 
 use heck::ToKebabCase;
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
@@ -553,7 +554,20 @@ impl Step {
     }
 
     pub fn with_env(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.env.insert(name.into(), value.into());
+        let name = name.into();
+        let value = value.into();
+        let entry = self.env.entry(name);
+        if let Entry::Occupied(mut entry) = entry {
+            warn!(
+                "Overriding environment variable `{}` with value `{}` (old value was `{}`)",
+                entry.key(),
+                value,
+                entry.get(),
+            );
+            *entry.get_mut() = value;
+        } else {
+            entry.or_insert(value.into());
+        }
         self
     }
 

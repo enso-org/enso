@@ -22,7 +22,6 @@ use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
-use ide_ci::env::Variable;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::graal;
@@ -147,8 +146,9 @@ impl RunContext {
 
         // Setup Tests on Windows
         if TARGET_OS == OS::Windows {
-            env::CiTestTimeFactor.set(&2);
-            env::CiFlakyTestEnable.set(&true);
+            let default_time_factor: usize = 2;
+            env::CI_TEST_TIMEFACTOR.set(&default_time_factor)?;
+            env::CI_TEST_FLAKY_ENABLE.set(&true)?;
         }
 
         // TODO [mwu]
