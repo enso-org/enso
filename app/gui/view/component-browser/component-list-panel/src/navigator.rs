@@ -140,7 +140,7 @@ impl Navigator {
         let display_object = display::object::Instance::new();
         let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        let tooltip = Tooltip::new(&app);
+        let tooltip = Tooltip::new(app);
         top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
         bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
         top_buttons.show_background_shadow(false);
