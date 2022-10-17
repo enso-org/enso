@@ -117,7 +117,7 @@ fn doc_comments() {
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
         (Documented
-         #((Section "# The Identity Function\n")
+         #((Section " The Identity Function\n")
            (Section "\n")
            (Section "Arguments:\n")
            (Section "- x: value to do nothing to"))
@@ -130,7 +130,7 @@ fn doc_comments() {
     ];
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
-        (Documented #((Section "# Test indent handling")) #(()) (Ident foo))]);
+        (Documented #((Section " Test indent handling")) #(()) (Ident foo))]);
 }
 
 

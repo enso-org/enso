@@ -1158,6 +1158,7 @@ impl<'s> Lexer<'s> {
             let start = self.mark();
             self.take_next();
             if let Some('#') = self.current_char {
+                self.take_next();
                 self.multiline_text(start, indent, TextType::Documentation);
             } else {
                 self.take_rest_of_line();
