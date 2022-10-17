@@ -485,14 +485,15 @@ type Column
     is_missing : Column
     is_missing self = run_vectorized_unary_op self "is_missing" (== Nothing) on_missing=True
 
-    ## Returns a column of booleans, with `True` items at the positions where
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self =
         is_object_nan x = case x of
             _ : Decimal -> x.is_nan
             _ -> False
-        run_vectorized_unary_op self "is_nan" is_object_nan
+        run_vectorized_unary_op self "is_nan" is_object_nan on_missing=False
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
