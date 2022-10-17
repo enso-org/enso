@@ -2,6 +2,8 @@ package org.enso.interpreter.epb.node;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -14,15 +16,18 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
+import org.enso.interpreter.epb.runtime.ForeignParsingException;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
+import org.graalvm.polyglot.Context;
 
 public class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
   private @Child ContextRewrapNode rewrapNode = ContextRewrapNode.build();
+
   private @Child ContextRewrapExceptionNode rewrapExceptionNode =
       ContextRewrapExceptionNode.build();
-  private @CompilerDirectives.CompilationFinal AbstractTruffleException parseError;
+  private @CompilationFinal ForeignParsingException parseException;
   private final String[] argNames;
 
   /**
@@ -49,12 +54,13 @@ public class ForeignEvalNode extends RootNode {
     if (foreign != null) {
       return foreign.execute(frame.getArguments());
     } else {
-      throw parseError;
+      CompilerDirectives.transferToInterpreter();
+      throw parseException;
     }
   }
 
   private void ensureParsed() {
-    if (foreign == null && parseError == null) {
+    if (foreign == null && parseException == null) {
       lockAndParse();
     }
   }
@@ -65,18 +71,26 @@ public class ForeignEvalNode extends RootNode {
     try {
       if (foreign == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        switch (code.getLanguage()) {
-          case JS:
-            parseJs();
-            break;
-          case PY:
-            parsePy();
-            break;
-          case R:
-            parseR();
-            break;
-          default:
-            throw new IllegalStateException("Unsupported language resulted from EPB parsing");
+        var foreignLang = code.getLanguage();
+        String truffleLangId = foreignLang.getTruffleId();
+        var installedLanguages = Context.getCurrent().getEngine().getLanguages();
+        if (!installedLanguages.containsKey(truffleLangId)) {
+          this.parseException =
+              new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
+        } else {
+          switch (foreignLang) {
+            case JS:
+              parseJs();
+              break;
+            case PY:
+              parsePy();
+              break;
+            case R:
+              parseR();
+              break;
+            default:
+              throw new IllegalStateException("Unsupported language resulted from EPB parsing");
+          }
         }
       }
     } finally {
@@ -106,7 +120,7 @@ public class ForeignEvalNode extends RootNode {
       foreign = insert(JsForeignNode.build(fn, argNames.length));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+        throw rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
       } else {
         throw e;
       }
@@ -135,7 +149,7 @@ public class ForeignEvalNode extends RootNode {
       foreign = insert(PyForeignNodeGen.create(fn));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = (AbstractTruffleException) e;
+        throw (AbstractTruffleException) e;
       } else {
         throw e;
       }
@@ -159,7 +173,7 @@ public class ForeignEvalNode extends RootNode {
       foreign = insert(RForeignNodeGen.create(fn));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+        throw rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
       } else {
         throw e;
       }

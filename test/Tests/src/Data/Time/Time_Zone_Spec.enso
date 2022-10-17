@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
@@ -69,4 +69,4 @@ spec =
             zone = ZoneId.systemDefault
             Meta.type_of zone . should_equal_type Time_Zone.Time_Zone
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

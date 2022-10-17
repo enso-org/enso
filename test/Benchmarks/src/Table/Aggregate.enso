@@ -3,8 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
+from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 

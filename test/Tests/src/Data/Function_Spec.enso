@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "identity" <|
@@ -37,4 +37,4 @@ spec =
             times = uncurry (*)
             times [6, 7] . should_equal 42
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

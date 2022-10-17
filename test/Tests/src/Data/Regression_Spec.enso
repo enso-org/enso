@@ -1,6 +1,6 @@
 from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument_Error_Data, False, Regression
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     ## Regression test data produced using an Excel spreadsheet.
@@ -105,4 +105,4 @@ spec =
             expected_ys = [0.222594, 0.302868, 0.3046, 0.309085]
             vector_compare (test_xs.map fitted.predict) expected_ys
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

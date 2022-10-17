@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Base.Data.Map import No_Value_For_Key_Error_Data
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Maps" <|
     m = Map.empty . insert 1 2 . insert 2 4
@@ -108,4 +108,4 @@ spec = Test.group "Maps" <|
         m = Map.empty
         m.last . should_equal Nothing
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

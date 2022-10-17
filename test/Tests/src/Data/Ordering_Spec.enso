@@ -1,16 +1,15 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 # === Test Resources ===
 
 type Ord
     Value number
 
-Ord.compare_to : Ord -> Ordering
-Ord.compare_to self that = if self.number == that.number then Ordering.Equal else
-    if self.number > that.number then Ordering.Greater else Ordering.Less
-
+    compare_to : Ord -> Ordering
+    compare_to self that = if self.number == that.number then Ordering.Equal else
+        if self.number > that.number then Ordering.Greater else Ordering.Less
 
 # === The Tests ===
 
@@ -42,4 +41,4 @@ spec =
             Ordering.from_sign 0 . should_equal Ordering.Equal
             Ordering.from_sign 1 . should_equal Ordering.Greater
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

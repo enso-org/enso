@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "Day_Of_Week conversions" <|
@@ -52,4 +52,4 @@ spec =
             Day_Of_Week.from 4 Day_Of_Week.Monday True . should_equal Day_Of_Week.Friday
             Day_Of_Week.from 5 Day_Of_Week.Monday True . should_equal Day_Of_Week.Saturday
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

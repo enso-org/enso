@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test.Bench
+from Standard.Test import Bench
 
 prep_json size =
     single = '{"foo": 543}, {"bar": false}'

@@ -3,7 +3,7 @@ import Standard.Base
 
 import Standard.Visualization
 
-import Standard.Test
+from Standard.Test import Test
 
 type My_Type
     Value my_field
@@ -34,4 +34,3 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         My_Type.Value 30 . default_visualization . should_equal Visualization.Id.json
         [1,2,3].default_visualization.should_equal Visualization.Id.json
         "foobar".default_visualization.should_equal Visualization.Id.json
-

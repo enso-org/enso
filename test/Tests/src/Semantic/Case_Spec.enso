@@ -10,7 +10,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.List as JList
 
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Boolean type" <|
@@ -279,4 +279,4 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

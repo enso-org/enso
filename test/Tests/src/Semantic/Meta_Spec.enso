@@ -11,7 +11,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type My_Type
     Value foo bar baz
@@ -179,4 +179,4 @@ spec = Test.group "Meta-Value Manipulation" <|
         (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
         (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
