@@ -439,9 +439,9 @@ ensogl_core::define_endpoints_2! {
         /// Add a new breadcrumb after the currently selected one.
         push(Breadcrumb),
         /// Set the displayed breadcrumbs starting from the specific index.
-        set_entries_from((Vec<Breadcrumb>, usize)),
+        set_entries_from((Vec<Breadcrumb>, BreadcrumbId)),
         /// Set the breadcrumb at a specified index.
-        set_entry((Breadcrumb, usize)),
+        set_entry((Breadcrumb, BreadcrumbId)),
         /// Enable or disable displaying of the ellipsis icon at the end of the list.
         show_ellipsis(bool),
         /// Remove all breadcrumbs.
