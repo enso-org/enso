@@ -97,10 +97,10 @@ type Test
             _ ->
                 loc = Meta.get_source_location 2
                 return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
-                fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
+                Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
         err = res.catch
         if err.is_a matcher then Nothing else
-            fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
+            Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
 
     ## Checks that the provided action returns without any errors or warnings.
@@ -109,28 +109,37 @@ type Test
        extension function is preferred.
     assert_no_problems value frames_to_skip=0 =
         value.catch Any _->
-            fail_match_on_unexpected_error value 2+frames_to_skip
+            Test.fail_match_on_unexpected_error value 2+frames_to_skip
         warnings = Warning.get_all value . map .value
         if warnings.not_empty then
             loc = Meta.get_source_location 2+frames_to_skip
             msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
-            fail msg
+            Test.fail msg
 
-## Fail a test with the given message.
+    ## Fail a test with the given message.
 
-   Arguments:
-   - message: The message printed when failing the test.
+       Arguments:
+       - message: The message printed when failing the test.
 
-   > Example
-     Failing a test manually.
+       > Example
+         Failing a test manually.
 
-         from Standard.Test.Test import fail
+             from Standard.Test import Test
 
-         example_fail = fail "Something went wrong."
-fail : Text -> Test_Result
-fail message details=Nothing =
-    failure = Test_Result.Failure message details
-    Panic.throw failure
+             example_fail = Test.fail "Something went wrong."
+    fail : Text -> Test_Result
+    fail message details=Nothing =
+        failure = Test_Result.Failure message details
+        Panic.throw failure
+
+    ## PRIVATE
+       Reports an unexpected dataflow error has occurred.
+    fail_match_on_unexpected_error : Error -> Integer -> Nothing
+    fail_match_on_unexpected_error error frames_to_skip =
+        payload = error.catch
+        loc = Meta.get_source_location 1+frames_to_skip
+        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+        Test.fail msg+'\n'+error.get_stack_trace_text
 
 ## PRIVATE
 
@@ -154,15 +163,6 @@ run_spec ~behavior =
                 Test_Result.Failure ("An unexpected error was returned: " + err.to_text) details=stack_trace_text
             _ -> Test_Result.Failure ("An unexpected panic was thrown: " + ex.to_text) details=maybeExc.get_stack_trace_text
     result
-
-## PRIVATE
-   Reports an unexpected dataflow error has occurred.
-fail_match_on_unexpected_error : Error -> Integer -> Nothing
-fail_match_on_unexpected_error error frames_to_skip =
-    payload = error.catch
-    loc = Meta.get_source_location 1+frames_to_skip
-    msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-    fail msg+'\n'+error.get_stack_trace_text
 
 ## PRIVATE
 

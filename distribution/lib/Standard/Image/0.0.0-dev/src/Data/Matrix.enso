@@ -80,7 +80,7 @@ type Matrix
     identity rows columns channels=1 =
         Matrix.Value (Java_Matrix.identity rows columns channels)
 
-    ## UNSTABLE
+    ## PRIVATE
 
        Create a matrix from the provided vector.
 
