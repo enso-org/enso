@@ -154,7 +154,7 @@ impl JobArchetype for DeployRuntime {
     fn job(os: OS) -> Job {
         plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-runtime", |step| {
             let step = step
-                .with_secret_exposed_as("ENSO_PAT", "GITHUB_TOKEN")
+                .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
                 .with_env("ENSO_BUILD_ECR_REPOSITORY", enso_build::aws::ecr::runtime::NAME)
                 .with_secret_exposed_as(secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
                 .with_secret_exposed_as(
@@ -173,7 +173,7 @@ impl JobArchetype for DeployGui {
     fn job(os: OS) -> Job {
         plain_job_customized(&os, "Upload GUI to S3", "release deploy-gui", |step| {
             let step = step
-                .with_secret_exposed_as("ENSO_PAT", "GITHUB_TOKEN")
+                .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
                 .with_secret_exposed_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
                 .with_secret_exposed_as(
                     secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
