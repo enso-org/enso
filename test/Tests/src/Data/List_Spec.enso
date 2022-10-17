@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.List import Empty_Error
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "List" <|
     l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
@@ -122,4 +122,4 @@ spec = Test.group "List" <|
         l.rest . should_equal (Cons 2 (Cons 3 Nil))
         empty.rest.should_fail_with Empty_Error
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
 import project.Data.Time.Duration_Spec
 import project.Data.Time.Time_Of_Day_Spec
@@ -17,4 +17,4 @@ spec =
     Time_Zone_Spec.spec
     Day_Of_Week_Spec.spec
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

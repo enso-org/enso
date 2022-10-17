@@ -10,8 +10,7 @@ from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error_Data
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Problems
 
 from project.Util import all
 

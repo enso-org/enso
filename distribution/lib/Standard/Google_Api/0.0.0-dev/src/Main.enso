@@ -11,22 +11,22 @@ polyglot java import com.google.api.services.sheets.v4.Sheets
 ## PRIVATE
 type Google_Api_Client
     ## PRIVATE
-    type Google_Api_Client credential json_factory http_transport
+    Value credential json_factory http_transport
 
     ## Accesses a service responsible for working with Google Spreadsheets.
 
        Arguments:
        - app_name: the application name to use for making the API calls. This
          will show up in access logs etc.
-    spreadsheets : Text -> Spreadsheets_Service
+    spreadsheets : Text -> Spreadsheets
     spreadsheets self app_name='Enso' =
         service = Sheets.Builder.new self.http_transport self.json_factory self.credential . setApplicationName app_name . build
-        Spreadsheets_Service service
+        Spreadsheets.Service service
 
 ## PRIVATE
-type Spreadsheets_Service
+type Spreadsheets
     ## PRIVATE
-    type Spreadsheets_Service java_service
+    Service java_service
 
     ## Gets a table with the given ID and sheet range.
 
@@ -56,5 +56,5 @@ initialize secret_file =
             GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
     http_transport = GoogleNetHttpTransport.newTrustedTransport
     json_factory = GsonFactory.getDefaultInstance
-    Google_Api_Client credential json_factory http_transport
+    Google_Api_Client.Value credential json_factory http_transport
 

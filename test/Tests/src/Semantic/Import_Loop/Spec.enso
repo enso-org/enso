@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import project.Semantic.Import_Loop.B
 
-import Standard.Test
+from Standard.Test import Test
 
 spec = Test.group "Looping Imports" <|
     Test.specify "should behave correctly and not loop the compiler" <|

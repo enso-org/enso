@@ -6,8 +6,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 polyglot java import java.lang.Double
 
@@ -1389,4 +1388,4 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                     expect_sum_and_unsupported_errors 1 <|
                         table.aggregate [Sum "X", Count_Distinct (By_Name ["X", "Y"])]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
