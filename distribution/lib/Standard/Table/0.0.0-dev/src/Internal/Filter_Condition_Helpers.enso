@@ -56,6 +56,9 @@ make_filter_column source_column filter_condition = case filter_condition of
         Value_Type.expect_text source_column.value_type <|
             expect_column_or_value_as_text "pattern" pattern <|
                 source_column.like pattern . not
+    # Vector
+    Is_In values -> source_column.is_in values
+    Not_In values -> source_column.is_in values . not
 
 ## PRIVATE
 expect_column_or_value_as_text field_name column_or_value ~action = case column_or_value of

@@ -20,7 +20,7 @@ public class StandardDeviation extends Aggregator {
     }
   }
 
-  private final Storage storage;
+  private final Storage<?> storage;
   private final boolean population;
 
   public StandardDeviation(String name, Column column, boolean population) {

@@ -151,6 +151,9 @@ spec = Test.group "Vectors" <|
         vec.filter (Filter_Condition.Equal_Or_Less than=(-1)) . should_equal []
         vec.filter (Filter_Condition.Between 2 4) . should_equal [2, 3, 4]
         vec.filter (Filter_Condition.Between 2.1 4.5) . should_equal [3, 4]
+        vec.filter (Filter_Condition.Is_In [7, 3, 2, 2, 2]) . should_equal [2, 3]
+        vec.filter (Filter_Condition.Is_In []) . should_equal []
+        vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
 
         Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
         vec.filter Filter_Condition.Is_True . should_equal []
@@ -167,6 +170,9 @@ spec = Test.group "Vectors" <|
         txtvec.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"]
         Test.expect_panic_with (txtvec.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+        txtvec.filter Filter_Condition.Is_True . should_equal []
+        txtvec.filter (Filter_Condition.Is_In [1, 2]) . should_equal []
+        txtvec.filter (Filter_Condition.Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
 
         ["", Nothing, " ", "a"].filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing]
         ["", Nothing, " ", "a"].filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"]

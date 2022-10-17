@@ -10,7 +10,7 @@ import java.util.List;
  * counts null entries. If `isNothing` is false, counts non-null entries.
  */
 public class CountNothing extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final boolean isNothing;
 
   /**

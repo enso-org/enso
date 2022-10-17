@@ -374,6 +374,32 @@ type Column
     / : Column | Any -> Column
     / self other = run_vectorized_binary_op self '/' (/) other
 
+    ## Element-wise modulus.
+
+       Arguments:
+       - other: The value to modulo `self` against. If `other` is a column, the
+         modulus is performed pairwise between corresponding elements of `self`
+         and `other`.
+
+       Returns a column with results of modulus this column's elements against
+       `other`.
+
+       > Example
+         Modulus of two columns against each other.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % Examples.decimal_column
+
+       > Example
+         Modulus of a column with a number.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % 3
+    % : Column | Any -> Column
+    % self other = run_vectorized_binary_op self '%' (%) other
+
     ## ALIAS AND Columns
 
        Element-wise boolean conjunction.
@@ -585,11 +611,41 @@ type Column
     contains self other =
         run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
 
-    ## PRIVATE
-       Checks for each element of the column if it matches an SQL-like pattern.
+    ## Checks for each element of the column if it matches an SQL-like pattern.
+
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column. The pattern is an SQL-like pattern, where
+         `%` matches any sequence of characters and `_` matches any single
+         character.
+
+       > Example
+         Check if elements of a column start with 'F' and end with a dot.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
-    like self other =
-        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) other
+    like self pattern =
+        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
+
+    ## Checks for each element of the column if it is contained within the
+       provided vector.
+
+       Arguments:
+       - vector: A vector of elements. The resulting column will contain true at
+         the positions where the corresponding element of `self` is contained
+         in `vector`.
+
+       > Example
+         Check if elements of a column are contained in a provided vector.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.is_in [1, 2, 5]
+    is_in self vector =
+        run_vectorized_binary_op self "is_in" (elem -> vector -> vector.contains elem) vector skip_nulls=False
 
     ## ALIAS Transform Column
 
@@ -1137,18 +1193,22 @@ type Empty_Error
    - name: The name of the vectorized operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
    - operand: The operand to apply to the function after `column`.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
-run_vectorized_binary_op column name fallback_fn operand = case operand of
+run_vectorized_binary_op column name fallback_fn operand skip_nulls=True = case operand of
     Column.Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
-        rs = s1.zip name fallback_fn s2 True
+        rs = s1.zip name fallback_fn s2 skip_nulls
         Column.Column_Data (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
-        rs = s1.bimap name fallback_fn operand
+        rs = s1.bimap name fallback_fn operand skip_nulls
         Column.Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE

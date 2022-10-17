@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 
 import java.math.BigDecimal;
@@ -81,10 +82,10 @@ public class InferredBuilder extends Builder {
     int initialCapacity = Math.max(initialSize, currentSize);
     if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();
-    } else if (o instanceof Double || o instanceof BigDecimal) {
-      currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
-    } else if (o instanceof Long) {
+    } else if (NumericConverter.isCoercibleToLong(o)) {
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity);
+    } else if (NumericConverter.isCoercibleToDouble(o)) {
+      currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
@@ -106,11 +107,15 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Boolean.class, Storage.Type.BOOL),
           new RetypeInfo(Long.class, Storage.Type.LONG),
           new RetypeInfo(Double.class, Storage.Type.DOUBLE),
+          new RetypeInfo(String.class, Storage.Type.STRING),
           new RetypeInfo(BigDecimal.class, Storage.Type.DOUBLE),
           new RetypeInfo(LocalDate.class, Storage.Type.DATE),
           new RetypeInfo(LocalTime.class, Storage.Type.TIME_OF_DAY),
           new RetypeInfo(ZonedDateTime.class, Storage.Type.DATE_TIME),
-          new RetypeInfo(String.class, Storage.Type.STRING));
+          new RetypeInfo(Float.class, Storage.Type.DOUBLE),
+          new RetypeInfo(Integer.class, Storage.Type.LONG),
+          new RetypeInfo(Short.class, Storage.Type.LONG),
+          new RetypeInfo(Byte.class, Storage.Type.LONG));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
@@ -138,7 +143,7 @@ public class InferredBuilder extends Builder {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     if (currentBuilder == null) {
       initBuilderFor(null);
     }

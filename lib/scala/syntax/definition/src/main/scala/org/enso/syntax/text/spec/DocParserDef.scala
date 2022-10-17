@@ -252,7 +252,7 @@ case class DocParserDef() extends Parser[Doc] {
       logger.trace {
         var listOfFormattedAST: List[Elem] = Nil
         while (
-          result.stack.head != Elem.Formatter(typ) && result.stack.nonEmpty
+          result.stack.nonEmpty && result.stack.head != Elem.Formatter(typ)
         ) {
           result.pop()
           result.current match {

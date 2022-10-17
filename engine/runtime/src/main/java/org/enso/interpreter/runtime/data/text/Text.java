@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public class Text implements TruffleObject {
+public final class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
   private static final Lock lock = new ReentrantLock();

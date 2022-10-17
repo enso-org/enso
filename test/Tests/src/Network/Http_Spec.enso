@@ -30,8 +30,8 @@ spec =
         url_get = base_url_with_slash + "get"
         url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
-            http = Http.new (timeout = 30.seconds)
-            http.timeout.should_equal 30.seconds
+            http = Http.new (timeout = (Duration.new seconds=30))
+            http.timeout.should_equal (Duration.new seconds=30)
         Test.specify "should create HTTP client with follow_redirects setting" <|
             http = Http.new (follow_redirects = False)
             http.follow_redirects.should_equal False

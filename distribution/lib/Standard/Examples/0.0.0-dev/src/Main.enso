@@ -165,7 +165,7 @@ get_geo_data = Http.fetch geo_data_url
 
 ## A simple HTTP client for examples.
 http_client : Http
-http_client = Http.new (timeout = 30.seconds)
+http_client = Http.new (timeout = Duration.new seconds=30)
 
 ## A basic URI for examples.
 uri : URI

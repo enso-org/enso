@@ -1,17 +1,19 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.HashSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
-public class StringStorage extends SpecializedStorage<String> {
+public final class StringStorage extends SpecializedStorage<String> {
 
   /**
    * @param data the underlying data
@@ -36,7 +38,7 @@ public class StringStorage extends SpecializedStorage<String> {
     return Type.STRING;
   }
 
-  private static final MapOpStorage<SpecializedStorage<String>> ops = buildOps();
+  private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
 
   @Override
   protected boolean isOpVectorized(String name) {
@@ -44,17 +46,17 @@ public class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isString()) {
       return fillMissingHelper(arg, new StringBuilder(size()));
     } else {
@@ -62,12 +64,12 @@ public class StringStorage extends SpecializedStorage<String> {
     }
   }
 
-  private static MapOpStorage<SpecializedStorage<String>> buildOps() {
-    MapOpStorage<SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
         new MapOperation<>(Maps.EQ) {
           @Override
-          public Storage runMap(SpecializedStorage<String> storage, Object arg) {
+          public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -81,7 +83,7 @@ public class StringStorage extends SpecializedStorage<String> {
           }
 
           @Override
-          public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
+          public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -98,7 +100,7 @@ public class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected Storage run(SpecializedStorage<String> storage) {
+          protected BoolStorage run(SpecializedStorage<String> storage) {
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {
               String s = storage.data[i];
@@ -131,6 +133,19 @@ public class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(new LikeOp());
+    t.add(
+        SpecializedIsInOp.make(
+            list -> {
+              HashSet<String> set = new HashSet<>();
+              boolean hasNulls = false;
+              for (Object o : list) {
+                hasNulls |= o == null;
+                if (o instanceof String s) {
+                  set.add(s);
+                }
+              }
+              return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
+            }));
     return t;
   }
 }
