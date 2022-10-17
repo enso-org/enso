@@ -54,6 +54,7 @@ import org.enso.syntax2.Either;
 import org.enso.syntax2.FractionalDigits;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.MultipleOperatorError;
+import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Token.Operator;
 import org.enso.syntax2.Tree;
@@ -137,6 +138,19 @@ final class TreeToIr {
               bindings = cons(t, bindings);
             }
             case Tree.Documented doc -> {
+              var msg = new StringBuilder();
+              for (var t : doc.getElements()) {
+                switch (t) {
+                  case TextElement.Section s -> {
+                    msg.append(s.getText().codeRepr().substring(1));
+                  }
+                  default -> throw new UnhandledEntity(t, "translateModule, document");
+                }
+              }
+              var c = new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(doc), meta(), diag());
+              bindings = cons(c, bindings);
+              var t = translateModuleSymbol(doc.getExpression());
+              bindings = cons(t, bindings);
             }
             case null -> {
             }
@@ -932,6 +946,9 @@ final class TreeToIr {
       }
       case Tree.AutoScope auto -> {
         yield buildName(auto.getToken());
+      }
+      case Tree.Documented doc -> {
+        yield translateExpression(doc.getExpression(), insideTypeSignature);
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
