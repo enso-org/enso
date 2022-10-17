@@ -132,6 +132,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testCaseTypeOfWithSpace() throws Exception {
+    parseTest("""
+    filter self filter = case filter of
+        _ : Filter -> 42
+    """);
+  }
+
+  @Test
   public void testAnnotation0() throws Exception {
     parseTest("""
     dont_stop = @Tail_Call dont_stop
