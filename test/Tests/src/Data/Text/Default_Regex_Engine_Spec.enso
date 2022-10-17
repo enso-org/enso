@@ -6,7 +6,7 @@ import Standard.Base.Data.Text.Regex.Option as Global_Option
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
 
@@ -590,4 +590,4 @@ spec =
         Test.specify "should return the region end over which self match was performed" <|
             match.end_position . should_equal 18
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

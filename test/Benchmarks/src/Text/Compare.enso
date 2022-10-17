@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
+from Standard.Test import Bench, Faker
 
 compare_all_adjacent text_vector =
     res = 1.up_to text_vector.length . fold False acc-> ix->

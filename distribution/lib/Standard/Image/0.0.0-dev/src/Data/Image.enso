@@ -1,39 +1,106 @@
 from Standard.Base import all
 
-import Standard.Image.Data.Image.Internal
-import Standard.Image.Data.Matrix
+import project.Data.Histogram.Histogram
+import project.Data.Matrix.Matrix
+import project.Data.Matrix_Error.Matrix_Error
 
+polyglot java import org.enso.image.data.Histogram as Java_Histogram
 polyglot java import org.enso.image.data.Image as Java_Image
-
-## UNSTABLE
-
-   Create an image from the array of values.
-
-   Arguments:
-   - values: the vector of numbers.
-   - rows: the number of rows in the resulting image.
-   - channels: the number of channels in the resulting image.
-
-   The function expects the array of normalized values to have each value in
-   the range of [0.0 .. 1.0].
-
-   > Example
-     Create an image from the vector.
-
-         import Standard.Image
-
-         example_from_vector =
-             Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
-from_vector : Vector -> Integer -> Integer -> Image
-from_vector values rows=1 channels=1 =
-    Image_Data (Java_Image.from_vector values.to_array rows channels)
-
-# TODO Dubious constructor export
-from project.Data.Image.Image import all
-from project.Data.Image.Image export all
+polyglot java import org.enso.image.Codecs as Java_Codecs
+polyglot java import org.opencv.core.MatOfInt
+polyglot java import org.opencv.core.Mat
+polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE
 type Image
+    ## UNSTABLE
+
+       Create an image from the array of values.
+
+       Arguments:
+       - values: the vector of numbers.
+       - rows: the number of rows in the resulting image.
+       - channels: the number of channels in the resulting image.
+
+       The function expects the array of normalized values to have each value in
+       the range of [0.0 .. 1.0].
+
+       > Example
+         Create an image from the vector.
+
+             from Standard.Image import Image
+
+             example_from_vector =
+                 Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
+    from_vector : Vector -> Integer -> Integer -> Image
+    from_vector values rows=1 channels=1 =
+        Image.Value (Java_Image.from_vector values.to_array rows channels)
+
+    ## UNSTABLE
+
+       Read an image from a file.
+
+       The function reads images in RGB format, or RGBA if the
+       `Read_Flag.Alpha_Channel` flag is specified.
+
+       Arguments:
+       - location: the file to read.
+       - flags: the read flags.
+
+       > Example
+         Read the image.
+             Image.read "image.png"
+
+       > Example
+         Read the image with alpha channel.
+             Image.read "image.png" Read_Flag.Alpha_Channel
+
+       > Example
+         Read the image and convert it to grayscale.
+             Image.read "image.png" Read_Flag.Grayscale
+    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.IO_Error
+    read location flags=[] =
+        path = case location of
+            _ : File.File -> location.path
+            _ -> location
+        read_flags = case flags of
+            _ : Vector.Vector ->
+                if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
+                    flags.map .to_integer . reduce (_.bit_or _)
+            _ -> flags.to_integer
+        Panic.catch_java Any (Image.Value (Java_Codecs.read path read_flags)) _->
+            Error.throw (File.IO_Error (File.new path) 'Failed to read the file')
+
+    ## UNSTABLE
+
+       Write an image to a file.
+
+       Arguments:
+       - location: The location to write the image to.
+       - flags: A vector of flags that control how the image is written.
+
+       > Example
+         Write the image with applying png compression.
+             image.write path image
+
+       > Example
+         Write the image with applying png compression.
+             image.write path image (Write_Flag.PNG_Compression 9)
+
+       > Example
+         Write the image with applying several flags.
+             image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
+    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
+    write self location flags=[] =
+        path = case location of
+            _ : File.File -> location.path
+            _ -> location
+        write_flags = case flags of
+            _ : Vector.Vector -> flags
+            _ -> [flags]
+        int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
+        Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
+            Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
 
     ## UNSTABLE
 
@@ -45,7 +112,7 @@ type Image
        The image is represented with a matrix of rows x columns. Each
        pixel is represented with a vector of 1 to 4 values (channels).
        Pixel values are normalized in a range [0.0 .. 1.0].
-    Image_Data opencv_mat
+    Value opencv_mat
 
     ## UNSTABLE
 
@@ -100,10 +167,10 @@ type Image
              import Standard.Examples
 
              example_get = Examples.image.get 10 10
-    get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
+    get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
@@ -150,13 +217,13 @@ type Image
          Add a matrix to the image.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_plus =
                  image = Examples.image
                  image + (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
-    + : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    + self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any Internal.core_op_handler
+    + : (Number | Vector | Matrix) -> Image ! Matrix_Error
+    + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any core_op_handler
 
     ## UNSTABLE
 
@@ -201,13 +268,13 @@ type Image
          Subtract a matrix from the image.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_minus =
                  image = Examples.image
                  image - (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
-    - : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    - self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any Internal.core_op_handler
+    - : (Number | Vector | Matrix) -> Image ! Matrix_Error
+    - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Any core_op_handler
 
     ## UNSTABLE
 
@@ -252,13 +319,13 @@ type Image
          Multiply a matrix and the image.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_mul =
                  image = Examples.image
                  image * (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
-    * : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    * self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any Internal.core_op_handler
+    * : (Number | Vector | Matrix) -> Image ! Matrix_Error
+    * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Any core_op_handler
 
     ## UNSTABLE
 
@@ -303,13 +370,13 @@ type Image
          Divide an image by a matrix.
 
              import Standard.Examples
-             import Standard.Image.Data.Matrix
+             from Standard.Image import Matrix
 
              example_div =
                  image = Examples.image
                  image / (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
-    / : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    / self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.divide _ _ _)) . catch Any Internal.core_op_handler
+    / : (Number | Vector | Matrix) -> Image ! Matrix_Error
+    / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.divide _ _ _)) . catch Any core_op_handler
 
     ## UNSTABLE
 
@@ -378,3 +445,53 @@ type Image
     to_matrix : Matrix
     to_matrix self = Matrix.from_vector self.to_vector self.rows self.channels
 
+    ## UNSTABLE
+
+       Create a histogram for the specified channel of the image.
+
+       Arguments:
+       - channel: the channel number.
+
+       > Example
+         Create a histogram.
+
+             import Standard.Examples
+
+             example_histogram = Examples.image.histogram 0
+    histogram : Integer -> Histogram
+    histogram self channel =
+        hist = Java_Histogram.calculate self.opencv_mat channel
+        Histogram.Value channel (Vector.from_polyglot_array hist.get_data)
+
+## PRIVATE
+
+   Apply a core matrix operation.
+
+   Arguments:
+   - mat: The matrix to operate on.
+   - value: The value to apply to the matrix.
+   - function: The function with which to apply `value` to `mat`.
+core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
+core_op mat value function =
+    result = Mat.new
+    scalar = case value of
+        _ : Vector.Vector ->
+            Scalar.new value.to_array
+        Matrix.Value m ->
+            if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
+        _ ->
+            Scalar.all value
+    function mat scalar result
+    Image.Value result
+
+## PRIVATE
+
+   Handles errors in `core_op`.
+
+   Arguments:
+   - error: The value to throw as an error.
+core_op_handler : Any
+core_op_handler error =
+    case error of
+        Matrix_Error.Dimensions_Not_Equal -> Error.throw error
+        _ -> Panic.throw error

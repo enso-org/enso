@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+type Test_Result
+    ## Represents a successful behavioral test.
+    Success
+
+    ## Represents a failing behavioral test.
+
+       Arguments:
+       - message: The reason why the test failed.
+       - details: Additional context of the error, for example the stack trace.
+    Failure message details
+
+    ## Represents a pending behavioral test.
+
+       Arguments:
+       - reason: Text describing why the test is pending.
+    Pending reason
+
+    ## Checks if the Test_Result is a failure.
+    is_fail : Boolean
+    is_fail self = case self of
+        Test_Result.Failure _ _ -> True
+        _ -> False

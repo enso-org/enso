@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 Boolean.method self = self
 
@@ -41,4 +41,4 @@ spec =
             (1 == 0) && "foo" . should_equal False
             (1 == 1) && "foo" . should_equal "foo"
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

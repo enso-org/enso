@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Base.Data.Text.Text_Sub_Range import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Text_Sub_Range_Data" <|
     Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
@@ -37,4 +37,4 @@ spec = Test.group "Text_Sub_Range_Data" <|
         character_ranges accent_2 . should_equal [Range_Data 0 2]
         character_ranges kshi+facepalm+accent_1+accent_2 . should_equal [Range_Data 0 4, Range_Data 4 11, Range_Data 11 12, Range_Data 12 14]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

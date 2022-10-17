@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Delimited, Column, Data_Formatter
 import Standard.Table.Data.Storage
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 from project.Util import all
 
@@ -46,4 +46,4 @@ spec =
             delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

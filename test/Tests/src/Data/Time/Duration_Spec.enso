@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.LocalDate
@@ -92,4 +92,4 @@ spec =
             (Duration.between (java_datetime 2022 09 09) (js_datetime 2022 09 08) timezone_aware=False).total_hours . should_equal (-24)
 
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

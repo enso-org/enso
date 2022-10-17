@@ -7,8 +7,7 @@ import Standard.Base.System.Process
 from Standard.Base.System.File.File_Permissions import all
 from Standard.Base.System.Process.Exit_Code import Exit_Success
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec =
     sample_file = enso_project.data / "sample.txt"
@@ -119,12 +118,12 @@ spec =
     Test.group "read_text" <|
         Test.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text
-            contents.should .start_with "Cupcake ipsum dolor sit amet."
+            contents.should_start_with "Cupcake ipsum dolor sit amet."
 
         Test.specify "should allow reading a UTF-8 file via path" <|
             full_path = sample_file . path
             contents = File.read_text full_path
-            contents.should .start_with "Cupcake ipsum dolor sit amet."
+            contents.should_start_with "Cupcake ipsum dolor sit amet."
 
         Test.specify "should allow reading a Windows file via path" <|
             contents = windows_file.read_text Encoding.windows_1252
@@ -145,10 +144,10 @@ spec =
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.read_text path_name
-            contents.should .start_with "Cupcake ipsum dolor sit amet."
+            contents.should_start_with "Cupcake ipsum dolor sit amet."
             file = sample_file
             contents_2 = File.read_text file
-            contents_2.should .start_with "Cupcake ipsum dolor sit amet."
+            contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
     Test.group "write operations" <|
         data = [32, 127, -128, 0]
@@ -391,4 +390,4 @@ spec =
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

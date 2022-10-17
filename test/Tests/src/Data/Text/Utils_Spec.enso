@@ -2,10 +2,10 @@ from Standard.Base import all
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.text.CaseFoldedString
-
-import Standard.Test
-
 polyglot java import com.ibm.icu.text.BreakIterator
+
+from Standard.Test import Test, Test_Suite
+
 spec =
     Test.group "Text_Utils" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -86,4 +86,4 @@ spec =
         Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 2 . should_equal 'a'+kshi
         Text_Utils.take_suffix (kshi+kshi+'a'+kshi) 1 . should_equal kshi
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

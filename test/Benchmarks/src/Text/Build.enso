@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Prim_Text_Helper
 
-import Standard.Test.Bench
+from Standard.Test import Bench
 
 polyglot java import java.lang.StringBuilder
 

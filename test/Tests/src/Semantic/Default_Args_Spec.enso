@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 from project.Semantic.Default_Args_Spec.Box import all
 
@@ -53,4 +53,4 @@ spec =
         Test.specify "should apply default arguments that involve local functions" <|
             local_fun 0 . should_equal 43
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
