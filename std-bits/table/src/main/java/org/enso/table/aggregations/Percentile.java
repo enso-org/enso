@@ -11,7 +11,7 @@ import java.util.TreeMap;
 
 /** Aggregate Column computing a percentile value in a group. */
 public class Percentile extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final double percentile;
 
   public Percentile(String name, Column column, double percentile) {

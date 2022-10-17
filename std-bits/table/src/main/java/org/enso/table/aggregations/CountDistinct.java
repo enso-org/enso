@@ -15,7 +15,7 @@ import java.util.List;
  * does count when all items are null.
  */
 public class CountDistinct extends Aggregator {
-  private final Storage[] storage;
+  private final Storage<?>[] storage;
   private final Comparator<Object> objectComparator;
   private final boolean ignoreAllNull;
 

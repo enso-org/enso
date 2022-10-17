@@ -268,7 +268,7 @@ public class ExcelWriter {
       return;
     }
 
-    Storage[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    Storage<?>[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     for (int i = 0; i < rowCount; i++) {
       Row row = sheet.getRow(currentRow);
       if (row == null) {
@@ -276,7 +276,7 @@ public class ExcelWriter {
       }
 
       for (int j = 0; j < columns.length; j++) {
-        Storage storage = storages[j];
+        Storage<?> storage = storages[j];
         int idx = j + firstColumn - 1;
 
         Cell cell = row.getCell(idx);
@@ -305,7 +305,7 @@ public class ExcelWriter {
     return newStyle;
   }
 
-  private static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook)
+  private static void writeValueToCell(Cell cell, int j, Storage<?> storage, Workbook workbook)
     throws IllegalStateException {
     if (storage.isNa(j)) {
       cell.setBlank();

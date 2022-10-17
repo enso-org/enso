@@ -1,9 +1,16 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.stream.LongStream;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
@@ -12,17 +19,12 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
-
 /** A column storing 64-bit integers. */
-public class LongStorage extends NumericStorage {
+public final class LongStorage extends NumericStorage<Long> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<LongStorage> ops = buildOps();
+  private static final MapOpStorage<Long, LongStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -40,13 +42,17 @@ public class LongStorage extends NumericStorage {
     this(data, data.length, new BitSet());
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -66,17 +72,21 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Long getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int getType() {
     return Type.LONG;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
@@ -88,12 +98,12 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
@@ -137,7 +147,7 @@ public class LongStorage extends NumericStorage {
     };
   }
 
-  private Storage fillMissingDouble(double arg) {
+  private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
@@ -151,7 +161,7 @@ public class LongStorage extends NumericStorage {
     return builder.seal();
   }
 
-  private Storage fillMissingLong(long arg) {
+  private Storage<?> fillMissingLong(long arg) {
     final var builder = NumericBuilder.createLongBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -164,7 +174,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingLong(arg.asLong());
@@ -177,7 +187,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public LongStorage mask(BitSet mask, int cardinality) {
+  public Storage<Long> mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
@@ -194,7 +204,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage applyMask(OrderMask mask) {
+  public Storage<Long> applyMask(OrderMask mask) {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
@@ -209,7 +219,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage countMask(int[] counts, int total) {
+  public Storage<Long> countMask(int[] counts, int total) {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
@@ -230,8 +240,8 @@ public class LongStorage extends NumericStorage {
     return isMissing;
   }
 
-  private static MapOpStorage<LongStorage> buildOps() {
-    MapOpStorage<LongStorage> ops = new MapOpStorage<>();
+  private static MapOpStorage<Long, LongStorage> buildOps() {
+    MapOpStorage<Long, LongStorage> ops = new MapOpStorage<>();
     ops.add(
             new LongNumericOp(Maps.ADD) {
               @Override
@@ -360,10 +370,24 @@ public class LongStorage extends NumericStorage {
         .add(
             new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
-              public Storage run(LongStorage storage) {
+              public BoolStorage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
-            });
+            })
+        .add(
+            SpecializedIsInOp.make(
+                list -> {
+                  HashSet<Long> set = new HashSet<>();
+                  boolean hasNulls = false;
+                  for (Object o : list) {
+                    hasNulls |= o == null;
+                    Long x = NumericConverter.tryConvertingToLong(o);
+                    if (x != null) {
+                      set.add(x);
+                    }
+                  }
+                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
+                }));
     return ops;
   }
 

@@ -22,7 +22,7 @@ main =
     ints = (0.up_to vector_size).to_vector.take (Sample vector_size 42)
     start = Date_Time.new 1990 1 1
     dates = ints.map x->
-        start + x.seconds
+        start + (Duration.new seconds=x)
     objects = ints.map My.Data
 
     ints_table = Table.new [['ints', ints]]

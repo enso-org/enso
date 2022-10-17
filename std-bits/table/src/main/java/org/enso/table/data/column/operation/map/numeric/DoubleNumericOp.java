@@ -9,7 +9,7 @@ import org.enso.table.error.UnexpectedTypeException;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class DoubleNumericOp extends MapOperation<DoubleStorage> {
+public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage> {
 
   public DoubleNumericOp(String name) {
     super(name);
@@ -18,7 +18,7 @@ public abstract class DoubleNumericOp extends MapOperation<DoubleStorage> {
   protected abstract double doDouble(double a, double b);
 
   @Override
-  public Storage runMap(DoubleStorage storage, Object arg) {
+  public Storage<Double> runMap(DoubleStorage storage, Object arg) {
     double x;
     if (arg instanceof Double) {
       x = (Double) arg;
@@ -37,7 +37,7 @@ public abstract class DoubleNumericOp extends MapOperation<DoubleStorage> {
   }
 
   @Override
-  public Storage runZip(DoubleStorage storage, Storage arg) {
+  public Storage<Double> runZip(DoubleStorage storage, Storage<?> arg) {
     if (arg instanceof LongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();

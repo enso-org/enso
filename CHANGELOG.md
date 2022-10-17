@@ -211,6 +211,7 @@
   `Not_Like`.][3775]
 - [Reimplemented `Duration` as a built-in type.][3759]
 - [Implemented `Table.replace_text` for in-memory table.][3793]
+- [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -339,6 +340,7 @@
 [3775]: https://github.com/enso-org/enso/pull/3775
 [3759]: https://github.com/enso-org/enso/pull/3759
 [3793]: https://github.com/enso-org/enso/pull/3793
+[3790]: https://github.com/enso-org/enso/pull/3790
 
 #### Enso Compiler
 

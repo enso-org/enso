@@ -105,6 +105,12 @@ type Filter_Condition
          See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
     Not_Like pattern:Text
 
+    ## Is the value contained in `values`?
+    Is_In values:Vector
+
+    ## Is the value not contained in `values`?
+    Not_In values:Vector
+
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
@@ -142,6 +148,10 @@ type Filter_Condition
         Not_Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
             elem -> regex.matches elem . not
+        ## TODO once we have proper hashing we could create a hashmap and
+           answer quicker, currently we need to do a full scan for each element.
+        Is_In values -> values.contains
+        Not_In values -> elem -> values.contains elem . not
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =
