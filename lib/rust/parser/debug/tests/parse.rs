@@ -816,9 +816,15 @@ fn metadata_parsing() {
 
 #[test]
 fn type_signatures() {
+    #[rustfmt::skip]
     let cases = [
         ("val : Bool", block![(TypeSignature (Ident val) ":" (Ident Bool))]),
         ("val : List Int", block![(TypeSignature (Ident val) ":" (App (Ident List) (Ident Int)))]),
+        ("foo : [Integer | Text] -> (Integer | Text)", block![
+            (TypeSignature (Ident foo) ":"
+             (OprApp (Array (OprApp (Ident Integer) (Ok "|") (Ident Text)) #())
+                     (Ok "->")
+                     (Group (OprApp (Ident Integer) (Ok "|") (Ident Text)))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
