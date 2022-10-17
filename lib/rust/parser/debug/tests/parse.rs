@@ -988,8 +988,6 @@ fn old_lambdas() {
     test("f x->\n y", block![
         (App (Ident f) (OprApp (Ident x) (Ok "->") (BodyBlock #((Ident y)))))]);
     test("x->y-> z", block![(OprApp (Ident x) (Ok "->") (OprApp (Ident y) (Ok "->") (Ident z)))]);
-    // - Lambda can be contained in a nospace group
-    //contents = 1.up_to 1000 . map _->fragment . join '\n'
 }
 
 
