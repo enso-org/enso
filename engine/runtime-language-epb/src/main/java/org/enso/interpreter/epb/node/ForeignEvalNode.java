@@ -25,7 +25,8 @@ public class ForeignEvalNode extends RootNode {
   private @Child ForeignFunctionCallNode foreign;
   private @Child ContextRewrapNode rewrapNode = ContextRewrapNode.build();
 
-  private @Child ContextRewrapExceptionNode rewrapExceptionNode = ContextRewrapExceptionNode.build();
+  private @Child ContextRewrapExceptionNode rewrapExceptionNode =
+      ContextRewrapExceptionNode.build();
   private @CompilationFinal ForeignParsingException parseException;
   private final String[] argNames;
 
@@ -63,12 +64,6 @@ public class ForeignEvalNode extends RootNode {
     }
   }
 
-  @TruffleBoundary
-  private boolean isLanguageInstalled(String truffleLangId) {
-    var engine = Context.getCurrent().getEngine();
-    return engine.getLanguages().containsKey(truffleLangId);
-  }
-
   @CompilerDirectives.TruffleBoundary
   private void lockAndParse() throws IllegalStateException {
     getLock().lock();
@@ -77,8 +72,10 @@ public class ForeignEvalNode extends RootNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         var foreignLang = code.getLanguage();
         String truffleLangId = foreignLang.getTruffleId();
-        if (!isLanguageInstalled(truffleLangId)) {
-          this.parseException = new ForeignParsingException(truffleLangId, this);
+        var installedLanguages = Context.getCurrent().getEngine().getLanguages();
+        if (!installedLanguages.containsKey(truffleLangId)) {
+          this.parseException =
+              new ForeignParsingException(truffleLangId, installedLanguages.keySet(), this);
         } else {
           switch (foreignLang) {
             case JS:
@@ -173,7 +170,7 @@ public class ForeignEvalNode extends RootNode {
       CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(RForeignNodeGen.create(fn));
-    }  catch (Throwable e) {
+    } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
         throw rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
       } else {

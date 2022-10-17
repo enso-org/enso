@@ -57,5 +57,11 @@ public class ForeignMethodInvokeTest {
     Value module = ctx.eval("enso", source);
     Value res = module.invokeMember("eval_expression", "main");
     assertTrue("Invoking non-installed foreign function should recover", res.isException());
+    try {
+      throw res.throwException();
+    } catch (Exception e) {
+      assertTrue("Wrong error message",
+          e.getMessage().matches("Cannot parse foreign python method. Only available languages are .+"));
+    }
   }
 }
