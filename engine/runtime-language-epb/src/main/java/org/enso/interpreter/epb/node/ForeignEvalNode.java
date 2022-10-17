@@ -54,6 +54,7 @@ public class ForeignEvalNode extends RootNode {
     if (foreign != null) {
       return foreign.execute(frame.getArguments());
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw parseException;
     }
   }
