@@ -751,6 +751,7 @@ fn import() {
              ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test_invalid("from Standard.Base.Data.Array import new as array_new");
 }
 
 #[test]
@@ -1220,6 +1221,22 @@ fn test(code: &str, expect: lexpr::Value) {
     let ast = enso_parser::Parser::new().run(code);
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
+    assert_eq!(ast.code(), code, "{:?}", &ast);
+    let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
+    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
+    deserialized.unwrap();
+}
+
+/// Checks that an input contains an `Invalid` node somewhere.
+fn test_invalid(code: &str) {
+    let ast = enso_parser::Parser::new().run(code);
+    let invalid = std::sync::atomic::AtomicBool::new(false);
+    ast.map(|tree| {
+        if matches!(&*tree.variant, enso_parser::syntax::tree::Variant::Invalid(_)) {
+            invalid.store(true, std::sync::atomic::Ordering::Release)
+        }
+    });
+    assert!(invalid.load(std::sync::atomic::Ordering::Acquire), "{:?}", &ast);
     assert_eq!(ast.code(), code, "{:?}", &ast);
     let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
     let deserialized = enso_parser::serialization::deserialize_tree(&serialized);

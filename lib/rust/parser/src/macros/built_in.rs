@@ -78,15 +78,15 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         let body;
         let field = match header.code.as_ref() {
             "polyglot" => {
-                body = parser.resolve(tokens);
+                body = parser.resolve(tokens).map(expect_ident);
                 &mut polyglot
             }
             "from" => {
-                body = parser.resolve(tokens);
+                body = parser.resolve(tokens).map(expect_qualified);
                 &mut from
             }
             "import" => {
-                body = sequence_tree(&mut parser, tokens);
+                body = sequence_tree(&mut parser, tokens, expect_qualified);
                 &mut import
             }
             "all" => {
@@ -95,11 +95,11 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                 continue;
             }
             "as" => {
-                body = parser.resolve(tokens);
+                body = parser.resolve(tokens).map(expect_ident);
                 &mut as_
             }
             "hiding" => {
-                body = sequence_tree(&mut parser, tokens);
+                body = sequence_tree(&mut parser, tokens, expect_ident);
                 &mut hiding
             }
             _ => unreachable!(),
@@ -144,11 +144,11 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         let body;
         let field = match header.code.as_ref() {
             "from" => {
-                body = parser.resolve(tokens);
+                body = parser.resolve(tokens).map(expect_qualified);
                 &mut from
             }
             "export" => {
-                body = sequence_tree(&mut parser, tokens);
+                body = sequence_tree(&mut parser, tokens, expect_qualified);
                 &mut export
             }
             "all" => {
@@ -157,11 +157,11 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                 continue;
             }
             "as" => {
-                body = parser.resolve(tokens);
+                body = parser.resolve(tokens).map(expect_ident);
                 &mut as_
             }
             "hiding" => {
-                body = sequence_tree(&mut parser, tokens);
+                body = sequence_tree(&mut parser, tokens, expect_ident);
                 &mut hiding
             }
             _ => unreachable!(),
@@ -597,13 +597,15 @@ fn sequence<'s>(
 fn sequence_tree<'s>(
     parser: &mut operator::Precedence<'s>,
     tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+    mut f: impl FnMut(syntax::Tree<'s>) -> syntax::Tree<'s>,
 ) -> Option<syntax::Tree<'s>> {
     use syntax::tree::*;
     let (first, rest) = sequence(parser, tokens);
+    let first = first.map(&mut f);
     let mut rest = rest.into_iter().rev();
     let mut invalid = false;
     if let Some(OperatorDelimitedTree { operator, body }) = rest.next() {
-        let mut tree = body;
+        let mut tree = body.map(f);
         invalid = invalid || tree.is_none();
         let mut prev_op = operator;
         for OperatorDelimitedTree { operator, body } in rest {
@@ -650,4 +652,20 @@ fn into_close_symbol(token: syntax::token::Token) -> syntax::token::CloseSymbol 
 fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::ident(left_offset, code, false, 0, false, false)
+}
+
+fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
+    if matches!(&*tree.variant, syntax::tree::Variant::Ident(_)) {
+        tree
+    } else {
+        tree.with_error("Expected identifier.")
+    }
+}
+
+fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
+    if crate::is_qualified_name(&tree) {
+        tree
+    } else {
+        tree.with_error("Expected qualified name.")
+    }
 }
