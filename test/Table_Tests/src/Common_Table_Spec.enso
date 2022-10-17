@@ -1312,8 +1312,6 @@ spec prefix table_builder test_selection pending=Nothing =
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
 
         t = table_builder [["X", [2.0, 1.5, Number.nan, Number.nan]], ["Y", [Nothing, 2.0, Nothing, 5.0]]]
-        t.print
-        t.at "X" . is_nan . rename "X is NaN" . print
         if test_selection.is_nan_and_nothing_distinct then
             Test.specify "should not treat NaNs as blank by default" <|
                 t1 = t.filter_blank_rows when_any=True
@@ -1327,13 +1325,11 @@ spec prefix table_builder test_selection pending=Nothing =
 
             Test.specify "should allow to treat NaNs as blank if asked" <|
                 t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
-
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 t1.at "X" . to_vector . should_equal [1.5]
                 t1.at "Y" . to_vector . should_equal [2.0]
 
                 t2 = t.filter_blank_rows when_any=False treat_nans_as_blank=True
-                t2.print
                 t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
                 t2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
 

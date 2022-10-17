@@ -1023,6 +1023,7 @@ type Table
         can_contain_double col = case col.storage_type of
             Storage.Decimal -> True
             Storage.Any -> True
+            _ -> False
         Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).

@@ -568,7 +568,9 @@ filter_blank_rows table can_contain_text can_contain_double when_any treat_nans_
                     True -> col.is_empty
                     False -> col.is_missing
                 case treat_nans_as_blank && (can_contain_double col) of
-                    True -> is_blank || col.is_nan
+                    ## TODO - this `fill_missing` is a workaround for the fact
+                       that `True || Nothing` is `Nothing`.
+                    True -> is_blank || (col.is_nan.fill_missing False)
                     False -> is_blank
             merge = if when_any then (||) else (&&)
             missing_mask = cols.map handle . reduce merge
