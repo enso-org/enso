@@ -223,7 +223,7 @@ jobs:
           AWS_DEFAULT_REGION: eu-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
           ENSO_BUILD_ECR_REPOSITORY: runtime
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ENSO_PAT }}
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: failure() && runner.os == 'Windows'
