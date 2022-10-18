@@ -59,7 +59,11 @@ pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s
         if let Some(Tree {
             variant:
                 box Variant::Annotated(Annotated { newlines, expression, .. })
-                | box Variant::Documented(Documented { newlines, expression, .. }),
+                | box Variant::Documented(Documented {
+                    documentation: DocComment { newlines, .. },
+                    expression,
+                    ..
+                }),
             ..
         }) = &mut statement.expression
         {
@@ -347,6 +351,9 @@ where I: Iterator<Item = Item<'s>>
         }
         self.finished = true;
         let newline = mem::take(&mut self.newline);
+        if newline.code.is_empty() && newline.left_offset.is_empty() && self.line.is_empty() {
+            return None;
+        }
         self.parse_current_line(newline).into()
     }
 }
