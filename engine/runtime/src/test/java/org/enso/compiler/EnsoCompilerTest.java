@@ -403,7 +403,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // shifted positions confused `Tree.codeRepr()` for identifiers
   public void testTestGroup() throws Exception {
     parseTest("""
     type Test
