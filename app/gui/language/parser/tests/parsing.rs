@@ -412,7 +412,9 @@ impl Fixture {
         ];
 
         for macro_usage in macro_usages.iter() {
+            println!(">>>>>>>>>> {}", macro_usage);
             let ast = self.parser.parse_line_ast(*macro_usage).unwrap();
+            println!("{:?}", ast);
             expect_shape::<Match<Ast>>(&ast);
         }
     }
@@ -467,7 +469,7 @@ impl Fixture {
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
-#[wasm_bindgen_test]
+#[test]
 fn parser_tests() {
     Fixture::new().run()
 }
