@@ -377,6 +377,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTextLiteralWithEscape() throws Exception {
+    parseTest("""
+    wrap_junit_testsuites = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+    """);
+  }
+
+  @Test
   public void testLambda() throws Exception {
     parseTest("""
     f = map _->alphabet

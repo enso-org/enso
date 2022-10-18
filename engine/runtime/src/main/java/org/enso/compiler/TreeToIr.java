@@ -1142,6 +1142,13 @@ final class TreeToIr {
     for (var t : txt.getElements()) {
       var sectionTxt = switch (t) {
           case TextElement.Section s -> s.getText().codeRepr();
+          case TextElement.Escape e -> switch (e.getToken().codeRepr()) {
+            case "\\n" -> "\n";
+            case "\\t" -> "\t";
+            case "\\r" -> "\r";
+            case "\\f" -> "\f";
+            case String x -> throw new UnhandledEntity(x, "translateLiteral");
+          };
           default -> throw new UnhandledEntity(t, "translateLiteral");
       };
       sb.append(sectionTxt);
