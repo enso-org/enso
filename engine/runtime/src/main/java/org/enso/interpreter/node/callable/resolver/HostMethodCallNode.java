@@ -213,7 +213,7 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this)
               .getBuiltins()
               .error()
-              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
     }
   }
@@ -265,7 +265,7 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this)
               .getBuiltins()
               .error()
-              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
     }
   }
