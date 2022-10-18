@@ -132,6 +132,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseTypeOfWithSpace() throws Exception {
+    parseTest("""
+    filter self filter = case filter of
+        _ : Filter -> 42
+    """);
+  }
+
+  @Test
   public void testAnnotation0() throws Exception {
     parseTest("""
     dont_stop = @Tail_Call dont_stop
@@ -260,7 +268,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // because of https://github.com/enso-org/enso/pull/3653#issuecomment-1221841342
   public void testDocumentationComment() throws Exception {
     parseTest("""
     ## A type representing computations that may fail.
@@ -269,32 +276,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testColumnSelector() throws Exception {
     parseTest("""
+    ## Specifies a selection of columns from the table on which an operation is
+       going to be performed.
     type Column_Selector
-
-        ## Selects columns based on their names.
-
-           The `matcher` can be used to specify if the names should be matched
-           exactly or should be treated as regular expressions. It also allows to
-           specify if the matching should be case-sensitive.
-        type By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher)
-
-        ## Selects columns by their index.
-
-           The index of the first column in the table is 0. If the provided index is
-           negative, it counts from the end of the table (e.g. -1 refers to the last
-           column in the table).
-        type By_Index (indexes : Vector Integer)
-
-        ## Selects columns having exactly the same names as the columns provided in
-           the input.
-
-           The input columns do not necessarily have to come from the same table, so
-           this approach can be used to match columns with the same names as a set
-           of columns of some other table, for example, when preparing for a join.
-        type By_Column (columns : Vector Column)
+        By_Index (indexes : Vector Integer)
+        By_Column (columns : Vector Column)
     """);
   }
 
@@ -389,6 +377,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTextLiteralWithEscape() throws Exception {
+    parseTest("""
+    wrap_junit_testsuites = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+    """);
+  }
+
+  @Test
   public void testLambda() throws Exception {
     parseTest("""
     f = map _->alphabet
@@ -405,6 +400,31 @@ public class EnsoCompilerTest {
     measure = ~act -> label -> iter_size -> num_iters ->
         42
     """);
+  }
+
+  @Test
+  @Ignore // shifted positions confused `Tree.codeRepr()` for identifiers
+  public void testTestGroup() throws Exception {
+    parseTest("""
+    type Test
+        ## Creates a new test group, describing properties of the object
+           described by `self`.
+
+           Arguments:
+           - name: The name of the test group.
+           - behaviors: An action containing a set of specs for the group.
+           - pending: A reason for why the test is pending, or `Nothing` when it is not
+             pending.
+
+           > Example
+             Adding a test group.
+
+                 from Standard.Test import Test, Test_Suite
+
+                 example_group = Test_Suite.run <|
+                     Test.group "Number" <| Nothing
+        group : Text -> Any -> (Text | Nothing) -> Nothing
+        """);
   }
 
   @Test
@@ -562,15 +582,6 @@ public class EnsoCompilerTest {
     parseTest("""
     type Foo
         id x = x
-    """);
-  }
-
-  @Test
-  @Ignore
-  public void testMethodDefQualified() throws Exception {
-    parseTest("""
-    type Foo
-        Identity.id x = x
     """);
   }
 
