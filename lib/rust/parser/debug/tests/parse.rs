@@ -1019,13 +1019,13 @@ fn case_expression() {
     let code = [
         "case a of",
         "    Some -> x",
-        "    Int ->",
+        "    Int -> x",
     ];
     #[rustfmt::skip]
     let expected = block![
         (CaseOf (Ident a) #(
          ((() (Ident Some) "->" (Ident x)))
-         ((() (Ident Int) "->" ()))))
+         ((() (Ident Int) "->" (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 
