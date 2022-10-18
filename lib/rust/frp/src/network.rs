@@ -194,7 +194,7 @@ impl BridgeNetwork {
 
     fn destroy(&self) {
         self.data.take();
-        // Beware: doing it in another, also intuitive wayL
+        // Beware: doing it in another, also intuitive way
         // *self.data.borrow_mut() = None
         // May cause a panic, because the drop procedure is done while keeping data borrowed.
     }
