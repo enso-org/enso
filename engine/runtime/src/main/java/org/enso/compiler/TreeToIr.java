@@ -1923,14 +1923,13 @@ final class TreeToIr {
       for (var t : doc.getDocumentation().getElements()) {
         switch (t) {
           case TextElement.Section s -> {
+            var whitespace = s.getText().getWhitespace();
             var txt = s.getText().codeRepr();
-            if (txt.startsWith("#")) {
-              txt = txt.substring(1);
+            if (whitespace.length() > 0) {
+              whitespace = whitespace.subSequence(1, whitespace.length());
             }
-            if (msg.length() > 0) {
-              msg.append(" ");
-            }
-            msg.append(txt);
+            msg.append(whitespace);
+            msg.append(txt.replaceAll("\n", ""));
           }
 
           default -> throw new UnhandledEntity(t, "translateComment");
