@@ -145,7 +145,7 @@ type Table
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -195,7 +195,7 @@ type Table
              table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.remove_columns internal_columns=self.internal_columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -250,7 +250,7 @@ type Table
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
     reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=self.internal_columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -916,6 +916,11 @@ type Table
         ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
         Column.Value internal.name self.connection internal.sql_type internal.expression new_ctx
+
+    ## PRIVATE
+    columns_helper : Table_Column_Helper
+    columns_helper self =
+        Table_Helpers.Table_Column_Helper.Value self.internal_columns
 
     ## PRIVATE
 

@@ -1341,7 +1341,7 @@ spec prefix table_builder test_selection pending=Nothing =
             t6.row_count . should_equal 0
             t6.columns . should_equal []
 
-        Test.specify "should allow to remove blank columns" <|
+        Test.specify "should allow to remove blank columns" pending="TODO!" <|
             r1 = t1.remove_columns (Column_Selector.Blank_Columns when_any=False)
             r1.columns.map .name . should_equal ["a", "b", "c", "d", "e"]
             r1.at "a" . to_vector . should_equal [1, Nothing, 3, 4]
@@ -1357,7 +1357,7 @@ spec prefix table_builder test_selection pending=Nothing =
             h = ["h", [Number.nan, Nothing, Number.nan, Nothing]]
             table_builder [c, g, h]
         if test_selection.is_nan_and_nothing_distinct then
-            Test.specify "should not treat NaNs as blank by default" <|
+            Test.specify "should not treat NaNs as blank by default" pending="TODO!" <|
                 r1 = t3.filter_blank_rows when_any=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
@@ -1375,7 +1375,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 r4.columns.map .name . should_equal ["c", "g"]
                 r4.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
 
-            Test.specify "should allow to treat NaNs as blank if asked" <|
+            Test.specify "should allow to treat NaNs as blank if asked" pending="TODO!" <|
                 r1 = t3.filter_blank_rows when_any=True treat_nans_as_blank=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
                 r1.at "X" . to_vector . should_equal [1.5]
@@ -1398,7 +1398,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 t3.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
                 t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data
 
-        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
+        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" pending="TODO!" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [Nothing, "", Nothing, Nothing]], ["Z", [Nothing, True, False, Nothing]]]
 
             t.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["Y"]

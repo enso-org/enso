@@ -116,15 +116,16 @@ default_aggregate_column_name aggregate_column =
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
 resolve_aggregate table problem_builder aggregate_column =
     table_columns = table.columns
+    columns_helper = table.columns_helper
 
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
-        res = Table_Helpers.resolve_column_helper table_columns c problem_builder
+        res = columns_helper.resolve_column_helper c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
+        resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_order_by selector = case selector of
