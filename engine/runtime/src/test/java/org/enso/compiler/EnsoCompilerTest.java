@@ -53,6 +53,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeMethodWithSignature() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Fuzzy
+        == : Correct -> Wrong
+        == self right = @Builtin_Method "Fuzzy.=="
+    """
+    );
+  }
+
+  @Test
   public void testImport() throws Exception {
     parseTest("""
     from Standard.Base.Data.Any import all
@@ -104,6 +115,23 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseTypeOf() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:Vector_2d -> x
+        _ -> x
+    """);
+  }
+
+  @Test
+  public void testCaseTypeOf2() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:My_Type -> x
+    """);
+  }
+
+  @Test
   public void testAnnotation0() throws Exception {
     parseTest("""
     dont_stop = @Tail_Call dont_stop
@@ -142,9 +170,82 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testBoolean() throws Exception {
+    parseTest("""
+    @Builtin_Type
+    type Boolean
+        True
+        False
+
+        == : Boolean -> Boolean
+        == self that = @Builtin_Method "Boolean.=="
+
+        && : Boolean -> Boolean
+        && self ~that = @Builtin_Method "Boolean.&&"
+
+        not : Boolean
+        not self = @Builtin_Method "Boolean.not"
+
+        compare_to : Boolean -> Ordering
+        compare_to self that = @Builtin_Method "Boolean.compare_to"
+
+        if_then_else : Any -> Any -> Any
+        if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+
+        if_then : Any -> Any | Nothing
+        if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+    """);
+  }
+
+  @Test
   public void testBuiltinMethodAnnotation() throws Exception {
     parseTest("""
     normalize x = @Builtin_Method "File.normalize"
+    """);
+  }
+
+  @Test
+  public void testTextOrNothing() throws Exception {
+    parseTest("""
+    type Locale
+        language : Text | Nothing
+    """);
+  }
+
+  @Test
+  public void testInterval() throws Exception {
+    parseTest("""
+    type Interval
+        Interval_Data (start : Bound.Bound)
+    """);
+  }
+
+  @Test
+  public void testAtEq() throws Exception {
+    parseTest("""
+    type Array
+        == : Array -> Boolean
+        == self that =
+            if False then True that else
+                eq_at i = self.at i == that.at i
+                eq_at 0
+    """);
+  }
+
+  @Test
+  public void testNestedBlocks() throws Exception {
+    parseTest("""
+    type Array
+        meaning =
+            catch_primitive handler
+                42
+    """);
+  }
+
+  @Test
+  public void testSelf1() throws Exception {
+    parseTest("""
+    contains self elem = self.contains Nothing
     """);
   }
 
@@ -205,6 +306,15 @@ public class EnsoCompilerTest {
         group = Vector.new_builder
         others = Vector.new_builder
         """);
+  }
+
+  @Test
+  public void testNumberTimes() throws Exception {
+    parseTest("""
+    Standard.Base.Number.times : List Any
+    Standard.Base.Number.times self act =
+        act
+    """);
   }
 
   @Test
@@ -432,6 +542,39 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTypeSignature2() throws Exception {
+    parseTest("""
+    type Baz
+        resolve : Integer -> Column
+    """);
+  }
+
+  @Test
+  public void testTypeSignatureQualified() throws Exception {
+    parseTest("""
+    type Baz
+        Foo.resolve : Integer -> Column
+    """);
+  }
+
+  @Test
+  public void testMethodDef() throws Exception {
+    parseTest("""
+    type Foo
+        id x = x
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testMethodDefQualified() throws Exception {
+    parseTest("""
+    type Foo
+        Identity.id x = x
+    """);
+  }
+
+  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of
@@ -465,8 +608,83 @@ public class EnsoCompilerTest {
       """);
   }
 
+  @Test
+  public void testVectorVectorSimple() throws Exception {
+    parseTest("""
+    type Vector
+        build : Matrix Any Decimal
+    """);
+  }
+
+  @Test
+  public void testVectorVectorAny() throws Exception {
+    parseTest("""
+    type Vector
+        build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Decimal
+    """);
+  }
+
+  @Test
+  public void testCaseOfVector() throws Exception {
+    parseTest("""
+        m other = case other of
+            _:Vector.Vector -> 0
+        """);
+  }
+
+  @Test
+  public void testOperatorSectionRight() throws Exception {
+    parseTest("""
+    type Filter_Condition
+        to_predicate self = case self of
+            Less value -> <value
+    """);
+  }
+
+  @Test
+  public void testAutoScope() throws Exception {
+    parseTest("""
+    fn that_meta =
+        c_2 = that_meta.constructor ...
+        """);
+  }
+
+  @Test
+  public void testTextArrayType() throws Exception {
+    parseTest("""
+    type Connection
+        table_types : [Text]
+    """);
+  }
+
+  @Test
+  public void testListBody() throws Exception {
+    parseTest("""
+          list directory name_filter=Nothing recursive=False =
+              new directory . list name_filter=name_filter recursive=recursive
+                  """);
+  }
+
+  @Test
+  public void testLambdaBody() throws Exception {
+    parseTest("""
+    list =
+        all_files.filter file->
+            all_files
+    """);
+  }
+
+  @Test
+  @Ignore // Crashes old parser
+  public void testAlternationTypes() throws Exception {
+    parseTest("""
+    foo : [Integer | Text] -> (Integer | Text)
+    foo v = v.at 0
+    """);
+  }
+
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws IOException {
+  static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);

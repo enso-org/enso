@@ -688,6 +688,8 @@ val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", 
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
     (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
 def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
   import scala.jdk.CollectionConverters._
@@ -1190,7 +1192,6 @@ lazy val parser = (project in file("lib/scala/parser"))
       s"-Djava.library.path=$root/target/rust/debug"
     },
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
       "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
     ),
     testFrameworks := List(
@@ -1891,8 +1892,7 @@ lazy val `std-table` = project
         .copyDependencies(
           `table-polyglot-root`,
           Some("std-table.jar"),
-          ignoreScalaLibrary = true,
-          unpackedDeps       = Set("xmlbeans")
+          ignoreScalaLibrary = true
         )
         .value
       result

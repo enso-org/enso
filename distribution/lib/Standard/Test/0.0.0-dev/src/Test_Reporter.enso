@@ -1,0 +1,92 @@
+from Standard.Base import all
+import Standard.Base.Data.Time.Duration
+
+import project.Suite_Config.Suite_Config
+import project.Test_Result.Test_Result
+
+polyglot java import java.lang.StringBuilder
+
+## PRIVATE
+   Write the JUnit XML header.
+wrap_junit_testsuites : Suite_Config -> (StringBuilder|Nothing) -> Any -> Nothing
+wrap_junit_testsuites config builder ~action =
+    if config.should_output_junit then
+        builder.append '<?xml version="1.0" encoding="UTF-8"?>\n'
+        builder.append '<testsuites>\n'
+
+    result = action
+
+    if config.should_output_junit then
+        builder.append '</testsuites>\n'
+        config.output_path.parent.create_directory
+        builder.toString.write config.output_path
+
+    result
+
+## PRIVATE
+   Prints a report on the tests to standard output.
+print_report : Spec -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+print_report spec config builder =
+    total_time = spec.behaviors.fold Duration.zero acc-> behavior->
+        acc + behavior.time_taken
+    if config.should_output_junit then
+        builder.append ('    <testsuite name="' + (escape_xml spec.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="' + spec.behaviors.length.to_text + '"')
+        builder.append (' disabled="' + spec.behaviors.filter (x->(x.is_a Test_Result.Pending)) . length . to_text + '"')
+        builder.append (' errors="' + spec.behaviors.filter (x->(x.is_a Test_Result.Failure)) . length . to_text + '"')
+        builder.append (' time="' + total_time.total_seconds.to_text + '"')
+        builder.append ('>\n')
+
+        spec.behaviors.reverse.each behavior->
+            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '" time="' + ((behavior.time_taken.total_milliseconds / 1000.0).to_text) + '">')
+            case behavior.result of
+                Test_Result.Success -> Nothing
+                Test_Result.Failure msg details ->
+                    escaped_message = escape_xml msg . replace '\n' '&#10;'
+                    builder.append ('\n            <error message="' + escaped_message + '">\n')
+                    if details.is_nothing.not then
+                        ## We duplicate the message, because sometimes the
+                           attribute is skipped if the node has any content.
+                        builder.append (escape_xml msg)
+                        builder.append '\n'
+                        builder.append (escape_xml details)
+                    builder.append '</error>\n'
+                Test_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
+            builder.append '</testcase>\n'
+        builder.append '    </testsuite>\n'
+
+    should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_a Test_Result.Failure)
+    if should_print_behavior then
+        IO.println (spec.name + ":  [" + total_time.total_milliseconds.to_text + "ms]")
+        spec.behaviors.reverse.each behavior->
+            case behavior.result of
+                Test_Result.Success ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                Test_Result.Failure msg details ->
+                    IO.println ("    - [FAILED] " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                    IO.println ("        Reason: " + msg)
+                    if details.is_nothing.not then
+                        IO.println details
+                Test_Result.Pending reason ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - [PENDING] " + behavior.name)
+                        IO.println ("        Reason: " + reason)
+
+## PRIVATE
+   Record JUnit PENDING group.
+report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+report_pending_group name reason config builder =
+    if config.should_output_junit then
+        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '" time="0">\n')
+        builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
+        builder.append '    </testsuite>\n'
+
+    IO.println ("[PENDING] " + name)
+    IO.println ("    Reason: " + reason)
+
+## PRIVATE
+   Escape Text for XML
+escape_xml : Text -> Text
+escape_xml input =
+    input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'

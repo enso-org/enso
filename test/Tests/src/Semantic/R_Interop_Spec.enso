@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 foreign js my_method a b = """
     return a + b;
@@ -150,7 +150,7 @@ spec =
 
         Test.specify "should properly report parse errors" <|
             err = Panic.recover Any does_not_parse
-            err.catch.to_display_text.should .contain 'parse exception'
+            err.catch.to_display_text.should_contain 'parse exception'
 
         Test.specify "should perform maths with mixed numbers" <|
             r_num = make_int
@@ -162,4 +162,4 @@ spec =
             error = Error.throw 42
             my_method error 0 . should_fail_with Integer
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

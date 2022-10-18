@@ -1,0 +1,89 @@
+package org.enso.table.data.column.operation.map.bool;
+
+import java.util.BitSet;
+import java.util.List;
+
+import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
+
+/**
+ * A specialized implementation for the IS_IN operation on booleans - since booleans have just three
+ * possible values we can have a highly efficient implementation that does not even rely on hashmap
+ * and after processing the input vector, performs the checks in constant time.
+ */
+public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
+  public BooleanIsInOp() {
+    super(Storage.Maps.IS_IN);
+  }
+
+  @Override
+  public BoolStorage runMap(BoolStorage storage, Object arg) {
+    if (arg instanceof List) {
+      return runMap(storage, (List<?>) arg);
+    } else {
+      throw new IllegalArgumentException("Argument to `is_in` must be a vector.");
+    }
+  }
+
+  public BoolStorage runMap(BoolStorage storage, List<?> arg) {
+    boolean hadTrue = false;
+    boolean hadFalse = false;
+    boolean hadNull = false;
+
+    for (Object o : arg) {
+      switch (o) {
+        case Boolean b -> {
+          hadTrue |= b;
+          hadFalse |= !b;
+        }
+        case null -> hadNull = true;
+        default -> {}
+      }
+    }
+
+    BitSet newVals;
+    boolean negated = false;
+
+    if (hadNull && hadTrue && hadFalse) {
+      // We use empty newVals which has everything set to false and negate it to make all of that set to true with zero cost.
+      newVals = new BitSet();
+      negated = true;
+    } else if (!hadNull && !hadTrue && !hadFalse) {
+      // No values are present, so the result is to be false everywhere.
+      newVals = new BitSet();
+    }
+    else if (hadNull && !hadTrue && !hadFalse) {
+      // Only missing values are in the set, so we just return the missing indicator.
+      newVals = storage.getIsMissing();
+    } else if (hadTrue && hadFalse) { // && !hadNull
+      // All non-missing values are in the set - so we just return the negated missing indicator.
+      newVals = storage.getIsMissing();
+      negated = true;
+    } else {
+      // hadTrue != hadFalse
+      newVals = storage.getValues().get(0, storage.size());
+      if (hadTrue) {
+        if (storage.isNegated()) {
+          newVals.flip(0, storage.size());
+        }
+      } else { // hadFalse
+        if (!storage.isNegated()) {
+          newVals.flip(0, storage.size());
+        }
+      }
+      newVals.andNot(storage.getIsMissing());
+
+      if (hadNull) {
+        newVals.or(storage.getIsMissing());
+      }
+    }
+
+    return new BoolStorage(newVals, new BitSet(), storage.size(), negated);
+  }
+
+  @Override
+  public Storage<?> runZip(BoolStorage storage, Storage<?> arg) {
+    throw new IllegalStateException("Zip mode is not supported for this operation.");
+  }
+}

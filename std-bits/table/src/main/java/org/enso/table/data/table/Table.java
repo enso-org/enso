@@ -182,7 +182,7 @@ public class Table {
    * @return a table indexed by the proper column
    */
   public Table indexFromColumn(Column col) {
-    Storage storage = col.getStorage();
+    Storage<?> storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     List<Column> newColumns = new ArrayList<>();
     Column indexCol = index.toColumn();
@@ -294,7 +294,7 @@ public class Table {
         matches[i] = other.index.loc(index.iloc(i));
       }
     } else {
-      Storage onS = getColumnByName(on).getStorage();
+      Storage<?> onS = getColumnByName(on).getStorage();
       for (int i = 0; i < s; i++) {
         matches[i] = other.index.loc(onS.getItemBoxed(i));
       }
@@ -360,7 +360,7 @@ public class Table {
         Arrays.stream(columns)
             .map(
                 column -> {
-                  Storage newStorage = column.getStorage().applyMask(orderMask);
+                  Storage<?> newStorage = column.getStorage().applyMask(orderMask);
                   return new Column(column.getName(), newIndex, newStorage);
                 })
             .toArray(Column[]::new);
@@ -431,7 +431,7 @@ public class Table {
     return new Table(newColumns, newIndex);
   }
 
-  private Storage concatStorages(Storage left, Storage right) {
+  private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
     InferredBuilder builder = new InferredBuilder(left.size() + right.size());
     for (int i = 0; i < left.size(); i++) {
       builder.appendNoGrow(left.getItemBoxed(i));
@@ -442,7 +442,7 @@ public class Table {
     return builder.seal();
   }
 
-  private Storage nullPad(int nullCount, Storage storage, boolean start) {
+  private Storage<?> nullPad(int nullCount, Storage<?> storage, boolean start) {
     InferredBuilder builder = new InferredBuilder(nullCount + storage.size());
     if (start) {
       builder.appendNulls(nullCount);

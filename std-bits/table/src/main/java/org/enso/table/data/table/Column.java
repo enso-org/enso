@@ -1,6 +1,6 @@
 package org.enso.table.data.table;
 
-import org.enso.base.Polyglot_Utils;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,8 +13,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Value;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Function;
@@ -23,7 +21,7 @@ import java.util.stream.IntStream;
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
   private final String name;
-  private final Storage storage;
+  private final Storage<?> storage;
   private final Index index;
 
   /**
@@ -32,7 +30,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Index index, Storage storage) {
+  public Column(String name, Index index, Storage<?> storage) {
     this.name = name;
     this.storage = storage;
     this.index = index;
@@ -44,7 +42,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage storage) {
+  public Column(String name, Storage<?> storage) {
     this(name, new DefaultIndex(storage.size()), storage);
   }
 
@@ -63,7 +61,7 @@ public class Column {
   }
 
   /** @return the underlying storage */
-  public Storage getStorage() {
+  public Storage<?> getStorage() {
     return storage;
   }
 
@@ -148,7 +146,7 @@ public class Column {
    * @return a column indexed by {@code col}
    */
   public Column setIndex(Column col) {
-    Storage storage = col.getStorage();
+    Storage<?> storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     return this.withIndex(ix);
   }
@@ -183,7 +181,7 @@ public class Column {
    */
   public Column applyMask(OrderMask mask) {
     Index newIndex = index.applyMask(mask);
-    Storage newStorage = storage.applyMask(mask);
+    Storage<?> newStorage = storage.applyMask(mask);
     return new Column(name, newIndex, newStorage);
   }
 

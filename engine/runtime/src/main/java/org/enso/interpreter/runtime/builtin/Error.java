@@ -189,11 +189,12 @@ public class Error {
 
   /**
    * @param args an array containing objects
+   * @param message A detailed message, or null
    * @return an error informing about the particular assortment of arguments not being valid for a
-   *     given method callp
+   *     given method call
    */
-  public Atom makeUnsupportedArgumentsError(Object[] args) {
-    return unsupportedArgumentsError.newInstance(new Array(args));
+  public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
+    return unsupportedArgumentsError.newInstance(new Array(args), message);
   }
 
   /**

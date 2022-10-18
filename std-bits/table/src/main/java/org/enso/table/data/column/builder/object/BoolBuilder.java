@@ -62,7 +62,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Boolean> seal() {
     return new BoolStorage(vals, isNa, size, false);
   }
 

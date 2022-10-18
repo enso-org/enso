@@ -1,3 +1,4 @@
+//! A lexical token is a string with an assigned and thus identified meaning. Each token remembers
 //! its source code and can be printed back. It also contains information about the offset to the
 //! previous token if any.
 //!
@@ -262,14 +263,14 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         },
         AutoScope,
         Ident {
-            pub is_free:    bool,
-            pub lift_level: usize,
+            pub is_free:     bool,
+            pub lift_level:  usize,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_type:    bool,
+            pub is_type:     bool,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_default: bool,
+            pub is_default:  bool,
         },
         Operator {
             #[serde(skip)]
@@ -289,6 +290,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             #[reflect(as = "char")]
             pub value: Option<char>,
         },
+        TextInitialNewline,
         Invalid,
     }
 }}}
@@ -330,14 +332,16 @@ pub struct OperatorProperties {
     // Special properties
     is_compile_time_operation: bool,
     is_right_associative:      bool,
-    can_be_decimal_operator:   bool,
     // Unique operators
+    can_be_decimal_operator:   bool,
     is_type_annotation:        bool,
     is_assignment:             bool,
     is_arrow:                  bool,
     is_sequence:               bool,
     is_suspension:             bool,
     is_annotation:             bool,
+    is_dot:                    bool,
+    is_special:                bool,
 }
 
 impl OperatorProperties {
@@ -348,11 +352,14 @@ impl OperatorProperties {
 
     /// Return a copy of this operator, with the given binary infix precedence.
     pub fn with_binary_infix_precedence(self, value: usize) -> Self {
-        Self { binary_infix_precedence: Some(Precedence { value }), ..self }
+        let precedence = Precedence { value };
+        debug_assert!(precedence > Precedence::min());
+        Self { binary_infix_precedence: Some(precedence), ..self }
     }
 
     /// Return a copy of this operator, with unary prefix parsing allowed.
     pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
+        debug_assert!(precedence > Precedence::min());
         Self { unary_prefix_precedence: Some(precedence), ..self }
     }
 
@@ -364,6 +371,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as right associative.
     pub fn as_right_associative(self) -> Self {
         Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as special.
+    pub fn as_special(self) -> Self {
+        Self { is_special: true, ..self }
     }
 
     /// Return a copy of this operator, modified to have the specified LHS operator-section/
@@ -403,6 +415,11 @@ impl OperatorProperties {
         Self { is_suspension: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the dot operator.
+    pub fn as_dot(self) -> Self {
+        Self { is_dot: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
     pub fn with_decimal_interpretation(self) -> Self {
         Self { can_be_decimal_operator: true, ..self }
@@ -433,6 +450,11 @@ impl OperatorProperties {
         self.lhs_section_termination
     }
 
+    /// Return whether this operator is illegal outside special uses.
+    pub fn is_special(&self) -> bool {
+        self.is_special
+    }
+
     /// Return whether this operator is the assignment operator.
     pub fn is_assignment(&self) -> bool {
         self.is_assignment
@@ -458,6 +480,11 @@ impl OperatorProperties {
         self.is_annotation
     }
 
+    /// Return whether this operator is the dot operator.
+    pub fn is_dot(&self) -> bool {
+        self.is_dot
+    }
+
     /// Return this operator's associativity.
     pub fn associativity(&self) -> Associativity {
         match self.is_right_associative {
@@ -477,18 +504,28 @@ impl OperatorProperties {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
 pub struct Precedence {
     /// A numeric value determining precedence order.
-    pub value: usize,
+    value: usize,
 }
 
 impl Precedence {
-    /// Return a precedence that is not higher than any other precedence.
+    /// Return a precedence that is lower than the precedence of any operator.
     pub fn min() -> Self {
         Precedence { value: 0 }
+    }
+
+    /// Return the precedence for any operator.
+    pub fn min_valid() -> Self {
+        Precedence { value: 1 }
     }
 
     /// Return a precedence that is not lower than any other precedence.
     pub fn max() -> Self {
         Precedence { value: 100 }
+    }
+
+    /// Return the precedence of application.
+    pub fn application() -> Self {
+        Precedence { value: 80 }
     }
 }
 

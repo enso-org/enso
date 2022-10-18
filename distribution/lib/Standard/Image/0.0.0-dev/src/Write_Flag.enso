@@ -1,0 +1,73 @@
+from Standard.Base import all
+
+polyglot java import org.opencv.imgcodecs.Imgcodecs
+
+## UNSTABLE
+type Write_Flag
+    ## UNSTABLE
+
+       Sets the quality used when writing a JPEG.
+
+       Arguments:
+       - val: A quality value from 0 to 100 (the higher, the better).
+    JPEG_Quality val:Integer=95
+
+    ## UNSTABLE
+
+       Enable progressive JPEG compression format. Disabled by default.
+    JPEG_Progressive
+
+    ## UNSTABLE
+
+       Enable optimized JPEG encoding algorithms. Disabled by default.
+    JPEG_Optimize
+
+    ## UNSTABLE
+
+       Sets the luma quality level used when writing a JPEG.
+
+       Arguments:
+       - val: A quality value from 0 to 100 (the higher, the better).
+    JPEG_Luma_Quality val:Integer=0
+
+    ## UNSTABLE
+
+       Sets the chroma quality level used when writing a JPEG.
+
+       Arguments:
+       - val: A quality value from 0 to 100 (the higher, the better).
+    JPEG_Chroma_Quality val=0
+
+    ## UNSTABLE
+
+       Sets the compression level used when writing a PNG.
+
+       Arguments:
+       - val: A compression level from 0 to 9. A higher value means a smaller
+         size but a longer compression time.
+    PNG_Compression val:Integer=3
+
+    ## UNSTABLE
+
+       Sets the quality used when writing a WEBP image.
+
+       Arguments:
+       - val: A quality from 0 to 100 (the higher, the better). A quality
+         above 100 indicates that the encoder should use lossless compression.
+    WEBP_Quality val=101
+
+    ## PRIVATE
+    value self = case self of
+        Write_Flag.JPEG_Progressive -> 1
+        Write_Flag.JPEG_Optimize -> 1
+        _ -> self.val
+
+    ## PRIVATE
+    to_integer self = case self of
+        Write_Flag.JPEG_Quality _ -> Imgcodecs.IMWRITE_JPEG_QUALITY
+        Write_Flag.JPEG_Progressive -> Imgcodecs.IMWRITE_JPEG_PROGRESSIVE
+        Write_Flag.JPEG_Optimize -> Imgcodecs.IMWRITE_JPEG_OPTIMIZE
+        Write_Flag.JPEG_Luma_Quality _ -> Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY
+        Write_Flag.JPEG_Chroma_Quality _ -> Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY
+        Write_Flag.PNG_Compression _ -> Imgcodecs.IMWRITE_PNG_COMPRESSION
+        Write_Flag.WEBP_Quality _ -> Imgcodecs.IMWRITE_WEBP_QUALITY

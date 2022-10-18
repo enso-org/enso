@@ -40,7 +40,8 @@ impl<'s> Precedence<'s> {
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
     ) -> Option<syntax::Tree<'s>> {
-        self.resolve_(items).map(|op| op.value)
+        items.into_iter().for_each(|i| self.push(i));
+        self.finish_().map(|op| op.value)
     }
 
     /// Resolve precedence.
@@ -48,31 +49,44 @@ impl<'s> Precedence<'s> {
         &mut self,
         items: impl IntoIterator<Item = syntax::Item<'s>>,
     ) -> Option<syntax::Tree<'s>> {
-        self.resolve_(items).map(syntax::Tree::from)
+        items.into_iter().for_each(|i| self.push(i));
+        self.finish()
     }
 
-    fn resolve_(
-        &mut self,
-        items: impl IntoIterator<Item = syntax::Item<'s>>,
-    ) -> Option<Operand<syntax::Tree<'s>>> {
-        for item in items {
-            if starts_new_no_space_group(&item) {
-                self.builder.extend_from(&mut self.nospace_builder);
-            }
-            match item {
-                syntax::Item::Token(Token {
-                    variant: token::Variant::Operator(opr),
-                    left_offset,
-                    code,
-                }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
-                syntax::Item::Token(token) =>
-                    self.nospace_builder.operand(syntax::Tree::from(token).into()),
-                syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
-                syntax::Item::Block(_) => self.nospace_builder.operand(item.to_ast().into()),
-            }
+    /// Extend the expression with a token.
+    pub fn push(&mut self, item: syntax::Item<'s>) {
+        if starts_new_no_space_group(&item) {
+            self.builder.extend_from(&mut self.nospace_builder);
         }
+        match item {
+            syntax::Item::Token(Token {
+                variant: token::Variant::Operator(opr),
+                left_offset,
+                code,
+            }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
+            syntax::Item::Token(token) =>
+                self.nospace_builder.operand(syntax::Tree::from(token).into()),
+            syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
+            syntax::Item::Block(_) => self.nospace_builder.operand(item.to_ast().into()),
+        }
+    }
+
+    fn finish_(&mut self) -> Option<Operand<syntax::Tree<'s>>> {
         self.builder.extend_from(&mut self.nospace_builder);
         self.builder.finish()
+    }
+
+    /// Return the result.
+    pub fn finish(&mut self) -> Option<syntax::Tree<'s>> {
+        self.finish_().map(syntax::Tree::from)
+    }
+}
+
+impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
+    fn extend<T: IntoIterator<Item = syntax::Item<'s>>>(&mut self, iter: T) {
+        for token in iter {
+            self.push(token);
+        }
     }
 }
 
@@ -135,7 +149,7 @@ fn starts_new_no_space_group(item: &syntax::item::Item) -> bool {
 ///
 /// [^1](https://en.wikipedia.org/wiki/Operator-precedence_parser)
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct ExpressionBuilder<'s> {
     output:         Vec<Operand<syntax::Tree<'s>>>,
     operator_stack: Vec<Operator<'s>>,
@@ -145,12 +159,22 @@ struct ExpressionBuilder<'s> {
 
 impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
-    pub fn operand(&mut self, mut operand: Operand<syntax::Tree<'s>>) {
-        if self.prev_type.replace(ItemType::Ast) == Some(ItemType::Ast) {
-            operand =
-                self.output.pop().unwrap().map(|lhs| syntax::tree::apply(lhs, operand.into()));
+    pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
+        if self.prev_type == Some(ItemType::Ast) {
+            self.application();
         }
         self.output.push(operand);
+        self.prev_type = Some(ItemType::Ast);
+    }
+
+    fn application(&mut self) {
+        let precedence = token::Precedence::application();
+        let associativity = token::Associativity::Left;
+        let arity = Arity::Binary {
+            tokens:                  default(),
+            lhs_section_termination: default(),
+        };
+        self.push_operator(precedence, associativity, arity);
     }
 
     /// Extend the expression with an operator.
@@ -167,7 +191,7 @@ impl<'s> ExpressionBuilder<'s> {
                 self.binary_operator(prec, assoc, opr),
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
             // it's acting as unary.
-            (true, _, Some(prec)) => self.push_operator(prec, assoc, Arity::Unary(opr)),
+            (true, _, Some(prec)) => self.unary_operator(prec, assoc, Unary::Simple(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
             (false, None, Some(_)) =>
                 self.operand(syntax::tree::apply_unary_operator(opr, None).into()),
@@ -176,6 +200,18 @@ impl<'s> ExpressionBuilder<'s> {
             // Failed to compute a role for the operator; this should not be possible.
             (_, None, None) => unreachable!(),
         }
+    }
+
+    fn unary_operator(
+        &mut self,
+        prec: token::Precedence,
+        assoc: token::Associativity,
+        arity: Unary<'s>,
+    ) {
+        if self.prev_type == Some(ItemType::Ast) {
+            self.application();
+        }
+        self.push_operator(prec, assoc, Arity::Unary(arity));
     }
 
     /// Extend the expression with a binary operator, by pushing it to the `operator_stack` or
@@ -194,9 +230,7 @@ impl<'s> ExpressionBuilder<'s> {
                     Arity::Binary { tokens, .. } => tokens.into_iter().next().unwrap(),
                     _ => unreachable!(),
                 };
-                let tp = token::Variant::ident(false, 0, false, false);
-                let prev = Token(prev.left_offset, prev.code, tp);
-                self.output.push(Operand::from(syntax::Tree::from(prev)));
+                self.output.push(Operand::from(syntax::Tree::opr_app(None, Ok(prev), None)));
             } else {
                 tokens.push(opr);
                 return;
@@ -238,8 +272,14 @@ impl<'s> ExpressionBuilder<'s> {
         }) {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
-                Arity::Unary(opr) =>
+                Arity::Unary(Unary::Simple(opr)) =>
                     Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
+                Arity::Unary(Unary::Fragment { mut fragment }) => {
+                    if let Some(rhs_) = rhs_ {
+                        fragment.operand(rhs_);
+                    }
+                    fragment.finish().unwrap()
+                }
                 Arity::Binary { tokens, lhs_section_termination } => {
                     let lhs = self.output.pop();
                     if let Some(lhs_termination) = lhs_section_termination {
@@ -275,8 +315,9 @@ impl<'s> ExpressionBuilder<'s> {
         let mut out = (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop());
         self.reduce(token::Precedence::min(), &mut out);
         debug_assert!(self.operator_stack.is_empty());
-        debug_assert!(
-            self.output.is_empty(),
+        debug_assert_eq!(
+            &self.output,
+            &[],
             "Internal error. Not all tokens were consumed while constructing the expression."
         );
         self.prev_type = None;
@@ -286,10 +327,28 @@ impl<'s> ExpressionBuilder<'s> {
     pub fn extend_from(&mut self, child: &mut Self) {
         if child.output.is_empty() && let Some(op) = child.operator_stack.pop() {
             match op.opr {
-                Arity::Unary(un) => self.operator(un),
+                Arity::Unary(Unary::Simple(un)) => self.operator(un),
+                Arity::Unary(Unary::Fragment{ .. }) => unreachable!(),
                 Arity::Binary { tokens, .. } => tokens.into_iter().for_each(|op| self.operator(op)),
             };
             child.prev_type = None;
+            debug_assert_eq!(&child.operator_stack, &[]);
+            return;
+        }
+        if child.prev_type == Some(ItemType::Opr)
+                && let Arity::Binary { tokens, .. } = &child.operator_stack.last().unwrap().opr
+                && let Some(token) = tokens.last()
+                && token.properties.is_arrow() {
+            let precedence = token::Precedence::min_valid();
+            let associativity = token::Associativity::Right;
+            let fragment = ExpressionBuilder {
+                output:         mem::take(&mut child.output),
+                operator_stack: mem::take(&mut child.operator_stack),
+                prev_type:      mem::take(&mut child.prev_type),
+                nospace:        child.nospace,
+            };
+            let arity = Unary::Fragment { fragment };
+            self.unary_operator(precedence, associativity, arity);
             return;
         }
         if let Some(o) = child.finish() {
@@ -307,7 +366,7 @@ enum ItemType {
 }
 
 /// An operator, whose arity and precedence have been determined.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Operator<'s> {
     precedence:    token::Precedence,
     associativity: token::Associativity,
@@ -315,9 +374,9 @@ struct Operator<'s> {
 }
 
 /// Classifies the role of an operator.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum Arity<'s> {
-    Unary(token::Operator<'s>),
+    Unary(Unary<'s>),
     Binary {
         tokens:                  Vec<token::Operator<'s>>,
         lhs_section_termination: Option<SectionTermination>,
@@ -330,16 +389,28 @@ impl<'s> Arity<'s> {
         let tokens = vec![tok];
         Self::Binary { tokens, lhs_section_termination }
     }
+
+    fn unary(tok: token::Operator<'s>) -> Self {
+        Self::Unary(Unary::Simple(tok))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Unary<'s> {
+    Simple(token::Operator<'s>),
+    Fragment { fragment: ExpressionBuilder<'s> },
 }
 
 
 // === Operand ===
 
 /// Wraps a value, tracking the number of wildcards or elided operands within it.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct Operand<T> {
     value:     T,
+    /// Number of elided operands in the subtree, potentially forming an *operator section*.
     elided:    u32,
+    /// Number of wildcards in the subtree, potentially forming a *template function*.
     wildcards: u32,
 }
 

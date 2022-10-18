@@ -4,7 +4,7 @@ import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Time_Error_Data
+from Standard.Base.Error.Common import Time_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -308,9 +308,8 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + 6.months
-    + : Duration -> Date
-    + self amount = if amount.is_time then Error.throw (Time_Error_Data "Date does not support time intervals") else
-        (Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period) . internal_local_date
+    + : Date_Period -> Date
+    + self _ = unimplemented "Date.+"
 
     ## Shift the date by the specified amount of business days.
 
@@ -433,9 +432,8 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - 7.days
-    - : Duration -> Date
-    - self amount = if amount.is_time then Error.throw (Time_Error_Data "Date does not support time intervals") else
-        (Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS amount.internal_period) . internal_local_date
+    - : Date_Period -> Date
+    - self _ = unimplemented "Date.-"
 
 
     ## A Date to Json conversion.

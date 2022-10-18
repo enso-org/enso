@@ -452,13 +452,13 @@ public class DelimitedReader {
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
       String columnName = effectiveColumnNames[i];
-      StringStorage col = builders[i].seal();
+      Storage<String> col = builders[i].seal();
 
-      WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
+      WithProblems<Storage<?>> parseResult = valueParser.parseColumn(columnName, col);
       for (var problem : parseResult.problems()) {
         reportProblem(problem);
       }
-      Storage storage = parseResult.value();
+      Storage<?> storage = parseResult.value();
 
       columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }

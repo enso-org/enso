@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "Regex options handling" <|
@@ -27,4 +27,4 @@ spec =
 
     ## TODO: Missing tests for No_Such_Group_Error
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

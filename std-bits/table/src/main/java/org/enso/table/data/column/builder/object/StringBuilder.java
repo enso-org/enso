@@ -30,7 +30,7 @@ public class StringBuilder extends TypedBuilderImpl<String> {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<String> seal() {
     return new StringStorage(data, currentSize);
   }
 }

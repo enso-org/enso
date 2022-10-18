@@ -1,7 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
@@ -10,15 +15,12 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-import java.util.List;
-
 /** A column containing floating point numbers. */
-public class DoubleStorage extends NumericStorage {
+public final class DoubleStorage extends NumericStorage<Double> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<DoubleStorage> ops = buildOps();
+  private static final MapOpStorage<Double, DoubleStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -58,7 +60,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
@@ -80,16 +82,16 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
-  private Storage fillMissingDouble(double arg) {
+  private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
@@ -103,7 +105,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingDouble(arg.asLong());
@@ -116,7 +118,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public DoubleStorage mask(BitSet mask, int cardinality) {
+  public Storage<Double> mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
@@ -133,7 +135,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Storage applyMask(OrderMask mask) {
+  public Storage<Double> applyMask(OrderMask mask) {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
@@ -148,7 +150,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Storage countMask(int[] counts, int total) {
+  public Storage<Double> countMask(int[] counts, int total) {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
@@ -169,8 +171,8 @@ public class DoubleStorage extends NumericStorage {
     return isMissing;
   }
 
-  private static MapOpStorage<DoubleStorage> buildOps() {
-    MapOpStorage<DoubleStorage> ops = new MapOpStorage<>();
+  private static MapOpStorage<Double, DoubleStorage> buildOps() {
+    MapOpStorage<Double, DoubleStorage> ops = new MapOpStorage<>();
     ops.add(
             new DoubleNumericOp(Maps.ADD) {
               @Override
@@ -249,15 +251,29 @@ public class DoubleStorage extends NumericStorage {
         .add(
             new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
-              public Storage run(DoubleStorage storage) {
+              public BoolStorage run(DoubleStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
-            });
+            })
+        .add(
+            SpecializedIsInOp.make(
+                list -> {
+                  HashSet<Double> set = new HashSet<>();
+                  boolean hasNulls = false;
+                  for (Object o : list) {
+                    hasNulls |= o == null;
+                    Double x = NumericConverter.tryConvertingToDouble(o);
+                    if (x != null) {
+                      set.add(x);
+                    }
+                  }
+                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
+                }));
     return ops;
   }
 
   @Override
-  public DoubleStorage slice(int offset, int limit) {
+  public Storage<Double> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
@@ -266,7 +282,7 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public DoubleStorage slice(List<SliceRange> ranges) {
+  public Storage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);

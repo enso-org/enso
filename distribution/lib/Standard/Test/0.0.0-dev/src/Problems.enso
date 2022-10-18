@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+import project.Extensions
 
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested

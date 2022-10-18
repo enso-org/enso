@@ -67,7 +67,7 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Object> seal() {
     return new ObjectStorage(data, currentSize);
   }
 

@@ -170,7 +170,7 @@ pub mod prelude {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Parser {
-    pub macros: macros::resolver::SegmentMap<'static>,
+    pub macros: macros::resolver::MacroMap,
 }
 
 impl Parser {
@@ -210,17 +210,22 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
     let mut left_offset = source::span::Offset::default();
     if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
-        if let Tree { variant: box Variant::Ident(ident), span: _ } = annotated.expression {
-            let operator = annotated.operator;
-            let type_ = annotated.type_;
-            let variable = ident.token;
-            let variant = TypeSignature { variable, operator, type_ };
-            let variant = Box::new(Variant::TypeSignature(variant));
-            return Tree { variant, span };
+        let colon = annotated.operator;
+        let type_ = annotated.type_;
+        let variable = annotated.expression;
+        if let Tree {
+            variant: box Variant::OprApp(OprApp { lhs: None, opr: Ok(name), rhs: None }),
+            span: inner,
+        } = variable
+        {
+            let mut tree = Tree::operator_type_signature(name, colon, type_);
+            tree.span.left_offset += span.left_offset;
+            tree.span.left_offset += inner.left_offset;
+            return tree;
         }
-        let err = Error::new("Expected identifier in left-hand operand of type signature.");
-        let variant = Box::new(Variant::TypeAnnotated(annotated));
-        return Tree::invalid(err, Tree { variant, span });
+        let mut tree = Tree::type_signature(variable, colon, type_);
+        tree.span.left_offset += span.left_offset;
+        return tree;
     }
     let tree_ = &mut tree;
     let opr_app = match tree_ {
@@ -231,7 +236,16 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         _ => return tree,
     };
     if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
-        let (mut leftmost, args) = collect_arguments(lhs.clone());
+        if let Tree { variant: box Variant::OprApp(
+                OprApp { lhs: None, opr: Ok(name), rhs: Some(args) }), span } = lhs {
+            let args = collect_arguments_inclusive(mem::take(args));
+            let name = mem::take(name);
+            let mut result = Tree::operator_function(name, args, mem::take(opr), mem::take(rhs));
+            result.span.left_offset += mem::take(&mut span.left_offset);
+            result.span.left_offset += left_offset;
+            return result;
+        }
+        let (leftmost, args) = collect_arguments(lhs.clone());
         if let Some(rhs) = rhs {
             if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
                 // If the LHS is a type, this is a (destructuring) assignment.
@@ -248,15 +262,26 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
                 return result;
             }
         }
-        if let Variant::Ident(Ident { token }) = &mut *leftmost.variant {
+        if is_qualified_name(&leftmost) {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
-            // an identifier, this is a function definition.
-            let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));
+            // a qualified name, this is a function definition.
+            let mut result = Tree::function(leftmost, args, mem::take(opr), mem::take(rhs));
             result.span.left_offset += left_offset;
             return result;
         }
     }
     tree
+}
+
+fn is_qualified_name(tree: &syntax::Tree) -> bool {
+    use syntax::tree::*;
+    match &*tree.variant {
+        Variant::Ident(_) => true,
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+            if matches!(&*rhs.variant, Variant::Ident(_)) && opr.properties.is_dot() =>
+            is_qualified_name(lhs),
+        _ => false,
+    }
 }
 
 fn expression_to_type(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
@@ -299,42 +324,29 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     out
 }
 
-fn collect_arguments(
-    mut tree: syntax::Tree,
-) -> (syntax::Tree, Vec<syntax::tree::ArgumentDefinition>) {
-    if let box syntax::tree::Variant::OprApp(syntax::tree::OprApp {
-        lhs: None,
-        opr: Ok(opr),
-        rhs: Some(rhs),
-    }) = tree.variant
-    {
-        let syntax::token::Token { left_offset, code, .. } = opr;
-        let opr = syntax::token::ident(left_offset, code, false, 0, false, false);
-        let mut opr = Some(syntax::Tree::ident(opr));
-        let mut tree_ = rhs;
-        let mut left_offset = tree.span.left_offset;
-        syntax::tree::recurse_left_mut_while(&mut tree_, |tree| {
-            left_offset += mem::take(&mut tree.span.left_offset);
-            match &mut *tree.variant {
-                syntax::tree::Variant::App(syntax::tree::App { func, .. })
-                    if !matches!(&*func.variant, syntax::tree::Variant::App(_)) =>
-                {
-                    let mut func_ = func.clone();
-                    func_.span.left_offset = mem::take(&mut left_offset);
-                    *func = syntax::Tree::app(opr.take().unwrap(), func_);
-                    false
-                }
-                _ => true,
-            }
-        });
-        tree = tree_;
-    }
+fn collect_arguments(tree: syntax::Tree) -> (syntax::Tree, Vec<syntax::tree::ArgumentDefinition>) {
     let mut args = vec![];
+    let tree = unroll_arguments(tree, &mut args);
+    args.reverse();
+    (tree, args)
+}
+
+fn collect_arguments_inclusive(tree: syntax::Tree) -> Vec<syntax::tree::ArgumentDefinition> {
+    let mut args = vec![];
+    let first = unroll_arguments(tree, &mut args);
+    args.push(parse_argument_definition(first));
+    args.reverse();
+    args
+}
+
+fn unroll_arguments<'s>(
+    mut tree: syntax::Tree<'s>,
+    args: &mut Vec<syntax::tree::ArgumentDefinition<'s>>,
+) -> syntax::Tree<'s> {
     while let Some(arg) = parse_argument_application(&mut tree) {
         args.push(arg);
     }
-    args.reverse();
-    (tree, args)
+    tree
 }
 
 /// Try to parse the expression as an application of a function to an `ArgumentDefinition`. If it

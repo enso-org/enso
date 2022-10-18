@@ -482,6 +482,62 @@ impl Data {
     }
 }
 
+/// A helper wrapper for the state needed to provide the list of visible components.
+///
+/// It wraps the [`component::List`] structure and provide API providing always currently visible
+/// entries. Those in turn depends on current breadcrumbs state and presence of
+/// ["this" argument](ThisNode).
+#[derive(Clone, Debug, CloneRef)]
+pub struct ComponentsProvider {
+    breadcrumbs:  Breadcrumbs,
+    list:         component::List,
+    has_this_arg: Immutable<bool>,
+}
+
+impl ComponentsProvider {
+    /// The list of modules and their content displayed in `Submodules` section of the browser.
+    pub fn top_modules(&self) -> group::AlphabeticalList {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.selected() {
+            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else if *self.has_this_arg {
+            components.top_modules_flattened().clone_ref()
+        } else {
+            components.top_modules().clone_ref()
+        }
+    }
+
+    /// The list of components displayed in `Favorites` section of the browser.
+    ///
+    /// The favorites section is not empty only if the root module is selected.
+    pub fn favorites(&self) -> group::List {
+        if self.breadcrumbs.is_top_module() {
+            self.components().favorites.clone_ref()
+        } else {
+            default()
+        }
+    }
+
+    /// The list of components displayed in `Local Scope` section of the browser.
+    pub fn local_scope(&self) -> group::Group {
+        let components = self.components();
+        if let Some(selected) = self.breadcrumbs.selected() {
+            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
+        } else {
+            components.local_scope.clone_ref()
+        }
+    }
+
+    /// Returns true if providing a content of some module currently.
+    pub fn displaying_module(&self) -> bool {
+        self.breadcrumbs.selected().is_some()
+    }
+
+    fn components(&self) -> &component::List {
+        &self.list
+    }
+}
+
 /// Searcher Controller.
 ///
 /// This is an object providing all required functionalities for Searcher View: mainly it is the
@@ -497,23 +553,19 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger: Logger,
-    data: Rc<RefCell<Data>>,
-    breadcrumbs: Breadcrumbs,
-    notifier: notification::Publisher<Notification>,
-    graph: controller::ExecutedGraph,
-    mode: Immutable<Mode>,
-    database: Rc<model::SuggestionDatabase>,
-    language_server: Rc<language_server::Connection>,
-    ide: controller::Ide,
-    this_arg: Rc<Option<ThisNode>>,
+    logger:           Logger,
+    data:             Rc<RefCell<Data>>,
+    breadcrumbs:      Breadcrumbs,
+    notifier:         notification::Publisher<Notification>,
+    graph:            controller::ExecutedGraph,
+    mode:             Immutable<Mode>,
+    database:         Rc<model::SuggestionDatabase>,
+    language_server:  Rc<language_server::Connection>,
+    ide:              controller::Ide,
+    this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location<Byte>>,
-    project: model::Project,
-    /// A component list builder with favorites prepopulated with
-    /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
-    /// [`database`] lookups performed when updating [`Data::components`].
-    list_builder_with_favorites: Rc<component::builder::List>,
-    node_edit_guard: Rc<Option<EditGuard>>,
+    project:          model::Project,
+    node_edit_guard:  Rc<Option<EditGuard>>,
 }
 
 impl Searcher {
@@ -566,10 +618,6 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
-        let favorites = graph.component_groups();
-        let module_name = graph.module_qualified_name(&*project);
-        let list_builder_with_favs =
-            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
             logger,
@@ -584,7 +632,6 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            list_builder_with_favorites: Rc::new(list_builder_with_favs),
             node_edit_guard: node_metadata_guard,
         };
         Ok(ret.init())
@@ -615,34 +662,12 @@ impl Searcher {
         self.data.borrow().components.clone_ref()
     }
 
-    /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> group::AlphabeticalList {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
-        } else {
-            components.top_modules().clone_ref()
-        }
-    }
-
-    /// The list of components displayed in `Favorites` section of the browser.
-    ///
-    /// The favorites section is not empty only if the root module is selected.
-    pub fn favorites(&self) -> group::List {
-        if self.breadcrumbs.is_top_module() {
-            self.components().favorites
-        } else {
-            default()
-        }
-    }
-
-    /// The list of components displayed in `Local Scope` section of the browser.
-    pub fn local_scope(&self) -> group::Group {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
-        } else {
-            components.local_scope
+    /// Build a provider for this searcher.
+    pub fn provider(&self) -> ComponentsProvider {
+        ComponentsProvider {
+            breadcrumbs:  self.breadcrumbs.clone_ref(),
+            list:         self.components(),
+            has_this_arg: Immutable(self.this_arg.is_some()),
         }
     }
 
@@ -682,7 +707,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
-        tracing::debug!("Manually setting input to {new_input}.");
+        debug!("Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
         let old_expr = self.data.borrow().input.expression.repr();
         let new_expr = parsed_input.expression.repr();
@@ -724,11 +749,11 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        tracing::info!("Picking suggestion: {picked_suggestion:?}.");
+        info!("Picking suggestion: {picked_suggestion:?}.");
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{code_to_insert}\"");
+        debug!("Code to insert: \"{code_to_insert}\"");
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
@@ -741,6 +766,7 @@ impl Searcher {
         self.data.borrow_mut().input = new_parsed_input;
         self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
         self.reload_list();
+        self.breadcrumbs.set_content(iter::empty());
         Ok(new_input)
     }
 
@@ -749,7 +775,7 @@ impl Searcher {
         added_ast: Ast,
         pattern_offset: usize,
     ) -> ast::Shifted<ast::prefix::Chain> {
-        match self.data.borrow_mut().input.expression.take() {
+        match self.data.borrow().input.expression.clone() {
             None => {
                 let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
                 ast::Shifted::new(pattern_offset, ast)
@@ -784,7 +810,7 @@ impl Searcher {
 
     /// Preview the suggestion in the searcher.
     pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
-        tracing::debug!("Previewing entry: {index:?}.");
+        debug!("Previewing entry: {index:?}.");
         let error = || NoSuchAction { index };
         let suggestion = {
             let data = self.data.borrow();
@@ -800,13 +826,13 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
-        tracing::debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        tracing::debug!("Code to insert: \"{code_to_insert}\".",);
+        debug!("Code to insert: \"{code_to_insert}\".",);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         {
@@ -824,7 +850,7 @@ impl Searcher {
             self.mode.node_id(),
             Box::new(|md| md.intended_method = intended_method),
         )?;
-        tracing::debug!("Previewing expression: \"{:?}\".", expression);
+        debug!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -897,7 +923,7 @@ impl Searcher {
             let list = data.actions.list().ok_or_else(error)?;
             list.get_cloned(index).ok_or_else(error)?.action
         };
-        tracing::debug!("Previewing action: {action:?}");
+        debug!("Previewing action: {action:?}");
         Ok(())
     }
 
@@ -1058,20 +1084,18 @@ impl Searcher {
             .filter_map(|(id, import_metadata)| {
                 import_metadata.is_temporary.then(|| {
                     if let Err(e) = module.remove_import_by_id(id) {
-                        tracing::warn!("Failed to remove import because of: {e:?}");
+                        warn!("Failed to remove import because of: {e:?}");
                     }
                     id
                 })
             })
             .collect_vec();
         if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
-            tracing::warn!("Failed to update module ast when removing imports because of: {e:?}");
+            warn!("Failed to update module ast when removing imports because of: {e:?}");
         }
         for id in metadata_to_remove {
             if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
-                tracing::warn!(
-                    "Failed to remove import metadata for import id {id} because of: {e:?}"
-                );
+                warn!("Failed to remove import metadata for import id {id} because of: {e:?}");
             }
         }
     }
@@ -1236,7 +1260,10 @@ impl Searcher {
         this_type: &Option<String>,
         return_types: &[String],
     ) -> component::List {
-        let mut builder = self.list_builder_with_favorites.deref().clone();
+        let favorites = self.graph.component_groups();
+        let module_name = self.module_qualified_name();
+        let mut builder =
+            component_list_builder_with_favorites(&self.database, &module_name, &*favorites);
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
@@ -1419,11 +1446,11 @@ struct EditGuard {
 
 impl EditGuard {
     pub fn new(mode: &Mode, graph: controller::ExecutedGraph) -> Self {
-        tracing::debug!("Initialising EditGuard.");
+        debug!("Initialising EditGuard.");
 
         let ret = Self { node_id: mode.node_id(), graph, revert_expression: Cell::new(true) };
         ret.save_node_expression_to_metadata(mode).unwrap_or_else(|e| {
-            tracing::error!("Failed to save the node edit metadata due to error: {}", e)
+            error!("Failed to save the node edit metadata due to error: {}", e)
         });
         ret
     }
@@ -1487,20 +1514,19 @@ impl EditGuard {
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
-                tracing::error!(
+                error!(
                     "Tried to revert the expression of the edited node, \
                 but found no edit metadata."
                 );
             }
             Some(NodeEditStatus::Created) => {
-                tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
+                debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
             Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
-                tracing::debug!(
+                debug!(
                     "Reverting expression of node {} to {} after aborting edit.",
-                    self.node_id,
-                    &previous_expression
+                    self.node_id, &previous_expression
                 );
                 let graph = self.graph.graph();
                 graph.set_expression(self.node_id, previous_expression)?;
@@ -1521,16 +1547,14 @@ impl Drop for EditGuard {
     fn drop(&mut self) {
         if self.revert_expression.get() {
             self.revert_node_expression_edit().unwrap_or_else(|e| {
-                tracing::error!(
-                    "Failed to revert node edit after editing ended because of an error: {e}"
-                )
+                error!("Failed to revert node edit after editing ended because of an error: {e}")
             });
         } else {
-            tracing::debug!("Not reverting node expression after edit.")
+            debug!("Not reverting node expression after edit.")
         }
         if self.graph.graph().node_exists(self.node_id) {
             self.clear_node_edit_metadata().unwrap_or_else(|e| {
-                tracing::error!(
+                error!(
                 "Failed to clear node edit metadata after editing ended because of an error: {e}"
             )
             });
@@ -1725,10 +1749,6 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorites = graph.component_groups();
-            let module_qn = graph.module_qualified_name(&*project);
-            let list_builder_with_favs =
-                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let node_metadata_guard = default();
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
@@ -1744,7 +1764,6 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(code.last_line_end_location()),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_builder_with_favs),
                 node_edit_guard: node_metadata_guard,
             };
             let entry1 = searcher.database.lookup(1).unwrap();

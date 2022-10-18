@@ -6,7 +6,7 @@ from Standard.Table import Table
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import SQL_Error_Data
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
@@ -137,4 +137,4 @@ spec =
 
     sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

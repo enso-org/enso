@@ -1,12 +1,12 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
-import project.Codecs_Spec
+import project.Image_Read_Spec
 import project.Data.Image_Spec
 import project.Data.Matrix_Spec
 
-main = Test.Suite.run_main <|
-    Codecs_Spec.spec
+main = Test_Suite.run_main <|
+    Image_Read_Spec.spec
     Matrix_Spec.spec
     Image_Spec.spec
