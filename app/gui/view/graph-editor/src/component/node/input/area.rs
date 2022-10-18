@@ -29,11 +29,12 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+/// An offset from the port area position to the text position.
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
-pub const GLYPH_WIDTH: f32 = 7.224_609_4; // FIXME hardcoded literal
+// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
+pub const GLYPH_WIDTH: f32 = 7.224_609_4;
 
 /// Enable visual port debug mode and additional port creation logging.
 pub const DEBUG: bool = false;
@@ -132,7 +133,8 @@ impl From<node::Expression> for Expression {
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            let mut size = Byte::try_from(span.size()).unwrap(); // FIXME: hande errors
+            // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
+            let mut size = Byte::try_from(span.size()).unwrap();
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index.to_diff();
             info.prev_tok_local_index = size + node.offset;
@@ -212,8 +214,9 @@ impl Model {
 
     #[profile(Debug)]
     fn init(self) -> Self {
-        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        // It needs to be more flexible once we have proper depth management.
+        // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
+        //   It needs to be more flexible once we have proper depth management.
+        //   See https://www.pivotaltracker.com/story/show/183567632.
         let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
@@ -347,8 +350,8 @@ impl Model {
                     builder.parent.add_child(&port_shape);
                 }
 
-                // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
-                // shape system (#795)
+                // TODO: StyleWatch is unsuitable here, as it was designed as an internal tool for
+                //   shape system. (https://www.pivotaltracker.com/story/show/183567648)
                 let style_sheet = &self.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.styles_frp;
@@ -524,8 +527,8 @@ impl Model {
                     disabled_color <- profiled.switch(&std_disabled_color,&profiled_disabled_color);
                     expected_color <- profiled.switch(&std_expected_color,&profiled_expected_color);
                     editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
-                    // Fixme: `label_color` should be animated, when when we can set text colors
-                    //        more efficiently. (See https://github.com/enso-org/ide/issues/1031)
+                    // TODO: `label_color` should be animated, when when we can set text colors
+                    //  more efficiently. (See https://www.pivotaltracker.com/story/show/183567665)
                     label_color    <- all_with8(&area_frp.set_edit_mode,&selected,&area_frp.set_disabled
                         ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
                         ,move |&editing,&selected,&disabled,&editing_color,&selected_color
@@ -545,7 +548,8 @@ impl Model {
                     set_color <- all_with(&label_color,&area_frp.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
-                        let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
+                        // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
+                        let range = enso_text::Range::<Byte>::try_from(range).unwrap();
                         label.set_property(range,color::Rgba::from(color));
                     });
                 }
@@ -843,7 +847,7 @@ impl Area {
         Self { frp, model }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// An offset from node position to a specific port.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -857,20 +861,15 @@ impl Area {
         })
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// A type of the specified port.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// A crumb by AST id.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn label(&self) -> &text::Text {
-        &self.model.label
     }
 
     /// Set a scene layer for text rendering.
