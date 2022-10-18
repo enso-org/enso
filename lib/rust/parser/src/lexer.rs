@@ -108,7 +108,7 @@ pub enum State {
     /// Reading a multi-line text literal.
     MultilineText {
         /// Indentation level of the quote symbol introducing the block.
-        quote_indent: VisibleOffset,
+        quote_indent:   VisibleOffset,
         /// Indentation level of the first line of the block.
         initial_indent: Option<VisibleOffset>,
     },
