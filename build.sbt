@@ -1856,8 +1856,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "com.ibm.icu"         % "icu4j"                   % icuVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1884,7 +1885,8 @@ lazy val `std-table` = project
       "com.univocity"       % "univocity-parsers" % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
-      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
+      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

@@ -20,6 +20,11 @@ polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.time.ZonedDateTime
 
+polyglot java import org.enso.base.FileFormatSPI
+
+types : Vector
+types = Vector.from_polyglot_array (FileFormatSPI.get_types True)
+
 ## ALIAS New File
 
    Creates a new file object, pointing to the given path.
