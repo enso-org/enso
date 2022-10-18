@@ -449,7 +449,10 @@ pub struct TypeConstructorDef<'s> {
 
 impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.constructor).add(&mut self.arguments).add(&mut self.block)
+        span.add(&mut self.documentation)
+            .add(&mut self.constructor)
+            .add(&mut self.arguments)
+            .add(&mut self.block)
     }
 }
 
