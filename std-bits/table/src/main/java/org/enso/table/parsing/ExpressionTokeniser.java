@@ -13,6 +13,9 @@ public class ExpressionTokeniser {
     NUMBER("[0-9][0-9_]*(\\.[0-9][0-9_]*)?"),
     BOOLEAN("(TRUE|FALSE)"),
     STRING("(\"(\"\"|[^\"])+\")|('(\\\\.|[^\\\\])+')"),
+    DATE("#\\d{4}-\\d{2}-\\d{2}#"),
+    TIME("#\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?#"),
+    DATETIME("#\\d{4}-\\d{2}-\\d{2}[Tt ]\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?([Zz]|([+-]\\d{2}:\\d{2})?(\\[[^\\]]+\\])?)?#"),
     COLUMN_NAME("\\[(\\]\\]|[^\\]])+\\]"),
     OPERATOR("(<>|<=|>=|==|!=|&&|\\|\\||-|\\+|\\*|/|%|>|<|\\^|=|AND|OR)"),
     UNARY_OPERATOR("(NOT|-|!|IS NOT NULL|IS NULL|IS NOT EMPTY|IS EMPTY|IS NOTHING|IS NOT NOTHING)"),
@@ -67,6 +70,7 @@ public class ExpressionTokeniser {
 
     return resolveUnaryMinuses(output).stream()
         .map(ExpressionTokeniser::normaliseNumbers)
+        .map(ExpressionTokeniser::normaliseDateTimes)
         .map(ExpressionTokeniser::normaliseStrings)
         .map(ExpressionTokeniser::normaliseColumnNames)
         .map(ExpressionTokeniser::normaliseCaseAndNames)
@@ -93,6 +97,16 @@ public class ExpressionTokeniser {
       var value = token.value();
       var newValue = value.replace("_", "");
       return new Token(TokenType.NUMBER, newValue);
+    } else {
+      return token;
+    }
+  }
+
+  private static Token normaliseDateTimes(Token token) {
+    if (token.type() == TokenType.DATE || token.type() == TokenType.TIME || token.type() == TokenType.DATETIME) {
+      var value = token.value();
+      var newValue = value.substring(1, value.length() - 1);
+      return new Token(token.type(), newValue);
     } else {
       return token;
     }

@@ -3,6 +3,12 @@ package org.enso.table.parsing;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +16,23 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExpressionEvaluator {
+  private static final DateTimeFormatter timeFormatter = new DateTimeFormatterBuilder()
+      .appendPattern("HH:mm")
+      .appendOptional(DateTimeFormatter.ofPattern(":ss"))
+      .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
+      .toFormatter();
+
+  private static final DateTimeFormatter datetimeFormatter = new DateTimeFormatterBuilder()
+      .appendPattern("yyyy-MM-dd").appendLiteral('T')
+      .append(timeFormatter)
+      .optionalStart().appendOffset("+HH:MM", "Z").optionalEnd()
+      .optionalStart()
+      .appendLiteral('[')
+      .parseCaseSensitive()
+      .appendZoneRegionId()
+      .appendLiteral(']')
+      .optionalEnd()
+      .toFormatter().withZone(java.time.ZoneId.systemDefault());
 
   public static Value evaluate(String expression, Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn, String moduleName)
     throws UnsupportedOperationException {
@@ -21,6 +44,9 @@ public class ExpressionEvaluator {
       switch (token.type()) {
         case NOTHING -> values.add(makeConstantColumn.apply(null));
         case NUMBER -> values.add(makeConstantColumn.apply(Double.parseDouble(token.value())));
+        case DATE -> values.add(makeConstantColumn.apply(LocalDate.parse(token.value())));
+        case TIME -> values.add(makeConstantColumn.apply(LocalTime.parse(token.value(), timeFormatter)));
+        case DATETIME -> values.add(makeConstantColumn.apply(ZonedDateTime.parse(token.value(), datetimeFormatter)));
         case BOOLEAN -> values.add(makeConstantColumn.apply(token.value().equals("True")));
         case STRING -> values.add(makeConstantColumn.apply(token.value()));
         case COLUMN_NAME -> values.add(getColumn.apply(token.value()));
