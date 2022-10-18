@@ -1,8 +1,10 @@
+use crate::prelude::*;
+
 use crate::cache::download::DownloadFile;
 use crate::github;
 use crate::github::model;
 use crate::github::MAX_PER_PAGE;
-use crate::prelude::*;
+
 use headers::HeaderMap;
 use headers::HeaderValue;
 use octocrab::models::repos::Asset;

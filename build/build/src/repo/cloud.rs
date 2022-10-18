@@ -1,7 +1,8 @@
 use crate::prelude::*;
-use ide_ci::github;
 
+use ide_ci::github;
 use ide_ci::github::RepoRef;
+
 
 
 pub const CLOUD_REPO: RepoRef = RepoRef { owner: "enso-org", name: "cloud-v2" };
@@ -39,4 +40,20 @@ pub async fn build_image_workflow_dispatch_input(octocrab: &Octocrab, version: &
     info!("Dispatching the cloud workflow to build the image.");
     github::workflow::dispatch(octocrab, &CLOUD_REPO, BUILD_IMAGE_WORKFLOW, default_branch, &input)
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::setup_octocrab;
+
+    #[tokio::test]
+    #[ignore]
+    async fn manual_call() -> Result {
+        setup_logging()?;
+        let octo = setup_octocrab().await?;
+        build_image_workflow_dispatch_input(&octo, &Version::parse("2022.1.1-nightly.2022-10-18")?)
+            .await?;
+        Ok(())
+    }
 }

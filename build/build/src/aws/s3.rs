@@ -14,6 +14,9 @@ pub mod gui;
 
 
 
+/// AWS Region of the `ensocdn` bucket.
+pub const ENSOCDN_REGION: &str = "us-west-1";
+
 pub async fn client_from_env() -> aws_sdk_s3::Client {
     aws_sdk_s3::Client::new(&aws_config::load_from_env().await)
 }

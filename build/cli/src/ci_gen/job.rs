@@ -178,7 +178,8 @@ impl JobArchetype for DeployGui {
                 .with_secret_exposed_as(
                     secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
                     "AWS_SECRET_ACCESS_KEY",
-                );
+                )
+                .with_env("AWS_DEFAULT_REGION", enso_build::aws::s3::ENSOCDN_REGION);
             vec![step]
         })
     }
