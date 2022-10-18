@@ -586,15 +586,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
-  public void testMethodDefQualified() throws Exception {
-    parseTest("""
-    type Foo
-        Identity.id x = x
-    """);
-  }
-
-  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of
