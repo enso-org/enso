@@ -9,6 +9,6 @@ import java.util.List;
 public class UnsupportedArgumentTypes extends UniquelyConstructibleBuiltin {
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("arguments");
+    return List.of("arguments", "message");
   }
 }
