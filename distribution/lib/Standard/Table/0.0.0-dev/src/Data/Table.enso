@@ -18,6 +18,7 @@ import project.Data.Value_Type.Value_Type
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Storage.Storage
 import project.Internal.Table_Helpers
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
@@ -768,7 +769,7 @@ type Table
        > Example
          Replace dashes with underscores in a column named "variable_names".
 
-             table.replace_text "variable_names" "-" "_" 
+             table.replace_text "variable_names" "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
@@ -782,7 +783,7 @@ type Table
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
-        
+
         selector = case columns of
             _ : Column_Selector -> columns
             name : Text -> Column_Selector.By_Name [name]
@@ -806,11 +807,11 @@ type Table
 
         new_columns = self.columns.map column->
             is_selected = selected_names.get_or_else column.name False
-            if is_selected then transform column else column 
-            
+            if is_selected then transform column else column
+
         result = Table.new new_columns
         problem_builder.attach_problems_after on_problems result
-      
+
     ## ALIAS Filter Rows
 
        Selects only the rows of this table that correspond to `True` values of
@@ -1002,16 +1003,28 @@ type Table
             Table.Table_Data t ->
                 Table.Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
 
-    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
-    drop_missing_rows : Table
-    drop_missing_rows self =
-        cols = self.columns
-        case cols.not_empty of
-            True ->
-                any_missing_mask = cols.map .is_missing . reduce (||)
-                non_missing_mask = any_missing_mask.not
-                self.filter non_missing_mask
-            False -> self
+    ## ALIAS dropna
+       ALIAS drop_missing_rows
+       Remove rows which are all blank or containing blank values.
+
+       Arguments:
+       - when_any: If `True`, then remove any row containing any blank values.
+         If `False`, then only remove rows with all blank values.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    filter_blank_rows : Boolean -> Boolean -> Table
+    filter_blank_rows self when_any=False treat_nans_as_blank=False =
+        can_contain_text col = case col.storage_type of
+            Storage.Text -> True
+            Storage.Any -> True
+            _ -> False
+        can_contain_double col = case col.storage_type of
+            Storage.Decimal -> True
+            Storage.Any -> True
+            _ -> False
+        Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table

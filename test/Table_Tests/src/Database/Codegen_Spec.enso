@@ -162,9 +162,12 @@ spec =
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
 
-        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            t2 = t1.drop_missing_rows
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
+        Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
+            t2 = t1.filter_blank_rows when_any=True
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) OR (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) OR ("T1"."C" IS NULL)))', []]
+
+            t3 = t1.filter_blank_rows when_any=False
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) AND (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) AND ("T1"."C" IS NULL)))', []]
 
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
