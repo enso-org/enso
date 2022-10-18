@@ -918,7 +918,7 @@ type Table
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
-        Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column
+        Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
 
     ## PRIVATE
 

@@ -1195,7 +1195,7 @@ type Table
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
-        Table_Helpers.Table_Column_Helper.Value self.columns (x->x)
+        Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
 
 ## UNSTABLE
 

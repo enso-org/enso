@@ -1295,6 +1295,13 @@ spec prefix table_builder test_selection pending=Nothing =
             problems = [Index_Out_Of_Bounds_Error_Data 4 1]
             Problems.test_problem_handling action problems tester
 
+    Test.group prefix+"Column Operations" pending=pending <|
+        Test.specify "iif" <|
+            t = table_builder [["X", [True, False, Nothing, True]]]
+            t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
+
+        Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+
     Test.group prefix+"Dropping Missing Values" pending=pending <|
         t0 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
         t1 =
@@ -1406,10 +1413,10 @@ spec prefix table_builder test_selection pending=Nothing =
 
             t.reorder_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["Y", "X", "Z"]
 
-            r1 = t.aggregate (Count_Distinct Column_Selector.Blank_Columns)
+            r1 = t.aggregate [Count_Distinct Column_Selector.Blank_Columns]
             r1.columns . map .name . should_equal ["Count Distinct Y"]
             r1.at "Count Distinct Y" . to_vector . should_equal [2]
-            r2 = t.aggregate (Count_Distinct Column_Selector.Blank_Columns ignore_nothing=True)
+            r2 = t.aggregate [(Count_Distinct Column_Selector.Blank_Columns ignore_nothing=True)]
             r2.columns . map .name . should_equal ["Count Distinct Y"]
             r2.at "Count Distinct Y" . to_vector . should_equal [1]
 

@@ -10,6 +10,10 @@ public class Polyglot_Utils {
    * type.
    */
   public static Object convertPolyglotValue(Value item) {
+    if (item == null) {
+      return null;
+    }
+
     if (item.isDate()) {
       LocalDate d = item.asDate();
       if (item.isTime()) {

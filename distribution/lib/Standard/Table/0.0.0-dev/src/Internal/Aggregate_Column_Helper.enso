@@ -141,10 +141,7 @@ resolve_aggregate table problem_builder aggregate_column =
         Count new_name -> Count new_name
         Count_Distinct c new_name ignore_nothing ->
             new_c = case c of
-                ## TODO once we have sum type pattern matching this could be replaced with a single branch
-                Column_Selector.By_Name _ _ -> resolve_selector_to_vector c
-                Column_Selector.By_Index _ -> resolve_selector_to_vector c
-                Column_Selector.By_Column _ -> resolve_selector_to_vector c
+                _ : Column_Selector -> resolve_selector_to_vector c
                 _ -> [resolve c]
             Count_Distinct new_c new_name ignore_nothing
         Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
