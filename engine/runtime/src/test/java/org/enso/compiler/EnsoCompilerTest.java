@@ -403,6 +403,31 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore // shifted positions confused `Tree.codeRepr()` for identifiers
+  public void testTestGroup() throws Exception {
+    parseTest("""
+    type Test
+        ## Creates a new test group, describing properties of the object
+           described by `self`.
+
+           Arguments:
+           - name: The name of the test group.
+           - behaviors: An action containing a set of specs for the group.
+           - pending: A reason for why the test is pending, or `Nothing` when it is not
+             pending.
+
+           > Example
+             Adding a test group.
+
+                 from Standard.Test import Test, Test_Suite
+
+                 example_group = Test_Suite.run <|
+                     Test.group "Number" <| Nothing
+        group : Text -> Any -> (Text | Nothing) -> Nothing
+        """);
+  }
+
+  @Test
   public void testReverseListType() throws Exception {
     parseTest("""
     reverse_list : List Any -> List
