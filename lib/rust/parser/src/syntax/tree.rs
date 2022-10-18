@@ -141,9 +141,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[serde(skip)]
             #[reflect(skip)]
             pub closed:   bool,
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub trim:     VisibleOffset,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -520,10 +517,6 @@ pub struct DocComment<'s> {
     pub open:     token::TextStart<'s>,
     /// The documentation text.
     pub elements: Vec<TextElement<'s>>,
-    /// The minimum indent among all lines of the text content.
-    #[serde(skip)]
-    #[reflect(skip)]
-    pub trim:     VisibleOffset,
     /// Empty lines between the comment and the item.
     pub newlines: Vec<token::Newline<'s>>,
 }
@@ -771,14 +764,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
         (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if !lhs.closed => {
             join_text_literals(lhs, rhs, mem::take(&mut arg.span));
-            if lhs.open.is_some() && lhs.closed {
-                trim_text(lhs.trim, &mut lhs.elements);
-            }
-            if let TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None, trim } = lhs && open.code.starts_with('#') {
+            if let TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
+                    && open.code.starts_with('#') {
                 let mut open = open.clone();
                 open.left_offset += func.span.left_offset;
                 let elements = mem::take(elements);
-                let doc = DocComment { open, elements, trim: *trim, newlines: default() };
+                let doc = DocComment { open, elements, newlines: default() };
                 return Tree::documented(doc, default());
             }
             func
@@ -851,9 +842,6 @@ fn join_text_literals<'s>(
     rhs: &mut TextLiteral<'s>,
     rhs_span: Span<'s>,
 ) {
-    if rhs.trim != VisibleOffset(0) && (lhs.trim == VisibleOffset(0) || rhs.trim < lhs.trim) {
-        lhs.trim = rhs.trim;
-    }
     match rhs.elements.first_mut() {
         Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
         Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
@@ -866,26 +854,6 @@ fn join_text_literals<'s>(
     lhs.elements.append(&mut rhs.elements);
     lhs.close = rhs.close.take();
     lhs.closed = rhs.closed;
-}
-
-fn trim_text(trim: VisibleOffset, elements: &mut Vec<TextElement>) {
-    let mut remaining = elements.len();
-    let mut carried_offset = Offset::default();
-    elements.retain_mut(|e| {
-        remaining -= 1;
-        let (offset, code) = match e {
-            TextElement::Section { text } => (&mut text.left_offset, &mut text.code),
-            TextElement::Escape { token } => (&mut token.left_offset, &mut token.code),
-            TextElement::Splice { open, .. } => (&mut open.left_offset, &mut open.code),
-        };
-        *offset += mem::take(&mut carried_offset);
-        crate::lexer::untrim(trim, offset, code);
-        if remaining != 0 && code.is_empty() {
-            carried_offset = mem::take(offset);
-            return false;
-        }
-        true
-    });
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.
@@ -971,24 +939,22 @@ impl<'s> From<Token<'s>> for Tree<'s> {
             token::Variant::NumberBase(base) =>
                 Tree::number(Some(token.with_variant(base)), None, None),
             token::Variant::TextStart(open) =>
-                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default(), default()),
+                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
             token::Variant::TextSection(section) => {
-                let trim = token.left_offset.visible;
                 let section = TextElement::Section { text: token.with_variant(section) };
-                Tree::text_literal(default(), default(), vec![section], default(), default(), trim)
+                Tree::text_literal(default(), default(), vec![section], default(), default())
             }
             token::Variant::TextEscape(escape) => {
-                let trim = token.left_offset.visible;
                 let token = token.with_variant(escape);
                 let section = TextElement::Escape { token };
-                Tree::text_literal(default(), default(), vec![section], default(), default(), trim)
+                Tree::text_literal(default(), default(), vec![section], default(), default())
             }
             token::Variant::TextEnd(_) if token.code.is_empty() =>
-                Tree::text_literal(default(), default(), default(), default(), true, default()),
+                Tree::text_literal(default(), default(), default(), default(), true),
             token::Variant::TextEnd(close) =>
-                Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true, default()),
+                Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
             token::Variant::TextInitialNewline(_) =>
-                Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default(), default()),
+                Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
             token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
             token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
             token::Variant::OpenSymbol(s) =>
