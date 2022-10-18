@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::github::repo::IsRepo;
 use crate::github::IsOrganization;
-use crate::github::IsRepo;
 use crate::github::Repo;
 use crate::serde::regex_vec;
 use crate::serde::single_or_sequence;

@@ -242,6 +242,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore]
     async fn upload_gui() -> Result {
         setup_logging()?;
         let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
