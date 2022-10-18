@@ -131,9 +131,9 @@ from project.Errors.Input_Indices_Already_Matched export all
 ## Indicates that the provided indices matched columns already matched by
    others, so they do not introduce any new columns to the input.
 
-   For example, if the table has only one column, then selecting
-   `By_Index [0, -1]` will only yield this single column and
-   `Input_Indices_Already_Matched [-1]` will be raised.
+  For example, if the table has only one column, then selecting
+  `By_Index [0, -1]` will only yield this single column and
+  `Input_Indices_Already_Matched [-1]` will be raised.
 type Input_Indices_Already_Matched
     Input_Indices_Already_Matched_Data (indices : [Integer])
 
