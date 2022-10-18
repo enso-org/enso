@@ -25,3 +25,22 @@ type Column_Selector
        this approach can be used to match columns with the same names as a set
        of columns of some other table, for example, when preparing for a join.
     By_Column (columns : Vector Column)
+
+    ## ALIAS dropna
+       ALIAS drop_missing_columns
+       Select columns which are either all blank or contain blank values.
+
+       Arguments:
+       - when_any: If `True`, then selects columns containing any blank values.
+         If `False`, then only selects columns whose all cells are blank.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+
+       > Example
+         Remove completely blank columns from a table.
+
+             table.remove_columns Column_Selector.Blank_Columns
+    Blank_Columns when_any:Boolean=False treat_nans_as_blank:Boolean=False
