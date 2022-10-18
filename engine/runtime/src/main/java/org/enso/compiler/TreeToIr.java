@@ -1138,9 +1138,15 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
-    var fullTxt = txt.codeRepr().trim();
-    var t = fullTxt.substring(1, fullTxt.length() - 1);
-    return new IR$Literal$Text(t, getIdentifiedLocation(txt), meta(), diag());
+    StringBuilder sb = new StringBuilder();
+    for (var t : txt.getElements()) {
+      var sectionTxt = switch (t) {
+          case TextElement.Section s -> s.getText().codeRepr();
+          default -> throw new UnhandledEntity(t, "translateLiteral");
+      };
+      sb.append(sectionTxt);
+    }
+    return new IR$Literal$Text(sb.toString(), getIdentifiedLocation(txt), meta(), diag());
   }
 
   /** Translates a program literal from its [[AST]] representation into
