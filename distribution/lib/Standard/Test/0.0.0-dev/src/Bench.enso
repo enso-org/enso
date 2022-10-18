@@ -2,42 +2,42 @@ from Standard.Base import all
 import Standard.Base.System
 import Standard.Base.Runtime.Ref
 
-## Measure the amount of time it takes to execute a given computation.
+type Bench
+    ## Measure the amount of time it takes to execute a given computation.
 
-   Arguments:
-   - act: The action to perform.
-   - label: A name for the measurement.
-   - iter_size: The number of runs per iteration.
-   - num_iters: The number of iterations per measurement.
+       Arguments:
+       - act: The action to perform.
+       - label: A name for the measurement.
+       - iter_size: The number of runs per iteration.
+       - num_iters: The number of iterations per measurement.
 
-   > Example
-     Measure a computation called "foo" with an iteration size of 2 and a number
-     of iterations of 1.
+       > Example
+         Measure a computation called "foo" with an iteration size of 2 and a number
+         of iterations of 1.
 
-         import Standard.Examples
-         import Standard.Test.Bench
+             import Standard.Examples
+             from Standard.Test import Bench
 
-         example_measure =
-             Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
-measure : Any -> Text -> Integer -> Integer -> Nothing
-measure = ~act -> label -> iter_size -> num_iters ->
-    result = Ref.new 0.0
-    single_call = _ ->
-        x1 = System.nano_time
-        Runtime.no_inline act
-        x2 = System.nano_time
-        x2 - x1
-    iteration = it_num ->
-        act_it_num = num_iters - it_num
-        res = iter_size.times single_call
-        avg = avg_list res
-        fmt = (avg / 1000000).format "%.2f"
-        result.put (result.get + avg)
-        IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
-    num_iters.times iteration
-    fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
-    IO.println (label + " average: " + fmt_avg + "ms")
-
+             example_measure =
+                 Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
+    measure : Any -> Text -> Integer -> Integer -> Nothing
+    measure = ~act -> label -> iter_size -> num_iters ->
+        result = Ref.new 0.0
+        single_call = _ ->
+            x1 = System.nano_time
+            Runtime.no_inline act
+            x2 = System.nano_time
+            x2 - x1
+        iteration = it_num ->
+            act_it_num = num_iters - it_num
+            res = times iter_size single_call
+            avg = avg_list res
+            fmt = (avg / 1000000).format "%.2f"
+            result.put (result.get + avg)
+            IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
+        times num_iters iteration
+        fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
+        IO.println (label + " average: " + fmt_avg + "ms")
 
 ## PRIVATE
 
@@ -96,11 +96,10 @@ len_list list =
    Perform an action a number of times.
 
    Arguments:
-   - act: The action to perform `self` number of times.
-Number.times : List Any
-Number.times self act =
+   - act: The action to perform `count` number of times.
+times : Integer-> List Any
+times count act =
     go = results -> number -> if number == 0 then results else
         @Tail_Call go (Cons (act number) results) number-1
-    res = reverse_list (go Nil self)
+    res = reverse_list (go Nil count)
     res
-

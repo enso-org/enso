@@ -3,8 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 from Standard.Table.Errors import all
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 import project.Util
 
@@ -393,4 +392,4 @@ spec =
             Delimited ',' comment_character='#' . without_comments . should_equal (Delimited ',' comment_character=Nothing)
             Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited ',' line_endings=Line_Ending_Style.Unix)
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

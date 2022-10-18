@@ -5,7 +5,7 @@ import Standard.Base.Data.Time.Date_Period
 import Standard.Base.Data.Time.Duration
 from Standard.Base.Error.Common import Time_Error
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 import project.Data.Time.Date_Part_Spec
 
@@ -383,7 +383,7 @@ spec_with name create_new_date parse_date =
     Date_Part_Spec.spec name create_new_date
 
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 

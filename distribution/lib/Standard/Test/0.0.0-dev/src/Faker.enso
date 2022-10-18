@@ -3,22 +3,24 @@ from Standard.Base import all
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Text_Utils
 
-upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
-lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
-numbers = "0123456789".char_vector
-
-## Creates a new Faker which can be used for creating test values.
-
-   Arguments:
-   - seed: Optional seed value to make the sequence deterministic
-new : Integer -> Faker
-new (seed = 0) =
-    generator = if seed == 0 then Random.new else Random.new seed
-    Faker generator
-
 ## Object to generate (deterministic) random value for testing
 type Faker
-    type Faker generator
+    upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
+
+    lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
+
+    numbers = "0123456789".char_vector
+
+    ## Creates a new Faker which can be used for creating test values.
+
+       Arguments:
+       - seed: Optional seed value to make the sequence deterministic
+    new : Integer -> Faker
+    new (seed = 0) =
+        generator = if seed == 0 then Random.new else Random.new seed
+        Faker.Value generator
+
+    Value generator
 
     ## Creates a random Text based on a template of character sets.
 
@@ -48,7 +50,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha : Integer -> Boolean -> Text
     alpha self length=1 upper_case=False =
-        alphabet = if upper_case then upper_case_letters else lower_case_letters
+        alphabet = if upper_case then Faker.upper_case_letters else Faker.lower_case_letters
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text consisting of lower/upper case characters and digits.
@@ -58,7 +60,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
-        alphabet = (if upper_case then upper_case_letters else lower_case_letters) + numbers
+        alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.numbers
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text for a hexadecimal number

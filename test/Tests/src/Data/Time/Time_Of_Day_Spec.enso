@@ -3,7 +3,7 @@ import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Period
 from Standard.Base.Error.Common import Time_Error_Data
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter
@@ -171,4 +171,4 @@ java_parse time_text pattern=Nothing =
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

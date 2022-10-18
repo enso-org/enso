@@ -74,6 +74,7 @@ use ensogl_shadow as shadow;
 mod navigator;
 
 pub use breadcrumbs::BreadcrumbId;
+pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
 pub use ensogl_core::prelude;
 pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
@@ -87,6 +88,7 @@ pub use ide_view_component_list_panel_grid::entry::icon;
 
 /// The selection animation is faster than the default one because of the increased spring force.
 const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
+const INITIAL_SECTION_NAME: &str = grid::SectionId::Popular.as_str();
 
 
 
@@ -269,7 +271,8 @@ impl Model {
     }
 
     fn set_initial_breadcrumbs(&self) {
-        self.breadcrumbs.set_entries_from((vec![breadcrumbs::Breadcrumb::new("All")], 0));
+        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME);
+        self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
         self.breadcrumbs.show_ellipsis(true);
     }
 

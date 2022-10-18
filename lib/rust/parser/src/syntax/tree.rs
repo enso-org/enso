@@ -336,14 +336,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// An expression preceded by a doc comment.
         Documented {
-            pub open:       token::TextStart<'s>,
-            /// The documentation text.
-            pub elements:   Vec<TextElement<'s>>,
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub trim:       VisibleOffset,
-            /// Empty lines between the comment and the item.
-            pub newlines:   Vec<token::Newline<'s>>,
+            /// The documentation.
+            pub documentation: DocComment<'s>,
             /// The item being documented.
             pub expression: Option<Tree<'s>>,
         },
@@ -443,12 +437,14 @@ impl<'s> From<token::Newline<'s>> for TypeConstructorLine<'s> {
 /// A type constructor definition within a type definition.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct TypeConstructorDef<'s> {
+    /// Documentation, if any.
+    pub documentation: Option<DocComment<'s>>,
     /// The identifier naming the type constructor.
-    pub constructor: token::Ident<'s>,
+    pub constructor:   token::Ident<'s>,
     /// The arguments the type constructor accepts, specified inline.
-    pub arguments:   Vec<ArgumentDefinition<'s>>,
+    pub arguments:     Vec<ArgumentDefinition<'s>>,
     /// The arguments the type constructor accepts, specified on their own lines.
-    pub block:       Vec<ArgumentDefinitionLine<'s>>,
+    pub block:         Vec<ArgumentDefinitionLine<'s>>,
 }
 
 impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
@@ -511,16 +507,30 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
     }
 }
 
-impl<'s, 'a> TreeVisitable<'s, 'a> for VisibleOffset {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 's> SpanVisitable<'s, 'a> for VisibleOffset {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for VisibleOffset {}
-impl<'a, 's> ItemVisitable<'s, 'a> for VisibleOffset {}
-impl<'s> span::Builder<'s> for VisibleOffset {
+
+// === Documentation ===
+
+/// A documentation comment.
+#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct DocComment<'s> {
+    /// The comment-initiating token.
+    pub open:     token::TextStart<'s>,
+    /// The documentation text.
+    pub elements: Vec<TextElement<'s>>,
+    /// The minimum indent among all lines of the text content.
+    #[serde(skip)]
+    #[reflect(skip)]
+    pub trim:     VisibleOffset,
+    /// Empty lines between the comment and the item.
+    pub newlines: Vec<token::Newline<'s>>,
+}
+
+impl<'s> span::Builder<'s> for DocComment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
+        span.add(&mut self.open).add(&mut self.elements).add(&mut self.newlines)
     }
 }
+
 
 // === Number literals ===
 
@@ -734,8 +744,8 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 pub struct OperatorDelimitedTree<'s> {
     /// The delimiting operator.
     pub operator: token::Operator<'s>,
-    /// The expression.
-    pub body:     Tree<'s>,
+    /// The expression. It is an error for this to be absent.
+    pub body:     Option<Tree<'s>>,
 }
 
 impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
@@ -765,7 +775,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
                 let mut open = open.clone();
                 open.left_offset += func.span.left_offset;
                 let elements = mem::take(elements);
-                return Tree::documented(open, elements, *trim, default(), default());
+                let doc = DocComment { open, elements, trim: *trim, newlines: default() };
+                return Tree::documented(doc, default());
             }
             func
         }
@@ -890,6 +901,10 @@ pub fn apply_operator<'s>(
         1 => Ok(opr.into_iter().next().unwrap()),
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
+    if let Ok(opr_) = &opr && opr_.properties.is_special() {
+        let tree = Tree::opr_app(lhs, opr, rhs);
+        return tree.with_error("Invalid use of special operator.");
+    }
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
         return match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => {
@@ -1239,29 +1254,26 @@ define_visitor_no_mut!(Item, visit_item);
 crate::with_token_definition!(define_visitor_for_tokens());
 
 
-// === Primitives ===
+// === Trait Implementations for Simple Leaf Types ===
 
-impl<'s, 'a> TreeVisitable<'s, 'a> for u32 {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for u32 {}
-impl<'a, 's> SpanVisitable<'s, 'a> for u32 {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for u32 {}
-impl<'a, 's> ItemVisitable<'s, 'a> for u32 {}
-impl<'s> span::Builder<'s> for u32 {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
-    }
+macro_rules! spanless_leaf_impls {
+    ($ty:ident) => {
+        impl<'s, 'a> TreeVisitable<'s, 'a> for $ty {}
+        impl<'s, 'a> TreeVisitableMut<'s, 'a> for $ty {}
+        impl<'a, 's> SpanVisitable<'s, 'a> for $ty {}
+        impl<'a, 's> SpanVisitableMut<'s, 'a> for $ty {}
+        impl<'a, 's> ItemVisitable<'s, 'a> for $ty {}
+        impl<'s> span::Builder<'s> for $ty {
+            fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+                span
+            }
+        }
+    };
 }
 
-impl<'s, 'a> TreeVisitable<'s, 'a> for bool {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for bool {}
-impl<'a, 's> SpanVisitable<'s, 'a> for bool {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for bool {}
-impl<'a, 's> ItemVisitable<'s, 'a> for bool {}
-impl<'s> span::Builder<'s> for bool {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
-    }
-}
+spanless_leaf_impls!(u32);
+spanless_leaf_impls!(bool);
+spanless_leaf_impls!(VisibleOffset);
 
 
 // === TreeVisitable special cases ===

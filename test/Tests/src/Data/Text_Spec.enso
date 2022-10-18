@@ -5,7 +5,7 @@ import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Base.Data.Text.Text_Sub_Range import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type Auto
     Value a
@@ -13,7 +13,7 @@ type Auto
 type Manual
     Value b
 
-Manual.to_text self = "[[[MyREP " + self.b.to_text + "]]]"
+    to_text self = "[[[MyREP " + self.b.to_text + "]]]"
 
 ## Specification of operations on the Text type.
 
@@ -1537,4 +1537,4 @@ spec =
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' matcher=Regex_Matcher.Regex_Matcher_Data . should_equal 'content is at url'
             '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' matcher=Regex_Matcher.Regex_Matcher_Data . should_equal 'content is at url'
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

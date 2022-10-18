@@ -4,7 +4,7 @@ import Standard.Examples
 
 import Standard.Visualization
 
-import Standard.Test
+from Standard.Test import Test
 
 import Standard.Visualization.File_Upload.File_Being_Uploaded
 

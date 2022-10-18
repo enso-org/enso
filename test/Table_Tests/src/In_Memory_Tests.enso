@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
 import project.Column_Spec
 import project.Csv_Spec
@@ -25,4 +25,4 @@ in_memory_spec =
     Aggregate_Column_Spec.spec
     Aggregate_Spec.spec
 
-main = Test.Suite.run_main in_memory_spec
+main = Test_Suite.run_main in_memory_spec

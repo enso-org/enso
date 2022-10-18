@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Geo_Json.Object_Type import all
-from project.Geo_Json.Object_Type export all
-
 ## PRIVATE
 
    A type of GeoJSON object.
@@ -24,8 +20,8 @@ type Object_Type
        Convert GeoJSON object type to Text.
     to_text : Text
     to_text self = case self of
-        Feature -> "Feature"
-        Feature_Collection -> "FeatureCollection"
+        Object_Type.Feature -> "Feature"
+        Object_Type.Feature_Collection -> "FeatureCollection"
 
 ## PRIVATE
 

@@ -2,7 +2,7 @@ from Standard.Base import all
 
 polyglot java import java.lang.Long
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type My_Warning
     Value reason
@@ -157,4 +157,4 @@ spec = Test.group "Dataflow Warnings" <|
         result = x.is_static_nothing x
         result . should_equal False
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

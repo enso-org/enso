@@ -1892,7 +1892,7 @@ final class TreeToIr {
     */
   IR.Comment translateComment(Tree.Documented doc) {
       var msg = new StringBuilder();
-      for (var t : doc.getElements()) {
+      for (var t : doc.getDocumentation().getElements()) {
         switch (t) {
           case TextElement.Section s -> {
             var txt = s.getText().codeRepr();

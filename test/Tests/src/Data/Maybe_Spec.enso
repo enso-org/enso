@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Maybe" <|
     Test.specify "should have a None variant" <|
@@ -17,3 +17,4 @@ spec = Test.group "Maybe" <|
         Maybe.None.is_none . should_be_true
         Maybe.Some 2 . is_none . should_be_false
 
+main = Test_Suite.run_main spec
