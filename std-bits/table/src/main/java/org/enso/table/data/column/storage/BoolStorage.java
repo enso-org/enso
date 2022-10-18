@@ -50,6 +50,7 @@ public final class BoolStorage extends Storage<Boolean> {
   public Boolean getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : getItem(idx);
   }
+
   public boolean getItem(long idx) {
     return negated != values.get((int) idx);
   }
@@ -289,6 +290,13 @@ public final class BoolStorage extends Storage<Boolean> {
                 } else {
                   throw new UnexpectedColumnTypeException("Boolean");
                 }
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Maps.IS_MISSING) {
+              @Override
+              public BoolStorage run(BoolStorage storage) {
+                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
         .add(new BooleanIsInOp());

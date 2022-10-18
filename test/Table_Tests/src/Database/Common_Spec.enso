@@ -185,12 +185,6 @@ spec prefix connection pending=Nothing =
             col.count . should_equal 3
             col.count_missing . should_equal 2
 
-        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            d = t4.drop_missing_rows.read
-            d.at 'a' . to_vector . should_equal [0]
-            d.at 'b' . to_vector . should_equal [True]
-            d.at 'c' . to_vector . should_equal [""]
-
         Test.specify "drop_missing_columns should drop columns that contain at least one missing row in a Table" <|
             t5 = upload "T5" <|
                 Table.new [["a", [1, 2, 3]], ["b", [True, False, Nothing]], ["c", ["foo", Nothing, "aaa"]]]

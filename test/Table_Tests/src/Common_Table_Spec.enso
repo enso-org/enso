@@ -8,14 +8,14 @@ import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import SQL_Error_Data
+from Standard.Database.Errors import SQL_Error_Data, Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test, Problems
 
 from project.Util import all
 
 type Test_Selection
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True
 
 ## A common test suite for shared operations on the Table API.
 
@@ -1293,3 +1293,67 @@ spec prefix table_builder test_selection pending=Nothing =
                 table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
             problems = [Index_Out_Of_Bounds_Error_Data 4 1]
             Problems.test_problem_handling action problems tester
+
+    Test.group prefix+"Dropping Missing Values" pending=pending <|
+        t4 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
+        Test.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
+            d = t4.filter_blank_rows when_any=True
+            d.row_count . should_equal 1
+            d.at "a" . to_vector . should_equal [5]
+            d.at "b" . to_vector . should_equal [False]
+            d.at "c" . to_vector . should_equal [" "]
+
+        Test.specify "filter_blank_rows should drop rows that are all blank" <|
+            d2 = t4.filter_blank_rows when_any=False
+            d2.at "a" . to_vector . should_equal [0, 1, Nothing, 42, 5]
+            d2.at "b" . to_vector . should_equal [True, Nothing, True, False, False]
+            d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
+
+        Test.specify "filter_blank_rows should deal with edge cases" <|
+            t1 = table_builder [["X", [Nothing, Nothing, Nothing]]]
+            t2 = t1.filter_blank_rows when_any=True
+            t2.row_count . should_equal 0
+            t2.at "X" . to_vector . should_equal []
+
+            t3 = table_builder [["X", ["", "", Nothing]]]
+            t4 = t3.filter_blank_rows when_any=False
+            t4.row_count . should_equal 0
+            t4.at "X" . to_vector . should_equal []
+
+            empty = table_builder [["X", [1, 2, 3]]] . select_columns []
+            empty.row_count . should_equal 0
+            empty.columns . should_equal []
+
+            t5 = empty.filter_blank_rows when_any=True
+            t5.row_count . should_equal 0
+            t5.columns . should_equal []
+            t6 = empty.filter_blank_rows when_any=False
+            t6.row_count . should_equal 0
+            t6.columns . should_equal []
+
+        t = table_builder [["X", [2.0, 1.5, Number.nan, Number.nan]], ["Y", [Nothing, 2.0, Nothing, 5.0]]]
+        if test_selection.is_nan_and_nothing_distinct then
+            Test.specify "should not treat NaNs as blank by default" <|
+                t1 = t.filter_blank_rows when_any=True
+                # We cannot use `Vector.==` because `NaN != NaN`.
+                t1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
+                t1.at "Y" . to_vector . should_equal [2.0, 5.0]
+
+                t2 = t.filter_blank_rows when_any=False
+                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN, NaN]"
+                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, Nothing, 5.0]
+
+            Test.specify "should allow to treat NaNs as blank if asked" <|
+                t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+                # We cannot use `Vector.==` because `NaN != NaN`.
+                t1.at "X" . to_vector . should_equal [1.5]
+                t1.at "Y" . to_vector . should_equal [2.0]
+
+                t2 = t.filter_blank_rows when_any=False treat_nans_as_blank=True
+                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
+                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
+
+        if test_selection.is_nan_and_nothing_distinct.not then
+            Test.specify "this backend treats NaN as Nothing" <|
+                t.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
+                t.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data

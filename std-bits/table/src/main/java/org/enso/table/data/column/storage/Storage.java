@@ -77,6 +77,7 @@ public abstract class Storage<T> {
     public static final String AND = "&&";
     public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
+    public static final String IS_NAN = "is_nan";
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
@@ -169,17 +170,19 @@ public abstract class Storage<T> {
    * @param name a name of potential vectorized variant of the function that should be used if
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
+   * @param onMissing the value to place for missing cells, usually just null
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> map(String name, Function<Object, Value> function) {
+  public final Storage<?> map(String name, Function<Object, Value> function, Value onMissing) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
+    Object missingValue = onMissing == null ? null : Polyglot_Utils.convertPolyglotValue(onMissing);
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(null);
+        builder.appendNoGrow(missingValue);
       } else {
         Value result = function.apply(it);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);

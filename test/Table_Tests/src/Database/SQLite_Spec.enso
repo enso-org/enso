@@ -109,7 +109,7 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
-    common_selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False
+    common_selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and

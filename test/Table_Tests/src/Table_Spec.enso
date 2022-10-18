@@ -386,12 +386,17 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
-            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-            d = t.drop_missing_rows
-            d.at "a" . to_vector . should_equal [1, 4]
-            d.at "b" . to_vector . should_equal [1, "x"]
+        Test.specify "should correctly handle NaNs with mixed type columns" <|
+            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
+            t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=False
+            t1.at "X" . to_vector . should_equal [1, 4, 5]
+            # Comparing text value because `Number.nan != Number.nan`.
+            t1.at "Y" . to_vector . to_text . should_equal "['A', NaN, 0]"
+            t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+            t2.at "X" . to_vector . should_equal [1, 5]
+            t2.at "Y" . to_vector . should_equal ['A', 0]
 
+        # TODO move these to Common_Table_Spec
         Test.specify "should drop columns that contain at least one missing row in a Table" <|
             a = ["a", [1, Nothing, 3, 4]]
             b = ["b", [1, 2, Nothing, "x"]]

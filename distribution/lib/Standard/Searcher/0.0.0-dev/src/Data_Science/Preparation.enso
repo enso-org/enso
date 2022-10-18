@@ -22,7 +22,7 @@
          import Standard.Examples
 
          example_drop_missing_rows =
-             Examples.inventory_table.drop_missing_rows
+             Examples.inventory_table.filter_blank_rows when_any=True
 
    > Example
      Remove any columns that contain missing values from the table.
