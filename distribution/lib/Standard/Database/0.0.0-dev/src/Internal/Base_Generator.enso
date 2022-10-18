@@ -174,22 +174,17 @@ base_dialect =
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [["IS_EMPTY", make_is_empty], bin "LIKE"]
+    text = [is_empty, bin "LIKE"]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in]]
     base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
-make_is_empty : Vector Builder -> Builder
-make_is_empty arguments = case arguments.length of
-    1 ->
-        arg = arguments.at 0
-        is_null = (arg ++ " IS NULL").paren
-        is_empty = (arg ++ " = ''").paren
-        (is_null ++ " OR " ++ is_empty).paren
-    _ ->
-        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation IS_EMPTY")
+is_empty = lift_unary_op "IS_EMPTY" arg->
+    is_null = (arg ++ " IS NULL").paren
+    is_empty = (arg ++ " = ''").paren
+    (is_null ++ " OR " ++ is_empty).paren
 
 ## PRIVATE
 make_between : Vector Builder -> Builder

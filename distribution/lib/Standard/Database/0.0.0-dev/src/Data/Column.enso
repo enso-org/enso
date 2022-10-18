@@ -461,6 +461,12 @@ type Column
     is_missing : Column
     is_missing self = self.make_unary_op "IS_NULL" new_type=SQL_Type.boolean
 
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a NaN. This is only applicable to double columns.
+    is_nan : Column
+    is_nan self = self.make_unary_op "IS_NAN" new_type=SQL_Type.boolean
+
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
