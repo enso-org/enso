@@ -132,7 +132,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testCaseTypeOfWithSpace() throws Exception {
     parseTest("""
     filter self filter = case filter of
