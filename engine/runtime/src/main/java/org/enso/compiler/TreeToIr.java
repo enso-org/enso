@@ -1147,7 +1147,7 @@ final class TreeToIr {
             case "\\t" -> "\t";
             case "\\r" -> "\r";
             case "\\f" -> "\f";
-            case String x -> throw new UnhandledEntity(x, "translateLiteral");
+            default -> throw new UnhandledEntity(e, "translateLiteral");
           };
           default -> throw new UnhandledEntity(t, "translateLiteral");
       };
