@@ -678,7 +678,7 @@ ensogl::define_endpoints_2! {
         node_deselected           (NodeId),
         node_position_set         ((NodeId,Vector2)),
         node_position_set_batched ((NodeId,Vector2)),
-        node_expression_set       ((NodeId,String)),
+        node_expression_set       ((NodeId,ImString)),
         node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
@@ -3068,10 +3068,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Set Node Expression ===
     frp::extend! { network
-
-    set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
-    out.node_expression_set <+ set_node_expression_string;
-
+        set_node_expression_string  <- inputs.set_node_expression.map(
+            |(id,expr)| (*id, ImString::new(&expr.code))
+        );
+        out.node_expression_set <+ set_node_expression_string;
     }
 
 
