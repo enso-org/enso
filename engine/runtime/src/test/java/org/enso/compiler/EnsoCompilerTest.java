@@ -408,7 +408,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // Documented type signatures not supported yet in TreeToIr.
   public void testTestGroup() throws Exception {
     parseTest("""
     type Test

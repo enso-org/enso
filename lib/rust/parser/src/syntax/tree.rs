@@ -647,21 +647,22 @@ impl<'s> span::Builder<'s> for CaseLine<'s> {
 /// A case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct Case<'s> {
+    /// Documentation, if present.
+    pub documentation: Option<DocComment<'s>>,
     /// The pattern being matched. It is an error for this to be absent.
-    pub pattern:    Option<Tree<'s>>,
+    pub pattern:       Option<Tree<'s>>,
     /// Token.
-    pub arrow:      Option<token::Operator<'s>>,
+    pub arrow:         Option<token::Operator<'s>>,
     /// The expression associated with the pattern. It is an error for this to be empty.
-    pub expression: Option<Tree<'s>>,
+    pub expression:    Option<Tree<'s>>,
 }
 
 impl<'s> Case<'s> {
     /// Return a mutable reference to the `left_offset` of this object (which will actually belong
     /// to one of the object's children, if it has any).
     pub fn left_offset_mut(&mut self) -> Option<&mut Offset<'s>> {
-        self.pattern
-            .as_mut()
-            .map(|p| &mut p.span.left_offset)
+        None.or_else(|| self.documentation.as_mut().map(|t| &mut t.open.left_offset))
+            .or_else(|| self.pattern.as_mut().map(|t| &mut t.span.left_offset))
             .or_else(|| self.arrow.as_mut().map(|t| &mut t.left_offset))
             .or_else(|| self.expression.as_mut().map(|e| &mut e.span.left_offset))
     }

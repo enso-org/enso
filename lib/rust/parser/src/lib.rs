@@ -85,6 +85,7 @@
 #![feature(specialization)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
+#![feature(option_get_or_insert_default)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
