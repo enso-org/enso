@@ -1016,15 +1016,7 @@ type Table
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Boolean -> Boolean -> Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        can_contain_text col = case col.storage_type of
-            Storage.Text -> True
-            Storage.Any -> True
-            _ -> False
-        can_contain_double col = case col.storage_type of
-            Storage.Decimal -> True
-            Storage.Any -> True
-            _ -> False
-        Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
+        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
     drop_missing_columns : Table
@@ -1203,7 +1195,7 @@ type Table
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
-        Table_Helpers.Table_Column_Helper.Value self.columns
+        Table_Helpers.Table_Column_Helper.Value self.columns (x->x)
 
 ## UNSTABLE
 

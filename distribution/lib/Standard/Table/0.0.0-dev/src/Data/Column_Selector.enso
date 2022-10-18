@@ -31,8 +31,9 @@ type Column_Selector
        Select columns which are either all blank or contain blank values.
 
        Arguments:
-       - when_any: If `True`, then selects columns containing any blank values.
-         If `False`, then only selects columns whose all cells are blank.
+       - when_any: By default, only columns consisting of all blank cells are
+         selected. If set to `True`, columns containing at least one blank value
+         will be selected too.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
          blank.
 

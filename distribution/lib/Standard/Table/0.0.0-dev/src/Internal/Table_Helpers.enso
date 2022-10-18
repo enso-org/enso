@@ -22,7 +22,9 @@ type Table_Column_Helper
 
        Arguments:
        - internal_columns: A list of all columns in a table.
-    Value internal_columns
+       - make_column: A function which takes the internal column and creates a
+         fully fledged column from it.
+    Value internal_columns make_column
 
     ## PRIVATE
        A helper function encapsulating shared code for `select_columns`
@@ -150,7 +152,19 @@ type Table_Column_Helper
             new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
             self.select_columns_helper new_selector reorder=reorder problem_builder=problem_builder
         Column_Selector.Blank_Columns when_any treat_nans_as_blank ->
-            Error.throw "TODO"
+            # TODO rewrite this to use Table.aggregate to perform whole computation in a single query for Database
+            is_column_blank internal_column =
+                column = self.make_column internal_column
+                blank_indicator = column.is_blank treat_nans_as_blank
+                all_count = column.length
+                blank_count = blank_indicator.count_true
+                case when_any of
+                    True -> (all_count == 0) || (blank_count > 0)
+                    False -> blank_count == all_count
+            ## The `reorder` argument has no meaning for Blank_Columns selector
+               - either way all blank columns are selected in the order that
+               they are in the Table.
+            self.internal_columns.filter is_column_blank
 
     ## PRIVATE
        A helper function which selects a single column from the table. It is aligned
@@ -566,20 +580,13 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that
    can filter out blank rows.
-filter_blank_rows : Table -> (Column -> Boolean) -> (Column -> Boolean) -> Boolean -> Boolean -> Table
-filter_blank_rows table can_contain_text can_contain_double when_any treat_nans_as_blank =
+filter_blank_rows : Table -> Boolean -> Boolean -> Table
+filter_blank_rows table when_any treat_nans_as_blank =
     cols = table.columns
     case cols.not_empty of
         True ->
-            handle col =
-                is_blank = case can_contain_text col of
-                    True -> col.is_empty
-                    False -> col.is_missing
-                case treat_nans_as_blank && (can_contain_double col) of
-                    True -> is_blank || col.is_nan
-                    False -> is_blank
             merge = if when_any then (||) else (&&)
-            missing_mask = cols.map handle . reduce merge
+            missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask
         False -> table

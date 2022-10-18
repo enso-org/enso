@@ -384,6 +384,11 @@ spec =
             col.length . should_equal 3
             col.count . should_equal 2
             col.count_missing . should_equal 1
+        Test.specify "count_true" <|
+            t = Table.new [["X", [True, True, True]], ["Y", [False, False, True]], ["Z", [False, False, Nothing]]]
+            t.at "X" . count_true . should_equal 3
+            t.at "Y" . count_true . should_equal 1
+            t.at "Z" . count_true . should_equal 0
 
     Test.group "Dropping Missing Values" <|
         Test.specify "should correctly handle NaNs with mixed type columns" pending="TODO" <|

@@ -473,6 +473,25 @@ type Column
     is_empty : Column
     is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
 
+    ## PRIVATE
+       Returns a column of booleans with `True` at the positions where this
+       column contains a blank value.
+
+       Arguments:
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    is_blank : Boolean -> Boolean -> Column
+    is_blank self treat_nans_as_blank=False =
+        is_blank = case self.sql_type.is_definitely_text of
+            True -> self.is_empty
+            False -> self.is_missing
+        case treat_nans_as_blank && self.sql_type.is_definitely_double of
+            True -> is_blank || self.is_nan
+            False -> is_blank
+
     ## UNSTABLE
 
        Returns a new column where missing values have been replaced with the
