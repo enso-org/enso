@@ -483,13 +483,23 @@ type Column
 
              example_is_missing = Examples.decimal_column.is_missing
     is_missing : Column
-    is_missing self = run_vectorized_unary_op self "is_missing" (== Nothing)
+    is_missing self = run_vectorized_unary_op self "is_missing" (== Nothing) on_missing=True
+
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a NaN. This is only applicable to double columns.
+    is_nan : Column
+    is_nan self =
+        is_object_nan x = case x of
+            _ : Decimal -> x.is_nan
+            _ -> False
+        run_vectorized_unary_op self "is_nan" is_object_nan on_missing=False
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate
+    is_empty self = run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate on_missing=True
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -654,6 +664,10 @@ type Column
 
        Arguments:
        - function: The function to apply to each element of `self` column.
+       - on_missing: The value to return for missing cells. Ideally it should be
+         replaced with a `skip_nulls` parameter like elsewhere, but currently
+         that is not possible due to a bug:
+         https://github.com/oracle/graal/issues/4741
 
        > Example
          Multiply each element of the column by itself.
@@ -662,10 +676,10 @@ type Column
 
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Column
-    map self function =
+    map self function on_missing=Nothing =
         storage = self.java_column.getStorage
         index = self.java_column.getIndex
-        new_st = storage.map Nothing function
+        new_st = storage.map Nothing function on_missing
         col = Java_Column.new "Result" index new_st
         Column_Data col
 
@@ -1219,11 +1233,14 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True = case 
    - column: The column to execute the operation over.
    - name: The name of the vectorized operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
-run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Column
-run_vectorized_unary_op column name fallback_fn =
+   - on_missing: The value to return for missing cells. Ideally it should be
+     replaced with a `skip_nulls` parameter like elsewhere, but currently that
+     is not possible due to a bug: https://github.com/oracle/graal/issues/4741
+run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Any -> Column
+run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
-    rs = s.map name fallback_fn
+    rs = s.map name fallback_fn on_missing
     Column.Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
