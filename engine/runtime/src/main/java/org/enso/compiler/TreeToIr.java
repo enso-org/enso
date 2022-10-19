@@ -38,6 +38,7 @@ import org.enso.compiler.core.IR$Name$Self;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
+import org.enso.compiler.core.IR$Pattern$Documentation;
 import org.enso.compiler.core.IR$Pattern$Name;
 import org.enso.compiler.core.IR$Pattern$Literal;
 import org.enso.compiler.core.IR$Pattern$Type;
@@ -479,7 +480,7 @@ final class TreeToIr {
           args = cons(translateCallArgument(tApp.getArg(), true), args);
           t = tApp.getFunc();
       }
-      var fullQualifiedNames = buildNames(t, '.', true).reverse();
+      var fullQualifiedNames = qualifiedNameSegments(t).reverse();
       var type = switch (fullQualifiedNames.length()) {
           case 1 -> fullQualifiedNames.head();
           default -> {
@@ -830,7 +831,7 @@ final class TreeToIr {
         yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
       }
       case Tree.Assignment assign -> {
-        var name = buildName(assign.getPattern());
+        var name = buildNameOrQualifiedName(assign.getPattern());
         var expr = translateExpression(assign.getExpr(), insideTypeSignature);
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
@@ -1735,50 +1736,59 @@ final class TreeToIr {
     return buildQualifiedName(t, Option.empty(), true);
   }
   private IR$Name$Qualified buildQualifiedName(Tree t, Option<IdentifiedLocation> loc, boolean fail) {
-    var segments = buildNames(t, '.', fail);
-    return segments == null ? null : new IR$Name$Qualified(segments, loc, meta(), diag());
+    return new IR$Name$Qualified(qualifiedNameSegments(t), loc, meta(), diag());
   }
   private IR.Name buildNameOrQualifiedName(Tree t) {
-    var segments = buildNames(t, '.', true);
-    if (segments == null) {
-      return null;
-    }
+    var segments = qualifiedNameSegments(t);
     if (segments.length() == 1) {
-      return segments.last();
+      return segments.head();
     } else {
       return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
     }
   }
-  private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {
-    List<IR.Name> segments = nil();
-    for (;;) {
-      switch (t) {
-        case Tree.OprApp app -> {
-          if (!String.valueOf(separator).equals(app.getOpr().getRight().codeRepr())) {
-            throw new UnhandledEntity(t, "buildNames with " + separator);
-          }
-          segments = cons(buildName(app.getRhs()), segments);
-          t = app.getLhs();
-        }
-        case Tree.Ident id -> {
-          segments = cons(buildName(id), segments);
-          return segments;
-        }
-        case Tree.Wildcard wild -> {
-          var underscore = new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
-          segments = cons(underscore, segments);
-          return segments;
-        }
-
-        default -> {
-          if (fail) {
-            throw new UnhandledEntity(t, "buildNames");
-          } else {
-            return null;
-          }
-        }
+  private java.util.List<Tree> unrollOprRhs(Tree list, String operator) {
+    var segments = new java.util.ArrayList<Tree>();
+    while (list instanceof Tree.OprApp) {
+      var app = (Tree.OprApp)list;
+      if (app.getOpr().getRight() == null || !operator.equals(app.getOpr().getRight().codeRepr())) {
+        break;
       }
+      segments.add(app.getRhs());
+      list = app.getLhs();
     }
+    segments.add(list);
+    java.util.Collections.reverse(segments);
+    return segments;
+  }
+  private java.util.List<Tree> unrollOprLhs(Tree list, String operator) {
+    var segments = new java.util.ArrayList<Tree>();
+    while (list instanceof Tree.OprApp) {
+      var app = (Tree.OprApp)list;
+      if (app.getOpr().getRight() == null || !operator.equals(app.getOpr().getRight().codeRepr())) {
+        break;
+      }
+      segments.add(app.getLhs());
+      list = app.getRhs();
+    }
+    segments.add(list);
+    return segments;
+  }
+  private IR.Name qualifiedNameSegment(Tree tree) {
+    return switch (tree) {
+      case Tree.Ident id -> buildName(id);
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+      default -> throw new UnhandledEntity(tree, "qualifiedNameSegment");
+    };
+  }
+  private List<IR.Name> qualifiedNameSegments(Tree t) {
+    java.util.stream.Stream<IR.Name> segments =
+            unrollOprRhs(t, ".").stream().map(segment -> qualifiedNameSegment(segment));
+    return CollectionConverters.asScala(segments.iterator()).toList();
+  }
+  private List<IR.Name> buildNameSequence(Tree t) {
+    java.util.stream.Stream<IR.Name> segments =
+            unrollOprLhs(t, ",").stream().map(segment -> buildNameOrQualifiedName(segment));
+    return CollectionConverters.asScala(segments.iterator()).toList();
   }
 
   /** Translates an import statement from its [[AST]] representation into
@@ -1790,7 +1800,7 @@ final class TreeToIr {
   IR$Module$Scope$Import translateImport(Tree.Import imp) {
     Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody()));
     if (imp.getPolyglot() != null) {
-      List<IR.Name> qualifiedName = buildNames(imp.getImport().getBody(), '.', true);
+      List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody());
       StringBuilder pkg = new StringBuilder();
       String cls = extractPackageAndName(qualifiedName, pkg);
       return new IR$Module$Scope$Import$Polyglot(
@@ -1844,9 +1854,9 @@ final class TreeToIr {
       var onlyBodies = exp.getExport().getBody();
       var isAll = exp.getAll() != null;
       final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
-        Option.apply((List<IR$Name$Literal>) (Object)buildNames(onlyBodies, ',', false));
+        Option.apply((List<IR$Name$Literal>) (Object)buildNameSequence(onlyBodies));
 
-      var hidingList = exp.getHiding() == null ? nil() : buildNames(exp.getHiding().getBody(), ',', false);
+      var hidingList = exp.getHiding() == null ? nil() : buildNameSequence(exp.getHiding().getBody());
       final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
         Option.apply((List<IR$Name$Literal>) (Object)hidingList);
 

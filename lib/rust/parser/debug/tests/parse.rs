@@ -749,6 +749,11 @@ fn import() {
              ()
              ((Ident as) (Ident Java_URI))
              ())]),
+        ("from Standard.Base import Foo, Bar, Baz", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz)))
+             () () ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
     test_invalid("from Standard.Base.Data.Array import new as array_new");
