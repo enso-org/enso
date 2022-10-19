@@ -1155,18 +1155,11 @@ final class TreeToIr {
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
     StringBuilder sb = new StringBuilder();
     for (var t : txt.getElements()) {
-      var sectionTxt = switch (t) {
-          case TextElement.Section s -> s.getText().codeRepr();
-          case TextElement.Escape e -> switch (e.getToken().codeRepr()) {
-            case "\\n" -> "\n";
-            case "\\t" -> "\t";
-            case "\\r" -> "\r";
-            case "\\f" -> "\f";
-            default -> throw new UnhandledEntity(e, "translateLiteral");
-          };
+      switch (t) {
+          case TextElement.Section s -> sb.append(s.getText().codeRepr());
+          case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
           default -> throw new UnhandledEntity(t, "translateLiteral");
-      };
-      sb.append(sectionTxt);
+      }
     }
     return new IR$Literal$Text(sb.toString(), getIdentifiedLocation(txt), meta(), diag());
   }
