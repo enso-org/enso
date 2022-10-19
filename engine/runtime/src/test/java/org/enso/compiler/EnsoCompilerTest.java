@@ -379,7 +379,7 @@ public class EnsoCompilerTest {
   @Test
   public void testTextLiteralWithEscape() throws Exception {
     parseTest("""
-    wrap_junit_testsuites = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+    wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
     """);
   }
 
@@ -403,7 +403,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // shifted positions confused `Tree.codeRepr()` for identifiers
   public void testTestGroup() throws Exception {
     parseTest("""
     type Test
@@ -423,7 +422,7 @@ public class EnsoCompilerTest {
 
                  example_group = Test_Suite.run <|
                      Test.group "Number" <| Nothing
-        group : Text -> Any -> (Text | Nothing) -> Nothing
+        group : Text -> Any
         """);
   }
 

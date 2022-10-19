@@ -1019,13 +1019,13 @@ fn case_expression() {
     let code = [
         "case a of",
         "    Some -> x",
-        "    Int ->",
+        "    Int -> x",
     ];
     #[rustfmt::skip]
     let expected = block![
         (CaseOf (Ident a) #(
-         (((Ident Some) "->" (Ident x)))
-         (((Ident Int) "->" ()))))
+         ((() (Ident Some) "->" (Ident x)))
+         ((() (Ident Int) "->" (Ident x)))))
     ];
     test(&code.join("\n"), expected);
 
@@ -1037,7 +1037,7 @@ fn case_expression() {
     #[rustfmt::skip]
     let expected = block![
         (CaseOf (Ident a) #(
-         (((App (App (Ident Vector_2d) (Ident x)) (Ident y)) "->" (Ident x)))))];
+         ((() (App (App (Ident Vector_2d) (Ident x)) (Ident y)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 
     #[rustfmt::skip]
@@ -1049,8 +1049,8 @@ fn case_expression() {
     #[rustfmt::skip]
     let expected = block![
         (CaseOf (Ident self) #(
-         (((Ident Vector_2d) "->" (Ident x)))
-         (((Wildcard -1) "->" (Ident x)))))];
+         ((() (Ident Vector_2d) "->" (Ident x)))
+         ((() (Wildcard -1) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 
     #[rustfmt::skip]
@@ -1062,8 +1062,8 @@ fn case_expression() {
     #[rustfmt::skip]
     let expected = block![
         (CaseOf (Ident foo) #(
-         (((TypeAnnotated (Ident v) ":" (Ident My_Type)) "->" (Ident x)))
-         (((TypeAnnotated (Ident v) ":"
+         ((() (TypeAnnotated (Ident v) ":" (Ident My_Type)) "->" (Ident x)))
+         ((() (TypeAnnotated (Ident v) ":"
             (Group (App (App (Ident My_Type) (Wildcard -1)) (Wildcard -1))))
            "->" (Ident x)))))];
     test(&code.join("\n"), expected);
@@ -1077,18 +1077,18 @@ fn case_by_type() {
         }
     }
     test_case!("f:A->B -> x",
-        ((TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
+        (() (TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
     test_case!("f : A->B -> x",
-        ((TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
+        (() (TypeAnnotated (Ident f) ":" (OprApp (Ident A) (Ok "->") (Ident B))) "->" (Ident x)));
     test_case!("v : A -> x->x",
-        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+        (() (TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
     test_case!("v : A -> x -> x",
-        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+        (() (TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
     test_case!("v:A->x->x",
-        ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
-    test_case!("v:A->x", ((TypeAnnotated (Ident v) ":" (Ident A)) "->" (Ident x)));
+        (() (TypeAnnotated (Ident v) ":" (Ident A)) "->" (OprApp (Ident x) (Ok "->") (Ident x))));
+    test_case!("v:A->x", (() (TypeAnnotated (Ident v) ":" (Ident A)) "->" (Ident x)));
     test_case!("v : A -> _ + x",
-        ((TypeAnnotated (Ident v) ":" (Ident A)) "->"
+        (() (TypeAnnotated (Ident v) ":" (Ident A)) "->"
          (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "+") (Ident x)))));
 }
 
@@ -1101,7 +1101,7 @@ fn pattern_match_auto_scope() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (CaseOf (Ident self) #((((App (Ident Vector_2d) (AutoScope)) "->" (Ident x)))))];
+        (CaseOf (Ident self) #(((() (App (Ident Vector_2d) (AutoScope)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 }
 

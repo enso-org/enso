@@ -418,7 +418,7 @@ pub fn case<'s>() -> Definition<'s> {
     crate::macro_definition! {("case", everything(), "of", everything()) case_body}
 }
 
-fn case_body<'s>(segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
+fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     use operator::resolve_operator_precedence_if_non_empty;
     use syntax::tree::*;
     let (of, mut rest) = segments.pop();
@@ -427,51 +427,50 @@ fn case_body<'s>(segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> 
     let expression = case.result.tokens();
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let of_ = into_ident(of.header);
-    let mut case_lines: Vec<CaseLine> = vec![];
     let mut case_builder = CaseBuilder::default();
-    let finish_line = |case: Option<Case<'s>>, case_lines: &mut Vec<CaseLine<'s>>| {
-        if let Some(case) = case {
-            if case_lines.is_empty() {
-                case_lines.push(default());
-            }
-            case_lines.last_mut().unwrap().case = Some(case);
-        }
-    };
     for item in of.result.tokens() {
         if let syntax::Item::Block(items) = item {
-            for item in items {
-                if let syntax::Item::Token(syntax::Token {
-                    left_offset,
-                    code,
-                    variant: syntax::token::Variant::Newline(_),
-                }) = item
-                {
-                    finish_line(case_builder.finish(), &mut case_lines);
-                    let newline = syntax::token::newline(left_offset, code).into();
-                    case_lines.push(CaseLine { newline, ..default() });
-                    continue;
-                }
-                case_builder.push(item);
-            }
-            continue;
+            items.into_iter().for_each(|item| case_builder.push(item));
+        } else {
+            case_builder.push(item);
         }
-        case_builder.push(item);
     }
-    finish_line(case_builder.finish(), &mut case_lines);
-    Tree::case_of(case_, expression, of_, case_lines)
+    let (case_lines, any_invalid) = case_builder.finish();
+    let tree = Tree::case_of(case_, expression, of_, case_lines);
+    if any_invalid {
+        return tree.with_error("Invalid case expression.");
+    }
+    tree
 }
 
 #[derive(Default)]
 struct CaseBuilder<'s> {
-    tokens:   Vec<syntax::Item<'s>>,
-    resolver: operator::Precedence<'s>,
-    pattern:  Option<syntax::Tree<'s>>,
-    arrow:    Option<syntax::token::Operator<'s>>,
-    spaces:   bool,
+    // Case components
+    documentation: Option<syntax::tree::DocComment<'s>>,
+    pattern:       Option<syntax::Tree<'s>>,
+    arrow:         Option<syntax::token::Operator<'s>>,
+    // Within-case state
+    spaces:        bool,
+    tokens:        Vec<syntax::Item<'s>>,
+    resolver:      operator::Precedence<'s>,
+    // Output
+    case_lines:    Vec<syntax::tree::CaseLine<'s>>,
+    any_invalid:   bool,
 }
 
 impl<'s> CaseBuilder<'s> {
     fn push(&mut self, token: syntax::Item<'s>) {
+        if let syntax::Item::Token(syntax::Token {
+            left_offset,
+            code,
+            variant: syntax::token::Variant::Newline(_),
+        }) = token
+        {
+            self.finish_line();
+            let newline = syntax::token::newline(left_offset, code).into();
+            self.case_lines.push(syntax::tree::CaseLine { newline, ..default() });
+            return;
+        }
         if self.arrow.is_none() &&
                 let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
                 && op.properties.is_arrow()
@@ -487,7 +486,7 @@ impl<'s> CaseBuilder<'s> {
         self.tokens.push(token);
     }
 
-    fn finish(&mut self) -> Option<syntax::tree::Case<'s>> {
+    fn finish_line(&mut self) {
         if self.arrow.is_none() && !self.spaces {
             for (i, token) in self.tokens.iter().enumerate() {
                 if let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
@@ -500,10 +499,27 @@ impl<'s> CaseBuilder<'s> {
                 }
             }
         }
+        self.spaces = false;
         self.resolver.extend(self.tokens.drain(..));
         let pattern = self.pattern.take();
         let arrow = self.arrow.take();
         let expression = match self.resolver.finish() {
+            Some(syntax::Tree {
+                span,
+                variant:
+                    box syntax::tree::Variant::Documented(syntax::tree::Documented {
+                        mut documentation,
+                        expression: None,
+                    }),
+            }) if self.documentation.is_none() => {
+                documentation.open.left_offset += span.left_offset;
+                if self.case_lines.is_empty() {
+                    self.case_lines.push(default());
+                }
+                let mut case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+                case.documentation = documentation.into();
+                return;
+            }
             Some(syntax::Tree {
                 span,
                 variant:
@@ -518,9 +534,22 @@ impl<'s> CaseBuilder<'s> {
             e => e,
         };
         if pattern.is_none() && arrow.is_none() && expression.is_none() {
-            return None;
+            return;
         }
-        Some(syntax::tree::Case { pattern, arrow, expression })
+        self.any_invalid =
+            self.any_invalid || pattern.is_none() || arrow.is_none() || expression.is_none();
+        if self.case_lines.is_empty() {
+            self.case_lines.push(default());
+        }
+        let mut case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+        case.pattern = pattern;
+        case.arrow = arrow;
+        case.expression = expression;
+    }
+
+    fn finish(mut self) -> (Vec<syntax::tree::CaseLine<'s>>, bool) {
+        self.finish_line();
+        (self.case_lines, self.any_invalid)
     }
 }
 
@@ -636,7 +665,7 @@ fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let expression = segment.result.tokens();
     let expression = operator::resolve_operator_precedence_if_non_empty(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
-    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default(), default())
+    syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
 }
 
 fn into_open_symbol(token: syntax::token::Token) -> syntax::token::OpenSymbol {
