@@ -147,8 +147,7 @@ type Vector a
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
-        actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error_Data (self.unsafe_at actual_index) _->
+        Panic.catch Invalid_Array_Index_Error_Data (self.at_builtin index) _->
             Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## ADVANCED
