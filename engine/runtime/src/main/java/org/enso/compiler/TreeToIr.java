@@ -215,7 +215,7 @@ final class TreeToIr {
       */
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
-        var translatedBody = translateTypeBody(def.getBlock(), true);
+        var translatedBody = translateTypeBody(def.getBlock());
         var translatedConstructorsIt = def.getConstructors().stream().map((c) -> {
           var cExpr = c.getExpression();
           if (cExpr == null) {
@@ -348,7 +348,7 @@ final class TreeToIr {
     * @param body the body to be translated
     * @return the [[IR]] representation of `body`
     */
-  private List<IR> translateTypeBody(java.util.List<Line> block, boolean found) {
+  private List<IR> translateTypeBody(java.util.List<Line> block) {
     List<IR> res = nil();
     for (var line : block) {
       res = translateTypeBodyExpression(line.getExpression(), res);
