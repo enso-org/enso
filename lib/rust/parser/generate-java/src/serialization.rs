@@ -177,7 +177,6 @@ fn impl_getter(name: &str) -> Method {
 
 fn impl_whitespace_getter(name: &str) -> Method {
     let mut method = syntax::Method::new(name, syntax::Type::named("CharSequence"));
-    method.body =
-        "return source.subSequence((int)startWhitespace, (int)startCode);\n".to_string();
+    method.body = "return source.subSequence((int)startWhitespace, (int)startCode);\n".to_string();
     Method::Raw(method)
 }
