@@ -1018,13 +1018,6 @@ type Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
-    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
-    drop_missing_columns : Table
-    drop_missing_columns self =
-        non_missing = self.columns . filter (col -> col.count_missing == 0)
-        index = self.java_table.getIndex
-        Table.Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
-
     ## Returns the number of rows in this table.
 
        > Example
