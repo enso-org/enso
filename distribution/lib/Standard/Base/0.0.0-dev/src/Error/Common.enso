@@ -218,6 +218,7 @@ from project.Error.Common.Index_Out_Of_Bounds_Error export all
    Arguments:
    - index: The requested index.
    - length: The length of the collection.
+@Builtin_Type
 type Index_Out_Of_Bounds_Error
     Index_Out_Of_Bounds_Error_Data index length
 

@@ -7,20 +7,23 @@ import Standard.Base.Meta
 ## The type of primitive mutable arrays.
 @Builtin_Type
 type Array
-    ## Gets the element at index in the array this.
+    ## Gets an element from the array at a specified index (0-based).
 
        Arguments:
-       - index: The index to get the element from.
-
-       ? Safety
-         If index < 0 or index >= self.length, then this operation will result
-         in an Invalid_Array_Index_Error exception.
+       - index: The index to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the array, i.e. -1 will correspond to the last element.
 
        > Example
          Get the element at index 1.
 
              [1,2,3].to_array.at 1
-    at : Integer -> Any
+
+       > Example
+         Get the last element of an array.
+
+             [1,2,3].to_array.at -1
+    at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index = @Builtin_Method "Array.at"
 
     ## Gets the length of the array this.
