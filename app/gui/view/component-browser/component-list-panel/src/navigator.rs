@@ -30,6 +30,7 @@ use list_panel_theme::navigator as theme;
 // === Constants ===
 // =================
 
+const MARKETPLACE_TOOLTIP_TEXT: &str = "Marketplace will be available soon.";
 const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
@@ -178,8 +179,7 @@ impl Navigator {
             tooltip_not_hidden <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
             showing_tooltip <- marketplace_button_hovered && tooltip_not_hidden;
             tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
-                    let text = "Marketplace will be available soon.";
-                    let style = tooltip::Style::set_label(text.into());
+                    let style = tooltip::Style::set_label(MARKETPLACE_TOOLTIP_TEXT.into());
                     style.with_placement(MARKETPLACE_TOOLTIP_PLACEMENT)
                 } else {
                     tooltip::Style::unset_label()
