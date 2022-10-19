@@ -630,27 +630,16 @@ fn sequence_tree<'s>(
 ) -> Option<syntax::Tree<'s>> {
     use syntax::tree::*;
     let (first, rest) = sequence(parser, tokens);
-    let first = first.map(&mut f);
-    let mut rest = rest.into_iter().rev();
-    let mut invalid = false;
-    if let Some(OperatorDelimitedTree { operator, body }) = rest.next() {
-        let mut tree = body.map(f);
-        invalid = invalid || tree.is_none();
-        let mut prev_op = operator;
-        for OperatorDelimitedTree { operator, body } in rest {
-            invalid = invalid || body.is_none();
-            tree = Tree::opr_app(body, Ok(prev_op), tree).into();
-            prev_op = operator;
-        }
-        invalid = invalid || first.is_none();
-        let mut tree = Tree::opr_app(first, Ok(prev_op), tree);
-        if invalid {
-            tree = tree.with_error("Malformed comma-delimited sequence.");
-        }
-        tree.into()
-    } else {
-        first
+    let mut invalid = first.is_none();
+    let mut tree = first.map(&mut f);
+    for OperatorDelimitedTree { operator, body } in rest {
+        invalid = invalid || body.is_none();
+        tree = Tree::opr_app(tree, Ok(operator), body).into();
     }
+    if invalid {
+        tree = tree.map(|tree| tree.with_error("Malformed comma-delimited sequence."));
+    }
+    tree
 }
 
 fn splice<'s>() -> Definition<'s> {

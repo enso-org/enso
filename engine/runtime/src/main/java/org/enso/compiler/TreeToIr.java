@@ -1760,19 +1760,6 @@ final class TreeToIr {
     java.util.Collections.reverse(segments);
     return segments;
   }
-  private java.util.List<Tree> unrollOprLhs(Tree list, String operator) {
-    var segments = new java.util.ArrayList<Tree>();
-    while (list instanceof Tree.OprApp) {
-      var app = (Tree.OprApp)list;
-      if (app.getOpr().getRight() == null || !operator.equals(app.getOpr().getRight().codeRepr())) {
-        break;
-      }
-      segments.add(app.getLhs());
-      list = app.getRhs();
-    }
-    segments.add(list);
-    return segments;
-  }
   private IR.Name qualifiedNameSegment(Tree tree) {
     return switch (tree) {
       case Tree.Ident id -> buildName(id);
@@ -1787,7 +1774,7 @@ final class TreeToIr {
   }
   private List<IR.Name> buildNameSequence(Tree t) {
     java.util.stream.Stream<IR.Name> segments =
-            unrollOprLhs(t, ",").stream().map(segment -> buildNameOrQualifiedName(segment));
+            unrollOprRhs(t, ",").stream().map(segment -> buildNameOrQualifiedName(segment));
     return CollectionConverters.asScala(segments.iterator()).toList();
   }
 
