@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Runtime.Ref
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Range" <|
     Test.specify "should be created with a start, an end and a step" <|
@@ -380,4 +380,4 @@ spec = Test.group "Range" <|
         invalid_range . find _->True . should_fail_with Illegal_State_Error_Data
         invalid_range . contains 0 . should_fail_with Illegal_State_Error_Data
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

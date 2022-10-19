@@ -1,6 +1,6 @@
 import Standard.Base.Runtime
 
-import Standard.Test
+from Standard.Test import Test
 
 spec = Test.group "Inlining Helpers" <|
     Test.specify "should allow to run an action" <|

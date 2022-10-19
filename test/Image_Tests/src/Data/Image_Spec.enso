@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-import Standard.Image.Data.Image
-import Standard.Image.Data.Matrix
+from Standard.Image import Image, Matrix
+import Standard.Image.Data.Matrix_Error.Matrix_Error
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "Image with 1 channel" <|
@@ -30,8 +30,8 @@ spec =
             identity.get 0 0 . should_equal [1]
             identity.get 1 0 . should_equal [0]
             identity.get 1 1 . should_equal [1]
-            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
-            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -50,7 +50,7 @@ spec =
             (zeros + (zeros+0.8).to_matrix) . should_equal zeros+0.8
         Test.specify "should fail to add a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros+o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to subtract a scalar" <|
             ones-1 . should_equal zeros
@@ -67,7 +67,7 @@ spec =
             (ones - (zeros+0.8).to_matrix) . should_equal ones-0.8
         Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros-o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to multiply by a scalar" <|
             ones*2 . should_equal ones
@@ -85,7 +85,7 @@ spec =
             (ones * (zeros-0.8).to_matrix) . should_equal zeros-0.8
         Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros*o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to divide by a scalar" <|
             zeros/2 . should_equal zeros
@@ -100,7 +100,7 @@ spec =
             (ones / fives) . should_equal (Image.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
         Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros/o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
     Test.group "Image with 2 channels" <|
         zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x]) rows=3 channels=2
@@ -125,8 +125,8 @@ spec =
             identity.get 0 0 . should_equal [1, 0]
             identity.get 1 0 . should_equal [0, 0]
             identity.get 1 1 . should_equal [1, 0]
-            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
-            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -145,7 +145,7 @@ spec =
             (zeros + (zeros+0.8).to_matrix) . should_equal zeros+0.8
         Test.specify "should fail to add a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros+o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to subtract a scalar" <|
             ones-1 . should_equal zeros
@@ -162,7 +162,7 @@ spec =
             (ones - (zeros+0.8).to_matrix) . should_equal ones-0.8
         Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros-o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to multiply by a scalar" <|
             ones*2 . should_equal ones
@@ -180,7 +180,7 @@ spec =
             (ones * (zeros-0.8).to_matrix) . should_equal zeros-0.8
         Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros*o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to divide by a scalar" <|
             zeros/2 . should_equal zeros
@@ -195,7 +195,7 @@ spec =
             (ones / fives) . should_equal (Image.from_vector (Vector.fill 9*2 0.2) channels=2 rows=3)
         Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros/o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
     Test.group "Image with 3 channels" <|
         zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x,x]) rows=3 channels=3
@@ -221,8 +221,8 @@ spec =
             identity.get 0 0 . should_equal [1, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0]
             identity.get 1 1 . should_equal [1, 0, 0]
-            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
-            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -241,7 +241,7 @@ spec =
             (zeros + (zeros+0.8).to_matrix) . should_equal zeros+0.8
         Test.specify "should fail to add a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros+o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to subtract a scalar" <|
             ones-1 . should_equal zeros
@@ -258,7 +258,7 @@ spec =
             (ones - (zeros+0.8).to_matrix) . should_equal ones-0.8
         Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros-o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to multiply by a scalar" <|
             ones*2 . should_equal ones
@@ -276,7 +276,7 @@ spec =
             (ones * (zeros-0.8).to_matrix) . should_equal zeros-0.8
         Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros*o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to divide by a scalar" <|
             zeros/2 . should_equal zeros
@@ -291,7 +291,7 @@ spec =
             (ones / fives) . should_equal (Image.from_vector (Vector.fill 9*3 0.2) channels=3 rows=3)
         Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros/o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
     Test.group "Image with 4 channels" <|
         zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x,x,x]) rows=3 channels=4
@@ -317,8 +317,8 @@ spec =
             identity.get 0 0 . should_equal [1, 0, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0, 0]
             identity.get 1 1 . should_equal [1, 0, 0, 0]
-            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
-            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get 10 10 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix_Error.Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to add a scalar" <|
             zeros+1 . should_equal ones
@@ -337,7 +337,7 @@ spec =
             (zeros + (zeros+0.8).to_matrix) . should_equal zeros+0.8
         Test.specify "should fail to add a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros+o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to subtract a scalar" <|
             ones-1 . should_equal zeros
@@ -354,7 +354,7 @@ spec =
             (ones - (zeros+0.8).to_matrix) . should_equal ones-0.8
         Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros-o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to multiply by a scalar" <|
             ones*2 . should_equal ones
@@ -372,7 +372,7 @@ spec =
             (ones * (zeros-0.8).to_matrix) . should_equal zeros-0.8
         Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros*o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
         Test.specify "should be able to divide by a scalar" <|
             zeros/2 . should_equal zeros
@@ -387,4 +387,6 @@ spec =
             (ones / fives) . should_equal (Image.from_vector (Vector.fill 9*4 0.2) channels=4 rows=3)
         Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
             o = Matrix.ones 2 3
-            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+            zeros/o . should_fail_with Matrix_Error.Dimensions_Not_Equal
+
+main = Test_Suite.run_main spec

@@ -3,8 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style
 from Standard.Table.Errors import all
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 type Custom_Type
     Value field
@@ -275,4 +274,4 @@ spec =
             formatter_3.true_values . should_equal []
             formatter_3.false_values . should_equal []
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

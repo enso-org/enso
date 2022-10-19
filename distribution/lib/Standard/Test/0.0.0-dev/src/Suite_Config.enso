@@ -1,0 +1,60 @@
+from Standard.Base import all
+
+polyglot java import java.lang.NullPointerException
+
+## PRIVATE
+find_project_root : File -> File
+find_project_root path =
+    if path.is_nothing then Nothing else
+        handler _ = Nothing
+        Panic.catch NullPointerException handler=handler <|
+            if path.name == "src" then path.parent else
+                @Tail_Call find_project_root path.parent
+
+## PRIVATE
+find_caller_script : [Stack_Trace_Element] -> File
+find_caller_script stack =
+    find_main idx =
+        if stack.at idx . name == "Test_Suite.type.run_main" then idx else
+            @Tail_Call find_main (idx + 1)
+    main_index = find_main 0
+
+    find_caller idx =
+        source = stack.at idx . source_location
+        if source.is_a Source_Location_Data then stack.at idx . source_location . file else
+            if (idx + 1 == stack.length) then Nothing else
+                @Tail_Call find_caller (idx + 1)
+
+    find_caller (main_index + 1)
+
+## Holds configuration for a Test_Suite
+type Suite_Config
+    ## Creates an Suite_Config based off environment and caller location
+    from_environment : Suite_Config
+    from_environment =
+        only_group_regexp = Environment.get "TEST_ONLY_GROUP"
+        print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
+        junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
+        results_path = if junit_folder.is_nothing then Nothing else
+            caller_script = find_caller_script Runtime.get_stack_trace
+            project_root = find_project_root caller_script
+            case project_root.is_nothing of
+                True ->
+                    IO.println "Unable to determine root project path. JUnit output disabled."
+                    Nothing
+                False ->
+                    (File.new junit_folder) / project_root.name / "JUnit.xml"
+
+        Suite_Config.Value only_group_regexp print_only_failures results_path
+
+    ## PRIVATE - construct a configuration
+    Value only_group_regexp print_only_failures output_path
+
+    should_run_group self name =
+        regexp = self.only_group_regexp
+        case regexp of
+            _ : Text -> name.matches regexp . catch Any (_->True)
+            _ -> True
+
+    should_output_junit self =
+        self.output_path.is_nothing.not

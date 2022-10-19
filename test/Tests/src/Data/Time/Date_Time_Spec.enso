@@ -3,7 +3,7 @@ import Standard.Base.Data.Time.Date_Period
 import Standard.Base.Data.Time.Time_Period
 import Standard.Base.Data.Time.Duration
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 import project.Data.Time.Date_Part_Spec
 
@@ -627,4 +627,4 @@ java_parse date_text_raw pattern=Nothing =
       formatter = DateTimeFormatter.ofPattern(pattern)
       Panic.catch Polyglot_Error_Data (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

@@ -666,9 +666,10 @@ from project.Error.Common.Unsupported_Argument_Types export all
 
    Arguments:
      - arguments: The passed arguments.
+     - message: A detailed message.
 @Builtin_Type
 type Unsupported_Argument_Types
-    Unsupported_Argument_Types_Data arguments
+    Unsupported_Argument_Types_Data arguments message
 
 ## TODO Dubious constructor export
 from project.Error.Common.Module_Does_Not_Exist import all

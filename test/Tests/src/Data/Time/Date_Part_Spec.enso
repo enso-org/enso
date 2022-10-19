@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test
 
 spec name create_new_date =
     Test.group (name + "date part tests")  <|
@@ -96,4 +96,3 @@ spec name create_new_date =
             create_new_date 2021 11 25 . week_of_year . should_equal 47
             create_new_date 2023 1 1 . week_of_year . should_equal 52
             create_new_date 2024 1 1 . week_of_year . should_equal 1
-

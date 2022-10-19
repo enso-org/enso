@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
@@ -72,7 +72,7 @@ import project.System.System_Spec
 
 import project.Random_Spec
 
-main = Test.Suite.run_main <|
+main = Test_Suite.run_main <|
     Any_Spec.spec
     Array_Polyglot_Spec.spec
     Array_Spec.spec

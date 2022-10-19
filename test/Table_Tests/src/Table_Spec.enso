@@ -6,13 +6,12 @@ from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Col
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
+import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data, Floating_Point_Grouping_Data, Invalid_Value_Type
 
 import Standard.Visualization
 
-import Standard.Test
-import Standard.Test.Problems
-import Standard.Table.Data.Value_Type.Value_Type
+from Standard.Test import Test, Test_Suite, Problems
 
 import project.Common_Table_Spec
 from project.Util import all
@@ -387,12 +386,17 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
-            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-            d = t.drop_missing_rows
-            d.at "a" . to_vector . should_equal [1, 4]
-            d.at "b" . to_vector . should_equal [1, "x"]
+        Test.specify "should correctly handle NaNs with mixed type columns" <|
+            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
+            t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=False
+            t1.at "X" . to_vector . should_equal [1, 4, 5]
+            # Comparing text value because `Number.nan != Number.nan`.
+            t1.at "Y" . to_vector . to_text . should_equal "['A', NaN, 0]"
+            t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+            t2.at "X" . to_vector . should_equal [1, 5]
+            t2.at "Y" . to_vector . should_equal ['A', 0]
 
+        # TODO move these to Common_Table_Spec
         Test.specify "should drop columns that contain at least one missing row in a Table" <|
             a = ["a", [1, Nothing, 3, 4]]
             b = ["b", [1, 2, Nothing, "x"]]
@@ -1028,7 +1032,7 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec
 
 ## JS indexes months form 0, so we need to subtract 1.
 foreign js js_make_date year month day = """

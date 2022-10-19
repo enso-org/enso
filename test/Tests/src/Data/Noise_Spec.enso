@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type My_Generator
 My_Generator.step self _ _ = 1
@@ -17,3 +17,4 @@ spec = Test.group "Noise" <|
         values = 1.up_to 10001 . to_vector . map (_.noise interval)
         values.all (v -> (v >= -250) && (v <= 250)) . should_be_true
 
+main = Test_Suite.run_main spec

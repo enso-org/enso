@@ -6,9 +6,9 @@ from Standard.Database import SQLite
 from Standard.Database import Database
 import Standard.Database.Data.Table.Table as Database_Table
 
-import Standard.Visualization.Table.Visualization as Visualization
+import Standard.Visualization.Table.Visualization
 
-import Standard.Test
+from Standard.Test import Test
 
 polyglot java import java.util.UUID
 

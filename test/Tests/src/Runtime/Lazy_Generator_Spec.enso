@@ -1,4 +1,4 @@
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 type Generator
     Value h t
@@ -21,4 +21,4 @@ spec = Test.group "Lazy Generator" <|
         four = three.next
         four.n . should_equal 4
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

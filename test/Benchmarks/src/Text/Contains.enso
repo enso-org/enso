@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
+from Standard.Test import Bench, Faker
 
 check_all text_vector pattern_vector mode =
     text_vector.fold 0 acc-> text->

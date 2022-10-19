@@ -341,6 +341,7 @@ pub struct OperatorProperties {
     is_suspension:             bool,
     is_annotation:             bool,
     is_dot:                    bool,
+    is_special:                bool,
 }
 
 impl OperatorProperties {
@@ -370,6 +371,11 @@ impl OperatorProperties {
     /// Return a copy of this operator, modified to be flagged as right associative.
     pub fn as_right_associative(self) -> Self {
         Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as special.
+    pub fn as_special(self) -> Self {
+        Self { is_special: true, ..self }
     }
 
     /// Return a copy of this operator, modified to have the specified LHS operator-section/
@@ -442,6 +448,11 @@ impl OperatorProperties {
     /// Return the LHS operator-section/template-function behavior of this operator.
     pub fn lhs_section_termination(&self) -> Option<crate::syntax::operator::SectionTermination> {
         self.lhs_section_termination
+    }
+
+    /// Return whether this operator is illegal outside special uses.
+    pub fn is_special(&self) -> bool {
+        self.is_special
     }
 
     /// Return whether this operator is the assignment operator.

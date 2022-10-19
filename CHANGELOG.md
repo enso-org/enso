@@ -212,6 +212,8 @@
 - [Reimplemented `Duration` as a built-in type.][3759]
 - [Implemented `Table.replace_text` for in-memory table.][3793]
 - [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
+- [Replaced `Table.drop_missing_rows` with `filter_blank_rows` with an updated
+  API.][3805]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -341,6 +343,7 @@
 [3759]: https://github.com/enso-org/enso/pull/3759
 [3793]: https://github.com/enso-org/enso/pull/3793
 [3790]: https://github.com/enso-org/enso/pull/3790
+[3805]: https://github.com/enso-org/enso/pull/3805
 
 #### Enso Compiler
 
@@ -391,6 +394,7 @@
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
 - [Fix performance of method calls on polyglot arrays][3781]
+- [Missing foreign language generates proper Enso error][3798]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -444,6 +448,7 @@
 [3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
 [3781]: https://github.com/enso-org/enso/pull/3781
+[3798]: https://github.com/enso-org/enso/pull/3798
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
