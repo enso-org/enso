@@ -386,7 +386,7 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should correctly handle NaNs with mixed type columns" pending="TODO" <|
+        Test.specify "should correctly handle NaNs with mixed type columns" <|
             t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
             t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=False
             t1.at "X" . to_vector . should_equal [1, 4, 5]
@@ -397,12 +397,12 @@ spec =
             t2.at "Y" . to_vector . should_equal ['A', 0]
 
             t3 = Table.new [["X", [1, 2, 3]], ["Y", ["", Nothing, Number.nan]]]
-            t4 = t3.remove_columns Column_Selector.Blank_Columns
+            t4 = t3.remove_columns (Column_Selector.Blank_Columns treat_nans_as_blank=True)
             t4.columns . map .name . should_equal ["X"]
 
-        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" pending="TODO!" <|
+        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
             t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
-            r1 = t.distinct Column_Selector.Blank_Columns
+            r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
             r1.at "Y" . to_vector . to_text . should_equal "['', Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
 
