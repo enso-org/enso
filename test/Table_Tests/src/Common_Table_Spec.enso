@@ -1429,5 +1429,5 @@ spec prefix table_builder test_selection pending=Nothing =
             no_rows.at "X" . to_vector . should_equal []
 
             no_cols.select_columns Column_Selector.Blank_Columns . columns . should_equal []
-            no_rows.select_columns Column_Selector.Blank_Columns . columns . should_equal ["X"]
+            no_rows.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["X"]
             no_rows.remove_columns Column_Selector.Blank_Columns . columns . should_equal []

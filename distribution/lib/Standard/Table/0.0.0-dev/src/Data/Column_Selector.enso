@@ -33,7 +33,8 @@ type Column_Selector
        Arguments:
        - when_any: By default, only columns consisting of all blank cells are
          selected. If set to `True`, columns containing at least one blank value
-         will be selected too.
+         will be selected too. If there are no rows, the column is treated as
+         blank regardless of this argument.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
          blank.
 
