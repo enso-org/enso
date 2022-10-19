@@ -50,6 +50,7 @@ import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Case;
+import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Either;
 import org.enso.syntax2.FractionalDigits;
 import org.enso.syntax2.Line;
@@ -257,7 +258,7 @@ final class TreeToIr {
         yield translateModuleSymbol(anno.getExpression(), cons(n, appendTo));
       }
       case Tree.Documented doc -> {
-        var c = translateComment(doc);
+        var c = translateComment(doc, doc.getDocumentation());
         yield translateModuleSymbol(doc.getExpression(), cons(c, appendTo));
       }
       case Tree.Assignment a -> {
@@ -430,7 +431,7 @@ final class TreeToIr {
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       */
       case Tree.Documented doc -> {
-        var irDoc = translateComment(doc);
+        var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
       }
       case Tree.Annotated anno -> {
@@ -1905,9 +1906,9 @@ final class TreeToIr {
     * @param doc the comment to transform
     * @return the [[IR]] representation of `comment`
     */
-  IR.Comment translateComment(Tree.Documented doc) {
+  IR.Comment translateComment(Tree where, DocComment doc) {
       var msg = new StringBuilder();
-      for (var t : doc.getDocumentation().getElements()) {
+      for (var t : doc.getElements()) {
         switch (t) {
           case TextElement.Section s -> {
             var whitespace = s.getText().getWhitespace();
@@ -1922,7 +1923,7 @@ final class TreeToIr {
           default -> throw new UnhandledEntity(t, "translateComment");
         }
       }
-      return new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(doc), meta(), diag());
+      return new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(where), meta(), diag());
   }
 
   private IR$Name$Literal buildName(Token name) {
