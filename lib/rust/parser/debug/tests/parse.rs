@@ -549,6 +549,12 @@ fn precedence() {
 }
 
 #[test]
+fn dot_operator_precedence() {
+    test("x y . f v",
+         block![(App (OprApp (App (Ident x) (Ident y)) (Ok ".") (Ident f)) (Ident v))]);
+}
+
+#[test]
 fn right_associative_operators() {
     let code = ["x --> y ---> z"];
     let expected = block![

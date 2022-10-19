@@ -697,7 +697,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_special()
                 .as_sequence(),
         "." =>
-            return operator.with_binary_infix_precedence(21).with_decimal_interpretation().as_dot(),
+            return operator.with_binary_infix_precedence(80).with_decimal_interpretation().as_dot(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"
