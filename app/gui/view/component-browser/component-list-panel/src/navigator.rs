@@ -9,7 +9,6 @@ use ensogl_core::prelude::*;
 use crate::AllStyles;
 
 use enso_frp as frp;
-use ensogl_component::tooltip::Tooltip;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
@@ -20,6 +19,7 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;

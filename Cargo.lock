@@ -3924,7 +3924,6 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "enso-frp",
- "ensogl-component",
  "ensogl-core",
  "ensogl-derive-theme",
  "ensogl-grid-view",
@@ -3935,6 +3934,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-tooltip",
  "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
  "ordered-float",
