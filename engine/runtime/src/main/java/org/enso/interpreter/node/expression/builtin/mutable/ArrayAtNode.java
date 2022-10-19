@@ -22,9 +22,6 @@ public class ArrayAtNode extends Node {
       long actualIndex = index < 0 ? index + iop.getArraySize(self) : index;
       var r = iop.readArrayElement(self, actualIndex);
       return convert.execute(r);
-    } catch (UnsupportedMessageException ex) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(ex);
     } catch (InvalidArrayIndexException e) {
       Context ctx = Context.get(this);
       try {
@@ -33,8 +30,11 @@ public class ArrayAtNode extends Node {
             this);
       } catch (UnsupportedMessageException ex) {
         CompilerDirectives.transferToInterpreter();
-        throw new PanicException(ex.getMessage(), this);
+        throw new IllegalStateException(ex);
       }
+    } catch (UnsupportedMessageException ex) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalStateException(ex);
     }
   }
 }

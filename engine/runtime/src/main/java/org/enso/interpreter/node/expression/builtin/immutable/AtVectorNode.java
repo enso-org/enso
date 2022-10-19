@@ -31,11 +31,11 @@ public class AtVectorNode extends Node {
             ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, self.length(interop)), this);
       } catch (UnsupportedMessageException ex) {
         CompilerDirectives.transferToInterpreter();
-        throw new PanicException(e.getMessage(), this);
+        throw new IllegalStateException(ex);
       }
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
-      throw new PanicException(e.getMessage(), this);
+      throw new IllegalStateException(e);
     }
   }
 }
