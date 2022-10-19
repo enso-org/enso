@@ -531,6 +531,7 @@ final class TreeToIr {
           args = cons(translateExpression(at.getLhs(), true), args);
           rhs = at.getRhs();
         }
+        args = args.reverse();
         var ret = translateExpression(rhs, true);
         yield new IR$Type$Function(
         args,
