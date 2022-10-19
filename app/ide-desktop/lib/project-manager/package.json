@@ -1,0 +1,25 @@
+{
+    "version": "1.0.0",
+    "author": {
+        "name": "Enso Team",
+        "email": "contact@enso.org"
+    },
+    "homepage": "https://github.com/enso-org/ide",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:enso-org/ide.git"
+    },
+    "bugs": {
+        "url": "https://github.com/enso-org/ide/issues"
+    },
+    "name": "enso-studio-project-manager",
+    "scripts": {
+        "build": "npx ts-node src/build.ts"
+    },
+    "devDependencies": {
+        "unzipper": "^0.10",
+        "tar": "^6.0.5",
+        "follow-redirects": "^1.13",
+        "typescript": "^3.4"
+    }
+}
