@@ -650,12 +650,12 @@ type Column
     like self pattern = self.make_binary_op "LIKE" pattern new_type=SQL_Type.boolean
 
     ## Checks for each element of the column if it is contained within the
-       provided vector.
+       provided vector or column.
 
        Arguments:
-       - vector: A vector of elements. The resulting column will contain true at
-         the positions where the corresponding element of `self` is contained
-         in `vector`.
+       - vector: A vector of elements or another column. The resulting column
+         will contain true at the positions where the corresponding element of
+         `self` is contained in `vector`.
 
        > Example
          Check if elements of a column are contained in a provided vector.
@@ -663,6 +663,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
+    is_in : Column | Vector -> Column
     is_in self vector =
         ## This is slightly hacky - we don't provide operand types as we want to
            allow any type to get through and currently we do not have a mapping

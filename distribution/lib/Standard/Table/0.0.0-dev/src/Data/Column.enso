@@ -675,12 +675,12 @@ type Column
         run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
 
     ## Checks for each element of the column if it is contained within the
-       provided vector.
+       provided vector or column.
 
        Arguments:
-       - vector: A vector of elements. The resulting column will contain true at
-         the positions where the corresponding element of `self` is contained
-         in `vector`.
+       - vector: A vector of elements or another column. The resulting column
+         will contain true at the positions where the corresponding element of
+         `self` is contained in `vector`.
 
        > Example
          Check if elements of a column are contained in a provided vector.
@@ -688,8 +688,15 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
+    is_in : Column | Vector -> Column
     is_in self vector =
-        run_vectorized_binary_op self "is_in" (elem -> vector -> vector.contains elem) vector skip_nulls=False
+        fallback_fn elem vector = case vector of
+            _ : Vector.Vector -> vector.contains elem
+            ## Column to Vector conversion is an O(1) operation because we just
+               wrap the storage. We need to rely on the `==` equality, so the
+               easiest fallback is to just convert the column into the vector.
+            column : Column -> column.to_vector.contains elem
+        run_vectorized_binary_op self "is_in" fallback_fn vector skip_nulls=False
 
     ## ALIAS Transform Column
 
