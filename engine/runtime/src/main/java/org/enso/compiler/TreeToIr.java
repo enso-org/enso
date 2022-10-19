@@ -409,6 +409,14 @@ final class TreeToIr {
         var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
         yield cons(ir, appendTo);
       }
+      // This is a `Function` in IR, but an `Assignment` in Tree.
+      // See: https://discord.com/channels/401396655599124480/1001476608957349917
+      case Tree.Assignment assignment -> {
+        var name = buildName(assignment.getPattern());
+        java.util.List<ArgumentDefinition> args = java.util.Collections.emptyList();
+        var ir = translateFunction(assignment, name, args, assignment.getExpr());
+        yield cons(ir, appendTo);
+      }
       /*
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
