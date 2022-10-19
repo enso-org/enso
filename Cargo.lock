@@ -3934,6 +3934,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-tooltip",
  "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
  "ordered-float",
