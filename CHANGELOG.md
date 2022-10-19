@@ -214,6 +214,9 @@
 - [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
 - [Replaced `Table.drop_missing_rows` with `filter_blank_rows` with an updated
   API.][3805]
+- [Replaced `Table.drop_missing_columns` with
+  `Table.remove_columns Column_Selector.Blank_Columns` by adding the new column
+  selector variant.][3812]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -344,6 +347,7 @@
 [3793]: https://github.com/enso-org/enso/pull/3793
 [3790]: https://github.com/enso-org/enso/pull/3790
 [3805]: https://github.com/enso-org/enso/pull/3805
+[3812]: https://github.com/enso-org/enso/pull/3812
 
 #### Enso Compiler
 
