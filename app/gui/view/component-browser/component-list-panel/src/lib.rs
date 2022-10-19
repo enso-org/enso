@@ -46,7 +46,6 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator as SectionNavigator;
 
 use enso_frp as frp;
@@ -225,13 +224,6 @@ mod background {
 pub struct Model {
     display_object:        display::object::Instance,
     background:            background::View,
-    // FIXME[#182593513]: This separate shape for navigator shadow can be removed and replaced
-    //   with a shadow embedded into the [`background`] shape when the
-    //   [issue](https://www.pivotaltracker.com/story/show/182593513) is fixed.
-    //   To display the shadow correctly it needs to be clipped to the [`background`] shape, but
-    //   we can't do that because of a bug in the renderer. So instead we add the shadow as a
-    //   separate shape and clip it using `size.set(...)`.
-    navigator_shadow:      navigator_shadow::View,
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
@@ -246,8 +238,6 @@ impl Model {
 
         let background = background::View::new();
         display_object.add_child(&background);
-        let navigator_shadow = navigator_shadow::View::new();
-        display_object.add_child(&navigator_shadow);
 
         let grid = app.new_view::<grid::View>();
         display_object.add_child(&grid);
@@ -259,15 +249,7 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        Self {
-            display_object,
-            background,
-            navigator_shadow,
-            grid,
-            section_navigator,
-            scene_navigator,
-            breadcrumbs,
-        }
+        Self { display_object, background, grid, section_navigator, scene_navigator, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -280,11 +262,6 @@ impl Model {
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.size.set(style.background_sprite_size());
         self.section_navigator.update_layout(style);
-
-        let navigator_shadow_x = -style.grid.width / 2.0;
-        self.navigator_shadow.set_position_x(navigator_shadow_x);
-        let section_navigator_shadow_size = Vector2(style.navigator.width, style.size().y);
-        self.navigator_shadow.size.set(section_navigator_shadow_size);
 
         self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
@@ -395,14 +372,6 @@ impl component::Frp<Model> for Frp {
 
             model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
             model.section_navigator.select_section <+ model.grid.active_section.on_change();
-
-
-            // === Navigator icons colors ===
-
-            let strong_color = style.get_color(theme::navigator::icon_strong_color);
-            let weak_color = style.get_color(theme::navigator::icon_weak_color);
-            let params = icon::Params { strong_color, weak_color };
-            model.section_navigator.set_bottom_buttons_entry_params(params);
 
 
             // === Breadcrumbs ===

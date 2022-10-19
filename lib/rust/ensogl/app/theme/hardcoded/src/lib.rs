@@ -190,9 +190,9 @@ define_themes! { [light:0, dark:1]
                 background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
                 corners_radius = 15.0, 15.0;
                 grid {
-                    width = 400.0, 400.0;
-                    height = 398.0, 398.0;
-                    padding = 3.0, 3.0;
+                    width = 414.0, 414.0;
+                    height = 414.0, 414.0;
+                    padding = 5.0, 5.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 30.0, 30.0;
 
@@ -244,7 +244,7 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 35.0, 35.0;
+                menu_height = 44.0, 44.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 menu_divider_height = 0.5,0.5;
                 menu {
@@ -278,23 +278,17 @@ define_themes! { [light:0, dark:1]
                     }
                 }
                 navigator {
-                    width = 37.0, 37.0;
+                    width = 40.0, 40.0;
+                    button_size = 32.0, 32.0;
                     icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
                     icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    top_padding = -3.0, -3.0;
-                    bottom_padding = 7.0, 7.0;
-                    list_view_width = 39.0, 39.0;
-                    list_view {
-                        background = Rgba::transparent() , Rgba::transparent();
-                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        highlight {
-                            height = 29.0, 29.0;
-                            corner_radius = 10.0, 10.0;
-                        }
-                        entry {
-                            padding = 14.5, 14.5;
-                        }
-                        padding = 5.0, 5.0;
+                    top_padding = 8.0, 8.0;
+                    bottom_padding = 4.0, 4.0;
+                    hover_color = Rgba::transparent(), Rgba::transparent();
+                    highlight {
+                        color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        size = 29.0, 29.0;
+                        corners_radius = 12.0, 12.0;
                     }
                 }
             }

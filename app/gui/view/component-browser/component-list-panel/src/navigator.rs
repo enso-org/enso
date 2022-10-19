@@ -13,42 +13,18 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
+use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
+use grid::Col;
+use grid::Row;
 use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
 
-
-
-// ==============
-// === Shadow ===
-// ==============
-
-/// A shadow between the navigator bar and the main part of the Searcher List Panel.
-///
-/// We should have this shape embedded into the background shape, but we use a separate object
-/// because of https://www.pivotaltracker.com/story/show/182593513.
-pub mod navigator_shadow {
-    use super::*;
-
-    ensogl_core::define_shape_system! {
-        above = [crate::background];
-        below = [list_view::overlay, list_view::selection];
-        pointer_events = false;
-        (style:Style) {
-            let grid_height = style.get_number(list_panel_theme::grid::height);
-            let menu_height = style.get_number(list_panel_theme::menu_height);
-            let navigator_width = style.get_number(theme::width);
-            let height = grid_height + menu_height;
-            let width = navigator_width;
-            let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
-            shadow::from_shape(base_shape.into(), style)
-        }
-    }
-}
+type Grid = grid::selectable::GridView<icon::View>;
 
 
 
@@ -59,12 +35,32 @@ pub mod navigator_shadow {
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:             f32,
-    pub list_view_width:   f32,
-    pub icon_strong_color: color::Rgba,
-    pub icon_weak_color:   color::Rgba,
-    pub top_padding:       f32,
-    pub bottom_padding:    f32,
+    pub width:                    f32,
+    pub button_size:              f32,
+    pub icon_strong_color:        color::Rgba,
+    pub icon_weak_color:          color::Rgba,
+    pub top_padding:              f32,
+    pub bottom_padding:           f32,
+    pub hover_color:              color::Rgba,
+    #[theme_path = "theme::highlight::color"]
+    pub highlight_color:          color::Rgba,
+    #[theme_path = "theme::highlight::size"]
+    pub highlight_size:           f32,
+    #[theme_path = "theme::highlight::corners_radius"]
+    pub highlight_corners_radius: f32,
+}
+
+impl From<Style> for icon::Params {
+    fn from(style: Style) -> Self {
+        Self {
+            strong_color:             style.icon_strong_color,
+            weak_color:               style.icon_weak_color,
+            hover_color:              style.hover_color.into(),
+            selection_color:          style.highlight_color.into(),
+            selection_size:           style.highlight_size,
+            selection_corners_radius: style.highlight_corners_radius,
+        }
+    }
 }
 
 
@@ -74,24 +70,24 @@ pub struct Style {
 // =========================================================
 
 /// Convert [`SectionId`] to index on [`Navigator::bottom_buttons`].
-fn section_id_to_list_index(id: SectionId) -> usize {
+fn section_id_to_list_index(id: SectionId) -> (Row, Col) {
     match id {
-        SectionId::Popular => 1,
-        SectionId::LocalScope => 2,
-        SectionId::SubModules => 0,
+        SectionId::Popular => (1, 0),
+        SectionId::LocalScope => (2, 0),
+        SectionId::SubModules => (0, 0),
     }
 }
 
 /// Convert the index on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
-fn index_to_section_id(&index: &usize) -> SectionId {
+fn index_to_section_id(&(row, col): &(Row, Col)) -> SectionId {
     let highest = SectionId::SubModules;
-    match index {
+    match row {
         0 => highest,
         1 => SectionId::Popular,
         2 => SectionId::LocalScope,
         index => {
-            error!("Tried to create SectionId from too high Navigator List index ({}).", index);
+            error!("Tried to create SectionId from too high Navigator List row ({}).", row);
             highest
         }
     }
@@ -113,8 +109,8 @@ fn index_to_section_id(&index: &usize) -> SectionId {
 pub struct Navigator {
     display_object:     display::object::Instance,
     network:            frp::Network,
-    bottom_buttons:     list_view::ListView<icon::Entry>,
-    top_buttons:        list_view::ListView<icon::Entry>,
+    bottom_buttons:     Grid,
+    top_buttons:        Grid,
     pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
@@ -125,22 +121,16 @@ const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::Star, ico
 impl Navigator {
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
-        top_buttons.show_background_shadow(false);
-        bottom_buttons.show_background_shadow(false);
-        top_buttons.disable_selecting_entries_with_mouse();
-        bottom_buttons.disable_selecting_entries_with_mouse();
+        let top_buttons = Grid::new(app);
+        let bottom_buttons = Grid::new(app);
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
-        top_buttons.hide_selection();
+        //top_buttons.hide_selection();
 
-        top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
-        bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-        bottom_buttons.select_entry(Some(section_id_to_list_index(SectionId::Popular)));
+        //top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
+        //bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
+        //bottom_buttons.select_entry(Some(section_id_to_list_index(SectionId::Popular)));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         frp::extend! { network
@@ -148,8 +138,26 @@ impl Navigator {
             bottom_buttons.select_entry <+
                 select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_list_index));
             chosen_section <-
-                bottom_buttons.chosen_entry.map(|&id| id.as_ref().map(index_to_section_id));
+                bottom_buttons.entry_selected.map(|loc| loc.as_ref().map(index_to_section_id));
+
+            model <- bottom_buttons.model_for_entry_needed.map(f!([]
+                ((row, col)) {
+                    DEBUG!("Model for entry: {row}, {BOTTOM_BUTTONS.get(*row):?}");
+                    BOTTOM_BUTTONS.get(*row).map(|model| (*row, *col, *model))
+                }
+            )).filter_map(|m| *m);
+            bottom_buttons.model_for_entry <+ model;
+
+            model <- top_buttons.model_for_entry_needed.map(f!([]
+                ((row, col)) {
+                    TOP_BUTTONS.get(*row).map(|model| (*row, *col, *model))
+                }
+            )).filter_map(|m| *m);
+            top_buttons.model_for_entry <+ model;
         }
+
+        bottom_buttons.reset_entries(BOTTOM_BUTTONS.len(), 1);
+        top_buttons.reset_entries(TOP_BUTTONS.len(), 1);
 
         Self {
             display_object,
@@ -161,27 +169,36 @@ impl Navigator {
         }
     }
 
-    pub(crate) fn set_bottom_buttons_entry_params(&self, params: icon::Params) {
-        self.bottom_buttons.set_entry_params_and_recreate_entries(params);
-    }
-
     pub(crate) fn update_layout(&self, style: &AllStyles) {
-        let list_view_width = style.navigator.list_view_width;
-        let top_buttons_height = list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32;
-        let bottom_buttons_height = list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32;
-        self.top_buttons.resize(Vector2(list_view_width, top_buttons_height));
-        self.bottom_buttons.resize(Vector2(list_view_width, bottom_buttons_height));
+        let size = style.navigator.button_size;
+        let top_buttons_height = size * TOP_BUTTONS.len() as f32;
+        let bottom_buttons_height = size * BOTTOM_BUTTONS.len() as f32;
+        self.bottom_buttons.set_entries_size(Vector2(size, size));
+        self.top_buttons.set_entries_size(Vector2(size, size));
+        let top_buttons_viewport =
+            grid::Viewport { top: 0.0, bottom: -top_buttons_height, left: 0.0, right: size };
+        self.top_buttons.set_viewport(top_buttons_viewport);
+        let bottom_buttons_viewport = grid::Viewport {
+            top:    0.0,
+            bottom: -bottom_buttons_height,
+            left:   0.0,
+            right:  size,
+        };
+        self.bottom_buttons.set_viewport(bottom_buttons_viewport);
+        let buttons_params = icon::Params::from(style.navigator.clone());
+        self.bottom_buttons.set_entries_params(buttons_params.clone());
+        self.top_buttons.set_entries_params(buttons_params);
 
+        let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
         let bottom = -height / 2.0;
-        let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
+        let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
         let bottom_padding = style.navigator.bottom_padding;
-        let x_pos = -style.grid.width / 2.0;
-        let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
-        let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
+        let x_pos = left + width / 2.0 - size / 2.0;
+        let top_buttons_y = top - top_padding;
+        let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
         self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));
         self.bottom_buttons.set_position_xy(Vector2(x_pos, bottom_buttons_y));
     }

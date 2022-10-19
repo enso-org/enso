@@ -5,8 +5,8 @@
 // === Export ===
 // ==============
 
-pub use entry::Entry;
 pub use entry::Params;
+pub use entry::View;
 
 
 
