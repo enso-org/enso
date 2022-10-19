@@ -6,7 +6,8 @@ import org.graalvm.polyglot.Value;
 import java.util.ServiceLoader;
 
 public abstract class FileFormatSPI {
-  private final static ServiceLoader<FileFormatSPI> loader = ServiceLoader.load(FileFormatSPI.class, FileFormatSPI.class.getClassLoader());
+  private static final ServiceLoader<FileFormatSPI> loader =
+      ServiceLoader.load(FileFormatSPI.class, FileFormatSPI.class.getClassLoader());
 
   public static Value[] get_types(boolean refresh) {
     if (refresh) {
