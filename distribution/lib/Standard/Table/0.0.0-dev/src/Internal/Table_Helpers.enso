@@ -171,9 +171,6 @@ type Table_Column_Helper
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
 
-            self.table.print
-            result.print
-
             ## The `reorder` argument has no meaning for Blank_Columns selector
                - either way all blank columns are selected in the order that
                they are in the Table.
