@@ -685,6 +685,18 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseWithComment() throws Exception {
+    parseTest("""
+    ansi_bold : Boolean -> Text -> Text
+    ansi_bold enabled txt =
+        case Platform.os of
+            ## Output formatting for Windows is not currently supported.
+            Platform.Windows -> txt
+            _ -> if enabled then Nothing
+    """);
+  }
+
+  @Test
   @Ignore // Crashes old parser
   public void testAlternationTypes() throws Exception {
     parseTest("""

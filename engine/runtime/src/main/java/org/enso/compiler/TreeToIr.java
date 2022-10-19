@@ -38,6 +38,7 @@ import org.enso.compiler.core.IR$Name$Self;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
+import org.enso.compiler.core.IR$Pattern$Documentation;
 import org.enso.compiler.core.IR$Pattern$Name;
 import org.enso.compiler.core.IR$Pattern$Literal;
 import org.enso.compiler.core.IR$Pattern$Type;
@@ -888,7 +889,7 @@ final class TreeToIr {
           if (line.getCase() == null) {
             continue;
           }
-          var br = translateCaseBranch(line.getCase());
+          var br = translateCaseBranch(cas, line.getCase());
           branches = cons(br, branches);
         }
         yield new IR$Case$Expr(expr, branches.reverse(), getIdentifiedLocation(tree), meta(), diag());
@@ -1629,7 +1630,18 @@ final class TreeToIr {
     * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
     */
-  IR$Case$Branch translateCaseBranch(Case branch) {
+  IR$Case$Branch translateCaseBranch(Tree where, Case branch) {
+    if (branch.getDocumentation() != null) {
+      if (translateComment(where, branch.getDocumentation()) instanceof IR$Comment$Documentation comment) {
+        var loc = getIdentifiedLocation(where);
+        var doc = new IR$Pattern$Documentation(comment.doc(), loc, meta(), diag());
+        return new IR$Case$Branch(
+          doc,
+          new IR.Empty(Option.empty(), meta(), diag()),
+          loc, meta(), diag()
+        );
+      }
+    }
     if (branch.getPattern() == null) {
       throw new UnhandledEntity(branch, "translateCaseBranch");
     }
