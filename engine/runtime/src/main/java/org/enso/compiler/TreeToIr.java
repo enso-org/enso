@@ -91,59 +91,21 @@ final class TreeToIr {
         List<IR$Module$Scope$Import> imports = nil();
         List<IR$Module$Scope$Export> exports = nil();
         for (Line line : b.getStatements()) {
-          switch (line.getExpression()) {
-            case Tree.Assignment a -> {
-              var r = translateMethodReference(a.getPattern(), false);
-              var m = new IR$Module$Scope$Definition$Method$Binding(
-                r,
-                nil(),
-                translateExpression(a.getExpr(), false),
-                getIdentifiedLocation(module),
-                meta(), diag()
-              );
-              bindings = cons(m, bindings);
-            }
-            case Tree.TypeDef def -> {
-              var t = translateModuleSymbol(def);
-              bindings= cons(t, bindings);
-            }
+          final Tree expr = line.getExpression();
+          switch (expr) {
             case Tree.Import imp -> {
               imports = cons(translateImport(imp), imports);
             }
             case Tree.Export exp -> {
               exports = cons(translateExport(exp), exports);
             }
-            case Tree.Function fn -> {
-              var t = translateModuleSymbol(fn);
-              bindings = cons(t, bindings);
-            }
-//            case Tree.Comment comment -> {
-//              var doc = comment.getToken().codeRepr();
-//              doc = doc.replace("##", "");
-//              var t = new IR$Comment$Documentation(doc, getIdentifiedLocation(comment), meta(), diag());
-//              bindings = cons(t, bindings);
-//            }
-            case Tree.TypeSignature def -> {
-              var t = translateModuleSymbol(def);
-              bindings = cons(t, bindings);
-            }
-            case Tree.Annotated anno -> {
-              var n = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
-              bindings = cons(n, bindings);
-              var t = translateModuleSymbol(anno.getExpression());
-              bindings = cons(t, bindings);
-            }
-            case Tree.Documented doc -> {
-              var c = translateComment(doc);
-              bindings = cons(c, bindings);
-              var t = translateModuleSymbol(doc.getExpression());
-              bindings = cons(t, bindings);
-            }
             case null -> {
+              bindings = translateModuleSymbol(expr, bindings);
             }
             default -> {
-              throw new UnhandledEntity(line.getExpression(), "translateModule");
+              bindings = translateModuleSymbol(expr, bindings);
             }
+
           }
         }
         yield new IR.Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
@@ -240,10 +202,12 @@ final class TreeToIr {
     * [[IR]].
     *
     * @param inputAst the definition to be translated
-    * @return the [[IR]] representation of `inputAST`
+    * @param appendTo list of already collected definitions
+    * @return the [[IR]] representation of `inputAST` appended
     */
-  IR$Module$Scope$Definition translateModuleSymbol(Tree inputAst) {
+  List<IR$Module$Scope$Definition> translateModuleSymbol(Tree inputAst, List<IR$Module$Scope$Definition> appendTo) {
     return switch (inputAst) {
+      case null -> appendTo;
     /*
     inputAst match {
       case AST.Ident.Annotation.any(annotation) =>
@@ -265,28 +229,49 @@ final class TreeToIr {
         var translatedConstructors = CollectionConverters.asScala(translatedConstructorsIt).toList();
         // type
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
-        yield new IR$Module$Scope$Definition$SugaredType(
+        var t = new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
           translatedConstructors.appendedAll(translatedBody),
           getIdentifiedLocation(inputAst),
           meta(), diag()
         );
+        yield cons(t, appendTo);
       }
       case Tree.Function fn -> {
         var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody(), false);
 
-        yield new IR$Module$Scope$Definition$Method$Binding(
+        var b = new IR$Module$Scope$Definition$Method$Binding(
           methodRef,
           args,
           body,
           getIdentifiedLocation(inputAst),
           meta(), diag()
         );
+        yield cons(b, appendTo);
       }
-      /*
+      case Tree.Annotated anno -> {
+        var n = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        yield translateModuleSymbol(anno.getExpression(), cons(n, appendTo));
+      }
+      case Tree.Documented doc -> {
+        var c = translateComment(doc);
+        yield translateModuleSymbol(doc.getExpression(), cons(c, appendTo));
+      }
+      case Tree.Assignment a -> {
+        var r = translateMethodReference(a.getPattern(), false);
+        var m = new IR$Module$Scope$Definition$Method$Binding(
+          r,
+          nil(),
+          translateExpression(a.getExpr(), false),
+          getIdentifiedLocation(a),
+          meta(), diag()
+        );
+        yield cons(m, appendTo);
+      }
+    /*
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,
@@ -329,7 +314,7 @@ final class TreeToIr {
 //      case AstView.TypeAscription(typed, sig) =>
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateExpression(sig.getType(), true);
-        yield new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+        var t = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
         /*
         typed match {
           case AST.Ident.any(ident)       => buildAscription(ident)
@@ -345,8 +330,12 @@ final class TreeToIr {
       case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
     }
     */
+        yield cons(t, appendTo);
       }
-    default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+      default -> {
+        var e = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+        yield cons(e, appendTo);
+      }
     };
   }
 
@@ -373,6 +362,7 @@ final class TreeToIr {
     * @param exp the expression to be translated
     * @return the [[IR]] representation of `maybeParensedInput`
     */
+  @SuppressWarnings("unchecked")
   private List<IR> translateTypeBodyExpression(Tree exp, List<IR> appendTo) {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
@@ -384,8 +374,7 @@ final class TreeToIr {
       case AST.Ident.Cons.any(include) => translateIdent(include)
       */
       case Tree.TypeDef def -> {
-        var ir = translateModuleSymbol(def);
-        yield cons(ir, appendTo);
+        yield translateModuleSymbol(def, (List) appendTo);
       }
       case Tree.ArgumentBlockApplication app -> {
 //        if (app.getLhs() instanceof Tree.Comment comment) {
@@ -443,6 +432,11 @@ final class TreeToIr {
       case Tree.Documented doc -> {
         var irDoc = translateComment(doc);
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
+      }
+      case Tree.Annotated anno -> {
+        var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        var a = translateAnnotation(ir, anno.getExpression(), nil());
+        yield cons(a, appendTo);
       }
       /*
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>

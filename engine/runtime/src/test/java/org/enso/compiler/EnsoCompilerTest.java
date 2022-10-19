@@ -422,7 +422,7 @@ public class EnsoCompilerTest {
 
                  example_group = Test_Suite.run <|
                      Test.group "Number" <| Nothing
-        group : Text -> Any -> (Text | Nothing) -> Nothing
+        group : Text -> Any
         """);
   }
 
