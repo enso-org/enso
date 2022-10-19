@@ -34,6 +34,12 @@ macro_rules! block {
     }
 }
 
+macro_rules! test {
+    ( $code:expr, $block:tt ) => {
+        test($code, block![$block]);
+    }
+}
+
 
 
 // =============
@@ -344,8 +350,15 @@ fn named_arguments() {
 
 #[test]
 fn default_app() {
-    let cases = [("f default", block![(DefaultApp (Ident f) default)])];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("f default", (DefaultApp (Ident f) default));
+}
+
+#[test]
+fn argument_named_default() {
+    test!("f default x = x",
+        (Function (Ident f) #((() (Ident default) () ()) (() (Ident x) () ())) "=" (Ident x)));
+    test!("f x default = x",
+        (Function (Ident f) #((() (Ident x) () ()) (() (Ident default) () ())) "=" (Ident x)));
 }
 
 #[test]
