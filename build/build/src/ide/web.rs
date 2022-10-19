@@ -9,7 +9,7 @@ use crate::project::ProcessWrapper;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
-use ide_ci::github::Repo;
+use ide_ci::github::RepoRef;
 use ide_ci::io::download_all;
 use ide_ci::program::command;
 use ide_ci::program::EMPTY_ARGS;
@@ -35,7 +35,7 @@ pub const IDE_ASSETS_URL: &str =
 
 pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
-pub const GOOGLE_FONTS_REPOSITORY: &str = "google/fonts";
+pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
 
 pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
 
@@ -102,9 +102,9 @@ pub async fn download_google_font(
     output_path: impl AsRef<Path>,
 ) -> Result<Vec<Content>> {
     let destination_dir = output_path.as_ref();
-    let repo = Repo::from_str(GOOGLE_FONTS_REPOSITORY)?;
+    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
     let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos(octocrab).get_content().path(path).send().await?;
+    let files = repo.repos().get_content().path(path).send().await?;
     let ttf_files =
         files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
     for file in &ttf_files {

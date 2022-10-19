@@ -58,7 +58,8 @@ impl Goodie for GraalVM {
         let client = self.client.clone();
         let repo = ce_build_repository();
         async move {
-            let release = repo.find_release_by_text(&client, &graal_version.to_string()).await?;
+            let repo = repo.handle(&client);
+            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
             crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
         }
         .boxed()

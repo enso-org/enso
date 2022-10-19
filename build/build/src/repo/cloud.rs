@@ -27,8 +27,10 @@ impl<T> BuildImageInput<T> {
 /// In general, we want this function to be invoked after each ECR push.
 #[instrument(fields(%version), skip(octocrab))]
 pub async fn build_image_workflow_dispatch_input(octocrab: &Octocrab, version: &Version) -> Result {
+    let repo = CLOUD_REPO.handle(octocrab);
+
     // We want to call our workflow on the default branch.
-    let default_branch = CLOUD_REPO.repos(octocrab).get().await?.default_branch.with_context(|| {
+    let default_branch = repo.get().await?.default_branch.with_context(|| {
         format!(
             "Failed to get the default branch of the {} repository. Missing field: `default_branch`.",
             CLOUD_REPO
@@ -38,8 +40,7 @@ pub async fn build_image_workflow_dispatch_input(octocrab: &Octocrab, version: &
     debug!("Will invoke on ref: '{}'", default_branch);
     let input = BuildImageInput::new(version);
     info!("Dispatching the cloud workflow to build the image.");
-    github::workflow::dispatch(octocrab, &CLOUD_REPO, BUILD_IMAGE_WORKFLOW, default_branch, &input)
-        .await
+    github::workflow::dispatch(&repo, BUILD_IMAGE_WORKFLOW, default_branch, &input).await
 }
 
 #[cfg(test)]

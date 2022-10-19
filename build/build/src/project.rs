@@ -219,15 +219,18 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
         let CiRunSource { run_id, artifact_name, repository } = ci_run;
+        let repository = repository.handle(&octocrab);
         let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_str());
         let this = self.clone();
         async move {
-            let artifact =
-                repository.find_artifact_by_name(&octocrab, run_id, &artifact_name).await?;
+            let artifact = repository.find_artifact_by_name(run_id, &artifact_name).await?;
             info!("Will download artifact: {:#?}", artifact);
             let artifact_to_get = cache::artifact::ExtractedArtifact {
                 client: octocrab.clone(),
-                key:    cache::artifact::Key { artifact_id: artifact.id, repository },
+                key:    cache::artifact::Key {
+                    artifact_id: artifact.id,
+                    repository:  repository.repo,
+                },
             };
             let artifact = cache.get(artifact_to_get).await?;
             let inner_archive_path =
@@ -280,7 +283,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let this = self.clone();
         async move {
             let ReleaseSource { asset_id, repository } = &source;
-            let archive_source = repository.download_asset_job(&octocrab, *asset_id);
+            let repository = repository.handle(&octocrab);
+            let archive_source = repository.download_asset_job(*asset_id);
             let extract_job = cache::archive::ExtractedArchive {
                 archive_source,
                 path_to_extract: path_to_extract(),

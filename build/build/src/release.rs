@@ -40,8 +40,8 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
 
     debug!("Preparing release {} for commit {}", versions.version, commit);
     let release = context
-        .remote_repo
-        .repos(&context.octocrab)
+        .remote_repo_handle()
+        .repos()
         .releases()
         .create(&versions.tag())
         .target_commitish(&commit)
@@ -58,17 +58,17 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
 }
 
 pub async fn publish_release(context: &BuildContext) -> Result {
-    let BuildContext { inner: project::Context { octocrab, .. }, remote_repo, triple, .. } =
-        context;
+    let remote_repo = context.remote_repo_handle();
+    let BuildContext { inner: project::Context { .. }, triple, .. } = context;
 
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
 
     debug!("Looking for release with id {release_id} on github.");
-    let release = remote_repo.repos(octocrab).releases().get_by_id(release_id).await?;
+    let release = remote_repo.repos().releases().get_by_id(release_id).await?;
     ensure!(release.draft, "Release has been already published!");
 
     debug!("Found the target release, will publish it.");
-    remote_repo.repos(octocrab).releases().update(release.id.0).draft(false).send().await?;
+    remote_repo.repos().releases().update(release.id.0).draft(false).send().await?;
     debug!("Done. Release URL: {}", release.url);
 
     let temp = tempdir()?;
@@ -86,15 +86,14 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     .await?;
 
     debug!("Updating edition in the AWS S3.");
-    crate::aws::update_manifest(remote_repo, &edition_file_path).await?;
+    crate::aws::update_manifest(&remote_repo, &edition_file_path).await?;
 
     Ok(())
 }
 
 /// Download the Enso Engine distribution from the GitHub release.
-pub async fn get_engine_package(
-    octocrab: &Octocrab,
-    repo: &(impl IsRepo + Send + Sync + 'static),
+pub async fn get_engine_package<R: IsRepo>(
+    repo: &github::repo::Handle<R>,
     output: impl AsRef<Path>,
     triple: &TargetTriple,
 ) -> Result<generated::EnginePackage> {
@@ -106,11 +105,11 @@ pub async fn get_engine_package(
         .as_str()
         .to_string();
 
-    let release = repo.find_release_by_id(octocrab, release_id).await?;
+    let release = repo.find_release_by_id(release_id).await?;
     let asset = github::find_asset_by_text(&release, &package_name)?;
     let temp_for_archive = tempdir()?;
     let downloaded_asset =
-        repo.download_asset_to(octocrab, asset, temp_for_archive.path().to_owned()).await?;
+        repo.download_asset_to(asset, temp_for_archive.path().to_owned()).await?;
 
     ide_ci::archive::extract_to(&downloaded_asset, output.as_ref()).await?;
 
@@ -129,8 +128,7 @@ pub async fn generate_runtime_image(
     let linux_triple = TargetTriple { os: OS::Linux, ..context.triple.clone() };
     let temp_for_extraction = tempdir()?;
     let engine_package = get_engine_package(
-        &context.octocrab,
-        &context.remote_repo,
+        &context.remote_repo_handle(),
         temp_for_extraction.path(),
         &linux_triple,
     )

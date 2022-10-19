@@ -102,19 +102,6 @@ pub trait IsRepo: Display {
     fn owner(&self) -> &str;
     fn name(&self) -> &str;
 
-    /// Generate a token that can be used to register a new runner for this repository.
-    async fn generate_runner_registration_token(
-        &self,
-        octocrab: &Octocrab,
-    ) -> Result<model::RegistrationToken> {
-        let path =
-            iformat!("/repos/{self.owner()}/{self.name()}/actions/runners/registration-token");
-        let url = octocrab.absolute_url(path)?;
-        octocrab.post(url, EMPTY_REQUEST_BODY).await.context(format!(
-            "Failed to generate a runner registration token for the {self} repository."
-        ))
-    }
-
     /// The repository's URL.
     fn url(&self) -> Result<Url> {
         let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}");
@@ -122,30 +109,73 @@ pub trait IsRepo: Display {
             .context(format!("Failed to generate an URL for the {self} repository."))
     }
 
-    fn repos<'a>(&'a self, client: &'a Octocrab) -> octocrab::repos::RepoHandler<'a> {
-        client.repos(self.owner(), self.name())
+    fn handle(&self, octocrab: &Octocrab) -> Handle<Self>
+    where Self: Clone + Sized {
+        Handle { repo: self.clone(), octocrab: octocrab.clone() }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Handle<Repo> {
+    pub octocrab: Octocrab,
+    pub repo:     Repo,
+}
+
+impl<R: Display> Display for Handle<R> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.repo)
+    }
+}
+
+impl<R: IsRepo> IsRepo for Handle<R> {
+    fn owner(&self) -> &str {
+        self.repo.owner()
     }
 
-    async fn all_releases(&self, client: &Octocrab) -> Result<Vec<Release>> {
-        github::get_all(client, self.repos(client).releases().list().per_page(MAX_PER_PAGE).send())
-            .await
-            .context(format!("Failed to list all releases in the {self} repository."))
+    fn name(&self) -> &str {
+        self.repo.name()
+    }
+}
+
+impl<R: IsRepo> Handle<R> {
+    /// Create a new handle.
+    pub fn new(octocrab: &Octocrab, repo: R) -> Self {
+        Self { octocrab: octocrab.clone(), repo }
     }
 
-    async fn latest_release(&self, client: &Octocrab) -> Result<Release> {
-        self.repos(client)
+    /// Generate a token that can be used to register a new runner for this repository.
+    pub async fn generate_runner_registration_token(&self) -> Result<model::RegistrationToken> {
+        let path =
+            iformat!("/repos/{self.owner()}/{self.name()}/actions/runners/registration-token");
+        let url = self.octocrab.absolute_url(path)?;
+        self.octocrab.post(url, EMPTY_REQUEST_BODY).await.context(format!(
+            "Failed to generate a runner registration token for the {self} repository."
+        ))
+    }
+
+    pub fn repos(&self) -> octocrab::repos::RepoHandler {
+        self.octocrab.repos(self.owner(), self.name())
+    }
+
+    pub async fn all_releases(&self) -> Result<Vec<Release>> {
+        github::get_all(
+            &self.octocrab,
+            self.repos().releases().list().per_page(MAX_PER_PAGE).send(),
+        )
+        .await
+        .context(format!("Failed to list all releases in the {self} repository."))
+    }
+
+    pub async fn latest_release(&self) -> Result<Release> {
+        self.repos()
             .releases()
             .get_latest()
             .await
             .context(format!("Failed to get the latest release in the {self} repository."))
     }
 
-    async fn find_release_by_id(
-        &self,
-        client: &Octocrab,
-        release_id: ReleaseId,
-    ) -> Result<Release> {
-        let repo_handler = self.repos(client);
+    pub async fn find_release_by_id(&self, release_id: ReleaseId) -> Result<Release> {
+        let repo_handler = self.repos();
         let releases_handler = repo_handler.releases();
         releases_handler
             .get_by_id(release_id)
@@ -153,9 +183,9 @@ pub trait IsRepo: Display {
             .context(format!("Failed to find release by id `{release_id}` in `{self}`."))
     }
 
-    #[tracing::instrument(skip(client), fields(%self, %text), err)]
-    async fn find_release_by_text(&self, client: &Octocrab, text: &str) -> anyhow::Result<Release> {
-        self.all_releases(client)
+    #[tracing::instrument(fields(%self, %text), err)]
+    pub async fn find_release_by_text(&self, text: &str) -> anyhow::Result<Release> {
+        self.all_releases()
             .await?
             .into_iter()
             .find(|release| release.tag_name.contains(text))
@@ -163,14 +193,14 @@ pub trait IsRepo: Display {
             .context(format!("No release with tag matching `{text}` in {self}."))
     }
 
-    #[tracing::instrument(skip(client), fields(%self, %run_id, %name), err, ret)]
-    async fn find_artifact_by_name(
+    #[tracing::instrument(fields(%self, %run_id, %name), err, ret)]
+    pub async fn find_artifact_by_name(
         &self,
-        client: &Octocrab,
         run_id: RunId,
         name: &str,
     ) -> Result<WorkflowListArtifact> {
-        let artifacts = client
+        let artifacts = self
+            .octocrab
             .actions()
             .list_workflow_run_artifacts(self.owner(), self.name(), run_id)
             .per_page(100)
@@ -186,36 +216,35 @@ pub trait IsRepo: Display {
             .context(format!("Failed to find artifact by name '{name}'."))
     }
 
-    async fn download_artifact(&self, client: &Octocrab, artifact_id: ArtifactId) -> Result<Bytes> {
-        client
+    pub async fn download_artifact(&self, artifact_id: ArtifactId) -> Result<Bytes> {
+        self.octocrab
             .actions()
             .download_artifact(self.owner(), self.name(), artifact_id, ArchiveFormat::Zip)
             .await
             .context(format!("Failed to download artifact with ID={artifact_id}."))
     }
 
-    async fn download_and_unpack_artifact(
+    pub async fn download_and_unpack_artifact(
         &self,
-        client: &Octocrab,
         artifact_id: ArtifactId,
         output_dir: &Path,
     ) -> Result {
-        let bytes = self.download_artifact(client, artifact_id).await?;
+        let bytes = self.download_artifact(artifact_id).await?;
         crate::archive::zip::extract_bytes(bytes, output_dir)?;
         Ok(())
     }
 
-    #[tracing::instrument(name="Get the asset information.", skip(client), fields(self=%self), err)]
-    async fn asset(&self, client: &Octocrab, asset_id: AssetId) -> Result<Asset> {
-        self.repos(client).releases().get_asset(asset_id).await.anyhow_err()
+    #[tracing::instrument(name="Get the asset information.", fields(self=%self), err)]
+    pub async fn asset(&self, asset_id: AssetId) -> Result<Asset> {
+        self.repos().releases().get_asset(asset_id).await.anyhow_err()
     }
 
-    fn download_asset_job(&self, octocrab: &Octocrab, asset_id: AssetId) -> DownloadFile {
+    pub fn download_asset_job(&self, asset_id: AssetId) -> DownloadFile {
         let path = iformat!("/repos/{self.owner()}/{self.name()}/releases/assets/{asset_id}");
         // Unwrap will work, because we are appending relative URL constant.
-        let url = octocrab.absolute_url(path).unwrap();
+        let url = self.octocrab.absolute_url(path).unwrap();
         DownloadFile {
-            client: octocrab.client.clone(),
+            client: self.octocrab.client.clone(),
             key:    crate::cache::download::Key {
                 url,
                 additional_headers: HeaderMap::from_iter([(
@@ -226,34 +255,40 @@ pub trait IsRepo: Display {
         }
     }
 
-    #[tracing::instrument(name="Download the asset.", skip(client), fields(self=%self), err)]
-    async fn download_asset(&self, client: &Octocrab, asset_id: AssetId) -> Result<Response> {
-        self.download_asset_job(client, asset_id).send_request().await
+    #[tracing::instrument(name="Download the asset.", fields(self=%self), err)]
+    pub async fn download_asset(&self, asset_id: AssetId) -> Result<Response> {
+        self.download_asset_job(asset_id).send_request().await
     }
 
-    #[tracing::instrument(name="Download the asset to a file.", skip(client, output_path), fields(self=%self, dest=%output_path.as_ref().display()), err)]
-    async fn download_asset_as(
+    #[tracing::instrument(name="Download the asset to a file.", skip(output_path), fields(self=%self, dest=%output_path.as_ref().display()), err)]
+    pub async fn download_asset_as(
         &self,
-        client: &Octocrab,
         asset_id: AssetId,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> Result {
-        let response = self.download_asset(client, asset_id).await?;
+        let response = self.download_asset(asset_id).await?;
         crate::io::web::stream_response_to_file(response, &output_path).await
     }
 
     #[tracing::instrument(name="Download the asset to a directory.",
-        skip(client, output_dir, asset),
-        fields(self=%self, dest=%output_dir.as_ref().display(), id = %asset.id),
-        err)]
-    async fn download_asset_to(
+    skip(output_dir, asset),
+    fields(self=%self, dest=%output_dir.as_ref().display(), id = %asset.id),
+    err)]
+    pub async fn download_asset_to(
         &self,
-        client: &Octocrab,
         asset: &Asset,
         output_dir: impl AsRef<Path> + Send + Sync + 'static,
     ) -> Result<PathBuf> {
         let output_path = output_dir.as_ref().join(&asset.name);
-        self.download_asset_as(client, asset.id, output_path.clone()).await?;
+        self.download_asset_as(asset.id, output_path.clone()).await?;
         Ok(output_path)
+    }
+
+    /// Get the repository information.
+    pub async fn get(&self) -> Result<octocrab::models::Repository> {
+        self.repos()
+            .get()
+            .await
+            .with_context(|| format!("Failed to get the infomation for the {self} repository."))
     }
 }

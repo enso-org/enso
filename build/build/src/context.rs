@@ -3,11 +3,10 @@ use crate::prelude::*;
 use crate::paths::TargetTriple;
 
 use derivative::Derivative;
-use ide_ci::github::Repo;
+use ide_ci::github;
 use ide_ci::programs::git;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
-
 
 
 /// The basic, common information available in this application.
@@ -25,7 +24,7 @@ pub struct BuildContext {
 
     /// Remote repository is used for release-related operations. This also includes deducing a new
     /// version number.
-    pub remote_repo: Repo,
+    pub remote_repo: ide_ci::github::Repo,
 }
 
 impl BuildContext {
@@ -45,18 +44,16 @@ impl BuildContext {
         &self,
         designator: String,
     ) -> BoxFuture<'static, Result<Release>> {
-        let repository = self.remote_repo.clone();
-        let octocrab = self.octocrab.clone();
+        let repository = self.remote_repo_handle();
         let designator_cp = designator.clone();
         async move {
             let release = if let Ok(id) = designator.parse2::<ReleaseId>() {
-                repository.find_release_by_id(&octocrab, id).await?
+                repository.find_release_by_id(id).await?
             } else {
                 match designator.as_str() {
-                    "latest" => repository.latest_release(&octocrab).await?,
-                    "nightly" =>
-                        crate::version::latest_nightly_release(&octocrab, &repository).await?,
-                    tag => repository.find_release_by_text(&octocrab, tag).await?,
+                    "latest" => repository.latest_release().await?,
+                    "nightly" => crate::version::latest_nightly_release(repository).await?,
+                    tag => repository.find_release_by_text(tag).await?,
                 }
             };
             Ok(release)
@@ -65,5 +62,10 @@ impl BuildContext {
             e.context(format!("Failed to resolve release designator `{designator_cp}`."))
         })
         .boxed()
+    }
+
+    pub fn remote_repo_handle(&self) -> github::repo::Handle<github::Repo> {
+        github::repo::Handle::new(&self.octocrab, self.remote_repo.clone())
+        // ReleaseHandle::new(&self.octocrab, self.remote_repo.clone(), self.release_id)
     }
 }

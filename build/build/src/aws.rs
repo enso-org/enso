@@ -5,7 +5,6 @@ use crate::version::BuildKind;
 use anyhow::Context;
 use aws_sdk_s3::model::ObjectCannedAcl;
 use aws_sdk_s3::types::ByteStream;
-use ide_ci::github::Repo;
 use s3::BucketContext;
 
 
@@ -86,12 +85,12 @@ impl Manifest {
     }
 }
 
-pub async fn update_manifest(repo_context: &Repo, edition_file: &Path) -> Result {
+pub async fn update_manifest(repo_context: &impl IsRepo, edition_file: &Path) -> Result {
     let bucket_context = BucketContext {
         client:     aws_sdk_s3::Client::new(&aws_config::load_from_env().await),
         bucket:     EDITIONS_BUCKET_NAME.to_string(),
         upload_acl: ObjectCannedAcl::PublicRead,
-        key_prefix: repo_context.name.clone(),
+        key_prefix: repo_context.name().to_string(),
     };
 
     let new_edition_name = Edition(

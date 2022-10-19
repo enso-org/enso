@@ -34,7 +34,8 @@ impl Storable for ExtractedArtifact {
         async move {
             let ExtractedArtifact { client, key } = this;
             let Key { artifact_id, repository } = key;
-            repository.download_and_unpack_artifact(&client, artifact_id, &store).await?;
+            let repository = repository.handle(&client);
+            repository.download_and_unpack_artifact(artifact_id, &store).await?;
             Ok(())
         }
         .boxed()

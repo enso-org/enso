@@ -56,7 +56,7 @@ impl RunnerLocation {
             RunnerLocation::Organization(org) =>
                 org.generate_runner_registration_token(octocrab).await,
             RunnerLocation::Repository(repo) =>
-                repo.generate_runner_registration_token(octocrab).await,
+                repo.handle(octocrab).generate_runner_registration_token().await,
         }
     }
 

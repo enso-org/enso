@@ -5,7 +5,7 @@ use chrono::Datelike;
 use derivative::Derivative;
 use ide_ci::define_env_var;
 use ide_ci::env::new::TypedVariable;
-use ide_ci::github::Repo;
+use ide_ci::github;
 use octocrab::models::repos::Release;
 use semver::Prerelease;
 use std::collections::BTreeSet;
@@ -37,16 +37,15 @@ pub fn is_nightly_release(release: &Release) -> bool {
 }
 
 pub async fn nightly_releases(
-    octocrab: &Octocrab,
-    repo: &Repo,
+    repo: github::repo::Handle<impl IsRepo>,
 ) -> Result<impl Iterator<Item = Release>> {
-    Ok(repo.all_releases(octocrab).await?.into_iter().filter(is_nightly_release))
+    Ok(repo.all_releases().await?.into_iter().filter(is_nightly_release))
 }
 
-pub async fn latest_nightly_release(octocrab: &Octocrab, repo: &Repo) -> Result<Release> {
+pub async fn latest_nightly_release(repo: github::repo::Handle<impl IsRepo>) -> Result<Release> {
     // TODO: this assumes that releases are returned in date order, to be confirmed
     //       (but having to download all the pages to see which is latest wouldn't be nice)
-    nightly_releases(octocrab, repo).await?.next().context("Failed to find any nightly releases.")
+    nightly_releases(repo).await?.next().context("Failed to find any nightly releases.")
 }
 
 
@@ -84,7 +83,7 @@ impl Versions {
         Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
     }
 
-    pub async fn nightly_prerelease(octocrab: &Octocrab, repo: &Repo) -> Result<Prerelease> {
+    pub async fn nightly_prerelease(repo: github::repo::Handle<impl IsRepo>) -> Result<Prerelease> {
         let date = chrono::Utc::now();
         let date = date.format("%F").to_string();
 
@@ -98,7 +97,7 @@ impl Versions {
             Ok(pre)
         };
 
-        let relevant_nightly_versions = nightly_releases(octocrab, repo)
+        let relevant_nightly_versions = nightly_releases(repo)
             .await?
             .filter_map(|release| {
                 if release.tag_name.contains(&todays_pre_text) {
@@ -205,9 +204,8 @@ pub fn versions_from_env(expected_build_kind: Option<BuildKind>) -> Result<Optio
 
 #[instrument(skip_all, ret)]
 pub async fn deduce_versions(
-    octocrab: &Octocrab,
+    repo: Result<github::repo::Handle<impl IsRepo>>,
     build_kind: BuildKind,
-    target_repo: Result<&Repo>,
     root_path: impl AsRef<Path>,
 ) -> Result<Versions> {
     debug!("Deciding on version to target.");
@@ -218,7 +216,7 @@ pub async fn deduce_versions(
         let version = Version {
             pre: match build_kind {
                 BuildKind::Dev => Versions::local_prerelease()?,
-                BuildKind::Nightly => Versions::nightly_prerelease(octocrab, target_repo?).await?,
+                BuildKind::Nightly => Versions::nightly_prerelease(repo?).await?,
             },
             ..base_version(&changelog_path)?
         };
