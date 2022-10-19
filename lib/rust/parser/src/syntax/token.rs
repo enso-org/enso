@@ -527,6 +527,11 @@ impl Precedence {
     pub fn application() -> Self {
         Precedence { value: 80 }
     }
+
+    /// Return the precedence of unary minus.
+    pub fn unary_minus() -> Self {
+        Precedence { value: 79 }
+    }
 }
 
 /// Associativity (left or right).

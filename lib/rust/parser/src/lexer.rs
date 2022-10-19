@@ -660,7 +660,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_annotation(),
         "-" =>
             return operator
-                .with_unary_prefix_mode(token::Precedence::max())
+                .with_unary_prefix_mode(token::Precedence::unary_minus())
                 .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
         // - These 3 "consume everything to the right".

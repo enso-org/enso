@@ -641,57 +641,82 @@ final class TreeToIr {
     * @return the {@link IR} representation of `maybeParensedInput`
     */
   IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
-    return translateExpression(tree, nil(), insideTypeSignature, false);
+    return translateExpression(tree, insideTypeSignature, false);
   }
 
-  IR.Expression translateExpression(Tree tree, List<Tree> moreArgs, boolean insideTypeSignature, boolean isMethod) {
+  private IR.Expression translateCall(Tree tree) {
+    var args = new java.util.ArrayList<IR.CallArgument>();
+    var hasDefaultsSuspended = false;
+    for (;;) {
+      switch (tree) {
+        case Tree.App app when app.getArg() instanceof Tree.AutoScope -> {
+          hasDefaultsSuspended = true;
+          // TODO: End unrolling here.
+          tree = app.getFunc();
+        }
+        case Tree.App app -> {
+          var expr = translateExpression(app.getArg(), false);
+          var loc = getIdentifiedLocation(app.getArg());
+          args.add(new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag()));
+          tree = app.getFunc();
+        }
+        case Tree.NamedApp app -> {
+          var expr = translateExpression(app.getArg(), false);
+          var loc = getIdentifiedLocation(app.getArg());
+          var id = sanitizeName(buildName(app, app.getName()));
+          args.add(new IR$CallArgument$Specified(Option.apply(id), expr, loc, meta(), diag()));
+          tree = app.getFunc();
+        }
+        case Tree.DefaultApp app -> {
+          var loc = getIdentifiedLocation(app.getDefault());
+          var expr = buildName(app.getDefault());
+          args.add(new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag()));
+          tree = app.getFunc();
+        }
+        default -> {
+          IR.Expression func;
+          if (tree instanceof Tree.OprApp
+                  && ((Tree.OprApp)tree).getOpr().getRight() != null
+                  && ".".equals(((Tree.OprApp)tree).getOpr().getRight().codeRepr())
+                  && ((Tree.OprApp)tree).getRhs() instanceof Tree.Ident) {
+            var app = (Tree.OprApp)tree;
+            var self = translateExpression(app.getLhs(), false);
+            var loc = getIdentifiedLocation(app.getLhs());
+            args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
+            func = translateExpression(app.getRhs(), false, true);
+          } else if (args.isEmpty()) {
+            return null;
+          } else {
+            func = translateExpression(tree, false);
+          }
+          java.util.Collections.reverse(args);
+          var argsList = CollectionConverters.asScala(args.iterator()).toList();
+          return new IR$Application$Prefix(
+                  func, argsList,
+                  hasDefaultsSuspended,
+                  getIdentifiedLocation(tree),
+                  meta(),
+                  diag()
+          );
+        }
+      }
+    }
+  }
+  IR.Expression translateExpression(Tree tree, boolean insideTypeSignature, boolean isMethod) {
+    if (tree == null) {
+      return null;
+    }
+    var callExpression = translateCall(tree);
+    if (callExpression != null) {
+      return callExpression;
+    }
     return switch (tree) {
-      case null -> null;
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
-            if (insideTypeSignature) {
-              yield buildQualifiedName(app, loc, true);
-            } else {
-              var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
-              var lhs = translateExpression(app.getLhs(), insideTypeSignature);
-              if (moreArgs.isEmpty() && rhs instanceof IR$Application$Prefix first && lhs instanceof IR$Application$Prefix pref) {
-                IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), pref, loc, meta(), diag());
-                var args = cons(callArgument, first.arguments());
-                yield first.copy(
-                  first.copy$default$1(),
-                  args,
-                  first.copy$default$3(),
-                  first.copy$default$4(),
-                  first.copy$default$5(),
-                  first.copy$default$6(),
-                  first.copy$default$7()
-                );
-              }
-              IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, loc, meta(), diag());
-              var firstArg = cons(callArgument, nil());
-              if (moreArgs.size() == 1 && moreArgs.head() instanceof Tree.AutoScope) {
-                yield new IR$Application$Prefix(
-                    rhs, firstArg,
-                    true,
-                    getIdentifiedLocation(tree),
-                    meta(),
-                    diag()
-                );
-              } else {
-                var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
-                var prefix = new IR$Application$Prefix(
-                    rhs, args,
-                    false,
-                    getIdentifiedLocation(tree),
-                    meta(),
-                    diag()
-                );
-                yield prefix;
-              }
-            }
+            yield buildQualifiedName(app, loc, true);
           }
 
           case "->" -> {
@@ -765,15 +790,6 @@ final class TreeToIr {
           }
         };
       }
-
-      case Tree.App app -> {
-        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
-        yield fn;
-      }
-      case Tree.NamedApp app -> {
-        var fn = translateExpression(app.getFunc(), cons(app, moreArgs), insideTypeSignature, isMethod);
-        yield fn;
-      }
       case Tree.Array arr -> {
         List<IR.Expression> items = nil();
         if (arr.getFirst() != null) {
@@ -790,22 +806,7 @@ final class TreeToIr {
         );
       }
       case Tree.Number n -> translateDecimalLiteral(n);
-      case Tree.Ident id -> {
-        var exprId = translateIdent(id, isMethod);
-        if (moreArgs.isEmpty()) {
-          yield exprId;
-        } else {
-          var args = translateCallArguments(moreArgs, nil(), insideTypeSignature);
-          var prefix = new IR$Application$Prefix(
-              exprId, args,
-              false,
-              getIdentifiedLocation(tree),
-              meta(),
-              diag()
-          );
-          yield prefix;
-        }
-      }
+      case Tree.Ident id -> translateIdent(id, isMethod);
       case Tree.MultiSegmentApp app -> {
         var fnName = new StringBuilder();
         var sep = "";
@@ -889,7 +890,7 @@ final class TreeToIr {
         );
       }
       case Tree.Group group -> {
-        yield translateExpression(group.getBody(), moreArgs, insideTypeSignature, isMethod);
+        yield translateExpression(group.getBody(), insideTypeSignature, isMethod);
       }
       case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
@@ -953,140 +954,11 @@ final class TreeToIr {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
       }
-      case Tree.AutoScope auto -> {
-        yield buildName(auto.getToken());
-      }
       case Tree.Documented doc -> {
         yield translateExpression(doc.getExpression(), insideTypeSignature);
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
-    /*
-    val inputAst = AstView.MaybeManyParensed
-      .unapply(maybeParensedInput)
-      .getOrElse(maybeParensedInput)
-
-        IR.Error
-          .Syntax(inputAst, IR.Error.Syntax.TypeDefinedInline(consName.name))
-      case AstView.UnaryMinus(expression) =>
-        expression match {
-          case AST.Literal.Number(base, number) =>
-            translateExpression(
-              AST.Literal
-                .Number(base, s"-$number")
-                .setLocation(inputAst.location)
-            )
-          case _ =>
-            IR.Application.Prefix(
-              IR.Name
-                .Literal("negate", isMethod = true, None),
-              List(
-                IR.CallArgument.Specified(
-                  None,
-                  translateExpression(expression),
-                  getIdentifiedLocation(expression)
-                )
-              ),
-              hasDefaultsSuspended = false,
-              getIdentifiedLocation(inputAst)
-            )
-        }
-      case AstView.FunctionSugar(name, args, body) =>
-        Function.Binding(
-          translateIdent(name).asInstanceOf[IR.Name.Literal],
-          args.map(translateArgumentDefinition(_)),
-          translateExpression(body),
-          getIdentifiedLocation(inputAst)
-        )
-      case AstView
-            .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
-        Expression.Binding(
-          buildName(name),
-          Expression.Block(
-            lines.map(translateExpression(_)),
-            translateExpression(lastLine),
-            getIdentifiedLocation(block),
-            suspended = true
-          ),
-          getIdentifiedLocation(inputAst)
-        )
-      case AstView.BasicAssignment(name, expr) =>
-        translateBinding(getIdentifiedLocation(inputAst), name, expr)
-      case AstView.TypeAscription(left, right) =>
-        IR.Application.Operator.Binary(
-          translateCallArgument(left),
-          buildName(AST.Ident.Opr(AstView.TypeAscription.operatorName)),
-          translateCallArgument(right, insideTypeSignature = true),
-          getIdentifiedLocation(inputAst)
-        )
-      case AstView.MethodDefinition(_, name, _, _) =>
-        IR.Error.Syntax(
-          inputAst,
-          IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
-        )
-      case AstView.MethodCall(target, name, args) =>
-        inputAst match {
-          case AstView.QualifiedName(idents) if insideTypeSignature =>
-            IR.Name.Qualified(
-              idents.map(x => translateIdent(x).asInstanceOf[IR.Name]),
-              getIdentifiedLocation(inputAst)
-            )
-          case _ =>
-            val (validArguments, hasDefaultsSuspended) =
-              calculateDefaultsSuspension(args)
-
-            Application.Prefix(
-              buildName(name, isMethod = true),
-              (target :: validArguments).map(translateCallArgument(_)),
-              hasDefaultsSuspended = hasDefaultsSuspended,
-              getIdentifiedLocation(inputAst)
-            )
-        }
-      case AstView.CaseExpression(scrutinee, branches) =>
-        val actualScrutinee = translateExpression(scrutinee)
-        val allBranches     = branches.map(translateCaseBranch)
-
-        Case.Expr(
-          actualScrutinee,
-          allBranches,
-          getIdentifiedLocation(inputAst)
-        )
-      case AstView.DecimalLiteral(intPart, fracPart) =>
-        translateDecimalLiteral(inputAst, intPart, fracPart)
-      case AST.App.any(inputAST) =>
-        translateApplicationLike(inputAST, insideTypeSignature)
-      case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
-      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
-      case AST.TypesetLiteral.any(tSet) =>
-        IR.Application.Literal.Typeset(
-          tSet.expression.map(translateExpression(_)),
-          getIdentifiedLocation(tSet)
-        )
-      case AST.SequenceLiteral.any(inputAST) =>
-        translateSequenceLiteral(inputAST)
-      case AstView.Block(lines, retLine) =>
-        Expression.Block(
-          lines.map(translateExpression(_)),
-          translateExpression(retLine),
-          location = getIdentifiedLocation(inputAst)
-        )
-      case AST.Comment.any(inputAST) => translateComment(inputAST)
-      case AST.Invalid.any(inputAST) => translateInvalid(inputAST)
-      case AST.Foreign(_, _, _) =>
-        Error.Syntax(
-          inputAst,
-          Error.Syntax.UnsupportedSyntax("foreign blocks")
-        )
-      case AstView.Pattern(_) =>
-        Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
-      case AST.Macro.Ambiguous(_, _) =>
-        Error.Syntax(inputAst, Error.Syntax.AmbiguousExpression)
-      case _ =>
-        throw new UnhandledEntity(inputAst, "translateExpression")
-    }
-    */
   }
 
   @SuppressWarnings("unchecked")

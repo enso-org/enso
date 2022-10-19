@@ -710,19 +710,15 @@ fn minus_section() {
 
 #[test]
 fn minus_unary() {
-    #[rustfmt::skip]
-    let cases = [
-        ("f -x", block![(App (Ident f) (UnaryOprApp "-" (Ident x)))]),
-        ("-x", block![(UnaryOprApp "-" (Ident x))]),
-        ("(-x)", block![(Group (UnaryOprApp "-" (Ident x)))]),
-        ("-(x * x)", block![
-            (UnaryOprApp "-" (Group (OprApp (Ident x) (Ok "*") (Ident x))))]),
-        ("x=-x", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x)))]),
-        ("-x+x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x))]),
-        ("-x*x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x))]),
-        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("f -x", (App (Ident f) (UnaryOprApp "-" (Ident x))));
+    test!("-x", (UnaryOprApp "-" (Ident x)));
+    test!("(-x)", (Group (UnaryOprApp "-" (Ident x))));
+    test!("-(x * x)", (UnaryOprApp "-" (Group (OprApp (Ident x) (Ok "*") (Ident x)))));
+    test!("x=-x", (Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x))));
+    test!("-x+x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x)));
+    test!("-x*x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x)));
+    test!("-2.1", (UnaryOprApp "-" (Number () "2" ("." "1"))));
+    //test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
 }
 
 
@@ -1160,18 +1156,17 @@ fn tuple_literals() {
 
 #[test]
 fn numbers() {
-    let cases = [
-        ("100_000", block![(Number () "100_000" ())]),
-        ("10_000.99", block![(Number () "10_000" ("." "99"))]),
-        ("1 . 0", block![(OprApp (Number () "1" ()) (Ok ".") (Number () "0" ()))]),
-        ("1 .0", block![(App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ()))))]),
-        ("1. 0", block![(OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))]),
-        ("0b10101010", block![(Number "0b" "10101010" ())]),
-        ("0o122137", block![(Number "0o" "122137" ())]),
-        ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),
-        ("pi = 3.14", block![(Assignment (Ident pi) "=" (Number () "3" ("." "14")))])
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("100_000", (Number () "100_000" ()));
+    test!("10_000.99", (Number () "10_000" ("." "99")));
+    test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
+    test!("1 .0",
+        (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
+    test!("1. 0",
+        (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))));
+    test!("0b10101010", (Number "0b" "10101010" ()));
+    test!("0o122137", (Number "0o" "122137" ()));
+    test!("0xAE2F14", (Number "0x" "AE2F14" ()));
+    test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
 }
 
 
