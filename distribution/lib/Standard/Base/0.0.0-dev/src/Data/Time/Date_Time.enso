@@ -12,6 +12,27 @@ polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
 
+## Obtains the start of the epoch for Enso.
+
+    ? Start of the epoch
+    For Enso, start of the epoch is equal to the start of the Gregorian calendar,
+    which is on 15th October 1582. It is possible to create a Date_Time that is
+    before the start of the epoch, however, it is invalid to invoke any (Gregorian)
+    calendar related functionalities on such a Date_Time, e.g., `length_of_month` or
+    `day_of_week`. All the other operations, including `+` and `-` should succeed.
+
+epoch_start : Date_Time
+epoch_start = @Builtin_Method "Date_Time.epoch_start"
+
+## PRIVATE
+ensure_in_epoch : (Date_Time | Date) -> (Date_Time | Date) ! Time_Error
+ensure_in_epoch date =
+    datetime = case date of
+        x : Date_Time -> x
+        x : Date.Date -> x.to_date_time
+    if epoch_start <= datetime then date else Error.throw Time_Error.epoch_start
+
+
 ## ALIAS Current Time
 
    Obtains the current date-time from the system clock in the system timezone.
@@ -29,6 +50,7 @@ now = @Builtin_Method "Date_Time.now"
    second, nanosecond and timezone.
 
    Arguments:
+   - year: The year to represent, any Integer is valid.
    - month: the month-of-year to represent, from 1 (January) to 12 (December)
    - day: the day-of-month to represent, from 1 to 31 and must be valid for the
      year and month
@@ -247,27 +269,33 @@ type Date_Time
     zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
-    ## Return the number of seconds from the Unix epoch.
+    ## Return the number of seconds from the Enso epoch. See Date_Time.epoch_start
+
+       If this Date_Time is before an epoch start, throws `Time_Error`.
 
        > Example
-         Get the current number of seconds from the Unix epoch.
+         Get the current number of seconds from the Enso epoch.
 
              from Standard.Base import Date_Time
 
              example_epoch = Date_Time.now.to_epoch_seconds
-    to_epoch_seconds : Integer
-    to_epoch_seconds self = @Builtin_Method "Date_Time.to_epoch_seconds"
+    to_epoch_seconds : Integer ! Time_Error
+    to_epoch_seconds self =
+        (Duration.between epoch_start (ensure_in_epoch self)).total_seconds.floor
 
-    ## Return the number of milliseconds from the Unix epoch.
+    ## Return the number of milliseconds from the Enso epoch. See Date_Time.epoch_start
+
+       If this Date_Time is before an epoch start, throws `Time_Error`.
 
        > Example
-         Get the current number of milliseconds from the unix epoch.
+         Get the current number of milliseconds from the Enso epoch.
 
              from Standard.Base import Date_Time
 
              example_epoch = Date_Time.now.to_epoch_milliseconds
-    to_epoch_milliseconds : Integer
-    to_epoch_milliseconds self = @Builtin_Method "Date_Time.to_epoch_milliseconds"
+    to_epoch_milliseconds : Integer ! Time_Error
+    to_epoch_milliseconds self =
+        (Duration.between epoch_start (ensure_in_epoch self)).total_milliseconds.floor
 
     ## Convert this point in time to time of day, discarding the time zone
        information.
@@ -283,6 +311,8 @@ type Date_Time
 
     ## Returns the number of week of year this date falls into.
 
+       Throws `Time_Error` for a Date_Time that is before epoch start.
+
        Arguments:
        - locale: the locale used to define the notion of weeks of year.
          If no locale is provided, then the ISO 8601 week of year is used.
@@ -295,18 +325,23 @@ type Date_Time
          other hand, the first day of the week is Monday, and week 1 is the week
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
-    week_of_year : (Locale.Locale | Nothing) -> Integer
+    week_of_year : (Locale.Locale | Nothing) -> Integer ! Time_Error
     week_of_year self locale=Nothing =
-        if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
-            Time_Utils.week_of_year_zoneddatetime self locale.java_locale
+        self_in_epoch = (ensure_in_epoch self)
+        if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self_in_epoch IsoFields.WEEK_OF_WEEK_BASED_YEAR else
+            Time_Utils.week_of_year_zoneddatetime self_in_epoch locale.java_locale
 
     ## Returns if the date is in a leap year.
-    is_leap_year : Boolean
-    is_leap_year self = self.date.is_leap_year
+
+       Throws `Time_Error` for a Date_Time that is before epoch start.
+    is_leap_year : Boolean ! Time_Error
+    is_leap_year self = (ensure_in_epoch self).date.is_leap_year
 
     ## Returns the number of days in the year represented by this date.
-    length_of_year : Integer
-    length_of_year self = self.date.length_of_year
+
+       Throws `Time_Error` for a Date_Time that is before epoch start.
+    length_of_year : Integer ! Time_Error
+    length_of_year self = (ensure_in_epoch self).date.length_of_year
 
     ## Returns the century of the date.
     century : Integer
@@ -317,17 +352,19 @@ type Date_Time
     quarter self = Time_Utils.get_field_as_zoneddatetime self IsoFields.QUARTER_OF_YEAR
 
     ## Returns the number of days in the month represented by this date.
-    length_of_month : Integer
-    length_of_month self = self.date.length_of_month
+
+       Throws `Time_Error` for a Date_Time that is before epoch start.
+    length_of_month : Integer ! Time_Error
+    length_of_month self = (ensure_in_epoch self).date.length_of_month
 
     ## Returns the day of the year.
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_YEAR
 
     ## Returns the day of the week.
-    day_of_week : Day_Of_Week
+    day_of_week : Day_Of_Week ! Time_Error
     day_of_week self =
-        Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
+        Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime (ensure_in_epoch self) ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## Returns the first date within the `Time_Period` or `Date_Period`
        containing self.
@@ -398,6 +435,9 @@ type Date_Time
        For the purpose of this method, the business days are defined to be
        Monday through Friday.
 
+       Throws `Time_Error` if called on a Date_Time that is before an epoch
+       start. See `Date_Time.epoch_start`.
+
        This method always returns a day which is a business day - if the shift
        amount is zero, the closest following business day is returned. For the
        purpose of calculating the shift, the holidays are treated as if we were
@@ -426,9 +466,9 @@ type Date_Time
          Shift the date by 5 business days.
 
              example_shift = Date_Time.new 2020 2 3 11 45 . add_work_days 5
-    add_work_days : Integer -> Vector Date -> Date_Time
+    add_work_days : Integer -> Vector Date -> Date_Time ! Time_Error
     add_work_days self days=1 holidays=[] =
-        self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
+        (ensure_in_epoch self).date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
