@@ -1881,12 +1881,9 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"             % icuVersion   % "provided",
       "com.univocity"       % "univocity-parsers" % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
-      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

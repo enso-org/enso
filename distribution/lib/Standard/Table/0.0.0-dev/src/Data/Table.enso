@@ -1198,10 +1198,11 @@ type Table
             _ : Auto_Detect ->
                 base_format = format.get_format file
                 if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
-                    Panic.catch Errors.No_Such_Method_Error_Data (base_format.write_table file self on_existing_file match_columns on_problems) _->
-                       name = Meta.get_constructor_name (Meta.meta base_format).constructor
-                       Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
-            _ -> format.write_table file self on_existing_file match_columns on_problems
+                    self.write base_format file on_existing_file match_columns on_problems
+            _ ->
+                Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                    name = Meta.get_constructor_name (Meta.meta format).constructor
+                    Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

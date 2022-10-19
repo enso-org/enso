@@ -276,7 +276,7 @@ type File
     ## Read a file using the specified file format
 
        Arguments:
-       - format: A File_Format object used to read file into memory.
+       - format: A `File_Format` object used to read file into memory.
          If `Auto_Detect` is specified; the provided file determines the specific
          type and configures it appropriately. If there is no matching type then
          a `Unsupported_File_Type` error is returned.
