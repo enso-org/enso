@@ -4,7 +4,7 @@ from Standard.Base.Error.Common import unimplemented
 from project.System.File_Format.Plain_Text_Format import Plain_Text
 from project.System.File_Format.Plain_Text_Format export Plain_Text
 
-polyglot java import org.enso.base.FileFormatSPI
+polyglot java import org.enso.base.file_format.FileFormatSPI
 
 ## PRIVATE
 format_types : Vector

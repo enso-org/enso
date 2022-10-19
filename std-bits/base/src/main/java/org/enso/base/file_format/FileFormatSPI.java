@@ -1,4 +1,4 @@
-package org.enso.base;
+package org.enso.base.file_format;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;

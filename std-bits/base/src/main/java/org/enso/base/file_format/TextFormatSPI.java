@@ -1,7 +1,7 @@
-import org.enso.base.FileFormatSPI;
+package org.enso.base.file_format;
 
 @org.openide.util.lookup.ServiceProvider(service = FileFormatSPI.class)
-public class ByteFormatSPI  extends FileFormatSPI {
+public class TextFormatSPI  extends FileFormatSPI {
   @Override
   protected String getModuleName() {
     return "Standard.Base.System.File_Format";
@@ -9,6 +9,6 @@ public class ByteFormatSPI  extends FileFormatSPI {
 
   @Override
   protected String getTypeName() {
-    return "Bytes";
+    return "Plain_Text_Format";
   }
 }
