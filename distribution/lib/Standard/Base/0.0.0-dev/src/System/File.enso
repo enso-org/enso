@@ -66,7 +66,7 @@ new path =
      later, however, will still work.
 read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
 read path (format=Auto_Detect) (on_problems=Report_Warning) =
-    file = File.new path
+    file = new path
     file.read format on_problems
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.

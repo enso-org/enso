@@ -23,7 +23,6 @@ import project.Internal.Table_Helpers
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-import project.IO.Auto_Detect.Auto_Detect
 
 from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto

@@ -33,7 +33,7 @@ export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
 export project.Data.Aggregate_Column.Aggregate_Column
 
-export project.IO.Auto_Detect
+from project.IO.Auto_Detect export all
 
 export project.Delimited.Quote_Style.Quote_Style
 from project.Delimited.Delimited_Format export Delimited_Format, Delimited
