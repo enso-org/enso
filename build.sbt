@@ -1193,32 +1193,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
-lazy val ast = (project in file("lib/scala/ast"))
-  .settings(
-    version := ensoVersion,
-    Compile / sourceGenerators += GenerateAST.task
-  )
-
-lazy val parser = (project in file("lib/scala/parser"))
-  .settings(
-    fork := true,
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(Cargo("build --project parser"))
-      .value,
-    javaOptions += {
-      val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
-      s"-Djava.library.path=$root/target/rust/debug"
-    },
-    libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % scalatestVersion % Test
-    ),
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    )
-  )
-  .dependsOn(ast)
-
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
   "consistency of instrumentation configuration."
