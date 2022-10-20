@@ -400,6 +400,7 @@
 - [Fix performance of method calls on polyglot arrays][3781]
 - [Missing foreign language generates proper Enso error][3798]
 - [Made Vector performance to be on par with Array][3811]
+- [Accept Array-like object seamlessly in builtins][3817]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -455,6 +456,7 @@
 [3781]: https://github.com/enso-org/enso/pull/3781
 [3798]: https://github.com/enso-org/enso/pull/3798
 [3811]: https://github.com/enso-org/enso/pull/3811
+[3817]: https://github.com/enso-org/enso/pull/3817
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
