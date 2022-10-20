@@ -1881,6 +1881,7 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided",
       "com.univocity"       % "univocity-parsers" % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0"
