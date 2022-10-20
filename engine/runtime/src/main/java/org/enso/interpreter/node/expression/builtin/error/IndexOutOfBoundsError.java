@@ -6,9 +6,9 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class UnsupportedArgumentTypes extends UniquelyConstructibleBuiltin {
+public class IndexOutOfBoundsError extends UniquelyConstructibleBuiltin {
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("arguments", "message");
+    return List.of("index", "length");
   }
 }

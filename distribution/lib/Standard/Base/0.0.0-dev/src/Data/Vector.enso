@@ -146,20 +146,7 @@ type Vector a
 
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
-    at self index =
-        actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error_Data (self.unsafe_at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
-
-    ## ADVANCED
-       UNSTABLE
-
-       An unsafe variant of the `at` operation. It only allows non-negative
-       indices and will panic with a raw Java exception on out-of-bounds access.
-       Thus it should only be used when the access is guaranteed to be within
-       bounds or with additional error handling.
-    unsafe_at : Integer -> Any
-    unsafe_at self index = @Builtin_Method "Vector.unsafe_at"
+    at self index = @Builtin_Method "Vector.at"
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -179,7 +166,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.unsafe_at ix)
+        f = acc -> ix -> function acc (self.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -213,9 +200,9 @@ type Vector a
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce self function =
         case self.not_empty of
-            True -> if self.length == 1 then self.unsafe_at 0 else
+            True -> if self.length == 1 then self.at 0 else
                 f = acc -> ix -> function acc (self.at ix)
-                1.up_to self.length . fold (self.unsafe_at 0) f
+                1.up_to self.length . fold (self.at 0) f
             False -> Error.throw Empty_Error
 
     ## Computes the sum of the values in the vector.
@@ -248,7 +235,7 @@ type Vector a
              [1, 2, 3, 4, 5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.unsafe_at idx)))
+        0.up_to self.length . exists (idx -> (predicate (self.at idx)))
 
     ## Returns the first element of the vector that satisfies the predicate or
        if no elements of the vector satisfy the predicate, it throws nothing.
@@ -267,7 +254,7 @@ type Vector a
         len = self.length
         go idx =
             if (idx >= len) then Error.throw Nothing else
-                elem = self.unsafe_at idx
+                elem = self.at idx
                 if predicate elem then elem else
                     @Tail_Call go idx+1
         go 0
@@ -435,7 +422,7 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Vector Any
     map self function =
-        new self.length i-> function (self.unsafe_at i)
+        new self.length i-> function (self.at i)
 
     ## Applies a function to each element of the vector, returning the vector
        that contains all results concatenated.
@@ -483,7 +470,7 @@ type Vector a
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index self function = new self.length i-> function i (self.unsafe_at i)
+    map_with_index self function = new self.length i-> function i (self.at i)
 
     ## Applies a function to each element of the vector.
 
@@ -500,7 +487,7 @@ type Vector a
     each : (Any -> Any) -> Nothing
     each self f =
         0.up_to self.length . each ix->
-            f (self.unsafe_at ix)
+            f (self.at ix)
 
     ## Applies a function to each element of the vector.
 
@@ -520,7 +507,7 @@ type Vector a
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f =
         0.up_to self.length . each ix->
-            f ix (self.unsafe_at ix)
+            f ix (self.at ix)
 
     ## Reverses the vector, returning a vector with the same elements, but in
        the opposite order.
@@ -530,7 +517,7 @@ type Vector a
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse self = new self.length (i -> self.unsafe_at (self.length - (1 + i)))
+    reverse self = new self.length (i -> self.at (self.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -579,7 +566,7 @@ type Vector a
     == : Vector -> Boolean
     == self that = case that of
         _ : Vector ->
-            eq_at i = self.unsafe_at i == that.unsafe_at i
+            eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ : Array ->
             eq_at i = self.at i == that.at i
@@ -643,8 +630,8 @@ type Vector a
     join : Text -> Text -> Text -> Text
     join self separator="" prefix="" suffix="" =
         if self.is_empty then prefix+suffix else
-            if self.length == 1 then prefix + self.unsafe_at 0 + suffix else
-                prefix + self.unsafe_at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.unsafe_at i) + suffix
+            if self.length == 1 then prefix + self.at 0 + suffix else
+                prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
 
     ## PRIVATE
        Creates a new vector with the skipping elements until `start` and then
@@ -716,7 +703,7 @@ type Vector a
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that function=[_,_] =
         len = Math.min self.length that.length
-        new len i-> function (self.unsafe_at i) (that.unsafe_at i)
+        new len i-> function (self.at i) (that.at i)
 
     ## Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
@@ -759,7 +746,7 @@ type Vector a
 
              [1, 2, 3, 4].head
     head : Any ! Empty_Error
-    head self = if self.length >= 1 then self.unsafe_at 0 else Error.throw Empty_Error
+    head self = if self.length >= 1 then self.at 0 else Error.throw Empty_Error
 
     ## Get all elements in the vector except the first.
 
@@ -788,7 +775,7 @@ type Vector a
 
              [1, 2, 3, 4].last
     last : Vector ! Empty_Error
-    last self = if self.length >= 1 then self.unsafe_at (self.length-1) else
+    last self = if self.length >= 1 then self.at (self.length-1) else
         Error.throw Empty_Error
 
     ## Get the first element from the vector, or an `Empty_Error` if the vector
@@ -1133,7 +1120,7 @@ slice_ranges vector ranges =
     if ranges.length == 0 then [] else
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
-                _ : Integer -> [vector.unsafe_at ranges.first]
+                _ : Integer -> [vector.at ranges.first]
                 Range_Data start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
@@ -1147,11 +1134,11 @@ slice_many_ranges vector ranges =
     builder = new_builder new_length
     ranges.each descriptor-> case descriptor of
         _ : Integer ->
-            builder.append (vector.unsafe_at descriptor)
+            builder.append (vector.at descriptor)
         Range_Data start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->
                 descriptor.each ix->
-                    builder.append (vector.unsafe_at ix)
+                    builder.append (vector.at ix)
     builder.to_vector

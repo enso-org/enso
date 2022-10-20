@@ -259,8 +259,8 @@ type Any
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error "My message")
-                 error.catch Illegal_Argument_Error (err -> err.message)
+                 error = Error.throw (Illegal_Argument_Error_Data "My message")
+                 error.catch Illegal_Argument_Error_Data (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.

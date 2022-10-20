@@ -20,6 +20,7 @@ public class Error {
   private final SyntaxError syntaxError;
   private final TypeError typeError;
   private final CompileError compileError;
+  private final IndexOutOfBoundsError indexOutOfBoundsError;
   private final InexhaustivePatternMatchError inexhaustivePatternMatchError;
   private final UninitializedState uninitializedState;
   private final NoSuchMethodError noSuchMethodError;
@@ -50,6 +51,7 @@ public class Error {
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);
     compileError = builtins.getBuiltinType(CompileError.class);
+    indexOutOfBoundsError = builtins.getBuiltinType(IndexOutOfBoundsError.class);
     inexhaustivePatternMatchError = builtins.getBuiltinType(InexhaustivePatternMatchError.class);
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethodError = builtins.getBuiltinType(NoSuchMethodError.class);
@@ -74,6 +76,10 @@ public class Error {
 
   public Atom makeCompileError(Object message) {
     return compileError.newInstance(message);
+  }
+
+  public Atom makeIndexOutOfBoundsError(long index, long length) {
+    return indexOutOfBoundsError.newInstance(index, length);
   }
 
   public Atom makeInexhaustivePatternMatchError(Object message) {
@@ -189,11 +195,12 @@ public class Error {
 
   /**
    * @param args an array containing objects
+   * @param message A detailed message, or null
    * @return an error informing about the particular assortment of arguments not being valid for a
-   *     given method callp
+   *     given method call
    */
-  public Atom makeUnsupportedArgumentsError(Object[] args) {
-    return unsupportedArgumentsError.newInstance(new Array(args));
+  public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
+    return unsupportedArgumentsError.newInstance(new Array(args), message);
   }
 
   /**
