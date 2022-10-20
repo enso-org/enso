@@ -27,11 +27,14 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::timer::DelayedRepeats;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
 use ensogl_selector::model::Model;
 use ensogl_selector::Bounds;
+
+use std::time::Duration;
 
 
 
@@ -53,6 +56,10 @@ pub const PADDING: f32 = 3.0;
 const MIN_THUMB_SIZE: f32 = 12.0;
 /// After an animation, the thumb will be visible for this time, before it hides again.
 const HIDE_DELAY: f32 = 1000.0;
+/// Time delay before holding the mouse button triggers scrolling.
+const HOLD_REPEAT_DELAY: Duration = Duration::from_millis(500);
+/// Time interval between scrolls when holding the mouse button.
+const HOLD_REPEAT_INTERVAL: Duration = Duration::from_millis(200);
 
 const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 
@@ -120,6 +127,9 @@ impl Frp {
         let hover_color = style.get_color(theme::component::slider::track::hover_color);
         let bg_default_color = style.get_color(theme::component::slider::background::color);
         let bg_hover_color = style.get_color(theme::component::slider::background::hover_color);
+
+        let background_hold_repeats =
+            DelayedRepeats::new(network, HOLD_REPEAT_DELAY, HOLD_REPEAT_INTERVAL);
 
         frp::extend! { network
 
@@ -233,6 +243,22 @@ impl Frp {
                 |click_position,thumb_center,thumb_size| {
                     let direction = if click_position.x > *thumb_center { 1.0 } else { -1.0 };
                     direction * thumb_size * CLICK_JUMP_PERCENTAGE
+                });
+
+
+            // === Click and hold repeats ===
+
+            background_hold_repeats.active <+ base_frp.is_dragging_background;
+            background_hold <- mouse_position.sample(&background_hold_repeats.on_trigger);
+
+            thumb_scale <- all_with(&inner_length, &frp.set_max, |length_px, max| 1.0 / length_px * max);
+            frp.scroll_by <+ background_hold.map4(
+                &thumb_center_px, &frp.set_thumb_size, &thumb_scale,
+                |hold_position, thumb_center, thumb_size, scale| {
+                    let max_jump = thumb_size * CLICK_JUMP_PERCENTAGE;
+                    let pixel_distance = hold_position.x - *thumb_center;
+                    let scroll_distance = pixel_distance * scale;
+                    scroll_distance.clamp(-max_jump, max_jump)
                 });
 
 
