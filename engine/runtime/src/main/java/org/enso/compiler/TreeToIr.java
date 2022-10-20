@@ -826,19 +826,25 @@ final class TreeToIr {
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.BodyBlock body -> {
-        List<IR.Expression> expressions = nil();
+        var expressions = new java.util.ArrayList<IR.Expression>();
         IR.Expression last = null;
         for (var line : body.getStatements()) {
-          final Tree expr = line.getExpression();
+          Tree expr = line.getExpression();
           if (expr == null) {
             continue;
           }
           if (last != null) {
-            expressions = cons(last, expressions);
+            expressions.add(last);
           }
-          last = translateExpression(expr, insideTypeSignature);
+          if (expr instanceof Tree.Documented) {
+            var doc = (Tree.Documented)expr;
+            expressions.add(translateComment(doc, doc.getDocumentation()));
+            expr = doc.getExpression();
+          }
+          last = translateExpression(expr, false);
         }
-        yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
+        var list = CollectionConverters.asScala(expressions.iterator()).toList();
+        yield new IR$Expression$Block(list, last, getIdentifiedLocation(body), false, meta(), diag());
       }
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
@@ -954,9 +960,6 @@ final class TreeToIr {
       case Tree.Annotated anno -> {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
-      }
-      case Tree.Documented doc -> {
-        yield translateExpression(doc.getExpression(), insideTypeSignature);
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
