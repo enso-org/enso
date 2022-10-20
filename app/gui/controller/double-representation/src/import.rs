@@ -199,3 +199,107 @@ impl Display for Info {
 // =============
 // === Tests ===
 // =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parser_scala::Parser;
+
+    struct Fixture {
+        parser: Parser,
+    }
+
+    impl Fixture {
+        fn new() -> Self {
+            Self { parser: Parser::new_or_panic() }
+        }
+
+        fn run_case(&self, code: &str, expected: Info) {
+            let ast = self.parser.parse_line_ast(code).expect("Parsing import declaration failed");
+            let info = Info::from_ast(&ast);
+            assert_eq!(info, Some(expected));
+        }
+    }
+
+    #[wasm_bindgen_test]
+    fn qualified_import_info_from_ast() {
+        let test = Fixture::new();
+        let make_info = |module: &[&str]| Info {
+            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            imported: ImportedNames::Module { alias: None },
+        };
+
+        let normal_case = "import Standard.Base.Data";
+        let normal_case_expected = make_info(&["Standard", "Base", "Data"]);
+        test.run_case(normal_case, normal_case_expected);
+
+        let weird_spaces = "import   Standard  .Base .   Data   ";
+        let weird_spaces_expected = make_info(&["Standard", "Base", "Data"]);
+        test.run_case(weird_spaces, weird_spaces_expected);
+
+        let single_segment = "import local";
+        let single_segment_expected = make_info(&["local"]);
+        test.run_case(single_segment, single_segment_expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn unrestricted_import_info_from_ast() {
+        let test = Fixture::new();
+        let make_info = |module: &[&str]| Info {
+            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            imported: ImportedNames::All,
+        };
+
+        let normal_case = "from Standard.Base import all";
+        let normal_case_expected = make_info(&["Standard", "Base"]);
+        test.run_case(normal_case, normal_case_expected);
+
+        let weird_spaces = "from   Standard  . Base import   all  ";
+        let weird_spaces_expected = make_info(&["Standard", "Base"]);
+        test.run_case(weird_spaces, weird_spaces_expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn restricted_import_info_from_ast() {
+        let test = Fixture::new();
+        let make_info = |module: &[&str], names: &[&str]| Info {
+            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            imported: ImportedNames::List { names: names.iter().map(|&s| s.to_owned()).collect() },
+        };
+
+        let normal_case = "from Standard.Base import Foo, Bar";
+        let normal_case_expected = make_info(&["Standard", "Base"], &["Foo", "Bar"]);
+        test.run_case(normal_case, normal_case_expected);
+
+        let weird_spaces = "from   Standard  . Base import  Foo ,  Bar ,Buz";
+        let weird_spaces_expected = make_info(&["Standard", "Base"], &["Foo", "Bar", "Buz"]);
+        test.run_case(weird_spaces, weird_spaces_expected);
+
+        let single_name = "from Standard.Base import Foo";
+        let single_name_expected = make_info(&["Standard", "Base"], &["Foo"]);
+        test.run_case(single_name, single_name_expected);
+    }
+
+    #[wasm_bindgen_test]
+    fn hiding_import_info_from_ast() {
+        let test = Fixture::new();
+        let make_info = |module: &[&str], hidden_names: &[&str]| Info {
+            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            imported: ImportedNames::AllExcept {
+                not_imported: hidden_names.iter().map(|&s| s.to_owned()).collect(),
+            },
+        };
+
+        let normal_case = "from Standard.Base import all hiding Foo, Bar";
+        let normal_case_expected = make_info(&["Standard", "Base"], &["Foo", "Bar"]);
+        test.run_case(normal_case, normal_case_expected);
+
+        let weird_spaces = "from   Standard  . Base import  all  hiding  Foo ,  Bar ,Buz";
+        let weird_spaces_expected = make_info(&["Standard", "Base"], &["Foo", "Bar", "Buz"]);
+        test.run_case(weird_spaces, weird_spaces_expected);
+
+        let single_name = "from Standard.Base import all hiding Foo";
+        let single_name_expected = make_info(&["Standard", "Base"], &["Foo"]);
+        test.run_case(single_name, single_name_expected);
+    }
+}
