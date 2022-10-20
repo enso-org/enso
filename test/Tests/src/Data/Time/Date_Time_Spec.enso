@@ -1,7 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Date_Period
-import Standard.Base.Data.Time.Time_Period
-import Standard.Base.Data.Time.Duration
+from Standard.Base.Data.Time import Duration, Period, Date_Period, Time_Period
 
 from Standard.Test import Test, Test_Suite
 
@@ -240,8 +238,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 1
             time . zone . should_equal Time_Zone.utc
 
-        Test.specify "should add date interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + 1.month
+        Test.specify "should add date interval" <|
+            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -251,8 +249,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should add mixed date time interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (1.month + (Duration.new hours=3))
+        Test.specify "should add mixed date time interval" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -273,8 +271,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract date interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - 1.month
+        Test.specify "should subtract date interval" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -284,8 +282,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract mixed date time interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (1.month - (Duration.new hours=3))
+        Test.specify "should subtract mixed date time interval" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -295,8 +293,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should support mixed interval operators" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - 1.month + (Duration.new hours=12)
+        Test.specify "should support mixed interval operators" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) + (Duration.new hours=12)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -502,7 +500,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d4_end.nanosecond . should_equal max_nanos
             Time_Utils.get_datetime_offset d4_end . should_equal offset_1_h
 
-        Test.specify "should allow to shift the date by N working days" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by N working days" <|
             # 2000-2-1 is a Tuesday
             create_new_datetime 2000 2 1 12 30 . add_work_days 0 . should_equal (Date_Time.new 2000 2 1 12 30)
             create_new_datetime 2000 2 1 12 15 55 . add_work_days . should_equal (Date_Time.new 2000 2 2 12 15 55)
@@ -523,7 +521,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             create_new_datetime 2000 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 2000 3 2 12 10)
             create_new_datetime 1999 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 1999 3 4 12 10)
 
-        Test.specify "should handle shifting dates around spring DST edge cases" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should handle shifting dates around spring DST edge cases" <|
             # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
             create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 55 1234)
             create_new_datetime 2022 10 30 1 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 1 30)
@@ -539,7 +537,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             # TODO we need to check and document the actual behaviour once it is expressible, it may be equally acceptable to shift to 3:30 instead of 2:30.
             d4 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 15 0 tz)
 
-        Test.specify "should allow to shift the date by negative amount of working days" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by negative amount of working days" <|
             # 2000-2-1 is a Tuesday
             create_new_datetime 2000 2 1 12 30 . add_work_days -1 . should_equal (Date_Time.new 2000 1 31 12 30)
             create_new_datetime 2000 2 1 13 30 . add_work_days -2 . should_equal (Date_Time.new 2000 1 28 13 30)
@@ -549,10 +547,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             create_new_datetime 2000 2 6 0 1 . add_work_days -2 . should_equal (Date_Time.new 2000 2 3 0 1)
             create_new_datetime 2000 2 6 23 59 . add_work_days -6 . should_equal (Date_Time.new 2000 1 28 23 59)
 
-        Test.specify "should allow to shift the date by N working days, skipping custom holidays" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = Date.new year 1 1
-                Vector.new first_day.length_of_year (n -> first_day + n.days)
+                Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
             holiday_november year =
                 [Date.new year 11 1, Date.new year 11 2, Date.new year 11 11]
             # We duplicate the holiday entries to check that the functions are resilient to such input data.
