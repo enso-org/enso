@@ -50,7 +50,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
-import org.enso.syntax2.Case;
+import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Either;
 import org.enso.syntax2.FractionalDigits;
@@ -539,7 +539,7 @@ final class TreeToIr {
           getIdentifiedLocation(arr), meta(), diag()
         );
       }
-      case Tree.Number n -> translateDecimalLiteral(n);
+      case Tree.Number n -> translateNumber(n);
       case Tree.Ident id -> translateIdent(id, isMethod);
       case Tree.MultiSegmentApp app -> {
         var fnName = new StringBuilder();
@@ -663,21 +663,24 @@ final class TreeToIr {
           default -> ast;
         };
       }
-      case Tree.UnaryOprApp un -> switch (translateExpression(un.getRhs(), false)) {
-        case IR$Literal$Number n when "-".equals(un.getOpr().codeRepr()) -> n.copy(
-          n.copy$default$1(),
-          "-" + n.copy$default$2(),
-          n.copy$default$3(),
-          n.copy$default$4(),
-          n.copy$default$5(),
-          n.copy$default$6()
-        );
-        case IR.Expression expr -> {
-          var negate = new IR$Name$Literal("negate", true, Option.empty(), meta(), diag());
-          var arg = new IR$CallArgument$Specified(Option.empty(), expr, expr.location(), meta(), diag());
-          yield new IR$Application$Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
-        }
-      };
+      case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
+        switch (translateExpression(un.getRhs(), false)) {
+          // The old parser never emitted negative floating-point literals.
+          // Match that behavior for testing during the transition.
+          case IR$Literal$Number n when !n.copy$default$2().contains(".") -> n.copy(
+            n.copy$default$1(),
+            "-" + n.copy$default$2(),
+            n.copy$default$3(),
+            n.copy$default$4(),
+            n.copy$default$5(),
+            n.copy$default$6()
+          );
+          case IR.Expression expr -> {
+            var negate = new IR$Name$Literal("negate", true, Option.empty(), meta(), diag());
+            var arg = new IR$CallArgument$Specified(Option.empty(), expr, expr.location(), meta(), diag());
+            yield new IR$Application$Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
+          }
+        };
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());
         var methodReference = new IR$CallArgument$Specified(
@@ -803,40 +806,24 @@ final class TreeToIr {
     };
   }
 
-  IR.Expression translateDecimalLiteral(Tree.Number ast) {
-    return translateDecimalLiteral(ast, ast.getInteger(), ast.getFractionalDigits());
+  IR.Expression translateNumber(Tree.Number ast) {
+    return translateNumber(ast, ast.getInteger(), ast.getFractionalDigits());
   }
 
-  IR.Expression translateDecimalLiteral(
+  IR.Expression translateNumber(
     Tree ast,
     Token.Digits intPart,
     FractionalDigits fracPart
   ) {
-    if (intPart.getBase() != null && !"10".equals(intPart.getBase())) {
-      return new IR$Error$Syntax(
-        intPart,
-        new IR$Error$Syntax$UnsupportedSyntax("non-base-10 decimal literals"),
-        meta(), diag()
-      );
-    } else {
-      if (fracPart != null && fracPart.getDigits().getBase() != null) {
-        if (!"10".equals(fracPart.getDigits().getBase())) {
-          return new IR$Error$Syntax(
-            intPart,
-            IR$Error$Syntax$InvalidBaseInDecimalLiteral$.MODULE$,
-            meta(), diag()
-          );
-        }
-      }
-      String literal = fracPart != null ?
-          intPart.codeRepr() + "." + fracPart.getDigits().codeRepr() :
-          intPart.codeRepr();
-      return new IR$Literal$Number(
-        Option.empty(),
-        literal,
-        getIdentifiedLocation(ast), meta(), diag()
-      );
-    }
+    final Option<String> base = switch (intPart.getBase()) {
+      case Base.Binary b -> Option.apply("2");
+      case Base.Hexadecimal b -> Option.apply("16");
+      case Base.Octal b -> Option.apply("8");
+      case null -> Option.empty();
+      default -> Option.empty();
+    };
+    String literal = fracPart != null ? intPart.codeRepr() + "." + fracPart.getDigits().codeRepr() : intPart.codeRepr();
+    return new IR$Literal$Number(base, literal, getIdentifiedLocation(ast), meta(), diag());
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
@@ -1182,7 +1169,7 @@ final class TreeToIr {
       case Tree.TextLiteral lit ->
         new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       case Tree.Number num ->
-        new IR$Pattern$Literal((IR.Literal) translateDecimalLiteral(num), getIdentifiedLocation(num), meta(), diag());
+        new IR$Pattern$Literal((IR.Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
