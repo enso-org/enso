@@ -641,7 +641,7 @@ final class TreeToIr {
     * @return the {@link IR} representation of `maybeParensedInput`
     */
   IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
-    return translateExpression(tree, insideTypeSignature, false);
+    return translateExpression(tree, insideTypeSignature, false, false);
   }
 
   private IR.Expression translateCall(Tree tree) {
@@ -683,7 +683,7 @@ final class TreeToIr {
             var self = translateExpression(app.getLhs(), false);
             var loc = getIdentifiedLocation(app.getLhs());
             args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
-            func = translateExpression(app.getRhs(), false, true);
+            func = translateExpression(app.getRhs(), false, true, false);
           } else if (args.isEmpty()) {
             return null;
           } else {
@@ -702,7 +702,7 @@ final class TreeToIr {
       }
     }
   }
-  IR.Expression translateExpression(Tree tree, boolean insideTypeSignature, boolean isMethod) {
+  IR.Expression translateExpression(Tree tree, boolean insideTypeSignature, boolean isMethod, boolean insideTypeAscription) {
     if (tree == null) {
       return null;
     }
@@ -806,6 +806,7 @@ final class TreeToIr {
         );
       }
       case Tree.Number n -> translateDecimalLiteral(n);
+      case Tree.Ident id when insideTypeAscription -> buildQualifiedName(id, getIdentifiedLocation(id), true);
       case Tree.Ident id -> translateIdent(id, isMethod);
       case Tree.MultiSegmentApp app -> {
         var fnName = new StringBuilder();
@@ -890,7 +891,7 @@ final class TreeToIr {
         );
       }
       case Tree.Group group -> {
-        yield translateExpression(group.getBody(), insideTypeSignature, isMethod);
+        yield translateExpression(group.getBody(), insideTypeSignature, isMethod, insideTypeAscription);
       }
       case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
@@ -1230,7 +1231,7 @@ final class TreeToIr {
       default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
     };
     boolean isSuspended = def.getSuspension() != null;
-    var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true));
+    var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true, false, true));
     var defaultValue = Option.apply(def.getDefault()).map(default_ -> translateExpression(default_.getExpression(), false));
     return new IR$DefinitionArgument$Specified(
             name,
@@ -1280,115 +1281,6 @@ final class TreeToIr {
     };
   }
 
-  /** Calculates whether a set of arguments has its defaults suspended, and
-    * processes the argument list to remove that operator.
-    *
-    * @param args the list of arguments
-    * @return the list of arguments with the suspension operator removed, and
-    *         whether or not the defaults are suspended
-
-  def calculateDefaultsSuspension(args: List[AST]): (List[AST], Boolean) = {
-    val validArguments = args.filter {
-      case AstView.SuspendDefaultsOperator(_) => false
-      case _                                  => true
-    }
-
-    val suspendPositions = args.zipWithIndex.collect {
-      case (AstView.SuspendDefaultsOperator(_), ix) => ix
-    }
-
-    val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
-
-    (validArguments, hasDefaultsSuspended)
-  }
-
-  /** Translates an arbitrary expression that takes the form of a syntactic
-    * application from its [[AST]] representation into [[IR]].
-    *
-    * @param callable the callable to translate
-    * @return the [[IR]] representation of `callable`
-    */
-  private IR.Expression translateApplicationLike(
-    Tree callable,
-    boolean insideTypeAscription
-  ) {
-    /*
-    callable match {
-      case AstView.Application(name, args) =>
-        val (validArguments, hasDefaultsSuspended) =
-          calculateDefaultsSuspension(args)
-
-        val fun = name match {
-          case AstView.Method(ast) => buildName(ast, isMethod = true)
-          case AstView.Expr(ast) =>
-            translateExpression(ast, insideTypeAscription)
-        }
-
-        Application.Prefix(
-          fun,
-          validArguments.map(translateCallArgument(_, insideTypeAscription)),
-          hasDefaultsSuspended,
-          getIdentifiedLocation(callable)
-        )
-      case AstView.Lambda(args, body) =>
-        if (args.length > 1) {
-          Error.Syntax(
-            args(1),
-            Error.Syntax.UnsupportedSyntax(
-              "pattern matching function arguments"
-            )
-          )
-        } else {
-          val realArgs =
-            args.map(translateArgumentDefinition(_, insideTypeAscription))
-          val realBody = translateExpression(body, insideTypeAscription)
-          Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
-        }
-      case AST.App.Infix(left, fn, right) =>
-        val leftArg  = translateCallArgument(left, insideTypeAscription)
-        val rightArg = translateCallArgument(right, insideTypeAscription)
-
-        fn match {
-          case AST.Ident.Opr.any(fn) =>
-            if (leftArg.name.isDefined) {
-              IR.Error.Syntax(left, IR.Error.Syntax.NamedArgInOperator)
-            } else if (rightArg.name.isDefined) {
-              IR.Error.Syntax(right, IR.Error.Syntax.NamedArgInOperator)
-            } else {
-              Application.Operator.Binary(
-                leftArg,
-                buildName(fn),
-                rightArg,
-                getIdentifiedLocation(callable)
-              )
-            }
-          case _ => IR.Error.Syntax(left, IR.Error.Syntax.InvalidOperatorName)
-        }
-      case AST.App.Prefix(_, _) =>
-        throw new UnhandledEntity(callable, "translateCallable")
-      case AST.App.Section.any(sec) => translateOperatorSection(sec)
-      case AST.Mixfix(nameSegments, args) =>
-        val realNameSegments = nameSegments.collect {
-          case AST.Ident.Var.any(v)  => v.name
-          case AST.Ident.Cons.any(v) => v.name.toLowerCase
-        }
-
-        val functionName =
-          AST.Ident.Var(realNameSegments.mkString("_"))
-
-        Application.Prefix(
-          buildName(functionName, isMethod = true),
-          args.map(translateCallArgument(_, insideTypeAscription)).toList,
-          hasDefaultsSuspended = false,
-          getIdentifiedLocation(callable)
-        )
-      case AST.Macro.Ambiguous(_, _) =>
-        Error.Syntax(callable, Error.Syntax.AmbiguousExpression)
-      case _ => throw new UnhandledEntity(callable, "translateCallable")
-    }
-    */
-    return null;
-  }
 
   /** Translates an operator section from its [[AST]] representation into the
     * [[IR]] representation.
