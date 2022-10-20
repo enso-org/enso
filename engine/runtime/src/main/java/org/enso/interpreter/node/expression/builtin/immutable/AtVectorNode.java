@@ -10,7 +10,6 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Vector",
@@ -18,24 +17,25 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Returns an element of Vector at the specified index.")
 public class AtVectorNode extends Node {
   private @Child InteropLibrary interop = InteropLibrary.getFactory().createDispatched(3);
-  private @Child HostValueToEnsoNode toEnso = HostValueToEnsoNode.build();
+  private @Child HostValueToEnsoNode convert = HostValueToEnsoNode.build();
 
   Object execute(Vector self, long index) {
     try {
-      long actualIndex = index < 0 ? index + self.length(interop) : index;
-      return self.readArrayElement(actualIndex, interop, toEnso);
-    } catch (InvalidArrayIndexException e) {
-      Context ctx = Context.get(this);
-      try {
-        return DataflowError.withoutTrace(
-            ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, self.length(interop)), this);
-      } catch (UnsupportedMessageException ex) {
-        CompilerDirectives.transferToInterpreter();
-        throw new IllegalStateException(ex);
-      }
+      return readElement(self, index);
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(e);
+    }
+  }
+
+  private Object readElement(Vector self, long index) throws UnsupportedMessageException {
+    try {
+      long actualIndex = index < 0 ? index + self.length(interop) : index;
+      return self.readArrayElement(actualIndex, interop, convert);
+    } catch (InvalidArrayIndexException e) {
+      Context ctx = Context.get(this);
+      return DataflowError.withoutTrace(
+          ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, self.length(interop)), this);
     }
   }
 }

@@ -8,9 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(type = "Array", name = "at", description = "Get element of a polyglot array")
 public class ArrayAtNode extends Node {
@@ -19,22 +17,22 @@ public class ArrayAtNode extends Node {
 
   Object execute(Object self, long index) {
     try {
-      long actualIndex = index < 0 ? index + iop.getArraySize(self) : index;
-      var r = iop.readArrayElement(self, actualIndex);
-      return convert.execute(r);
-    } catch (InvalidArrayIndexException e) {
-      Context ctx = Context.get(this);
-      try {
-        return DataflowError.withoutTrace(
-            ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, iop.getArraySize(self)),
-            this);
-      } catch (UnsupportedMessageException ex) {
-        CompilerDirectives.transferToInterpreter();
-        throw new IllegalStateException(ex);
-      }
+      return readElement(self, index);
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
+    }
+  }
+
+  private Object readElement(Object self, long index) throws UnsupportedMessageException {
+    try {
+      long actualIndex = index < 0 ? index + iop.getArraySize(self) : index;
+      var element = iop.readArrayElement(self, actualIndex);
+      return convert.execute(element);
+    } catch (InvalidArrayIndexException e) {
+      Context ctx = Context.get(this);
+      return DataflowError.withoutTrace(
+          ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, iop.getArraySize(self)), this);
     }
   }
 }
