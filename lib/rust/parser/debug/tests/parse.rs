@@ -563,26 +563,18 @@ fn precedence() {
 
 #[test]
 fn dot_operator_precedence() {
-    test("x y . f v",
-         block![(App (OprApp (App (Ident x) (Ident y)) (Ok ".") (Ident f)) (Ident v))]);
+    test!("x y . f v", (App (OprApp (App (Ident x) (Ident y)) (Ok ".") (Ident f)) (Ident v)));
 }
 
 #[test]
 fn right_associative_operators() {
-    let code = ["x --> y ---> z"];
-    let expected = block![
-        (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z)))
-    ];
-    test(&code.join("\n"), expected);
+    test!("x --> y ---> z", (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z))));
+    test!("x <| y <<| z", (OprApp (Ident x) (Ok "<|") (OprApp (Ident y) (Ok "<<|") (Ident z))));
 }
 
 #[test]
 fn left_associative_operators() {
-    let code = ["x + y + z"];
-    let expected = block![
-        (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z))
-    ];
-    test(&code.join("\n"), expected);
+    test!("x + y + z", (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z)));
 }
 
 #[test]
