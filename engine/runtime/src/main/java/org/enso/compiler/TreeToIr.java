@@ -416,15 +416,17 @@ final class TreeToIr {
         }
         default -> {
           IR.Expression func;
-          if (tree instanceof Tree.OprApp
-                  && ((Tree.OprApp)tree).getOpr().getRight() != null
-                  && ".".equals(((Tree.OprApp)tree).getOpr().getRight().codeRepr())
-                  && ((Tree.OprApp)tree).getRhs() instanceof Tree.Ident) {
-            var app = (Tree.OprApp)tree;
-            var self = translateExpression(app.getLhs(), false);
-            var loc = getIdentifiedLocation(app.getLhs());
+          if (tree instanceof Tree.OprApp oprApp
+                  && oprApp.getOpr().getRight() != null
+                  && ".".equals(oprApp.getOpr().getRight().codeRepr())
+                  && oprApp.getRhs() instanceof Tree.Ident) {
+            func = translateExpression(oprApp.getRhs(), true);
+            if (oprApp.getLhs() == null) {
+              return func;
+            }
+            var self = translateExpression(oprApp.getLhs(), false);
+            var loc = getIdentifiedLocation(oprApp.getLhs());
             args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
-            func = translateExpression(app.getRhs(), true);
           } else if (args.isEmpty()) {
             return null;
           } else {
