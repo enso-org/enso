@@ -285,9 +285,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should subtract mixed date time interval" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
-            time . month . should_equal 12
-            time . day . should_equal 1
-            time . hour . should_equal 3
+            time . month . should_equal 11
+            time . day . should_equal 30
+            time . hour . should_equal 21
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
@@ -523,7 +523,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle shifting dates around spring DST edge cases" <|
             # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
-            create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 55 1234)
+            create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0 . should_equal (create_new_datetime 2022 10 31 2 30 55 1234)
             create_new_datetime 2022 10 30 1 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 1 30)
             create_new_datetime 2022 10 30 3 30 . add_work_days 1 . should_equal (Date_Time.new 2022 11 1 3 30)
 
