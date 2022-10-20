@@ -5,8 +5,3 @@ Copyright 2020 - 2022 New Byte Order sp. z o. o.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-71.1`.
 
-
-'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE140`.
-
