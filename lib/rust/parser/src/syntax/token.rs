@@ -265,8 +265,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Ident {
             pub is_free:     bool,
             pub lift_level:  usize,
-            #[serde(skip)]
-            #[reflect(skip)]
+            #[reflect(rename = "is_type_or_constructor")]
             pub is_type:     bool,
             #[serde(skip)]
             #[reflect(skip)]

@@ -1210,11 +1210,14 @@ final class TreeToIr {
   IR.Pattern translatePattern(Tree block, List<IR.Pattern> fields) {
     var pattern = maybeManyParensed(block);
     return switch (pattern) {
-      case Tree.Ident id -> {
+      case Tree.Ident id when id.getToken().isTypeOrConstructor() || !fields.isEmpty() -> {
         yield new IR$Pattern$Constructor(
-          buildName(id), fields,
-          getIdentifiedLocation(id), meta(), diag()
+                buildName(id), fields,
+                getIdentifiedLocation(id), meta(), diag()
         );
+      }
+      case Tree.Ident id -> {
+        yield new IR$Pattern$Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
       }
       case Tree.OprApp id -> {
         var qualifiedName = buildQualifiedName(pattern);
@@ -1228,12 +1231,10 @@ final class TreeToIr {
         yield translatePattern(id.getFunc(), args);
       }
       case Tree.Wildcard wild -> translateWildcardPattern(wild);
-      case Tree.TextLiteral lit -> {
-        yield new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
-      }
-      case Tree.Number num -> {
-        yield new IR$Pattern$Literal((IR.Literal) translateDecimalLiteral(num), getIdentifiedLocation(num), meta(), diag());
-      }
+      case Tree.TextLiteral lit ->
+        new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
+      case Tree.Number num ->
+        new IR$Pattern$Literal((IR.Literal) translateDecimalLiteral(num), getIdentifiedLocation(num), meta(), diag());
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
@@ -1573,11 +1574,7 @@ final class TreeToIr {
         case null -> {
           return null;
         }
-        case Tree.Group g -> {
-          assert "(".equals(g.getOpen().codeRepr());
-          assert ")".equals(g.getClose().codeRepr());
-          t = g.getBody();
-        }
+        case Tree.Group g -> t = g.getBody();
         default -> {
           return t;
         }
