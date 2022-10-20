@@ -18,6 +18,7 @@ import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
+import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.syntax.text.AST;
 import org.enso.syntax.text.Shape;
 import org.enso.syntax2.Parser;
@@ -204,21 +205,23 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 return exp.mapExpressions(this);
             }
         }
-        class NoCommentsInBindings implements Function1<IR$Module$Scope$Definition, Boolean> {
+        class SanitizeBindings implements Function1<IR$Module$Scope$Definition, Boolean> {
             @Override
             public Boolean apply(IR$Module$Scope$Definition exp) {
                 if (exp instanceof IR$Comment$Documentation) {
                     return false;
-                } else {
-                    return true;
                 }
+                if (exp instanceof IR$Type$Ascription) {
+                    return false;
+                }
+                return true;
             }
         }
         var m1 = m.mapExpressions(new NoComments());
         var m2 = m1.copy(
           m1.copy$default$1(),
           m1.copy$default$2(),
-          (List<IR$Module$Scope$Definition>) m1.bindings().filter(new NoCommentsInBindings()),
+          (List<IR$Module$Scope$Definition>) m1.bindings().filter(new SanitizeBindings()),
           m1.copy$default$4(),
           m1.copy$default$5(),
           m1.copy$default$6(),

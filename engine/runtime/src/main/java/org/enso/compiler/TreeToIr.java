@@ -152,54 +152,6 @@ final class TreeToIr {
       */
   }
 
-  /*
-
-
-
-  def translate(inputAST: AST): Module =
-    inputAST match {
-      case AST.Module.any(inputAST) => translateModule(inputAST)
-      case _ =>
-        throw new UnhandledEntity(inputAST, "translate")
-    }
-
-  /** Translates an inline program expression represented in the parser [[AST]]
-    * into the compiler's [[IR]] representation.
-    *
-    * Inline expressions must _only_ be expressions, and may not contain any
-    * type of definition.
-    *
-    * @param inputAST the [[AST]] representing the expression to translate.
-    * @return the [[IR]] representation of `inputAST` if it is valid, otherwise
-    *         [[None]]
-
-  def translateInline(inputAST: AST): Option[Expression] = {
-    inputAST match {
-      case AST.Module.any(module) =>
-        val presentBlocks = module.lines.collect {
-          case t if t.elem.isDefined => t.elem.get
-        }
-
-        val expressions = presentBlocks.map(translateExpression(_))
-
-        expressions match {
-          case List()     => None
-          case List(expr) => Some(expr)
-          case _ =>
-            val locations    = expressions.map(_.location.map(_.location))
-            val locationsSum = Foldable[List].fold(locations)
-            Some(
-              Expression.Block(
-                expressions.dropRight(1),
-                expressions.last,
-                location = locationsSum.map(IdentifiedLocation(_))
-              )
-            )
-        }
-      case _ => None
-    }
-  }
-
   /** Translates a module-level definition from its [[AST]] representation into
     * [[IR]].
     *
@@ -210,11 +162,6 @@ final class TreeToIr {
   List<IR$Module$Scope$Definition> translateModuleSymbol(Tree inputAst, List<IR$Module$Scope$Definition> appendTo) {
     return switch (inputAst) {
       case null -> appendTo;
-    /*
-    inputAst match {
-      case AST.Ident.Annotation.any(annotation) =>
-        IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
-      */
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
         var translatedBody = translateTypeBody(def.getBlock());
@@ -243,7 +190,7 @@ final class TreeToIr {
       case Tree.Function fn -> {
         var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
-        var body = translateExpression(fn.getBody(), false);
+        var body = translateExpression(fn.getBody());
 
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           methodRef,
@@ -267,71 +214,16 @@ final class TreeToIr {
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           reference,
           nil(),
-          translateExpression(a.getExpr(), false),
+          translateExpression(a.getExpr()),
           getIdentifiedLocation(a),
           meta(), diag()
         );
         yield cons(binding, appendTo);
       }
-    /*
-      case AstView.FunctionSugar(
-            AST.Ident.Var("foreign"),
-            header,
-            body
-          ) =>
-        translateForeignDefinition(header, body) match {
-          case Right((name, arguments, body)) =>
-            val methodRef =
-              Name.MethodReference(None, name, name.location)
-            Module.Scope.Definition.Method.Binding(
-              methodRef,
-              arguments,
-              body,
-              getIdentifiedLocation(inputAst)
-            )
-          case Left(reason) =>
-            IR.Error.Syntax(
-              inputAst,
-              IR.Error.Syntax.InvalidForeignDefinition(reason)
-            )
-        }
-      case AstView.FunctionSugar(name, args, body) =>
-        val methodName = buildName(name)
-
-        val methodReference = Name.MethodReference(
-          None,
-          methodName,
-          methodName.location
-        )
-
-        Module.Scope.Definition.Method.Binding(
-          methodReference,
-          args.map(translateArgumentDefinition(_)),
-          translateExpression(body),
-          getIdentifiedLocation(inputAst)
-        )
-      case AST.Comment.any(comment) => translateComment(comment)
-      */
       case Tree.TypeSignature sig -> {
-//      case AstView.TypeAscription(typed, sig) =>
         var methodReference = translateMethodReference(sig.getVariable(), true);
-        var signature = translateExpression(sig.getType(), true);
+        var signature = translateType(sig.getType(), false);
         var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
-        /*
-        typed match {
-          case AST.Ident.any(ident)       => buildAscription(ident)
-          case AST.App.Section.Sides(opr) => buildAscription(opr)
-          case AstView.MethodReference(_, _) =>
-            IR.Type.Ascription(
-              translateMethodReference(typed),
-              translateExpression(sig, insideTypeSignature = true),
-              getIdentifiedLocation(inputAst)
-            )
-          case _ => Error.Syntax(typed, Error.Syntax.InvalidStandaloneSignature)
-        }
-      case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
-    }
-    */
         yield cons(ascription, appendTo);
       }
       default -> {
@@ -417,28 +309,6 @@ final class TreeToIr {
         var ir = translateFunction(assignment, name, args, assignment.getExpr());
         yield cons(ir, appendTo);
       }
-      /*
-      case AstView.FunctionSugar(
-            AST.Ident.Var("foreign"),
-            header,
-            body
-          ) =>
-        translateForeignDefinition(header, body) match {
-          case Right((name, arguments, body)) =>
-            IR.Function.Binding(
-              name,
-              arguments,
-              body,
-              getIdentifiedLocation(inputAst)
-            )
-          case Left(reason) =>
-            IR.Error.Syntax(
-              inputAst,
-              IR.Error.Syntax.InvalidForeignDefinition(reason)
-            )
-        }
-      case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
-      */
       case Tree.Documented doc -> {
         var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
@@ -448,31 +318,6 @@ final class TreeToIr {
         var annotation = translateAnnotation(ir, anno.getExpression(), nil());
         yield cons(annotation, appendTo);
       }
-      /*
-      case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
-        Function.Binding(
-          buildName(opr),
-          List(translateArgumentDefinition(arg)),
-          translateExpression(body),
-          getIdentifiedLocation(inputAst)
-        )
-      case AstView.TypeAscription(typed, sig) =>
-        val typedIdent = typed match {
-          case AST.App.Section.Sides(opr) => buildName(opr)
-          case AST.Ident.any(ident)       => buildName(ident)
-          case other                      => translateExpression(other)
-        }
-        IR.Type.Ascription(
-          typedIdent,
-          translateExpression(sig, insideTypeSignature = true),
-          getIdentifiedLocation(inputAst)
-        )
-      case assignment @ AstView.BasicAssignment(_, _) =>
-        translateExpression(assignment)
-      case _ =>
-        IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
-    }
-    */
       default -> {
         var ir = new IR$Error$Syntax(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
         yield cons(ir, appendTo);
@@ -485,7 +330,7 @@ final class TreeToIr {
       List<IR.CallArgument> args = nil();
       Tree t = app;
       while (t instanceof Tree.App tApp) {
-          args = cons(translateCallArgument(tApp.getArg(), true), args);
+          args = cons(translateTypeCallArgument(tApp.getArg()), args);
           t = tApp.getFunc();
       }
       var fullQualifiedNames = qualifiedNameSegments(t).reverse();
@@ -506,8 +351,8 @@ final class TreeToIr {
   }
 
   private IR.Expression translateFunction(Tree fun, IR.Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
-       var args = translateArgumentsDefinition(arguments);
-       var body = translateExpression(treeBody, false);
+      var args = translateArgumentsDefinition(arguments);
+      var body = translateExpression(treeBody);
       if (args.isEmpty()) {
         if (body instanceof IR$Expression$Block block) {
           // suspended block has a name and no arguments
@@ -534,14 +379,14 @@ final class TreeToIr {
   private IR$Type$Ascription translateTypeSignature(Tree sig, Tree type, IR.Expression typeName) throws UnhandledEntity {
     var fn = switch (type) {
       case Tree.OprApp app when "->".equals(app.getOpr().getRight().codeRepr()) -> {
-        var args = cons(translateExpression(app.getLhs(), true), nil());
+        var args = cons(translateType(app.getLhs(), false), nil());
         var rhs = app.getRhs();
         while (rhs instanceof Tree.OprApp at && "->".equals(at.getOpr().getRight().codeRepr())) {
-          args = cons(translateExpression(at.getLhs(), true), args);
+          args = cons(translateType(at.getLhs(), false), args);
           rhs = at.getRhs();
         }
         args = args.reverse();
-        var ret = translateExpression(rhs, true);
+        var ret = translateType(rhs, false);
         yield new IR$Type$Function(
         args,
         ret,
@@ -550,59 +395,19 @@ final class TreeToIr {
         );
       }
       case Tree.OprApp app -> {
-        yield translateExpression(app, true);
+        yield translateType(app, false);
       }
       case Tree.Ident ident -> {
         yield buildName(ident);
       }
-      case Tree.App app ->
-        translateTypeApplication(app);
-      case Tree.Array arr -> translateExpression(arr, true);
+      case Tree.App app -> translateTypeApplication(app);
+      case Tree.Array arr -> translateType(arr, false);
       default ->
         throw new UnhandledEntity(type, "translateTypeSignature");
     };
     return new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
   }
 
-
-  /*
-  private def translateForeignDefinition(header: List[AST], body: AST): Either[
-    String,
-    (IR.Name, List[IR.DefinitionArgument], IR.Foreign.Definition)
-  ] = {
-    header match {
-      case AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args =>
-        body.shape match {
-          case AST.Literal.Text.Block.Raw(lines, _, _) =>
-            val code = lines
-              .map(t =>
-                t.text.collect {
-                  case AST.Literal.Text.Segment.Plain(str)   => str
-                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-                }.mkString
-              )
-              .mkString("\n")
-            val methodName = buildName(name)
-            val arguments  = args.map(translateArgumentDefinition(_))
-            val language   = EpbParser.ForeignLanguage.getBySyntacticTag(lang)
-            if (language == null) {
-              Left(s"Language $lang is not a supported polyglot language.")
-            } else {
-              val foreign = IR.Foreign.Definition(
-                language,
-                code,
-                getIdentifiedLocation(body)
-              )
-              Right((methodName, arguments, foreign))
-            }
-          case _ =>
-            Left(
-              "The body of a foreign block must be an uninterpolated string block literal."
-            )
-        }
-      case _ => Left("The method name is not specified.")
-    }
-  }
 
   /** Translates a method reference from [[AST]] into [[IR]].
     *
@@ -633,15 +438,6 @@ final class TreeToIr {
     return new IR$Name$MethodReference(type, method,
       loc, meta(), diag()
     );
-  }
-
-  /** Translates an arbitrary program expression from {@link Tree} into {@link IR}.
-    *
-    * @param maybeParensedInput the expresion to be translated
-    * @return the {@link IR} representation of `maybeParensedInput`
-    */
-  IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
-    return translateExpression(tree, insideTypeSignature, false, false);
   }
 
   private IR.Expression translateCall(Tree tree) {
@@ -683,7 +479,7 @@ final class TreeToIr {
             var self = translateExpression(app.getLhs(), false);
             var loc = getIdentifiedLocation(app.getLhs());
             args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
-            func = translateExpression(app.getRhs(), false, true, false);
+            func = translateExpression(app.getRhs(), true);
           } else if (args.isEmpty()) {
             return null;
           } else {
@@ -702,7 +498,16 @@ final class TreeToIr {
       }
     }
   }
-  IR.Expression translateExpression(Tree tree, boolean insideTypeSignature, boolean isMethod, boolean insideTypeAscription) {
+
+  /** Translates an arbitrary program expression from {@link Tree} into {@link IR}.
+   *
+   * @param tree the expression to be translated
+   * @return the {@link IR} representation of `tree`
+   */
+  IR.Expression translateExpression(Tree tree) {
+    return translateExpression(tree, false);
+  }
+  IR.Expression translateExpression(Tree tree, boolean isMethod) {
     if (tree == null) {
       return null;
     }
@@ -720,59 +525,46 @@ final class TreeToIr {
           }
 
           case "->" -> {
-            if (insideTypeSignature) {
-              var literal = translateExpression(app.getLhs(), insideTypeSignature);
-              var body = translateExpression(app.getRhs(), insideTypeSignature);
-              var args = switch (body) {
-                case IR$Type$Function fn -> {
-                  body = fn.result();
-                  yield cons(literal, fn.args());
-                }
-                default -> cons(literal, nil());
-              };
-              yield new IR$Type$Function(args, body, Option.empty(), meta(), diag());
-            } else {
-              // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
-              var arg = app.getLhs();
-              var isSuspended = false;
-              if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
-                  arg = susApp.getRhs();
-                  isSuspended = true;
-              }
-              IR.Name name = switch (arg) {
-                case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
-                case Tree.Ident id -> {
-                  IR.Expression identifier = translateIdent(id, false);
-                  yield switch (identifier) {
-                    case IR.Name name_ -> name_;
-                    default -> throw new UnhandledEntity(identifier, "translateExpression");
-                  };
-                }
-                default -> throw new UnhandledEntity(arg, "translateExpressiontranslateArgumentDefinition");
-              };
-              var arg_ = new IR$DefinitionArgument$Specified(
-                      name,
-                      Option.empty(),
-                      Option.empty(),
-                      isSuspended,
-                      getIdentifiedLocation(arg),
-                      meta(),
-                      diag()
-              );
-              List<IR.DefinitionArgument> args = cons(arg_, nil());
-              var body = translateExpression(app.getRhs(), false);
-              if (body == null) {
-                body = new IR$Expression$Block(
-                  nil(), new IR$Name$Blank(Option.empty(), meta(), diag()),
-                  Option.empty(), true, meta(), diag()
-                );
-              }
-              yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
+            // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
+            var arg = app.getLhs();
+            var isSuspended = false;
+            if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
+                arg = susApp.getRhs();
+                isSuspended = true;
             }
+            IR.Name name = switch (arg) {
+              case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+              case Tree.Ident id -> {
+                IR.Expression identifier = translateIdent(id, false);
+                yield switch (identifier) {
+                  case IR.Name name_ -> name_;
+                  default -> throw new UnhandledEntity(identifier, "translateExpression");
+                };
+              }
+              default -> throw new UnhandledEntity(arg, "translateExpressiontranslateArgumentDefinition");
+            };
+            var arg_ = new IR$DefinitionArgument$Specified(
+                    name,
+                    Option.empty(),
+                    Option.empty(),
+                    isSuspended,
+                    getIdentifiedLocation(arg),
+                    meta(),
+                    diag()
+            );
+            List<IR.DefinitionArgument> args = cons(arg_, nil());
+            var body = translateExpression(app.getRhs(), false);
+            if (body == null) {
+              body = new IR$Expression$Block(
+                nil(), new IR$Name$Blank(Option.empty(), meta(), diag()),
+                Option.empty(), true, meta(), diag()
+              );
+            }
+            yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
           }
           default -> {
-            var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
-            var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);
+            var lhs = translateCallArgument(app.getLhs());
+            var rhs = translateCallArgument(app.getRhs());
             var name = new IR$Name$Literal(
               op.codeRepr(), true,
               getIdentifiedLocation(app),
@@ -786,19 +578,18 @@ final class TreeToIr {
               name, rhs,
               loc, meta(), diag()
             );
-
           }
         };
       }
       case Tree.Array arr -> {
         List<IR.Expression> items = nil();
         if (arr.getFirst() != null) {
-          var exp = translateExpression(arr.getFirst(), insideTypeSignature);
+          var exp = translateExpression(arr.getFirst(), false);
           items = cons(exp, items);
-        }
-        for (var next : arr.getRest()) {
-          var exp = translateExpression(next.getBody(), insideTypeSignature);
-          items = cons(exp, items);
+          for (var next : arr.getRest()) {
+            exp = translateExpression(next.getBody(), false);
+            items = cons(exp, items);
+          }
         }
         yield new IR$Application$Literal$Sequence(
           items.reverse(),
@@ -806,7 +597,6 @@ final class TreeToIr {
         );
       }
       case Tree.Number n -> translateDecimalLiteral(n);
-      case Tree.Ident id when insideTypeAscription -> buildQualifiedName(id, getIdentifiedLocation(id), true);
       case Tree.Ident id -> translateIdent(id, isMethod);
       case Tree.MultiSegmentApp app -> {
         var fnName = new StringBuilder();
@@ -817,7 +607,7 @@ final class TreeToIr {
           fnName.append(sep);
           fnName.append(id);
 
-          var body = translateCallArgument(seg.getBody(), insideTypeSignature);
+          var body = translateCallArgument(seg.getBody());
           args = cons(body, args);
 
           sep = "_";
@@ -848,7 +638,7 @@ final class TreeToIr {
       }
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
-        var expr = translateExpression(assign.getExpr(), insideTypeSignature);
+        var expr = translateExpression(assign.getExpr(), false);
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.ArgumentBlockApplication body -> {
@@ -862,18 +652,18 @@ final class TreeToIr {
           if (last != null) {
             expressions = cons(last, expressions);
           }
-          last = translateExpression(expr, insideTypeSignature);
+          last = translateExpression(expr, false);
         }
         var block = new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
         if (body.getLhs() != null) {
-          var fn = translateExpression(body.getLhs(), insideTypeSignature);
+          var fn = translateExpression(body.getLhs(), isMethod);
           List<IR.CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
             if (expr != null) {
               continue;
             }
-            var call = translateCallArgument(expr, insideTypeSignature);
+            var call = translateCallArgument(expr);
             args = cons(call, args);
           }
           yield switch (fn) {
@@ -884,24 +674,11 @@ final class TreeToIr {
           yield block;
         }
       }
-      case Tree.TypeAnnotated anno -> {
-        var type = translateCallArgument(anno.getType(), true);
-        var expr = translateCallArgument(anno.getExpression(), false);
-        var opName = new IR$Name$Literal(anno.getOperator().codeRepr(), true, Option.empty(), meta(), diag());
-        yield new IR$Application$Operator$Binary(
-          expr,
-          opName,
-          type,
-          getIdentifiedLocation(anno),
-          meta(), diag()
-        );
-      }
-      case Tree.Group group -> {
-        yield translateExpression(group.getBody(), insideTypeSignature, isMethod, insideTypeAscription);
-      }
+      case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
+      case Tree.Group group -> translateExpression(group.getBody(), false);
       case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
-        var expr = translateExpression(cas.getExpression(), insideTypeSignature);
+        var expr = translateExpression(cas.getExpression(), false);
         List<IR$Case$Branch> branches = nil();
         for (var line : cas.getCases()) {
           if (line.getCase() == null) {
@@ -922,13 +699,13 @@ final class TreeToIr {
         );
       }
       case Tree.OprSectionBoundary bound -> {
-        var ast = translateExpression(bound.getAst(), insideTypeSignature);
+        var ast = translateExpression(bound.getAst(), false);
         yield switch (ast) {
           case IR$Application$Prefix p -> p.function();
           default -> ast;
         };
       }
-      case Tree.UnaryOprApp un -> switch (translateExpression(un.getRhs(), insideTypeSignature)) {
+      case Tree.UnaryOprApp un -> switch (translateExpression(un.getRhs(), false)) {
         case IR$Literal$Number n when "-".equals(un.getOpr().codeRepr()) -> n.copy(
           n.copy$default$1(),
           "-" + n.copy$default$2(),
@@ -948,21 +725,88 @@ final class TreeToIr {
                 meta(), diag()
         );
         var opName = buildName(Option.empty(), sig.getOperator(), true);
-        var signature = translateCallArgument(sig.getType(), true);
+        var signature = translateTypeCallArgument(sig.getType());
         yield new IR$Application$Operator$Binary(methodReference, opName, signature, getIdentifiedLocation(sig), meta(), diag());
       }
-      case Tree.TemplateFunction templ -> {
-        yield translateExpression(templ.getAst(), insideTypeSignature);
-      }
-      case Tree.Wildcard wild -> {
-        yield new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
-      }
+      case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
       case Tree.Annotated anno -> {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
+  }
+  IR.Expression translateType(Tree tree, boolean insideTypeAscription) {
+    return switch (tree) {
+      case Tree.App app -> translateTypeApplication(app);
+      case Tree.OprApp app -> {
+        var op = app.getOpr().getRight();
+        yield switch (op.codeRepr()) {
+          case "." -> {
+            final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
+            yield buildQualifiedName(app, loc, true);
+          }
+          case "->" -> {
+            var literal = translateType(app.getLhs(), insideTypeAscription);
+            var body = translateType(app.getRhs(), insideTypeAscription);
+            var args = switch (body) {
+              case IR$Type$Function fn -> {
+                body = fn.result();
+                yield cons(literal, fn.args());
+              }
+              default -> cons(literal, nil());
+            };
+            yield new IR$Type$Function(args, body, Option.empty(), meta(), diag());
+          }
+          default -> {
+            var lhs = translateTypeCallArgument(app.getLhs());
+            var rhs = translateTypeCallArgument(app.getRhs());
+            var name = new IR$Name$Literal(
+                    op.codeRepr(), true,
+                    getIdentifiedLocation(app),
+                    meta(), diag()
+            );
+            var loc = getIdentifiedLocation(app);
+            yield new IR$Application$Operator$Binary(lhs, name, rhs, loc, meta(), diag());
+          }
+        };
+      }
+      case Tree.Array arr -> {
+        List<IR.Expression> items = nil();
+        if (arr.getFirst() != null) {
+          var exp = translateType(arr.getFirst(), insideTypeAscription);
+          items = cons(exp, items);
+          for (var next : arr.getRest()) {
+            exp = translateType(next.getBody(), insideTypeAscription);
+            items = cons(exp, items);
+          }
+        }
+        yield new IR$Application$Literal$Sequence(
+                items.reverse(),
+                getIdentifiedLocation(arr), meta(), diag()
+        );
+      }
+      case Tree.Ident id when insideTypeAscription -> buildQualifiedName(id, getIdentifiedLocation(id), true);
+      case Tree.Ident id -> translateIdent(id, false);
+      case Tree.Group group -> translateType(group.getBody(), insideTypeAscription);
+      case Tree.UnaryOprApp un -> translateType(un.getRhs(), insideTypeAscription);
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
+      case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
+      default -> throw new UnhandledEntity(tree, "translateType");
+    };
+  }
+  IR.Expression translateTypeAnnotated(Tree.TypeAnnotated anno) {
+    var type = translateTypeCallArgument(anno.getType());
+    var expr = translateCallArgument(anno.getExpression());
+    var opName = new IR$Name$Literal(anno.getOperator().codeRepr(), true, Option.empty(), meta(), diag());
+    return new IR$Application$Operator$Binary(
+            expr,
+            opName,
+            type,
+            getIdentifiedLocation(anno),
+            meta(), diag()
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -974,15 +818,14 @@ final class TreeToIr {
   }
 
   private IR$Application$Prefix translateAnnotation(IR$Name$Annotation ir, Tree expr, List<IR.CallArgument> callArgs) {
-    boolean insideTypeSignature = false;
     return switch (expr) {
       case Tree.App fn -> {
-        var fnAsArg = translateCallArgument(fn.getArg(), insideTypeSignature);
+        var fnAsArg = translateCallArgument(fn.getArg());
         yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
       }
       case Tree.ArgumentBlockApplication fn -> {
-        var fnAsArg = translateCallArgument(fn.getLhs(), insideTypeSignature);
-        var arg = translateCallArgument(expr, insideTypeSignature);
+        var fnAsArg = translateCallArgument(fn.getLhs());
+        var arg = translateCallArgument(expr);
         callArgs = cons(fnAsArg, cons(arg, callArgs));
         yield translateAnnotation(ir, null, callArgs);
       }
@@ -990,7 +833,7 @@ final class TreeToIr {
         yield new IR$Application$Prefix(ir, callArgs, false, ir.location(), meta(), diag());
       }
       default -> {
-        var arg = translateCallArgument(expr, insideTypeSignature);
+        var arg = translateCallArgument(expr);
         callArgs = cons(arg, callArgs);
         yield translateAnnotation(ir, null, callArgs);
       }
@@ -1234,7 +1077,7 @@ final class TreeToIr {
       default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
     };
     boolean isSuspended = def.getSuspension() != null;
-    var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true, false, true));
+    var ascribedType = Option.apply(def.getType()).map(ascription -> translateType(ascription.getType(), true));
     var defaultValue = Option.apply(def.getDefault()).map(default_ -> translateExpression(default_.getExpression(), false));
     return new IR$DefinitionArgument$Specified(
             name,
@@ -1247,88 +1090,31 @@ final class TreeToIr {
     );
   }
 
-  @SuppressWarnings("unchecked")
-  private List<IR.CallArgument> translateCallArguments(List<Tree> args, List<IR.CallArgument> res, boolean insideTypeSignature) {
-    while (args.nonEmpty()) {
-      var argument = translateCallArgument(args.head(), insideTypeSignature);
-      if (argument != null) {
-        res = cons(argument, res);
-      }
-      args = (List<Tree>) args.tail();
-    }
-    return res.reverse();
-  }
-
   /** Translates a call-site function argument from its [[AST]] representation
     * into [[IR]].
     *
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
     */
-  IR$CallArgument$Specified translateCallArgument(
-    Tree arg,
-    boolean insideTypeSignature
-  ) {
+  IR$CallArgument$Specified translateCallArgument(Tree arg) {
     var loc = getIdentifiedLocation(arg);
     return switch (arg) {
       case Tree.NamedApp app -> {
-        var expr = translateExpression(app.getArg(), insideTypeSignature);
+        var expr = translateExpression(app.getArg(), false);
         var id = sanitizeName(buildName(app, app.getName()));
         yield new IR$CallArgument$Specified(Option.apply(id), expr, loc, meta(), diag());
       }
       case null -> null;
       default -> {
-        var expr = translateExpression(arg, insideTypeSignature);
+        var expr = translateExpression(arg, false);
         yield new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
       }
     };
   }
-
-
-  /** Translates an operator section from its [[AST]] representation into the
-    * [[IR]] representation.
-    *
-    * @param section the operator section
-    * @return the [[IR]] representation of `section`
-
-  def translateOperatorSection(
-    section: AST.App.Section
-  ): Expression = {
-    section match {
-      case AST.App.Section.Left.any(left) =>
-        val leftArg = translateCallArgument(left.arg)
-
-        if (leftArg.name.isDefined) {
-          Error.Syntax(section, Error.Syntax.NamedArgInSection)
-        } else {
-          Application.Operator.Section.Left(
-            leftArg,
-            buildName(left.opr),
-            getIdentifiedLocation(left)
-          )
-        }
-      case AST.App.Section.Sides.any(sides) =>
-        Application.Operator.Section.Sides(
-          buildName(sides.opr),
-          getIdentifiedLocation(sides)
-        )
-      case AST.App.Section
-            .Right(AST.Ident.Opr("."), AstView.ConsOrVar(ident)) =>
-        buildName(ident, isMethod = true)
-      case AST.App.Section.Right.any(right) =>
-        val rightArg = translateCallArgument(right.arg)
-
-        if (rightArg.name.isDefined) {
-          Error.Syntax(section, Error.Syntax.NamedArgInSection)
-        } else {
-          Application.Operator.Section.Right(
-            buildName(right.opr),
-            translateCallArgument(right.arg),
-            getIdentifiedLocation(right)
-          )
-        }
-      case _ => throw new UnhandledEntity(section, "translateOperatorSection")
-    }
+  IR$CallArgument$Specified translateTypeCallArgument(Tree arg) {
+    var loc = getIdentifiedLocation(arg);
+    var expr = translateType(arg, false);
+    return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
   }
 
   /** Translates an arbitrary program identifier from its [[AST]] representation
