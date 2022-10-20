@@ -52,6 +52,7 @@ pub mod debug;
 pub mod display;
 pub mod gui;
 pub mod system;
+pub mod timer;
 
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
