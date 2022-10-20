@@ -258,7 +258,6 @@ final class TreeToIr {
         var ir = translateTypeSignature(sig, sig.getType(), typeName);
         yield cons(ir, appendTo);
       }
-
       case Tree.OperatorFunction fun -> {
         var name = buildName(getIdentifiedLocation(fun.getName()), fun.getName(), true);
         var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
@@ -655,12 +654,7 @@ final class TreeToIr {
       }
       case Tree.Function fun -> {
         var name = buildName(fun.getName());
-        var args = translateArgumentsDefinition(fun.getArgs());
-        var body = translateExpression(fun.getBody(), false);
-
-        yield new IR$Function$Binding(name, args, body,
-            getIdentifiedLocation(fun), true, meta(), diag()
-        );
+        yield translateFunction(fun, name, fun.getArgs(), fun.getBody());
       }
       case Tree.OprSectionBoundary bound -> {
         var ast = translateExpression(bound.getAst(), false);
@@ -674,7 +668,7 @@ final class TreeToIr {
         var negate = new IR$Name$Literal("negate", true, Option.empty(), meta(), diag());
         var arg = new IR$CallArgument$Specified(Option.empty(), expr, expr.location(), meta(), diag());
         yield new IR$Application$Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
-      };
+      }
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());
         var methodReference = new IR$CallArgument$Specified(
