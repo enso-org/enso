@@ -212,7 +212,7 @@ type Date
     ## Returns the century of the date.
     century : Integer
     century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
-        Error.throw (Illegal_Argument_Error "Century can only be given for AD years.")
+        Error.throw (Illegal_Argument_Error_Data "Century can only be given for AD years.")
 
     ## Returns the quarter of the year the date falls into.
     quarter : Integer

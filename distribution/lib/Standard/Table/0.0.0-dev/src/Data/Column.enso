@@ -473,6 +473,22 @@ type Column
     not : Column
     not self = run_vectorized_unary_op self "not" .not
 
+    ## UNSTABLE
+       Replaces `True` values with `when_true` and `False` with `when_false`.
+       Only meant for use with boolean columns.
+
+       TODO: Currently `when_true` and `when_false` need to be a single value.
+       In the future the API will also support row-based IIF if they are columns.
+    iif : Any -> Any -> Column
+    iif self when_true when_false = case self.storage_type of
+        Storage.Boolean ->
+            s = self.java_column.getStorage
+            ix = self.java_column.getIndex
+            rs = s.iif when_true when_false
+            Column.Column_Data (Java_Column.new "Result" ix rs)
+        _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
+
+
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
 
@@ -512,6 +528,24 @@ type Column
              example_is_present = Examples.decimal_column.is_present
     is_present : Column
     is_present self = self.is_missing.not
+
+    ## PRIVATE
+       Returns a column of booleans with `True` at the positions where this
+       column contains a blank value.
+
+       Arguments:
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    is_blank : Boolean -> Boolean -> Column
+    is_blank self treat_nans_as_blank=False =
+        case self.storage_type of
+            Storage.Text -> self.is_empty
+            Storage.Decimal -> if treat_nans_as_blank then self.is_missing || self.is_nan else self.is_missing
+            Storage.Any -> if treat_nans_as_blank then self.is_empty || self.is_nan else self.is_empty
+            _ -> self.is_missing
 
     ## ALIAS Fill Missing
 

@@ -74,8 +74,8 @@ type Error
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error "My message")
-                 error.catch Illegal_Argument_Error (err -> err.message)
+                 error = Error.throw (Illegal_Argument_Error_Data "My message")
+                 error.catch Illegal_Argument_Error_Data (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.
@@ -299,7 +299,7 @@ type Panic
          and rethrow any others, without affecting their stacktraces.
 
              Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
-                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 Illegal_Argument_Error_Data message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
@@ -378,13 +378,13 @@ type Panic
        > Example
          Handling a specific type of panic.
 
-             Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught an `Illegal_Argument_Error`: "+error.payload.message
 
        > Example
          Handling any panic.
 
-             Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Any (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught some panic!"
 
        > Example
@@ -395,7 +395,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
     catch panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
@@ -430,7 +430,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+java_exception.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+java_exception.getMessage)
     catch_java : Any -> Any -> (Throwable -> Any) -> Any
     catch_java panic_type ~action handler =
         Panic.catch_primitive action caught_panic-> case caught_panic.payload of
@@ -457,12 +457,12 @@ type Panic
        > Example
          Converting an expected panic to a dataflow error.
 
-             Panic.recover Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+             Panic.recover Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
 
        > Example
          Converting one of many expected panic types to a dataflow error.
 
-             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
     recover : (Vector.Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
