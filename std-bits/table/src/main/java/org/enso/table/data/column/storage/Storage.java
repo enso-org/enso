@@ -177,7 +177,7 @@ public abstract class Storage<T> {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
-    Object missingValue = onMissing == null ? null : Polyglot_Utils.convertPolyglotValue(onMissing);
+    Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);

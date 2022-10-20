@@ -30,7 +30,7 @@
          import Standard.Examples
 
          example_drop_missing_cols =
-             Examples.inventory_table.drop_missing_columns
+             Examples.inventory_table.remove (Column_Selector.Blank_Columns when_any=True)
 
    > Example
      Fill missing values in a column with the value 20.5.

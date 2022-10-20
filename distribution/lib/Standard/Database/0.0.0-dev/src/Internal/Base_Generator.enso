@@ -170,7 +170,7 @@ base_dialect =
     fun = name -> [name, make_function name]
 
     arith = [bin "+", bin "-", bin "*", bin "/", bin "%"]
-    logic = [bin "AND", bin "OR", unary "NOT"]
+    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
@@ -185,6 +185,17 @@ is_empty = lift_unary_op "IS_EMPTY" arg->
     is_null = (arg ++ " IS NULL").paren
     is_empty = (arg ++ " = ''").paren
     (is_null ++ " OR " ++ is_empty).paren
+
+## PRIVATE
+make_iif : Vector Builder -> Builder
+make_iif arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        when_true = arguments.at 1
+        when_false = arguments.at 2
+        (code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
+    _ ->
+        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation IIF")
 
 ## PRIVATE
 make_between : Vector Builder -> Builder
