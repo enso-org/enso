@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time_Period
+from Standard.Base.Data.Time import Duration, Period, Time_Period
 from Standard.Base.Error.Common import Time_Error_Data
 
 from Standard.Test import Test, Test_Suite
@@ -95,14 +94,14 @@ specWith name create_new_time parse_time =
             time . to_seconds . should_equal 3599
 
         Test.specify "should throw error when adding date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            case (create_new_time 0 + 1.day) . catch of
+            case (create_new_time 0 + (Period.new days=1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            case (create_new_time 0 - (1.day - (Duration.new minutes=1))) . catch of
+            case (create_new_time 0 - ((Period.new days=1) - (Duration.new minutes=1))) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->

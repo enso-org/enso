@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System
+from Standard.Base.Data.Time import Period
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
@@ -87,11 +88,11 @@ type Duration
              example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
        > Example
-         Add 12 hours to a duration of a month.
+         Add 12 hours to a duration of 30 minutes.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 1.month + (Duration.new hours=12)
+             example_add = (Duration.new minutes=30) + (Duration.new hours=12)
     + : Duration -> Duration ! Time_Error
     + self that =
         Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Time_Error_Data err.getMessage))
@@ -102,11 +103,11 @@ type Duration
        - that: The duration to subtract from `self`.
 
        > Example
-         Subtract 11 months from a duration of 3 years
+         Subtract 11 months from a period of 3 years
 
-             import Standard.Base.Data.Time.Duration
+             import Standard.Base.Data.Time.Period
 
-             example_subtract = 3.years - 11.months
+             example_subtract = (Period.new years=3) - (Period.new months=11)
 
        > Example
          Substract 30 minutes from a duration of 6 hours.

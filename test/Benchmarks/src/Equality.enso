@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Period
 
 from Standard.Test import Bench
 
@@ -62,7 +62,7 @@ main =
 
     first_day = Date.new 1971
     date_vec = integer_vec.map x->
-        first_day + x.days
+        first_day + (Period.new days=x)
     first_dt = Date_Time.new 1971
     datetime_vec = integer_vec.map x->
         first_dt + x.minutes

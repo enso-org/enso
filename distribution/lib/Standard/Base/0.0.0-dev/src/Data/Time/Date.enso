@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Period
 import Standard.Base.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
@@ -139,9 +140,6 @@ parse text pattern=Nothing =
 
 ## This type represents a date, often viewed as year-month-day.
 
-   Arguments:
-   - internal_local_date: The internal date representation.
-
    For example, the value "2nd October 2007" can be stored in a `Date`.
 
    This class does not store or represent a time or timezone. Instead, it
@@ -253,7 +251,7 @@ type Date
          end-exclusive manner), by default the end date is not included in the
          count. This has the nice property that for example to count the work
          days within the next week you can do
-         `date.work_days_until (date + 7.days)` and it will look at the 7 days
+         `date.work_days_until (date + (Period.new days=7)` and it will look at the 7 days
          starting from the current `date` and not 8 days. This also gives us a
          property that `date.work_days_until (date.add_work_days N) == N` for
          any non-negative N. On the other hand, sometimes we may want the end
@@ -270,7 +268,7 @@ type Date
              example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
-        if include_end_date then self.work_days_until (end + 1.day) holidays include_end_date=False else
+        if include_end_date then self.work_days_until (end + (Period.new days=1)) holidays include_end_date=False else
             weekdays = week_days_between self end
             ## We count holidays that occurred within the period, but not on the
                weekends (as weekend days have already been excluded from the count).
@@ -360,7 +358,7 @@ type Date
                 if ordinal + remaining_days > 5 then 2 else 0
 
             days_to_shift = full_weeks*7 + remaining_days + additional_shift
-            end = self + days_to_shift.days
+            end = self + (Period.new days=days_to_shift)
 
             ## We have shifted the date so that weekends are taken into account,
                but other holidays may have happened during that shift period.
@@ -378,7 +376,7 @@ type Date
                    as long as needed to fall on a non-weekend non-holiday
                    workday.
                 go end_date =
-                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + 1.day) else end_date
+                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + (Period.new days=1)) else end_date
                 go end
         False ->
             ## We shift a bit so that if shifting by N full weeks, the 'last'
@@ -403,7 +401,7 @@ type Date
                `days_to_shift` will be negative so `end` will come _before_
                `self`.
             days_to_shift = full_weeks*7 + remaining_days + additional_shift
-            end = self + days_to_shift.days
+            end = self + (Period.new days=days_to_shift)
             workdays = end.work_days_until self holidays include_end_date=False
 
             ## `days` is negative but `workdays` is positive, `diff` will be
@@ -416,7 +414,7 @@ type Date
                    holiday, we need to ensure that we move it - this time
                    backwards - to the first workday.
                 go end_date =
-                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - 1.day) else end_date
+                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                 go end
 
     ## Subtract the specified amount of time from this instant to get another
@@ -513,7 +511,7 @@ week_days_between start end =
        starting point), the last week (containing the end point), and the full
        weeks in between those. In some cases there may be no weeks in-between
        and the first and last week can be the same week.
-    start_of_first_full_week = (start.start_of Date_Period.Week) + 7.days
+    start_of_first_full_week = (start.start_of Date_Period.Week) + (Period.new days=7)
     start_of_last_week = end.start_of Date_Period.Week
     full_weeks_between = (Time_Utils.days_between start_of_first_full_week start_of_last_week).div 7
     case full_weeks_between < 0 of
@@ -529,7 +527,7 @@ week_days_between start end =
                     _ -> days_between
         False ->
             # We count the days in the first week up until Friday - the weekend is not counted.
-            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - 2.days))
+            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2)))
             # We count the days in the last week, not including the weekend.
             last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
             full_weeks_between * 5 + first_week_days + last_week_days
