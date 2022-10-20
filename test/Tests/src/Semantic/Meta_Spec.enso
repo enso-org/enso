@@ -35,6 +35,11 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_atom.constructor.should_equal My_Type.Value
         meta_atom.fields.should_equal [1, "foo", Nothing]
         Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
+    Test.specify "should allow creating atoms from atom constructors" <|
+        atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
+        (Meta.meta atom_1).constructor . should_equal My_Type.Value
+        atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
+        (Meta.meta atom_2).constructor . should_equal My_Type.Value
     Test.specify "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should_equal (Meta.Primitive_Data 1)
         Meta.meta "foo" . should_equal (Meta.Primitive_Data "foo")
@@ -148,7 +153,7 @@ spec = Test.group "Meta-Value Manipulation" <|
 
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:150:15-40"
+        loc = "Meta_Spec.enso:155:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|
