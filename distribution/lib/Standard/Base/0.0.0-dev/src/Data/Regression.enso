@@ -69,7 +69,7 @@ type Fitted_Model
             Fitted_Exponential_Model a b _ -> a.to_text + " * (" + b.to_text + " * X).exp"
             Fitted_Logarithmic_Model a b _ -> a.to_text + " * X.ln + " + b.to_text
             Fitted_Power_Model a b _ -> a.to_text + " * X ^ " + b.to_text
-       "Fitted_Model(" + equation + ")"
+        "Fitted_Model(" + equation + ")"
 
     ## Use the model to predict a value.
     predict : Number -> Number
