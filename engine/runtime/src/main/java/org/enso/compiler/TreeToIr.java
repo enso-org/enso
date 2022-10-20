@@ -551,7 +551,7 @@ final class TreeToIr {
           fnName.append(sep);
           fnName.append(id);
 
-          var body = translateCallArgument(seg.getBody());
+          var body = unnamedCallArgument(seg.getBody());
           args = cons(body, args);
 
           sep = "_";
