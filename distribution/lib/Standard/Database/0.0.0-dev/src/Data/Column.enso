@@ -455,6 +455,35 @@ type Column
     not self = self.make_unary_op "NOT"
 
     ## UNSTABLE
+       Replaces `True` values with `when_true` and `False` with `when_false`.
+       Only meant for use with boolean columns.
+
+       TODO: Currently `when_true` and `when_false` need to be a single value.
+       In the future the API will also support row-based IIF if they are columns.
+    iif : Any -> Any -> Column
+    iif self when_true when_false =
+        ## TODO we should adjust new_type based on types when_true and
+           when_false, but this relies on the Value Types design which is still
+           in progress. This function has status of an internal prototype for
+           now, so we just rely on a simplified handling. Once Value Types are
+           properly implemented, this should be accordingly extended for the
+           full implementation of IIF. We will need to handle when_true and
+           when_false being either columns or regular values and rely on a
+           mapping of Enso base types to SQL types, and a rule for extracting a
+           common type.
+        approximate_type x = case x of
+            _ : Integer -> SQL_Type.integer
+            _ : Decimal -> SQL_Type.real
+            _ : Text -> SQL_Type.text
+            _ : Boolean -> SQL_Type.boolean
+            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
+        left_type = approximate_type when_true
+        right_type = approximate_type when_false
+        if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
+            self.make_op "IIF" [when_true, when_false] new_type=left_type
+
+
+    ## UNSTABLE
 
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -472,6 +501,25 @@ type Column
        this column contains an empty string or `Nothing`.
     is_empty : Column
     is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
+
+    ## PRIVATE
+       Returns a column of booleans with `True` at the positions where this
+       column contains a blank value.
+
+       Arguments:
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    is_blank : Boolean -> Boolean -> Column
+    is_blank self treat_nans_as_blank=False =
+        is_blank = case self.sql_type.is_definitely_text of
+            True -> self.is_empty
+            False -> self.is_missing
+        case treat_nans_as_blank && self.sql_type.is_definitely_double of
+            True -> is_blank || self.is_nan
+            False -> is_blank
 
     ## UNSTABLE
 
