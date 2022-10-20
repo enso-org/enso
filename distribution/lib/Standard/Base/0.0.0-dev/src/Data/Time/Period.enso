@@ -1,0 +1,81 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Time.Duration
+
+polyglot java import java.time.Period as Java_Period
+polyglot java import java.time.DateTimeException
+polyglot java import java.lang.ArithmeticException
+
+
+between : Date -> Date -> Period
+between start_date_inclusive end_date_exclusive =
+    Period.Period_Data Java_Period.between start_date_inclusive end_date_exclusive
+
+
+new : Integer -> Integer -> Integer -> Period
+new years=0 months=0 days=0 =
+    Period.Period_Data (Java_Period.of years months days)
+
+## PRIVATE
+ensure_period : Any -> Text -> Period ! (Time_Error | Illegal_Argument_Error)
+ensure_period object error_msg="Cannot use Duration as a parameter" =
+    case object of
+        period : Period -> period
+        _ : Duration.Duration ->
+            Error.throw Time_Error_Data error_msg
+        x : Any ->
+            Error.throw Illegal_Argument_Error_Data <|
+                "Expected Period type, got: " + (Meta.get_qualified_type_name x)
+
+## A date-based amount of time in the ISO-8601 calendar system, such as
+   '2 years, 3 months and 4 days'.
+
+   This type models an amount of time in terms of years, months and days.
+   `Duration` is its time-based equivalent. Moreover, `Period` counts with
+   daylight saving time. This means that a Period of 1 day does not necessarily
+   have to be 24 hours of Duration.
+type Period
+
+    ## PRIVATE
+    Period_Data internal_period
+
+    years : Integer
+    years self = self.internal_period.getYears
+
+    months : Integer
+    months self = self.internal_period.getMonths
+
+    days : Integer
+    days self = self.internal_period.getDays
+
+    + : Period -> Period ! (Time_Error | Illegal_Argument_Error)
+    + self other_period =
+        other_period_checked = ensure_period other_period
+        Panic.catch Any (Period.Period_Data (self.internal_period.plus other_period_checked.internal_period)) err->
+            case err of
+                DateTimeException -> Error.throw Time_Error_Data "Period addition failed"
+                ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
+
+    - : Period -> Period ! (Time_Error | Illegal_Argument_Error)
+    - self other_period =
+        other_period_checked = ensure_period other_period
+        Panic.catch Any (Period.Period_Data (self.internal_period.minus other_period_checked.internal_period)) err->
+            case err of
+                DateTimeException -> Error.throw Time_Error_Data "Period subtraction failed"
+                ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
+
+    == : Period -> Boolean ! (Time_Error | Illegal_Argument_Error)
+    == self that =
+        other_period = ensure_period that
+        self.internal_period.equals other_period.internal_period
+
+    compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
+    compare_to self that =
+        other_period = ensure_period that
+        if self.years > other_period.years then Ordering.Greater else
+            if self.years < other_period.years then Ordering.Less else
+                if self.months > other_period.months then Ordering.Greater else
+                    if self.months < other_period.months then Ordering.Less else
+                        if self.days > other_period.days then Ordering.Greater else
+                            if self.days < other_period.days then Ordering.Less else
+                                Ordering.Equal
