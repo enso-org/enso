@@ -93,7 +93,13 @@ final class TreeToIr {
         List<IR$Module$Scope$Import> imports = nil();
         List<IR$Module$Scope$Export> exports = nil();
         for (Line line : b.getStatements()) {
-          final Tree expr = line.getExpression();
+          var expr = line.getExpression();
+          if (expr instanceof Tree.Documented doc) {
+            var comment = translateComment(doc, doc.getDocumentation());
+            // In this case, which usually includes top-level documentation for a module,
+            // the old parser dropped the comment. For now, we copy that behavior for compatibility.
+            expr = doc.getExpression();
+          }
           switch (expr) {
             case Tree.Import imp -> {
               imports = cons(translateImport(imp), imports);
@@ -101,9 +107,7 @@ final class TreeToIr {
             case Tree.Export exp -> {
               exports = cons(translateExport(exp), exports);
             }
-            case null -> {
-              bindings = translateModuleSymbol(expr, bindings);
-            }
+            case null -> {}
             default -> {
               bindings = translateModuleSymbol(expr, bindings);
             }
@@ -390,7 +394,6 @@ final class TreeToIr {
       switch (tree) {
         case Tree.App app when app.getArg() instanceof Tree.AutoScope -> {
           hasDefaultsSuspended = true;
-          // TODO: End unrolling here.
           tree = app.getFunc();
         }
         case Tree.App app -> {
@@ -402,7 +405,7 @@ final class TreeToIr {
         case Tree.NamedApp app -> {
           var expr = translateExpression(app.getArg(), false);
           var loc = getIdentifiedLocation(app.getArg());
-          var id = sanitizeName(buildName(app, app.getName()));
+          var id = buildName(app, app.getName());
           args.add(new IR$CallArgument$Specified(Option.apply(id), expr, loc, meta(), diag()));
           tree = app.getFunc();
         }
