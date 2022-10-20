@@ -509,8 +509,8 @@ final class TreeToIr {
             yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
           }
           default -> {
-            var lhs = translateCallArgument(app.getLhs());
-            var rhs = translateCallArgument(app.getRhs());
+            var lhs = unnamedCallArgument(app.getLhs());
+            var rhs = unnamedCallArgument(app.getRhs());
             var name = new IR$Name$Literal(
               op.codeRepr(), true,
               getIdentifiedLocation(app),
@@ -1081,6 +1081,11 @@ final class TreeToIr {
   IR$CallArgument$Specified translateTypeCallArgument(Tree arg) {
     var loc = getIdentifiedLocation(arg);
     var expr = translateType(arg, false);
+    return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
+  }
+  IR$CallArgument$Specified unnamedCallArgument(Tree arg) {
+    var loc = getIdentifiedLocation(arg);
+    var expr = translateExpression(arg);
     return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
   }
 
