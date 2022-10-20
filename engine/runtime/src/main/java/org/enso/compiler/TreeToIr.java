@@ -643,7 +643,7 @@ final class TreeToIr {
           // expression, with no case to attach it to.
           if (branch.getExpression() != null) {
             var br = new IR$Case$Branch(
-                    translatePattern(branch.getPattern(), nil()),
+                    translatePattern(branch.getPattern()),
                     translateExpression(branch.getExpression(), false),
                     getIdentifiedLocation(branch.getExpression()), meta(), diag()
             );
@@ -1151,28 +1151,25 @@ final class TreeToIr {
     * @param block the case pattern to translate
     * @return
     */
-  IR.Pattern translatePattern(Tree block, List<IR.Pattern> fields) {
+  IR.Pattern translatePattern(Tree block) {
     var pattern = maybeManyParensed(block);
-    return switch (pattern) {
+    var elements = unrollApp(pattern);
+    var lhs = elements.get(0);
+    var args = elements.stream().skip(1).map(arg -> translatePattern(arg));
+    var fields = CollectionConverters.asScala(args.iterator()).toList();
+    return switch (lhs) {
       case Tree.Ident id when id.getToken().isTypeOrConstructor() || !fields.isEmpty() -> {
         yield new IR$Pattern$Constructor(
                 buildName(id), fields,
                 getIdentifiedLocation(id), meta(), diag()
         );
       }
-      case Tree.Ident id -> {
-        yield new IR$Pattern$Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
-      }
-      case Tree.OprApp id -> {
-        var qualifiedName = buildQualifiedName(pattern);
+      case Tree.Ident id -> new IR$Pattern$Name(buildName(id), getIdentifiedLocation(id), meta(), diag());
+      case Tree.OprApp app when ".".equals(app.getOpr().getRight().codeRepr()) -> {
+        var qualifiedName = buildQualifiedName(app);
         yield new IR$Pattern$Constructor(
-          qualifiedName, fields,
-          getIdentifiedLocation(id), meta(), diag()
+          qualifiedName, fields, getIdentifiedLocation(app), meta(), diag()
         );
-      }
-      case Tree.App id -> {
-        var args = translatePatternArguments(id.getArg(), fields);
-        yield translatePattern(id.getFunc(), args);
       }
       case Tree.Wildcard wild -> translateWildcardPattern(wild);
       case Tree.TextLiteral lit ->
@@ -1188,34 +1185,9 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.Pattern> translatePatternArguments(Tree t, List<IR.Pattern> prev) {
-    var tree = maybeManyParensed(t);
-    return switch (tree) {
-      case Tree.OprApp app -> {
-       var tail = translatePatternArguments(app.getRhs(), prev);
-       yield cons(translatePattern(app.getLhs(), tail), nil());
-      }
-      case Tree.App app -> {
-       var tail = translatePatternArguments(app.getArg(), prev);
-       yield cons(translatePattern(app.getFunc(), tail), nil());
-      }
-      case Tree.Ident id -> {
-        var name = buildName(id);
-        var pattern = Character.isLowerCase(name.name().charAt(0)) ?
-                new IR$Pattern$Name(name, getIdentifiedLocation(id), meta(), diag()) :
-                new IR$Pattern$Constructor(name, nil(), getIdentifiedLocation(id), meta(), diag());
-        yield cons(pattern, prev);
-      }
-      case Tree.Wildcard wild -> cons(translateWildcardPattern(wild), prev);
-      default -> throw new UnhandledEntity(tree, "translatePattern");
-    };
-  }
-
   private IR$Pattern$Name translateWildcardPattern(Tree.Wildcard wild) {
       var at = getIdentifiedLocation(wild);
-      var blank = new IR$Name$Blank(
-              at, meta(), diag()
-      );
+      var blank = new IR$Name$Blank(at, meta(), diag());
       return new IR$Pattern$Name(blank, at, meta(), diag());
   }
 
@@ -1262,6 +1234,16 @@ final class TreeToIr {
     segments.add(list);
     java.util.Collections.reverse(segments);
     return segments;
+  }
+  private java.util.List<Tree> unrollApp(Tree list) {
+    var elems = new java.util.ArrayList<Tree>();
+    while (list instanceof Tree.App app) {
+      elems.add(app.getArg());
+      list = app.getFunc();
+    }
+    elems.add(list);
+    java.util.Collections.reverse(elems);
+    return elems;
   }
   private IR.Name qualifiedNameSegment(Tree tree) {
     return switch (tree) {
