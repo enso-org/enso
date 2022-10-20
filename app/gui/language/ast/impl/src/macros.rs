@@ -207,12 +207,18 @@ pub fn ast_as_import_match(ast: &Ast) -> Option<known::Match> {
     is_match_import(&macro_match).then_some(macro_match)
 }
 
+/// If the given AST node is a qualified import declaration (`import <module name>`), returns it as
+/// a Match (which is the only shape capable of storing import declarations). Returns `None`
+/// otherwise.
 pub fn is_match_qualified_import(ast: &known::Match) -> bool {
     let segment = &ast.segs.head;
     let keyword = crate::identifier::name(&segment.head);
     keyword.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD)
 }
 
+/// If the given AST node is an unqualified import declaration (`from <module name> import <...>`),
+/// returns it as a Match (which is the only shape capable of storing import declarations). Returns
+/// `None` otherwise.
 pub fn is_match_unqualified_import(ast: &known::Match) -> bool {
     let first_segment = &ast.segs.head;
     let first_keyword = crate::identifier::name(&first_segment.head);

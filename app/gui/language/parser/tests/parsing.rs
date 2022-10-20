@@ -469,7 +469,7 @@ impl Fixture {
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
-#[test]
+#[wasm_bindgen_test]
 fn parser_tests() {
     Fixture::new().run()
 }

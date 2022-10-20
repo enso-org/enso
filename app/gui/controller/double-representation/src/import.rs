@@ -1,35 +1,64 @@
+//! A module with utilities managing imports
 use crate::prelude::*;
 
 use crate::module;
+
 use ast::known;
 use ast::Ast;
 use ast::HasRepr;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::BTreeSet;
 
+
+
+// =================
+// === Constants ===
+// =================
 
 const LIST_SEPARATOR: char = ',';
-pub const ALIAS_KEYWORD: &str = "as";
-pub const ALL_KEYWORD: &str = "all";
-pub const HIDING_KEYWORD: &str = "hiding";
+const ALIAS_KEYWORD: &str = "as";
+const ALL_KEYWORD: &str = "all";
+const HIDING_KEYWORD: &str = "hiding";
+
+
+
+// ===============
+// === Aliases ===
+// ===============
 
 /// Id for an import.
 pub type Id = u64;
 
+
+
+// =====================
+// === ImportedNames ===
+// =====================
+
+/// A structure describing what names are imported from the module in a specific import declaration.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, Deserialize, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub enum ImportedScope {
-    /// `import <module> [as <alias>]`
+pub enum ImportedNames {
+    /// The import is `import <module> [as <alias>]` and only module name is imported.
     Module { alias: Option<String> },
-    /// `from <module> import all`
+    /// The import is `from <module> import all`, and all names defined in the module are imported.
     All,
-    /// `from <module> import all hiding <hidden_names>`
-    AllHidingNames { hidden_names: Vec<String> },
-    /// `from <module> import <names>`
-    Names { names: Vec<String> },
+    /// The import is `from <module> import all hiding <not_imported>`, and all names except
+    /// specified in `not_imported` list are imported
+    AllExcept { not_imported: BTreeSet<String> },
+    /// The import is `from <module> import <names>`, and only the specified `names` are imported.
+    List { names: BTreeSet<String> },
 }
 
-impl ImportedScope {
-    fn from_match_second_segment(segment: impl AsRef<str>) -> Self {
+impl ImportedNames {
+    /// Create [`ImportedNames`] structure from the second `Match` segment body.
+    ///
+    /// The unqualified imports are always parsed as [`Match`](crate::Shape::Match) AST node, where
+    /// the second segment starts from `import` and ends with end of the import declaration. Thus,
+    /// the second segment body may be `all`, `all hiding <comma-separated-name-list>`, or just
+    /// comma separated name list.
+    fn from_unqualified_import_match_second_segment(segment: impl AsRef<str>) -> Self {
         let is_token_sep = |c: char| c.is_ascii_whitespace() || c == LIST_SEPARATOR;
         let scope_split = segment.as_ref().split(is_token_sep);
         let mut scope_tokens = scope_split.filter(|tok| !tok.is_empty());
@@ -37,18 +66,14 @@ impl ImportedScope {
         let second_token = scope_tokens.next();
         let third_and_further_tokens = scope_tokens;
         match (first_token, second_token) {
-            (Some("all"), Some("hiding")) => Self::AllHidingNames {
-                hidden_names: third_and_further_tokens.map(Into::into).collect(),
-            },
+            (Some("all"), Some("hiding")) =>
+                Self::AllExcept { not_imported: third_and_further_tokens.map(Into::into).collect() },
             (Some("all"), _) => Self::All,
-            (first_name, second_name) => Self::Names {
-                names: first_name
-                    .into_iter()
-                    .chain(second_name)
-                    .chain(third_and_further_tokens)
-                    .map(Into::into)
-                    .collect(),
-            },
+            (first_name, second_name) => {
+                let all_names =
+                    first_name.into_iter().chain(second_name).chain(third_and_further_tokens);
+                Self::List { names: all_names.map(Into::into).collect() }
+            }
         }
     }
 }
@@ -62,18 +87,21 @@ pub struct Info {
     /// be typed in and are representable in the text.
     /// This includes targets with too few segments or segments not being valid referent names.
     pub module:   Vec<String>,
-    pub imported: ImportedScope,
+    /// Imported names from [`module`].
+    pub imported: ImportedNames,
 }
 
 impl Info {
+    /// Create qualified import (i.e. `import <module-name>`) importing the given module without
+    /// alias.
     pub fn new_qualified(module: &module::QualifiedName) -> Self {
         Self {
             module:   module.segments().map(|segment| segment.to_string()).collect(),
-            imported: ImportedScope::Module { alias: None },
+            imported: ImportedNames::Module { alias: None },
         }
     }
 
-    /// Obtain the qualified name of the imported module.
+    /// Obtain the qualified name of the module.
     pub fn qualified_module_name(&self) -> FallibleResult<module::QualifiedName> {
         module::QualifiedName::from_all_segments(&self.module)
     }
@@ -91,7 +119,7 @@ impl Info {
                 module:   Self::module_name_from_str(ast.segs.head.body.repr()),
                 // TODO[ao] the current parser does not recognize aliases for imports. Should be
                 //     fixed with the new parser.
-                imported: ImportedScope::Module { alias: None },
+                imported: ImportedNames::Module { alias: None },
             })
         } else if ast::macros::is_match_unqualified_import(&ast) {
             let module = ast.segs.head.body.repr();
@@ -102,14 +130,19 @@ impl Info {
         }
     }
 
-    pub fn from_module_and_scope_str(module: impl AsRef<str>, imported: impl AsRef<str>) -> Self {
+    /// Create [`Info`] from unqualified import segment's body representations.
+    ///
+    /// The unqualified imports are always parsed as [`Match`](crate::Shape::Match) AST node, where
+    /// the first segment contains keyword `from` and module name, and second segment the rest of
+    /// the import.
+    fn from_module_and_scope_str(module: impl AsRef<str>, imported: impl AsRef<str>) -> Self {
         Self {
             module:   Self::module_name_from_str(module),
-            imported: ImportedScope::from_match_second_segment(imported),
+            imported: ImportedNames::from_unqualified_import_match_second_segment(imported),
         }
     }
 
-    pub fn module_name_from_str(module: impl AsRef<str>) -> Vec<String> {
+    fn module_name_from_str(module: impl AsRef<str>) -> Vec<String> {
         let name = module.as_ref().trim();
         if name.is_empty() {
             Vec::new()
@@ -137,20 +170,20 @@ impl Display for Info {
         let import_kw = ast::macros::QUALIFIED_IMPORT_KEYWORD;
         let from_kw = ast::macros::UNQUALIFIED_IMPORT_KEYWORD;
         match &self.imported {
-            ImportedScope::Module { alias } => {
+            ImportedNames::Module { alias } => {
                 write!(f, "{} {}", import_kw, module)?;
                 if let Some(alias) = alias {
                     write!(f, " {} {}", ALIAS_KEYWORD, alias)?;
                 }
                 Ok(())
             }
-            ImportedScope::All => write!(f, "{} {} {} {}", from_kw, module, import_kw, ALL_KEYWORD),
-            ImportedScope::Names { names } => {
-                let names = names.join(", ");
+            ImportedNames::All => write!(f, "{} {} {} {}", from_kw, module, import_kw, ALL_KEYWORD),
+            ImportedNames::List { names } => {
+                let names = names.iter().join(", ");
                 write!(f, "{} {} {} {}", from_kw, module, import_kw, names)
             }
-            ImportedScope::AllHidingNames { hidden_names } => {
-                let names = hidden_names.join(", ");
+            ImportedNames::AllExcept { not_imported: hidden_names } => {
+                let names = hidden_names.iter().join(", ");
                 write!(
                     f,
                     "{} {} {} {} {} {}",
@@ -160,3 +193,9 @@ impl Display for Info {
         }
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============

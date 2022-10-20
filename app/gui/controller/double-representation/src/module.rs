@@ -809,7 +809,7 @@ mod tests {
             let imports = info.iter_imports().collect_vec();
             assert_eq!(imports.len(), expected.len());
             for (import, expected_segments) in imports.iter().zip(expected) {
-                itertools::assert_equal(import.target.iter(), expected_segments.iter());
+                itertools::assert_equal(import.module.iter(), expected_segments.iter());
             }
         };
 
@@ -831,7 +831,7 @@ mod tests {
         let mut info = Info { ast };
         let import = |code| {
             let ast = parser.parse_line_ast(code).unwrap();
-            ImportInfo::from_ast(&ast).unwrap()
+            import::Info::from_ast(&ast).unwrap()
         };
 
         info.add_import(&parser, import("import Bar.Gar"));
@@ -839,13 +839,13 @@ mod tests {
         info.add_import(&parser, import("import Gar.Bar"));
         info.expect_code("import Bar.Gar\nimport Foo.Bar.Baz\nimport Gar.Bar");
 
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap_err();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap_err();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Gar.Bar")).unwrap();
+        info.remove_import(&import("import Gar.Bar")).unwrap();
         info.expect_code("import Bar.Gar");
-        info.remove_import(&ImportInfo::from_target_str("Bar.Gar")).unwrap();
+        info.remove_import(&import("import Bar.Gar")).unwrap();
         info.expect_code("");
 
         info.add_import(&parser, import("import Bar.Gar"));
