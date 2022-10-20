@@ -729,7 +729,7 @@ final class TreeToIr {
       case Tree.Array arr -> {
         List<IR.Expression> items = nil();
         if (arr.getFirst() != null) {
-          var exp = translateType(arr.getFirst(), insideTypeAscription);
+          var exp = translateType(arr.getFirst(), false);
           items = cons(exp, items);
           for (var next : arr.getRest()) {
             exp = translateType(next.getBody(), insideTypeAscription);
