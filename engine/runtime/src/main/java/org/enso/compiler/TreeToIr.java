@@ -512,9 +512,7 @@ final class TreeToIr {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
             var name = new IR$Name$Literal(
-              op.codeRepr(), true,
-              getIdentifiedLocation(app),
-              meta(), diag()
+              op.codeRepr(), true, getIdentifiedLocation(app), meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
             yield lhs != null ? new IR$Application$Operator$Binary(
@@ -1084,6 +1082,9 @@ final class TreeToIr {
     return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
   }
   IR$CallArgument$Specified unnamedCallArgument(Tree arg) {
+    if (arg == null) {
+      return null;
+    }
     var loc = getIdentifiedLocation(arg);
     var expr = translateExpression(arg);
     return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());

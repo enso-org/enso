@@ -684,6 +684,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
                 .as_arrow(),
+        "!" => return operator.with_binary_infix_precedence(3),
         "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
         "|>" | "|>>" => return operator.with_binary_infix_precedence(6),
