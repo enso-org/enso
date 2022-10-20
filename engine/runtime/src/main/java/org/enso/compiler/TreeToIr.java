@@ -684,8 +684,28 @@ final class TreeToIr {
           if (line.getCase() == null) {
             continue;
           }
-          var br = translateCaseBranch(line.getCase());
-          branches = cons(br, branches);
+          var branch = line.getCase();
+          if (branch.getDocumentation() != null) {
+            var comment = translateComment(cas, branch.getDocumentation());
+            var loc = getIdentifiedLocation(cas);
+            var doc = new IR$Pattern$Documentation(comment.doc(), loc, meta(), diag());
+            var br= new IR$Case$Branch(
+                    doc,
+                    new IR.Empty(Option.empty(), meta(), diag()),
+                    loc, meta(), diag()
+            );
+            branches = cons(br, branches);
+          }
+          // A branch with no expression is used to hold any orphaned documentation at the end of the case-of
+          // expression, with no case to attach it to.
+          if (branch.getExpression() != null) {
+            var br = new IR$Case$Branch(
+                    translatePattern(branch.getPattern(), nil()),
+                    translateExpression(branch.getExpression(), false),
+                    getIdentifiedLocation(branch.getExpression()), meta(), diag()
+            );
+            branches = cons(br, branches);
+          }
         }
         yield new IR$Case$Expr(expr, branches.reverse(), getIdentifiedLocation(tree), meta(), diag());
       }
@@ -1181,29 +1201,6 @@ final class TreeToIr {
     }
   }
 
-  /** Translates the branch of a case expression from its [[AST]] representation
-    * into [[IR]], also handling the documentation comments in between branches.
-    *
-    * The documentation comments are translated to dummy branches that contain
-    * an empty expression and a dummy [[IR.Pattern.Documentation]] pattern
-    * containing the comment. These dummy branches are removed in the
-    * DocumentationComments pass where the comments are attached to the actual
-    * branches.
-    *
-    * @param branch the case branch or comment to translate
-    * @return the [[IR]] representation of `branch`
-    */
-  IR$Case$Branch translateCaseBranch(Case branch) {
-    if (branch.getPattern() == null) {
-      throw new UnhandledEntity(branch, "translateCaseBranch");
-    }
-    return new IR$Case$Branch(
-          translatePattern(branch.getPattern(), nil()),
-          translateExpression(branch.getExpression(), false),
-          getIdentifiedLocation(branch.getExpression()), meta(), diag()
-      );
-  }
-
   /** Translates a pattern in a case expression from its [[AST]] representation
     * into [[IR]].
     *
@@ -1459,13 +1456,10 @@ final class TreeToIr {
   /** Translates a comment from its [[AST]] representation into its [[IR]]
     * representation.
     *
-    * Currently this only supports documentation comments, and not standarc
-    * types of comments as they can't currently be represented.
-    *
     * @param doc the comment to transform
     * @return the [[IR]] representation of `comment`
     */
-  IR.Comment translateComment(Tree where, DocComment doc) {
+  IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
       var msg = new StringBuilder();
       for (var t : doc.getElements()) {
         switch (t) {
