@@ -94,7 +94,7 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 

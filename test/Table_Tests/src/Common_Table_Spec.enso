@@ -1246,8 +1246,8 @@ spec prefix table_builder test_selection pending=Nothing =
                 False -> v2.should_fail_with SQL_Error_Data
 
             t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
-            t2.filter "A" (Filter_Condition.Is_In (t2.at "bool")) . at "A" . to_vector . should_equal [True, True]
-            t2.filter "A" (Filter_Condition.Is_In (t2.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
             t2.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
             t2.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True, Nothing]
             t2.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]

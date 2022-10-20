@@ -42,11 +42,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
 
   @Override
-  protected boolean isOpVectorized(String name) {
-    return ops.isSupported(name);
-  }
-
-  @Override
   protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
