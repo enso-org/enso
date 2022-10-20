@@ -1858,7 +1858,7 @@ lazy val `std-base` = project
     libraryDependencies ++= Seq(
       "com.ibm.icu"         % "icu4j"                   % icuVersion,
       "org.graalvm.truffle" % "truffle-api"             % graalVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1882,6 +1882,7 @@ lazy val `std-table` = project
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers" % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0"
