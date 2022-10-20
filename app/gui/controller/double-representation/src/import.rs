@@ -118,7 +118,9 @@ impl Info {
             Some(Self {
                 module:   Self::module_name_from_str(ast.segs.head.body.repr()),
                 // TODO[ao] the current parser does not recognize aliases for imports. Should be
-                //     fixed with the new parser.
+                //     fixed with the new parser. Once new parser will be integrated, the alias
+                //     support will be implemented as task
+                //     https://www.pivotaltracker.com/story/show/183590537
                 imported: ImportedNames::Module { alias: None },
             })
         } else if ast::macros::is_match_unqualified_import(&ast) {
