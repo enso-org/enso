@@ -15,7 +15,7 @@ Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Day_Of_Week.Sunday) (st
         True ->
             valid_range = if start_at_zero then "0-6" else "1-7"
             message = "Invalid day of week (must be " + valid_range + ")."
-            Error.throw (Illegal_Argument_Error message)
+            Error.throw (Illegal_Argument_Error_Data message)
         False ->
             day_number = if first_day == Day_Of_Week.Sunday then shifted else
                 (shifted + (first_day.to_integer start_at_zero=True)) % 7

@@ -396,15 +396,22 @@ spec =
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
 
-        # TODO move these to Common_Table_Spec
-        Test.specify "should drop columns that contain at least one missing row in a Table" <|
-            a = ["a", [1, Nothing, 3, 4]]
-            b = ["b", [1, 2, Nothing, "x"]]
-            c = ["c", [10, 20, 30, 40]]
-            t = Table.new [a, b, c]
-            d = t.drop_missing_columns
-            d.columns.map .name . should_equal ["c"]
-            d.at "c" . to_vector . should_equal [10, 20, 30, 40]
+            t3 = Table.new [["X", [1, 2, 3]], ["Y", ["", Nothing, Number.nan]]]
+            t4 = t3.remove_columns (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            t4.columns . map .name . should_equal ["X"]
+
+        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
+            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
+            r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            r1.at "Y" . to_vector . to_text . should_equal "['', Nothing, NaN]"
+            r1.at "X" . to_vector . should_equal [1, 2, 4]
+
+            # TODO this could be moved to Common_Table_Spec once replace_text is implemented for Database too
+            t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
+            r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
+            r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
+            r2.at "Y" . to_vector . should_equal ["", Nothing, Nothing, Nothing, ""]
+            r2.at "Z" . to_vector . should_equal ["", "AAA", "A1", "", "foobar"]
 
     Test.group "Info" <|
         Test.specify "should return Table information" <|
