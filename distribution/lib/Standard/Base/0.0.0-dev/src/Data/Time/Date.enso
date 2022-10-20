@@ -10,6 +10,8 @@ from Standard.Base.Error.Common import Time_Error_Data, unimplemented
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
+polyglot java import java.time.DateTimeException
+polyglot java import java.lang.ArithmeticException
 
 ## Obtains the current date from the system clock in the system timezone.
 
@@ -305,9 +307,17 @@ type Date
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = Date.new 2020 + 6.months
-    + : Date_Period -> Date
-    + self _ = unimplemented "Date.+"
+             example_add = Date.new 2020 + (Period.new months=6)
+    + : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    + self period =
+        case period of
+            _ : Period.Period ->
+                new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+                new new_java_date.year new_java_date.month new_java_date.day
+            _ : Duration.Duration ->
+                Error.throw (Time_Error_Data "Date does not support time intervals")
+            _ ->
+                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
     ## Shift the date by the specified amount of business days.
 
@@ -429,9 +439,17 @@ type Date
              from Standard.Base import Date
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = Date.new 2020 - 7.days
-    - : Date_Period -> Date
-    - self _ = unimplemented "Date.-"
+             example_subtract = Date.new 2020 - (Period.new days=7)
+    - : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    - self period =
+        case period of
+            _ : Period.Period ->
+                new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
+                new new_java_date.year new_java_date.month new_java_date.day
+            _ : Duration.Duration ->
+                Error.throw (Time_Error_Data "Date does not support time intervals")
+            _ ->
+                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
 
     ## A Date to Json conversion.
