@@ -3,7 +3,9 @@ package org.enso.compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
+import org.enso.compiler.core.IR$Application$Operator$Section$Left;
 import org.enso.compiler.core.IR$Application$Operator$Section$Right;
+import org.enso.compiler.core.IR$Application$Operator$Section$Sides;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Case$Branch;
@@ -516,13 +518,15 @@ final class TreeToIr {
               op.codeRepr(), true, getIdentifiedLocation(app), meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
-            yield lhs != null ? new IR$Application$Operator$Binary(
-              lhs,name,rhs,
-              loc,meta(), diag()
-            ) : new IR$Application$Operator$Section$Right(
-              name, rhs,
-              loc, meta(), diag()
-            );
+            if (lhs == null && rhs == null) {
+              yield new IR$Application$Operator$Section$Sides(name, loc, meta(), diag());
+            } else if (lhs == null) {
+              yield new IR$Application$Operator$Section$Right(name, rhs, loc, meta(), diag());
+            } else if (rhs == null) {
+              yield new IR$Application$Operator$Section$Left(lhs, name, loc, meta(), diag());
+            } else {
+              yield new IR$Application$Operator$Binary(lhs, name, rhs, loc,meta(), diag());
+            }
           }
         };
       }
