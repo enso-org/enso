@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -97,7 +100,7 @@ public final class ParseStdLibTest extends TestCase {
     }
 
     @SuppressWarnings("unchecked")
-    private void parseTest(Source src) throws IOException {
+    private void parseTest(Source src, boolean generate) throws IOException {
         var ir = ensoCompiler.compile(src);
         assertNotNull("IR was generated", ir);
 
@@ -131,13 +134,17 @@ public final class ParseStdLibTest extends TestCase {
         var old = filter.apply(oldIr);
         var now = filter.apply(ir);
         if (!old.equals(now)) {
-            var name = where.getName();
-            var result = where.getParentFile().toPath();
-            final Path oldPath = result.resolve(name + ".old");
-            Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            final Path nowPath = result.resolve(name + ".now");
-            Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            fail("IR for " + src.getPath() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
+            if (generate) {
+                var name = where.getName();
+                var result = where.getParentFile().toPath();
+                final Path oldPath = result.resolve(name + ".old");
+                Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                final Path nowPath = result.resolve(name + ".now");
+                Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                fail("IR for " + src.getPath() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
+            } else {
+                fail("IR for " + src.getPath() + " shall be equal");
+            }
         }
     }
 
@@ -148,10 +155,10 @@ public final class ParseStdLibTest extends TestCase {
             .uri(where.toURI())
             .build();
         if (isKnownToWork(getName())) {
-            parseTest(src);
+            parseTest(src, true);
         } else {
             try {
-                parseTest(src);
+                parseTest(src, false);
             } catch (Exception | Error e) {
                 // OK
                 return;
@@ -160,167 +167,172 @@ public final class ParseStdLibTest extends TestCase {
         }
     }
 
+    private static final Set<String> KNOWN_TO_FAIL;
+    static {
+        KNOWN_TO_FAIL = new HashSet<>();
+        KNOWN_TO_FAIL.addAll(Arrays.asList(
+            "Network/URI.enso",
+            "Network/Proxy.enso",
+            "Network/Http.enso",
+            "Network/Http/Method.enso",
+            "Network/Http/Request/Body.enso",
+            "Network/Http/Response/Body.enso",
+            "Network/Http/Status_Code.enso",
+            "Network/Http/Response.enso",
+            "Network/Http/Version.enso",
+            "Network/Http/Form.enso",
+            "Network/Http/Request.enso",
+            "Network/Http/Header.enso",
+            "Polyglot/Proxy_Polyglot_Array.enso",
+            "Runtime/Extensions.enso",
+            "Runtime/Resource.enso",
+            "Meta/Enso_Project.enso",
+            "Data/Json/Internal.enso",
+            "Data/Locale.enso",
+            "Data/Ordering.enso",
+            "Data/Noise/Generator.enso",
+            "Data/Ordering/Vector_Lexicographic_Order.enso",
+            "Data/Ordering/Natural_Order.enso",
+            "Data/Ordering/Sort_Direction.enso",
+            "Data/Range.enso",
+            "Data/Text/Regex_Matcher.enso",
+            "Data/Text/Case_Sensitivity.enso",
+            "Data/Text/Extensions.enso",
+            "Data/Text/Line_Ending_Style.enso",
+            "Data/Text/Regex/Engine.enso",
+            "Data/Text/Regex/Regex_Mode.enso",
+            "Data/Text/Regex/Option.enso",
+            "Data/Text/Regex/Engine/Default.enso",
+            "Data/Text/Text_Sub_Range.enso",
+            "Data/Text/Encoding.enso",
+            "Data/Text/Text_Matcher.enso",
+            "Data/Text/Case.enso",
+            "Data/Text/Regex.enso",
+            "Data/Text/Span.enso",
+            "Data/Text/Matching.enso",
+            "Data/Text/Text_Ordering.enso",
+            "Data/Statistics.enso",
+            "Data/Index_Sub_Range.enso",
+            "Data/Map.enso",
+            "Data/Array.enso",
+            "Data/Map/Internal.enso",
+            "Data/Interval.enso",
+            "Data/Regression.enso",
+            "Data/Statistics/Rank_Method.enso",
+            "Data/Interval/Bound.enso",
+            "Data/Json.enso",
+            "Data/Filter_Condition.enso",
+            "Data/Numbers.enso",
+            "Data/Vector.enso",
+            "Data/Any.enso",
+            "Data/List.enso",
+            "Data/Maybe.enso",
+            "Data/Time/Date.enso",
+            "Data/Time/Date_Time.enso",
+            "Data/Time/Day_Of_Week.enso",
+            "Data/Time/Date_Period.enso",
+            "Data/Time/Duration.enso",
+            "Data/Time/Time_Zone.enso",
+            "Data/Time/Time_Of_Day.enso",
+            "Data/Time/Day_Of_Week_From.enso",
+            "Data/Pair.enso",
+            "Error/Common.enso",
+            "Error/Problem_Behavior.enso",
+            "System/File_Format.enso",
+            "System/Process/Exit_Code.enso",
+            "System/Process.enso",
+            "System/Environment.enso",
+            "System/File/File_Permissions.enso",
+            "System/File/Option.enso",
+            "System/File/Existing_File_Behavior.enso",
+            "System/Platform.enso",
+            "System/File.enso",
+            "Network/URI.enso",
+            "Network/Proxy.enso",
+            "Network/Http.enso",
+            "Network/Http/Method.enso",
+            "Network/Http/Request/Body.enso",
+            "Network/Http/Response/Body.enso",
+            "Network/Http/Status_Code.enso",
+            "Network/Http/Response.enso",
+            "Network/Http/Version.enso",
+            "Network/Http/Form.enso",
+            "Network/Http/Request.enso",
+            "Network/Http/Header.enso",
+            "Polyglot/Proxy_Polyglot_Array.enso",
+            "Runtime/Extensions.enso",
+            "Runtime/Resource.enso",
+            "Meta/Enso_Project.enso",
+            "Data/Json/Internal.enso",
+            "Data/Locale.enso",
+            "Data/Ordering.enso",
+            "Data/Noise/Generator.enso",
+            "Data/Ordering/Vector_Lexicographic_Order.enso",
+            "Data/Ordering/Natural_Order.enso",
+            "Data/Ordering/Sort_Direction.enso",
+            "Data/Range.enso",
+            "Data/Text/Regex_Matcher.enso",
+            "Data/Text/Case_Sensitivity.enso",
+            "Data/Text/Extensions.enso",
+            "Data/Text/Line_Ending_Style.enso",
+            "Data/Text/Regex/Engine.enso",
+            "Data/Text/Regex/Regex_Mode.enso",
+            "Data/Text/Regex/Option.enso",
+            "Data/Text/Regex/Engine/Default.enso",
+            "Data/Text/Text_Sub_Range.enso",
+            "Data/Text/Encoding.enso",
+            "Data/Text/Text_Matcher.enso",
+            "Data/Text/Case.enso",
+            "Data/Text/Regex.enso",
+            "Data/Text/Span.enso",
+            "Data/Text/Matching.enso",
+            "Data/Text/Text_Ordering.enso",
+            "Data/Statistics.enso",
+            "Data/Index_Sub_Range.enso",
+            "Data/Map.enso",
+            "Data/Array.enso",
+            "Data/Map/Internal.enso",
+            "Data/Interval.enso",
+            "Data/Regression.enso",
+            "Data/Statistics/Rank_Method.enso",
+            "Data/Interval/Bound.enso",
+            "Data/Json.enso",
+            "Data/Filter_Condition.enso",
+            "Data/Numbers.enso",
+            "Data/Vector.enso",
+            "Data/Any.enso",
+            "Data/List.enso",
+            "Data/Maybe.enso",
+            "Data/Time/Date.enso",
+            "Data/Time/Date_Time.enso",
+            "Data/Time/Day_Of_Week.enso",
+            "Data/Time/Date_Period.enso",
+            "Data/Time/Duration.enso",
+            "Data/Time/Time_Zone.enso",
+            "Data/Time/Time_Of_Day.enso",
+            "Data/Time/Day_Of_Week_From.enso",
+            "Data/Pair.enso",
+            "Error/Common.enso",
+            "Error/Problem_Behavior.enso",
+            "System/File_Format.enso",
+            "System/Process/Exit_Code.enso",
+            "System/Process.enso",
+            "System/Environment.enso",
+            "System/File/File_Permissions.enso",
+            "System/File/Option.enso",
+            "System/File/Existing_File_Behavior.enso",
+            "System/Platform.enso",
+            "System/File.enso",
+            "Random.enso",
+            "Runtime.enso",
+            "Meta.enso",
+            "Function.enso",
+            "Main.enso",
+            "System.enso",
+            "Warning.enso"
+        ));
+    }
     private static boolean isKnownToWork(String name) {
-        switch (name) {
-            case "Array.enso":
-                return false;
-            case "Body.enso":
-                return false;
-            case "Case.enso":
-                return false;
-            case "Case_Sensitivity.enso":
-                return false;
-            case "Default.enso":
-                return false;
-            case "Encoding.enso":
-                return false;
-            case "Engine.enso":
-                return false;
-            case "Enso_Project.enso":
-                return false;
-            case "Extensions.enso":
-                return false;
-            case "Form.enso":
-                return false;
-            case "Generator.enso":
-                return false;
-            case "Header.enso":
-                return false;
-            case "Http.enso":
-                return false;
-            case "Index_Sub_Range.enso":
-                return false;
-            case "Internal.enso":
-                return false;
-            case "Interval.enso":
-                return false;
-            case "Line_Ending_Style.enso":
-                return false;
-            case "Locale.enso":
-                return false;
-            case "Main.enso":
-                return false;
-            case "Map.enso":
-                return false;
-            case "Matching.enso":
-                return false;
-            case "Method.enso":
-                return false;
-            case "Natural_Order.enso":
-                return false;
-            case "Option.enso":
-                return false;
-            case "Ordering.enso":
-                return false;
-            case "Proxy.enso":
-                return false;
-            case "Proxy_Polyglot_Array.enso":
-                return false;
-            case "Range.enso":
-                return false;
-            case "Regex.enso":
-                return false;
-            case "Regex_Matcher.enso":
-                return false;
-            case "Regex_Mode.enso":
-                return false;
-            case "Request.enso":
-                return false;
-            case "Resource.enso":
-                return false;
-            case "Response.enso":
-                return false;
-            case "Runtime.enso":
-                return false;
-            case "Sort_Direction.enso":
-                return false;
-            case "Span.enso":
-                return false;
-            case "Statistics.enso":
-                return false;
-            case "Status_Code.enso":
-                return false;
-            case "System.enso":
-                return false;
-            case "Text_Matcher.enso":
-                return false;
-            case "Text_Ordering.enso":
-                return false;
-            case "Text_Sub_Range.enso":
-                return false;
-            case "URI.enso":
-                return false;
-            case "Vector_Lexicographic_Order.enso":
-                return false;
-            case "Version.enso":
-                return false;
-            case "Warning.enso":
-                return false;
-            case "Common.enso":
-                return false;
-            case "Date.enso":
-                return false;
-            case "Date_Period.enso":
-                return false;
-            case "Date_Time.enso":
-                return false;
-            case "Day_Of_Week.enso":
-                return false;
-            case "Day_Of_Week_From.enso":
-                return false;
-            case "Duration.enso":
-                return false;
-            case "Environment.enso":
-                return false;
-            case "Existing_File_Behavior.enso":
-                return false;
-            case "Exit_Code.enso":
-                return false;
-            case "File.enso":
-                return false;
-            case "File_Format.enso":
-                return false;
-            case "File_Permissions.enso":
-                return false;
-            case "Function.enso":
-                return false;
-            case "List.enso":
-                return false;
-            case "Maybe.enso":
-                return false;
-            case "Meta.enso":
-                return false;
-            case "Pair.enso":
-                return false;
-            case "Platform.enso":
-                return false;
-            case "Problem_Behavior.enso":
-                return false;
-            case "Process.enso":
-                return false;
-            case "Random.enso":
-                return false;
-            case "Time_Of_Day.enso":
-                return false;
-            case "Time_Zone.enso":
-                return false;
-            case "Numbers.enso":
-                return false;
-            case "Vector.enso":
-                return false;
-            case "Any.enso":
-                return false;
-            case "Filter_Condition.enso":
-                return false;
-            case "Json.enso":
-                return false;
-            case "Bound.enso":
-                return false;
-            case "Rank_Method.enso":
-                return false;
-            case "Regression.enso":
-                return false;
-        }
-        return true;
+        return !KNOWN_TO_FAIL.contains(name);
     }
 }
