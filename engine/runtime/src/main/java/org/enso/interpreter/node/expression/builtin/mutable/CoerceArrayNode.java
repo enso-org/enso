@@ -65,7 +65,6 @@ public abstract class CoerceArrayNode extends Node {
     }
   }
 
-  @ExplodeLoop
   private Object[] convertToArray(Object arr, HostValueToEnsoNode hostValueToEnsoNode)
       throws UnsupportedMessageException, InvalidArrayIndexException {
     int argsLength = (int) library.getArraySize(arr);
