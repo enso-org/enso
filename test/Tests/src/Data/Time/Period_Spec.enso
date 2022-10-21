@@ -1,32 +1,34 @@
 from Standard.Base import all
+from Standard.Test import Test, Test_Suite
+from Standard.Base.Data.Time import Period
 
 spec =
     Test.group "Period" <|
         Test.specify "should create period years" <|
             period = (Period.new years=5)
             period.years . should_equal 5
-            # ???
             period.days . should_equal 0
 
         Test.specify "should add two Periods" <|
-            (Period.new years=1) + (Period.new years=2) . should_equal (Period.new years=3)
-            (Period.new days=1) + (Period.new months=2) . should_equal (Period.new days=1 months=2)
-            (Period.new months=2) + (Period.new days=1) . should_equal (Period.new days=1 months=2)
+            ((Period.new years=1) + (Period.new years=2)) . should_equal (Period.new years=3)
+            ((Period.new days=1) + (Period.new months=2)) . should_equal (Period.new days=1 months=2)
+            ((Period.new months=2) + (Period.new days=1)) . should_equal (Period.new days=1 months=2)
 
         Test.specify "should subtract two Periods" <|
-            (Period.new years=2) - (Period.new years=1) . should_equal (Period.new years=1)
-            (Period.new years=1) - (Period.new months=2) . should_equal (Period.new months=10)
+            ((Period.new years=2) - (Period.new years=1)) . should_equal (Period.new years=1)
+            ((Period.new years=1) - (Period.new months=2)) . should_equal (Period.new years=1 months=(-2))
 
         Test.specify "should get Period between two dates" <|
             (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.new years=50)
-            (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=-50)
+            (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=(-50))
             (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.new days=13)
 
         Test.specify "should compare between two Periods" <|
-            (Period.new years=100) < (Period.new years=2000) . should_be_true
-            (Period.new years=100) <= (Period.new years=100) . should_be_true
-            (Period.new years=100 days=1) > (Period.new years=100) . should_be_true
-            # ??
-            (Period.new years=1) == (Period.new months=12) . should_be_true
-            (Period.new years=100) != (Period.new years=2000) . should_be_true
+            ((Period.new years=100) < (Period.new years=2000)) . should_be_true
+            ((Period.new years=100) <= (Period.new years=100)) . should_be_true
+            ((Period.new years=100 days=1) > (Period.new years=100)) . should_be_true
+            ((Period.new years=1) == (Period.new years=1)) . should_be_true
+            ((Period.new years=100) != (Period.new years=2000)) . should_be_true
 
+
+main = Test_Suite.run_main spec

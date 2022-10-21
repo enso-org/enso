@@ -9,7 +9,7 @@ polyglot java import java.lang.ArithmeticException
 
 between : Date -> Date -> Period
 between start_date_inclusive end_date_exclusive =
-    Period.Period_Data Java_Period.between start_date_inclusive end_date_exclusive
+    Period.Period_Data (Java_Period.between start_date_inclusive end_date_exclusive)
 
 
 new : Integer -> Integer -> Integer -> Period
