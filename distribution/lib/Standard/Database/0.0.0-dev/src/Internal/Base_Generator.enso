@@ -230,7 +230,7 @@ make_is_in arguments = case arguments.length of
    Arguments:
    - dialect: The SQL dialect in which the expression is being generated.
    - expr: The expression to generate SQL code for.
-generate_expression : Internal_Dialect -> Expression | Order_Descriptor -> Builder
+generate_expression : Internal_Dialect -> Expression | Order_Descriptor | Query -> Builder
 generate_expression dialect expr = case expr of
     Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
@@ -239,7 +239,8 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
-    _ : Order_Descriptor -> generate_order dialect expr
+    query : Query -> generate_query dialect query
+    descriptor : Order_Descriptor -> generate_order dialect descriptor
 
 ## PRIVATE
 

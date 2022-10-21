@@ -1229,6 +1229,10 @@ spec prefix table_builder test_selection pending=Nothing =
             t.filter "X" (Filter_Condition.Is_In []) on_problems=Report_Error . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Not_In []) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "b", "ccc", "X", "f", "2"]
 
+            mixed = t.filter "X" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "X" . to_vector
+            # Some backends (e.g. SQLite) allow to coerce integer and text types when doing mixed type comparisons.
+            ((mixed == []) || (mixed == ["2"])).should_be_true
+
             t.filter "ix" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
             t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
             t.filter "ix" (Filter_Condition.Is_In [2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, 5]
