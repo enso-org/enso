@@ -69,6 +69,7 @@
 - [Remove here keyword from IDE.][3749]
 - [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
+- [Scrollbar LMB click and hold scrolling][3824]
 
 #### EnsoGL (rendering engine)
 
@@ -351,6 +352,7 @@
 [3805]: https://github.com/enso-org/enso/pull/3805
 [3812]: https://github.com/enso-org/enso/pull/3812
 [3823]: https://github.com/enso-org/enso/pull/3823
+[3824]: https://github.com/enso-org/enso/pull/3824
 
 #### Enso Compiler
 
