@@ -1,4 +1,4 @@
-//! A module with utilities managing imports
+//! A module with utilities managing imports.
 use crate::prelude::*;
 
 use crate::module;
