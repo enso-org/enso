@@ -701,12 +701,15 @@ type Column
                column has any nulls and if so, we will do `IS NULL` checks for
                our columns too. That is because, we want the containment check
                for `NULL` to work the same way as for any other value.
-            in_subquery = column.to_sql
-            # TODO
-            has_nulls_subquery = Query.Select [Pair_Data column.name column.expression] column.context
+            in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
+            has_nulls_expression = Expression.Operation "BOOL_OR" [column.is_missing.expression]
+            has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
             new_type = SQL_Type.boolean
             new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-            Column.Value self.name self.connection new_type new_expr self.context
+            res = Column.Value self.name self.connection new_type new_expr self.context
+            tmp = Table.Value self.name self.connection [self.as_internal, res.as_internal] self.context
+            tmp.print
+            res
 
     ## PRIVATE
     as_internal : Internal_Column
