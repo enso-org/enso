@@ -141,9 +141,9 @@ public final class ParseStdLibTest extends TestCase {
                 Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                 final Path nowPath = result.resolve(name + ".now");
                 Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                fail("IR for " + src.getPath() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
+                fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
             } else {
-                fail("IR for " + src.getPath() + " shall be equal");
+                fail("IR for " + where.getName() + " shall be equal");
             }
         }
     }
