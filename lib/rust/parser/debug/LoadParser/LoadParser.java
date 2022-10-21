@@ -52,15 +52,16 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         var root = new File(".").getAbsoluteFile();
         try (LoadParser checker = new LoadParser(root)) {
             checker.scan("distribution");
-            //checker.scan("test");
+            checker.scan("tests");
 
-            checker.printSummary();
+            checker.printSummary(true);
         }
     }
 
     private void scan(String path) throws IOException {
         var dir = root.toPath().resolve(path);
         assert Files.isDirectory(dir) : "isDirectory: " + dir;
+
         Files.walkFileTree(dir, this);
     }
 
@@ -84,49 +85,55 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
 
         System.err.println("processing " + file);
         Source src = Source.newBuilder("enso", file.toFile()).build();
-        Tree tree = parser.parse(src.getCharacters().toString());
-        java.util.Objects.requireNonNull(tree);
         TEST: try {
-            IR.Module ir;
-            try {
-                irTested.add(file);
-                IR.Module m = compiler.generateIR(tree);
-                if (m == null) {
-                    throw new NullPointerException();
-                }
-                ir = sanitize(m);
-            } catch (Exception ex) {
-                if (ex.getClass().getName().contains("UnhandledEntity")) {
-                    if (ex.getMessage().contains("= Invalid[")) {
-                        failed.put(file, newExceptionNoStack("Rust produces Invalid AST"));
-                        break TEST;
+            Tree tree = parser.parse(src.getCharacters().toString());
+            if (tree == null) {
+                failed.put(file, newExceptionNoStack("Rust failed"));
+            } else {
+                IR.Module ir;
+                try {
+                    irTested.add(file);
+                    IR.Module m = compiler.generateIR(tree);
+                    if (m == null) {
+                        throw new NullPointerException();
                     }
-                    if (ex.getMessage().contains("translateCaseBranch = Case[null, null")) {
-                        failed.put(file, newExceptionNoStack("Rust provides null case"));
-                        break TEST;
+                    ir = sanitize(m);
+                } catch (Exception ex) {
+                    if (ex.getClass().getName().contains("UnhandledEntity")) {
+                        if (ex.getMessage().contains("= Invalid[")) {
+                            failed.put(file, newExceptionNoStack("Rust produces Invalid AST"));
+                            break TEST;
+                        }
+                        if (ex.getMessage().contains("translateCaseBranch = Case[null, null")) {
+                            failed.put(file, newExceptionNoStack("Rust provides null case"));
+                            break TEST;
+                        }
                     }
+                    irFailed.put(file, ex);
+                    break TEST;
                 }
-                irFailed.put(file, ex);
-                break TEST;
-            }
 
-            var oldAst = new org.enso.syntax.text.Parser().runWithIds(src.getCharacters().toString());
-            var oldIr = sanitize(AstToIr.translate((AST.ASTOf<Shape>)(Object)oldAst));
+                var oldAst = new org.enso.syntax.text.Parser().runWithIds(src.getCharacters().toString());
+                var oldIr = sanitize(AstToIr.translate((AST.ASTOf<Shape>)(Object)oldAst));
 
-            Function<IR, String> filter = (i) -> {
-              var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-              for (;;) {
-                final String pref = "IdentifiedLocation(";
-                int at = txt.indexOf(pref);
-                if (at == -1) {
-                  break;
-                }
-                int to = at + pref.length();
-                int depth = 1;
-                while (depth > 0) {
-                  switch (txt.charAt(to)) {
-                    case '(': depth++; break;
-                    case ')': depth--; break;
+                Function<IR, String> filter = (i) -> {
+                  var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
+                  for (;;) {
+                    final String pref = "IdentifiedLocation(";
+                    int at = txt.indexOf(pref);
+                    if (at == -1) {
+                      break;
+                    }
+                    int to = at + pref.length();
+                    int depth = 1;
+                    while (depth > 0) {
+                      switch (txt.charAt(to)) {
+                        case '(': depth++; break;
+                        case ')': depth--; break;
+                      }
+                      to++;
+                    }
+                    txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
                   }
                   var sb = new StringBuilder();
                   for (String l : txt.split("\n")) {
@@ -150,29 +157,6 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                     Files.writeString(oldFile , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                     Files.writeString(nowFile, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
                 }
-                txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-              }
-              var sb = new StringBuilder();
-              for (String l : txt.split("\n")) {
-                final String pref = "IR.Comment.Documentation";
-                if (l.contains(pref)) {
-                    continue;
-                }
-                sb.append(l).append("\n");
-              }
-              return sb.toString();
-            };
-
-            var old = filter.apply(oldIr);
-            var now = filter.apply(ir);
-            if (!old.equals(now)) {
-                irDiff.add(file);
-                var oldFile = file.getParent().resolve(file.getFileName() + ".old");
-                var nowFile = file.getParent().resolve(file.getFileName() + ".now");
-                System.err.println("difference1: " + oldFile);
-                System.err.println("difference2: " + nowFile);
-                Files.writeString(oldFile , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                Files.writeString(nowFile, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             }
         } catch (Exception ex) {
             failed.put(file, ex);
@@ -194,18 +178,20 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         return FileVisitResult.CONTINUE;
     }
 
-    private void printSummary() {
-        for (var en : failed.entrySet()) {
-            var key = en.getKey();
-            var value = en.getValue();
-            System.err.println("Problem " + key);
-            value.printStackTrace();
-        }
-        for (var en : irFailed.entrySet()) {
-            var key = en.getKey();
-            var value = en.getValue();
-            System.err.println("File " + key);
-            value.printStackTrace();
+    private void printSummary(boolean verbose) {
+        if (verbose) {
+            for (var en : failed.entrySet()) {
+                var key = en.getKey();
+                var value = en.getValue();
+                System.err.println("Problem " + key);
+                value.printStackTrace();
+            }
+            for (var en : irFailed.entrySet()) {
+                var key = en.getKey();
+                var value = en.getValue();
+                System.err.println("File " + key);
+                value.printStackTrace();
+            }
         }
         System.out.println("Found " + visited.size() + " files. " + failed.size() + " failed to parse");
         System.out.println("From " + irTested.size() + " files " + irFailed.size() + " failed to produce IR");
@@ -225,23 +211,23 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 return exp.mapExpressions(this);
             }
         }
-        class SanitizeBindings implements Function1<IR$Module$Scope$Definition, Boolean> {
+        class NoCommentsInBindings implements Function1<IR$Module$Scope$Definition, Boolean> {
             @Override
             public Boolean apply(IR$Module$Scope$Definition exp) {
                 if (exp instanceof IR$Comment$Documentation) {
                     return false;
-                }
-                if (exp instanceof IR$Type$Ascription) {
+                } else if (exp instanceof IR$Type$Ascription) {
                     return false;
+                } else {
+                    return true;
                 }
-                return true;
             }
         }
         var m1 = m.mapExpressions(new NoComments());
         var m2 = m1.copy(
           m1.copy$default$1(),
           m1.copy$default$2(),
-          (List<IR$Module$Scope$Definition>) m1.bindings().filter(new SanitizeBindings()),
+          (List<IR$Module$Scope$Definition>) m1.bindings().filter(new NoCommentsInBindings()),
           m1.copy$default$4(),
           m1.copy$default$5(),
           m1.copy$default$6(),
@@ -249,5 +235,4 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         );
         return m2;
     }
-
 }
