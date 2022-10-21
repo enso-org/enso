@@ -224,6 +224,20 @@ make_is_in arguments = case arguments.length of
         code "COALESCE(" ++ is_in ++ ", 2=1)"
 
 ## PRIVATE
+make_is_in_column : Vector Builder -> Builder
+make_is_in_column arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        in_query = arguments.at 1
+        has_nulls_query = arguments.at 2
+        list = arguments.tail
+        is_in = expr ++ " IN (" ++ (SQL.join ", " list) ++ ")"
+        ## We ensure that even `NULL IN (...)` is coalesced to False, so that
+           negation will work as expected.
+        code "COALESCE(" ++ is_in ++ ", 2=1)"
+    _ -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
+
+## PRIVATE
 
    Builds code for an expression.
 

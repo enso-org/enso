@@ -696,16 +696,16 @@ type Column
             ## We slightly abuse the expression syntax putting a Query as one of
                the sub-expressions. Once type-checking is added, we may need to
                amend the signature of `Expression.Operation` to account for
-               this. We also 'overload' the meaning of the `IS_IN` operator: we
-               rely on the fact that it will generate `X IN (A)` if `A` is the
-               only provided argument and so if A is a sub-query, it will
-               correctly generate `X IN (SELECT Y FROM ...)` as we want. If that
-               were to cause any inconsistency in the future dialects, we may
-               need to split `IS_IN` into separate variants for the vector of
-               interpolated values and a sub-query.
-            subquery = Query.Select [Pair_Data column.name column.expression] column.context
+               this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
+               need to do separate handling of nulls - we check if the target
+               column has any nulls and if so, we will do `IS NULL` checks for
+               our columns too. That is because, we want the containment check
+               for `NULL` to work the same way as for any other value.
+            in_subquery = column.to_sql
+            # TODO
+            has_nulls_subquery = Query.Select [Pair_Data column.name column.expression] column.context
             new_type = SQL_Type.boolean
-            new_expr = Expression.Operation "IS_IN" [self.expression, subquery]
+            new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
             Column.Value self.name self.connection new_type new_expr self.context
 
     ## PRIVATE
