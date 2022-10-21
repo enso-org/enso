@@ -69,11 +69,20 @@ public class EnsoCompilerTest {
     from Standard.Base.Data.Any import all
     import project.IO
     import Standard.Base as Enso_List
-    from Standard.Base import all hiding Number, Boolean
+    from Standard.Base import all hiding Number, Boolean, Decimal, Any
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
     main = 3
+    """);
+  }
+
+  @Test
+  public void testImportAll() throws Exception {
+    parseTest("""
+    ## TODO Dubious constructor export
+    from project.Network.Http.Version.Version import all
+    from project.Network.Http.Version.Version export all
     """);
   }
 
@@ -362,6 +371,12 @@ public class EnsoCompilerTest {
   @Test
   public void testExportFrom() throws Exception {
     parseTest("from prj.Data.Foo export Bar, Baz");
+  }
+
+  @Test
+  @Ignore // wrong order of exported symbols
+  public void testExportFromTen() throws Exception {
+    parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
   }
 
   @Test

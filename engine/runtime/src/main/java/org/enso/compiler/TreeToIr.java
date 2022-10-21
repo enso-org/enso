@@ -104,6 +104,16 @@ final class TreeToIr {
             case null -> {
               bindings = translateModuleSymbol(expr, bindings);
             }
+            case Tree.Documented doc when doc.getExpression() instanceof Tree.Import imp -> {
+              imports = cons(translateImport(imp), imports);
+              var comment = translateComment(doc, doc.getDocumentation());
+              bindings = cons(comment, bindings);
+            }
+            case Tree.Documented doc when doc.getExpression() instanceof Tree.Export exp -> {
+              exports = cons(translateExport(exp), exports);
+              var comment = translateComment(doc, doc.getDocumentation());
+              bindings = cons(comment, bindings);
+            }
             default -> {
               bindings = translateModuleSymbol(expr, bindings);
             }
@@ -1764,23 +1774,28 @@ final class TreeToIr {
   }
   private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {
     List<IR.Name> segments = nil();
-    for (;;) {
+    LOOP: for (;;) {
       switch (t) {
         case Tree.OprApp app -> {
           if (!String.valueOf(separator).equals(app.getOpr().getRight().codeRepr())) {
             throw new UnhandledEntity(t, "buildNames with " + separator);
           }
-          segments = cons(buildName(app.getRhs()), segments);
-          t = app.getLhs();
+          if (app.getRhs() instanceof Tree.Ident) {
+            segments = cons(buildName(app.getRhs()), segments);
+            t = app.getLhs();
+          } else {
+            segments = cons(buildName(app.getLhs()), segments);
+            t = app.getRhs();
+          }
         }
         case Tree.Ident id -> {
           segments = cons(buildName(id), segments);
-          return segments;
+          break LOOP;
         }
         case Tree.Wildcard wild -> {
           var underscore = new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
           segments = cons(underscore, segments);
-          return segments;
+          break LOOP;
         }
 
         default -> {
@@ -1792,6 +1807,7 @@ final class TreeToIr {
         }
       }
     }
+    return segments;
   }
 
   /** Translates an import statement from its [[AST]] representation into
