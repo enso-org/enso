@@ -37,11 +37,19 @@ public final class ParseStdLibTest extends TestCase {
         return s;
     }
 
+    private static File file(File dir, String... relative) {
+        var f = dir;
+        for (var ch : relative) {
+            f = new File(f, ch);
+        }
+        return f;
+    }
+
     private static Path locateDistribution(final String name) throws URISyntaxException {
         var where = new File(ParseStdLibTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         var dir = where;
         for (;;) {
-            dir = new File(new File(new File(new File(new File(new File(where, "distribution"), "lib"), "Standard"), name), "0.0.0-dev"), "src");
+            dir = file(where, "distribution", "lib", "Standard", name, "0.0.0-dev", "src");
             if (dir.exists()) {
                 break;
             }
