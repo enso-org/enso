@@ -552,10 +552,12 @@ final class TreeToIr {
           if (last != null) {
             expressions.add(last);
           }
-          if (expr instanceof Tree.Documented) {
-            var doc = (Tree.Documented)expr;
-            expressions.add(translateComment(doc, doc.getDocumentation()));
+          if (expr instanceof Tree.Documented doc) {
             expr = doc.getExpression();
+            // Emit the documentation, unless it was at the end of the block.
+            if (expr != null) {
+              expressions.add(translateComment(doc, doc.getDocumentation()));
+            }
           }
           last = translateExpression(expr, false);
         }
