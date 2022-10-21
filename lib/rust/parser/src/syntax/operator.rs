@@ -161,6 +161,22 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type == Some(ItemType::Ast) {
+            if let Some(Operand { value: syntax::Tree { variant: box
+                    syntax::tree::Variant::TextLiteral(ref mut lhs), .. }, .. }) = self.output.last_mut()
+                    && !lhs.closed
+                    && let box syntax::tree::Variant::TextLiteral(mut rhs) = operand.value.variant {
+                syntax::tree::join_text_literals(lhs, &mut rhs, operand.value.span);
+                if let syntax::tree::TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
+                    && open.code.starts_with('#') {
+                    let elements = mem::take(elements);
+                    let mut open = open.clone();
+                    let lhs_tree = self.output.pop().unwrap().value;
+                    open.left_offset += lhs_tree.span.left_offset;
+                    let doc = syntax::tree::DocComment { open, elements, newlines: default() };
+                    self.output.push(syntax::Tree::documented(doc, default()).into());
+                }
+                return;
+            }
             self.application();
         }
         self.output.push(operand);

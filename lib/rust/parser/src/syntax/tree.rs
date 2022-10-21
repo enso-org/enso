@@ -741,18 +741,6 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
-        (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if !lhs.closed => {
-            join_text_literals(lhs, rhs, mem::take(&mut arg.span));
-            if let TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
-                    && open.code.starts_with('#') {
-                let mut open = open.clone();
-                open.left_offset += func.span.left_offset;
-                let elements = mem::take(elements);
-                let doc = DocComment { open, elements, newlines: default() };
-                return Tree::documented(doc, default());
-            }
-            func
-        }
         (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
                 Variant::Number(Number { base: None, integer, fractional_digits })) => {
             func_.integer = mem::take(integer);
@@ -816,7 +804,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
 }
 
-fn join_text_literals<'s>(
+/// Join two text literals, merging contents as appropriate to each field.
+pub fn join_text_literals<'s>(
     lhs: &mut TextLiteral<'s>,
     rhs: &mut TextLiteral<'s>,
     rhs_span: Span<'s>,

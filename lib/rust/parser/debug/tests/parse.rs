@@ -949,6 +949,8 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
+    test!("foo = bar '''\n baz",
+        (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
 }
 
 #[test]
