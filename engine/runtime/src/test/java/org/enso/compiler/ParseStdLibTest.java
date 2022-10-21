@@ -39,7 +39,12 @@ public final class ParseStdLibTest extends TestCase {
 
     public static TestSuite suite() throws Exception {
         TestSuite s = new TestSuite();
-        collectDistribution(s, "Base");
+        var os = System.getProperty("os.name");
+        if (os != null && os.contains("Window")) {
+            s.addTest(new ParseStdLibTest("IgnoringStdLibParsingOnWindows", null, null));
+        } else {
+            collectDistribution(s, "Base");
+        }
         return s;
     }
 
@@ -148,6 +153,9 @@ public final class ParseStdLibTest extends TestCase {
 
     @Override
     public void runBare() throws Throwable {
+        if (where == null) {
+            return;
+        }
         var code = Files.readString(where.toPath());
         var src = Source.newBuilder("enso", code, getName())
             .uri(where.toURI())
