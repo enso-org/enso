@@ -252,13 +252,15 @@ impl Frp {
             background_hold <- mouse_position.sample(&background_hold_repeats.on_trigger);
 
             thumb_scale <- all_with(&inner_length, &frp.set_max, |length_px, max| 1.0 / length_px * max);
-            frp.scroll_by <+ background_hold.map4(
-                &thumb_center_px, &frp.set_thumb_size, &thumb_scale,
-                |hold_position, thumb_center, thumb_size, scale| {
-                    let max_jump = thumb_size * CLICK_JUMP_PERCENTAGE;
-                    let pixel_distance = hold_position.x - *thumb_center;
-                    let scroll_distance = pixel_distance * scale;
-                    scroll_distance.clamp(-max_jump, max_jump)
+            frp.scroll_by <+ background_hold.map4(&thumb_center_px, &frp.set_thumb_size, &thumb_scale,
+                |hold_position, thumb_center, thumb_size, thumb_scale| {
+                    let hold_distance = (hold_position.x - *thumb_center) * thumb_scale;
+                    if hold_distance.abs() < thumb_size * 0.5 {
+                        0.0
+                    } else {
+                        let direction = hold_distance.signum();
+                        direction * thumb_size * CLICK_JUMP_PERCENTAGE
+                    }
                 });
 
 
