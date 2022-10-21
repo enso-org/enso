@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import junit.framework.TestCase;
+import static junit.framework.TestCase.fail;
 import junit.framework.TestSuite;
 import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
@@ -28,10 +29,12 @@ import org.junit.runners.AllTests;
 public final class ParseStdLibTest extends TestCase {
     private static final EnsoCompiler ensoCompiler = new EnsoCompiler();
     private final File where;
+    private final Dump dump;
 
-    private ParseStdLibTest(String name, File where) {
+    private ParseStdLibTest(String name, File where, Dump dump) {
         super(name);
         this.where = where;
+        this.dump = dump;
     }
 
     public static TestSuite suite() throws Exception {
@@ -63,6 +66,7 @@ public final class ParseStdLibTest extends TestCase {
 
     private static void collectDistribution(TestSuite s, String name) throws Exception {
         var dir = locateDistribution(name);
+        var dump = new Dump();
         class CollectSuites implements FileVisitor<Path> {
 
             private final TestSuite suite;
@@ -82,7 +86,7 @@ public final class ParseStdLibTest extends TestCase {
                     return FileVisitResult.CONTINUE;
                 }
                 final String name = file.toFile().getPath().substring(dir.toFile().getPath().length() + 1);
-                suite.addTest(new ParseStdLibTest(name, file.toFile()));
+                suite.addTest(new ParseStdLibTest(name, file.toFile(), dump));
                 return FileVisitResult.CONTINUE;
             }
 
@@ -135,13 +139,7 @@ public final class ParseStdLibTest extends TestCase {
         var now = filter.apply(ir);
         if (!old.equals(now)) {
             if (generate) {
-                var name = where.getName();
-                var result = where.getParentFile().toPath();
-                final Path oldPath = result.resolve(name + ".old");
-                Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                final Path nowPath = result.resolve(name + ".now");
-                Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
+                dump.dump(where, old, now);
             } else {
                 fail("IR for " + where.getName() + " shall be equal");
             }
@@ -334,5 +332,23 @@ public final class ParseStdLibTest extends TestCase {
     }
     private static boolean isKnownToWork(String name) {
         return !KNOWN_TO_FAIL.contains(name);
+    }
+
+    private static final class Dump {
+        private boolean first = true;
+
+        public void dump(File where, CharSequence old, CharSequence now) throws IOException {
+            var name = where.getName();
+            var result = where.getParentFile().toPath();
+            final Path oldPath = result.resolve(name + ".old");
+            Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            final Path nowPath = result.resolve(name + ".now");
+            Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            if (first) {
+                first = false;
+                fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'\n ===== Old =====\n" + old + "\n===== Now =====\n" + now);
+            }
+            fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
+        }
     }
 }
