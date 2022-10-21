@@ -24,7 +24,7 @@ polyglot java import java.lang.ArithmeticException
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
 between : Date_Time -> Date_Time -> Boolean -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
-    Duration.between_builtin start_inclusive end_exclusive timezone_aware
+    between_builtin start_inclusive end_exclusive timezone_aware
 
 ## Create a duration from time units.
 
@@ -43,7 +43,7 @@ between start_inclusive end_exclusive timezone_aware=True =
          example_duration = Duration.new hours=2
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
-    Duration.new_builtin hours minutes seconds milliseconds nanoseconds
+    new_builtin hours minutes seconds milliseconds nanoseconds
 
 ## Create a Duration from hours.
 hours : Integer -> Duration
