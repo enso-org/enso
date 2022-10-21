@@ -231,25 +231,8 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
-    /*
-    inputAst match {
-      case AST.Ident.Annotation.any(ann) =>
-        IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include) => translateIdent(include)
-      */
-      case Tree.TypeDef def -> {
-        yield translateModuleSymbol(def, (List) appendTo);
-      }
-      case Tree.ArgumentBlockApplication app -> {
-//        if (app.getLhs() instanceof Tree.Comment comment) {
-//          var doc = new StringBuilder();
-//          doc.append(comment.getToken().codeRepr());
-//          yield new IR$Comment$Documentation(
-//            doc.toString(), getIdentifiedLocation(comment), meta(), diag()
-//          );
-//        }
-        yield appendTo;
-      }
+      case Tree.TypeDef def -> translateModuleSymbol(def, (List) appendTo);
+      case Tree.ArgumentBlockApplication app -> appendTo;
       case Tree.TypeSignature sig -> {
         var isMethod = false;
         if (sig.getVariable() instanceof Tree.Ident ident) {
@@ -663,16 +646,10 @@ final class TreeToIr {
         var name = buildName(fun.getName());
         yield translateFunction(fun, name, fun.getArgs(), fun.getBody());
       }
-      case Tree.OprSectionBoundary bound -> {
-        var ast = translateExpression(bound.getAst(), false);
-        yield switch (ast) {
-          case IR$Application$Prefix p -> p.function();
-          default -> ast;
-        };
-      }
+      case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
         switch (translateExpression(un.getRhs(), false)) {
-          // The old parser never emitted negative floating-point literals.
+          // AstToIr doesn't construct negative floating-point literals.
           // Match that behavior for testing during the transition.
           case IR$Literal$Number n when !n.copy$default$2().contains(".") -> n.copy(
             n.copy$default$1(),
@@ -710,6 +687,8 @@ final class TreeToIr {
     };
   }
 
+  // The `insideTypeAscription` argument replicates an AstToIr quirk. Once the parser
+  // transition is complete, we should eliminate it, keeping only the `false` branches.
   IR.Expression translateType(Tree tree, boolean insideTypeAscription) {
     return switch (tree) {
       case Tree.App app -> translateTypeApplication(app);
@@ -814,14 +793,7 @@ final class TreeToIr {
   }
 
   IR.Expression translateNumber(Tree.Number ast) {
-    return translateNumber(ast, ast.getInteger(), ast.getFractionalDigits());
-  }
-
-  IR.Expression translateNumber(
-    Tree ast,
-    Token.Digits intPart,
-    FractionalDigits fracPart
-  ) {
+    var intPart = ast.getInteger();
     final Option<String> base = switch (intPart.getBase()) {
       case Base.Binary b -> Option.apply("2");
       case Base.Hexadecimal b -> Option.apply("16");
@@ -829,6 +801,7 @@ final class TreeToIr {
       case null -> Option.empty();
       default -> Option.empty();
     };
+    var fracPart = ast.getFractionalDigits();
     String literal = fracPart != null ? intPart.codeRepr() + "." + fracPart.getDigits().codeRepr() : intPart.codeRepr();
     return new IR$Literal$Number(base, literal, getIdentifiedLocation(ast), meta(), diag());
   }
@@ -843,173 +816,6 @@ final class TreeToIr {
       }
     }
     return new IR$Literal$Text(sb.toString(), getIdentifiedLocation(txt), meta(), diag());
-  }
-
-  /** Translates a program literal from its [[AST]] representation into
-    * [[IR]].
-    *
-    * @param literal the literal to translate
-    * @return the [[IR]] representation of `literal`
-    *
-  IR.Expression translateLiteral(Tree.TextLiteral literal) {
-    literal match {
-      case AST.Literal.Number(base, number) =>
-        if (base.isDefined) {
-          val baseNum =
-            try { Integer.parseInt(base.get) }
-            catch {
-              case _: NumberFormatException =>
-                return Error.Syntax(
-                  literal,
-                  Error.Syntax.InvalidBase(base.get)
-                )
-            }
-          try { new BigInteger(number, baseNum) }
-          catch {
-            case _: NumberFormatException =>
-              return Error.Syntax(
-                literal,
-                Error.Syntax.InvalidNumberForBase(number, base.get)
-              )
-          }
-        }
-        Literal.Number(base, number, getIdentifiedLocation(literal))
-      case AST.Literal.Text.any(literal) =>
-        literal.shape match {
-          case AST.Literal.Text.Line.Raw(segments) =>
-            val fullString = segments.collect {
-              case AST.Literal.Text.Segment.Plain(str)   => str
-              case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-            }.mkString
-
-            Literal.Text(fullString, getIdentifiedLocation(literal))
-          case AST.Literal.Text.Block.Raw(lines, _, _) =>
-            val fullString = lines
-              .map(t =>
-                t.text.collect {
-                  case AST.Literal.Text.Segment.Plain(str)   => str
-                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-                }.mkString
-              )
-              .mkString("\n")
-
-            Literal.Text(fullString, getIdentifiedLocation(literal))
-          case AST.Literal.Text.Block.Fmt(lines, _, _) =>
-            val ls  = lines.map(l => parseFmtSegments(literal, l.text))
-            val err = ls.collectFirst { case Left(e) => e }
-            err match {
-              case Some(err) => err
-              case None =>
-                val str = ls.collect { case Right(str) => str }.mkString("\n")
-                IR.Literal.Text(str, getIdentifiedLocation(literal))
-            }
-          case AST.Literal.Text.Line.Fmt(segments) =>
-            parseFmtSegments(literal, segments) match {
-              case Left(err) => err
-              case Right(str) =>
-                IR.Literal.Text(str, getIdentifiedLocation(literal))
-            }
-          case TextUnclosed(_) =>
-            Error.Syntax(literal, Error.Syntax.UnclosedTextLiteral)
-
-          case _ =>
-            throw new UnhandledEntity(literal.shape, "translateLiteral")
-        }
-      case _ => throw new UnhandledEntity(literal, "processLiteral")
-    }
-  private def parseFmtSegments(
-    literal: AST,
-    segments: Seq[AST.Literal.Text.Segment[AST]]
-  ): Either[IR.Error, String] = {
-    val bldr                  = new StringBuilder
-    var err: Option[IR.Error] = None
-    breakable {
-      segments.foreach {
-        case SegmentEscape(code) =>
-          code match {
-            case Escape.Number(_) =>
-              err = Some(
-                Error.Syntax(
-                  literal,
-                  Error.Syntax.UnsupportedSyntax("escaped numbers")
-                )
-              )
-              break()
-            case unicode: Escape.Unicode =>
-              unicode match {
-                case Unicode.InvalidUnicode(unicode) =>
-                  err = Some(
-                    Error.Syntax(
-                      literal,
-                      Error.Syntax.InvalidEscapeSequence(unicode.repr)
-                    )
-                  )
-                  break()
-                case Unicode._U16(digits) =>
-                  val buffer = ByteBuffer.allocate(2)
-                  buffer.putChar(
-                    Integer.parseInt(digits, 16).asInstanceOf[Char]
-                  )
-                  val str = new String(buffer.array(), "UTF-16")
-                  bldr.addAll(str)
-                case Unicode._U32(digits) =>
-                  val buffer = ByteBuffer.allocate(4)
-                  buffer.putInt(Integer.parseInt(digits, 16))
-                  val str = new String(buffer.array(), "UTF-32")
-                  bldr.addAll(str)
-                case Unicode._U21(digits) =>
-                  val buffer = ByteBuffer.allocate(4)
-                  buffer.putInt(Integer.parseInt(digits, 16))
-                  val str = new String(buffer.array(), "UTF-32")
-                  bldr.addAll(str)
-              }
-            case e: Escape.Character => bldr.addOne(e.code)
-            case e: Escape.Control   => bldr.addAll(e.repr)
-          }
-        case SegmentPlain(text) => bldr.addAll(text)
-        case SegmentExpr(_) =>
-          err = Some(
-            Error.Syntax(
-              literal,
-              Error.Syntax.UnsupportedSyntax("interpolated expressions")
-            )
-          )
-          break()
-        case SegmentRawEscape(e) => bldr.addAll(e.repr)
-      }
-    }
-    err.map(Left(_)).getOrElse(Right(bldr.toString))
-  }
-
-  /** Translates a sequence literal into its [[IR]] counterpart.
-    * @param literal the literal to translate
-    * @return the [[IR]] representation of `literal`
-
-  def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
-    IR.Application.Literal.Sequence(
-      literal.items.map(translateExpression(_)),
-      getIdentifiedLocation(literal)
-    )
-  }
-
-  /** Translates an arbitrary expression, making sure to properly recognize
-    * qualified names. Qualified names should, probably, at some point be
-    * handled deeper in the compiler pipeline.
-    */
-  IR.Expression translateQualifiedNameOrExpression(Tree arg) {
-    var name = buildQualifiedName(arg, Option.empty(), false);
-    if (name != null) {
-      return name;
-    } else {
-      return translateExpression(arg, false);
-    }
-  }
-
-  private static boolean isOperator(String txt, Either<MultipleOperatorError, Operator> op) {
-    if (op.getRight() == null) {
-      return false;
-    }
-    return txt.equals(op.getRight().codeRepr());
   }
 
 
@@ -1094,56 +900,6 @@ final class TreeToIr {
       case Tree.Ident id -> sanitizeName(buildName(getIdentifiedLocation(id), id.getToken(), isMethod));
       default -> throw new UnhandledEntity(identifier, "translateIdent");
     };
-    /*
-    identifier match {
-      case AST.Ident.Var(name) =>
-        if (name == Constants.Names.SELF_ARGUMENT) {
-          Name.Self(getIdentifiedLocation(identifier))
-        } else {
-          buildName(identifier)
-        }
-      case AST.Ident.Annotation(name) =>
-        Name.Annotation(name, getIdentifiedLocation(identifier))
-      case AST.Ident.Cons(_) =>
-        buildName(identifier)
-      case AST.Ident.Blank(_) =>
-        Name.Blank(getIdentifiedLocation(identifier))
-      case AST.Ident.Opr.any(_) =>
-        Error.Syntax(
-          identifier,
-          Error.Syntax.UnsupportedSyntax("operator sections")
-        )
-      case AST.Ident.Mod(_) =>
-        Error.Syntax(
-          identifier,
-          Error.Syntax.UnsupportedSyntax("module identifiers")
-        )
-      case _ =>
-    }
-    */
-  }
-
-  /** Translates an arbitrary binding operation from its [[AST]] representation
-    * into [[IR]].
-    *
-    * @param location the source location of the binding
-    * @param name the name of the binding being assigned to
-    * @param expr the expression being assigned to `name`
-    * @return the [[IR]] representation of `expr` being bound to `name`
-
-  def translateBinding(
-    location: Option[IdentifiedLocation],
-    name: AST,
-    expr: AST
-  ): Expression.Binding = {
-    val irName = translateExpression(name)
-
-    irName match {
-      case n: IR.Name =>
-        Expression.Binding(n, translateExpression(expr), location)
-      case _ =>
-        throw new UnhandledEntity(name, "translateBinding")
-    }
   }
 
   /** Translates a pattern in a case expression from its [[AST]] representation
@@ -1191,22 +947,6 @@ final class TreeToIr {
       var blank = new IR$Name$Blank(at, meta(), diag());
       return new IR$Pattern$Name(blank, at, meta(), diag());
   }
-
-  /** Translates an arbitrary grouped piece of syntax from its [[AST]]
-    * representation into [[IR]].
-    *
-    * It is currently an error to have an empty group.
-    *
-    * @param group the group to translate
-    * @return the [[IR]] representation of the contents of `group`
-
-  def translateGroup(group: AST.Group): Expression = {
-    group.body match {
-      case Some(ast) => translateExpression(ast)
-      case None      => Error.Syntax(group, Error.Syntax.EmptyParentheses)
-    }
-  }
-  */
 
   private IR$Name$Qualified buildQualifiedName(Tree t) {
     return buildQualifiedName(t, Option.empty(), true);
@@ -1345,39 +1085,6 @@ final class TreeToIr {
         Option.empty(), getIdentifiedLocation(exp), false,
         meta(), diag()
         );
-    }
-  }
-
-  /** Translates an arbitrary invalid expression from the [[AST]] representation
-    * of the program into its [[IR]] representation.
-    *
-    * @param invalid the invalid entity to translate
-    * @return the [[IR]] representation of `invalid`
-
-  def translateInvalid(invalid: AST.Invalid): Expression = {
-    invalid match {
-      case AST.Invalid.Unexpected(_, _) =>
-        Error.Syntax(
-          invalid,
-          Error.Syntax.UnexpectedExpression
-        )
-      case AST.Invalid.Unrecognized(_) =>
-        Error.Syntax(
-          invalid,
-          Error.Syntax.UnrecognizedToken
-        )
-      case AST.Ident.InvalidSuffix(_, _) =>
-        Error.Syntax(
-          invalid,
-          Error.Syntax.InvalidSuffix
-        )
-      case AST.Literal.Text.Unclosed(_) =>
-        Error.Syntax(
-          invalid,
-          Error.Syntax.UnclosedTextLiteral
-        )
-      case _ =>
-        throw new UnhandledEntity(invalid, "translateInvalid")
     }
   }
 
