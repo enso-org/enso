@@ -52,21 +52,17 @@ public abstract class CatchPanicNode extends Node {
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
-      @Cached BranchProfile otherExceptionBranchProfile,
-      @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
-    var stateBackup = state.getContainer().backup(objects, Context.get(this));
+      @Cached BranchProfile otherExceptionBranchProfile) {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.TAIL_DIRECT);
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      state.setContainer(stateBackup);
       return executeCallback(frame, state, handler, payload, e);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
       Builtins builtins = Context.get(this).getBuiltins();
       Object payload = builtins.error().getPolyglotError().wrap(e);
-      state.setContainer(stateBackup);
       return executeCallback(frame, state, handler, payload, e);
     }
   }
