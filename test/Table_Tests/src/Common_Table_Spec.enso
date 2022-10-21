@@ -3,9 +3,10 @@ from Standard.Base.Data.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Data.Index_Sub_Range
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
-from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector, Position
+from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector, Position, Column_Selector
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error_Data, Unsupported_Database_Operation_Error_Data
@@ -1294,17 +1295,33 @@ spec prefix table_builder test_selection pending=Nothing =
             problems = [Index_Out_Of_Bounds_Error_Data 4 1]
             Problems.test_problem_handling action problems tester
 
+    Test.group prefix+"Column Operations" pending=pending <|
+        Test.specify "iif" <|
+            t = table_builder [["X", [True, False, Nothing, True]]]
+            t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
+
+        Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+
     Test.group prefix+"Dropping Missing Values" pending=pending <|
-        t4 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
+        t0 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
+        t1 =
+            a = ["a", [1, Nothing, 3, 4]]
+            b = ["b", ["a", "b", Nothing, " "]]
+            c = ["c", [10, 20, 30, 40]]
+            d = ["d", [Nothing, True, False, True]]
+            e = ["e", ["", "", "foo", "bar"]]
+            f = ["f", [Nothing, "", Nothing, ""]]
+            table_builder [a, b, c, d, e, f]
+
         Test.specify "filter_blank_rows should drop rows that contain at least one missing cell" <|
-            d = t4.filter_blank_rows when_any=True
+            d = t0.filter_blank_rows when_any=True
             d.row_count . should_equal 1
             d.at "a" . to_vector . should_equal [5]
             d.at "b" . to_vector . should_equal [False]
             d.at "c" . to_vector . should_equal [" "]
 
         Test.specify "filter_blank_rows should drop rows that are all blank" <|
-            d2 = t4.filter_blank_rows when_any=False
+            d2 = t0.filter_blank_rows when_any=False
             d2.at "a" . to_vector . should_equal [0, 1, Nothing, 42, 5]
             d2.at "b" . to_vector . should_equal [True, Nothing, True, False, False]
             d2.at "c" . to_vector . should_equal ["", "foo", "bar", Nothing, " "]
@@ -1331,29 +1348,86 @@ spec prefix table_builder test_selection pending=Nothing =
             t6.row_count . should_equal 0
             t6.columns . should_equal []
 
-        t = table_builder [["X", [2.0, 1.5, Number.nan, Number.nan]], ["Y", [Nothing, 2.0, Nothing, 5.0]]]
+        Test.specify "should allow to remove blank columns" <|
+            r1 = t1.remove_columns (Column_Selector.Blank_Columns when_any=False)
+            r1.columns.map .name . should_equal ["a", "b", "c", "d", "e"]
+            r1.at "a" . to_vector . should_equal [1, Nothing, 3, 4]
+
+            r2 = t1.remove_columns (Column_Selector.Blank_Columns when_any=True)
+            r2.columns.map .name . should_equal ["c"]
+            r2.at "c" . to_vector . should_equal [10, 20, 30, 40]
+
+        t3 = table_builder [["X", [2.0, 1.5, Number.nan, Number.nan]], ["Y", [Nothing, 2.0, Nothing, 5.0]]]
+        t4 =
+            c = ["c", [10, 20, 40, 30]]
+            g = ["g", [Number.nan, 1, 2, 3.4]]
+            h = ["h", [Number.nan, Nothing, Number.nan, Nothing]]
+            table_builder [c, g, h]
         if test_selection.is_nan_and_nothing_distinct then
             Test.specify "should not treat NaNs as blank by default" <|
-                t1 = t.filter_blank_rows when_any=True
+                r1 = t3.filter_blank_rows when_any=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
-                t1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
-                t1.at "Y" . to_vector . should_equal [2.0, 5.0]
+                r1.at "X" . to_vector . to_text . should_equal "[1.5, NaN]"
+                r1.at "Y" . to_vector . should_equal [2.0, 5.0]
 
-                t2 = t.filter_blank_rows when_any=False
-                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN, NaN]"
-                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, Nothing, 5.0]
+                r2 = t3.filter_blank_rows when_any=False
+                r2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN, NaN]"
+                r2.at "Y" . to_vector . should_equal [Nothing, 2.0, Nothing, 5.0]
+
+                r3 = t4.remove_columns (Column_Selector.Blank_Columns when_any=False)
+                r3.columns.map .name . should_equal ["c", "g", "h"]
+                r3.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
+
+                r4 = t4.remove_columns (Column_Selector.Blank_Columns when_any=True)
+                r4.columns.map .name . should_equal ["c", "g"]
+                r4.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
 
             Test.specify "should allow to treat NaNs as blank if asked" <|
-                t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+                r1 = t3.filter_blank_rows when_any=True treat_nans_as_blank=True
                 # We cannot use `Vector.==` because `NaN != NaN`.
-                t1.at "X" . to_vector . should_equal [1.5]
-                t1.at "Y" . to_vector . should_equal [2.0]
+                r1.at "X" . to_vector . should_equal [1.5]
+                r1.at "Y" . to_vector . should_equal [2.0]
 
-                t2 = t.filter_blank_rows when_any=False treat_nans_as_blank=True
-                t2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
-                t2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
+                r2 = t3.filter_blank_rows when_any=False treat_nans_as_blank=True
+                r2.at "X" . to_vector . to_text . should_equal "[2.0, 1.5, NaN]"
+                r2.at "Y" . to_vector . should_equal [Nothing, 2.0, 5.0]
+
+                r3 = t4.remove_columns (Column_Selector.Blank_Columns when_any=False treat_nans_as_blank=True)
+                r3.columns.map .name . should_equal ["c", "g"]
+                r3.at "g" . to_vector . to_text . should_equal "[NaN, 1.0, 2.0, 3.4]"
+
+                r4 = t4.remove_columns (Column_Selector.Blank_Columns when_any=True treat_nans_as_blank=True)
+                r4.columns.map .name . should_equal ["c"]
+                r4.at "c" . to_vector . should_equal [10, 20, 40, 30]
 
         if test_selection.is_nan_and_nothing_distinct.not then
             Test.specify "this backend treats NaN as Nothing" <|
-                t.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
-                t.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data
+                t3.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
+                t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data
+
+        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
+            t = table_builder [["X", [1, 2, 3, 4]], ["Y", [Nothing, "", Nothing, Nothing]], ["Z", [Nothing, True, False, Nothing]]]
+
+            t.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["Y"]
+            t.select_columns (Column_Selector.Blank_Columns when_any=True) . columns . map .name . should_equal ["Y", "Z"]
+
+            t.reorder_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["Y", "X", "Z"]
+
+            r1 = t.aggregate [Count_Distinct Column_Selector.Blank_Columns]
+            r1.columns . map .name . should_equal ["Count Distinct Y"]
+            r1.at "Count Distinct Y" . to_vector . should_equal [2]
+            r2 = t.aggregate [(Count_Distinct Column_Selector.Blank_Columns ignore_nothing=True)]
+            r2.columns . map .name . should_equal ["Count Distinct Y"]
+            r2.at "Count Distinct Y" . to_vector . should_equal [1]
+
+        Test.specify "Blank_Columns selector should deal with edge cases" <|
+            t = table_builder [["X", [1, 2, 3, 4]]]
+            no_cols = t.select_columns []
+            no_rows = t.filter "X" (Filter_Condition.Equal to=0)
+            no_cols.columns . should_equal []
+            no_rows.row_count . should_equal 0
+            no_rows.at "X" . to_vector . should_equal []
+
+            no_cols.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []
+            no_rows.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["X"]
+            no_rows.remove_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []

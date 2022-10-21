@@ -271,7 +271,7 @@ type Table
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -321,7 +321,7 @@ type Table
              table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -376,7 +376,7 @@ type Table
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
     reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -653,7 +653,7 @@ type Table
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
+            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case.folding_strategy case_sensitivity
         java_table = Illegal_Argument_Error.handle_java_exception <|
@@ -788,7 +788,7 @@ type Table
             _ : Column_Selector -> columns
             name : Text -> Column_Selector.By_Name [name]
             index : Integer -> Column_Selector.By_Index [index]
-        selection = Table_Helpers.select_columns_helper self.columns selector reorder=False problem_builder
+        selection = self.columns_helper.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
         map_preserve_name column f = column.map f . rename column.name
@@ -1016,22 +1016,7 @@ type Table
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Boolean -> Boolean -> Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        can_contain_text col = case col.storage_type of
-            Storage.Text -> True
-            Storage.Any -> True
-            _ -> False
-        can_contain_double col = case col.storage_type of
-            Storage.Decimal -> True
-            Storage.Any -> True
-            _ -> False
-        Table_Helpers.filter_blank_rows self can_contain_text can_contain_double when_any treat_nans_as_blank
-
-    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
-    drop_missing_columns : Table
-    drop_missing_columns self =
-        non_missing = self.columns . filter (col -> col.count_missing == 0)
-        index = self.java_table.getIndex
-        Table.Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
+        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## Returns the number of rows in this table.
 
@@ -1199,6 +1184,11 @@ type Table
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited delimiter=",")
+
+    ## PRIVATE
+    columns_helper : Table_Column_Helper
+    columns_helper self =
+        Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
 
 ## UNSTABLE
 

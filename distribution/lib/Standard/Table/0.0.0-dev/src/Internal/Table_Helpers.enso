@@ -12,103 +12,199 @@ import project.Data.Sort_Column.Sort_Column
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
+from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
 from project.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
 
 polyglot java import java.util.HashSet
 
-## PRIVATE
-   A helper function encapsulating shared code for `select_columns`
-   implementations of various Table variants. See the documentation for the
-   Table type for details.
+type Table_Column_Helper
+    ## PRIVATE
+       Helps managing table columns.
 
-   It takes a list of columns and returns the selected columns. It is the
-   responsibility of each implementation to reconstruct a proper table from the
-   resulting list of columns.
+       Arguments:
+       - internal_columns: A list of all columns in a table.
+       - make_column: A function which takes the internal column and creates a
+         fully fledged column from it.
+       - table: A reference to the table.
+       - materialize: A function which takes a table and materializes it to
+         in-memory.
+    Value internal_columns make_column table materialize
 
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria or vector of column names.
-   - reorder: Specifies whether to reorder the matched columns according to the
-     order of the selection criteria.
-     If `False`, the matched entries are returned in the same order as in the
-     input.
-     If `True`, the matched entries are returned in the order of the criteria
-     matching them. If a single object has been matched by multiple criteria, it
-     is placed in the group belonging to the first matching criterion on the
-     list. If a single criterion's group has more than one element, their
-     relative order is the same as in the input.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-select_columns : Vector -> Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
-select_columns internal_columns selector reorder on_problems =
-    problem_builder = Problem_Builder.new
-    result = select_columns_helper internal_columns selector reorder problem_builder
-    if result.is_empty then
-        problem_builder.report_other_warning No_Output_Columns
-    problem_builder.attach_problems_after on_problems result
+    ## PRIVATE
+       A helper function encapsulating shared code for `select_columns`
+       implementations of various Table variants. See the documentation for the
+       Table type for details.
 
-## PRIVATE
-   A helper function encapsulating shared code for `remove_columns`
-   implementations of various Table variants. See the documentation for the
-   Table type for details.
+       It returns the selected columns. It is the responsibility of each
+       implementation to reconstruct a proper table from the
+       resulting list of columns.
 
-   It takes a list of columns and returns the columns which should be kept. It
-   is the responsibility of each implementation to reconstruct a proper table
-   from the resulting list of columns.
+       Arguments:
+       - selector: Column selection criteria or vector of column names.
+       - reorder: Specifies whether to reorder the matched columns according to
+         the order of the selection criteria.
+         If `False`, the matched entries are returned in the same order as in
+         the input.
+         If `True`, the matched entries are returned in the order of the
+         criteria matching them. If a single object has been matched by multiple
+         criteria, it is placed in the group belonging to the first matching
+         criterion on the list. If a single criterion's group has more than one
+         element, their relative order is the same as in the input.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         operation. By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    select_columns : Vector | Column_Selector -> Boolean -> Problem_Behavior -> Vector
+    select_columns self selector reorder on_problems =
+        problem_builder = Problem_Builder.new
+        result = self.select_columns_helper selector reorder problem_builder
+        if result.is_empty then
+            problem_builder.report_other_warning No_Output_Columns
+        problem_builder.attach_problems_after on_problems result
 
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria or vector of column names.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-remove_columns : Vector -> Vector | Column_Selector -> Problem_Behavior -> Vector
-remove_columns internal_columns selector on_problems =
-    problem_builder = Problem_Builder.new
-    selection = select_columns_helper internal_columns selector reorder=False problem_builder
-    selected_names = Map.from_vector (selection.map column-> [column.name, True])
-    result = internal_columns.filter column->
-        should_be_removed = selected_names.get_or_else column.name False
-        should_be_removed.not
-    if result.is_empty then
-        problem_builder.report_other_warning No_Output_Columns
-    problem_builder.attach_problems_after on_problems result
+    ## PRIVATE
+       A helper function encapsulating shared code for `remove_columns`
+       implementations of various Table variants. See the documentation for the
+       Table type for details.
 
-## PRIVATE
-   A helper function encapsulating shared code for `reorder_columns`
-   implementations of various Table variants. See the documentation for the
-   Table type for details.
+       It returns the columns which should be kept. It is the responsibility of
+       each implementation to reconstruct a proper table from the resulting list
+       of columns.
 
-   It takes a list of columns and returns the columns which should be kept. It
-   is the responsibility of each implementation to reconstruct a proper table
-   from the resulting list of columns.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - selector: A selector specifying which columns should be moved and the order
-     in which they should appear in the result.
-   - position: Specifies how to place the selected columns in relation to the
-     columns which were not matched by the `selector` (if any).
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-reorder_columns : Vector -> Vector | Column_Selector -> Position.Position -> Problem_Behavior -> Vector
-reorder_columns internal_columns selector position on_problems =
-    problem_builder = Problem_Builder.new
-    selection = select_columns_helper internal_columns selector reorder=True problem_builder
-    problem_builder.attach_problems_before on_problems <|
+       Arguments:
+       - selector: Column selection criteria or vector of column names.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         operation. By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    remove_columns : Vector | Column_Selector -> Problem_Behavior -> Vector
+    remove_columns self selector on_problems =
+        problem_builder = Problem_Builder.new
+        selection = self.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
-        other_columns = internal_columns.filter column->
-            is_selected = selected_names.get_or_else column.name False
-            is_selected.not
-        result = case position of
-            Position.Before_Other_Columns -> selection + other_columns
-            Position.After_Other_Columns -> other_columns + selection
-        result
+        result = self.internal_columns.filter column->
+            should_be_removed = selected_names.get_or_else column.name False
+            should_be_removed.not
+        if result.is_empty then
+            problem_builder.report_other_warning No_Output_Columns
+        problem_builder.attach_problems_after on_problems result
+
+    ## PRIVATE
+       A helper function encapsulating shared code for `reorder_columns`
+       implementations of various Table variants. See the documentation for the
+       Table type for details.
+
+       It returns the columns which should be kept. It is the responsibility of
+       each implementation to reconstruct a proper table from the resulting list
+       of columns.
+
+       Arguments:
+       - selector: A selector specifying which columns should be moved and the
+         order in which they should appear in the result.
+       - position: Specifies how to place the selected columns in relation to
+         the columns which were not matched by the `selector` (if any).
+       - on_problems: Specifies the behavior when a problem occurs during the
+         operation. By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    reorder_columns : Vector | Column_Selector -> Position.Position -> Problem_Behavior -> Vector
+    reorder_columns self selector position on_problems =
+        problem_builder = Problem_Builder.new
+        selection = self.select_columns_helper selector reorder=True problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            selected_names = Map.from_vector (selection.map column-> [column.name, True])
+            other_columns = self.internal_columns.filter column->
+                is_selected = selected_names.get_or_else column.name False
+                is_selected.not
+            result = case position of
+                Position.Before_Other_Columns -> selection + other_columns
+                Position.After_Other_Columns -> other_columns + selection
+            result
+
+    ## PRIVATE
+       A helper function which selects columns from the table based on the
+       provided selection criteria.
+
+       Arguments:
+       - selector: Column selection criteria or vector of column names.
+       - reorder: Specifies whether to reorder the matched columns according to
+         the order of the selection criteria.
+         If `False`, the matched entries are returned in the same order as in
+         the input.
+         If `True`, the matched entries are returned in the order of the
+         criteria matching them. If a single object has been matched by multiple
+         criteria, it is placed in the group belonging to the first matching
+         criterion on the list. If a single criterion's group has more than one
+         element, their relative order is the same as in the input.
+       - problem_builder: Encapsulates the aggregation of encountered problems.
+    select_columns_helper : Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper self selector reorder problem_builder = case selector of
+        _ : Vector.Vector ->
+            self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
+        Column_Selector.By_Name names matcher ->
+            valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
+            Matching.match_criteria_callback matcher self.internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+        Column_Selector.By_Index indices ->
+            good_indices = validate_indices self.internal_columns.length indices problem_builder . map .first
+            case reorder of
+                True ->
+                    select_indices_reordering self.internal_columns good_indices
+                False ->
+                    select_indices_preserving_order self.internal_columns good_indices
+        Column_Selector.By_Column columns ->
+            column_names = columns.map .name
+            new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
+            self.select_columns_helper new_selector reorder=reorder problem_builder=problem_builder
+        Column_Selector.Blank_Columns when_any treat_nans_as_blank -> if self.internal_columns.is_empty then [] else
+            blanks = self.internal_columns.map_with_index ix-> internal_column->
+                column = self.make_column internal_column
+                blank_indicator = column.is_blank treat_nans_as_blank
+                blank_indicator.iif 1 0 . rename "blanks_"+ix.to_text
+            ## We cannot just use a custom_column in the aggregate because of
+               how the column selector works. We may need to revisit this. For
+               now we need to use tricks like that:
+            modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
+                table.set blanks_col.name blanks_col
+            # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
+            col_aggregate = if when_any then Maximum else Minimum
+            aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
+            result = self.materialize <| Panic.rethrow <|
+                modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+
+            ## The `reorder` argument has no meaning for Blank_Columns selector
+               - either way all blank columns are selected in the order that
+               they are in the Table.
+            self.internal_columns.filter_with_index i-> _->
+                ## TODO once we have the Row type it would be nice to use it here
+                case result.at i . first of
+                    ## Nothing is returned if there were no rows, in that case
+                       we treat the column as blank by convention, regardless of
+                       `when_any`.
+                    Nothing -> True
+                    1 -> True
+                    0 -> False
+                    _ -> Panic.throw (Illegal_State_Error_Data "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+
+    ## PRIVATE
+       A helper function which selects a single column from the table. It is aligned
+       with the `select_columns_helper`, apart from Blank_Columns selector which is
+       only handled by the other method but not this one.
+    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> a | Nothing
+    resolve_column_helper self selector problem_builder = case selector of
+        _ : Text ->
+            matched_columns = Matching.match_criteria_callback Text_Matcher.Case_Sensitive self.internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+            if matched_columns.length == 1 then matched_columns.first else
+                if matched_columns.length == 0 then Nothing else
+                    Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
+        _ : Integer -> case is_index_valid self.internal_columns.length selector of
+            True -> self.internal_columns.at selector
+            False ->
+                problem_builder.report_oob_indices [selector]
+                Nothing
+        ## A wildcard to match any backend's column.
+        _ ->
+            self.resolve_column_helper selector.name problem_builder=problem_builder
+
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -214,61 +310,6 @@ sort_columns internal_columns direction text_ordering =
         True -> Natural_Order.compare
         False -> .compare_to
     internal_columns.sort on=mapper by=comparator order=direction
-
-## PRIVATE
-   A helper function which selects columns from the table based on the provided
-   selection criteria.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - selector: Column selection criteria or vector of column names.
-   - reorder: Specifies whether to reorder the matched columns according to the
-     order of the selection criteria.
-     If `False`, the matched entries are returned in the same order as in the
-     input.
-     If `True`, the matched entries are returned in the order of the criteria
-     matching them. If a single object has been matched by multiple criteria, it
-     is placed in the group belonging to the first matching criterion on the
-     list. If a single criterion's group has more than one element, their
-     relative order is the same as in the input.
-   - problem_builder: Encapsulates the aggregation of encountered problems.
-select_columns_helper : Vector -> Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
-select_columns_helper internal_columns selector reorder problem_builder = case selector of
-    _ : Vector.Vector ->
-        select_columns_helper internal_columns (Column_Selector.By_Name selector) reorder problem_builder
-    Column_Selector.By_Name names matcher ->
-        valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
-        Matching.match_criteria_callback matcher internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
-    Column_Selector.By_Index indices ->
-        good_indices = validate_indices internal_columns.length indices problem_builder . map .first
-        case reorder of
-            True ->
-                select_indices_reordering internal_columns good_indices
-            False ->
-                select_indices_preserving_order internal_columns good_indices
-    Column_Selector.By_Column columns ->
-        column_names = columns.map .name
-        new_selector = Column_Selector.By_Name column_names Text_Matcher.Case_Sensitive
-        select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
-
-## PRIVATE
-   A helper function which selects a single column from the table. It is aligned with the
-   `select_columns_helper`.
-resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
-resolve_column_helper internal_columns selector problem_builder = case selector of
-    _ : Text ->
-        matched_columns = Matching.match_criteria_callback Text_Matcher.Case_Sensitive internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
-        if matched_columns.length == 1 then matched_columns.first else
-            if matched_columns.length == 0 then Nothing else
-                Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
-    _ : Integer -> case is_index_valid internal_columns.length selector of
-        True -> internal_columns.at selector
-        False ->
-            problem_builder.report_oob_indices [selector]
-            Nothing
-    ## A wildcard to match any backend's column.
-    _ ->
-        resolve_column_helper internal_columns selector.name problem_builder=problem_builder
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
@@ -558,20 +599,13 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that
    can filter out blank rows.
-filter_blank_rows : Table -> (Column -> Boolean) -> (Column -> Boolean) -> Boolean -> Boolean -> Table
-filter_blank_rows table can_contain_text can_contain_double when_any treat_nans_as_blank =
+filter_blank_rows : Table -> Boolean -> Boolean -> Table
+filter_blank_rows table when_any treat_nans_as_blank =
     cols = table.columns
     case cols.not_empty of
         True ->
-            handle col =
-                is_blank = case can_contain_text col of
-                    True -> col.is_empty
-                    False -> col.is_missing
-                case treat_nans_as_blank && (can_contain_double col) of
-                    True -> is_blank || col.is_nan
-                    False -> is_blank
             merge = if when_any then (||) else (&&)
-            missing_mask = cols.map handle . reduce merge
+            missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask
         False -> table
