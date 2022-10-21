@@ -104,7 +104,7 @@ crate::define_icons! {
             above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let shape = FiveStar(7.0.px(),0.447);
+                let shape = FiveStar(8.0.px(),0.447);
                 let shape = shape.fill(strong_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
@@ -117,8 +117,8 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let dot = Circle(2.0.px());
-                let outer = Circle(7.0.px()) - Circle(6.0.px());
+                let dot = Circle(3.0.px());
+                let outer = Circle(8.0.px()) - Circle(7.0.px());
                 let shape = dot + outer;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -134,12 +134,12 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let corners_radius = 1.5;
-                let top = Rect((10.0.px(), 1.5.px()));
-                let top = top.corners_radius(corners_radius.px()).translate_y(5.25.px());
-                let middle = Rect((13.0.px(), 2.0.px()));
-                let middle = middle.corners_radius(corners_radius.px()).translate_y(2.5.px());
-                let bottom = Rect((16.0.px(), 6.5.px()));
-                let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.75).px());
+                let top = Rect((8.0.px(), 1.5.px()));
+                let top = top.corners_radius(corners_radius.px()).translate_y(4.75.px());
+                let middle = Rect((12.0.px(), 1.5.px()));
+                let middle = middle.corners_radius(corners_radius.px()).translate_y(2.25.px());
+                let bottom = Rect((16.0.px(), 6.0.px()));
+                let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.5).px());
                 let shape = top + middle + bottom;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -694,21 +694,24 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let rect0 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let size = 7.0;
+                let half = size / 2.0;
+                let corners_radius = 1.0;
+                let rect0 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect0 = rect0.fill(style.get_color(theme::libraries::_0));
-                let rect0 = rect0.translate(((-3.75).px(),3.75.px()));
+                let rect0 = rect0.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
-                let rect1 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect1 = rect1.fill(style.get_color(theme::libraries::_1));
-                let rect1 = rect1.translate(((-3.75).px(),(-3.75).px()));
+                let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
-                let rect2 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect2 = rect2.fill(style.get_color(theme::libraries::_2));
-                let rect2 = rect2.translate((3.75.px(),(-3.75).px()));
+                let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
-                let rect3 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect3 = rect3.fill(style.get_color(theme::libraries::_3));
-                let rect3 = rect3.translate((3.75.px(),3.75.px()));
+                let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = rect0 + rect1 + rect2 + rect3;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -723,21 +726,24 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let plus = plus(6.5,1.5);
+                let size = 7.0;
+                let half = size / 2.0;
+                let corners_radius = 1.0;
+                let plus = plus(size,1.5);
                 let plus = plus.fill(style.get_color(theme::libraries::_0));
-                let plus = plus.translate(((-3.75).px(),3.75.px()));
+                let plus = plus.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
-                let rect1 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect1 = rect1.fill(style.get_color(theme::libraries::_1));
-                let rect1 = rect1.translate(((-3.75).px(),(-3.75).px()));
+                let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
-                let rect2 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect2 = rect2.fill(style.get_color(theme::libraries::_2));
-                let rect2 = rect2.translate((3.75.px(),(-3.75).px()));
+                let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
-                let rect3 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
+                let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
                 let rect3 = rect3.fill(style.get_color(theme::libraries::_3));
-                let rect3 = rect3.translate((3.75.px(),3.75.px()));
+                let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = plus + rect1 + rect2 + rect3;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
