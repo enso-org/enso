@@ -437,6 +437,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testWildcardLeftHandSide() throws Exception {
+    parseTest("""
+    Any.should_succeed self frames_to_skip=0 =
+        _ = frames_to_skip
+        """);
+  }
+
+  @Test
   public void testReverseListType() throws Exception {
     parseTest("""
     reverse_list : List Any -> List

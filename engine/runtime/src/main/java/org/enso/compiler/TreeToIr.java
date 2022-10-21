@@ -829,7 +829,10 @@ final class TreeToIr {
         yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
       }
       case Tree.Assignment assign -> {
-        var name = buildName(assign.getPattern());
+        var name = switch (assign.getPattern()) {
+            case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+            case Tree pattern -> buildName(pattern);
+        };
         var expr = translateExpression(assign.getExpr(), insideTypeSignature);
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
