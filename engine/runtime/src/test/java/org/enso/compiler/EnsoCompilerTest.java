@@ -427,6 +427,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testTestGroupSimple() throws Exception {
+    parseTest("""
+    group : Text -> Any -> (Text | Nothing) -> Nothing
+    """);
+  }
+
+  @Test
   public void testReverseListType() throws Exception {
     parseTest("""
     reverse_list : List Any -> List
@@ -695,7 +702,7 @@ public class EnsoCompilerTest {
             _ -> if enabled then Nothing
     """);
   }
-
+  
   @Test
   @Ignore // Crashes old parser
   public void testAlternationTypes() throws Exception {
