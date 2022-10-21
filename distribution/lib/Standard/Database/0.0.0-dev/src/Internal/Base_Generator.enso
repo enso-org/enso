@@ -214,7 +214,7 @@ make_is_in arguments = case arguments.length of
     0 -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN requires at least one argument.")
     ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
        `IN ()` would be more meaningful, but it is a syntax error.
-    1 -> code '2=1' . paren
+    1 -> code 'FALSE' . paren
     _ ->
         expr = arguments.first
         list = arguments.tail

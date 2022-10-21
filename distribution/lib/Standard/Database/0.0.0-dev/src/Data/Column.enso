@@ -706,10 +706,7 @@ type Column
             has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
             new_type = SQL_Type.boolean
             new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-            res = Column.Value self.name self.connection new_type new_expr self.context
-            tmp = Table.Value self.name self.connection [self.as_internal, res.as_internal] self.context
-            tmp.print
-            res
+            Column.Value self.name self.connection new_type new_expr self.context
 
     ## PRIVATE
     as_internal : Internal_Column
