@@ -61,6 +61,7 @@ package-lock.json
 
 .idea/
 .vscode/
+.metals/
 *.swp
 .projections.json
 .nvmrc
