@@ -36,6 +36,7 @@ fn statement() -> resolver::SegmentMap<'static> {
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
     macro_map.register(type_def());
+    macro_map.register(foreign());
     macro_map
 }
 
@@ -687,6 +688,77 @@ fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
 }
 
+fn foreign<'s>() -> Definition<'s> {
+    crate::macro_definition! {("foreign", everything()) foreign_body}
+}
+
+fn foreign_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let segment = segments.pop().0;
+    let keyword = into_ident(segment.header);
+    let tokens = segment.result.tokens().into_iter();
+    match try_foreign_body(keyword.clone(), tokens.clone()) {
+        Ok(foreign) => foreign,
+        Err(error) => (match operator::resolve_operator_precedence_if_non_empty(tokens) {
+            Some(rhs) => syntax::Tree::app(keyword.into(), rhs),
+            None => keyword.into(),
+        })
+        .with_error(error),
+    }
+}
+
+fn try_foreign_body<'s>(
+    keyword: syntax::token::Ident<'s>,
+    tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+) -> Result<syntax::Tree, &'static str> {
+    let mut tokens = tokens.into_iter();
+    let language = tokens
+        .next()
+        .and_then(try_into_token)
+        .and_then(try_token_into_ident)
+        .ok_or("Expected an identifier specifying foreign method's language.")?;
+    let expected_name = "Expected an identifier specifying foreign function's name.";
+    let function =
+        operator::resolve_operator_precedence_if_non_empty(tokens).ok_or(expected_name)?;
+    let expected_function = "Expected a function definition after foreign declaration.";
+    let box syntax::tree::Variant::OprApp(
+            syntax::tree::OprApp { lhs: Some(lhs), opr: Ok(equals), rhs: Some(body) }) = function.variant else {
+        return Err(expected_function)
+    };
+    if !equals.properties.is_assignment() {
+        return Err(expected_function);
+    };
+    let (name, args) = crate::collect_arguments(lhs);
+    let mut name = try_tree_into_ident(name).ok_or(expected_name)?;
+    name.left_offset += function.span.left_offset;
+    Ok(syntax::Tree::foreign_function(keyword, language, name, args, equals, body))
+}
+
+// === Token conversions ===
+
+fn try_into_token(item: syntax::Item) -> Option<syntax::Token> {
+    match item {
+        syntax::Item::Token(token) => Some(token),
+        _ => None,
+    }
+}
+
+fn try_token_into_ident(token: syntax::Token) -> Option<syntax::token::Ident> {
+    match token.variant {
+        syntax::token::Variant::Ident(ident) => {
+            let syntax::token::Token { left_offset, code, .. } = token;
+            Some(syntax::Token(left_offset, code, ident))
+        }
+        _ => None,
+    }
+}
+
+fn try_tree_into_ident(tree: syntax::Tree) -> Option<syntax::token::Ident> {
+    match tree.variant {
+        box syntax::tree::Variant::Ident(syntax::tree::Ident { token }) => Some(token),
+        _ => None,
+    }
+}
+
 fn into_open_symbol(token: syntax::token::Token) -> syntax::token::OpenSymbol {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::open_symbol(left_offset, code)
@@ -701,6 +773,9 @@ fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
+
+
+// === Validators ===
 
 fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
     if matches!(&*tree.variant, syntax::tree::Variant::Ident(_)) {

@@ -231,6 +231,21 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        /// A foreign function definition.
+        ForeignFunction {
+            /// The `foreign` keyword.
+            pub foreign:  token::Ident<'s>,
+            /// The function's language.
+            pub language: token::Ident<'s>,
+            /// The name to which the function should be bound.
+            pub name:     token::Ident<'s>,
+            /// The argument patterns.
+            pub args:     Vec<ArgumentDefinition<'s>>,
+            /// The `=` token.
+            pub equals:   token::Operator<'s>,
+            /// The body, which is source code for the specified language.
+            pub body:     Tree<'s>,
+        },
         /// An import statement.
         Import {
             pub polyglot: Option<MultiSegmentAppSegment<'s>>,
@@ -901,7 +916,7 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
 impl<'s> From<Token<'s>> for Tree<'s> {
     fn from(token: Token<'s>) -> Self {
         match token.variant {
-            token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+            token::Variant::Ident(ident) => token.with_variant(ident).into(),
             token::Variant::Digits(number) =>
                 Tree::number(None, Some(token.with_variant(number)), None),
             token::Variant::NumberBase(base) =>
@@ -948,6 +963,12 @@ impl<'s> From<Token<'s>> for Tree<'s> {
     }
 }
 
+impl<'s> From<token::Ident<'s>> for Tree<'s> {
+    fn from(token: token::Ident<'s>) -> Self {
+        Tree::ident(token)
+    }
+}
+
 
 
 // =============================
@@ -981,6 +1002,7 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Array(_)
             | Variant::Annotated(_)
             | Variant::Documented(_)
+            | Variant::ForeignFunction(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })

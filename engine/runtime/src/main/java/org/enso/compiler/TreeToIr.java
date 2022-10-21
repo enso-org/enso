@@ -14,11 +14,13 @@ import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
+import org.enso.compiler.core.IR$Foreign$Definition;
 import org.enso.compiler.core.IR$Function$Lambda;
 import org.enso.compiler.core.IR$Function$Binding;
 import org.enso.compiler.core.IR$Literal$Text;
@@ -50,6 +52,7 @@ import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
+import org.enso.interpreter.epb.EpbParser;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
@@ -164,6 +167,25 @@ final class TreeToIr {
         );
         yield cons(binding, appendTo);
       }
+      case Tree.ForeignFunction fn when fn.getBody() instanceof Tree.TextLiteral body -> {
+        var name = fn.getName();
+        var nameLoc = getIdentifiedLocation(name);
+        var methodRef = new IR$Name$MethodReference(Option.empty(), buildName(name), nameLoc, meta(), diag());
+        var args = translateArgumentsDefinition(fn.getArgs());
+        var languageName = fn.getLanguage().codeRepr();
+        var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
+        if (language == null) {
+          var message = "Language '" + languageName + "' is not a supported polyglot language.";
+          var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
+          yield cons(error, appendTo);
+        }
+        var text = getTextConstant(body);
+        var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
+        var binding = new IR$Module$Scope$Definition$Method$Binding(
+                methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
+        );
+        yield cons(binding, appendTo);
+      }
       case Tree.Annotated anno -> {
         var annotation = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
@@ -253,6 +275,23 @@ final class TreeToIr {
         java.util.List<ArgumentDefinition> args = java.util.Collections.emptyList();
         var ir = translateFunction(assignment, name, args, assignment.getExpr());
         yield cons(ir, appendTo);
+      }
+      case Tree.ForeignFunction fn when fn.getBody() instanceof Tree.TextLiteral body -> {
+        var name = fn.getName();
+        var nameLoc = getIdentifiedLocation(name);
+        var methodRef = new IR$Name$MethodReference(Option.empty(), buildName(name), nameLoc, meta(), diag());
+        var args = translateArgumentsDefinition(fn.getArgs());
+        var languageName = fn.getLanguage().codeRepr();
+        var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
+        if (language == null) {
+          var message = "Language '" + languageName + "' is not a supported polyglot language.";
+          var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
+          yield cons(error, appendTo);
+        }
+        var text = getTextConstant(body);
+        var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
+        var binding = new IR$Function$Binding(methodRef, args, def, getIdentifiedLocation(fn), false, meta(), diag());
+        yield cons(binding, appendTo);
       }
       case Tree.Documented doc -> {
         var irDoc = translateComment(doc, doc.getDocumentation());
@@ -802,15 +841,18 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
+    return new IR$Literal$Text(getTextConstant(txt), getIdentifiedLocation(txt), meta(), diag());
+  }
+  String getTextConstant(Tree.TextLiteral txt) {
     StringBuilder sb = new StringBuilder();
     for (var t : txt.getElements()) {
       switch (t) {
-          case TextElement.Section s -> sb.append(s.getText().codeRepr());
-          case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
-          default -> throw new UnhandledEntity(t, "translateLiteral");
+        case TextElement.Section s -> sb.append(s.getText().codeRepr());
+        case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
+        default -> throw new UnhandledEntity(t, "getTextConstant");
       }
     }
-    return new IR$Literal$Text(sb.toString(), getIdentifiedLocation(txt), meta(), diag());
+    return sb.toString();
   }
 
 

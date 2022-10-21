@@ -342,6 +342,15 @@ fn ignored_arguments() {
     test!("f ~_ = x", (Function (Ident f) #(("~" (Wildcard -1) () ())) "=" (Ident x)));
 }
 
+#[test]
+fn foreign_functions() {
+    test!("foreign python my_method a b = \"42\"",
+        (ForeignFunction foreign python my_method
+            #((() (Ident a) () ()) (() (Ident b) () ()))
+            "="
+            (TextLiteral #((Section "42")))));
+}
+
 
 // === Named arguments ===
 
