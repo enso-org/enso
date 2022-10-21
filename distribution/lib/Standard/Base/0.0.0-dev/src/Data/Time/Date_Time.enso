@@ -21,17 +21,20 @@ polyglot java import org.enso.base.Time_Utils
     calendar related functionalities on such a Date_Time, e.g., `length_of_month` or
     `day_of_week`. All the other operations, including `+` and `-` should succeed.
 
-epoch_start : Date_Time
-epoch_start = @Builtin_Method "Date_Time.epoch_start"
+enso_epoch_start : Date_Time
+enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 
 ## PRIVATE
-ensure_in_epoch : (Date_Time | Date) -> (Date_Time | Date) ! Time_Error
-ensure_in_epoch date =
+unix_epoch_start : Date_Time
+unix_epoch_start = Date_Time.new 1970
+
+## PRIVATE
+ensure_in_epoch : (Date_Time | Date) -> Suspend (Any -> Any) -> Any ! Time_Error
+ensure_in_epoch date ~action =
     datetime = case date of
         x : Date_Time -> x
         x : Date.Date -> x.to_date_time
-    if epoch_start <= datetime then date else Error.throw Time_Error.epoch_start
-
+    if enso_epoch_start <= datetime then action else Error.throw Time_Error.enso_epoch_start
 
 ## ALIAS Current Time
 
@@ -269,7 +272,7 @@ type Date_Time
     zone : Time_Zone
     zone self = @Builtin_Method "Date_Time.zone"
 
-    ## Return the number of seconds from the Enso epoch. See Date_Time.epoch_start
+    ## Return the number of seconds from the Unix epoch start (1.1.1970)
 
        If this Date_Time is before an epoch start, throws `Time_Error`.
 
@@ -278,12 +281,13 @@ type Date_Time
 
              from Standard.Base import Date_Time
 
-             example_epoch = Date_Time.now.to_epoch_seconds
-    to_epoch_seconds : Integer ! Time_Error
-    to_epoch_seconds self =
-        (Duration.between epoch_start (ensure_in_epoch self)).total_seconds.floor
+             example_epoch = Date_Time.now.to_unix_epoch_seconds
+    to_unix_epoch_seconds : Integer ! Time_Error
+    to_unix_epoch_seconds self =
+        if self >= unix_epoch_start then (Duration.between unix_epoch_start self).total_seconds.floor else
+            Error.throw (Time_Error_Data "Datetime is before Unix epoch")
 
-    ## Return the number of milliseconds from the Enso epoch. See Date_Time.epoch_start
+    ## Return the number of milliseconds from the Unix epoch start.
 
        If this Date_Time is before an epoch start, throws `Time_Error`.
 
@@ -292,10 +296,27 @@ type Date_Time
 
              from Standard.Base import Date_Time
 
-             example_epoch = Date_Time.now.to_epoch_milliseconds
-    to_epoch_milliseconds : Integer ! Time_Error
-    to_epoch_milliseconds self =
-        (Duration.between epoch_start (ensure_in_epoch self)).total_milliseconds.floor
+             example_epoch = Date_Time.now.to_unix_epoch_milliseconds
+    to_unix_epoch_milliseconds : Integer ! Time_Error
+    to_unix_epoch_milliseconds self =
+        if self >= unix_epoch_start then (Duration.between unix_epoch_start self).total_milliseconds.floor else
+            Error.throw (Time_Error_Data "Datetime is before Unix epoch")
+
+    ## Return the number of seconds from the Enso epoch start.
+
+       See `Date_Time.enso_epoch_start` If this Date_Time is before an Enso epoch
+       start, throws `Time_Error`.
+    to_enso_epoch_seconds : Integer ! Time_Error
+    to_enso_epoch_seconds self =
+        ensure_in_epoch self <| (Duration.betwen enso_epoch_start self).total_seconds.floor
+
+    ## Return the number of milliseconds from the Enso epoch start.
+
+       See `Date_Time.enso_epoch_start` If this Date_Time is before an Enso epoch
+       start, throws `Time_Error`.
+    to_enso_epoch_milliseconds : Integer ! Time_Error
+    to_enso_epoch_milliseconds self =
+        ensure_in_epoch self <| (Duration.betwen enso_epoch_start self).total_milliseconds.floor
 
     ## Convert this point in time to time of day, discarding the time zone
        information.
@@ -335,13 +356,13 @@ type Date_Time
 
        Throws `Time_Error` for a Date_Time that is before epoch start.
     is_leap_year : Boolean ! Time_Error
-    is_leap_year self = (ensure_in_epoch self).date.is_leap_year
+    is_leap_year self = ensure_in_epoch self <| self.date.is_leap_year
 
     ## Returns the number of days in the year represented by this date.
 
        Throws `Time_Error` for a Date_Time that is before epoch start.
     length_of_year : Integer ! Time_Error
-    length_of_year self = (ensure_in_epoch self).date.length_of_year
+    length_of_year self = ensure_in_epoch self <| self.date.length_of_year
 
     ## Returns the century of the date.
     century : Integer
@@ -364,7 +385,8 @@ type Date_Time
     ## Returns the day of the week.
     day_of_week : Day_Of_Week ! Time_Error
     day_of_week self =
-        Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime (ensure_in_epoch self) ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
+        ensure_in_epoch self <|
+            Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## Returns the first date within the `Time_Period` or `Date_Period`
        containing self.
@@ -436,7 +458,7 @@ type Date_Time
        Monday through Friday.
 
        Throws `Time_Error` if called on a Date_Time that is before an epoch
-       start. See `Date_Time.epoch_start`.
+       start. See `Date_Time.enso_epoch_start`.
 
        This method always returns a day which is a business day - if the shift
        amount is zero, the closest following business day is returned. For the

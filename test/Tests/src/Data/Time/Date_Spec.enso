@@ -145,7 +145,7 @@ spec_with name create_new_date parse_date =
             (create_new_date 100 1 2).day    . should_equal 2
 
         Test.specify "Gregorian calendar related functionality should fail before epoch start" <|
-            handler err = err . should_equal Time_Error.epoch_start
+            handler err = err . should_equal Time_Error.enso_epoch_start
             dates_before_epoch = [(create_new_date 100), (create_new_date 500 6 3)]
             dates_before_epoch.each date->
                 Panic.catch Time_Error_Data date.week_of_year handler
