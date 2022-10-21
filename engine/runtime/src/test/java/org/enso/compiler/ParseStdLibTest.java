@@ -59,6 +59,7 @@ public final class ParseStdLibTest extends TestCase {
     }
 
     private static void collectDistribution(TestSuite s, String name) throws Exception {
+        var dir = locateDistribution(name);
         class CollectSuites implements FileVisitor<Path> {
 
             private final TestSuite suite;
@@ -77,10 +78,8 @@ public final class ParseStdLibTest extends TestCase {
                 if (!file.getFileName().toString().endsWith(".enso")) {
                     return FileVisitResult.CONTINUE;
                 }
-                final String name = file.getFileName().toString();
-                if (isKnownToWork(name)) {
-                    suite.addTest(new ParseStdLibTest(name, file.toFile()));
-                }
+                final String name = file.toFile().getPath().substring(dir.toFile().getPath().length() + 1);
+                suite.addTest(new ParseStdLibTest(name, file.toFile()));
                 return FileVisitResult.CONTINUE;
             }
 
@@ -94,7 +93,6 @@ public final class ParseStdLibTest extends TestCase {
                 return FileVisitResult.CONTINUE;
             }
         }
-        var dir = locateDistribution(name);
         Files.walkFileTree(dir, new CollectSuites(s));
     }
 
@@ -133,8 +131,8 @@ public final class ParseStdLibTest extends TestCase {
         var old = filter.apply(oldIr);
         var now = filter.apply(ir);
         if (!old.equals(now)) {
-            var name = getName();
-            var result = new File(src.getURI()).getParentFile().toPath();
+            var name = where.getName();
+            var result = where.getParentFile().toPath();
             final Path oldPath = result.resolve(name + ".old");
             Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             final Path nowPath = result.resolve(name + ".now");
@@ -149,7 +147,17 @@ public final class ParseStdLibTest extends TestCase {
         var src = Source.newBuilder("enso", code, getName())
             .uri(where.toURI())
             .build();
-        parseTest(src);
+        if (isKnownToWork(getName())) {
+            parseTest(src);
+        } else {
+            try {
+                parseTest(src);
+            } catch (Exception | Error e) {
+                // OK
+                return;
+            }
+            fail("This test isn't known to work!");
+        }
     }
 
     private static boolean isKnownToWork(String name) {
