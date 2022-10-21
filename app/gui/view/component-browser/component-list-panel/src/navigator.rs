@@ -15,8 +15,6 @@ use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
-use ensogl_list_view as list_view;
-use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
 use grid::Col;
 use grid::Row;
@@ -37,8 +35,6 @@ type Grid = grid::selectable::GridView<icon::View>;
 pub struct Style {
     pub width:                    f32,
     pub button_size:              f32,
-    pub icon_strong_color:        color::Rgba,
-    pub icon_weak_color:          color::Rgba,
     pub top_padding:              f32,
     pub bottom_padding:           f32,
     pub hover_color:              color::Rgba,
@@ -53,8 +49,6 @@ pub struct Style {
 impl From<Style> for icon::Params {
     fn from(style: Style) -> Self {
         Self {
-            strong_color:             style.icon_strong_color,
-            weak_color:               style.icon_weak_color,
             hover_color:              style.hover_color.into(),
             selection_color:          style.highlight_color.into(),
             selection_size:           style.highlight_size,
@@ -115,8 +109,22 @@ pub struct Navigator {
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
 
-const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::Star, icon::Id::LocalScope];
+const ICON_WEAK_COLOR: color::Lcha = color::Lcha::new(0.81, 0.01535, 0.67, 1.0);
+const ICON_STRONG_COLOR: color::Lcha = color::Lcha::new(0.70472, 0.83671, 0.18, 1.0);
+const ACTIVE_ICON_COLOR: icon::IconColors =
+    icon::IconColors { weak: ICON_WEAK_COLOR, strong: ICON_STRONG_COLOR };
+const INACTIVE_ICON_COLOR: icon::IconColors =
+    icon::IconColors { weak: ICON_WEAK_COLOR, strong: ICON_WEAK_COLOR };
+
+const TOP_BUTTONS: [icon::Model; 2] = [
+    icon::Model::new(icon::Id::Libraries, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
+    icon::Model::new(icon::Id::Marketplace, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
+];
+const BOTTOM_BUTTONS: [icon::Model; 3] = [
+    icon::Model::new(icon::Id::SubModules, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
+    icon::Model::new(icon::Id::Star, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
+    icon::Model::new(icon::Id::LocalScope, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
+];
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
@@ -142,7 +150,6 @@ impl Navigator {
 
             model <- bottom_buttons.model_for_entry_needed.map(f!([]
                 ((row, col)) {
-                    DEBUG!("Model for entry: {row}, {BOTTOM_BUTTONS.get(*row):?}");
                     BOTTOM_BUTTONS.get(*row).map(|model| (*row, *col, *model))
                 }
             )).filter_map(|m| *m);

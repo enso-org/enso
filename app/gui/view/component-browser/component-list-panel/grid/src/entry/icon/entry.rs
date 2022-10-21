@@ -14,6 +14,25 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::style::Path;
 use ensogl_grid_view as grid;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct IconColors {
+    pub strong: color::Lcha,
+    pub weak:   color::Lcha,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Model {
+    icon_id:  icon::Id,
+    active:   IconColors,
+    inactive: IconColors,
+}
+
+impl Model {
+    pub const fn new(icon_id: icon::Id, active: IconColors, inactive: IconColors) -> Self {
+        Self { icon_id, active, inactive }
+    }
+}
+
 
 // =================
 // === IconEntry ===
@@ -26,7 +45,8 @@ pub struct Data {
     display_object: display::object::Instance,
     icon:           Rc<RefCell<Option<icon::Any>>>,
     icon_id:        Rc<Cell<Option<icon::Id>>>,
-    params:         Rc<RefCell<Params>>,
+    strong_color:   Rc<Cell<color::Lcha>>,
+    weak_color:     Rc<Cell<color::Lcha>>,
 }
 
 impl Data {
@@ -34,41 +54,34 @@ impl Data {
         let display_object = display::object::Instance::new();
         let icon = default();
         let icon_id = default();
-        let params = default();
-        Self { display_object, icon, icon_id, params }
+        let strong_color = default();
+        let weak_color = default();
+        Self { display_object, icon, icon_id, strong_color, weak_color }
     }
 
     fn set_icon(&self, icon_id: icon::Id) {
-        DEBUG!("Set icon: {icon_id:?}");
         if !self.icon_id.get().contains(&icon_id) {
             let size = Vector2(icon::SIZE, icon::SIZE);
             let icon = icon_id.create_shape(size);
-            icon.strong_color.set(self.params.borrow().strong_color.clone().into());
-            icon.weak_color.set(self.params.borrow().weak_color.clone().into());
+            icon.strong_color.set(self.strong_color.get().into());
+            icon.weak_color.set(self.weak_color.get().into());
             self.display_object.add_child(&icon);
             *self.icon.borrow_mut() = Some(icon);
             self.icon_id.set(Some(icon_id));
         }
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_strong_color(&self, color: color::Lcha) {
+        self.strong_color.set(color);
         if let Some(icon) = self.icon.borrow().deref() {
-            // TODO: cache size
-            //icon.size.set(*size);
+            icon.strong_color.set(color::Rgba::from(color).into());
         }
     }
 
-    fn set_strong_color(&self, color: color::Rgba) {
-        self.params.borrow_mut().strong_color = color;
+    fn set_weak_color(&self, color: color::Lcha) {
+        self.weak_color.set(color);
         if let Some(icon) = self.icon.borrow().deref() {
-            icon.strong_color.set(color.into());
-        }
-    }
-
-    fn set_weak_color(&self, color: color::Rgba) {
-        self.params.borrow_mut().weak_color = color;
-        if let Some(icon) = self.icon.borrow().deref() {
-            icon.weak_color.set(color.into());
+            icon.weak_color.set(color::Rgba::from(color).into());
         }
     }
 }
@@ -86,7 +99,7 @@ pub struct View {
 }
 
 impl grid::entry::Entry for View {
-    type Model = icon::Id;
+    type Model = Model;
     type Params = Params;
 
     fn new(app: &Application, _text_layer: Option<&Layer>) -> Self {
@@ -96,23 +109,43 @@ impl grid::entry::Entry for View {
         let input = &frp.private().input;
         let out = &frp.private().output;
 
+        let strong_color_anim = color::Animation::new(&network);
+        let weak_color_anim = color::Animation::new(&network);
+
         frp::extend! { network
-            eval input.set_model((id) data.set_icon(*id));
+            init <- source_();
+
+            icon <- input.set_model.map(|m| m.icon_id);
+            eval icon((icon) data.set_icon(*icon));
+
+            active_strong_color <- input.set_model.map(|m| m.active.strong);
+            active_weak_color <- input.set_model.map(|m| m.active.weak);
+            inactive_strong_color <- input.set_model.map(|m| m.inactive.strong);
+            inactive_weak_color <- input.set_model.map(|m| m.inactive.weak);
+
+            strong_color_anim.target <+ inactive_strong_color;
+            weak_color_anim.target <+ inactive_weak_color;
+
+            entry_selected <- input.set_selected.on_true();
+            entry_deselected <- input.set_selected.on_false();
+            strong_color_anim.target <+ active_strong_color.sample(&entry_selected);
+            strong_color_anim.target <+ inactive_strong_color.sample(&entry_deselected);
+            weak_color_anim.target <+ active_weak_color.sample(&entry_selected);
+            weak_color_anim.target <+ inactive_weak_color.sample(&entry_deselected);
+
+            eval strong_color_anim.value((color) data.set_strong_color(*color));
+            eval weak_color_anim.value((color) data.set_weak_color(*color));
 
             style <- input.set_params.on_change();
-            strong_color <- style.map(|s| s.strong_color).on_change();
-            weak_color <- style.map(|s| s.weak_color).on_change();
             selection_color <- style.map(|s| s.selection_color).on_change();
             hover_color <- style.map(|s| s.hover_color).on_change();
-            eval strong_color((&c) data.set_strong_color(c));
-            eval weak_color((&c) data.set_weak_color(c));
 
-            eval input.set_size((size) data.set_size(*size));
             out.contour <+ input.set_size.map(|s| grid::entry::Contour::rectangular(*s));
             out.highlight_contour <+ out.contour.all_with(&style, |c,s| grid::entry::Contour { corners_radius: s.selection_corners_radius, ..*c });
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
         }
+        init.emit(());
 
         Self { frp, data }
     }
@@ -127,10 +160,6 @@ impl grid::entry::Entry for View {
 /// Entry parameters of the icon.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Params {
-    /// Strong (darker, or more contrasting) color parameter.
-    pub strong_color:             color::Rgba,
-    /// Weak (lighter, or less contrasting) color parameter.
-    pub weak_color:               color::Rgba,
     pub hover_color:              color::Lcha,
     pub selection_color:          color::Lcha,
     pub selection_size:           f32,

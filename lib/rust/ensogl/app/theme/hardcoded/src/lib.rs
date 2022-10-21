@@ -187,7 +187,7 @@ define_themes! { [light:0, dark:1]
                 width = 369.0, 369.0;
             }
             component_list_panel {
-                background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+                background_color = Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0),Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0);
                 corners_radius = 15.0, 15.0;
                 grid {
                     width = 414.0, 414.0;
@@ -246,7 +246,9 @@ define_themes! { [light:0, dark:1]
                 }
                 menu_height = 44.0, 44.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 menu_divider_height = 0.5,0.5;
+                navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
                         crop_left = 9.0, 9.0;

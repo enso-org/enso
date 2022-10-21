@@ -5,6 +5,8 @@
 // === Export ===
 // ==============
 
+pub use entry::IconColors;
+pub use entry::Model;
 pub use entry::Params;
 pub use entry::View;
 
@@ -103,7 +105,7 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let shape = FiveStar(7.0.px(),0.447);
-                let shape = shape.fill(style.get_color(theme::favorites));
+                let shape = shape.fill(strong_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
