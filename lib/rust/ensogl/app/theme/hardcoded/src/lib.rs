@@ -253,15 +253,16 @@ define_themes! { [light:0, dark:1]
                     breadcrumbs {
                         crop_left = 9.0, 9.0;
                         crop_right = 3.0, 3.0;
-                        height = 28.0, 28.0;
+                        // FIXME: we shouldn't need it, but there is a recursion otherwise
+                        height = 44.0, 44.0;
                         separator {
                             width = 8.0, 8.0;
                             height = 6.0, 6.0;
                         }
                         ellipsis {
-                            background_width = 24.0, 24.0;
-                            background_height = 10.0, 10.0;
-                            background_corners_radius = 16.0, 16.0;
+                            background_width = 28.0, 28.0;
+                            background_height = 16.0, 16.0;
+                            background_corners_radius = 100.0, 100.0;
                             background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
                             circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
                             circles_radius = 2.0, 2.0;

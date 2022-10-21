@@ -500,8 +500,8 @@ impl Breadcrumbs {
             eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
-            scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid
-                .entry_selected,
+            scroll_anim.target <+ all_with3(
+                &model.grid.content_size, &input.set_size, &model.grid.entry_selected,
                 f!((content_size, size, _) {
                     model.update_layout(*content_size, *size);
                     model.offset(*content_size, *size)

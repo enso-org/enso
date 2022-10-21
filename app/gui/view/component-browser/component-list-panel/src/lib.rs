@@ -147,7 +147,7 @@ impl AllStyles {
     fn breadcrumbs_pos(&self) -> Vector2 {
         let crop_left = self.panel.breadcrumbs_crop_left;
         let x = -self.grid.width / 2.0 + self.navigator.width / 2.0 + crop_left;
-        let y = self.grid.height / 2.0 + self.panel.menu_height / 2.0 - self.grid.padding;
+        let y = self.size().y / 2.0;
         Vector2(x, y)
     }
 

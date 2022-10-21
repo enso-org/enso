@@ -40,6 +40,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
@@ -153,9 +154,13 @@ pub fn main() {
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);
 
+
         let world = &app.display;
         let scene = &world.default_scene;
+        let navigator = Navigator::new(&scene, &scene.layers.node_searcher.camera());
         let panel = app.new_view::<ide_view_component_list_panel::View>();
+        scene.layers.node_searcher.add_exclusive(&panel);
+        panel.model().set_navigator(Some(navigator.clone_ref()));
         panel.show();
         let network = frp::Network::new("new_component_list_panel_view");
         //TODO[ao] should be done by panel itself.
@@ -171,5 +176,6 @@ pub fn main() {
         mem::forget(app);
         mem::forget(panel);
         mem::forget(network);
+        mem::forget(navigator);
     })
 }
