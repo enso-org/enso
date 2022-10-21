@@ -736,6 +736,9 @@ object IR {
             s"""
             |IR.Module.Scope.Import.Module(
             |name = $name,
+            |rename = $rename,
+            |onlyNames = $onlyNames,
+            |hiddenNames = $hiddenNames,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,

@@ -103,17 +103,10 @@ final class TreeToIr {
             expr = doc.getExpression();
           }
           switch (expr) {
-            case Tree.Import imp -> {
-              imports = cons(translateImport(imp), imports);
-            }
-            case Tree.Export exp -> {
-              exports = cons(translateExport(exp), exports);
-            }
+            case Tree.Import imp -> imports = cons(translateImport(imp), imports);
+            case Tree.Export exp -> exports = cons(translateExport(exp), exports);
             case null -> {}
-            default -> {
-              bindings = translateModuleSymbol(expr, bindings);
-            }
-
+            default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
         yield new IR.Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
@@ -998,9 +991,9 @@ final class TreeToIr {
             unrollOprRhs(t, ".").stream().map(segment -> qualifiedNameSegment(segment));
     return CollectionConverters.asScala(segments.iterator()).toList();
   }
-  private List<IR.Name> buildNameSequence(Tree t) {
-    java.util.stream.Stream<IR.Name> segments =
-            unrollOprRhs(t, ",").stream().map(segment -> buildNameOrQualifiedName(segment));
+  private List<IR$Name$Literal> buildNameSequence(Tree t) {
+    java.util.stream.Stream<IR$Name$Literal> segments =
+            unrollOprRhs(t, ",").stream().map(segment -> buildName(segment));
     return CollectionConverters.asScala(segments.iterator()).toList();
   }
 
@@ -1010,9 +1003,13 @@ final class TreeToIr {
     * @param imp the import to translate
     * @return the [[IR]] representation of `imp`
     */
+  @SuppressWarnings("unchecked")
   IR$Module$Scope$Import translateImport(Tree.Import imp) {
     Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody()));
     if (imp.getPolyglot() != null) {
+      if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
+        throw new UnhandledEntity(imp, "translateImport");
+      }
       List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody());
       StringBuilder pkg = new StringBuilder();
       String cls = extractPackageAndName(qualifiedName, pkg);
@@ -1022,17 +1019,22 @@ final class TreeToIr {
               meta(), diag()
       );
     }
+    var isAll = imp.getAll() != null;
     IR$Name$Qualified qualifiedName;
-    // TODO: onlyNames, hiddenNames
+    Option<List<IR$Name$Literal>> onlyNames = Option.empty();
     if (imp.getFrom() != null) {
       qualifiedName = buildQualifiedName(imp.getFrom().getBody());
+      if (!isAll) {
+        onlyNames = Option.apply(buildNameSequence(imp.getImport().getBody()));
+      }
     } else {
       qualifiedName = buildQualifiedName(imp.getImport().getBody());
     }
-    var isAll = imp.getAll() != null;
+    Option<List<IR$Name$Literal>> hidingNames = Option.apply(imp.getHiding()).map(
+            hiding -> buildNameSequence(hiding.getBody()));
     return new IR$Module$Scope$Import$Module(
-      qualifiedName, rename, isAll, Option.empty(),
-      Option.empty(), getIdentifiedLocation(imp), false,
+      qualifiedName, rename, isAll, onlyNames,
+      hidingNames, getIdentifiedLocation(imp), false,
       meta(), diag()
     );
   }
@@ -1062,30 +1064,24 @@ final class TreeToIr {
   @SuppressWarnings("unchecked")
   IR$Module$Scope$Export$Module translateExport(Tree.Export exp) {
     Option<IR$Name$Literal> rename = Option.apply(exp.getAs()).map(as -> buildName(as.getBody()));
+    Option<List<IR$Name$Literal>> hidingNames = Option.apply(exp.getHiding()).map(
+            hiding -> buildNameSequence(hiding.getBody()));
+    IR$Name$Qualified qualifiedName;
+    Option<List<IR$Name$Literal>> onlyNames = Option.empty();
     if (exp.getFrom() != null) {
-      var qualifiedName = buildQualifiedName(exp.getFrom().getBody());
+      qualifiedName = buildQualifiedName(exp.getFrom().getBody());
       var onlyBodies = exp.getExport().getBody();
-      var isAll = exp.getAll() != null;
-      final Option<List<IR$Name$Literal>> onlyNames = isAll ? Option.empty() :
-        Option.apply((List<IR$Name$Literal>) (Object)buildNameSequence(onlyBodies));
-
-      var hidingList = exp.getHiding() == null ? nil() : buildNameSequence(exp.getHiding().getBody());
-      final Option<List<IR$Name$Literal>> hidingNames = hidingList.isEmpty() ? Option.empty() :
-        Option.apply((List<IR$Name$Literal>) (Object)hidingList);
-
-      return new IR$Module$Scope$Export$Module(
-        qualifiedName, rename,
-        true, onlyNames, hidingNames, getIdentifiedLocation(exp), false,
-        meta(), diag()
-      );
+      if (exp.getAll() == null) {
+        onlyNames = Option.apply(buildNameSequence(onlyBodies));
+      }
     } else {
-      var qualifiedName = buildQualifiedName(exp.getExport().getBody());
-      return new IR$Module$Scope$Export$Module(
-        qualifiedName, rename, false, Option.empty(),
-        Option.empty(), getIdentifiedLocation(exp), false,
-        meta(), diag()
-        );
+      qualifiedName = buildQualifiedName(exp.getExport().getBody());
     }
+    return new IR$Module$Scope$Export$Module(
+      qualifiedName, rename, (exp.getFrom() != null), onlyNames,
+      hidingNames, getIdentifiedLocation(exp), false,
+      meta(), diag()
+      );
   }
 
   /** Translates a comment from its [[AST]] representation into its [[IR]]
