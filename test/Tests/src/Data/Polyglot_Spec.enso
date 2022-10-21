@@ -14,7 +14,7 @@ spec = Test.group "Polyglot" <|
         Polyglot.invoke poly_date "atStartOfDay" [] . should_equal date
         Polyglot.invoke poly_date "atStartOfDay" [].to_array . should_equal date
 
-    Test.specify "should be able to crate a new polyglot object using the constructor" <|
+    Test.specify "should be able to create a new polyglot object using the constructor" <|
         Polyglot.new String ["42"] . should_equal "42"
         Polyglot.new String ["42"].to_array . should_equal "42"
 
