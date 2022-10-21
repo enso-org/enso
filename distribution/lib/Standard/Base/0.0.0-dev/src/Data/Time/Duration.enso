@@ -10,8 +10,8 @@ polyglot java import java.lang.ArithmeticException
 ## Create an interval representing the duration between two points in time.
 
    Arguments:
-   - start_inclusive: The start datetime of the duration.
-   - end_inclusive: The end datetime of the duration.
+   - start_inclusive: The start datetime of the duration, included.
+   - end_exclusive: The end datetime of the duration, excluded.
    - timezone_aware: Whether the duration between two given times should be
      aware of the timezone, that can be set for start or end times.
 
@@ -108,13 +108,6 @@ type Duration
 
        Arguments:
        - that: The duration to subtract from `self`.
-
-       > Example
-         Subtract 11 months from a period of 3 years
-
-             import Standard.Base.Data.Time.Period
-
-             example_subtract = (Period.new years=3) - (Period.new months=11)
 
        > Example
          Substract 30 minutes from a duration of 6 hours.

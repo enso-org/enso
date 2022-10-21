@@ -379,7 +379,9 @@ type Date_Time
     ## Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant.
+       - amount: The amount of time to add to this instant, either `Duration` for
+         adding time (hours, minutes, etc.), or `Period` for adding date (days,
+         months, years).
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
@@ -440,15 +442,17 @@ type Date_Time
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to subtract from this instant. Can be either
+         `Duration` for subtracting time (hours, minutes, etc.), or `Period`
+         for subtracting days, months and years.
 
        > Example
-         Subtract 1 year and 9 months from a zoned date time.
+         Subtract 1 year, 9 months and 12 hours from a zoned date time.
 
              from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
-             example_minus = Date_Time.new 2020 - (Period.new years=1) - (Period.new months=9)
+             example_minus = Date_Time.new 2020 - (Period.new years=1) - (Period.new months=9) - (Duration.new hours=5)
     - : (Duration | Period) -> Date_Time ! Time_Error
     - self amount =
         case amount of

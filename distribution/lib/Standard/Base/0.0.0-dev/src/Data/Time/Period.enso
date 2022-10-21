@@ -7,11 +7,35 @@ polyglot java import java.time.DateTimeException
 polyglot java import java.lang.ArithmeticException
 
 
+## Create a Period representing the time interval between two dates.
+
+   Arguments:
+   - start_date_inclusive: The start date of the period, included.
+   - end_date_exclusive: The end date of the period, excluded.
+
+   > Example
+     Get a Period between 2022-10-21 and 2022-09-12
+
+         import Standard.Base.Data.Time.Period
+
+         example_period = Period.between (Date.new 2022 10 21) (Date.new 2022 9 12)
 between : Date -> Date -> Period
 between start_date_inclusive end_date_exclusive =
     Period.Period_Data (Java_Period.between start_date_inclusive end_date_exclusive)
 
+## Create a new Period from years, months and days.
 
+   Arguments:
+   - years: Amount of years.
+   - months: Amount of months.
+   - days: Amount of days.
+
+   > Example
+     Create a Period of 2 years and 5 days
+
+         import Standard.Base.Data.Time.Period
+
+         example_period = Period.new 2 0 5
 new : Integer -> Integer -> Integer -> Period
 new years=0 months=0 days=0 =
     Period.Period_Data (Java_Period.of years months days)
@@ -37,17 +61,36 @@ ensure_period object error_msg="Cannot use Duration as a parameter" =
 type Period
 
     ## PRIVATE
+
+       Arguments:
+       - internal_period: An internal representation of period of type
+         java.time.Period.
     Period_Data internal_period
 
+    ## Get the portion of the period expressed in years.
     years : Integer
     years self = self.internal_period.getYears
 
+    ## Get the portion of the period expressed in months.
     months : Integer
     months self = self.internal_period.getMonths
 
+    ## Get the portion of the period expressed in days.
     days : Integer
     days self = self.internal_period.getDays
 
+    ## Add the specified amount of time to this period.
+
+       Arguments:
+       - other_period: The period to add to `self`. Note that this cannot be a
+         `Duration`, neither `Date_Time`.
+
+       > Example
+       Add 1 day to 1 month.
+
+           import Standard.Base.Data.Time.Period
+
+           example_add = (Period.new months=1) + (Period.new days=1)
     + : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     + self other_period =
         other_period_checked = ensure_period other_period
@@ -55,6 +98,19 @@ type Period
             case err of
                 DateTimeException -> Error.throw Time_Error_Data "Period addition failed"
                 ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
+
+    ## Subtract a specified amount of time from this period.
+
+       Arguments:
+       - other_period: Other Period to add to this Period. Note that this
+         cannot be a `Duration`, neither `Date_Time`.
+
+       > Example
+         Subtract 11 months from a period of 3 years
+
+             import Standard.Base.Data.Time.Period
+
+             example_subtract = (Period.new years=3) - (Period.new months=11)
 
     - : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     - self other_period =
@@ -64,11 +120,20 @@ type Period
                 DateTimeException -> Error.throw Time_Error_Data "Period subtraction failed"
                 ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
 
+    ## Check two periods for equality.
+
+       Note that two periods are equal if they have the exact same amount of
+       years, months, and days. So `(Period.new days=30)` and
+       `(Period.new months=1`) are not equal.
+
+       Arguments:
+       - other_period: The period to compare against `self`.
     == : Period -> Boolean ! (Time_Error | Illegal_Argument_Error)
     == self that =
         other_period = ensure_period that
         self.internal_period.equals other_period.internal_period
 
+    ## Compare this period to another period to produce an ordering.
     compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
     compare_to self that =
         other_period = ensure_period that

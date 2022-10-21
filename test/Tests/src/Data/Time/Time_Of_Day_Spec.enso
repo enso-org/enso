@@ -93,17 +93,17 @@ specWith name create_new_time parse_time =
             time = create_new_time 0 + (Duration.new hours=1) - (Duration.new seconds=1)
             time . to_seconds . should_equal 3599
 
-        Test.specify "should throw error when adding date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should throw error when adding date-based interval" <|
             case (create_new_time 0 + (Period.new days=1)) . catch of
                 Time_Error_Data message ->
-                    message . should_equal "Time_Of_Day does not support date intervals"
+                    message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should throw error when subtracting date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should throw error when subtracting date-based interval" <|
             case (create_new_time 0 - ((Period.new days=1) - (Duration.new minutes=1))) . catch of
                 Time_Error_Data message ->
-                    message . should_equal "Time_Of_Day does not support date intervals"
+                    message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
