@@ -333,6 +333,11 @@ fn function_qualified() {
         (Function (OprApp (Ident Id) (Ok ".") (Ident id)) #((() (Ident x) () ())) "=" (Ident x))]);
 }
 
+#[test]
+fn ignored_arguments() {
+    test!("f ~_ = x", (Function (Ident f) #(("~" (Wildcard -1) () ())) "=" (Ident x)));
+}
+
 
 // === Named arguments ===
 

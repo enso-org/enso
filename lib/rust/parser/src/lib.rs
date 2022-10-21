@@ -448,6 +448,10 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         pattern = expression;
     }
     let mut suspension = default();
+    if let box Variant::TemplateFunction(TemplateFunction { mut ast, .. }) = pattern.variant {
+        ast.span.left_offset += pattern.span.left_offset;
+        pattern = ast;
+    }
     if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_suspension() {
         let mut opr = opr.clone();
         opr.left_offset += pattern.span.left_offset;
