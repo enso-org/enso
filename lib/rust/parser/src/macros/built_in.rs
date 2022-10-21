@@ -86,7 +86,11 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                 &mut from
             }
             "import" => {
-                body = sequence_tree(&mut parser, tokens, expect_qualified);
+                let expect = match from {
+                    Some(_) => expect_ident,
+                    None => expect_qualified,
+                };
+                body = sequence_tree(&mut parser, tokens, expect);
                 &mut import
             }
             "all" => {
@@ -148,7 +152,11 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                 &mut from
             }
             "export" => {
-                body = sequence_tree(&mut parser, tokens, expect_qualified);
+                let expect = match from {
+                    Some(_) => expect_ident,
+                    None => expect_qualified,
+                };
+                body = sequence_tree(&mut parser, tokens, expect);
                 &mut export
             }
             "all" => {
