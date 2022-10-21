@@ -67,6 +67,8 @@
   visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
 - [Remove here keyword from IDE.][3749]
+- [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
+  Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 
 #### EnsoGL (rendering engine)
 
@@ -348,6 +350,7 @@
 [3790]: https://github.com/enso-org/enso/pull/3790
 [3805]: https://github.com/enso-org/enso/pull/3805
 [3812]: https://github.com/enso-org/enso/pull/3812
+[3823]: https://github.com/enso-org/enso/pull/3823
 
 #### Enso Compiler
 
