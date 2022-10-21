@@ -76,7 +76,7 @@ public abstract class CoerceArrayNode extends Node {
   }
 
   @Fallback
-  public Object[] doOther(Object arr) {
+  Object[] doOther(Object arr) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom error = builtins.error().makeTypeError("array", arr, "arr");
     throw new PanicException(error, this);

@@ -25,14 +25,14 @@ public abstract class InvokeNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  public static InvokeNode build() {
+  static InvokeNode build() {
     return InvokeNodeGen.create();
   }
 
-  public abstract Object execute(Object target, Object name, Object arguments);
+  abstract Object execute(Object target, Object name, Object arguments);
 
   @Specialization
-  Object execute(
+  Object doExecute(
       Object target, Object name, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
     try {
       return library.invokeMember(

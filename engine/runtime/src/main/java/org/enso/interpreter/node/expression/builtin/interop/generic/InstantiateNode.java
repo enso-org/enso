@@ -23,14 +23,15 @@ public abstract class InstantiateNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  public static InstantiateNode build() {
+  static InstantiateNode build() {
     return InstantiateNodeGen.create();
   }
 
-  public abstract Object execute(Object constructor, Object arguments);
+  abstract Object execute(Object constructor, Object arguments);
 
   @Specialization
-  Object execute(Object constructor, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
+  Object doExecute(
+      Object constructor, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
     try {
       return library.instantiate(constructor, coerce.execute(arguments));
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {

@@ -21,7 +21,7 @@ public abstract class NewAtomInstanceNode extends Node {
   abstract Atom execute(AtomConstructor constructor, Object fields);
 
   @Specialization
-  Atom execute(AtomConstructor constructor, Object fields, @Cached CoerceArrayNode coerce) {
+  Atom doExecute(AtomConstructor constructor, Object fields, @Cached CoerceArrayNode coerce) {
     return constructor.newInstance(coerce.execute(fields));
   }
 }

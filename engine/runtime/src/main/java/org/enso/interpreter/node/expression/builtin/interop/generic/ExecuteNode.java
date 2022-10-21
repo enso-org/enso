@@ -25,14 +25,14 @@ public abstract class ExecuteNode extends Node {
   private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  public static ExecuteNode build() {
+  static ExecuteNode build() {
     return ExecuteNodeGen.create();
   }
 
-  public abstract Object execute(Object callable, Object arguments);
+  abstract Object execute(Object callable, Object arguments);
 
   @Specialization
-  Object execute(Object callable, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
+  Object doExecute(Object callable, Object arguments, @Cached("build()") CoerceArrayNode coerce) {
     try {
       return hostValueToEnsoNode.execute(library.execute(callable, coerce.execute(arguments)));
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
