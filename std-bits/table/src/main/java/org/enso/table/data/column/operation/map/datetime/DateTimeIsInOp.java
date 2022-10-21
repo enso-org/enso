@@ -10,8 +10,8 @@ import java.util.List;
 /**
  * An IS_IN implementation which ensures the Enso Date/Time types are correctly coerced.
  *
- * <p>It uses the provided {@code storageClass} to only keep the elements that are of the same
- * type as expected in the storage.
+ * <p>It uses the provided {@code storageClass} to only keep the elements that are of the same type
+ * as expected in the storage.
  */
 public class DateTimeIsInOp<T, S extends Storage<T>> extends SpecializedIsInOp<T, S> {
   private final Class<T> storedType;

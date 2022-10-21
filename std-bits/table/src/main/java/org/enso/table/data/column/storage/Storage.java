@@ -94,7 +94,9 @@ public abstract class Storage<T> {
     public static final String COUNT = "count";
   }
 
-  /** Specifies if the given operation has a vectorized implementation available for this storage. */
+  /**
+   * Specifies if the given operation has a vectorized implementation available for this storage.
+   */
   public abstract boolean isOpVectorized(String name);
 
   protected abstract Storage<?> runVectorizedMap(String name, Object argument);

@@ -958,7 +958,7 @@ spec =
             t2.at "A" . to_vector . should_equal [2, 3]
             t2.at "B" . to_vector . should_equal [5, 6]
 
-        Test.specify "by an Is_In check in a Vector, on various types of columns" <|
+        Test.specify "by an Is_In check, on various types of columns" <|
             ins = Table.new <|
                 str = ["str", ["c", "b", Nothing, Nothing]]
                 int = ["int", [1, 2, 3, 3]]
