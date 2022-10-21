@@ -519,7 +519,8 @@ final class TreeToIr {
             );
             var loc = getIdentifiedLocation(app);
             if (lhs == null && rhs == null) {
-              yield new IR$Application$Operator$Section$Sides(name, loc, meta(), diag());
+              // AstToIr doesn't emit a location in this case.
+              yield new IR$Application$Operator$Section$Sides(name, Option.empty(), meta(), diag());
             } else if (lhs == null) {
               yield new IR$Application$Operator$Section$Right(name, rhs, loc, meta(), diag());
             } else if (rhs == null) {
