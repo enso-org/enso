@@ -20,9 +20,11 @@ public abstract class AddToClassPathNode extends Node {
     return AddToClassPathNodeGen.create();
   }
 
+  abstract Object execute(Object path);
+
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Object doExecute(Object self, Object path, @Cached ExpectStringNode expectStringNode) {
+  Object doExecute(Object path, @Cached ExpectStringNode expectStringNode) {
     Context context = Context.get(this);
     context
         .getEnvironment()
@@ -30,5 +32,4 @@ public abstract class AddToClassPathNode extends Node {
     return context.getBuiltins().nothing();
   }
 
-  abstract Object execute(Object self, Object path);
 }
