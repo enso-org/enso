@@ -533,10 +533,10 @@ final class TreeToIr {
         }
         var ret = translateExpression(rhs, true);
         yield new IR$Type$Function(
-        args,
-        ret,
-        Option.empty(),
-        meta(), diag()
+          args.reverse(),
+          ret,
+          Option.empty(),
+          meta(), diag()
         );
       }
       case Tree.OprApp app -> {
