@@ -246,7 +246,8 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
             variant: syntax::token::Variant::Ident(ident),
         })) => syntax::Token(left_offset, code, ident),
         _ => {
-            let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
+            let placeholder =
+                Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
             return placeholder.with_error("Expected identifier after `type` keyword.");
         }
     };
@@ -255,6 +256,27 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
         .map(crate::collect_arguments_inclusive)
         .unwrap_or_default();
     let mut builder = TypeDefBodyBuilder::default();
+    let mut beginning_of_line = true;
+    for item in &mut block {
+        match item {
+            syntax::Item::Token(syntax::Token {
+                variant: syntax::token::Variant::Newline(_),
+                ..
+            }) => {
+                beginning_of_line = true;
+                continue;
+            }
+            syntax::Item::Token(syntax::Token { variant, .. })
+                if beginning_of_line && matches!(variant, syntax::token::Variant::Operator(_)) =>
+            {
+                let opr_ident =
+                    syntax::token::variant::Ident { is_operator_lexically: true, ..default() };
+                *variant = syntax::token::Variant::Ident(opr_ident);
+            }
+            _ => (),
+        }
+        beginning_of_line = false;
+    }
     for block::Line { newline, expression } in block::lines(block) {
         builder.line(newline, expression);
     }
@@ -669,7 +691,7 @@ fn into_close_symbol(token: syntax::token::Token) -> syntax::token::CloseSymbol 
 
 fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     let syntax::token::Token { left_offset, code, .. } = token;
-    syntax::token::ident(left_offset, code, false, 0, false, false)
+    syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
 
 fn expect_ident(tree: syntax::Tree) -> syntax::Tree {

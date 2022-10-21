@@ -225,16 +225,16 @@ impl<'s> ExpressionBuilder<'s> {
         if self.prev_type == Some(ItemType::Opr)
                 && let Some(prev_opr) = self.operator_stack.last_mut()
                 && let Arity::Binary { tokens, .. } = &mut prev_opr.opr {
-            if tokens.len() == 1 && opr.properties.is_type_annotation() {
-                let prev = match self.operator_stack.pop().unwrap().opr {
-                    Arity::Binary { tokens, .. } => tokens.into_iter().next().unwrap(),
-                    _ => unreachable!(),
-                };
-                self.output.push(Operand::from(syntax::Tree::opr_app(None, Ok(prev), None)));
-            } else {
-                tokens.push(opr);
+            if tokens.len() == 1 && tokens[0].properties.is_dot() {
+                let Token { left_offset, code, .. } = opr;
+                let is_operator = true;
+                let opr_ident = token::ident(left_offset, code, default(), default(), default(), is_operator, default());
+                self.output.push(Operand::from(syntax::Tree::ident(opr_ident)));
+                self.prev_type = Some(ItemType::Ast);
                 return;
             }
+            tokens.push(opr);
+            return;
         }
         self.push_operator(prec, assoc, Arity::binary(opr));
     }

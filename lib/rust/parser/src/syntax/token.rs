@@ -263,13 +263,14 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         },
         AutoScope,
         Ident {
-            pub is_free:     bool,
-            pub lift_level:  usize,
+            pub is_free:               bool,
+            pub lift_level:            usize,
             #[reflect(rename = "is_type_or_constructor")]
-            pub is_type:     bool,
+            pub is_type:               bool,
+            pub is_operator_lexically: bool,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_default:  bool,
+            pub is_default:            bool,
         },
         Operator {
             #[serde(skip)]

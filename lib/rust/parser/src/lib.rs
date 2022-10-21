@@ -214,16 +214,6 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         let colon = annotated.operator;
         let type_ = annotated.type_;
         let variable = annotated.expression;
-        if let Tree {
-            variant: box Variant::OprApp(OprApp { lhs: None, opr: Ok(name), rhs: None }),
-            span: inner,
-        } = variable
-        {
-            let mut tree = Tree::operator_type_signature(name, colon, type_);
-            tree.span.left_offset += span.left_offset;
-            tree.span.left_offset += inner.left_offset;
-            return tree;
-        }
         let mut tree = Tree::type_signature(variable, colon, type_);
         tree.span.left_offset += span.left_offset;
         return tree;
@@ -237,15 +227,6 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         _ => return tree,
     };
     if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
-        if let Tree { variant: box Variant::OprApp(
-                OprApp { lhs: None, opr: Ok(name), rhs: Some(args) }), span } = lhs {
-            let args = collect_arguments_inclusive(mem::take(args));
-            let name = mem::take(name);
-            let mut result = Tree::operator_function(name, args, mem::take(opr), mem::take(rhs));
-            result.span.left_offset += mem::take(&mut span.left_offset);
-            result.span.left_offset += left_offset;
-            return result;
-        }
         let (leftmost, args) = collect_arguments(lhs.clone());
         if let Some(rhs) = rhs {
             if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {

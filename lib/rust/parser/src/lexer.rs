@@ -543,10 +543,12 @@ impl token::Variant {
     #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
+        let is_operator = false;
         token::variant::Ident(
             info.starts_with_underscore,
             info.lift_level,
             info.starts_with_uppercase,
+            is_operator,
             info.is_default,
         )
     }
@@ -561,7 +563,8 @@ impl token::Variant {
         } else {
             let is_free = info.starts_with_underscore;
             let is_type = info.starts_with_uppercase;
-            token::Variant::ident(is_free, info.lift_level, is_type, info.is_default)
+            let is_operator = false;
+            token::Variant::ident(is_free, info.lift_level, is_type, is_operator, info.is_default)
         }
     }
 }
@@ -1336,7 +1339,8 @@ pub mod test {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, false)
+        let is_operator = false;
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
     }
 
     /// Constructor.

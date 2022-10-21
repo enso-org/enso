@@ -250,27 +250,27 @@ final class TreeToIr {
 //        }
         yield appendTo;
       }
-      case Tree.OperatorTypeSignature sig -> {
-        var typeName = buildName(getIdentifiedLocation(sig.getOperator()), sig.getOperator(), true);
-        var ir = translateTypeSignature(sig, sig.getType(), typeName);
-        yield cons(ir, appendTo);
-      }
       case Tree.TypeSignature sig -> {
-        var typeName = translateExpression(sig.getVariable(), false);
+        var isMethod = false;
+        if (sig.getVariable() instanceof Tree.Ident ident) {
+          isMethod = ident.getToken().isOperatorLexically();
+        }
+        var typeName = translateExpression(sig.getVariable(), isMethod);
         var ir = translateTypeSignature(sig, sig.getType(), typeName);
-        yield cons(ir, appendTo);
-      }
-      case Tree.OperatorFunction fun -> {
-        var name = buildName(getIdentifiedLocation(fun.getName()), fun.getName(), true);
-        var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
         yield cons(ir, appendTo);
       }
       case Tree.Function fun -> {
-        var name = buildName(fun.getName());
+        IR.Name name;
+        if (fun.getName() instanceof Tree.Ident ident) {
+          var isMethod = ident.getToken().isOperatorLexically();
+          name = buildName(getIdentifiedLocation(fun.getName()), ident.getToken(), isMethod);
+        } else {
+          name = buildNameOrQualifiedName(fun.getName());
+        }
         var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
         yield cons(ir, appendTo);
       }
-      // This is a `Function` in IR, but an `Assignment` in Tree.
+      // In some cases this is a `Function` in IR, but an `Assignment` in Tree.
       // See: https://discord.com/channels/401396655599124480/1001476608957349917
       case Tree.Assignment assignment -> {
         var name = buildName(assignment.getPattern());
