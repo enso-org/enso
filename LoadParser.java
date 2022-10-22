@@ -50,9 +50,15 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     public static void main(String[] args) throws Exception {
         var root = new File(".").getAbsoluteFile();
         try (LoadParser checker = new LoadParser(root)) {
-            checker.scan("distribution");
-            checker.scan("tests");
-
+            if (args.length == 0) {
+                checker.scan("distribution");
+                checker.scan("tests");
+            } else {
+                for (var p : args) {
+                    var file = new File(p).toPath();
+                    checker.visitFile(file, null);
+                }
+            }
             checker.printSummary(true);
         }
     }
