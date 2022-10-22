@@ -614,6 +614,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testExtensionOperator() throws Exception {
+    parseTest("""
+    Text.* : Integer -> Text
+    Text.* self = 42
+    """);
+  }
+
+  @Test
   public void testTypeSignature() throws Exception {
     parseTest("""
     resolve_aggregate table problem_builder aggregate_column =
