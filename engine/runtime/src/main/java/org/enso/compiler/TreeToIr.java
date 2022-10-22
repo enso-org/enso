@@ -1671,11 +1671,10 @@ final class TreeToIr {
   /** Translates a pattern in a case expression from its [[AST]] representation
     * into [[IR]].
     *
-    * @param block the case pattern to translate
+    * @param pattern the case pattern to translate
     * @return
     */
-  IR.Pattern translatePattern(Tree block, List<IR.Pattern> fields) {
-    var pattern = maybeManyParensed(block);
+  IR.Pattern translatePattern(Tree pattern, List<IR.Pattern> fields) {
     return switch (pattern) {
       case Tree.Ident id -> {
         yield new IR$Pattern$Constructor(
@@ -1710,8 +1709,7 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.Pattern> translatePatternArguments(Tree t, List<IR.Pattern> prev) {
-    var tree = maybeManyParensed(t);
+  private List<IR.Pattern> translatePatternArguments(Tree tree, List<IR.Pattern> prev) {
     return switch (tree) {
       case Tree.OprApp app -> {
        var tail = translatePatternArguments(app.getRhs(), prev);
@@ -1729,6 +1727,10 @@ final class TreeToIr {
         yield cons(pattern, prev);
       }
       case Tree.Wildcard wild -> cons(translateWildcardPattern(wild), prev);
+      case Tree.Group group -> {
+          var pattern = translatePattern(group.getBody(), nil());
+          yield cons(pattern, prev);
+      }
       default -> throw new UnhandledEntity(tree, "translatePattern");
     };
   }

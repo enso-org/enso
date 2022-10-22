@@ -769,6 +769,14 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testGroupOfPatterns() throws Exception {
+    parseTest("""
+    sum self = case self of
+        Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
