@@ -667,6 +667,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseWithLowerCaseA() throws Exception {
+    parseTest("""
+    map_nothing self = case self of
+        a -> f a
+    """);
+  }
+
+  @Test
   public void testBalanceUpperCase() throws Exception {
     parseTest("""
     balance_left k x l r = case r of

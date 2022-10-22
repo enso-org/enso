@@ -1677,10 +1677,16 @@ final class TreeToIr {
   IR.Pattern translatePattern(Tree pattern, List<IR.Pattern> fields) {
     return switch (pattern) {
       case Tree.Ident id -> {
-        yield new IR$Pattern$Constructor(
-          buildName(id), fields,
-          getIdentifiedLocation(id), meta(), diag()
-        );
+        var name = buildName(id);
+        var location = getIdentifiedLocation(id);
+        if (name.name().length() > 0 && Character.isUpperCase(name.name().charAt(0))) {
+            yield new IR$Pattern$Constructor(
+              name, fields,
+              location, meta(), diag()
+            );
+        } else {
+            yield new IR$Pattern$Name(name, location, meta(), diag());
+        }
       }
       case Tree.OprApp id -> {
         var qualifiedName = buildQualifiedName(pattern);
