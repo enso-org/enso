@@ -1345,7 +1345,12 @@ final class TreeToIr {
    * @return the [[IR]] representation of `arg`
    */
   IR.DefinitionArgument translateArgumentDefinition(ArgumentDefinition def) {
+    boolean isSuspended = def.getSuspension() != null;
     Tree pattern = def.getPattern();
+    if (pattern instanceof Tree.UnaryOprApp unary && "~".equals(unary.getOpr().codeRepr())) {
+        pattern = unary.getRhs();
+        isSuspended = true;
+    }
     IR.Name name = switch (pattern) {
       case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
       case Tree.Ident id -> {
@@ -1359,7 +1364,6 @@ final class TreeToIr {
       // TODO: Other types of pattern. Needs IR support.
       default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
     };
-    boolean isSuspended = def.getSuspension() != null;
     var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true));
     var defaultValue = Option.apply(def.getDefault()).map(default_ -> translateExpression(default_.getExpression(), false));
     return new IR$DefinitionArgument$Specified(

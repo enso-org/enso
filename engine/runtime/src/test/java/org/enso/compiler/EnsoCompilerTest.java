@@ -103,6 +103,20 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testIfNothingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~_ = self
+    """);
+  }
+
+  @Test
+  public void testIfSomethingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~ignore = self
+    """);
+  }
+
+  @Test
   public void testMinusRec() throws Exception {
     parseTest("""
     minus n = minus n-1
