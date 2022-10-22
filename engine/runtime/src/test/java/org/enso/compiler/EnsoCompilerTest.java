@@ -777,6 +777,20 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testIsMethodWithSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to . all f
+    """);
+  }
+
+  @Test
+  public void testIsMethodWithoutSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to.all f
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
