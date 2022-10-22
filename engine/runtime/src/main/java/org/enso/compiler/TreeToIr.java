@@ -38,6 +38,7 @@ import org.enso.compiler.core.IR$Name$Self;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
+import org.enso.compiler.core.IR$Pattern$Documentation;
 import org.enso.compiler.core.IR$Pattern$Name;
 import org.enso.compiler.core.IR$Pattern$Literal;
 import org.enso.compiler.core.IR$Pattern$Type;
@@ -103,10 +104,19 @@ final class TreeToIr {
             case null -> {
               bindings = translateModuleSymbol(expr, bindings);
             }
+            case Tree.Documented doc when doc.getExpression() instanceof Tree.Import imp -> {
+              imports = cons(translateImport(imp), imports);
+              var comment = translateComment(doc, doc.getDocumentation());
+              bindings = cons(comment, bindings);
+            }
+            case Tree.Documented doc when doc.getExpression() instanceof Tree.Export exp -> {
+              exports = cons(translateExport(exp), exports);
+              var comment = translateComment(doc, doc.getDocumentation());
+              bindings = cons(comment, bindings);
+            }
             default -> {
               bindings = translateModuleSymbol(expr, bindings);
             }
-
           }
         }
         yield new IR.Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
@@ -533,10 +543,10 @@ final class TreeToIr {
         }
         var ret = translateExpression(rhs, true);
         yield new IR$Type$Function(
-        args,
-        ret,
-        Option.empty(),
-        meta(), diag()
+          args.reverse(),
+          ret,
+          Option.empty(),
+          meta(), diag()
         );
       }
       case Tree.OprApp app -> {
@@ -829,7 +839,10 @@ final class TreeToIr {
         yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
       }
       case Tree.Assignment assign -> {
-        var name = buildName(assign.getPattern());
+        var name = switch (assign.getPattern()) {
+            case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+            case Tree pattern -> buildName(pattern);
+        };
         var expr = translateExpression(assign.getExpr(), insideTypeSignature);
         yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
       }
@@ -889,7 +902,7 @@ final class TreeToIr {
           if (line.getCase() == null) {
             continue;
           }
-          var br = translateCaseBranch(line.getCase());
+          var br = translateCaseBranch(cas, line.getCase());
           branches = cons(br, branches);
         }
         yield new IR$Case$Expr(expr, branches.reverse(), getIdentifiedLocation(tree), meta(), diag());
@@ -1630,7 +1643,18 @@ final class TreeToIr {
     * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
     */
-  IR$Case$Branch translateCaseBranch(Case branch) {
+  IR$Case$Branch translateCaseBranch(Tree where, Case branch) {
+    if (branch.getDocumentation() != null) {
+      if (translateComment(where, branch.getDocumentation()) instanceof IR$Comment$Documentation comment) {
+        var loc = getIdentifiedLocation(where);
+        var doc = new IR$Pattern$Documentation(comment.doc(), loc, meta(), diag());
+        return new IR$Case$Branch(
+          doc,
+          new IR.Empty(Option.empty(), meta(), diag()),
+          loc, meta(), diag()
+        );
+      }
+    }
     if (branch.getPattern() == null) {
       throw new UnhandledEntity(branch, "translateCaseBranch");
     }
@@ -1756,8 +1780,13 @@ final class TreeToIr {
           if (!String.valueOf(separator).equals(app.getOpr().getRight().codeRepr())) {
             throw new UnhandledEntity(t, "buildNames with " + separator);
           }
-          segments = cons(buildName(app.getRhs()), segments);
-          t = app.getLhs();
+          if (app.getRhs() instanceof Tree.Ident) {
+            segments = cons(buildName(app.getRhs()), segments);
+            t = app.getLhs();
+          } else {
+            segments = cons(buildName(app.getLhs()), segments);
+            t = app.getRhs();
+          }
         }
         case Tree.Ident id -> {
           segments = cons(buildName(id), segments);
