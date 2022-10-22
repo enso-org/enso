@@ -799,6 +799,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testHandleRequestError() throws Exception {
+    parseTest("""
+    request self req =
+        handle_request_error =
+            42
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

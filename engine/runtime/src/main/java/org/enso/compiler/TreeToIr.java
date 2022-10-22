@@ -910,10 +910,26 @@ final class TreeToIr {
         var name = buildName(fun.getName());
         var args = translateArgumentsDefinition(fun.getArgs());
         var body = translateExpression(fun.getBody(), false);
-
-        yield new IR$Function$Binding(name, args, body,
-            getIdentifiedLocation(fun), true, meta(), diag()
-        );
+        var loc = getIdentifiedLocation(fun);
+        if (args.isEmpty()) {
+          var expr = switch (body) {
+            case IR$Expression$Block b -> b.copy(
+              b.copy$default$1(),
+              b.copy$default$2(),
+              b.copy$default$3(),
+              true,
+              b.copy$default$5(),
+              b.copy$default$6(),
+              b.copy$default$7()
+            );
+            default -> body;
+          };
+          yield new IR$Expression$Binding(name, expr, loc, meta(), diag());
+        } else {
+          yield new IR$Function$Binding(name, args, body,
+            loc, true, meta(), diag()
+          );
+        }
       }
       case Tree.OprSectionBoundary bound -> {
         var ast = translateExpression(bound.getAst(), insideTypeSignature);
