@@ -131,6 +131,23 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testIsDigitWithSpaces() throws Exception {
+    parseTest("""
+    compare =
+        is_digit = character -> 42
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testIsDigitWithoutSpaces() throws Exception {
+    parseTest("""
+    compare =
+        is_digit=character -> 42
+    """);
+  }
+
+  @Test
   public void testComments() throws Exception {
     parseTest("""
     # a b c
