@@ -757,11 +757,10 @@ final class TreeToIr {
             yield lhs != null ? new IR$Application$Operator$Binary(
               lhs,name,rhs,
               loc,meta(), diag()
-            ) : new IR$Application$Operator$Section$Right(
+            ) : rhs != null ? new IR$Application$Operator$Section$Right(
               name, rhs,
               loc, meta(), diag()
-            );
-
+            ) : new IR$Error$Syntax(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
           }
         };
       }
