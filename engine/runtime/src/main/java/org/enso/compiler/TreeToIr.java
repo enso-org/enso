@@ -1774,7 +1774,7 @@ final class TreeToIr {
   }
   private List<IR.Name> buildNames(Tree t, char separator, boolean fail) {
     List<IR.Name> segments = nil();
-    LOOP: for (;;) {
+    for (;;) {
       switch (t) {
         case Tree.OprApp app -> {
           if (!String.valueOf(separator).equals(app.getOpr().getRight().codeRepr())) {
@@ -1790,12 +1790,12 @@ final class TreeToIr {
         }
         case Tree.Ident id -> {
           segments = cons(buildName(id), segments);
-          break LOOP;
+          return segments;
         }
         case Tree.Wildcard wild -> {
           var underscore = new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
           segments = cons(underscore, segments);
-          break LOOP;
+          return segments;
         }
 
         default -> {
@@ -1807,7 +1807,6 @@ final class TreeToIr {
         }
       }
     }
-    return segments;
   }
 
   /** Translates an import statement from its [[AST]] representation into
