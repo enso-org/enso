@@ -871,6 +871,9 @@ impl<'s> Lexer<'s> {
             self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
+        if text_type.use_compatibility_trim_mode() {
+            initial_indent = Some(quote_indent + VisibleOffset(1));
+        }
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > quote_indent {
@@ -1131,6 +1134,11 @@ impl TextType {
 
     fn expects_initial_newline(self) -> bool {
         self != TextType::Documentation
+    }
+
+    /// Reproduce a quirk of the old parser for testing.
+    fn use_compatibility_trim_mode(self) -> bool {
+        self == TextType::Documentation
     }
 }
 

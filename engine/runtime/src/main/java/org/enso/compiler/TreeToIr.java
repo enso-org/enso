@@ -99,10 +99,10 @@ final class TreeToIr {
         List<IR$Module$Scope$Export> exports = nil();
         for (Line line : b.getStatements()) {
           var expr = line.getExpression();
+          // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
+          // placed in `bindings` by AstToIr.
           if (expr instanceof Tree.Documented doc) {
-            var comment = translateComment(doc, doc.getDocumentation());
-            // In this case, which usually includes top-level documentation for a module,
-            // the old parser dropped the comment. For now, we copy that behavior for compatibility.
+            bindings = cons(translateComment(doc, doc.getDocumentation()), bindings);
             expr = doc.getExpression();
           }
           switch (expr) {
@@ -131,18 +131,21 @@ final class TreeToIr {
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName());
         var translatedBody = translateTypeBody(def.getBlock());
-        var translatedConstructorsIt = def.getConstructors().stream().map((c) -> {
-          var cExpr = c.getExpression();
-          if (cExpr == null) {
-            return null;
+        var irConstructors = new java.util.ArrayList<IR>();
+        for (var constructorLine : def.getConstructors()) {
+          var definition = constructorLine.getExpression();
+          if (definition == null) {
+            continue;
           }
-          var constructorName = buildName(inputAst, cExpr.getConstructor());
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(cExpr.getArguments());
+          if (definition.getDocumentation() != null) {
+            irConstructors.add(translateComment(def, definition.getDocumentation()));
+          }
+          var constructorName = buildName(inputAst, definition.getConstructor());
+          List<IR.DefinitionArgument> args = translateArgumentsDefinition(definition.getArguments());
           var cAt = getIdentifiedLocation(inputAst);
-          return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
-        }).filter((e) -> e != null).iterator();
-        var translatedConstructors = CollectionConverters.asScala(translatedConstructorsIt).toList();
-        // type
+          irConstructors.add(new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag()));
+        }
+        var translatedConstructors = CollectionConverters.asScala(irConstructors.iterator()).toList();
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
           typeName,
@@ -179,7 +182,7 @@ final class TreeToIr {
           var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
           yield cons(error, appendTo);
         }
-        var text = getTextConstant(body);
+        var text = buildTextConstant(body.getElements());
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
@@ -288,7 +291,7 @@ final class TreeToIr {
           var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
           yield cons(error, appendTo);
         }
-        var text = getTextConstant(body);
+        var text = buildTextConstant(body.getElements());
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Function$Binding(methodRef, args, def, getIdentifiedLocation(fn), false, meta(), diag());
         yield cons(binding, appendTo);
@@ -841,15 +844,22 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
-    return new IR$Literal$Text(getTextConstant(txt), getIdentifiedLocation(txt), meta(), diag());
+    // Splices are not yet supported in the IR.
+    var value = buildTextConstant(txt.getElements());
+    return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String getTextConstant(Tree.TextLiteral txt) {
+  String buildTextConstant(Iterable elements) {
     StringBuilder sb = new StringBuilder();
-    for (var t : txt.getElements()) {
+    for (var t : elements) {
       switch (t) {
-        case TextElement.Section s -> sb.append(s.getText().codeRepr());
+        case TextElement.Section s -> {
+          var text = s.getText().codeRepr();
+          // Reproduce an AstToIr bug for testing.
+          text = text.replaceAll("#[^\n\r]*", "");
+          sb.append(text);
+        }
         case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
-        default -> throw new UnhandledEntity(t, "getTextConstant");
+        default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
     }
     return sb.toString();
@@ -1135,23 +1145,8 @@ final class TreeToIr {
     * @return the [[IR]] representation of `comment`
     */
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
-      var msg = new StringBuilder();
-      for (var t : doc.getElements()) {
-        switch (t) {
-          case TextElement.Section s -> {
-            var whitespace = s.getText().getWhitespace();
-            var txt = s.getText().codeRepr();
-            if (whitespace.length() > 0) {
-              whitespace = whitespace.subSequence(1, whitespace.length());
-            }
-            msg.append(whitespace);
-            msg.append(txt.replaceAll("\n", ""));
-          }
-
-          default -> throw new UnhandledEntity(t, "translateComment");
-        }
-      }
-      return new IR$Comment$Documentation(msg.toString(), getIdentifiedLocation(where), meta(), diag());
+    var text = buildTextConstant(doc.getElements());
+    return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
   private IR$Name$Literal buildName(Token name) {
