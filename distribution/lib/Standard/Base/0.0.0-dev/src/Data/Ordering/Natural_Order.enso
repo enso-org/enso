@@ -29,7 +29,7 @@ compare text1 text2 case_sensitivity=Case_Sensitivity.Sensitive =
     ## check if a single character is between '0' and '9'
     ascii_code_zero = 48
     ascii_code_nine = 57
-    is_digit=character -> character>=ascii_code_zero && character<=ascii_code_nine
+    is_digit = character -> character>=ascii_code_zero && character<=ascii_code_nine
 
     ## Find the end of a number and then return the substring, value and new
        indices of the bounds of the next character. If the end of the text has
