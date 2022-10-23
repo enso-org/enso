@@ -825,6 +825,13 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testHasDefaultsSuspended() throws Exception {
+    parseTest("""
+    Atom.constructor self = get_atom_constructor self.value ...
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

@@ -681,10 +681,11 @@ final class TreeToIr {
                     diag()
                 );
               } else {
-                var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
+                var hasDefaultsSuspended = new boolean[1];
+                var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature, hasDefaultsSuspended);
                 var prefix = new IR$Application$Prefix(
                     rhs, args,
-                    false,
+                    hasDefaultsSuspended[0],
                     getIdentifiedLocation(tree),
                     meta(),
                     diag()
@@ -794,10 +795,11 @@ final class TreeToIr {
         if (moreArgs.isEmpty()) {
           yield exprId;
         } else {
-          var args = translateCallArguments(moreArgs, nil(), insideTypeSignature);
+          var hasDefaultsSuspended = new boolean[1];
+          var args = translateCallArguments(moreArgs, nil(), insideTypeSignature, hasDefaultsSuspended);
           var prefix = new IR$Application$Prefix(
               exprId, args,
-              false,
+              hasDefaultsSuspended[0],
               getIdentifiedLocation(tree),
               meta(),
               diag()
@@ -1399,9 +1401,15 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private List<IR.CallArgument> translateCallArguments(List<Tree> args, List<IR.CallArgument> res, boolean insideTypeSignature) {
+  private List<IR.CallArgument> translateCallArguments(List<Tree> args, List<IR.CallArgument> res, boolean insideTypeSignature, boolean[] hasDefaultsSuspended) {
     while (args.nonEmpty()) {
-      var argument = translateCallArgument(args.head(), insideTypeSignature);
+      var argument = switch (args.head()) {
+          case Tree.AutoScope auto -> {
+            hasDefaultsSuspended[0] = true;
+            yield null;
+          }
+          case Tree t -> translateCallArgument(t, insideTypeSignature);
+      };
       if (argument != null) {
         res = cons(argument, res);
       }
