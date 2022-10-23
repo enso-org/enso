@@ -522,6 +522,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testProblemHandling2() throws Exception {
+    parseTest("""
+    test_problem_handling action expected_problems result_checker =
+        error_result . should_fail_with first_problem_type frames_to_skip=3
+    """);
+  }
+
+  @Test
   public void testNamedArgument() throws Exception {
     parseTest("""
     fn = get_all frames_to_skip=1

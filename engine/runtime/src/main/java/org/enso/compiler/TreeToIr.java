@@ -657,8 +657,8 @@ final class TreeToIr {
             } else {
               var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
               var lhs = translateExpression(app.getLhs(), insideTypeSignature);
-              if (moreArgs.isEmpty() && rhs instanceof IR$Application$Prefix first && lhs instanceof IR$Application$Prefix pref) {
-                IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), pref, loc, meta(), diag());
+              if (moreArgs.isEmpty() && rhs instanceof IR$Application$Prefix first && (lhs instanceof IR$Application$Prefix || lhs instanceof IR$Name$Literal)) {
+                IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, loc, meta(), diag());
                 var args = cons(callArgument, first.arguments());
                 yield first.copy(
                   first.copy$default$1(),
