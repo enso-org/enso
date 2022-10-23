@@ -828,12 +828,17 @@ final class TreeToIr {
         List<IR.Expression> expressions = nil();
         IR.Expression last = null;
         for (var line : body.getStatements()) {
-          final Tree expr = line.getExpression();
+          var expr = line.getExpression();
           if (expr == null) {
             continue;
           }
           if (last != null) {
             expressions = cons(last, expressions);
+          }
+          if (expr instanceof Tree.Documented doc) {
+              var comment = translateComment(doc, doc.getDocumentation());
+              expressions = cons(comment, expressions);
+              expr = doc.getExpression();
           }
           last = translateExpression(expr, insideTypeSignature);
         }

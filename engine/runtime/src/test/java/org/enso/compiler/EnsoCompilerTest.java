@@ -526,6 +526,9 @@ public class EnsoCompilerTest {
     parseTest("""
     test_problem_handling action expected_problems result_checker =
         error_result . should_fail_with first_problem_type frames_to_skip=3
+        warnings_checker warnings =
+            ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
+            warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
     """);
   }
 
