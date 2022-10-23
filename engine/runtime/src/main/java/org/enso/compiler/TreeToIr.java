@@ -767,7 +767,7 @@ final class TreeToIr {
       }
 
       case Tree.App app -> {
-        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, isMethod);
+        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), false, isMethod);
         yield fn;
       }
       case Tree.NamedApp app -> {
