@@ -1380,7 +1380,12 @@ final class TreeToIr {
       // TODO: Other types of pattern. Needs IR support.
       default -> throw new UnhandledEntity(pattern, "translateArgumentDefinition");
     };
-    var ascribedType = Option.apply(def.getType()).map(ascription -> translateExpression(ascription.getType(), true));
+    var ascribedType = Option.apply(def.getType()).map(ascription -> {
+        return switch (ascription.getType()) {
+            case Tree.Ident id -> buildQualifiedName(id, getIdentifiedLocation(id), true);
+            default -> translateExpression(ascription.getType(), true);
+        };
+    });
     var defaultValue = Option.apply(def.getDefault()).map(default_ -> translateExpression(default_.getExpression(), false));
     return new IR$DefinitionArgument$Specified(
             name,
