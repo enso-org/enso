@@ -21,8 +21,7 @@ Cargo.toml
 /tools/build-performance/ @kazcw @mwu-tow @wdanilo
 
 # Scala Libraries
-/lib/scala/ @4e6
-/lib/scala/interpreter-dsl/ @4e6 @jaroslavtulach
+/lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
 /app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow
@@ -32,16 +31,13 @@ Cargo.toml
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
 /build.sbt @4e6 @jaroslavtulach @hubertp
-/distribution/ @4e6
+/distribution/ @4e6 @jdunkerley @radeusgd
 /engine/ @4e6 @jaroslavtulach @hubertp
 /project/ @4e6 @jaroslavtulach @hubertp
 /test/ @jdunkerley @radeusgd
-/tools/ @4e6
+/tools/ @4e6 @jaroslavtulach @radeusgd
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
 /distribution/lib/ @jdunkerley @radeusgd
 /std-bits/ @jdunkerley @radeusgd
-
-# Engine
-/app/engine/ @4e6
