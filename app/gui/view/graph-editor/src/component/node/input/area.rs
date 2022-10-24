@@ -167,56 +167,6 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
-ensogl::define_endpoints! {
-    Input {
-        /// Set the mode in which the cursor will indicate that editing of the node is possible.
-        set_edit_ready_mode (bool),
-
-        /// Enable or disable node editing.
-        set_edit_mode (bool),
-
-        /// Set or unset hover over the node. Port area is unable to determine hover by itself, as
-        /// the hover may sometimes happen on the node background and the area still needs to be
-        /// notified about it, for example in order to display the right cursor style in edit ready
-        /// mode.
-        set_hover (bool),
-
-        /// Disable the node (aka "skip mode").
-        set_disabled (bool),
-
-        /// Set the connection status of the port indicated by the breadcrumbs. The optional type
-        /// is the type of the edge that was connected or disconnected if the edge was typed.
-        set_connected (Crumbs,Option<Type>,bool),
-
-        /// Set the expression USAGE type. This is not the definition type, which can be set with
-        /// `set_expression` instead. In case the usage type is set to None, ports still may be
-        /// colored if the definition type was present.
-        set_expression_usage_type (Crumbs,Option<Type>),
-
-        /// Enable / disable port hovering. The optional type indicates the type of the active edge
-        /// if any. It is used to highlight ports if they are missing type information or if their
-        /// types are polymorphic.
-        set_ports_active (bool,Option<Type>),
-
-        set_view_mode        (view::Mode),
-        set_profiling_status (profiling::Status),
-    }
-
-    Output {
-        pointer_style       (cursor::Style),
-        width               (f32),
-        expression          (Rope),
-        editing             (bool),
-        ports_visible       (bool),
-        body_hover          (bool),
-        on_port_press       (Crumbs),
-        on_port_hover       (Switch<Crumbs>),
-        on_port_type_change (Crumbs,Option<Type>),
-        on_background_press (),
-        view_mode           (view::Mode),
-    }
-}
-
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
@@ -684,6 +634,62 @@ impl Model {
 fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
     let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp, styles));
     opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection).into())
+}
+
+
+
+// ===========
+// === FRP ===
+// ===========
+
+ensogl::define_endpoints! {
+    Input {
+        /// Set the mode in which the cursor will indicate that editing of the node is possible.
+        set_edit_ready_mode (bool),
+
+        /// Enable or disable node editing.
+        set_edit_mode (bool),
+
+        /// Set or unset hover over the node. Port area is unable to determine hover by itself, as
+        /// the hover may sometimes happen on the node background and the area still needs to be
+        /// notified about it, for example in order to display the right cursor style in edit ready
+        /// mode.
+        set_hover (bool),
+
+        /// Disable the node (aka "skip mode").
+        set_disabled (bool),
+
+        /// Set the connection status of the port indicated by the breadcrumbs. The optional type
+        /// is the type of the edge that was connected or disconnected if the edge was typed.
+        set_connected (Crumbs,Option<Type>,bool),
+
+        /// Set the expression USAGE type. This is not the definition type, which can be set with
+        /// `set_expression` instead. In case the usage type is set to None, ports still may be
+        /// colored if the definition type was present.
+        set_expression_usage_type (Crumbs,Option<Type>),
+
+        /// Enable / disable port hovering. The optional type indicates the type of the active edge
+        /// if any. It is used to highlight ports if they are missing type information or if their
+        /// types are polymorphic.
+        set_ports_active (bool,Option<Type>),
+
+        set_view_mode        (view::Mode),
+        set_profiling_status (profiling::Status),
+    }
+
+    Output {
+        pointer_style       (cursor::Style),
+        width               (f32),
+        expression          (Rope),
+        editing             (bool),
+        ports_visible       (bool),
+        body_hover          (bool),
+        on_port_press       (Crumbs),
+        on_port_hover       (Switch<Crumbs>),
+        on_port_type_change (Crumbs,Option<Type>),
+        on_background_press (),
+        view_mode           (view::Mode),
+    }
 }
 
 
