@@ -63,6 +63,6 @@ type Excel_Format
         format = should_treat_as_xls_format self.xls_format file
 
         case self.section of
-            Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
-            Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
+            Sheet_Names -> Error.throw (Illegal_Argument_Error_Data "Sheet_Names cannot be used for `write`.")
+            Range_Names -> Error.throw (Illegal_Argument_Error_Data "Range_Names cannot be used for `write`.")
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format

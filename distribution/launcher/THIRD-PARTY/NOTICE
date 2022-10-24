@@ -77,27 +77,27 @@ Copyright notices related to this dependency can be found in the directory `comm
 
 
 'circe-core_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.2`.
 
 
 'circe-generic_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-generic_2.13-0.14.2`.
 
 
 'circe-jawn_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-jawn_2.13-0.14.2`.
 
 
 'circe-numbers_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.2`.
 
 
 'circe-parser_2.13', licensed under the Apache 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.2`.
 
 

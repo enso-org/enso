@@ -256,6 +256,19 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
+            new UnaryMapOperation<>(Maps.IS_NAN) {
+              @Override
+              public BoolStorage run(DoubleStorage storage) {
+                BitSet nans = new BitSet();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && Double.isNaN(storage.getItem(i))) {
+                    nans.set(i);
+                  }
+                }
+                return new BoolStorage(nans, new BitSet(), storage.size, false);
+              }
+            })
+        .add(
             SpecializedIsInOp.make(
                 list -> {
                   HashSet<Double> set = new HashSet<>();

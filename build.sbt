@@ -7,8 +7,11 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -664,30 +667,37 @@ lazy val `text-buffer` = project
     )
   )
 
-val generateRustParserLib = TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
+val generateRustParserLib =
+  TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
-    import sys.process._
-    val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
-    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
-    if (sys.env.get("CI").isDefined ||
-        allLibs.isEmpty ||
-        (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
-      Seq("cargo", "build", "-p", "enso-parser-jni") !
-    }
-    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
+  import sys.process._
+  val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
+  val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+  if (
+    sys.env.get("CI").isDefined ||
+    allLibs.isEmpty ||
+    (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
+  ) {
+    Seq("cargo", "build", "-p", "enso-parser-jni") !
+  }
+  FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
 
-val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+val generateParserJavaSources = TaskKey[Seq[File]](
+  "generateParserJavaSources",
+  "Generates Java sources for Rust parser"
+)
 `syntax-rust-definition` / generateParserJavaSources := {
   generateRustParser(
     (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges
+  )
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
   (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
@@ -697,12 +707,20 @@ def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
 
   import sys.process._
   val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
-  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
   if (changes.hasChanges) {
-    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+    Seq(
+      "cargo",
+      "run",
+      "-p",
+      "enso-parser-generate-java",
+      "--bin",
+      "enso-parser-generate-java",
+      fullPkg.toString
+    ) !
   }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
@@ -714,7 +732,7 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    frgaalJavaCompilerSetting,
+    frgaalJavaCompilerSetting
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -1192,7 +1210,7 @@ lazy val parser = (project in file("lib/scala/parser"))
       s"-Djava.library.path=$root/target/rust/debug"
     },
     libraryDependencies ++= Seq(
-      "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
+      "org.scalatest" %%% "scalatest" % scalatestVersion % Test
     ),
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
@@ -1543,18 +1561,18 @@ lazy val `engine-runner` = project
 lazy val `engine-runner-native` = project
   .in(file("engine/runner-native"))
   .settings(
-    assembly/assemblyExcludedJars := {
+    assembly / assemblyExcludedJars := {
       val cp = (assembly / fullClasspath).value
-      (assembly/assemblyExcludedJars).value ++
-          cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
+      (assembly / assemblyExcludedJars).value ++
+      cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
     },
     assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
     assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
     assembly / assemblyJarName := "runner-native.jar",
     assembly / assemblyOutputPath := file("runner-native.jar"),
     assembly := assembly
-        .dependsOn(`engine-runner` / assembly)
-        .value,
+      .dependsOn(`engine-runner` / assembly)
+      .value,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
@@ -1571,7 +1589,7 @@ lazy val `engine-runner-native` = project
           "-Dnic=nic"
         ),
         mainClass = Option("org.enso.runner.Main"),
-        cp = Option("runtime.jar"),
+        cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
@@ -1856,8 +1874,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "com.ibm.icu"         % "icu4j"                   % icuVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1880,11 +1899,11 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"             % icuVersion   % "provided",
-      "com.univocity"       % "univocity-parsers" % "2.9.1",
-      "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
-      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.univocity"       % "univocity-parsers"       % "2.9.1",
+      "org.apache.poi"      % "poi-ooxml"               % "5.2.2",
+      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2039,7 +2058,8 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
-val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table", "All")
+val stdBitsProjects =
+  List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2081,10 +2101,14 @@ pkgStdLibInternal := Def.inputTask {
       (`std-google-api` / Compile / packageBin).value
     case _ =>
   }
-  val libs = if (cmd != "All") Seq(cmd) else {
-    val prefix = "Standard."
-    Editions.standardLibraries.filter(_.startsWith(prefix)).map(_.stripPrefix(prefix))
-  }
+  val libs =
+    if (cmd != "All") Seq(cmd)
+    else {
+      val prefix = "Standard."
+      Editions.standardLibraries
+        .filter(_.startsWith(prefix))
+        .map(_.stripPrefix(prefix))
+    }
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,

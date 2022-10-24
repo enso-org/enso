@@ -16,6 +16,7 @@ use enso_metamodel::java::bincode::MaterializerInput;
 //  generated fields in Java classes by starting from a `str -> rust::FieldId` query on Rust
 //  type data, and mapping fields analogously to `rust_to_java` for types.
 const CODE_GETTER: &str = "codeRepr";
+const WHITESPACE_GETTER: &str = "getWhitespace";
 const TREE_BEGIN: &str = "fieldSpanLeftOffsetCodeReprBegin";
 const TREE_LEN: &str = "fieldSpanLeftOffsetCodeReprLen";
 
@@ -24,7 +25,9 @@ pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     let source = "source";
     impl_deserialize(graph, tree, token, source);
     graph[token].methods.push(impl_getter(CODE_GETTER));
+    graph[token].methods.push(impl_whitespace_getter(WHITESPACE_GETTER));
     graph[tree].methods.push(impl_getter(CODE_GETTER));
+    graph[tree].methods.push(impl_whitespace_getter(WHITESPACE_GETTER));
 }
 
 
@@ -169,5 +172,11 @@ fn impl_getter(name: &str) -> Method {
     let mut method = syntax::Method::new(name, syntax::Type::named("String"));
     method.body =
         "return source.subSequence((int)startCode, (int)endCode).toString();\n".to_string();
+    Method::Raw(method)
+}
+
+fn impl_whitespace_getter(name: &str) -> Method {
+    let mut method = syntax::Method::new(name, syntax::Type::named("CharSequence"));
+    method.body = "return source.subSequence((int)startWhitespace, (int)startCode);\n".to_string();
     Method::Raw(method)
 }
