@@ -145,15 +145,16 @@ spec_with name create_new_date parse_date =
             (create_new_date 100 1 2).day    . should_equal 2
 
         Test.specify "Gregorian calendar related functionality should fail before epoch start" <|
-            handler err = err . should_equal Time_Error.enso_epoch_start
+            expect_warning value =
+                ((Warning.get_all value).length > 0) . should_be_true
             dates_before_epoch = [(create_new_date 100), (create_new_date 500 6 3)]
             dates_before_epoch.each date->
-                Panic.catch Time_Error_Data date.week_of_year handler
-                Panic.catch Time_Error_Data date.is_leap_year handler
-                Panic.catch Time_Error_Data date.day_of_week handler
-                Panic.catch Time_Error_Data date.length_of_month handler
-                Panic.catch Time_Error_Data date.length_of_year handler
-                Panic.catch Time_Error_Data date.week_of_year handler
+                expect_warning date.week_of_year
+                expect_warning date.is_leap_year
+                expect_warning date.day_of_week
+                expect_warning date.length_of_month
+                expect_warning date.length_of_year
+                expect_warning date.week_of_year
 
         Test.specify "should correctly determine the type of date" <|
             new_date = create_new_date 2020 6 1

@@ -174,6 +174,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should get Enso epoch seconds" <|
             (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_seconds . should_equal 8
             (Date_Time.enso_epoch_start + (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal (2 * 60)
+            (Date_Time.enso_epoch_start - (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal -(2 * 60)
 
         Test.specify "should get Enso epoch millis" <|
             (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_milliseconds . should_equal 8000
@@ -324,16 +325,19 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1.compare_to date . should_fail_with Type_Error_Data
             time_1==date . should_be_false
 
-        Test.specify "simple computations can underflow Enso epoch start" <|
-            handler _ = Test.fail "Unexpected: should not throw an error"
+        Test.specify "simple computations before Enso epoch should produce a warning" <|
+            expect_value_with_warning actual_value expected_value=Nothing =
+                if expected_value != Nothing then actual_value . should_equal expected_value
+                (((Warning.get_all actual_value).length) > 0) . should_be_true
 
-            Panic.catch Time_Error_Data (create_new_datetime 100) handler
-            Panic.catch Time_Error_Data (Date_Time.enso_epoch_start - (Duration.new hours=15)) handler
-            Panic.catch Time_Error_Data (Date_Time.enso_epoch_start - (Duration.new minutes=1)) handler
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new hours=3)) (create_new_datetime 1582 10 14 21 (zone = Time_Zone.utc))
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new minutes=1)) (create_new_datetime 1582 10 14 23 59 (zone = Time_Zone.utc))
 
-            enso_epoch_start = create_new_datetime Date_Time.enso_epoch_start.year Date_Time.enso_epoch_start.month Date_Time.enso_epoch_start.day Date_Time.enso_epoch_start.hour Date_Time.enso_epoch_start.minute Date_Time.enso_epoch_start.second Date_Time.enso_epoch_start.nanosecond (Time_Zone.parse "UTC")
-            Panic.catch Time_Error_Data (enso_epoch_start - (Duration.new hours=15)) handler
-            Panic.catch Time_Error_Data (enso_epoch_start - (Duration.new minutes=1)) handler
+            expect_value_with_warning (create_new_datetime 100).week_of_year
+            expect_value_with_warning (create_new_datetime 100).is_leap_year
+            expect_value_with_warning (create_new_datetime 100).length_of_year
+            expect_value_with_warning (create_new_datetime 100 4).length_of_month
+            expect_value_with_warning (create_new_datetime 100 4 15).day_of_week
 
         Test.specify "should create datetime before epoch start" <|
             (create_new_datetime 100 1 2 3 4).year   . should_equal 100
@@ -341,16 +345,6 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             (create_new_datetime 100 1 2 3 4).day    . should_equal 2
             (create_new_datetime 100 1 2 3 4).hour   . should_equal 3
             (create_new_datetime 100 1 2 3 4).minute . should_equal 4
-
-        Test.specify "Gregorian calendar related functionality should fail before epoch start" <|
-            handler err = err . should_equal (Time_Error.enso_epoch_start)
-            datetimes_before_epoch = [(create_new_datetime 100), (create_new_datetime 500 6)]
-            datetimes_before_epoch.each datetime->
-                Panic.catch Time_Error_Data datetime.to_enso_epoch_seconds handler
-                Panic.catch Time_Error_Data datetime.to_enso_epoch_milliseconds handler
-                Panic.catch Time_Error_Data datetime.day_of_week handler
-                Panic.catch Time_Error_Data datetime.length_of_month handler
-                Panic.catch Time_Error_Data datetime.week_of_year handler
 
         Test.specify "should correctly determine the type of datetime" <|
             new_datetime = create_new_datetime 2020 6 1 10 0 0
