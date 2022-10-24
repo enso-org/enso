@@ -312,8 +312,7 @@ type Date
     + self period =
         case period of
             _ : Period.Period ->
-                new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-                new new_java_date.year new_java_date.month new_java_date.day
+                Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
             _ : Duration.Duration ->
                 Error.throw (Time_Error_Data "Date does not support time intervals")
             _ ->

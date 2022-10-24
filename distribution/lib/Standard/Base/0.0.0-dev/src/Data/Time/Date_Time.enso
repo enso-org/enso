@@ -396,10 +396,7 @@ type Date_Time
             duration : Duration.Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
             period : Period.Period ->
-                datetime = Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-                # We cannot return datetime directly here, as it is of type java.time.ZonedDateTime.
-                # But we can invoke `EnsoDate` methods on it.
-                new datetime.year datetime.month datetime.day datetime.hour datetime.minute datetime.second datetime.nanosecond datetime.zone
+                Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
 
     ## Shift the date by the specified amount of business days.
 
@@ -459,10 +456,7 @@ type Date_Time
             duration : Duration.Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
             period : Period.Period ->
-                datetime = Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
-                # We cannot return datetime directly here, as it is of type java.time.ZonedDateTime.
-                # But we can invoke `EnsoDate` methods on it.
-                new datetime.year datetime.month datetime.day datetime.hour datetime.minute datetime.second datetime.nanosecond datetime.zone
+                Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
 
     ## Convert this time to text using the default formatter.
 
