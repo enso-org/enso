@@ -69,7 +69,7 @@
 - [Remove here keyword from IDE.][3749]
 - [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
-- [Scrollbar LMB click and hold scrolling][3824]
+- [Pressing and holding the mouse on the scrollbar background will repeat a scrolling event.][3824]
 
 #### EnsoGL (rendering engine)
 

@@ -23,7 +23,7 @@ pub trait EventCallback = FnMut(&enso_web::Event) + 'static;
 /// Keyboard event listener which calls the callback function as long it lives.
 #[derive(Debug)]
 pub struct Listener {
-    // keep handle around, it will unregister the event listener when dropped
+    // The event listener will be removed when handle is dropped.
     _handle: web::EventListenerHandle,
 }
 
