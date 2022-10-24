@@ -130,10 +130,10 @@ impl Processor {
         // };
         let absolute_repo_path = cli.repo_path.absolutize()?;
         let octocrab = setup_octocrab().await?;
+        let remote_repo = cli.repo_remote.handle(&octocrab);
         let versions = enso_build::version::deduce_versions(
-            &octocrab,
+            Ok(&remote_repo),
             cli.build_kind,
-            Ok(&cli.repo_remote),
             &absolute_repo_path,
         )
         .await?;

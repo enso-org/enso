@@ -25,24 +25,28 @@ define_env_var! {
 
 pub const LOCAL_BUILD_PREFIX: &str = "dev";
 pub const NIGHTLY_BUILD_PREFIX: &str = "nightly";
+pub const RC_BUILD_PREFIX: &str = "rv";
 
-pub fn default_dev_version() -> Version {
-    let mut ret = Version::new(0, 0, 0);
-    ret.pre = Prerelease::new(LOCAL_BUILD_PREFIX).unwrap();
-    ret
-}
+/// Get tje "default" development version.
+///
+/// Like: `0.0.0-dev`.
+// pub fn default_dev_version() -> Version {
+//     let mut ret = Version::new(0, 0, 0);
+//     ret.pre = Prerelease::new(LOCAL_BUILD_PREFIX).unwrap();
+//     ret
+// }
 
 pub fn is_nightly_release(release: &Release) -> bool {
     !release.draft && release.tag_name.contains(NIGHTLY_BUILD_PREFIX)
 }
 
 pub async fn nightly_releases(
-    repo: github::repo::Handle<impl IsRepo>,
+    repo: &github::repo::Handle<impl IsRepo>,
 ) -> Result<impl Iterator<Item = Release>> {
     Ok(repo.all_releases().await?.into_iter().filter(is_nightly_release))
 }
 
-pub async fn latest_nightly_release(repo: github::repo::Handle<impl IsRepo>) -> Result<Release> {
+pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) -> Result<Release> {
     // TODO: this assumes that releases are returned in date order, to be confirmed
     //       (but having to download all the pages to see which is latest wouldn't be nice)
     nightly_releases(repo).await?.next().context("Failed to find any nightly releases.")
@@ -56,12 +60,6 @@ pub struct Versions {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub version:      Version,
     pub release_mode: bool,
-}
-
-impl Default for Versions {
-    fn default() -> Self {
-        Versions { version: default_dev_version(), release_mode: false }
-    }
 }
 
 impl Versions {
@@ -83,7 +81,9 @@ impl Versions {
         Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
     }
 
-    pub async fn nightly_prerelease(repo: github::repo::Handle<impl IsRepo>) -> Result<Prerelease> {
+    pub async fn nightly_prerelease(
+        repo: &github::repo::Handle<impl IsRepo>,
+    ) -> Result<Prerelease> {
         let date = chrono::Utc::now();
         let date = date.format("%F").to_string();
 
@@ -204,7 +204,7 @@ pub fn versions_from_env(expected_build_kind: Option<BuildKind>) -> Result<Optio
 
 #[instrument(skip_all, ret)]
 pub async fn deduce_versions(
-    repo: Result<github::repo::Handle<impl IsRepo>>,
+    repo: Result<&github::repo::Handle<impl IsRepo>>,
     build_kind: BuildKind,
     root_path: impl AsRef<Path>,
 ) -> Result<Versions> {
@@ -253,6 +253,8 @@ mod tests {
 pub enum BuildKind {
     Dev,
     Nightly,
+    // Rc,
+    // Stable,
 }
 
 impl BuildKind {

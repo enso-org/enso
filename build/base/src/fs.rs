@@ -199,18 +199,3 @@ pub fn copy_file_if_different(source: impl AsRef<Path>, target: impl AsRef<Path>
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::log::setup_logging;
-    use ::tokio;
-
-    #[tokio::test]
-    #[ignore]
-    async fn copy_if_different_test() -> Result {
-        setup_logging()?;
-        copy_if_different("../../..", r"C:\temp\out").await?;
-        Ok(())
-    }
-}

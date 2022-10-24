@@ -81,6 +81,10 @@ pub mod env {
         /// The app-specific password (not Apple ID password). See:
         /// https://support.apple.com/HT204397
         APPLEIDPASS, String;
+
+        /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
+        /// appropriate identity from your keychain will be automatically used.
+        CSC_IDENTITY_AUTO_DISCOVERY, bool;
     }
 }
 

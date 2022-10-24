@@ -19,7 +19,7 @@ use reqwest::Response;
 
 
 
-/// Data denoting a specific GitHub repository.
+/// Owned data denoting a specific GitHub repository.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
 #[display(fmt = "{}/{}", owner, name)]
 pub struct Repo {
@@ -60,7 +60,9 @@ impl Repo {
 }
 
 
-/// Non-owning reference to a GitHub repository.
+/// Non-owning equivalent of `Repo`.
+///
+/// Particularly useful for defining `const` repositories.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
 #[display(fmt = "{}/{}", owner, name)]
 pub struct RepoRef<'a> {
@@ -96,7 +98,7 @@ impl<'a> RepoRef<'a> {
     }
 }
 
-/// Entity that uniquely identifies a GitHub-hosted repository.
+/// Any entity that uniquely identifies a GitHub-hosted repository.
 #[async_trait]
 pub trait IsRepo: Display {
     fn owner(&self) -> &str;
@@ -115,6 +117,9 @@ pub trait IsRepo: Display {
     }
 }
 
+/// A handle to a specific GitHub repository.
+///
+/// It includes a client (so also an authentication token) and a repository.
 #[derive(Debug, Clone)]
 pub struct Handle<Repo> {
     pub octocrab: Octocrab,

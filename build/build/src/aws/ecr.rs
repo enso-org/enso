@@ -27,6 +27,7 @@ pub async fn resolve_repository(
         .with_context(|| format!("Cannot find repository {repository_name} in the registry."))
 }
 
+/// Generate an authentication token for the repository.
 #[instrument(skip(client), err)]
 pub async fn get_credentials(client: &aws_sdk_ecr::Client) -> Result<docker::Credentials> {
     let token = client.get_authorization_token().send().await?;

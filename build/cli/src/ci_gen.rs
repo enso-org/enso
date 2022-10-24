@@ -71,7 +71,6 @@ pub mod secret {
     pub const APPLE_NOTARIZATION_USERNAME: &str = "APPLE_NOTARIZATION_USERNAME";
     pub const APPLE_NOTARIZATION_PASSWORD: &str = "APPLE_NOTARIZATION_PASSWORD";
 
-
     // === Windows Code Signing ===
     /// Name of the GitHub Actions secret that stores path to the Windows code signing certificate
     /// within the runner.
@@ -80,6 +79,10 @@ pub mod secret {
     /// Name of the GitHub Actions secret that stores password to the Windows code signing
     /// certificate.
     pub const WINDOWS_CERT_PASSWORD: &str = "MICROSOFT_CODE_SIGNING_CERT_PASSWORD";
+
+    // === Github Token ===
+    /// A token created for the `enso-ci` user.
+    pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
 

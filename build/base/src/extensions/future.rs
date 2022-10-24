@@ -8,14 +8,11 @@ use futures_util::stream;
 use futures_util::FutureExt as _;
 use futures_util::TryFutureExt as _;
 
-
-
-fn void<T>(_t: T) {}
-
 pub trait FutureExt: Future {
+    /// Discard the result of this future.
     fn void(self) -> Map<Self, fn(Self::Output) -> ()>
     where Self: Sized {
-        self.map(void)
+        self.map(drop)
     }
 }
 
@@ -25,9 +22,10 @@ type FlattenResultFn<T, E> =
     fn(std::result::Result<std::result::Result<T, E>, E>) -> std::result::Result<T, E>;
 
 pub trait TryFutureExt: TryFuture {
+    /// Discard the result of successful future.
     fn void_ok(self) -> MapOk<Self, fn(Self::Ok) -> ()>
     where Self: Sized {
-        self.map_ok(void)
+        self.map_ok(drop)
     }
 
     fn context(

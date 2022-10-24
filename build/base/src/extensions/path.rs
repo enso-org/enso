@@ -3,7 +3,7 @@ use crate::prelude::*;
 use serde::de::DeserializeOwned;
 
 
-
+/// A number of extensions for `Path`-like types.
 pub trait PathExt: AsRef<Path> {
     /// Append multiple segments to this path.
     fn join_iter<P: AsRef<Path>>(&self, segments: impl IntoIterator<Item = P>) -> PathBuf {
@@ -70,8 +70,12 @@ pub trait PathExt: AsRef<Path> {
         serde_yaml::to_writer(file, value).anyhow_err()
     }
 
+    /// Get the path as `str`.
+    ///
+    /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
+    /// something that we want to spend time on supporting right now.
     fn as_str(&self) -> &str {
-        self.as_ref().to_str().unwrap()
+        self.as_ref().to_str().expect(&format!("Path is not valid UTF-8: {:?}", self.as_ref()))
     }
 
     /// Split path to components and collect them into a new PathBuf.
@@ -86,6 +90,37 @@ pub trait PathExt: AsRef<Path> {
         self.as_ref()
             .parent()
             .with_context(|| format!("Failed to get parent of path `{}`.", self.as_ref().display()))
+    }
+
+    /// Like `file_name` but provides a sensible error message if the path has no file name.
+    fn try_file_name(&self) -> Result<&OsStr> {
+        self.as_ref().file_name().with_context(|| {
+            format!("Failed to get file name of path `{}`.", self.as_ref().display())
+        })
+    }
+
+    /// Like `file_stem` but provides a sensible error message if the path has no file stem.
+    fn try_file_stem(&self) -> Result<&OsStr> {
+        self.as_ref().file_stem().with_context(|| {
+            format!("Failed to get file stem of path `{}`.", self.as_ref().display())
+        })
+    }
+
+    /// Like `extension` but provides a sensible error message if the path has no extension.
+    /// Note that this method fails for paths like `foo.`.
+    fn try_extension(&self) -> Result<&OsStr> {
+        self.as_ref().extension().with_context(|| {
+            format!("Failed to get extension of path `{}`.", self.as_ref().display())
+        })
+    }
+
+    /// Takes filename and splits it into file stem and extension.
+    ///
+    /// Fails if the path's filename has no extension.
+    fn split_filename(&self) -> Result<SplitFilename> {
+        let stem = self.try_file_stem()?;
+        let extension = self.try_extension()?;
+        Ok(SplitFilename { stem, extension })
     }
 
     /// Returns the path with replaced parent. The filename is kept intact.
@@ -104,6 +139,16 @@ pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
     std::fmt::Display::fmt(&path.display(), f)
 }
 
+
+/// A result of splitting a path into its filename components.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SplitFilename<'a> {
+    /// The file stem.
+    pub stem:      &'a OsStr,
+    /// The file extension.
+    pub extension: &'a OsStr,
+}
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
@@ -115,5 +160,18 @@ mod tests {
         let path_without_unc = Path::new(r"H:\NBO\ci-build\target\debug\enso-build2.exe");
         assert_eq!(path_with_unc.without_verbatim_prefix(), path_without_unc);
         assert_eq!(path_without_unc.without_verbatim_prefix(), path_without_unc);
+    }
+
+    #[test]
+    /// This test just makes sure that usage of as_str correctly compiles without lifetime issues.
+    /// (there were such before)
+    fn foo() {
+        fn bar(path: impl AsRef<Path>) {
+            path.as_str();
+            path.as_ref().as_str();
+        }
+
+        bar("");
+        bar(String::from(""));
     }
 }

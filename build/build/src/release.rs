@@ -21,10 +21,6 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
-
-
-const BUCKET_FOR_GUI: &str = "ensocdn";
-
 pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
     Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
@@ -181,13 +177,7 @@ pub async fn upload_gui_to_cloud(
     assets: &crate::paths::generated::RepoRootDistGuiAssets,
     version: &Version,
 ) -> Result {
-    let path = format!("ide/{version}");
-    let bucket = crate::aws::s3::BucketContext {
-        bucket:     BUCKET_FOR_GUI.into(),
-        upload_acl: aws_sdk_s3::model::ObjectCannedAcl::PublicRead,
-        client:     crate::aws::s3::client_from_env().await,
-        key_prefix: path,
-    };
+    let bucket = crate::aws::s3::gui::context(version).await?;
 
     // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
     let files_to_upload = [assets.ide_wasm.as_path(), assets.style_css.as_path()];

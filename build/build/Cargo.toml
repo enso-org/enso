@@ -32,14 +32,15 @@ glob = "0.3.0"
 #handlebars = "4.2.1"
 heck = "0.4.0"
 humantime = "2.1.0"
+enso-build-base = { path = "../base" }
 ide-ci = { path = "../ci_utils" }
 indexmap = "1.7.0"
 indicatif = "0.17.1"
 itertools = "0.10.1"
 lazy_static = "1.4.0"
 #git2 = "0.13.25"
-log = "0.4.14"
 mime = "0.3.16"
+new_mime_guess = "4.0.1"
 nix = { workspace = true }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls"
@@ -47,6 +48,7 @@ octocrab = { git = "https://github.com/enso-org/octocrab", default-features = fa
 ouroboros = "0.15.0"
 paste = "1.0.7"
 path-absolutize = "3.0.11"
+path-slash = "0.2.1"
 platforms = { version = "3.0.0", features = ["serde"] }
 pin-project = "1.0.8"
 port_check = "0.1.5"

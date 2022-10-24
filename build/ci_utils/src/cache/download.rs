@@ -10,6 +10,7 @@ use crate::io::web::stream_response_to_file;
 use derivative::Derivative;
 use headers::HeaderMap;
 use reqwest::Client;
+use reqwest::ClientBuilder;
 use reqwest::IntoUrl;
 use reqwest::Response;
 
@@ -37,7 +38,7 @@ impl DownloadFile {
     pub fn new(url: impl IntoUrl) -> Result<Self> {
         Ok(Self {
             key:    Key { url: url.into_url()?, additional_headers: default() },
-            client: default(),
+            client: ClientBuilder::new().user_agent("enso-build").build()?,
         })
     }
 
@@ -92,4 +93,9 @@ impl Storable for DownloadFile {
     fn key(&self) -> Self::Key {
         self.key.clone()
     }
+}
+
+pub async fn download(cache: Cache, url: impl IntoUrl) -> Result<PathBuf> {
+    let download = DownloadFile::new(url)?;
+    cache.get(download).await
 }

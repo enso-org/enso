@@ -52,7 +52,7 @@ impl BuildContext {
             } else {
                 match designator.as_str() {
                     "latest" => repository.latest_release().await?,
-                    "nightly" => crate::version::latest_nightly_release(repository).await?,
+                    "nightly" => crate::version::latest_nightly_release(&repository).await?,
                     tag => repository.find_release_by_text(tag).await?,
                 }
             };
