@@ -1469,7 +1469,7 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should correctly handle errors" <|
             table.rows.at 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
-            err = table.rows -6
+            err = table.rows.at -6
             err.should_fail_with Index_Out_Of_Bounds_Error_Data
             err.catch . should_equal (Index_Out_Of_Bounds_Error_Data -6 4)
 

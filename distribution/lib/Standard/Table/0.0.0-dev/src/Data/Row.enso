@@ -13,7 +13,7 @@ type Row
 
     ## Gets the value of the specified column.
     at : (Integer | Text) -> Any
-    at self column = self.table.columns.at column . at self.index
+    at self column = self.table.at column . at self.index
 
     ## Gets the row as a Vector.
     to_vector : Vector
