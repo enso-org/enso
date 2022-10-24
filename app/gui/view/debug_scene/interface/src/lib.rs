@@ -320,7 +320,13 @@ pub fn expression_mock_string(label: &str) -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
-    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
+    Expression {
+        pattern,
+        code: code.into(),
+        whole_expression_id,
+        input_span_tree,
+        output_span_tree,
+    }
 }
 
 pub fn expression_mock() -> Expression {
@@ -336,7 +342,13 @@ pub fn expression_mock() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
-    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
+    Expression {
+        pattern,
+        code: code.into(),
+        whole_expression_id,
+        input_span_tree,
+        output_span_tree,
+    }
 }
 
 // TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
@@ -345,7 +357,7 @@ pub fn expression_mock2() -> Expression {
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];
     let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };
     let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
-    let code = "make_maps size (distribution normal)".into();
+    let code = "make_maps size (distribution normal)".to_string();
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::builder::TreeBuilder::new(36)
         .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
@@ -376,7 +388,13 @@ pub fn expression_mock2() -> Expression {
         .add_empty_child(36, span_tree::node::InsertionPointType::Append)
         .build();
     let whole_expression_id = default();
-    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
+    Expression {
+        pattern,
+        code: code.into(),
+        whole_expression_id,
+        input_span_tree,
+        output_span_tree,
+    }
 }
 
 pub fn expression_mock3() -> Expression {
@@ -407,5 +425,11 @@ pub fn expression_mock3() -> Expression {
     let output_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap(); //span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
-    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
+    Expression {
+        pattern,
+        code: code.into(),
+        whole_expression_id,
+        input_span_tree,
+        output_span_tree,
+    }
 }

@@ -143,7 +143,7 @@ impl Model {
 
     /// Node expression was edited in the view. Should be called whenever the user changes the
     /// contents of a node during editing.
-    fn node_expression_set(&self, id: ViewNodeId, expression: String) {
+    fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
         self.state.update_from_view().set_node_expression(id, expression);
     }
 

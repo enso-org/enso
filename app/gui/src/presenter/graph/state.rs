@@ -437,7 +437,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let new_displayed_expr = node_view::Expression {
             pattern:             node.info.pattern().map(|t| t.repr()),
-            code:                node.info.expression().repr(),
+            code:                ImString::new(node.info.expression().repr()),
             whole_expression_id: node.info.expression().id,
             input_span_tree:     trees.inputs,
             output_span_tree:    trees.outputs.unwrap_or_else(default),
@@ -659,7 +659,7 @@ impl<'a> ViewChange<'a> {
     }
 
     /// Set the node expression.
-    pub fn set_node_expression(&self, id: ViewNodeId, expression: String) -> Option<()> {
+    pub fn set_node_expression(&self, id: ViewNodeId, expression: ImString) -> Option<()> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
@@ -785,9 +785,9 @@ mod tests {
         assert_eq!(state.view_id_of_ast_node(node2.id()), None);
 
         let assigned = state.assign_node_view(node_view_2);
-        assert_eq!(assigned.map(|node| node.expression.code), Some("node1 + 2".to_owned()));
+        assert_eq!(assigned.as_ref().map(|node| node.expression.code.as_str()), Some("node1 + 2"));
         let assigned = state.assign_node_view(node_view_1);
-        assert_eq!(assigned.map(|node| node.expression.code), Some("2 + 2".to_owned()));
+        assert_eq!(assigned.as_ref().map(|node| node.expression.code.as_str()), Some("2 + 2"));
 
         assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
         assert_eq!(state.view_id_of_ast_node(node2.id()), Some(node_view_2));
@@ -878,7 +878,7 @@ mod tests {
         let view = nodes[0].view;
         let expected_new_expression = view::graph_editor::component::node::Expression {
             pattern:             None,
-            code:                "foo baz".to_string(),
+            code:                ImString::new("foo baz"),
             whole_expression_id: Some(node_id),
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),

@@ -15,7 +15,6 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
-use enso_text::text::Rope;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -78,8 +77,8 @@ pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
 pub struct Expression {
     /// Visual code representation. It can contain names of missing arguments, and thus can differ
     /// from `code`.
-    pub viz_code:  String,
-    pub code:      String,
+    pub viz_code:  ImString,
+    pub code:      ImString,
     pub span_tree: SpanTree,
 }
 
@@ -157,7 +156,7 @@ impl From<node::Expression> for Expression {
             port.length = size.into();
             ExprConversion::new(index)
         });
-        Self { viz_code, code, span_tree }
+        Self { viz_code: viz_code.into(), code, span_tree }
     }
 }
 
@@ -689,7 +688,7 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
-        expression          (Rope),
+        expression          (ImString),
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
@@ -804,7 +803,7 @@ impl Area {
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
-            frp.output.source.expression <+ expression.map(|e| ImString::new(&e.code));
+            frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&edit_mode);
             frp.output.source.expression <+ expression_changed_by_user.map(|e| ImString::new(e));
 
