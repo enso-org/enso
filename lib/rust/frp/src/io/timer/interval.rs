@@ -9,6 +9,10 @@ use enso_web::window;
 use enso_web::Closure;
 
 
+// ================
+// === Interval ===
+// ================
+
 /// Closure type alias for use in `setInterval` call.
 type TimerClosure = Closure<dyn FnMut()>;
 

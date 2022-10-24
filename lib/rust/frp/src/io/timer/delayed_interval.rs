@@ -6,6 +6,11 @@ use crate as frp;
 use frp::io::timer::Interval;
 use frp::io::timer::Timeout;
 
+
+// =======================
+// === DelayedInterval ===
+// =======================
+
 /// Periodic timer with additional initial delay.
 ///
 /// The timer will generate `on_trigger` events over time, as long as it is active.
@@ -18,7 +23,7 @@ use frp::io::timer::Timeout;
 ///
 /// in `set_active`:  T----------F----T------T---------F------F-----
 /// out `on_trigger`: ----x-x-x-x---------x-x-----x-x-x-------------
-/// 
+///
 /// The timer is based on `setTimeout` and `setInterval` browser APIs. That means there is no
 /// guarantee about when exactly the events will be emitted. In practice, the initial delay might be
 /// slightly longer and there might be some jitter in periodic triggers. This effect will be more

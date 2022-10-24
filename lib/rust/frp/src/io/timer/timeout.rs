@@ -8,9 +8,13 @@ use crate as frp;
 use enso_web::window;
 use enso_web::Closure;
 
+
+// ================
+// === Timeout ===
+// ================
+
 /// Closure type alias for use in `setTimeout` call.
 type TimerClosure = Closure<dyn FnMut()>;
-
 
 /// One-shot timer.
 ///
