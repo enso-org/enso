@@ -616,7 +616,12 @@ impl Model {
     }
 
     #[profile(Debug)]
-    fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
+    fn set_expression(
+        &self,
+        new_expression: impl Into<node::Expression>,
+        is_editing: bool,
+        area_frp: &FrpEndpoints,
+    ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
             DEBUG!("\n\n=====================\nSET EXPR: " new_expression.code)
@@ -624,10 +629,11 @@ impl Model {
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);
         self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
-        self.init_new_expression(new_expression);
-        if area_frp.editing.value() {
+        self.init_new_expression(new_expression.clone());
+        if is_editing {
             self.label.set_cursor_at_text_end();
         }
+        new_expression
     }
 }
 
@@ -644,6 +650,9 @@ fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
 
 ensogl::define_endpoints! {
     Input {
+        /// Set the node expression.
+        set_expression (node::Expression),
+
         /// Set the mode in which the cursor will indicate that editing of the node is possible.
         set_edit_ready_mode (bool),
 
@@ -785,7 +794,19 @@ impl Area {
 
             width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
             frp.output.source.width      <+ width;
-            frp.output.source.expression <+ model.label.content.gate(&edit_mode);
+
+
+            // === Expression ===
+
+            let frp_endpoints = &frp.output;
+            expression <- frp.input.set_expression.map2(
+                &edit_mode, f!([frp_endpoints, model](expr, is_editing)
+                    model.set_expression(expr, *is_editing, &frp_endpoints)
+                )
+            );
+            frp.output.source.expression <+ expression.map(|e| ImString::new(&e.code));
+            expression_changed_by_user <- model.label.content.gate(&edit_mode);
+            frp.output.source.expression <+ expression_changed_by_user.map(|e| ImString::new(e));
 
 
             // === Expression Type ===
