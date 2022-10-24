@@ -318,240 +318,7 @@ impl Model {
             port.set_usage_type(tp)
         }
     }
-}
 
-fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
-    let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp, styles));
-    opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection).into())
-}
-
-
-
-// ============
-// === Area ===
-// ============
-
-/// Input ports area.
-///
-/// ## Origin
-/// Please note that the origin of the node is on its left side, centered vertically. To learn more
-/// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, CloneRef, Debug)]
-pub struct Area {
-    #[allow(missing_docs)]
-    pub frp:          Frp,
-    pub(crate) model: Rc<Model>,
-}
-
-impl Deref for Area {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl Area {
-    /// Constructor.
-    #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app));
-        let frp = Frp::new();
-        let network = &frp.network;
-        let selection_color = Animation::new(network);
-
-        frp::extend! { network
-
-            // === Body Hover ===
-            // This is meant to be on top of FRP network. Read more about `Node` docs to
-            // learn more about the architecture and the importance of the hover
-            // functionality.
-
-            frp.output.source.body_hover <+ frp.set_hover;
-
-
-            // === Cursor setup ===
-
-            eval frp.input.set_edit_mode ([model](edit_mode) {
-                model.label.set_focus(edit_mode);
-                if *edit_mode {
-                    // Reset the code to hide non-connected port names.
-                    model.label.set_content(model.expression.borrow().code.clone());
-                    model.label.set_cursor_at_mouse_position();
-                } else {
-                    model.label.remove_all_cursors();
-                }
-            });
-
-
-            // === Show / Hide Phantom Ports ===
-
-            edit_mode <- all_with3
-                ( &frp.input.set_edit_mode
-                , &frp.input.set_edit_ready_mode
-                , &frp.input.set_ports_active
-                , |edit_mode,edit_ready_mode,(set_ports_active,_)|
-                     (*edit_mode || *edit_ready_mode) && !set_ports_active
-                );
-
-            port_vis <- all_with(&frp.input.set_ports_active,&edit_mode,|(a,_),b|*a&&(!b));
-            frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing       <+ edit_mode;
-
-
-            // === Label Hover ===
-
-            label_hovered <- edit_mode && frp.output.body_hover;
-            eval label_hovered ((t) model.label.set_hover(t));
-
-
-            // === Port Hover ===
-
-            eval frp.on_port_hover ((t) model.set_port_hover(t));
-
-            eval frp.set_connected ([model]((crumbs,edge_tp,is_connected)) {
-                model.with_port_mut(crumbs,|n|n.set_connected(is_connected,edge_tp));
-                model.with_port_mut(crumbs,|n|n.set_parent_connected(is_connected));
-            });
-
-
-            // === Properties ===
-
-            width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
-            frp.output.source.width      <+ width;
-            frp.output.source.expression <+ model.label.content.gate(&edit_mode);
-
-
-            // === Expression Type ===
-
-            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-
-
-            // === View Mode ===
-
-            frp.output.source.view_mode <+ frp.set_view_mode;
-
-            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
-            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
-            profiled          <- in_profiling_mode && finished;
-
-            use theme::code::syntax;
-            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
-            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
-            let std_base_color           = model.styles_frp.get_color(syntax::base);
-            let profiled_base_color      = model.styles_frp.get_color(syntax::profiling::base);
-
-            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
-
-            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
-
-            init_colors         <- source::<()>();
-            std_base_color      <- all(std_base_color,init_colors)._0();
-            profiled_base_color <- all(profiled_base_color,init_colors)._0();
-            base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
-            eval base_color ((color) model.label.set_property_default(color));
-            init_colors.emit(());
-        }
-
-        Self { frp, model }
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
-        let expr = self.model.expression.borrow();
-        expr.root_ref().get_descendant(crumbs).ok().map(|node| {
-            let unit = GLYPH_WIDTH;
-            let range_before = enso_text::Range::new(ByteDiff(0), node.payload.index);
-            let char_offset = expr.viz_code[range_before].chars().count();
-            let char_count = expr.viz_code[node.payload.range()].chars().count();
-            let width = unit * (char_count as f32);
-            let x = width / 2.0 + unit * (char_offset as f32);
-            Vector2::new(TEXT_OFFSET + x, 0.0)
-        })
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
-        self.model.id_crumbs_map.borrow().get(&id).cloned()
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn label(&self) -> &text::Text {
-        &self.model.label
-    }
-
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.model.set_label_layer(layer);
-    }
-}
-
-
-
-// ==========================
-// === Expression Setting ===
-// ==========================
-
-/// Helper struct used to keep information about the current expression layer when building visual
-/// port representation. A "layer" is a visual layer in terms of span tree. For example, given
-/// expression `img.blur (foo (bar baz))`, we've got several layers, like the whole expression,
-/// `img.blur`, `foo (bar baz)`, or `(bar baz)`. The layer builder keeps information passed from the
-/// parent layer when building the nested one.
-#[derive(Clone, Debug)]
-struct PortLayerBuilder {
-    parent_frp:      Option<port::FrpEndpoints>,
-    /// Parent port display object.
-    parent:          display::object::Instance,
-    /// Information whether the parent port was a parensed expression.
-    parent_parensed: bool,
-    /// The number of chars the expression should be shifted. For example, consider
-    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
-    /// shift should be applied when considering its children.
-    shift:           usize,
-    /// The depth at which the current expression is, where root is at depth 0.
-    depth:           usize,
-}
-
-impl PortLayerBuilder {
-    /// Constructor.
-    #[profile(Debug)]
-    fn new(
-        parent: impl display::Object,
-        parent_frp: Option<port::FrpEndpoints>,
-        parent_parensed: bool,
-        shift: usize,
-        depth: usize,
-    ) -> Self {
-        let parent = parent.display_object().clone_ref();
-        Self { parent_frp, parent, parent_parensed, shift, depth }
-    }
-
-    fn empty(parent: impl display::Object) -> Self {
-        Self::new(parent, default(), default(), default(), default())
-    }
-
-    /// Create a nested builder with increased depth and updated `parent_frp`.
-    #[profile(Debug)]
-    fn nested(
-        &self,
-        parent: display::object::Instance,
-        new_parent_frp: Option<port::FrpEndpoints>,
-        parent_parensed: bool,
-        shift: usize,
-    ) -> Self {
-        let depth = self.depth + 1;
-        let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
-        Self::new(parent, parent_frp, parent_parensed, shift, depth)
-    }
-}
-
-impl Area {
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.model.label.set_content(expression.viz_code.clone());
@@ -904,6 +671,237 @@ impl Area {
         if self.frp.editing.value() {
             self.model.label.set_cursor_at_text_end();
         }
+    }
+}
+
+fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
+    let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp, styles));
+    opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection).into())
+}
+
+
+
+// ============
+// === Area ===
+// ============
+
+/// Input ports area.
+///
+/// ## Origin
+/// Please note that the origin of the node is on its left side, centered vertically. To learn more
+/// about this design decision, please read the docs for the [`node::Node`].
+#[derive(Clone, CloneRef, Debug)]
+pub struct Area {
+    #[allow(missing_docs)]
+    pub frp:          Frp,
+    pub(crate) model: Rc<Model>,
+}
+
+impl Deref for Area {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl Area {
+    /// Constructor.
+    #[profile(Debug)]
+    pub fn new(app: &Application) -> Self {
+        let model = Rc::new(Model::new(app));
+        let frp = Frp::new();
+        let network = &frp.network;
+        let selection_color = Animation::new(network);
+
+        frp::extend! { network
+
+            // === Body Hover ===
+            // This is meant to be on top of FRP network. Read more about `Node` docs to
+            // learn more about the architecture and the importance of the hover
+            // functionality.
+
+            frp.output.source.body_hover <+ frp.set_hover;
+
+
+            // === Cursor setup ===
+
+            eval frp.input.set_edit_mode ([model](edit_mode) {
+                model.label.set_focus(edit_mode);
+                if *edit_mode {
+                    // Reset the code to hide non-connected port names.
+                    model.label.set_content(model.expression.borrow().code.clone());
+                    model.label.set_cursor_at_mouse_position();
+                } else {
+                    model.label.remove_all_cursors();
+                }
+            });
+
+
+            // === Show / Hide Phantom Ports ===
+
+            edit_mode <- all_with3
+                ( &frp.input.set_edit_mode
+                , &frp.input.set_edit_ready_mode
+                , &frp.input.set_ports_active
+                , |edit_mode,edit_ready_mode,(set_ports_active,_)|
+                     (*edit_mode || *edit_ready_mode) && !set_ports_active
+                );
+
+            port_vis <- all_with(&frp.input.set_ports_active,&edit_mode,|(a,_),b|*a&&(!b));
+            frp.output.source.ports_visible <+ port_vis;
+            frp.output.source.editing       <+ edit_mode;
+
+
+            // === Label Hover ===
+
+            label_hovered <- edit_mode && frp.output.body_hover;
+            eval label_hovered ((t) model.label.set_hover(t));
+
+
+            // === Port Hover ===
+
+            eval frp.on_port_hover ((t) model.set_port_hover(t));
+
+            eval frp.set_connected ([model]((crumbs,edge_tp,is_connected)) {
+                model.with_port_mut(crumbs,|n|n.set_connected(is_connected,edge_tp));
+                model.with_port_mut(crumbs,|n|n.set_parent_connected(is_connected));
+            });
+
+
+            // === Properties ===
+
+            width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
+            frp.output.source.width      <+ width;
+            frp.output.source.expression <+ model.label.content.gate(&edit_mode);
+
+
+            // === Expression Type ===
+
+            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+
+
+            // === View Mode ===
+
+            frp.output.source.view_mode <+ frp.set_view_mode;
+
+            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
+            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
+            profiled          <- in_profiling_mode && finished;
+
+            use theme::code::syntax;
+            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
+            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
+            let std_base_color           = model.styles_frp.get_color(syntax::base);
+            let profiled_base_color      = model.styles_frp.get_color(syntax::profiling::base);
+
+            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
+
+            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
+            model.label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
+
+            init_colors         <- source::<()>();
+            std_base_color      <- all(std_base_color,init_colors)._0();
+            profiled_base_color <- all(profiled_base_color,init_colors)._0();
+            base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
+            eval base_color ((color) model.label.set_property_default(color));
+            init_colors.emit(());
+        }
+
+        Self { frp, model }
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
+        let expr = self.model.expression.borrow();
+        expr.root_ref().get_descendant(crumbs).ok().map(|node| {
+            let unit = GLYPH_WIDTH;
+            let range_before = enso_text::Range::new(ByteDiff(0), node.payload.index);
+            let char_offset = expr.viz_code[range_before].chars().count();
+            let char_count = expr.viz_code[node.payload.range()].chars().count();
+            let width = unit * (char_count as f32);
+            let x = width / 2.0 + unit * (char_offset as f32);
+            Vector2::new(TEXT_OFFSET + x, 0.0)
+        })
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
+        let expression = self.model.expression.borrow();
+        expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
+        self.model.id_crumbs_map.borrow().get(&id).cloned()
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn label(&self) -> &text::Text {
+        &self.model.label
+    }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.set_label_layer(layer);
+    }
+}
+
+
+
+// ==========================
+// === Expression Setting ===
+// ==========================
+
+/// Helper struct used to keep information about the current expression layer when building visual
+/// port representation. A "layer" is a visual layer in terms of span tree. For example, given
+/// expression `img.blur (foo (bar baz))`, we've got several layers, like the whole expression,
+/// `img.blur`, `foo (bar baz)`, or `(bar baz)`. The layer builder keeps information passed from the
+/// parent layer when building the nested one.
+#[derive(Clone, Debug)]
+struct PortLayerBuilder {
+    parent_frp:      Option<port::FrpEndpoints>,
+    /// Parent port display object.
+    parent:          display::object::Instance,
+    /// Information whether the parent port was a parensed expression.
+    parent_parensed: bool,
+    /// The number of chars the expression should be shifted. For example, consider
+    /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
+    /// shift should be applied when considering its children.
+    shift:           usize,
+    /// The depth at which the current expression is, where root is at depth 0.
+    depth:           usize,
+}
+
+impl PortLayerBuilder {
+    /// Constructor.
+    #[profile(Debug)]
+    fn new(
+        parent: impl display::Object,
+        parent_frp: Option<port::FrpEndpoints>,
+        parent_parensed: bool,
+        shift: usize,
+        depth: usize,
+    ) -> Self {
+        let parent = parent.display_object().clone_ref();
+        Self { parent_frp, parent, parent_parensed, shift, depth }
+    }
+
+    fn empty(parent: impl display::Object) -> Self {
+        Self::new(parent, default(), default(), default(), default())
+    }
+
+    /// Create a nested builder with increased depth and updated `parent_frp`.
+    #[profile(Debug)]
+    fn nested(
+        &self,
+        parent: display::object::Instance,
+        new_parent_frp: Option<port::FrpEndpoints>,
+        parent_parensed: bool,
+        shift: usize,
+    ) -> Self {
+        let depth = self.depth + 1;
+        let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
+        Self::new(parent, parent_frp, parent_parensed, shift, depth)
     }
 }
 
