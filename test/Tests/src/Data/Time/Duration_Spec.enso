@@ -71,12 +71,12 @@ spec =
             periods = [(Period.new days=1), (Period.new 0), (Period.new years=30), (Period.new years=3 months=2)]
             durations.each duration->
                 periods.each period->
-                    Panic.catch Time_Error_Data (duration + period) handler
-                    Panic.catch Time_Error_Data (duration - period) handler
-                    Panic.catch Time_Error_Data (period + duration) handler
-                    Panic.catch Time_Error_Data (period - duration) handler
-                    Panic.catch Time_Error_Data (period > duration) handler
-                    Panic.catch Time_Error_Data (period < duration) handler
+                    (duration + period).should_fail_with Time_Error_Data
+                    (duration - period).should_fail_with Time_Error_Data
+                    (period + duration).should_fail_with Time_Error_Data
+                    (period - duration).should_fail_with Time_Error_Data
+                    (period > duration).should_fail_with Time_Error_Data
+                    (period < duration).should_fail_with Time_Error_Data
 
         Test.specify "Date_Time supports adding and subtracting Duration" <|
             ((Date_Time.new 2022 10 1 hour=10) + (Duration.new hours=2)) . should_equal (Date_Time.new 2022 10 1 hour=12)

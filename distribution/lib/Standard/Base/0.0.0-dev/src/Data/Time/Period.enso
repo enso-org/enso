@@ -47,7 +47,7 @@ ensure_period object error_msg="Cannot use Duration as a parameter" =
         period : Period -> period
         _ : Duration.Duration ->
             Error.throw Time_Error_Data error_msg
-        x : Any ->
+        x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Period type, got: " + (Meta.get_qualified_type_name x)
 
@@ -96,8 +96,8 @@ type Period
         other_period_checked = ensure_period other_period
         Panic.catch Any (Period.Period_Data (self.internal_period.plus other_period_checked.internal_period)) err->
             case err of
-                DateTimeException -> Error.throw Time_Error_Data "Period addition failed"
-                ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
+                _ : DateTimeException -> Error.throw Time_Error_Data "Period addition failed:"+err.getMessage
+                _ : ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error:"+err.getMessage cause=err
 
     ## Subtract a specified amount of time from this period.
 

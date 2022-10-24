@@ -100,9 +100,9 @@ type Duration
                 Panic.catch ArithmeticException (self.plus_builtin that) err->
                     Error.throw (Time_Error_Data err.getMessage)
             _ : Period.Period ->
-                Error.throw Time_Error_Data "Adding Period to Duration is not supported"
+                Error.throw (Time_Error_Data "Adding Period to Duration is not supported")
             _ ->
-                Error.throw Illegal_State_Error_Data "Illegal argument `that`"
+                Error.throw (Illegal_Argument_Error_Data "Illegal argument `that`")
 
     ## Subtract the specified amount of time from this duration.
 
