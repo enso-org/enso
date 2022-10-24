@@ -16,10 +16,10 @@ use ide_ci::log::setup_logging;
 #[tokio::main]
 async fn main() -> Result {
     setup_logging()?;
-    let repo = Repo::from_str("enso-org/enso")?;
     let octo = setup_octocrab().await?;
+    let repo = Repo::from_str("enso-org/enso")?.handle(&octo);
 
-    let releases = repo.all_releases(&octo).await?;
+    let releases = repo.all_releases().await?;
     let draft_releases = releases.into_iter().filter(|r| r.draft);
     for release in draft_releases {
         let id = release.id;
