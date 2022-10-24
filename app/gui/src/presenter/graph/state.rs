@@ -659,7 +659,7 @@ impl<'a> ViewChange<'a> {
     }
 
     /// Set the node expression.
-    pub fn set_node_expression(&self, id: ViewNodeId, expression: ImString) -> Option<()> {
+    pub fn set_node_expression(&self, id: ViewNodeId, expression: ImString) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
@@ -673,7 +673,7 @@ impl<'a> ViewChange<'a> {
                 expression
             );
             displayed.expression = expression;
-            Some(())
+            Some(ast_id)
         } else {
             None
         }
