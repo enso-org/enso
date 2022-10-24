@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 
 import java.time.ZonedDateTime;
 
@@ -20,7 +21,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   private static MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
     MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
-    t.add(SpecializedIsInOp.makeForTimeColumns(ZonedDateTime.class));
+    t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     return t;
   }
 

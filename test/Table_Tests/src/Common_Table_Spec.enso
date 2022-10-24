@@ -1217,15 +1217,25 @@ spec prefix table_builder test_selection pending=Nothing =
             t2.at "ix" . to_vector . should_equal [2, 4]
             t2.at "X" . to_vector . should_equal [1, 4]
 
-        Test.specify "by an Is_In check in a Vector" <|
+        Test.specify "by an Is_In check" <|
             t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
-            t.filter "X" (Filter_Condition.Is_In ["X", "a", "c"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
-            t.filter "X" (Filter_Condition.Not_In ["X", "a", "c"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t1 = table_builder [["txt", ["X", "a", "c", Nothing]], ["int", [Nothing, 2, 5, 4]], ["bool", [True, Nothing, Nothing, True]]]
+
+            t.filter "X" (Filter_Condition.Is_In (t1.at "txt")) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
+            t.filter "X" (Filter_Condition.Is_In (t1.at "txt" . to_vector)) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt")) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt" . to_vector)) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
             t.filter "X" (Filter_Condition.Is_In ["ccc"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["ccc"]
             t.filter "X" (Filter_Condition.Is_In []) on_problems=Report_Error . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Not_In []) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "b", "ccc", "X", "f", "2"]
 
-            t.filter "ix" (Filter_Condition.Is_In [Nothing, 2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
+            if test_selection.allows_mixed_type_comparisons then
+                mixed = t.filter "X" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "X" . to_vector
+                # Some backends (e.g. SQLite) allow to coerce integer and text types when doing mixed type comparisons.
+                ((mixed == []) || (mixed == ["2"])).should_be_true
+
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
             t.filter "ix" (Filter_Condition.Is_In [2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, 5]
             t.filter "ix" (Filter_Condition.Is_In [Nothing]) on_problems=Report_Error . at "ix" . to_vector . should_equal [Nothing]
             t.filter "ix" (Filter_Condition.Not_In [Nothing]) on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 2, 3, 5, 6]
@@ -1241,7 +1251,8 @@ spec prefix table_builder test_selection pending=Nothing =
                 False -> v2.should_fail_with SQL_Error_Data
 
             t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
-            t2.filter "A" (Filter_Condition.Is_In [True, Nothing]) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
             t2.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
             t2.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True, Nothing]
             t2.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
