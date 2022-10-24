@@ -69,11 +69,20 @@ public class EnsoCompilerTest {
     from Standard.Base.Data.Any import all
     import project.IO
     import Standard.Base as Enso_List
-    from Standard.Base import all hiding Number, Boolean
+    from Standard.Base import all hiding Number, Boolean, Decimal, Any
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
     main = 3
+    """);
+  }
+
+  @Test
+  public void testImportAll() throws Exception {
+    parseTest("""
+    ## TODO Dubious constructor export
+    from project.Network.Http.Version.Version import all
+    from project.Network.Http.Version.Version export all
     """);
   }
 
@@ -365,6 +374,12 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore // wrong order of exported symbols
+  public void testExportFromTen() throws Exception {
+    parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
+  }
+
+  @Test
   public void testExportFromAllHiding() throws Exception {
     parseTest("from prj.Data.Foo export all hiding Bar, Baz");
   }
@@ -422,7 +437,25 @@ public class EnsoCompilerTest {
 
                  example_group = Test_Suite.run <|
                      Test.group "Number" <| Nothing
-        group : Text -> Any
+        group : Text -> Any -> (Text | Nothing) -> Nothing
+        """);
+  }
+
+  @Test
+  public void testTestGroupSimple() throws Exception {
+    parseTest("""
+    group1 : Text -> Any -> (Text | Nothing) -> Nothing
+
+    type Test
+        group2 : Text -> Any -> (Text | Nothing) -> Nothing
+    """);
+  }
+
+  @Test
+  public void testWildcardLeftHandSide() throws Exception {
+    parseTest("""
+    Any.should_succeed self frames_to_skip=0 =
+        _ = frames_to_skip
         """);
   }
 
@@ -681,6 +714,18 @@ public class EnsoCompilerTest {
     list =
         all_files.filter file->
             all_files
+    """);
+  }
+
+  @Test
+  public void testCaseWithComment() throws Exception {
+    parseTest("""
+    ansi_bold : Boolean -> Text -> Text
+    ansi_bold enabled txt =
+        case Platform.os of
+            ## Output formatting for Windows is not currently supported.
+            Platform.Windows -> txt
+            _ -> if enabled then Nothing
     """);
   }
 
