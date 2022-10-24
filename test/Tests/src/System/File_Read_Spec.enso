@@ -1,12 +1,11 @@
 from Standard.Base import all
 from Standard.Base.System.File_Format import Unsupported_File_Type_Data
 
-import Standard.Table.IO.File_Read
 from Standard.Test import Test, Test_Suite, Problems
 
 spec =
     sample_xxx = enso_project.data / "sample.xxx"
-    sample_txt = enso_project.data / "sample.txt"
+    sample_txt = enso_project.data / "helloworld.txt"
     windows_log = enso_project.data / "windows.log"
 
     Test.group "Auto_Detect" <|
