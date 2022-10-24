@@ -16,11 +16,14 @@ polyglot java import org.enso.base.Time_Utils
 
     ? Start of the epoch
     For Enso, start of the epoch is equal to the start of the Gregorian calendar,
-    which is on 15th October 1582. It is possible to create a Date_Time that is
-    before the start of the epoch, however, it is invalid to invoke any (Gregorian)
-    calendar related functionalities on such a Date_Time, e.g., `length_of_month` or
-    `day_of_week`. All the other operations, including `+` and `-` should succeed.
+    which is on 15th October 1582.
 
+    Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
+    is computed for all the date times, including those before an epoch start,
+    with today's rules. Trying to get some Gregorian calendar related properties
+    for a historical date times that is defined before the epoch is likely an error,
+    as the Gregorian calendar had not yet been discovered. Therefore, for such
+    historical date times, a warning is attached to the result.
 enso_epoch_start : Date_Time
 enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 
