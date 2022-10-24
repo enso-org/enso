@@ -155,27 +155,23 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
-                // === Border ===
+                // === Rectangle ===
 
-                let border =
-                    Rect((10.0.px(),13.0.px())).corners_radius(1.5.px()).translate_x(1.5.px());
-                // Taking just an outline.
-                let border = &border - border.shrink(1.0.px());
-                // Creating a gap for the arrow to pass through.
-                let gap  = Rect((2.0.px(),4.0.px())).translate_x((-3.0).px());
-                let border = border - gap;
+                let rect =
+                    Rect((11.0.px(),12.0.px())).corners_radius(2.0.px()).translate_x(2.5.px());
+                let rect = rect.fill(weak_color);
 
 
                 // === Arrow ===
 
                 let arrow =
-                    arrow(11.0,1.0,4.0,5.0).rotate((PI/2.0).radians()).translate_x(4.0.px());
+                    arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians()).translate_x(4.0.px());
+                let arrow = arrow.fill(strong_color);
 
 
                 // === Shape ===
 
-                let shape = border + arrow;
-                let shape = shape.fill(strong_color);
+                let shape = rect + arrow;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -188,27 +184,22 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
-                // === Border ===
+                // === Rect ===
 
-                let border = Rect((9.0.px(),13.0.px())).corners_radius(1.5.px());
-                let border = border.translate_x((-2.5).px());
-                // Taking just an outline.
-                let border = &border - border.shrink(1.0.px());
-                // Creating a gap for the arrow to pass through.
-                let gap  = Rect((2.0.px(),4.0.px())).translate_x((1.5).px());
-                let border = border - gap;
+                let rect = Rect((10.0.px(),12.0.px())).corners_radius(2.0.px()).translate_x(-3.0.px());
+                let rect = rect.fill(weak_color);
 
 
                 // === Arrow ===
 
                 let arrow =
-                    arrow(11.0,1.0,4.0,5.0).rotate((PI/2.0).radians()).translate_x(8.0.px());
+                    arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians()).translate_x(8.0.px());
+                let arrow = arrow.fill(strong_color);
 
 
                 // === Shape ===
 
-                let shape = border + arrow;
-                let shape = shape.fill(strong_color);
+                let shape = rect + arrow;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -221,19 +212,15 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
-                // === Border ===
+                // === Rect ===
 
-                let border = Rect((16.0.px(),11.0.px())).corners_radius(1.5.px());
-                // Using just the outline.
-                let border = &border - border.shrink(1.0.px());
-                // Creating a gap for the cursor.
-                let gap = Rect((3.0.px(),13.0.px())).translate_x((3.5).px());
-                let border = border - gap;
+                let rect = Rect((16.0.px(),10.0.px())).corners_radius(2.0.px());
+                let rect = rect.fill(weak_color);
 
 
                 // === Cursor ===
 
-                let cursor = cursor().translate_x(3.5.px());
+                let cursor = cursor().translate_x(3.0.px()).fill(strong_color.clone());
 
 
                 // === Letter ===
@@ -244,13 +231,13 @@ crate::define_icons! {
                 let right_stroke  = Segment((0.0.px(),2.5.px()),(2.5.px(),(-2.5).px()),1.0.px());
                 let bar           = Rect((4.0.px(),1.0.px())).translate_y((-1.0).px());
                 let letter        = left_stroke + right_stroke + bar;
-                let letter        = letter.translate_x((-2.5).px());
+                let letter        = letter.translate_x((-3.0).px());
+                let letter = letter.fill(strong_color);
 
 
                 // === Shape ===
 
-                let shape = border + cursor + letter;
-                let shape = shape.fill(strong_color);
+                let shape = rect + cursor + letter;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -263,19 +250,15 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
-                // === Border ===
+                // === Rect ===
 
-                let border = Rect((16.0.px(),11.0.px())).corners_radius(5.5.px());
-                // Using just the outline.
-                let border = &border - border.shrink(1.0.px());
-                // Creating a gap for the cursor.
-                let gap  = Rect((3.0.px(),13.0.px())).translate_x((3.5).px());
-                let border = border - gap;
+                let rect = Rect((16.0.px(),10.0.px())).corners_radius(2.0.px());
+                let rect = rect.fill(weak_color);
 
 
                 // === Cursor ===
 
-                let cursor = cursor().translate_x(3.5.px());
+                let cursor = cursor().translate_x(3.0.px()).fill(strong_color.clone());
 
 
                 // === Number 5 ===
@@ -302,13 +285,13 @@ crate::define_icons! {
                 let arc = arc(radius,stroke_width,connection_direction,228_f32.to_radians());
                 let arc = arc.translate((arc_center.x.px(),arc_center.y.px()));
 
-                let number = (top + left + arc).translate_x((-2.0).px()).translate_y(2.5.px());
+                let number = (top + left + arc).translate_x((-3.0).px()).translate_y(2.5.px());
+                let number = number.fill(strong_color);
 
 
                 // === Shape ===
 
-                let shape = border + cursor + number;
-                let shape = shape.fill(strong_color);
+                let shape = rect + cursor + number;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -322,13 +305,14 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 // We need to create the table in two parts, left and right of the cursor to achieve
                 // the right cell arangement.
-                let left_table  = table(2,2).translate(((-8.0).px(),(-4.5).px()));
-                let right_table = table(2,2).translate(((-1.0).px(),(-4.5).px()));
-                let gap         = Rect((3.0.px(),13.0.px()));
-                let cursor      = cursor();
+                let left_table  = table(2,2).translate(((-8.0).px(), (-4.0).px()));
+                let right_table = table(2,2).translate(((-1.0).px(),(-4.0).px()));
+                let gap         = Rect((4.0.px(),16.0.px()));
+                let table = left_table + right_table - gap;
+                let table = table.fill(weak_color);
+                let cursor      = cursor().fill(strong_color);
 
-                let shape = left_table + right_table - gap + cursor;
-                let shape = shape.fill(strong_color);
+                let shape = table + cursor;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -340,10 +324,10 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let upper_arrow = arrow(10.0,1.0,4.5,6.0).rotate((-PI/2.0).radians());
-                let upper_arrow = upper_arrow.translate(((-8.0).px(),1.0.px()));
-                let lower_arrow = arrow(10.0,1.0,4.5,6.0).rotate((PI/2.0).radians());
-                let lower_arrow = lower_arrow.translate((8.0.px(),(-1.5).px()));
+                let upper_arrow = arrow(11.0,2.0,4.0,6.0).rotate((-PI/2.0).radians());
+                let upper_arrow = upper_arrow.translate(((-8.0).px(),2.0.px()));
+                let lower_arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
+                let lower_arrow = lower_arrow.translate((8.0.px(),(-1.0).px()));
 
                 let shape = upper_arrow + lower_arrow;
                 let shape = shape.fill(strong_color);
@@ -360,23 +344,24 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let table_color = weak_color;
                 let table =
-                    table(2,3).translate(((-8.0).px(),(-6.5).px())).fill(table_color.clone());
-                let bottom_line =
-                    Rect((13.0.px(),1.0.px())).corners_radius(1.0.px()).fill(table_color);
-                let bottom_line = bottom_line.translate_y((-6.0).px());
+                    table(2,3).translate(((-8.0).px(),(-7.0).px())).fill(table_color.clone());
 
-                let eraser       = Rect((9.0.px(),5.0.px())).corners_radius(1.0.px());
-                let eraser_bg    = eraser.grow(1.5.px());
-                let eraser_bg    = eraser_bg.rotate((-0.25 * std::f32::consts::PI).radians());
-                let eraser_bg    = eraser_bg.translate((3.5.px(),(-1.5).px()));
-                let eraser_inner = Rect((7.0.px(),3.0.px()));
-                let eraser_bar   = Rect((1.0.px(),4.0.px())).translate_x((-1.0).px());
-                let eraser       = eraser - eraser_inner + eraser_bar;
-                let eraser       = eraser.fill(strong_color);
-                let eraser       = eraser.rotate((-0.25 * std::f32::consts::PI).radians());
-                let eraser       = eraser.translate((3.5.px(),(-1.5).px()));
+                let eraser_x = 3.5;
+                let eraser_y = -2.0;
+                let eraser_rotation = -0.25 * std::f32::consts::PI;
 
-                let shape = table - eraser_bg + eraser + bottom_line;
+                let eraser = Rect((9.0.px(),5.0.px()));
+                let eraser = eraser.corners_radius(1.0.px());
+                let eraser_bar = Rect((1.0.px(),6.0.px())).translate_x((-2.0).px());
+                let eraser = eraser - eraser_bar;
+                let eraser = eraser.rotate(eraser_rotation.radians());
+                let eraser = eraser.translate((eraser_x.px(), eraser_y.px()));
+                let eraser = eraser.fill(strong_color);
+                let eraser_bg = Rect((13.0.px(), 9.0.px()));
+                let eraser_bg = eraser_bg.rotate(eraser_rotation.radians());
+                let eraser_bg = eraser_bg.translate((eraser_x.px(), eraser_y.px()));
+
+                let shape = table - eraser_bg + eraser;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }

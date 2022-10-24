@@ -36,9 +36,9 @@ pub fn grid(stroke_width: f32, cell_size: f32) -> AnyShape {
 
 /// A cursor shape, looking roughly like a capital "I".
 pub fn cursor() -> AnyShape {
-    let middle = Rect((1.0.px(), 15.0.px()));
-    let top = Rect((5.0.px(), 1.0.px())).translate_y(7.5.px());
-    let bottom = Rect((5.0.px(), 1.0.px())).translate_y((-7.5).px());
+    let middle = Rect((2.0.px(), 16.0.px()));
+    let top = Rect((6.0.px(), 2.0.px())).translate_y(7.0.px());
+    let bottom = Rect((6.0.px(), 2.0.px())).translate_y((-7.0).px());
     (middle + top + bottom).into()
 }
 
@@ -60,15 +60,23 @@ pub fn arc(outer_radius: f32, stroke_width: f32, start_angle: f32, end_angle: f3
 /// The shape of a table, given by a grid with size `columns` x `rows`. The stroke width is 1.0 and
 /// the cell size 4.0. The origin is at the lower left corner.
 pub fn table(columns: i32, rows: i32) -> AnyShape {
-    const STROKE_WIDTH: f32 = 1.0;
+    const GAP: f32 = 1.0;
     const CELL_SIZE: f32 = 4.0;
 
-    let width = columns as f32 * CELL_SIZE + STROKE_WIDTH;
-    let height = rows as f32 * CELL_SIZE + STROKE_WIDTH;
-    let bounds =
-        Rect((width.px(), height.px())).translate(((width / 2.0).px(), (height / 2.0).px()));
-    let grid = grid(STROKE_WIDTH, CELL_SIZE);
-    (grid * bounds).into()
+    let cell = Rect((CELL_SIZE.px(), CELL_SIZE.px()));
+    let table = cell.repeat(((CELL_SIZE + GAP).px(), (CELL_SIZE + GAP).px()));
+    let table = table.translate_x((-CELL_SIZE / 2.0 - GAP).px());
+    let table = table.translate_y((-CELL_SIZE / 2.0 - GAP).px());
+
+    let width = (CELL_SIZE + GAP) * columns as f32 - GAP;
+    let height = (CELL_SIZE + GAP) * rows as f32 - GAP;
+
+    let bounds = Rect((width.px(), height.px()));
+    let bounds = bounds.translate_x((width / 2.0).px());
+    let bounds = bounds.translate_y((height / 2.0).px());
+
+    let shape = table * bounds;
+    shape.into()
 }
 
 /// A plus, consisting of two strokes of length `size` and width `stroke_width`, intersecting at the
