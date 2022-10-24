@@ -430,11 +430,6 @@ type Column
     && self other =
         run_vectorized_binary_op self "&&" (&&) other
 
-    % : Column | Any -> Column
-    % self other = case other of
-        _ : Column -> Column.from_vector "Result_%" (self.to_vector.map_with_index i->v->(v % (other.at i)))
-        _ -> self.map v->(v % other)
-
     ^ : Column | Any -> Column
     ^ self other = case other of
         _ : Column -> Column.from_vector "Result_^" (self.to_vector.map_with_index i->v->(v ^ (other.at i)))
@@ -457,9 +452,6 @@ type Column
     bit_or self other = case other of
         _ : Column -> Column.from_vector "Result_OR" (self.to_vector.map_with_index i->v->(v.bit_or (other.at i)))
         _ -> self.map v->(v.bit_or other)
-
-    is_empty : Column
-    is_empty self = self.map v->(v == "" || v == Nothing)
 
     is_not_empty : Column
     is_not_empty self = self.map v->(v == "" || v == Nothing).not
