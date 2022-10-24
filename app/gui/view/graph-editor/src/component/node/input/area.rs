@@ -321,14 +321,18 @@ impl Model {
 
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
-        self.model.label.set_content(expression.viz_code.clone());
+        self.label.set_content(expression.viz_code.clone());
     }
 
     #[profile(Debug)]
-    fn build_port_shapes_on_new_expression(&self, expression: &mut Expression) {
+    fn build_port_shapes_on_new_expression(
+        &self,
+        expression: &mut Expression,
+        area_frp: &FrpEndpoints,
+    ) {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
-        let builder = PortLayerBuilder::empty(&self.model.ports);
+        let builder = PortLayerBuilder::empty(&self.ports);
         let code = &expression.viz_code;
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
@@ -389,20 +393,19 @@ impl Model {
 
                 if is_header {
                     is_header = false;
-                    self.model.header.add_child(&port_shape);
+                    self.header.add_child(&port_shape);
                 } else {
                     builder.parent.add_child(&port_shape);
                 }
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
                 // shape system (#795)
-                let style_sheet = &self.model.app.display.default_scene.style_sheet;
+                let style_sheet = &self.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
-                let styles_frp = &self.model.styles_frp;
+                let styles_frp = &self.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
                 let crumbs = port.crumbs.clone_ref();
                 let port_network = &port.network;
-                let frp = &self.frp.output;
 
                 frp::extend! { port_network
 
@@ -421,7 +424,7 @@ impl Model {
 
                     // Please note, that this is computed first in order to compute `ports_visible`
                     // when needed, and thus it has to be run before the following lines.
-                    self.frp.output.source.body_hover <+ bool(&mouse_out,&mouse_over_raw);
+                    area_frp.source.body_hover <+ bool(&mouse_out,&mouse_over_raw);
 
                     // TODO[WD] for FRP3: Consider the following code. Here, we have to first
                     //     handle `bg_down` and then `mouse_down`. Otherwise, `mouse_down` may
@@ -432,21 +435,21 @@ impl Model {
                     //     be solved by solving in the FRP engine all children first, and then their
                     //     children (then both `bg_down` and `mouse_down` will be resolved before
                     //     the `ports_visible` changes).
-                    bg_down    <- mouse_down_raw.gate_not(&frp.ports_visible);
-                    mouse_down <- mouse_down_raw.gate(&frp.ports_visible);
-                    mouse_over <- mouse_over_raw.gate(&frp.ports_visible);
-                    self.frp.output.source.on_background_press <+ bg_down;
+                    bg_down    <- mouse_down_raw.gate_not(&area_frp.ports_visible);
+                    mouse_down <- mouse_down_raw.gate(&area_frp.ports_visible);
+                    mouse_over <- mouse_over_raw.gate(&area_frp.ports_visible);
+                    area_frp.source.on_background_press <+ bg_down;
 
 
                     // === Press ===
 
-                    eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
+                    area_frp.source.on_port_press <+ mouse_down.map(f_!([crumbs] crumbs.clone_ref()));
 
                     // === Hover ===
 
                     hovered <- bool(&mouse_out,&mouse_over);
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
-                    frp.source.on_port_hover <+ hover;
+                    area_frp.source.on_port_hover <+ hover;
 
 
                     // === Pointer Style ===
@@ -457,13 +460,13 @@ impl Model {
                     init_color         <- source::<()>();
                     any_type_sel_color <- all_with(&any_type_sel_color,&init_color,
                         |c,_| color::Lcha::from(c));
-                    tp                 <- all_with(&port.tp,&frp.set_ports_active,
+                    tp                 <- all_with(&port.tp,&area_frp.set_ports_active,
                         |tp,(_,edge_tp)| tp.clone().or_else(||edge_tp.clone()));
                     tp_color           <- tp.map(
                         f!([styles](tp) tp.map_ref(|tp| type_coloring::compute(tp,&styles))));
                     tp_color           <- all_with(&tp_color,&any_type_sel_color,
                         |tp_color,any_type_sel_color| tp_color.unwrap_or(*any_type_sel_color));
-                    in_profiling_mode  <- frp.view_mode.map(|m| matches!(m,view::Mode::Profiling));
+                    in_profiling_mode  <- area_frp.view_mode.map(|m| matches!(m,view::Mode::Profiling));
                     pointer_color_over <- in_profiling_mode.switch(&tp_color,&any_type_sel_color);
                     pointer_style_over <- pointer_color_over.map(move |color|
                         cursor::Style::new_highlight(&port_shape_hover,padded_size,Some(color))
@@ -471,12 +474,12 @@ impl Model {
                     pointer_style_over <- pointer_style_over.sample(&mouse_over);
 
                     pointer_style_hover <- any(pointer_style_over,pointer_style_out);
-                    pointer_styles      <- all[pointer_style_hover,self.model.label.pointer_style];
+                    pointer_styles      <- all[pointer_style_hover,self.label.pointer_style];
                     pointer_style       <- pointer_styles.fold();
-                    self.frp.output.source.pointer_style <+ pointer_style;
+                    area_frp.source.pointer_style <+ pointer_style;
                 }
                 init_color.emit(());
-                frp.source.view_mode.emit(frp.view_mode.value());
+                area_frp.set_view_mode.emit(area_frp.view_mode.value());
                 port_shape.display_object().clone_ref()
             };
 
@@ -491,27 +494,31 @@ impl Model {
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
             builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
-        *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
+        *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
     /// hierarchically (children get events from parents), so it is easier to init all networks
     /// this way, rather than delegate it to every port.
     #[profile(Debug)]
-    fn init_port_frp_on_new_expression(&self, expression: &mut Expression) {
-        let model = &self.model;
+    fn init_port_frp_on_new_expression(
+        &self,
+        expression: &mut Expression,
+        area_frp: &FrpEndpoints,
+    ) {
+        let model = &self;
 
         let parent_tp: Option<frp::Stream<Option<Type>>> = None;
-        expression.root_ref_mut().dfs_with_layer_data(parent_tp,|node,parent_tp| {
-            let frp          = &node.frp;
+        expression.root_ref_mut().dfs_with_layer_data(parent_tp, |node, parent_tp| {
+            let frp = &node.frp;
             let port_network = &frp.network;
-            let is_token     = node.is_token();
-            let crumbs       = node.crumbs.clone();
+            let is_token = node.is_token();
+            let crumbs = node.crumbs.clone();
 
 
             // === Type Computation ===
 
-            let parent_tp = parent_tp.clone().unwrap_or_else(||{
+            let parent_tp = parent_tp.clone().unwrap_or_else(|| {
                 frp::extend! { port_network
                     empty_parent_tp <- source::<Option<Type>>();
                 }
@@ -527,32 +534,32 @@ impl Model {
                 );
                 frp.source.tp <+ final_tp;
 
-                self.frp.source.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                area_frp.source.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
             }
 
 
             // === Code Coloring ===
 
-            let styles     = model.styles.clone_ref();
+            let styles = model.styles.clone_ref();
             let styles_frp = model.styles_frp.clone_ref();
 
             if node.children.is_empty() {
                 let is_expected_arg = node.is_expected_argument();
 
                 use theme::code::syntax;
-                let selected_color          = styles_frp.get_color(theme::code::types::selected);
-                let std_base_color          = styles_frp.get_color(syntax::base);
-                let std_disabled_color      = styles_frp.get_color(syntax::disabled);
-                let std_expected_color      = styles_frp.get_color(syntax::expected);
-                let std_editing_color       = styles_frp.get_color(syntax::base);
-                let profiled_base_color     = styles_frp.get_color(syntax::profiling::base);
+                let selected_color = styles_frp.get_color(theme::code::types::selected);
+                let std_base_color = styles_frp.get_color(syntax::base);
+                let std_disabled_color = styles_frp.get_color(syntax::disabled);
+                let std_expected_color = styles_frp.get_color(syntax::expected);
+                let std_editing_color = styles_frp.get_color(syntax::base);
+                let profiled_base_color = styles_frp.get_color(syntax::profiling::base);
                 let profiled_disabled_color = styles_frp.get_color(syntax::profiling::disabled);
                 let profiled_expected_color = styles_frp.get_color(syntax::profiling::expected);
-                let profiled_editing_color  = styles_frp.get_color(syntax::profiling::base);
+                let profiled_editing_color = styles_frp.get_color(syntax::profiling::base);
 
                 frp::extend! { port_network
-                    in_profiling_mode <- self.view_mode.map(|m| m.is_profiling());
-                    finished          <- self.set_profiling_status.map(|s| s.is_finished());
+                    in_profiling_mode <- area_frp.view_mode.map(|m| m.is_profiling());
+                    finished          <- area_frp.set_profiling_status.map(|s| s.is_finished());
                     profiled          <- in_profiling_mode && finished;
                     selected          <- frp.set_hover || frp.set_parent_connected;
 
@@ -570,7 +577,7 @@ impl Model {
                     editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
                     // Fixme: `label_color` should be animated, when when we can set text colors
                     //        more efficiently. (See https://github.com/enso-org/ide/issues/1031)
-                    label_color    <- all_with8(&self.set_edit_mode,&selected,&self.frp.set_disabled
+                    label_color    <- all_with8(&area_frp.set_edit_mode,&selected,&area_frp.set_disabled
                         ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
                         ,move |&editing,&selected,&disabled,&editing_color,&selected_color
                         ,&disabled_color,&expected_color,&base_color| {
@@ -582,11 +589,11 @@ impl Model {
                         });
                 }
 
-                let index  = node.payload.index;
+                let index = node.payload.index;
                 let length = node.payload.length;
-                let label  = model.label.clone_ref();
+                let label = model.label.clone_ref();
                 frp::extend! { port_network
-                    set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
+                    set_color <- all_with(&label_color,&area_frp.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
                         let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
@@ -595,14 +602,14 @@ impl Model {
                 }
 
                 init_colors.emit(());
-                self.set_view_mode(self.view_mode.value());
+                area_frp.set_view_mode(area_frp.view_mode.value());
             }
 
 
             // === Highlight Coloring ===
 
             if let Some(port_shape) = &node.payload.shape {
-                let viz_color          = color::Animation::new(port_network);
+                let viz_color = color::Animation::new(port_network);
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
 
                 frp::extend! { port_network
@@ -614,7 +621,7 @@ impl Model {
                     init_color          <- source::<()>();
                     profiling_viz_color <- all_with(&any_type_sel_color,&init_color,
                         |c,_| color::Lcha::from(c));
-                    profiling           <- self.view_mode.map(|m| m.is_profiling());
+                    profiling           <- area_frp.view_mode.map(|m| m.is_profiling());
                     connected_viz_color <- profiling.switch(&normal_viz_color,&profiling_viz_color);
                     is_connected        <- frp.set_connected.map(|(is_connected,_)| *is_connected);
                     transparent         <- init_color.constant(color::Lcha::transparent());
@@ -638,7 +645,7 @@ impl Model {
             Some(frp.tp.clone_ref().into())
         });
 
-        self.frp.source.view_mode.emit(self.frp.view_mode.value());
+        area_frp.set_view_mode(area_frp.view_mode.value());
     }
 
     /// This function first assigns the new expression to the model and then emits the definition
@@ -651,25 +658,25 @@ impl Model {
     /// expression types.
     #[profile(Debug)]
     fn init_new_expression(&self, expression: Expression) {
-        *self.model.expression.borrow_mut() = expression;
-        let expression = self.model.expression.borrow();
+        *self.expression.borrow_mut() = expression;
+        let expression = self.expression.borrow();
         expression.root_ref().dfs_with_layer_data((), |node, _| {
             node.frp.set_definition_type(node.tp().cloned().map(|t| t.into()));
         });
     }
 
     #[profile(Debug)]
-    pub(crate) fn set_expression(&self, new_expression: impl Into<node::Expression>) {
+    fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
             DEBUG!("\n\n=====================\nSET EXPR: " new_expression.code)
         }
         self.set_label_on_new_expression(&new_expression);
-        self.build_port_shapes_on_new_expression(&mut new_expression);
-        self.init_port_frp_on_new_expression(&mut new_expression);
+        self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);
+        self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
         self.init_new_expression(new_expression);
-        if self.frp.editing.value() {
-            self.model.label.set_cursor_at_text_end();
+        if area_frp.editing.value() {
+            self.label.set_cursor_at_text_end();
         }
     }
 }
