@@ -29,12 +29,11 @@ use ensogl_hardcoded_theme as theme;
 // === Constants ===
 // =================
 
-/// An offset from the port area position to the text position.
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const TEXT_OFFSET: f32 = 10.0;
 
 /// Width of a single glyph
-// TODO: avoid using hardcoded value. See https://www.pivotaltracker.com/story/show/183567623.
-pub const GLYPH_WIDTH: f32 = 7.224_609_4;
+pub const GLYPH_WIDTH: f32 = 7.224_609_4; // FIXME hardcoded literal
 
 /// Enable visual port debug mode and additional port creation logging.
 pub const DEBUG: bool = false;
@@ -133,8 +132,7 @@ impl From<node::Expression> for Expression {
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
             let is_expected_arg = node.is_expected_argument();
             let span = node.span();
-            // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
-            let mut size = Byte::try_from(span.size()).unwrap();
+            let mut size = Byte::try_from(span.size()).unwrap(); // FIXME: hande errors
             let mut index = span.start;
             let offset_from_prev_tok = node.offset - info.prev_tok_local_index.to_diff();
             info.prev_tok_local_index = size + node.offset;
@@ -167,6 +165,59 @@ impl From<node::Expression> for Expression {
 // =============
 // === Model ===
 // =============
+
+ensogl::define_endpoints! {
+    Input {
+        /// Set the node expression.
+        set_expression (node::Expression),
+
+        /// Set the mode in which the cursor will indicate that editing of the node is possible.
+        set_edit_ready_mode (bool),
+
+        /// Enable or disable node editing.
+        set_edit_mode (bool),
+
+        /// Set or unset hover over the node. Port area is unable to determine hover by itself, as
+        /// the hover may sometimes happen on the node background and the area still needs to be
+        /// notified about it, for example in order to display the right cursor style in edit ready
+        /// mode.
+        set_hover (bool),
+
+        /// Disable the node (aka "skip mode").
+        set_disabled (bool),
+
+        /// Set the connection status of the port indicated by the breadcrumbs. The optional type
+        /// is the type of the edge that was connected or disconnected if the edge was typed.
+        set_connected (Crumbs,Option<Type>,bool),
+
+        /// Set the expression USAGE type. This is not the definition type, which can be set with
+        /// `set_expression` instead. In case the usage type is set to None, ports still may be
+        /// colored if the definition type was present.
+        set_expression_usage_type (Crumbs,Option<Type>),
+
+        /// Enable / disable port hovering. The optional type indicates the type of the active edge
+        /// if any. It is used to highlight ports if they are missing type information or if their
+        /// types are polymorphic.
+        set_ports_active (bool,Option<Type>),
+
+        set_view_mode        (view::Mode),
+        set_profiling_status (profiling::Status),
+    }
+
+    Output {
+        pointer_style       (cursor::Style),
+        width               (f32),
+        expression          (String),
+        editing             (bool),
+        ports_visible       (bool),
+        body_hover          (bool),
+        on_port_press       (Crumbs),
+        on_port_hover       (Switch<Crumbs>),
+        on_port_type_change (Crumbs,Option<Type>),
+        on_background_press (),
+        view_mode           (view::Mode),
+    }
+}
 
 /// Internal model of the port area.
 #[derive(Debug)]
@@ -214,9 +265,8 @@ impl Model {
 
     #[profile(Debug)]
     fn init(self) -> Self {
-        // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        //   It needs to be more flexible once we have proper depth management.
-        //   See https://www.pivotaltracker.com/story/show/183567632.
+        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
+        // It needs to be more flexible once we have proper depth management.
         let scene = &self.app.display.default_scene;
         self.label.remove_from_scene_layer(&scene.layers.main);
         self.label.add_to_scene_layer(&scene.layers.label);
@@ -341,8 +391,8 @@ impl Model {
                     builder.parent.add_child(&port_shape);
                 }
 
-                // TODO: StyleWatch is unsuitable here, as it was designed as an internal tool for
-                //   shape system. (https://www.pivotaltracker.com/story/show/183567648)
+                // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
+                //   shape system (#795)
                 let style_sheet = &self.app.display.default_scene.style_sheet;
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.styles_frp;
@@ -516,8 +566,8 @@ impl Model {
                     disabled_color <- profiled.switch(&std_disabled_color,&profiled_disabled_color);
                     expected_color <- profiled.switch(&std_expected_color,&profiled_expected_color);
                     editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
-                    // TODO: `label_color` should be animated, when when we can set text colors
-                    //  more efficiently. (See https://www.pivotaltracker.com/story/show/183567665)
+                    // Fixme: `label_color` should be animated, when when we can set text colors
+                    //        more efficiently. (See https://github.com/enso-org/ide/issues/1031)
                     label_color    <- all_with8(&area_frp.set_edit_mode,&selected,&frp.set_disabled
                         ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
                         ,move |&editing,&selected,&disabled,&editing_color,&selected_color
@@ -537,8 +587,7 @@ impl Model {
                     set_color <- all_with(&label_color,&area_frp.set_edit_mode,|&color, _| color);
                     eval set_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
-                        // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
-                        let range = enso_text::Range::<Byte>::try_from(range).unwrap();
+                        let range = enso_text::Range::<Byte>::try_from(range).unwrap(); // FIXME: handle errors
                         label.set_property(range,color::Rgba::from(color));
                     });
                 }
@@ -632,65 +681,6 @@ impl Model {
 fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
     let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp, styles));
     opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection).into())
-}
-
-
-
-// ===========
-// === FRP ===
-// ===========
-
-ensogl::define_endpoints! {
-    Input {
-        /// Set the node expression.
-        set_expression (node::Expression),
-
-        /// Set the mode in which the cursor will indicate that editing of the node is possible.
-        set_edit_ready_mode (bool),
-
-        /// Enable or disable node editing.
-        set_edit_mode (bool),
-
-        /// Set or unset hover over the node. Port area is unable to determine hover by itself, as
-        /// the hover may sometimes happen on the node background and the area still needs to be
-        /// notified about it, for example in order to display the right cursor style in edit ready
-        /// mode.
-        set_hover (bool),
-
-        /// Disable the node (aka "skip mode").
-        set_disabled (bool),
-
-        /// Set the connection status of the port indicated by the breadcrumbs. The optional type
-        /// is the type of the edge that was connected or disconnected if the edge was typed.
-        set_connected (Crumbs,Option<Type>,bool),
-
-        /// Set the expression USAGE type. This is not the definition type, which can be set with
-        /// `set_expression` instead. In case the usage type is set to None, ports still may be
-        /// colored if the definition type was present.
-        set_expression_usage_type (Crumbs,Option<Type>),
-
-        /// Enable / disable port hovering. The optional type indicates the type of the active edge
-        /// if any. It is used to highlight ports if they are missing type information or if their
-        /// types are polymorphic.
-        set_ports_active (bool,Option<Type>),
-
-        set_view_mode        (view::Mode),
-        set_profiling_status (profiling::Status),
-    }
-
-    Output {
-        pointer_style       (cursor::Style),
-        width               (f32),
-        expression          (ImString),
-        editing             (bool),
-        ports_visible       (bool),
-        body_hover          (bool),
-        on_port_press       (Crumbs),
-        on_port_hover       (Switch<Crumbs>),
-        on_port_type_change (Crumbs,Option<Type>),
-        on_background_press (),
-        view_mode           (view::Mode),
-    }
 }
 
 
@@ -796,9 +786,9 @@ impl Area {
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
-            frp.output.source.expression <+ expression.map(|e| ImString::new(&e.code));
+            frp.output.source.expression <+ expression.map(|e| e.code.clone());
             expression_changed_by_user <- model.label.content.gate(&edit_mode);
-            frp.output.source.expression <+ expression_changed_by_user.map(|e| ImString::new(e));
+            frp.output.source.expression <+ expression_changed_by_user.map(|e| e.to_string());
 
 
             // === Expression Type ===
@@ -836,7 +826,7 @@ impl Area {
         Self { frp, model }
     }
 
-    /// An offset from node position to a specific port.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_offset(&self, crumbs: &[Crumb]) -> Option<Vector2<f32>> {
         let expr = self.model.expression.borrow();
         expr.root_ref().get_descendant(crumbs).ok().map(|node| {
@@ -850,15 +840,20 @@ impl Area {
         })
     }
 
-    /// A type of the specified port.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t| t.tp.value())
     }
 
-    /// A crumb by AST id.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    pub fn label(&self) -> &text::Text {
+        &self.model.label
     }
 
     /// Set a scene layer for text rendering.
