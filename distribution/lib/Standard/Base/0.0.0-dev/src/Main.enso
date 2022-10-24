@@ -119,5 +119,5 @@ from project.Function export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
 from project.Data.Index_Sub_Range export First, Last

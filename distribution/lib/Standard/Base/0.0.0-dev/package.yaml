@@ -13,6 +13,7 @@ component-groups:
     - Input:
         exports:
           - Standard.Base.System.File.new
+          - Standard.Base.System.File.read
           - Standard.Base.System.File.read_text
     - Web:
         exports:
