@@ -10,6 +10,7 @@ import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
+import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
@@ -39,11 +40,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
-
-  @Override
-  protected boolean isOpVectorized(String name) {
-    return ops.isSupported(name);
-  }
 
   @Override
   protected Storage<?> runVectorizedMap(String name, Object argument) {
@@ -133,19 +129,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(new LikeOp());
-    t.add(
-        SpecializedIsInOp.make(
-            list -> {
-              HashSet<String> set = new HashSet<>();
-              boolean hasNulls = false;
-              for (Object o : list) {
-                hasNulls |= o == null;
-                if (o instanceof String s) {
-                  set.add(s);
-                }
-              }
-              return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-            }));
+    t.add(new StringIsInOp<>());
     return t;
   }
 }

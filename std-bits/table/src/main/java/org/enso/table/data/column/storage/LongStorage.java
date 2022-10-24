@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -93,7 +94,7 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
@@ -374,20 +375,7 @@ public final class LongStorage extends NumericStorage<Long> {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
-        .add(
-            SpecializedIsInOp.make(
-                list -> {
-                  HashSet<Long> set = new HashSet<>();
-                  boolean hasNulls = false;
-                  for (Object o : list) {
-                    hasNulls |= o == null;
-                    Long x = NumericConverter.tryConvertingToLong(o);
-                    if (x != null) {
-                      set.add(x);
-                    }
-                  }
-                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-                }));
+        .add(new LongIsInOp());
     return ops;
   }
 

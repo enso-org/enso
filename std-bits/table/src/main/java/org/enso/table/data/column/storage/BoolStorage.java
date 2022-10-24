@@ -63,7 +63,7 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
