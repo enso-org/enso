@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+from project.Data.Table import Table
+
+## Represents a single row of some in-memory Table.
+type Row
+    ## PRIVATE
+    Value (table:Table) (index:Integer)
+
+    ## Gets the number of columns in the table.
+    length : Integer
+    length self = self.table.columns.length
+
+    ## Gets the value of the specified column.
+    at : (Integer | Text) -> Any
+    at self column = self.table.columns.at column . at self.index
+
+    ## Gets the row as a Vector.
+    to_vector : Vector
+    to_vector self = Vector.from_polyglot_array self

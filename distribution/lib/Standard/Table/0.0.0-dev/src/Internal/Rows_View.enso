@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+from project.Data.Table import Table
+from project.Data.Row import Row
+
+type Rows_View
+    ## PRIVATE
+    Value (table:Table)
+
+    ## Gets the number of rows in the table.
+    length : Integer
+    length self = self.table.row_count
+
+    ## Gets the specified row.
+    at : Integer -> Any
+    at self index =
+        len = self.length
+        if index < len && index >= -len then Row.Value self.table index else
+            Error.throw (Index_Out_Of_Bounds_Error_Data index len)
