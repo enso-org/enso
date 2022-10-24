@@ -103,6 +103,20 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testIfNothingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~_ = self
+    """);
+  }
+
+  @Test
+  public void testIfSomethingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~ignore = self
+    """);
+  }
+
+  @Test
   public void testMinusRec() throws Exception {
     parseTest("""
     minus n = minus n-1
@@ -113,6 +127,23 @@ public class EnsoCompilerTest {
   public void testFactorial() throws Exception {
     parseTest("""
     fac n = if n == 1 then 1 else n * fac n-1
+    """);
+  }
+
+  @Test
+  public void testIsDigitWithSpaces() throws Exception {
+    parseTest("""
+    compare =
+        is_digit = character -> 42
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testIsDigitWithoutSpaces() throws Exception {
+    parseTest("""
+    compare =
+        is_digit=character -> 42
     """);
   }
 
@@ -491,6 +522,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testProblemHandling2() throws Exception {
+    parseTest("""
+    test_problem_handling action expected_problems result_checker =
+        error_result . should_fail_with first_problem_type frames_to_skip=3
+        warnings_checker warnings =
+            ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
+            warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
+    """);
+  }
+
+  @Test
   public void testNamedArgument() throws Exception {
     parseTest("""
     fn = get_all frames_to_skip=1
@@ -583,6 +625,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testExtensionOperator() throws Exception {
+    parseTest("""
+    Text.* : Integer -> Text
+    Text.* self = 42
+    """);
+  }
+
+  @Test
   public void testTypeSignature() throws Exception {
     parseTest("""
     resolve_aggregate table problem_builder aggregate_column =
@@ -632,6 +683,14 @@ public class EnsoCompilerTest {
     choose ch = case ch of
         0 -> _.name
         _ -> Nothing
+    """);
+  }
+
+  @Test
+  public void testCaseWithLowerCaseA() throws Exception {
+    parseTest("""
+    map_nothing self = case self of
+        a -> f a
     """);
   }
 
@@ -735,6 +794,59 @@ public class EnsoCompilerTest {
     parseTest("""
     foo : [Integer | Text] -> (Integer | Text)
     foo v = v.at 0
+    """);
+  }
+
+  @Test
+  public void testGroupOfPatterns() throws Exception {
+    parseTest("""
+    sum self = case self of
+        Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
+    """);
+  }
+
+  @Test
+  public void testIsMethodWithSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to . all f
+    """);
+  }
+
+  @Test
+  public void testIsMethodWithoutSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to.all f
+    """);
+  }
+
+  @Test
+  public void testHandleRequestError() throws Exception {
+    parseTest("""
+    request self req =
+        handle_request_error =
+            42
+    """);
+  }
+
+  @Test
+  public void testWriteFlag() throws Exception {
+    parseTest("""
+    type Write_Flag
+        JPEG_Quality val:Integer=95
+    """);
+  }
+
+  @Test
+  public void testHasDefaultsSuspended() throws Exception {
+    parseTest("""
+    Atom.constructor self = get_atom_constructor self.value ...
+    """);
+  }
+
+  @Test
+  public void testVectorVector() throws Exception {
+    parseTest("""
+    get_stack_trace : Vector.Vector Stack_Trace_Element
     """);
   }
 
