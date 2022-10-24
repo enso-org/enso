@@ -176,7 +176,8 @@ define_themes! { [light:0, dark:1]
     application {
         // Original RGB values (for reference after fixing color-conversion issues)
         // light: rgb(249,250,251), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        // background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgba(230.0 / 255.0,234.0 / 255.0,237.0 / 255.0,1.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -187,7 +188,7 @@ define_themes! { [light:0, dark:1]
                 width = 369.0, 369.0;
             }
             component_list_panel {
-                background_color = Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0),Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0);
+                background_color = Rgba(236.0 / 255.0, 240.0 / 255.0, 242.0 / 255.0, 1.0),Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0);
                 corners_radius = 15.0, 15.0;
                 grid {
                     width = 414.0, 414.0;

@@ -500,6 +500,11 @@ impl grid_view::Entry for View {
                 &style_changed,
                 |m, (), ()| m.highlighted.deref().clone()
             );
+            is_header <- kind.map(|kind| *kind == Kind::Header).on_true();
+            highlight_header <- all3(&input.set_model, &content_changed, &style_changed).filter(|(m, (), ())| m.kind == Kind::Header);
+            data.label.set_property <+ highlight_header.map2(&style, |_, s| {
+                ((..).into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
+            });
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
