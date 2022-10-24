@@ -679,23 +679,24 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                // FIXME: only weak colors are used atm
                 let size = 7.0;
                 let half = size / 2.0;
                 let corners_radius = 1.0;
                 let rect0 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect0 = rect0.fill(style.get_color(theme::libraries::_0));
+                let rect0 = rect0.fill(weak_color.clone());
                 let rect0 = rect0.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
                 let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect1 = rect1.fill(style.get_color(theme::libraries::_1));
+                let rect1 = rect1.fill(weak_color.clone());
                 let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
                 let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect2 = rect2.fill(style.get_color(theme::libraries::_2));
+                let rect2 = rect2.fill(weak_color.clone());
                 let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
                 let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect3 = rect3.fill(style.get_color(theme::libraries::_3));
+                let rect3 = rect3.fill(weak_color);
                 let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = rect0 + rect1 + rect2 + rect3;
@@ -711,23 +712,24 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                // FIXME: only weak colors are used atm
                 let size = 7.0;
                 let half = size / 2.0;
                 let corners_radius = 1.0;
                 let plus = plus(size,1.5);
-                let plus = plus.fill(style.get_color(theme::libraries::_0));
+                let plus = plus.fill(weak_color.clone());
                 let plus = plus.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
                 let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect1 = rect1.fill(style.get_color(theme::libraries::_1));
+                let rect1 = rect1.fill(weak_color.clone());
                 let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
                 let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect2 = rect2.fill(style.get_color(theme::libraries::_2));
+                let rect2 = rect2.fill(weak_color.clone());
                 let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
                 let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect3 = rect3.fill(style.get_color(theme::libraries::_3));
+                let rect3 = rect3.fill(weak_color);
                 let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = plus + rect1 + rect2 + rect3;
