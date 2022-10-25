@@ -125,8 +125,8 @@ impl Frp {
         let bg_default_color = style.get_color(theme::component::slider::background::color);
         let bg_hover_color = style.get_color(theme::component::slider::background::hover_color);
 
-        let click_and_hold_timer = frp::io::timer::DelayedInterval::new(
-            network,
+        let click_and_hold_timer = frp::io::timer::DelayedInterval::new(network);
+        let click_and_hold_config = frp::io::timer::DelayedIntervalConfig::new(
             CLICK_AND_HOLD_DELAY_MS,
             CLICK_AND_HOLD_INTERVAL_MS,
         );
@@ -248,11 +248,12 @@ impl Frp {
 
             // === Click and hold repeated scrolling ===
 
-            click_and_hold_timer.set_active <+ base_frp.is_dragging_background;
-            mouse_pos_at_time_trigger <- mouse_position
-                .sample(&click_and_hold_timer.on_trigger);
+            background_drag_start <- base_frp.is_dragging_background.on_true();
+            click_and_hold_timer.start <+ background_drag_start.constant(click_and_hold_config);
+            click_and_hold_timer.stop <+ base_frp.is_dragging_background.on_false();
 
-            offset_from_thumb_px <- mouse_pos_at_time_trigger.map2(&thumb_center_px,
+            mouse_pos_at_timer_trigger <- mouse_position.sample(&click_and_hold_timer.on_trigger);
+            offset_from_thumb_px <- mouse_pos_at_timer_trigger.map2(&thumb_center_px,
                 |mouse_pos, thumb_center| thumb_center - mouse_pos.x);
             offset_from_thumb <- offset_from_thumb_px.map3(&inner_length, &frp.set_max,
                 |offset_px, length_px, max| offset_px / length_px * max);

@@ -15,14 +15,17 @@ use frp::io::timer::Timeout;
 ///
 /// The timer will generate `on_trigger` events over time, as long as it is active.
 ///
-/// Every time `set_active` receives `true`:
-///     - the first `on_trigger` event will be emitted after specified `delay_ms` time,
-///     - next events will be emitted every `interval_ms` time.
-/// Once `set_active` receives `false`, no more `on_trigger` events will be emitted until the timer
+/// The timer is activated when `start` receives an event with [`DelayedIntervalConfig`] structure
+/// containing `delay_ms` and `interval_ms` values. Every activation begins a sequence of actions:
+///     - If the timer was already active, it is stopped and started again.
+///     - First `on_trigger` event will be emitted after specified `delay_ms` time.
+///     - Subsequent `on_trigger` events will be emitted every `interval_ms` time.
+/// Once `stop` receives an event, no more `on_trigger` events will be emitted until the timer
 /// is activated again.
 ///
-/// in `set_active`:  T----------F----T------T---------F------F-----
-/// out `on_trigger`: ----x-x-x-x---------x-x-----x-x-x-------------
+/// in `start`:       -5,2--------------3,1-----4,3-----------------
+/// in `stop`:        -------------x-----------------------x---x----
+/// out `on_trigger`: ------x-x-x-x--------xxxxx----x--x--x---------
 ///
 /// The timer is based on `setTimeout` and `setInterval` browser APIs. That means there is no
 /// guarantee about when exactly the events will be emitted. In practice, the initial delay might be
@@ -32,33 +35,55 @@ use frp::io::timer::Timeout;
 pub struct DelayedInterval {
     delay_timer:    Timeout,
     interval_timer: Interval,
-    /// Determines if timer is running. The timer is started when `set_active` is set to `true`,
-    /// and stopped when it is set to `false`. Restarting a timer by sending `false` followed
-    /// by `true` will start the countdown from the beginning, including configured delay time.
-    pub set_active: frp::Any<bool>,
+    /// Timer activation and configuration input. Any time an event is sent to this input, the
+    /// timer will be started with provided delay and interval values. If the timer was already
+    /// started, it will be restarted with new values.
+    pub start:      frp::Any<DelayedIntervalConfig>,
+    /// Timer deactivation input. Any time an event is sent to this input, the timer will be
+    /// stopped and mo more `on_trigger` will be emitted until it is started again.
+    pub stop:       frp::Any,
     /// Emitted after initial delay and then every interval, as long as the timer is active.
     pub on_trigger: frp::Stream<()>,
 }
 
 impl DelayedInterval {
     /// Constructor. Timer is initially not active.
-    /// The time duration of each phase is specified in integer milliseconds.
-    pub fn new(network: &frp::Network, delay_ms: i32, interval_ms: i32) -> Self {
+    pub fn new(network: &frp::Network) -> Self {
         let delay_timer = Timeout::new(network);
         let interval_timer = Interval::new(network);
 
         frp::extend! { network
-            set_active <- any_mut::<bool>();
+            start <- any_mut::<DelayedIntervalConfig>();
+            stop <- any_mut();
 
-            delay_timer.start    <+ set_active.on_true().constant(delay_ms);
-            interval_timer.start <+ delay_timer.on_expired.constant(interval_ms);
+            trace start;
+            trace stop;
 
-            deactivate          <- set_active.on_false();
-            delay_timer.cancel  <+ deactivate;
-            interval_timer.stop <+ deactivate;
+            delay_timer.start    <+ start.map(|c| c.delay_ms);
+            interval_timer.start <+ start.map(|c| c.interval_ms).sample(&delay_timer.on_expired);
+
+            delay_timer.cancel  <+ stop;
+            interval_timer.stop <+ stop;
 
             on_trigger <- any(delay_timer.on_expired, interval_timer.on_interval);
         }
-        Self { delay_timer, interval_timer, set_active, on_trigger }
+        Self { delay_timer, interval_timer, start, stop, on_trigger }
+    }
+}
+
+/// Configuration structure for `DelayedInterval`.
+/// Specifies the time duration of each phase in integer milliseconds.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DelayedIntervalConfig {
+    /// Initial delay between timer activation and first `on_trigger` event being emitted.
+    pub delay_ms:    i32,
+    /// Time between subsequent `on_trigger` events.
+    pub interval_ms: i32,
+}
+
+impl DelayedIntervalConfig {
+    /// Constructor.
+    pub fn new(delay_ms: i32, interval_ms: i32) -> Self {
+        Self { delay_ms, interval_ms }
     }
 }
