@@ -60,7 +60,7 @@ impl DelayedInterval {
             interval_timer.start <+ start.map(|c| c.interval_ms).sample(&delay_timer.on_expired);
 
             delay_timer.cancel  <+ stop;
-            interval_timer.stop <+ stop;
+            interval_timer.stop <+ any_(stop, start);
 
             on_trigger <- any(delay_timer.on_expired, interval_timer.on_interval);
         }
