@@ -500,7 +500,7 @@ impl NodeModel {
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
-        let error_visualization = error::Container::new(scene);
+        let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x, y));
 

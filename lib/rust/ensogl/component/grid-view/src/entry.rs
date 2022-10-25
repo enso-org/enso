@@ -76,6 +76,7 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         set_size(Vector2),
         set_params(Params),
         set_location((Row, Col)),
+        set_position(Vector2),
         /// True if the entry is currently selected.
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.

@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::component::visualization;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -101,10 +102,11 @@ pub struct BubbleChart {
 #[allow(missing_docs)]
 impl BubbleChart {
     pub fn definition() -> Definition {
-        Definition::new(Self::signature(), |scene| Ok(Self::new(scene).into()))
+        Definition::new(Self::signature(), |app| Ok(Self::new(app).into()))
     }
 
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let logger = Logger::new("bubble");
         let display_object = display::object::Instance::new();
         let views = Rc::new(RefCell::new(vec![]));

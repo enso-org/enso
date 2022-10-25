@@ -82,7 +82,9 @@ features = [
   'MouseEvent',
   'WheelEvent',
   'DomRect',
-  'AddEventListenerOptions'
+  'AddEventListenerOptions',
+  'HtmlHeadElement',
+  "TextMetrics",
 ]
 
 [dev-dependencies]
