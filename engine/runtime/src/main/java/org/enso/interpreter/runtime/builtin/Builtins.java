@@ -58,8 +58,6 @@ public class Builtins {
     loadedBbuiltinMethods = readBuiltinMethodsMethods();
   }
 
-  Map<Class<? extends Builtin>, Builtin> builtins;
-
   public static final String PACKAGE_NAME = "Builtins";
   public static final String NAMESPACE = "Standard";
   public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
@@ -71,6 +69,7 @@ public class Builtins {
     }
   }
 
+  private final Map<Class<? extends Builtin>, Builtin> builtins;
   private final Map<String, Map<String, Method>> builtinMethodNodes;
   private final Map<String, Builtin> builtinsByName;
 
