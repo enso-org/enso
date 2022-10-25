@@ -56,9 +56,6 @@ impl DelayedInterval {
             start <- any_mut::<DelayedIntervalConfig>();
             stop <- any_mut();
 
-            trace start;
-            trace stop;
-
             delay_timer.start    <+ start.map(|c| c.delay_ms);
             interval_timer.start <+ start.map(|c| c.interval_ms).sample(&delay_timer.on_expired);
 

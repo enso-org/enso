@@ -1,7 +1,5 @@
 //! A crate gathering all useful component crates.
 
-// === Features ===
-#![feature(const_trait_impl)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
