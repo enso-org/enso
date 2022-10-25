@@ -7,6 +7,12 @@ import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
+/**
+ * A wrapper that allows to turn an Enso callback providing elements into a polyglot Array.
+ *
+ * <p>This allows creation of arrays (and with them, vectors) using non-standard storage - for
+ * example exposing rows of a Table without copying any data.
+ */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Array_Proxy.Array_Proxy")
