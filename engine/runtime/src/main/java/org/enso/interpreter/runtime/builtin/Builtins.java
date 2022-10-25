@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,13 +49,16 @@ import java.util.stream.Collectors;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
-  private static Map<String, Method> builtinMethods;
-  private static Map<Class<? extends Builtin>, Builtin> builtins;
+
+  private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
+  private static final Map<String, Method> loadedBbuiltinMethods;
 
   static {
-    builtinMethods = readBuiltinMethodsMethods();
-    builtins = readBuiltinTypes();
+    loadedBuiltinConstructors = readBuiltinTypes();
+    loadedBbuiltinMethods = readBuiltinMethodsMethods();
   }
+
+  Map<Class<? extends Builtin>, Builtin> builtins;
 
   public static final String PACKAGE_NAME = "Builtins";
   public static final String NAMESPACE = "Standard";
@@ -110,13 +114,13 @@ public class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
 
-    initializeBuiltinTypes(builtins, language, scope);
+    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
     builtinsByName =
         builtins.values().stream()
             .collect(
                 Collectors.toMap(
                     v -> v.getType().getName(), java.util.function.Function.identity()));
-    builtinMethodNodes = readBuiltinMethodsMetadata(builtinMethods, scope);
+    builtinMethodNodes = readBuiltinMethodsMetadata(loadedBbuiltinMethods, scope);
     registerBuiltinMethods(scope, language);
 
     error = new Error(this, context);
@@ -215,7 +219,7 @@ public class Builtins {
    *
    * @return map of builtin types' classes and their instances
    */
-  private static Map<Class<? extends Builtin>, Builtin> readBuiltinTypes() {
+  private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
@@ -240,27 +244,35 @@ public class Builtins {
                 @SuppressWarnings("unchecked")
                 Class<? extends Builtin> clazz =
                     (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
-                return clazz.getConstructor().newInstance();
-              } catch (ClassNotFoundException e) {
+
+                // Note: Don't create a new instance of the builtin at this point
+                // because that will be too much for the inliner and won't get
+                // constant folded.
+                return clazz.getConstructor();
+              } catch (ClassNotFoundException | NoSuchMethodException e) {
                 e.printStackTrace();
                 throw new CompilerError("Invalid builtin type entry: " + builtinMeta[1]);
-              } catch (NoSuchMethodException
-                  | InstantiationException
-                  | IllegalAccessException
-                  | InvocationTargetException e) {
-                e.printStackTrace();
-                throw new CompilerError("Invalid builtin type entry: " + line);
               }
             })
-        .collect(Collectors.toMap(Builtin::getClass, b -> b));
+        .collect(Collectors.toList());
   }
 
   /** Initialize builting types in the context of the given language and module scope */
-  private void initializeBuiltinTypes(
-      Map<Class<? extends Builtin>, Builtin> builtinInstances,
-      Language language,
-      ModuleScope scope) {
-    builtinInstances.values().forEach(b -> b.initialize(language, scope, builtinInstances));
+  private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
+      List<Constructor<? extends Builtin>> constrs, Language language, ModuleScope scope) {
+    Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
+    constrs.forEach(
+        constr -> {
+          try {
+            Builtin builtin = constr.newInstance();
+            builtins.put(builtin.getClass(), builtin);
+          } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+            throw new CompilerError("Invalid builtin type entry: " + constr);
+          }
+        });
+    builtins.values().forEach(b -> b.initialize(language, scope, builtins));
+    return builtins;
   }
 
   /**
@@ -313,8 +325,6 @@ public class Builtins {
    * single builtin method per row. The format of the row is as follows: <Fully qualified name of
    * the builtin method>:<Class name of the builtin method representing it>
    *
-   * @param scope Builtins scope
-   * @param classes a map of (already loaded) builtin methods
    * @return A map of builtin method nodes per builtin type name
    */
   private static Map<String, Method> readBuiltinMethodsMethods() {
