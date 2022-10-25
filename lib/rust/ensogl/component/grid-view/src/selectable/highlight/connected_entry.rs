@@ -24,7 +24,7 @@ pub struct EntryEndpoints {
     pub flag:     frp::Any<bool>,
     pub location: frp::Stream<(Row, Col)>,
     pub contour:  frp::Stream<entry::Contour>,
-    pub color:    frp::Stream<color::Rgba>,
+    pub color:    frp::Stream<color::Lcha>,
 }
 
 
@@ -126,7 +126,7 @@ impl Drop for Guard {
 pub struct Output {
     pub is_entry_connected: frp::Source<bool>,
     pub contour:            frp::Any<entry::Contour>,
-    pub color:              frp::Any<color::Rgba>,
+    pub color:              frp::Any<color::Lcha>,
 }
 
 impl Output {

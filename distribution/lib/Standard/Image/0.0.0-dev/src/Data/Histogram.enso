@@ -1,14 +1,5 @@
 from Standard.Base import all
 
-import Standard.Image.Data.Image
-
-polyglot java import org.enso.image.data.Histogram as Java_Histogram
-
-
-# TODO Dubious constructor export
-from project.Data.Histogram.Histogram import all
-from project.Data.Histogram.Histogram export all
-
 ## UNSTABLE
 type Histogram
 
@@ -19,7 +10,7 @@ type Histogram
        Arguments:
        - channel: The channel in the image for which this is a histogram.
        - data: The histogram data.
-    Histogram_Data channel data
+    Value channel data
 
     ## UNSTABLE
 
@@ -29,7 +20,6 @@ type Histogram
          Convert a histogram to JSON.
 
              import Standard.Examples
-             import Standard.Image
 
              example_to_json =
                  histo = Examples.image.histogram 0
@@ -38,22 +28,3 @@ type Histogram
     to_json self =
         bins = Json.from_pairs [["bins", self.data]]
         Json.from_pairs [["data", bins]]
-
-## UNSTABLE
-
-   Create a histogram for the specified channel of the image.
-
-   Arguments:
-   - channel: the channel number.
-
-   > Example
-     Create a histogram.
-
-         import Standard.Examples
-         import Standard.Image
-
-         example_histogram = Examples.image.histogram 0
-Image.Image.histogram : Integer -> Histogram
-Image.Image.histogram self channel =
-    hist = Java_Histogram.calculate self.opencv_mat channel
-    Histogram_Data channel (Vector.from_polyglot_array hist.get_data)

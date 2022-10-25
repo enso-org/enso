@@ -30,7 +30,7 @@ import java.util.Set;
  */
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
-public class EnsoFile implements TruffleObject {
+public final class EnsoFile implements TruffleObject {
   private final TruffleFile truffleFile;
 
   public EnsoFile(TruffleFile truffleFile) {

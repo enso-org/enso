@@ -29,12 +29,12 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
+  public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
     var aggregator = new ProblemAggregatorImpl(columnName);
 
     for (int i = 0; i < sourceStorage.size(); ++i) {
-      String cell = sourceStorage.getItem(i);
+      String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
         Object parsed = parseSingleValue(cell, aggregator);
         builder.appendNoGrow(parsed);

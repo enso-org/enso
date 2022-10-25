@@ -29,7 +29,7 @@ make_expression aggregate dialect =
     case aggregate of
         Group_By c _ -> c.expression
         Count _ -> Expression.Operation "COUNT_ROWS" []
-        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error "Count_Distinct must have at least one column.") else
+        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error_Data "Count_Distinct must have at least one column.") else
             case ignore_nothing of
                 True -> Expression.Operation "COUNT_DISTINCT" (columns.map .expression)
                 False -> Expression.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)

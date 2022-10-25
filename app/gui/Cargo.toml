@@ -31,7 +31,6 @@ ensogl-drop-manager = { path = "../../lib/rust/ensogl/component/drop-manager" }
 fuzzly = { path = "../../lib/rust/fuzzly" }
 ast = { path = "language/ast/impl" }
 ide-view = { path = "view" }
-ide-view-component-group = { path = "view/component-browser/component-group" }
 engine-protocol = { path = "controller/engine-protocol" }
 json-rpc = { path = "../../lib/rust/json-rpc" }
 parser-scala = { path = "language/parser" }

@@ -36,5 +36,5 @@ public abstract class Builder {
   public abstract int getCurrentSize();
 
   /** @return a storage containing all the items appended so far */
-  public abstract Storage seal();
+  public abstract Storage<?> seal();
 }

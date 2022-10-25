@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+polyglot java import org.opencv.imgcodecs.Imgcodecs
+
+## UNSTABLE
+type Read_Flag
+
+    ## UNSTABLE
+
+       Read the image with its alpha channel, otherwise the channel gets cropped.
+    Alpha_Channel
+
+    ## UNSTABLE
+
+       Always convert the image to a single channel grayscale image.
+    Grayscale
+
+    ## UNSTABLE
+
+       Use Geographic Data Abstraction Library (GDAL) driver to load images in
+       geospatial raster data formats.
+    GDAL
+
+    ## PRIVATE
+    to_integer self = case self of
+        Read_Flag.Alpha_Channel -> Imgcodecs.IMREAD_UNCHANGED
+        Read_Flag.Grayscale -> Imgcodecs.IMREAD_GRAYSCALE
+        Read_Flag.GDAL -> Imgcodecs.IMREAD_LOAD_GDAL

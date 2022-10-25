@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.state.State;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public class UnresolvedConversion implements TruffleObject {
+public final class UnresolvedConversion implements TruffleObject {
   private final ModuleScope scope;
 
   /**

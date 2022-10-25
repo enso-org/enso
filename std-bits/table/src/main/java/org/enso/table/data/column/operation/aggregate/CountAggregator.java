@@ -7,7 +7,7 @@ import java.util.stream.IntStream;
 
 /** Aggregates a storage by counting the non-missing values in each group. */
 public class CountAggregator extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final long[] counts;
   private int position = 0;
 
@@ -16,7 +16,7 @@ public class CountAggregator extends Aggregator {
    * @param resultSize the exact number of times {@link Aggregator#nextGroup(IntStream)} will be
    *     called.
    */
-  public CountAggregator(Storage storage, int resultSize) {
+  public CountAggregator(Storage<?> storage, int resultSize) {
     this.storage = storage;
     this.counts = new long[resultSize];
   }
@@ -27,7 +27,7 @@ public class CountAggregator extends Aggregator {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Long> seal() {
     return new LongStorage(counts);
   }
 }

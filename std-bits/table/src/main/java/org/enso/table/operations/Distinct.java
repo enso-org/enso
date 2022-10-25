@@ -21,7 +21,8 @@ public class Distinct {
     if (keyColumns.length != 0) {
       HashSet<MultiValueKeyBase> visitedRows = new HashSet<>();
       int size = keyColumns[0].getSize();
-      Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+      Storage<?>[] storage =
+          Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
         UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, textFoldingStrategy);
 

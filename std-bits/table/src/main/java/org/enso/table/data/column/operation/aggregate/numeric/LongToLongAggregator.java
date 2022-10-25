@@ -53,7 +53,7 @@ public abstract class LongToLongAggregator extends Aggregator {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Long> seal() {
     return new LongStorage(items, items.length, missing);
   }
 }

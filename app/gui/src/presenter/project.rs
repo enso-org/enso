@@ -111,7 +111,7 @@ impl Model {
 
     fn editing_committed(
         &self,
-        entry_id: Option<view::component_browser::list_panel::EntryId>,
+        entry_id: Option<view::component_browser::component_list_panel::grid::GroupEntryId>,
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {

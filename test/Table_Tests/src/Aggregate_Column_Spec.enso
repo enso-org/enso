@@ -6,7 +6,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Aggregate Columns" <|
     simple_table = Table.new [["count", [1, 2, Nothing, 3, Nothing]], ["is_valid", [Nothing, False, True, False, Nothing]], ["float", [3.4, 1, 5.6, 2.1, Nothing]], ["text", ["A", "", Nothing, "B,C", Nothing]]]
@@ -196,4 +196,4 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator percentile_table (Percentile 0.66 0) "66%-ile tests" 70.78
         test_aggregator empty_table (Mode 0 test_name) test_name Nothing
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

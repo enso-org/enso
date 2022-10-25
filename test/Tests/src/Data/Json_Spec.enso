@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Test_Result.Test_Result
 
 type Author
     Value name year_of_birth
@@ -10,24 +11,24 @@ type Book
 
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
-        _ -> Test.Failure "Expected a parse error, but no error reported."
+        _ -> Test_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
         Json.Parse_Error_Data msg ->
-            if msg.contains expected then Test.Success else
+            if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
-                Test.Failure fail_msg
+                Test_Result.Failure fail_msg
         _ ->
             fail_msg = "Expected a parser error, but " + e.to_text + " was thrown."
-            Test.Failure fail_msg
+            Test_Result.Failure fail_msg
     case result of
-        Test.Success -> Test.Success
-        fail -> Panic.throw fail
+        Test_Result.Success -> Test_Result.Success
+        _ -> Panic.throw result
 
 Text.should_parse_as self expected =
-    Test.Verbs.equal (Json.parse self) expected.to_json
+    Json.parse self . should_equal expected.to_json
 
 Text.should_render_itself self =
-    Test.Verbs.equal (Json.parse self . to_text) self
+    Json.parse self . to_text . should_equal self
 
 spec =
     Test.group "JSON Deserialization" <|
@@ -125,4 +126,4 @@ spec =
             object.get "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with Json.No_Such_Field_Error_Data
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

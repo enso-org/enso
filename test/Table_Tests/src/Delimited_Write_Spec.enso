@@ -5,8 +5,7 @@ from Standard.Base.Error.Problem_Behavior import all
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
 from Standard.Table.Errors import all
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 from project.Util import all
 
@@ -539,4 +538,4 @@ spec =
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

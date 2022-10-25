@@ -43,7 +43,7 @@ public class OrderBuilder {
      * @return a comparator with properties described above
      */
     public Comparator<Integer> toComparator() {
-      final Storage storage = column.getStorage();
+      final Storage<?> storage = column.getStorage();
       Comparator<Object> itemCmp = customComparator;
       if (!ascending) {
         itemCmp = itemCmp.reversed();

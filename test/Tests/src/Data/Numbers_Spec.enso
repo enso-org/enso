@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Base.Data.Numbers import Parse_Error_Data
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 Integer.is_even self = self % 2 == 0
 
@@ -320,4 +320,4 @@ spec =
             Number.nan . equals Number.nan . should_be_false
             Number.nan . equals 0 . should_be_false
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

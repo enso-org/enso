@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
  * DoubleStorage}.
  */
 public abstract class NumericAggregator extends Aggregator {
-  private final NumericStorage storage;
+  private final NumericStorage<?> storage;
   private final long[] data;
   private final BitSet missing;
   private int position = 0;
@@ -24,7 +24,7 @@ public abstract class NumericAggregator extends Aggregator {
    * @param storage the data source
    * @param resultSize the number of times {@link Aggregator#nextGroup(IntStream)} will be called
    */
-  public NumericAggregator(NumericStorage storage, int resultSize) {
+  public NumericAggregator(NumericStorage<?> storage, int resultSize) {
     this.storage = storage;
     this.data = new long[resultSize];
     this.missing = new BitSet();
@@ -72,7 +72,7 @@ public abstract class NumericAggregator extends Aggregator {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Double> seal() {
     return new DoubleStorage(data, data.length, missing);
   }
 }

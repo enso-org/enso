@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test_Suite
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec
@@ -65,6 +65,7 @@ import project.Runtime.Lazy_Generator_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
+import project.System.File_Read_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
@@ -72,7 +73,7 @@ import project.System.System_Spec
 
 import project.Random_Spec
 
-main = Test.Suite.run_main <|
+main = Test_Suite.run_main <|
     Any_Spec.spec
     Array_Polyglot_Spec.spec
     Array_Spec.spec
@@ -84,6 +85,7 @@ main = Test.Suite.run_main <|
     Error_Spec.spec
     Environment_Spec.spec
     File_Spec.spec
+    File_Read_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec
     Http_Header_Spec.spec

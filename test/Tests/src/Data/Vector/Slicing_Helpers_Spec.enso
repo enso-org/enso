@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Vector Slicing Helpers" <|
     Test.specify "should be able to sort correctly merge neighboring sequences" <|
@@ -18,4 +18,4 @@ spec = Test.group "Vector Slicing Helpers" <|
         merge [Range_Data 0 1, Range_Data 0 1] . should_equal [Range_Data 0 1]
         merge [Range_Data 0 1, Range_Data 1 2] . should_equal [Range_Data 0 2]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public class UnresolvedSymbol implements TruffleObject {
+public final class UnresolvedSymbol implements TruffleObject {
   private final String name;
   private final ModuleScope scope;
 

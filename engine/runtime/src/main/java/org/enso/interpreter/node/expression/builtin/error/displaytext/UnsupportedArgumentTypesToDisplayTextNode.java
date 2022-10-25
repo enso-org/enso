@@ -1,18 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.error.displaytext;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
-
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @BuiltinMethod(type = "Unsupported_Argument_Types", name = "to_display_text")
 public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
@@ -23,20 +19,13 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  @CompilerDirectives.TruffleBoundary
-  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
-    Object args = self.getFields()[0];
-    String argsRep;
-    if (args instanceof Array) {
-      Object[] arguments = ((Array) args).getItems();
-      argsRep =
-          Arrays.stream(arguments)
-              .map(displayTypeNode::execute)
-              .collect(Collectors.joining(", ", "[", "]"));
-    } else {
-      argsRep = displayTypeNode.execute(args);
+  Text doAtom(Atom self, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Object messageArg = self.getFields()[1];
+    try {
+      return Text.create(interop.asString(messageArg));
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
     }
-    return Text.create("Unsupported argument types: ").add(argsRep);
   }
 
   @Specialization

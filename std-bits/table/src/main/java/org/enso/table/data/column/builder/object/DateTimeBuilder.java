@@ -32,7 +32,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<ZonedDateTime> seal() {
     return new DateTimeStorage(data, currentSize);
   }
 }
