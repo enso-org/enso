@@ -437,7 +437,7 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let new_displayed_expr = node_view::Expression {
             pattern:             node.info.pattern().map(|t| t.repr()),
-            code:                ImString::new(node.info.expression().repr()),
+            code:                node.info.expression().repr().into(),
             whole_expression_id: node.info.expression().id,
             input_span_tree:     trees.inputs,
             output_span_tree:    trees.outputs.unwrap_or_else(default),
@@ -873,7 +873,7 @@ mod tests {
         let view = nodes[0].view;
         let expected_new_expression = view::graph_editor::component::node::Expression {
             pattern:             None,
-            code:                ImString::new("foo baz"),
+            code:                "foo baz".into(),
             whole_expression_id: Some(node_id),
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),

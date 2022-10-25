@@ -618,6 +618,8 @@ impl Model {
         });
     }
 
+    /// Set a displayed expression, updating the input ports. `is_editing` indicates whether the
+    /// expression is being edited by the user.
     #[profile(Debug)]
     fn set_expression(
         &self,
@@ -809,7 +811,7 @@ impl Area {
             );
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&edit_mode);
-            frp.output.source.expression <+ expression_changed_by_user.map(|e| ImString::new(e));
+            frp.output.source.expression <+ expression_changed_by_user.ref_into();
 
 
             // === Expression Type ===
