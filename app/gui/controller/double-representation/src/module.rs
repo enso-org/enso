@@ -1,7 +1,7 @@
 //! Code for module-level double representation processing.
 
 use crate::prelude::*;
-use enso_text::unit::*;
+use enso_text::index::*;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -13,7 +13,6 @@ use crate::identifier::ReferentName;
 use crate::project;
 use crate::tp;
 
-use ast::constants::keywords::HERE;
 use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
@@ -33,6 +32,11 @@ use serde::Serialize;
 #[fail(display = "Import `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
 pub struct ImportNotFound(pub ImportInfo);
+
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Import with ID `{}` was not found in the module.", _0)]
+#[allow(missing_docs)]
+pub struct ImportIdNotFound(pub ImportId);
 
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Line index is out of bounds.")]
@@ -87,8 +91,6 @@ impl Display for Id {
 
 impl Id {
     /// Construct a module's ID value from a name segments sequence.
-    ///
-    /// Fails if the given sequence is empty.
     pub fn new(segments: impl IntoIterator<Item = ReferentName>) -> Id {
         let segments = segments.into_iter().collect_vec();
         Id { segments }
@@ -96,7 +98,7 @@ impl Id {
 
     /// Construct a module's ID value from a name segments sequence.
     ///
-    /// Fails if the sequence is empty or if any of the segments is not a valid referent name.
+    /// Fails if any of the segments is not a valid referent name.
     pub fn try_new(segments: impl IntoIterator<Item: AsRef<str>>) -> FallibleResult<Id> {
         let texts = segments.into_iter();
         let names = texts.map(|text| ReferentName::new(text.as_ref()));
@@ -171,11 +173,8 @@ impl QualifiedName {
     }
 
     /// Create a qualified name for the project's main module.
-    ///
-    /// It is special, as its name consists only from the project name, unlike other modules'
-    /// qualified names.
     pub fn new_main(project_name: project::QualifiedName) -> QualifiedName {
-        Self::new(project_name, Id::new(std::iter::empty()))
+        Self::new(project_name, project::main_module_id())
     }
 
     /// Constructs a qualified name from its text representation.
@@ -291,7 +290,16 @@ impl QualifiedName {
 
     /// Check if the name refers to some library's top module.
     pub fn is_top_module(&self) -> bool {
-        self.id.segments.len() == 1
+        self.id.segments.len() <= 1
+    }
+
+    /// Check if the name refers to some project's Main module.
+    pub fn is_main_module(&self) -> bool {
+        match self.id.segments.len() {
+            0 => true,
+            1 if self.id.segments[0] == PROJECTS_MAIN_MODULE => true,
+            _ => false,
+        }
     }
 
     /// Get the top module containing the module referred by this name. Return self if it is already
@@ -303,9 +311,24 @@ impl QualifiedName {
     /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
     /// module.
     pub fn parent_module(&self) -> Option<Self> {
-        let id = Id::try_new(self.id.parent_segments()).ok()?;
-        let project_name = self.project_name.clone();
-        Some(Self { project_name, id })
+        if self.is_top_module() {
+            None
+        } else {
+            let id = Id::try_new(self.id.parent_segments()).ok()?;
+            let project_name = self.project_name.clone();
+            Some(Self { project_name, id })
+        }
+    }
+
+    /// Returns an iterator over all parent modules. The `self` is not included.
+    pub fn parent_modules(&self) -> impl Iterator<Item = Self> {
+        let mut current = self.clone();
+        iter::from_fn(move || {
+            current.parent_module().map(|parent| {
+                current = parent.clone();
+                parent
+            })
+        })
     }
 }
 
@@ -387,12 +410,15 @@ impl PartialEq<tp::QualifiedName> for QualifiedName {
 // === ImportInfo ===
 // ==================
 
+/// Id for an import.
+pub type ImportId = u64;
+
 /// Representation of a single import declaration.
 // TODO [mwu]
 // Currently only supports the unqualified imports like `import Foo.Bar`. Qualified, restricted and
 // and hiding imports are not supported by the parser yet. In future when parser and engine
 // supports them, this structure should be adjusted as well.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, Hash)]
 pub struct ImportInfo {
     /// The segments of the qualified name of the imported target.
     ///
@@ -435,6 +461,16 @@ impl ImportInfo {
     pub fn from_match(ast: known::Match) -> Option<Self> {
         ast::macros::is_match_import(&ast)
             .then(|| ImportInfo::from_target_str(ast.segs.head.body.repr().trim()))
+    }
+
+    /// Return the ID of the import.
+    ///
+    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI
+    /// internal and not known in the engine.
+    pub fn id(&self) -> ImportId {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
 
@@ -519,6 +555,17 @@ impl Info {
         Ok(())
     }
 
+    /// Remove a line that matches given import ID.
+    ///
+    /// If there is more than one line matching, only the first one will be removed.
+    /// Fails if there is no import matching given argument.
+    pub fn remove_import_by_id(&mut self, to_remove: ImportId) -> FallibleResult {
+        let lookup_result = self.enumerate_imports().find(|(_, import)| import.id() == to_remove);
+        let (crumb, _) = lookup_result.ok_or(ImportIdNotFound(to_remove))?;
+        self.remove_line(crumb.line_index)?;
+        Ok(())
+    }
+
     /// Add a new import declaration to a module.
     ///
     /// This function will try to keep imports in lexicographic order. It returns the index where
@@ -526,7 +573,7 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &parser::Parser, to_add: ImportInfo) -> usize {
+    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: ImportInfo) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
             self.enumerate_imports().take_while(|(_, import)| to_add.target > import.target).last();
@@ -541,7 +588,7 @@ impl Info {
     pub fn add_module_import(
         &mut self,
         here: &QualifiedName,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
         to_add: &QualifiedName,
     ) {
         let is_here = to_add == here;
@@ -601,7 +648,7 @@ impl Info {
         &mut self,
         method: definition::ToAdd,
         location: Placement,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
     ) -> FallibleResult {
         let no_indent = 0;
         let definition_ast = method.ast(no_indent, parser)?;
@@ -640,7 +687,7 @@ impl From<known::Module> for Info {
 // =================
 
 /// Structure describing where to place something being added to the module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the beginning of the module.
     Begin,
@@ -751,27 +798,22 @@ pub fn locate(
 /// The module is assumed to be in the file identified by the `method.file` (for the purpose of
 /// desugaring implicit extensions methods for modules).
 ///
-/// The `module_name` parameter is the name of the module that contains `ast`. It affects how the
-/// `here` keyword is resolved.
+/// The `module_name` parameter is the name of the module that contains `ast`.
 pub fn lookup_method(
     module_name: &QualifiedName,
     ast: &known::Module,
     method: &language_server::MethodPointer,
 ) -> FallibleResult<definition::Id> {
     let qualified_typename = tp::QualifiedName::from_text(&method.defined_on_type)?;
-    let accept_here_methods = module_name == &qualified_typename;
+    let defined_in_this_module = module_name == &qualified_typename;
     let method_module_name = QualifiedName::try_from(method)?;
     let implicit_extension_allowed = method.defined_on_type == method_module_name.to_string();
     for child in ast.def_iter() {
         let child_name = &child.name.item;
         let name_matches = child_name.name.item == method.name;
         let type_matches = match child_name.extended_target.as_slice() {
-            [] => implicit_extension_allowed,
-            [typename] => {
-                let explicit_type_matching = typename.item == qualified_typename.name;
-                let here_extension_matching = typename.item == HERE && accept_here_methods;
-                explicit_type_matching || here_extension_matching
-            }
+            [] => implicit_extension_allowed || defined_in_this_module,
+            [typename] => typename.item == qualified_typename.name,
             _ => child_name.explicitly_extends_type(&method.defined_on_type),
         };
         if name_matches && type_matches {
@@ -786,7 +828,7 @@ pub fn lookup_method(
 pub fn definition_span(
     ast: &known::Module,
     id: &definition::Id,
-) -> FallibleResult<enso_text::Range<Bytes>> {
+) -> FallibleResult<enso_text::Range<Byte>> {
     let location = locate(ast, id)?;
     ast.range_of_descendant_at(&location.crumbs)
 }
@@ -836,7 +878,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_listing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
             let ast = parser.parse_module(code, default()).unwrap();
             let info = Info { ast };
@@ -859,7 +901,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_adding_and_removing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let code = "import Foo.Bar.Baz";
         let ast = parser.parse_module(code, default()).unwrap();
         let mut info = Info { ast };
@@ -888,7 +930,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn implicit_method_resolution() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module_name =
             QualifiedName::from_all_segments(&["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
@@ -923,9 +965,6 @@ mod tests {
         // Explicit module extension method.
         let id = definition::Id::new_single_crumb(DefinitionName::new_method("Main", "foo"));
         expect_find(&ptr, "Main.foo a b = a + b", &id);
-        // Explicit extensions using "here" keyword.
-        let id = definition::Id::new_single_crumb(DefinitionName::new_method("here", "foo"));
-        expect_find(&ptr, "here.foo a b = a + b", &id);
         // Matching name but extending wrong type.
         expect_not_found(&ptr, "Number.foo a b = a + b");
         // Mismatched name.
@@ -944,7 +983,6 @@ mod tests {
         let id = definition::Id::new_single_crumb(DefinitionName::new_method("Number", "foo"));
         expect_find(&ptr, "Number.foo a b = a + b", &id);
         expect_not_found(&ptr, "Text.foo a b = a + b");
-        expect_not_found(&ptr, "here.foo a b = a + b");
         expect_not_found(&ptr, "bar a b = a + b");
     }
 
@@ -964,7 +1002,7 @@ other def =
 
 last def = inline expression";
 
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = parser.parse_module(code, default()).unwrap();
         let module = Info { ast: module };
 
@@ -976,17 +1014,17 @@ last def = inline expression";
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("inline expression"));
 
-        let id = definition::Id::new_plain_names(&["other", "nested"]);
+        let id = definition::Id::new_plain_names(["other", "nested"]);
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("nested body"));
     }
 
     #[wasm_bindgen_test]
     fn add_method() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = r#"Main.method1 arg = body
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
 
         let module = Info::from(parser.parse_module(module, default()).unwrap());
         let method1_id = DefinitionName::new_method("Main", "method1");
@@ -1008,12 +1046,12 @@ main = here.method1 10"#;
 
 Main.method1 arg = body
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
         assert_eq!(repr_after_insertion(Placement::Begin), expected);
 
         let expected = r#"Main.method1 arg = body
 
-main = here.method1 10
+main = Main.method1 10
 
 Main.add arg1 arg2 = arg1 + arg2"#;
         assert_eq!(repr_after_insertion(Placement::End), expected);
@@ -1022,7 +1060,7 @@ Main.add arg1 arg2 = arg1 + arg2"#;
 
 Main.add arg1 arg2 = arg1 + arg2
 
-main = here.method1 10"#;
+main = Main.method1 10"#;
         assert_eq!(repr_after_insertion(Placement::After(method1_id.clone())), expected);
 
         assert_eq!(

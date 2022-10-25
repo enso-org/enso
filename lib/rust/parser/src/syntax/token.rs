@@ -50,7 +50,8 @@
 //! ```text
 //! pub enum Variant {
 //!     Newline (variant::Newline),
-//!     Symbol (variant::Symbol),
+//!     OpenSymbol (variant::OpenSymbol),
+//!     CloseSymbol (variant::CloseSymbol),
 //!     Wildcard (variant::Wildcard),
 //!     Ident (variant::Ident),
 //!     // ... many more
@@ -82,7 +83,8 @@
 //! ```text
 //! pub enum VariantMarker {
 //!     Newline,
-//!     Symbol,
+//!     OpenSymbol,
+//!     CloseSymbol,
 //!     Wildcard,
 //!     Ident,
 //!     // ... many more
@@ -106,14 +108,14 @@ use enso_shapely_macros::tagged_enum;
 #[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
+    #[reflect(flatten, hide)]
+    pub left_offset: Offset<'s>,
+    #[reflect(flatten)]
+    pub code:        Code<'s>,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
     pub variant:     T,
-    #[reflect(flatten, hide)]
-    pub left_offset: Offset<'s>,
-    #[reflect(flatten, hide)]
-    pub code:        Code<'s>,
 }
 
 /// Constructor.
@@ -163,7 +165,7 @@ impl<'s, T> Token<'s, T> {
 
     /// Span of this token.
     pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         span::Ref { left_offset: &self.left_offset, code_length }
     }
 }
@@ -185,7 +187,7 @@ impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
-        let code_length = self.code.len();
+        let code_length = self.code.length();
         Span { left_offset, code_length }
     }
 }
@@ -252,30 +254,63 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[derive(Default)]
     pub enum Variant {
         Newline,
-        Symbol,
+        OpenSymbol,
+        CloseSymbol,
         BlockStart,
         BlockEnd,
         Wildcard {
             pub lift_level: usize
         },
+        AutoScope,
         Ident {
-            pub is_free: bool,
-            pub lift_level: usize
+            pub is_free:     bool,
+            pub lift_level:  usize,
+            #[serde(skip)]
+            #[reflect(skip)]
+            pub is_type:     bool,
+            #[serde(skip)]
+            #[reflect(skip)]
+            pub is_default:  bool,
         },
         Operator {
-            pub binary_infix_precedence: Option<Precedence>,
-            pub unary_prefix_precedence: Option<Precedence>,
+            #[serde(skip)]
+            #[reflect(skip)]
+            pub properties: OperatorProperties,
         },
-        Modifier,
-        Comment,
-        DocComment,
-        Number,
+        Digits {
+            pub base: Option<Base>
+        },
+        NumberBase,
         TextStart,
         TextEnd,
         TextSection,
-        TextEscape,
+        TextEscape {
+            #[serde(serialize_with = "crate::serialization::serialize_optional_char")]
+            #[serde(deserialize_with = "crate::serialization::deserialize_optional_char")]
+            #[reflect(as = "char")]
+            pub value: Option<char>,
+        },
+        TextInitialNewline,
+        Invalid,
     }
 }}}
+
+impl Variant {
+    /// Return whether this token can introduce a macro segment.
+    pub fn can_start_macro_segment(&self) -> bool {
+        !matches!(
+            self,
+            // Prevent macro interpretation of symbols that have been lexically contextualized as
+            // text escape control characters.
+            Variant::TextEscape(_)
+            | Variant::TextSection(_)
+            | Variant::TextStart(_)
+            | Variant::TextEnd(_)
+            // Prevent macro interpretation of lexically-inappropriate tokens.
+            | Variant::Invalid(_)
+        )
+    }
+}
 
 impl Default for Variant {
     fn default() -> Self {
@@ -286,19 +321,235 @@ impl Default for Variant {
 
 // === Operator properties ===
 
+/// Properties of an operator that are identified when lexing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct OperatorProperties {
+    // Precedence
+    binary_infix_precedence:   Option<Precedence>,
+    unary_prefix_precedence:   Option<Precedence>,
+    // Operator section behavior
+    lhs_section_termination:   Option<crate::syntax::operator::SectionTermination>,
+    // Special properties
+    is_compile_time_operation: bool,
+    is_right_associative:      bool,
+    // Unique operators
+    can_be_decimal_operator:   bool,
+    is_type_annotation:        bool,
+    is_assignment:             bool,
+    is_arrow:                  bool,
+    is_sequence:               bool,
+    is_suspension:             bool,
+    is_annotation:             bool,
+    is_dot:                    bool,
+    is_special:                bool,
+}
+
+impl OperatorProperties {
+    /// Construct an operator with default properties.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Return a copy of this operator, with the given binary infix precedence.
+    pub fn with_binary_infix_precedence(self, value: usize) -> Self {
+        let precedence = Precedence { value };
+        debug_assert!(precedence > Precedence::min());
+        Self { binary_infix_precedence: Some(precedence), ..self }
+    }
+
+    /// Return a copy of this operator, with unary prefix parsing allowed.
+    pub fn with_unary_prefix_mode(self, precedence: Precedence) -> Self {
+        debug_assert!(precedence > Precedence::min());
+        Self { unary_prefix_precedence: Some(precedence), ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a compile time operation.
+    pub fn as_compile_time_operation(self) -> Self {
+        Self { is_compile_time_operation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as right associative.
+    pub fn as_right_associative(self) -> Self {
+        Self { is_right_associative: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as special.
+    pub fn as_special(self) -> Self {
+        Self { is_special: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to have the specified LHS operator-section/
+    /// template-function behavior.
+    pub fn with_lhs_section_termination<T>(self, lhs_section_termination: T) -> Self
+    where T: Into<Option<crate::syntax::operator::SectionTermination>> {
+        Self { lhs_section_termination: lhs_section_termination.into(), ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as a type annotation operator.
+    pub fn as_type_annotation(self) -> Self {
+        Self { is_type_annotation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an assignment operator.
+    pub fn as_assignment(self) -> Self {
+        Self { is_assignment: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as an arrow operator.
+    pub fn as_arrow(self) -> Self {
+        Self { is_arrow: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the sequence operator.
+    pub fn as_sequence(self) -> Self {
+        Self { is_sequence: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the annotation operator.
+    pub fn as_annotation(self) -> Self {
+        Self { is_annotation: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the execution-suspension operator.
+    pub fn as_suspension(self) -> Self {
+        Self { is_suspension: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to be flagged as the dot operator.
+    pub fn as_dot(self) -> Self {
+        Self { is_dot: true, ..self }
+    }
+
+    /// Return a copy of this operator, modified to allow an interpretion as a decmial point.
+    pub fn with_decimal_interpretation(self) -> Self {
+        Self { can_be_decimal_operator: true, ..self }
+    }
+
+    /// Return this operator's binary infix precedence, if it has one.
+    pub fn binary_infix_precedence(&self) -> Option<Precedence> {
+        self.binary_infix_precedence
+    }
+
+    /// Return this operator's unary prefix precedence, if it has one.
+    pub fn unary_prefix_precedence(&self) -> Option<Precedence> {
+        self.unary_prefix_precedence
+    }
+
+    /// Return whether this operator can form operator sections.
+    pub fn can_form_section(&self) -> bool {
+        !self.is_compile_time_operation
+    }
+
+    /// Return whether this operator is the type annotation operator.
+    pub fn is_type_annotation(&self) -> bool {
+        self.is_type_annotation
+    }
+
+    /// Return the LHS operator-section/template-function behavior of this operator.
+    pub fn lhs_section_termination(&self) -> Option<crate::syntax::operator::SectionTermination> {
+        self.lhs_section_termination
+    }
+
+    /// Return whether this operator is illegal outside special uses.
+    pub fn is_special(&self) -> bool {
+        self.is_special
+    }
+
+    /// Return whether this operator is the assignment operator.
+    pub fn is_assignment(&self) -> bool {
+        self.is_assignment
+    }
+
+    /// Return whether this operator is the arrow operator.
+    pub fn is_arrow(&self) -> bool {
+        self.is_arrow
+    }
+
+    /// Return whether this operator is the sequence operator.
+    pub fn is_sequence(&self) -> bool {
+        self.is_sequence
+    }
+
+    /// Return whether this operator is the execution-suspension operator.
+    pub fn is_suspension(&self) -> bool {
+        self.is_suspension
+    }
+
+    /// Return whether this operator is the annotation operator.
+    pub fn is_annotation(&self) -> bool {
+        self.is_annotation
+    }
+
+    /// Return whether this operator is the dot operator.
+    pub fn is_dot(&self) -> bool {
+        self.is_dot
+    }
+
+    /// Return this operator's associativity.
+    pub fn associativity(&self) -> Associativity {
+        match self.is_right_associative {
+            false => Associativity::Left,
+            true => Associativity::Right,
+        }
+    }
+
+    /// Return whether this operator can be interpreted as a decimal point.
+    pub fn can_be_decimal_operator(&self) -> bool {
+        self.can_be_decimal_operator
+    }
+}
+
 /// Value that can be compared to determine which operator will bind more tightly within an
 /// expression.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
 pub struct Precedence {
     /// A numeric value determining precedence order.
-    pub value: usize,
+    value: usize,
 }
 
 impl Precedence {
-    /// Return a precedence that is not higher than any other precedence.
-    pub fn minimum() -> Self {
+    /// Return a precedence that is lower than the precedence of any operator.
+    pub fn min() -> Self {
         Precedence { value: 0 }
     }
+
+    /// Return the precedence for any operator.
+    pub fn min_valid() -> Self {
+        Precedence { value: 1 }
+    }
+
+    /// Return a precedence that is not lower than any other precedence.
+    pub fn max() -> Self {
+        Precedence { value: 100 }
+    }
+
+    /// Return the precedence of application.
+    pub fn application() -> Self {
+        Precedence { value: 80 }
+    }
+}
+
+/// Associativity (left or right).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Associativity {
+    /// Left-associative.
+    Left,
+    /// Right-associative.
+    Right,
+}
+
+
+// === Numbers ===
+
+/// Alternate numeric bases (decimal is the default).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize)]
+pub enum Base {
+    /// Base 2.
+    Binary,
+    /// Base 8.
+    Octal,
+    /// Base 16.
+    Hexadecimal,
 }
 
 
@@ -310,7 +561,9 @@ macro_rules! generate_token_aliases {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({
+                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
+                })?
             ),* $(,)?
         }
     ) => { paste!{

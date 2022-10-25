@@ -103,13 +103,11 @@ impl {
     /// Create a new scope with the provided dirty callback.
     pub fn new<OnMut:callback::NoArgs+Clone>
     (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
-        info!(lgr,"Initializing.",|| {
+        debug_span!("Initializing.").in_scope(|| {
             let logger          = lgr.clone();
             let stats           = stats.clone_ref();
-            let buffer_logger   = Logger::new_sub(&logger,"buffer_dirty");
-            let shape_logger    = Logger::new_sub(&logger,"shape_dirty");
-            let buffer_dirty    = BufferDirty::new(buffer_logger,Box::new(on_mut.clone()));
-            let shape_dirty     = ShapeDirty::new(shape_logger,Box::new(on_mut));
+            let buffer_dirty    = BufferDirty::new(Box::new(on_mut.clone()));
+            let shape_dirty     = ShapeDirty::new(Box::new(on_mut));
             let buffers         = default();
             let buffer_name_map = default();
             let free_ids        = default();
@@ -127,7 +125,7 @@ impl {
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
         let ix           = self.buffers.reserve_index();
-        debug!(self.logger, "Adding buffer '{name}' at index {ix}.", || {
+        debug_span!("Adding buffer '{name}' at index {ix}.").in_scope(|| {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });
             let logger     = Logger::new_sub(&self.logger,&name);
@@ -154,7 +152,7 @@ impl {
     /// Add a new instance to every buffer in the scope.
     pub fn add_instance(&mut self) -> InstanceIndex {
         let instance_count = 1;
-        debug!(self.logger, "Adding {instance_count} instance(s).", || {
+        debug_span!("Adding {instance_count} instance(s).").in_scope(|| {
             match self.free_ids.iter().next().copied() {
                 Some(ix) => {
                     self.free_ids.remove(&ix);
@@ -173,7 +171,7 @@ impl {
     /// Dispose instance for reuse in the future. All data in all buffers at the provided `id` will
     /// be set to default.
     pub fn dispose(&mut self, ix:InstanceIndex) {
-        debug!(self.logger, "Disposing instance {ix}.", || {
+        debug_span!("Disposing instance {ix}.").in_scope(|| {
             for buffer in &self.buffers {
                 buffer.set_to_default(ix.into())
             }
@@ -183,7 +181,7 @@ impl {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if self.shape_dirty.check() {
                 for i in 0..self.buffers.len() {
                     self.buffers[i].update()

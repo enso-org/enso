@@ -5,6 +5,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -26,7 +28,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;
@@ -36,7 +38,7 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
-use parser::Parser;
+use parser_scala::Parser;
 use uuid::Uuid;
 
 
@@ -107,7 +109,7 @@ fn init(app: &Application) {
 
     app.views.register::<root::View>();
     app.views.register::<project::View>();
-    app.views.register::<text::Area>();
+    app.views.register::<text::Text>();
     app.views.register::<GraphEditor>();
     let root_view = app.new_view::<root::View>();
     let project_view = root_view.project();

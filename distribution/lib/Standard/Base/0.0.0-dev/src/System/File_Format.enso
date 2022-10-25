@@ -1,0 +1,70 @@
+from Standard.Base import all
+from Standard.Base.Error.Common import unimplemented
+
+from project.System.File_Format.Plain_Text_Format import Plain_Text
+from project.System.File_Format.Plain_Text_Format export Plain_Text
+
+polyglot java import org.enso.base.file_format.FileFormatSPI
+
+## PRIVATE
+format_types : Vector
+format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
+
+type Auto_Detect
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any ! Unsupported_File_Type
+    read self file on_problems =
+        reader = Auto_Detect.get_format file
+        if reader == Nothing then Error.throw (Unsupported_File_Type_Data ("No known File_Format supports '" + file.extension + "'")) else
+            reader.read file on_problems
+
+    ## PRIVATE
+    get_format : File -> Any | Nothing
+    get_format file =
+        reader idx =
+            if idx >= format_types.length then Nothing else
+                format = format_types.at idx . for_file file
+                if format.is_nothing.not then format else
+                    @Tail_Call reader (idx + 1)
+        reader 0
+
+type File_Format
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read _ _ = unimplemented "This is an interface only."
+
+type Plain_Text_Format
+    Plain_Text (encoding:Encoding=Encoding.utf_8)
+
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Plain_Text_Format | Nothing
+    for_file file =
+        case file.extension of
+            ".txt" -> Plain_Text
+            ".log" -> Plain_Text
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        file.read_text self.encoding on_problems
+
+type Bytes
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> Bytes | Nothing
+    for_file file =
+        case file.extension of
+            ".dat" -> Bytes
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file _ =
+        file.read_bytes
+
+## A setting to infer the default behaviour of some option.
+type Infer

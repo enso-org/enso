@@ -202,14 +202,14 @@ pub trait Shape: display::Object + CloneRef + Debug + Sized {
 /// on bound.
 ///
 /// The easiest way to define such a shape is by using the `define_shape_system` macro.
-pub trait DynamicShape: display::Object + CloneRef + Debug + Sized {
+pub trait DynamicShape: display::Object + CloneRef + Debug + Default + Sized {
     /// The static version of the shape. Dynamic shapes can be associated with one or more static
     /// shapes after they are placed on the stage and initialized.
     type StaticShape: Shape;
     /// The shape system instance this shape belongs to.
     type System: DynShapeSystemInstance<DynamicShape = Self>;
     /// Constructor.
-    fn new(logger: impl AnyLogger) -> Self;
+    fn new() -> Self;
     /// Accessor for the underlying sprite, if the shape is initialized.
     fn sprites(&self) -> Vec<Sprite>;
     /// The "canvas" size of the shape. It defines the bounding-box for the shape drawing area.
@@ -280,6 +280,11 @@ where
     /// Get the parameter value.
     pub fn get(&self) -> T::Item {
         self.cache.get()
+    }
+
+    /// Modify the parameter value.
+    pub fn modify(&self, f: impl FnOnce(T::Item) -> T::Item) {
+        self.set(f(self.get()))
     }
 }
 
@@ -444,7 +449,7 @@ macro_rules! _define_shape_system {
             /// buffers sections. Otherwise, changing a parameter will not have any visual effect,
             /// however, all the changes will be recorded and applied as soon as the shape will get
             /// initialized.
-            #[derive(Clone,CloneRef,Debug)]
+            #[derive(Clone, CloneRef, Debug, Default)]
             #[allow(missing_docs)]
             pub struct DynamicShape {
                 display_object : display::object::Instance,
@@ -464,12 +469,8 @@ macro_rules! _define_shape_system {
                 type System      = ShapeSystem;
 
                 #[profile(Debug)]
-                fn new(logger:impl AnyLogger) -> Self {
-                    let logger : Logger = Logger::new_sub(&logger,"dyn_shape");
-                    let display_object  = display::object::Instance::new(&logger);
-                    let shapes          = default();
-                    let params          = default();
-                    Self {display_object,shapes,params}
+                fn new() -> Self {
+                    default()
                 }
 
                 fn sprites(&self) -> Vec<Sprite> {

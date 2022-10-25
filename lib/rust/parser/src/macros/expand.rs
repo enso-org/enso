@@ -206,7 +206,7 @@ pub trait Validator: PartialEq + Default + CloneRef {
 }
 
 /// Disabled validator. See the docs of [`VarMap`] to learn more.
-#[derive(Copy, Clone, CloneRef, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, CloneRef, Debug, Default, PartialEq, Eq)]
 pub struct DisabledValidator;
 
 /// Enabled validator. See the docs of [`VarMap`] to learn more.

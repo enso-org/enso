@@ -285,7 +285,7 @@ impl CompilerData {
                     if now > deadline {
                         let msg1 = "Shaders compilation takes more than the available frame time.";
                         let msg2 = "To be continued in the next frame.";
-                        debug!(self.logger, "{msg1} {msg2}");
+                        trace!("{msg1} {msg2}");
                         break;
                     }
                 }
@@ -294,7 +294,7 @@ impl CompilerData {
                         break;
                     }
                     let err_msg = err.blocking_report(&self.context);
-                    error!(self.logger, "{err_msg}");
+                    error!("{err_msg}");
                 }
             }
         }
@@ -321,10 +321,10 @@ impl CompilerData {
                     if !jobs.compile.is_empty() {
                         let msg1 = "Maximum number of parallel shader compiler jobs.";
                         let msg2 = "Skipping spawning new ones.";
-                        debug!(self.logger, "{msg1} {msg2}");
+                        trace!("{msg1} {msg2}");
                     }
                 } else if jobs.khr_completion_check.is_empty() {
-                    debug!(self.logger, "All shaders compiled.");
+                    trace!("All shaders compiled.");
                     self.dirty = false;
                 }
                 no_progress
@@ -342,10 +342,10 @@ impl CompilerData {
 
     #[profile(Debug)]
     fn run_khr_completion_check_jobs(&mut self) {
-        debug!(self.logger, "Running KHR parallel shader compilation check job.");
+        trace!("Running KHR parallel shader compilation check job.");
         let jobs = &mut self.jobs.khr_completion_check;
         let ready_jobs =
-            jobs.drain_filter(|job| match job.khr.is_ready(&*self.context, &*job.program) {
+            jobs.drain_filter(|job| match job.khr.is_ready(&self.context, &job.program) {
                 Some(val) => val,
                 None => {
                     if !self.context.is_context_lost() {
@@ -385,8 +385,8 @@ impl CompilerData {
             let program = this.context.create_program().ok_or(Error::ProgramCreationError)?;
             let profiler = job.profiler;
             profiler.resume();
-            this.context.attach_shader(&program, &*shader.vertex);
-            this.context.attach_shader(&program, &*shader.fragment);
+            this.context.attach_shader(&program, &shader.vertex);
+            this.context.attach_shader(&program, &shader.fragment);
             this.context.link_program(&program);
             profiler.pause();
             let input = shader::Program::new(shader, program);
@@ -409,7 +409,7 @@ impl CompilerData {
             let program = job.input;
             let param = WebGl2RenderingContext::LINK_STATUS;
             job.profiler.resume();
-            let status = this.context.get_program_parameter(&*program, param);
+            let status = this.context.get_program_parameter(&program, param);
             job.profiler.finish();
             if !status.as_bool().unwrap_or(false) {
                 return Err(Error::ProgramLinkingError(program.shader));
@@ -427,11 +427,11 @@ impl CompilerData {
         f: impl FnOnce(&mut Self, Job<T>) -> Result<(), Error>,
     ) -> Result<(), Error> {
         while let Some(job) = jobs(self).pop() {
-            debug!(self.logger, "Running {label} job.");
+            trace!("Running {label} job.");
             if job.handler.exists() {
                 return f(self, job);
             } else {
-                debug!(self.logger, "Job handler dropped, skipping.");
+                trace!("Job handler dropped, skipping.");
             }
         }
         Ok(())

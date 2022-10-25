@@ -32,22 +32,22 @@
 #![feature(arc_unwrap_or_clone)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(drain_filter)]
 #![feature(exact_size_is_empty)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-#![feature(result_into_ok_or_err)]
 #![feature(result_option_inspect)]
 #![feature(map_try_insert)]
 #![feature(assert_matches)]
-#![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
+#![feature(unwrap_infallible)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -138,11 +138,10 @@ mod profile_workflow;
 // ===================
 
 /// IDE startup function.
+#[entry_point(ide)]
 #[profile(Objective)]
-#[wasm_bindgen]
 #[allow(dead_code)]
-pub fn entry_point_ide() {
-    init_tracing(WARN);
+pub fn main() {
     // Logging of build information.
     #[cfg(debug_assertions)]
     let debug_mode = true;
@@ -154,7 +153,7 @@ pub fn entry_point_ide() {
         analytics::AnonymousData(debug_mode),
     );
     let config =
-        crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration");
     let executor = crate::ide::initializer::setup_global_executor();
     let initializer = crate::ide::initializer::Initializer::new(config);
     executor::global::spawn(async move {

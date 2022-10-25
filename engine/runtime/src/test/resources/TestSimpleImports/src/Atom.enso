@@ -1,3 +1,4 @@
-type X a
+type X
+    Mk_X a
 
 X.method self = 20

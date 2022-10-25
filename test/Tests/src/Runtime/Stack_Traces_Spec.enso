@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test
 
 type My_Type
 
@@ -12,10 +12,9 @@ My_Type.foo self = foo 123
 
 spec = Test.group "Stack traces" <|
     Test.specify "should capture traces correctly" <|
-        modname = Meta.Constructor (Meta.meta Stack_Traces_Spec . constructor) . name
+        modname = Meta.get_simple_type_name Stack_Traces_Spec
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
         stack.take (First 5) . map .name . should_equal names
         file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
         stack.take (First 5) . map (.source_location >> .file) . each (_.should_equal file)
-

@@ -1,7 +1,9 @@
 package org.enso.table.data.column.operation.aggregate;
 
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Value;
 
 import java.util.List;
 import java.util.Objects;
@@ -12,9 +14,9 @@ import java.util.stream.Stream;
 
 /** Aggregates the storage using a provided {@link Function}. */
 public class FunctionAggregator extends Aggregator {
-  private final Function<List<Object>, Object> aggregateFunction;
+  private final Function<List<Object>, Value> aggregateFunction;
   private final boolean skipNa;
-  private final Storage storage;
+  private final Storage<?> storage;
   private final InferredBuilder builder;
 
   /**
@@ -24,8 +26,8 @@ public class FunctionAggregator extends Aggregator {
    * @param resultSize the number of times {@link Aggregator#nextGroup(IntStream)} will be called
    */
   public FunctionAggregator(
-      Function<List<Object>, Object> aggregateFunction,
-      Storage storage,
+      Function<List<Object>, Value> aggregateFunction,
+      Storage<?> storage,
       boolean skipNa,
       int resultSize) {
     this.aggregateFunction = aggregateFunction;
@@ -37,8 +39,9 @@ public class FunctionAggregator extends Aggregator {
   @Override
   public void nextGroup(IntStream positions) {
     List<Object> items = getItems(positions);
-    Object result = aggregateFunction.apply(items);
-    builder.appendNoGrow(result);
+    Value result = aggregateFunction.apply(items);
+    Object converted = Polyglot_Utils.convertPolyglotValue(result);
+    builder.appendNoGrow(converted);
   }
 
   private List<Object> getItems(IntStream positions) {
@@ -50,7 +53,7 @@ public class FunctionAggregator extends Aggregator {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     return builder.seal();
   }
 }

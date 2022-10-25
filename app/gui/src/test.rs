@@ -139,7 +139,7 @@ pub mod mock {
         pub module_path:  model::module::Path,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
         pub context_id:   model::execution_context::Id,
-        pub parser:       parser::Parser,
+        pub parser:       parser_scala::Parser,
         code:             String,
         id_map:           ast::IdMap,
         metadata:         crate::model::module::Metadata,
@@ -177,7 +177,7 @@ pub mod mock {
                 metadata: default(),
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
-                parser: parser::Parser::new_or_panic(),
+                parser: parser_scala::Parser::new_or_panic(),
                 logger,
             }
         }
@@ -191,9 +191,7 @@ pub mod mock {
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
-            let logger = &self.logger;
-            let module =
-                Rc::new(model::module::Plain::new(logger, path, ast, metadata, repository));
+            let module = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
             urm.module_opened(module.clone());
             module
         }
@@ -230,8 +228,7 @@ pub mod mock {
         }
 
         pub fn execution_context(&self) -> Rc<model::execution_context::Plain> {
-            let logger = Logger::new_sub(&self.logger, "Mocked Execution Context");
-            Rc::new(model::execution_context::Plain::new(logger, self.method_pointer()))
+            Rc::new(model::execution_context::Plain::new(self.method_pointer()))
         }
 
         pub fn project(
@@ -282,7 +279,7 @@ pub mod mock {
             let urm = self.undo_redo_manager();
             let module = self.module(urm.clone());
             let suggestion_db =
-                Rc::new(model::SuggestionDatabase::new_from_entries(&logger, &self.suggestions));
+                Rc::new(model::SuggestionDatabase::new_from_entries(&self.suggestions));
             let graph = self.graph(&logger, module.clone_ref(), suggestion_db.clone_ref());
             let execution = self.execution_context();
             let project = self.project(

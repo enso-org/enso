@@ -24,6 +24,10 @@ paste = { version = "0.1" }
 derivative = { version = "2.2.0" }
 shrinkwraprs = { version = "0.3.0" }
 rustversion = { version = "1.0" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
 
 [dev-dependencies]
 enso-prelude = { path = "../prelude" }

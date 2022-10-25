@@ -108,7 +108,7 @@ impl From<node::Expression> for Expression {
         span_tree.root_ref_mut().dfs_with_layer_data((), |node, ()| {
             let span = node.span();
             let port = node.payload_mut();
-            port.index = span.start;
+            port.index = span.start.into();
             port.length = span.size();
         });
         Expression { code, span_tree, whole_expr_type, whole_expr_id }
@@ -154,11 +154,10 @@ ensogl::define_endpoints! {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
     port_count:     Cell<usize>,
@@ -170,12 +169,11 @@ pub struct Model {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(logger: impl AnyLogger, app: &Application, frp: &Frp) -> Self {
-        let logger = Logger::new_sub(&logger, "output_ports");
-        let display_object = display::object::Instance::new(&logger);
-        let ports = display::object::Instance::new(&Logger::new_sub(&logger, "ports"));
+    pub fn new(app: &Application, frp: &Frp) -> Self {
+        let display_object = display::object::Instance::new();
+        let ports = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let port_count = default();
@@ -185,7 +183,6 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
-            logger,
             app,
             display_object,
             ports,
@@ -209,11 +206,11 @@ impl Model {
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.single_line(true);
+        self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(text_color);
-        self.label.set_default_text_size(text::Size(input::area::TEXT_SIZE));
+        self.label.set_property_default(text_color);
+        self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
 
         self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
@@ -367,9 +364,8 @@ impl Model {
             if is_a_port {
                 let port   = &mut node;
                 let crumbs = port.crumbs.clone_ref();
-                let logger = &self.logger;
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,&self.app,&self.styles,&self.styles_frp,port_index
+                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index
                     ,port_count);
                 let port_network = &port_frp.network;
 
@@ -466,9 +462,9 @@ impl Deref for Area {
 
 impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::new(logger, app, &frp));
+        let model = Rc::new(Model::new(app, &frp));
         let network = &frp.network;
         let label_color = color::Animation::new(network);
 
@@ -512,7 +508,7 @@ impl Area {
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
-            eval new_label_color ((color) model.label.set_color_all(color::Rgba::from(color)));
+            eval new_label_color ((color) model.label.set_property(.., color::Rgba::from(color)));
 
 
             // === View Mode ===

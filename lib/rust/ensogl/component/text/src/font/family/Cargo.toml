@@ -1,0 +1,12 @@
+[package]
+name = "ensogl-text-font-family"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+owned_ttf_parser = "0.15.1"
+enso-prelude = { path = "../../../../../../prelude" }
+
+[lib]
+crate-type = ["cdylib", "rlib"]

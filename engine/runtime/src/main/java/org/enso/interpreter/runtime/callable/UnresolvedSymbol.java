@@ -8,14 +8,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public class UnresolvedSymbol implements TruffleObject {
+public final class UnresolvedSymbol implements TruffleObject {
   private final String name;
   private final ModuleScope scope;
 
@@ -54,12 +54,14 @@ public class UnresolvedSymbol implements TruffleObject {
    * @param constructors the constructors hierarchy for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
-  public Function resolveFor(AtomConstructor... constructors) {
-    for (AtomConstructor constructor : constructors) {
-      Function candidate = scope.lookupMethodDefinition(constructor, name);
+  public Function resolveFor(Type type) {
+    Type current = type;
+    while (current != null) {
+      Function candidate = scope.lookupMethodDefinition(current, name);
       if (candidate != null) {
         return candidate;
       }
+      current = current.getSupertype();
     }
     return null;
   }

@@ -24,5 +24,5 @@ public abstract class Aggregator {
    *
    * @return the storage containing all aggregation results.
    */
-  public abstract Storage seal();
+  public abstract Storage<?> seal();
 }

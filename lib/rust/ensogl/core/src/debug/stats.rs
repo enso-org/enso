@@ -15,6 +15,7 @@
 
 use enso_prelude::*;
 
+use enso_types::unit2::Duration;
 use enso_web::Performance;
 use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
@@ -68,8 +69,8 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
     /// called, respectively, at the beginning and end of every frame. The very first time
     /// [`begin_frame()`] is called, it returns `None`, because it does not have complete
     /// statistics data for the preceding frame.
-    pub fn begin_frame(&self) -> Option<StatsData> {
-        self.rc.borrow_mut().begin_frame()
+    pub fn begin_frame(&self, time: Duration) -> Option<StatsData> {
+        self.rc.borrow_mut().begin_frame(time)
     }
 
     /// Ends tracking data for the current animation frame.
@@ -100,8 +101,11 @@ impl<T: TimeProvider> FramedStatsData<T> {
         Self { time_provider, stats_data, frame_begin_time }
     }
 
-    fn begin_frame(&mut self) -> Option<StatsData> {
-        let time = self.time_provider.now();
+    /// Starts tracking data for a new animation frame. The time is provided explicitly from the
+    /// JS `requestAnimationFrame` callback in order to be sure that we measure all the time,
+    /// including operations happening before calling this function.
+    fn begin_frame(&mut self, time: Duration) -> Option<StatsData> {
+        let time = time.unchecked_raw() as f64;
         let mut previous_frame_stats = self.stats_data;
         self.reset_per_frame_statistics();
         let previous_frame_begin_time = self.frame_begin_time.replace(time);

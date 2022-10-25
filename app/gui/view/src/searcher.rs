@@ -120,7 +120,7 @@ impl Model {
         let scene = &app.display.default_scene;
         let app = app.clone_ref();
         let logger = Logger::new("SearcherView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.focus();
         let documentation = documentation::View::new(scene);
@@ -229,8 +229,9 @@ impl View {
                 model.doc_provider.set(docs.clone_ref());
                 model.list.set_entries(entries);
             });
+            selected_entry <- model.list.selected_entry.on_change();
             eval frp.select_action ((id) model.list.select_entry(id));
-            source.selected_entry <+ model.list.selected_entry;
+            source.selected_entry <+ selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
             // source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
@@ -240,11 +241,11 @@ impl View {
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
             eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
-            is_selected               <- model.list.selected_entry.map(|e| e.is_some());
+            is_selected               <- selected_entry.map(|e| e.is_some());
             is_enabled                <- bool(&frp.hide,&frp.show);
             is_entry_enabled          <- is_selected && is_enabled;
-            displayed_doc             <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
-            opt_picked_entry          <- model.list.selected_entry.sample(&frp.use_as_suggestion);
+            displayed_doc             <- selected_entry.map(f!((id) model.docs_for(*id)));
+            opt_picked_entry          <- selected_entry.sample(&frp.use_as_suggestion);
             source.used_as_suggestion <+ opt_picked_entry.gate(&is_entry_enabled);
             source.editing_committed  <+ model.list.chosen_entry.gate(&is_entry_enabled);
 
@@ -287,7 +288,7 @@ impl display::Object for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }
@@ -305,7 +306,7 @@ impl application::View for View {
     }
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[(Press, "tab", "use_as_suggestion")])
+        [(Press, "tab", "use_as_suggestion")]
             .iter()
             .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
             .collect()

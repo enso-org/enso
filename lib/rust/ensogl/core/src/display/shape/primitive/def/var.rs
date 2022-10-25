@@ -279,8 +279,8 @@ impl<T: Scalar> Dim3 for Var<Vector4<T>> {
 impl<T: Scalar> Dim4 for Var<Vector4<T>> {
     fn w(&self) -> Var<T> {
         match self {
-            Self::Static(t) => Var::Static(t.z.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
+            Self::Static(t) => Var::Static(t.w.clone()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.w", t).into()),
         }
     }
 }

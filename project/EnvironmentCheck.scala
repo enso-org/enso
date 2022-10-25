@@ -82,9 +82,6 @@ object EnvironmentCheck {
     (state: State) => {
       val newState = oldTransition(state)
       val logger   = newState.log
-      val graalOk  = graalVersionOk(graalVersion, javaVersion, logger)
-      if (!graalOk)
-        throw new RuntimeException("Some versions checks failed.")
 
       newState
     }

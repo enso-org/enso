@@ -1,18 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Storage
-import Standard.Table.Data.Table
-
-## PRIVATE
-
-   Maps the vector using the given function. Filters out all error values.
-
-   Arguments:
-   - f: unary invokable that is applied to each vector element. Non-error
-        values are returned in the resulting vector. Error values are dropped.
-Vector.Vector.filter_map : Any -> Vector
-Vector.Vector.filter_map self f = self.map f . filter .is_valid
+from Standard.Table import Table, Column
+import Standard.Table.Data.Storage.Storage
 
 ## PRIVATE
 
@@ -98,11 +87,11 @@ recover_errors ~body =
    Returns all the columns in the table, including indices.
 
    Index columns are placed before other columns.
-Table.Table.all_columns : Vector
-Table.Table.all_columns self =
+Table.all_columns : Vector
+Table.all_columns self =
     index = self.index.catch_ []
     index_columns = case index of
-        Vector.Vector _ -> index
+        _ : Vector.Vector -> index
         a -> [a]
     index_columns + self.columns
 
@@ -114,15 +103,14 @@ Table.Table.all_columns self =
 
    Arguments:
    - text: the case-insensitive name of the searched column.
-Table.Table.lookup_ignore_case : Text -> Column ! Nothing
-Table.Table.lookup_ignore_case self name =
-    ret = self.all_columns.find <| col->
+Table.lookup_ignore_case : Text -> Column ! Nothing
+Table.lookup_ignore_case self name =
+    self.all_columns.find <| col->
         col.name.equals_ignore_case name
-    ret
 
 ## PRIVATE
 
   Checks if the column stores numbers.
-Column.Column.is_numeric : Boolean
-Column.Column.is_numeric self =
+Column.is_numeric : Boolean
+Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type

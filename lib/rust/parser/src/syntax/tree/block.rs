@@ -1,9 +1,8 @@
 //! Code blocks.
 
-
+use crate::syntax::tree::*;
 
 use crate::syntax::token;
-use crate::syntax::tree::*;
 
 
 
@@ -51,11 +50,33 @@ impl<'s> span::Builder<'s> for Line<'s> {
 /// Build a body block from a sequence of lines; this involves reinterpreting the input expressions
 /// in statement context (i.e. expressions at the top-level of the block that involve the `=`
 /// operator will be reinterpreted as function/variable bindings).
-pub fn body_from_lines<'s>(expressions: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
+pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     use crate::expression_to_statement;
-    let expressions = expressions.into_iter();
-    let statements = expressions.map(|line| line.map_expression(expression_to_statement));
-    let statements = statements.collect();
+    let mut lines = lines.into_iter();
+    let mut statements = Vec::with_capacity(lines.size_hint().0);
+    while let Some(line) = lines.next() {
+        let mut statement = line.map_expression(expression_to_statement);
+        if let Some(Tree {
+            variant:
+                box Variant::Annotated(Annotated { newlines, expression, .. })
+                | box Variant::Documented(Documented {
+                    documentation: DocComment { newlines, .. },
+                    expression,
+                    ..
+                }),
+            ..
+        }) = &mut statement.expression
+        {
+            while expression.is_none() &&
+            let Some(line) = lines.next()
+            {
+                let statement = line.map_expression(expression_to_statement);
+                newlines.push(statement.newline);
+                *expression = statement.expression;
+            }
+        }
+        statements.push(statement);
+    }
     Tree::body_block(statements)
 }
 
@@ -76,23 +97,34 @@ pub struct OperatorBlockExpression<'s> {
 
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
 fn to_operator_block_expression(
-    expression_: Tree<'_>,
+    mut tree: Tree<'_>,
 ) -> Result<OperatorBlockExpression<'_>, Tree<'_>> {
-    let tree_ = match &*expression_.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
-        _ => return Err(expression_),
-    };
-    if let Variant::OprApp(OprApp { lhs: None, opr, rhs: Some(expression) }) = &*tree_.variant {
-        if expression.span.left_offset.visible.width_in_spaces < 1 {
-            return Err(expression_);
+    let mut left_operator = None;
+    recurse_left_mut_while(&mut tree, |tree| {
+        if let Variant::OprApp(OprApp { lhs: None, opr, rhs }) = &mut *tree.variant
+            && let Some(rhs_) = rhs
+            && rhs_.span.left_offset.visible.width_in_spaces >= 1
+        {
+            left_operator = Some(opr.clone());
+            *tree = mem::take(rhs).unwrap();
         }
-        let mut operator = opr.clone();
-        operator.first_operator_mut().left_offset = expression_.span.left_offset;
-        let expression = expression.clone();
-        Ok(OperatorBlockExpression { operator, expression })
-    } else {
-        Err(expression_)
+        true
+    });
+    let Some(mut operator) = left_operator else {
+        return Err(tree);
+    };
+    operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
+    if let Variant::OprSectionBoundary(OprSectionBoundary { arguments, .. }) = &mut *tree.variant {
+        *arguments -= 1;
     }
+    let expression = match *tree.variant {
+        Variant::OprSectionBoundary(OprSectionBoundary { ast, arguments: 0 }) => {
+            operator.first_operator_mut().left_offset += tree.span.left_offset;
+            ast
+        }
+        _ => tree,
+    };
+    Ok(OperatorBlockExpression { operator, expression })
 }
 
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
@@ -269,22 +301,23 @@ where
     let newline = default();
     let line = default();
     let finished = default();
-    Lines { items, newline, line, finished }
+    let precedence = default();
+    Lines { items, newline, line, finished, precedence }
 }
 
 /// An iterator of [`Line`]s.
 #[derive(Debug)]
 pub struct Lines<'s, I> {
-    items:    I,
-    newline:  token::Newline<'s>,
-    line:     Vec<Item<'s>>,
-    finished: bool,
+    items:      I,
+    newline:    token::Newline<'s>,
+    line:       Vec<Item<'s>>,
+    finished:   bool,
+    precedence: operator::Precedence<'s>,
 }
 
 impl<'s, I> Lines<'s, I> {
     fn parse_current_line(&mut self, newline: token::Newline<'s>) -> Line<'s> {
-        let line = self.line.drain(..);
-        let expression = operator::resolve_operator_precedence_if_non_empty(line);
+        let expression = self.precedence.resolve(self.line.drain(..));
         Line { newline, expression }
     }
 }
@@ -303,20 +336,24 @@ where I: Iterator<Item = Item<'s>>
                 Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
                     let token = token::newline(left_offset, code);
                     let newline = mem::replace(&mut self.newline, token);
-                    if newline.code.is_empty() && self.line.is_empty() {
-                        // The block started with a real newline; ignore the implicit newline.
-                        continue;
+                    // If the block started with a real newline, ignore the implicit newline.
+                    if !(newline.code.is_empty()
+                        && newline.left_offset.code.is_empty()
+                        && self.line.is_empty())
+                    {
+                        return self.parse_current_line(newline).into();
                     }
-                    return self.parse_current_line(newline).into();
                 }
                 _ => {
                     self.line.push(item);
-                    continue;
                 }
             }
         }
         self.finished = true;
         let newline = mem::take(&mut self.newline);
+        if newline.code.is_empty() && newline.left_offset.is_empty() && self.line.is_empty() {
+            return None;
+        }
         self.parse_current_line(newline).into()
     }
 }

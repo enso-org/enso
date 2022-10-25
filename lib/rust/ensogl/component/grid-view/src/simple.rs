@@ -26,29 +26,29 @@ use ensogl_text as text;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryParams {
-    pub bg_color:            color::Rgba,
+    pub bg_color:            color::Lcha,
     pub bg_margin:           f32,
-    pub hover_color:         color::Rgba,
-    pub selection_color:     color::Rgba,
+    pub hover_color:         color::Lcha,
+    pub selection_color:     color::Lcha,
     pub font:                ImString,
     pub text_offset:         f32,
     pub text_size:           text::Size,
-    pub text_color:          color::Rgba,
-    pub disabled_text_color: color::Rgba,
+    pub text_color:          color::Lcha,
+    pub disabled_text_color: color::Lcha,
 }
 
 impl Default for EntryParams {
     fn default() -> Self {
         Self {
-            bg_color:            color::Rgba::transparent(),
+            bg_color:            color::Lcha::transparent(),
             bg_margin:           0.0,
-            hover_color:         color::Rgba(0.9, 0.9, 0.9, 1.0),
-            selection_color:     color::Rgba(0.8, 0.8, 0.8, 1.0),
-            font:                text::typeface::font::DEFAULT_FONT.into(),
+            hover_color:         color::Lcha::from(color::Rgba(0.9, 0.9, 0.9, 1.0)),
+            selection_color:     color::Lcha::from(color::Rgba(0.8, 0.8, 0.8, 1.0)),
+            font:                text::font::DEFAULT_FONT.into(),
             text_offset:         7.0,
             text_size:           text::Size(14.0),
-            text_color:          color::Rgba(0.0, 0.0, 0.0, 1.0),
-            disabled_text_color: color::Rgba(0.7, 0.7, 0.7, 1.0),
+            text_color:          color::Lcha::from(color::Rgba(0.0, 0.0, 0.0, 1.0)),
+            disabled_text_color: color::Lcha::from(color::Rgba(0.7, 0.7, 0.7, 1.0)),
         }
     }
 }
@@ -63,8 +63,9 @@ impl Default for EntryParams {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct EntryModel {
-    pub text:     ImString,
-    pub disabled: Immutable<bool>,
+    pub text:           ImString,
+    pub disabled:       Immutable<bool>,
+    pub override_width: Immutable<Option<f32>>,
 }
 
 impl EntryModel {
@@ -92,16 +93,16 @@ impl<T: Into<ImString>> From<T> for EntryModel {
 #[derive(Clone, Debug)]
 pub struct EntryData {
     display_object: display::object::Instance,
-    pub label:      text::Area,
+    pub label:      text::Text,
     pub background: entry::shape::View,
 }
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
-        let logger = Logger::new("list_view::entry::Label");
-        let display_object = display::object::Instance::new(&logger);
-        let label = app.new_view::<ensogl_text::Area>();
-        let background = entry::shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let label = app.new_view::<ensogl_text::Text>();
+        label.set_long_text_truncation_mode(true);
+        let background = entry::shape::View::new();
         display_object.add_child(&label);
         display_object.add_child(&background);
         if let Some(layer) = text_layer {
@@ -113,7 +114,7 @@ impl EntryData {
     fn update_layout(&self, contour: entry::Contour, text_size: text::Size, text_offset: f32) {
         self.background.set_contour(contour);
         let size = contour.size;
-        self.label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.raw / 2.0));
+        self.label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
     }
 }
 
@@ -158,19 +159,22 @@ impl crate::Entry for Entry {
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             eval bg_color ((color) data.background.color.set(color.into()));
             disabled <- input.set_model.map(|m| *m.disabled);
-            data.label.set_default_color <+ all_with3(
+            data.label.set_property_default <+ all_with3(
                 &text_color,
                 &dis_text_color,
                 &disabled,
                 |c, dc, d| if *d { *dc } else { *c }
-            );
-            data.label.set_font <+ font.map(ToString::to_string);
-            data.label.set_default_text_size <+ text_size;
-            content <- input.set_model.map(|m| m.text.to_string());
+            ).ref_into_some();
+            data.label.set_font <+ font;
+            data.label.set_property_default <+ text_size.ref_into_some();
+            content <- input.set_model.map(|m| m.text.clone_ref());
             max_width_px <- input.set_size.map(|size| size.x);
-            data.label.set_content_truncated <+ all(&content, &max_width_px);
+            data.label.set_content <+ content;
+            data.label.set_view_width <+ max_width_px.some();
 
+            out.override_column_width <+ input.set_model.filter_map(|m| *m.override_width);
             out.contour <+ contour;
+            out.highlight_contour <+ contour;
             out.disabled <+ disabled;
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
@@ -207,3 +211,8 @@ pub type SimpleSelectableGridView = selectable::GridView<Entry>;
 /// The Simple version of scrollable and selectable Grid View, where each entry is just a label with
 /// background.
 pub type SimpleScrollableSelectableGridView = scrollable::SelectableGridView<Entry>;
+
+/// The Simple version of scrollable and selectable Grid View with headers, where each header or
+/// entry is just a label with background.
+pub type SimpleScrollableSelectableGridViewWithHeaders =
+    scrollable::SelectableGridViewWithHeaders<Entry, Entry>;

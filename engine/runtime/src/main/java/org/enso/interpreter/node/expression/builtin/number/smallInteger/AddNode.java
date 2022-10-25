@@ -8,7 +8,6 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -45,7 +44,7 @@ public abstract class AddNode extends Node {
   @Fallback
   Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom number = builtins.number().getNumber().newInstance();
+    var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }

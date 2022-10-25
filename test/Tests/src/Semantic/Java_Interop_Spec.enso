@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer
@@ -8,8 +9,6 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
-
-import Standard.Test
 
 Any.test_me x = x.is_nothing
 
@@ -22,6 +21,10 @@ spec =
             list = ArrayList.new
             list.add 432
             list.get 0 . should_equal 432
+        Test.specify "should report missing method error on Java Arrays" <|
+            list = ArrayList.new
+            list.add 432
+            Test.expect_panic_with (list.asList) No_Such_Method_Error_Data
         Test.specify "should auto-convert numeric types across the polyglot boundary" <|
             (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
             (Integer.sum 1 2 + 3) . should_equal 6
@@ -47,10 +50,10 @@ spec =
         Test.specify "send Enso date into Java" <|
             ensodate = Date.new 2022 04 01
             javatime = LocalTime.of 10 26
-            javatimedate = javatime.atDate ensodate
-            april1st = javatimedate . toLocalDate
+            javatimedate = javatime . to_date_time ensodate
+            april1st = javatimedate . date
             april1st.year.should_equal 2022
             april1st.month.should_equal 4
             april1st.day.should_equal 1
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

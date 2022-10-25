@@ -2,6 +2,7 @@ package org.enso.compiler.test.codegen
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Syntax
+import org.enso.compiler.core.IR.Module.Scope.Definition.SugaredType
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -243,6 +244,48 @@ class AstToIrTest extends CompilerTest with Inside {
 
       consPat.fields(0) shouldBe an[IR.Pattern.Literal]
       consPat.fields(1) shouldBe an[IR.Pattern.Name]
+    }
+
+    "support type patterns " in {
+      val ir =
+        """
+          |case foo of
+          |    f : Foo -> process_foo f
+          |    b : Bar -> process_bar b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Type]
+
+      val tpePattern1 =
+        ir.branches(0).pattern.asInstanceOf[IR.Pattern.Type]
+
+      tpePattern1.name.name shouldEqual "f"
+      tpePattern1.tpe.name shouldEqual "Foo"
+
+      val tpePattern2 =
+        ir.branches(1).pattern.asInstanceOf[IR.Pattern.Type]
+
+      tpePattern2.name.name shouldEqual "b"
+      tpePattern2.tpe.name shouldEqual "Bar"
+    }
+
+    "support type patterns nested in constructor pattern " in {
+      val ir =
+        """
+          |case foo of
+          |    Cons (f : Foo) b -> process_foo f b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Constructor]
+
+      val consPattern =
+        ir.branches(0).pattern.asInstanceOf[IR.Pattern.Constructor]
+
+      consPattern.constructor.name shouldEqual "Cons"
+      consPattern.fields.length shouldEqual 2
+
+      consPattern.fields(0) shouldBe an[IR.Pattern.Type]
+      consPattern.fields(1) shouldBe an[IR.Pattern.Name]
     }
 
   }
@@ -527,49 +570,37 @@ class AstToIrTest extends CompilerTest with Inside {
   }
 
   "AST translation for atom definitions" should {
-    "work for atoms with no arguments" in {
+    "work for types with no arguments" in {
       val ir =
         """
           |type My_Type
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val tp =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+      tp.name.name shouldEqual "My_Type"
     }
 
-    "work for atoms with arguments" in {
+    "work for types with arguments" in {
       val ir =
         """
-          |type My_Type a b c
+          |type My_Type x
+          |    Data a b c
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val atom = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
+        .body
+        .head
+        .asInstanceOf[IR.Module.Scope.Definition.Data]
+      atom.name.name shouldEqual "Data"
       val args = atom.arguments
       args.length shouldEqual 3
       args.head.name.name shouldEqual "a"
       args(1).name.name shouldEqual "b"
       args(2).name.name shouldEqual "c"
-    }
-
-    "work for atoms with default arguments" in {
-      val ir =
-        """
-          |type My_Type (a = 1)
-          |""".stripMargin.toIrModule
-
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
-      atom.name.name shouldEqual "My_Type"
-      val args = atom.arguments
-      args.length shouldEqual 1
-      val firstArg = args.head
-      firstArg.name.name shouldEqual "a"
-      firstArg.ascribedType should not be defined
-      firstArg.defaultValue shouldBe defined
-      firstArg.suspended shouldBe false
     }
 
     "raise an error for atoms with lazy arguments" in {
@@ -586,12 +617,17 @@ class AstToIrTest extends CompilerTest with Inside {
     "work for atoms with ascribed arguments" in {
       val ir =
         """
-          |type My_Type a:b (c : d = 1)
+          |type My_Type
+          |    Data a:b (c : d = 1)
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
-      atom.name.name shouldEqual "My_Type"
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
+      val atom = ir.bindings.head
+        .asInstanceOf[SugaredType]
+        .body
+        .head
+        .asInstanceOf[IR.Module.Scope.Definition.Data]
+      atom.name.name shouldEqual "Data"
       val args = atom.arguments
       args.length shouldEqual 2
 
@@ -638,7 +674,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |type MyAtom a b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
     }
 
     "translate complex type defs properly" in {
@@ -646,7 +682,7 @@ class AstToIrTest extends CompilerTest with Inside {
         """
           |type Maybe
           |    Nothing
-          |    type Just a
+          |    Just a
           |
           |    is_just = case this of
           |        Just _  -> true
@@ -655,15 +691,15 @@ class AstToIrTest extends CompilerTest with Inside {
           |    fn a b = a + b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Type]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
 
-      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       typeDef.name.name shouldEqual "Maybe"
       typeDef.arguments.length shouldEqual 0
 
-      typeDef.body.head shouldBe an[IR.Name.Literal]
-      typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      typeDef.body.head shouldBe an[IR.Module.Scope.Definition.Data]
+      typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Data]
       typeDef.body(2) shouldBe an[IR.Expression.Binding]
       typeDef.body(3) shouldBe an[IR.Function.Binding]
     }
@@ -683,9 +719,9 @@ class AstToIrTest extends CompilerTest with Inside {
           |    fn a b = a + b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Type]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
 
-      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       typeDef.body(2) shouldBe an[IR.Error.Syntax]
       typeDef
@@ -699,33 +735,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
     }
 
-    "disallow definitions with 'type' arguments" in {
-      val ir =
-        """
-          |type Maybe a
-          |    Nothing
-          |    type Just a
-          |""".stripMargin.toIrModule.bindings.head
-
-      ir shouldBe an[IR.Error.Syntax]
-      ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.InvalidTypeDefinition.type]
-    }
-
-    "disallow definitions that do not define or include an atom" in {
-      val ir =
-        """
-          |type Maybe
-          |     is_just = case this of
-          |         Just _  -> True
-          |         Nothing -> False
-          |""".stripMargin.toIrModule.bindings.head
-
-      ir shouldBe an[IR.Error.Syntax]
-      ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
-    }
-
     "allow defining methods with operator names" in {
       val body =
         """
@@ -735,7 +744,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    + : My -> My
           |    + that = My this.a+that.a
           |""".stripMargin.toIrModule.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
           .body
 
       body(1) shouldBe an[IR.Type.Ascription]
@@ -930,9 +939,8 @@ class AstToIrTest extends CompilerTest with Inside {
           .asInstanceOf[IR.Application.Operator.Binary]
 
       ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
+        .asInstanceOf[IR.Type.Function]
+        .args(0) shouldBe an[IR.Name.Qualified]
     }
 
     "work inside type bodies" in {
@@ -944,7 +952,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    foo : this -> integer
           |    foo = 0
           |""".stripMargin.toIrModule.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       ir.body.length shouldEqual 3
       ir.body(1) shouldBe an[IR.Type.Ascription]
@@ -983,21 +991,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .expression shouldBe an[IR.Application.Operator.Binary]
     }
 
-    "properly support nested ascriptions" in {
-      val ir =
-        """
-          |x : (a : Type) -> (b : Type -> Type) -> (c : Type)
-          |""".stripMargin.toIrExpression.get
-          .asInstanceOf[IR.Application.Operator.Binary]
-
-      ir.right.value shouldBe an[IR.Function.Lambda]
-      ir.right.value
-        .asInstanceOf[IR.Function.Lambda]
-        .arguments
-        .head
-        .ascribedType shouldBe defined
-    }
-
     // TODO [AA] Syntax error with `f a ->`
 
     "properly support dotted operators in ascriptions" in {
@@ -1007,9 +1000,8 @@ class AstToIrTest extends CompilerTest with Inside {
           .asInstanceOf[IR.Application.Operator.Binary]
 
       ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
+        .asInstanceOf[IR.Type.Function]
+        .args(0) shouldBe an[IR.Name.Qualified]
     }
 
     "properly support the `in` context ascription operator" in {
@@ -1050,7 +1042,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Name.Annotation]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.SugaredType]
     }
 
     "support annotations inside complex type bodies" in {
@@ -1063,9 +1055,9 @@ class AstToIrTest extends CompilerTest with Inside {
           |  add a = this + a
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Type]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
       val complexType =
-        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       complexType.body.head shouldBe an[IR.Name.Annotation]
       complexType.body(2) shouldBe an[IR.Name.Annotation]
@@ -1150,7 +1142,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    (()
           |""".stripMargin.toIrModule
       inside(ir.bindings.head) {
-        case definition: IR.Module.Scope.Definition.Type =>
+        case definition: IR.Module.Scope.Definition.SugaredType =>
           inside(definition.body(2)) { case error: IR.Error.Syntax =>
             error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
           }

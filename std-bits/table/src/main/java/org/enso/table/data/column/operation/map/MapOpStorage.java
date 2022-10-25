@@ -8,12 +8,13 @@ import java.util.Map;
 /**
  * Stores map-like operations that can be performed on a given type.
  *
- * @param <T> the storage type handled by these operations.
+ * @param <T> the type of elements stored in the storage
+ * @param <S> the storage type handled by these operations.
  */
-public class MapOpStorage<T extends Storage> {
-  private final Map<String, MapOperation<T>> ops = new HashMap<>();
+public class MapOpStorage<T, S extends Storage<? super T>> {
+  private final Map<String, MapOperation<T, S>> ops = new HashMap<>();
 
-  protected MapOperation<? super T> getOp(String name) {
+  protected MapOperation<? super T, ? super S> getOp(String name) {
     return ops.get(name);
   }
 
@@ -36,7 +37,7 @@ public class MapOpStorage<T extends Storage> {
    * @param arg the argument to pass to the operation
    * @return the result of running the operation
    */
-  public Storage runMap(String n, T storage, Object arg) {
+  public Storage<?> runMap(String n, S storage, Object arg) {
     return ops.get(n).runMap(storage, arg);
   }
 
@@ -49,7 +50,7 @@ public class MapOpStorage<T extends Storage> {
    * @param arg the storage containing operation arguments
    * @return the result of running the operation
    */
-  public Storage runZip(String n, T storage, Storage arg) {
+  public Storage<?> runZip(String n, S storage, Storage<?> arg) {
     return ops.get(n).runZip(storage, arg);
   }
 
@@ -59,7 +60,7 @@ public class MapOpStorage<T extends Storage> {
    * @param op the operation to add
    * @return this operation set
    */
-  public MapOpStorage<T> add(MapOperation<T> op) {
+  public MapOpStorage<T, S> add(MapOperation<T, S> op) {
     ops.put(op.getName(), op);
     return this;
   }
@@ -68,23 +69,23 @@ public class MapOpStorage<T extends Storage> {
    * Creates a child set, containing all the operations defined in this, that can be extended
    * independently.
    *
-   * @param <S> the desired result type
+   * @param <U> the desired result type
    * @return a child of this storage
    */
-  public <S extends T> MapOpStorage<S> makeChild() {
+  public <U extends T> MapOpStorage<U, S> makeChild() {
     return new ChildStorage<>(this);
   }
 
-  private static class ChildStorage<T extends Storage> extends MapOpStorage<T> {
-    private final MapOpStorage<? super T> parent;
+  private static class ChildStorage<T, S extends Storage<? super T>> extends MapOpStorage<T, S> {
+    private final MapOpStorage<? super T, ? super S> parent;
 
-    private ChildStorage(MapOpStorage<? super T> parent) {
+    private ChildStorage(MapOpStorage<? super T, ? super S> parent) {
       this.parent = parent;
     }
 
     @Override
-    protected MapOperation<? super T> getOp(String name) {
-      MapOperation<? super T> local = super.getOp(name);
+    protected MapOperation<? super T, ? super S> getOp(String name) {
+      MapOperation<? super T, ? super S> local = super.getOp(name);
       if (local == null) return parent.getOp(name);
       return local;
     }
@@ -95,12 +96,12 @@ public class MapOpStorage<T extends Storage> {
     }
 
     @Override
-    public Storage runMap(String n, T storage, Object arg) {
+    public Storage<?> runMap(String n, S storage, Object arg) {
       return getOp(n).runMap(storage, arg);
     }
 
     @Override
-    public Storage runZip(String n, T storage, Storage arg) {
+    public Storage<?> runZip(String n, S storage, Storage<?> arg) {
       return getOp(n).runZip(storage, arg);
     }
   }

@@ -61,6 +61,10 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       return successful;
     }
 
+    public String getExpectedResult() {
+      return expectedResult;
+    }
+
     @Override
     public void onEnter(EventContext context, VirtualFrame frame) {}
 

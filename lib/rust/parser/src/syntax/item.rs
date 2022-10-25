@@ -44,17 +44,7 @@ impl<'s> Item<'s> {
     /// Convert this item to a [`Tree`].
     pub fn to_ast(self) -> Tree<'s> {
         match self {
-            Item::Token(token) => match token.variant {
-                token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
-                token::Variant::Number(number) => Tree::number(token.with_variant(number)),
-                token::Variant::Comment(comment) => Tree::comment(token.with_variant(comment)),
-                token::Variant::TextSection(text) => Tree::text_section(token.with_variant(text)),
-                _ => {
-                    let message = format!("to_ast: Item::Token({token:?})");
-                    let value = Tree::ident(token.with_variant(token::variant::Ident(false, 0)));
-                    Tree::with_unsupported(value, message)
-                }
-            },
+            Item::Token(token) => token.into(),
             Item::Tree(ast) => ast,
             Item::Block(items) => build_block(items),
         }
@@ -127,7 +117,9 @@ macro_rules! generate_variant_checks {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({
+                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
+                })?
             ),* $(,)?
         }
     ) => { paste!{

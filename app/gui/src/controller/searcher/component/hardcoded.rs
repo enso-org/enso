@@ -8,7 +8,7 @@
 use crate::prelude::*;
 
 use double_representation::tp;
-use ide_view_component_group::icon::Id as IconId;
+use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
 
@@ -106,7 +106,7 @@ impl Snippet {
     /// documentation parser cannot be created or the argument fails to parse as valid
     /// documentation.
     fn with_documentation(mut self, documentation: &str) -> Self {
-        let doc_parser = parser::DocParser::new().unwrap();
+        let doc_parser = parser_scala::DocParser::new().unwrap();
         let doc_string = documentation.to_string();
         let documentation_html = doc_parser.generate_html_doc_pure(doc_string);
         self.documentation_html = Some(documentation_html.unwrap());

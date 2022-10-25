@@ -218,7 +218,23 @@ class Compiler(
     initialize()
     modules.foreach(m => parseModule(m))
 
-    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
+    var requiredModules = modules.flatMap { module =>
+      val modules = runImportsAndExportsResolution(module)
+      if (
+        module
+          .wasLoadedFromCache() && modules.exists(!_.wasLoadedFromCache())
+      ) {
+        logger.log(
+          Compiler.defaultLogLevel,
+          s"Some imported modules' caches were invalided, forcing invalidation of ${module.getName.toString}"
+        )
+        module.getCache.invalidate(context)
+        parseModule(module)
+        runImportsAndExportsResolution(module)
+      } else {
+        modules
+      }
+    }
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
@@ -394,7 +410,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Parsing the module [${module.getName}]."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     if (irCachingEnabled && !module.isInteractive) {
@@ -412,7 +428,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Loading module `${module.getName}` from source."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     val moduleContext = ModuleContext(
@@ -432,6 +448,7 @@ class Compiler(
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.setLoadedFromCache(false)
     module.setHasCrossModuleLinks(true)
   }
 
@@ -724,6 +741,13 @@ class Compiler(
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
+        val count =
+          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+        val warnCount =
+          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+        context.getErr.println(
+          s"Aborting due to ${count} errors and ${warnCount} warnings."
+        )
         throw new CompilationAbortedException
       }
     }
@@ -798,15 +822,18 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    val results = diagnostics.map { case (mod, diags) =>
-      if (diags.nonEmpty) {
-        context.getOut.println(s"In module ${mod.getName}:")
-        reportDiagnostics(diags, mod.getSource)
-      } else {
-        false
+    // It may be tempting to replace `.foldLeft(..)` with
+    // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
+    // not just the first one.
+    diagnostics
+      .foldLeft(false) { case (result, (mod, diags)) =>
+        if (diags.nonEmpty) {
+          context.getOut.println(s"In module ${mod.getName}:")
+          reportDiagnostics(diags, mod.getSource) || result
+        } else {
+          result
+        }
       }
-    }
-    results.exists(r => r)
   }
 
   /** Reports compilation diagnostics to the standard output and throws an

@@ -1,0 +1,6 @@
+from Standard.Base import IO
+from Standard.Base.Data.Boolean import False
+from project.Atom import all
+
+main =
+    if False then IO.println (foo 1) else IO.println "hmm..."

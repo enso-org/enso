@@ -10,6 +10,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -200,12 +202,12 @@ impl<E: Entry> Model<E> {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new("SelectionContainer");
-        let display_object = display::object::Instance::new(&logger);
-        let scrolled_area = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let scrolled_area = display::object::Instance::new();
         let entries = entry::List::new(&logger, &app);
-        let background = background::View::new(&logger);
-        let overlay = overlay::View::new(&logger);
-        let selection = selection::View::new(&logger);
+        let background = background::View::new();
+        let overlay = overlay::View::new();
+        let selection = selection::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
@@ -703,7 +705,7 @@ impl<E: Entry> display::Object for ListView<E> {
     }
 }
 
-impl<E: Entry> application::command::FrpNetworkProvider for ListView<E> {
+impl<E: Entry> FrpNetworkProvider for ListView<E> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }
@@ -721,7 +723,7 @@ impl<E: Entry> application::View for ListView<E> {
     }
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (PressAndRepeat, "up", "move_selection_up"),
             (PressAndRepeat, "down", "move_selection_down"),
             (Press, "page-up", "move_selection_page_up"),
@@ -729,10 +731,10 @@ impl<E: Entry> application::View for ListView<E> {
             (Press, "home", "move_selection_to_first"),
             (Press, "end", "move_selection_to_last"),
             (Press, "enter", "chose_selected_entry"),
-        ])
-            .iter()
-            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
-            .collect()
+        ]
+        .iter()
+        .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+        .collect()
     }
 }
 

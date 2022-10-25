@@ -2,7 +2,7 @@
   "compilerOptions": {
     "sourceMap": true,
     "noImplicitAny": true,
-    "target": "ES2018",
+    "target": "ES2019",
     "module": "ESNext",
     "esModuleInterop": true,
     "moduleResolution": "node",

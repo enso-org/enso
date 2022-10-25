@@ -2,11 +2,11 @@ from Standard.Base import all
 
 import Standard.Base.System
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "System" <|
     Test.specify "should provide nanosecond timer" <|
         result = System.nano_time
         (result > 0).should_equal True
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

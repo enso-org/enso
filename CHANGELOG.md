@@ -42,6 +42,7 @@
   visualizations. (Previously, they were placed to the left of the
   visualizations.)
 - [Fixed histograms coloring and added a color legend.][3153]
+- [Lazy visualization for scatter plot.][3655]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
   registered.][3181]
@@ -52,13 +53,20 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The panel is unstable, and thus is
-  available under the `--enable-new-component-browser` flag.
+  popular tools are available at hand. The panel is unstable, and can be
+  disabled with the `--enable-new-component-browser=false` flag.
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
-- [New nodes are created in the project source when the searcher is opened  
-  and a new node is created.][5250]
+- [New nodes are created in the project source when the searcher is opened and a
+  new node is created.][3645]
+- [Proper Polyglot Vector and Array Support][3667]
+- [IDE uses new visualization API.][3661]
+- [Visualization of long textual values improved][3665]
+- [Selecting a suggestion from the searcher or component browser now updates the
+  visualisation of the edited node to preview the results of applying the
+  suggestion.][3691]
+- [Remove here keyword from IDE.][3749]
 
 #### EnsoGL (rendering engine)
 
@@ -176,15 +184,44 @@
   type from `Standard.Table`.][3601]
 - [Created `Index_Sub_Range` type and updated `Text.take` and
   `Text.drop`.][3617]
+- [Added `Vector.from_polyglot_array` to make `Vector`s backed by polyglot
+  Arrays][3628]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
 - [Expanded `Table.at` to support index access and added `Table.column_count`
   method.][3644]
+- [Removed `Array.set_at`.][3634]
+- [Added various date part functions to `Date` and `Date_Time`.][3669]
+- [Implemented `Table.take` and `Table.drop` for the in-memory backend.][3647]
+- [Implemented specialized storage for the in-memory Table.][3673]
+- [Implemented `Table.distinct` for the in-memory backend.][3684]
+- [Added `databases`, `schemas`, `tables` support to database Connection.][3632]
+- [Implemented `start_of` and `end_of` methods for date/time types allowing to
+  find start and end of a period of time containing the provided time.][3695]
+- [Implemented `type_of` and `is_of_type` methods for getting the type of a
+  value and comparing types, respectively.][3722]
+- [Implemented `work_days_until` for counting work dys between dates and
+  `add_work_days` which allows to shift a date by a number of work days.][3726]
+- [Added `query` and `read` functions to Database connections.][3727]
+- [Added `Date_Period.Week` to `start_of` and `end_of` methods.][3733]
+- [Replaced `Table.where` with a new API relying on `Table.filter`.][3750]
+- [Added `Filter_Condition` to `Vector`, `Range` and `List`.][3770]
+- [Extended `Filter_Condition` with `Is_Empty`, `Not_Empty`, `Like` and
+  `Not_Like`.][3775]
+- [Reimplemented `Duration` as a built-in type.][3759]
+- [Implemented `Table.replace_text` for in-memory table.][3793]
+- [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
+- [Replaced `Table.drop_missing_rows` with `filter_blank_rows` with an updated
+  API.][3805]
+- [Replaced `Table.drop_missing_columns` with
+  `Table.remove_columns Column_Selector.Blank_Columns` by adding the new column
+  selector variant.][3812]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
+[3655]: https://github.com/enso-org/enso/pull/3655
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
 [3186]: https://github.com/enso-org/enso/pull/3186
@@ -280,11 +317,37 @@
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
+[3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3632]: https://github.com/enso-org/enso/pull/3632
+[3641]: https://github.com/enso-org/enso/pull/3641
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
+[3645]: https://github.com/enso-org/enso/pull/3645
 [3648]: https://github.com/enso-org/enso/pull/3648
-[5250]: https://github.com/enso-org/enso/pull/5250
+[3661]: https://github.com/enso-org/enso/pull/3661
+[3665]: https://github.com/enso-org/enso/pull/3665
+[3634]: https://github.com/enso-org/enso/pull/3634
+[3667]: https://github.com/enso-org/enso/pull/3667
+[3669]: https://github.com/enso-org/enso/pull/3669
+[3647]: https://github.com/enso-org/enso/pull/3647
+[3673]: https://github.com/enso-org/enso/pull/3673
+[3684]: https://github.com/enso-org/enso/pull/3684
+[3691]: https://github.com/enso-org/enso/pull/3691
+[3695]: https://github.com/enso-org/enso/pull/3695
+[3722]: https://github.com/enso-org/enso/pull/3722
+[3726]: https://github.com/enso-org/enso/pull/3726
+[3727]: https://github.com/enso-org/enso/pull/3727
+[3733]: https://github.com/enso-org/enso/pull/3733
+[3749]: https://github.com/enso-org/enso/pull/3749
+[3750]: https://github.com/enso-org/enso/pull/3750
+[3770]: https://github.com/enso-org/enso/pull/3770
+[3775]: https://github.com/enso-org/enso/pull/3775
+[3759]: https://github.com/enso-org/enso/pull/3759
+[3793]: https://github.com/enso-org/enso/pull/3793
+[3790]: https://github.com/enso-org/enso/pull/3790
+[3805]: https://github.com/enso-org/enso/pull/3805
+[3812]: https://github.com/enso-org/enso/pull/3812
 
 #### Enso Compiler
 
@@ -321,7 +384,22 @@
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
+- [Generate native-image for engine-runner][3638]
 - [Support pattern matching on constants][3641]
+- [Builtin Date_Time, Time_Of_Day and Zone types for better polyglot
+  support][3658]
+- [Implement new specification of data types: `type` has a runtime
+  representation, every atom has a type][3671]
+- [main = "Hello World!" is valid Enso sample][3696]
+- [Invalidate module's IR cache if imported module changed][3703]
+- [Don't rename imported Main module that only imports names][3710]
+- [Notify node status to the IDE][3729]
+- [Make instance methods callable like statics][3764]
+- [Distinguish static and instance methods][3740]
+- [By-type pattern matching][3742]
+- [Fix performance of method calls on polyglot arrays][3781]
+- [Missing foreign language generates proper Enso error][3798]
+- [Made Vector performance to be on par with Array][3811]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -355,14 +433,28 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
-[3538]: https://github.com/enso-org/enso/pull/3569
+[3569]: https://github.com/enso-org/enso/pull/3569
+[3578]: https://github.com/enso-org/enso/pull/3578
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
-[3633]: https://github.com/enso-org/enso/pull/3641
+[3637]: https://github.com/enso-org/enso/pull/3638
+[3641]: https://github.com/enso-org/enso/pull/3641
+[3658]: https://github.com/enso-org/enso/pull/3658
+[3671]: https://github.com/enso-org/enso/pull/3671
+[3696]: https://github.com/enso-org/enso/pull/3696
+[3703]: https://github.com/enso-org/enso/pull/3703
+[3710]: https://github.com/enso-org/enso/pull/3710
+[3729]: https://github.com/enso-org/enso/pull/3729
+[3740]: https://github.com/enso-org/enso/pull/3740
+[3764]: https://github.com/enso-org/enso/pull/3764
+[3742]: https://github.com/enso-org/enso/pull/3742
+[3781]: https://github.com/enso-org/enso/pull/3781
+[3798]: https://github.com/enso-org/enso/pull/3798
+[3811]: https://github.com/enso-org/enso/pull/3811
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

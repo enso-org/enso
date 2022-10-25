@@ -42,7 +42,7 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Long);
     frame.setLong(frameSlotIdx, value);
 
-    return Context.get(this).getNothing().newInstance();
+    return Context.get(this).getNothing();
   }
 
   /**
@@ -57,7 +57,7 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
     frame.setObject(frameSlotIdx, value);
 
-    return Context.get(this).getNothing().newInstance();
+    return Context.get(this).getNothing();
   }
 
   boolean isLongOrIllegal(VirtualFrame frame) {

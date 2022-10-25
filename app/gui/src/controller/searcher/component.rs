@@ -8,6 +8,7 @@ use crate::model::suggestion_database;
 
 use convert_case::Case;
 use convert_case::Casing;
+use double_representation::module;
 
 
 // ==============
@@ -201,8 +202,9 @@ impl Display for Component {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub content:    Group,
-    pub submodules: group::AlphabeticalList,
+    pub qualified_name: Rc<module::QualifiedName>,
+    pub content:        Group,
+    pub submodules:     group::AlphabeticalList,
 }
 
 
@@ -245,6 +247,11 @@ impl List {
         }
     }
 
+    /// Return the list of filtered top modules and their contents.
+    pub fn top_modules_flattened(&self) -> &group::AlphabeticalList {
+        &self.top_modules_flattened
+    }
+
     /// Get the list of given component submodules. Returns [`None`] if given component is not
     /// a module.
     pub fn submodules_of(&self, component: Id) -> Option<&group::AlphabeticalList> {
@@ -255,6 +262,11 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
+    /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
+    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<module::QualifiedName>> {
+        self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }
 
     /// Update matching info in all components according to the new filtering pattern.
@@ -331,7 +343,7 @@ pub(crate) mod tests {
         }
     }
 
-    pub fn mock_suggestion_db(logger: impl AnyLogger) -> model::SuggestionDatabase {
+    pub fn mock_suggestion_db() -> model::SuggestionDatabase {
         let top_module_1 = mock_module("test.Test.TopModule1");
         let top_module_2 = mock_module("test.Test.TopModule2");
         let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
@@ -357,7 +369,7 @@ pub(crate) mod tests {
             fun6,
         ];
 
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        let suggestion_db = model::SuggestionDatabase::new_empty();
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry)
         }
@@ -397,13 +409,12 @@ pub(crate) mod tests {
 
     #[test]
     fn filtering_component_list() {
-        let logger = Logger::new("test::update_list_after_filtering_pattern_change");
         let top_module = mock_module("test.Test.TopModule");
         let sub_module = mock_module("test.Test.TopModule.SubModule");
         let fun1 = mock_function(&top_module.module, "fun1");
         let funx2 = mock_function(&sub_module.module, "funx1");
         let all_entries = [&top_module, &sub_module, &fun1, &funx2];
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        let suggestion_db = model::SuggestionDatabase::new_empty();
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry.clone())
         }
@@ -452,8 +463,7 @@ pub(crate) mod tests {
     #[test]
     fn component_list_modules_tree() {
         // Create a components list with sample data.
-        let logger = Logger::new("test::component_list_modules_tree");
-        let suggestion_db = mock_suggestion_db(logger);
+        let suggestion_db = mock_suggestion_db();
         let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..11);
         let list = builder.build();

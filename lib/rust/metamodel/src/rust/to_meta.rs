@@ -59,7 +59,8 @@ impl ToMeta {
                 continue;
             }
             let type_ = self.rust_to_meta[&field.type_.id];
-            let name = field_name(&field.name);
+            let name = field.rename.as_deref().unwrap_or(&field.name);
+            let name = field_name(name);
             let mut field_ = meta::Field::named(name, type_);
             if field.flatten {
                 self.flatten.insert(field_.id());
@@ -131,6 +132,7 @@ impl ToMeta {
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
+        ty.child_field = Some(0);
         self.graph.types.bind(id_, ty);
     }
 
@@ -138,6 +140,8 @@ impl ToMeta {
         let primitive = match primitive {
             Primitive::Bool => meta::Primitive::Bool,
             Primitive::U32 => meta::Primitive::U32,
+            Primitive::I32 => meta::Primitive::I32,
+            Primitive::Char => meta::Primitive::Char,
             // In platform-independent formats, a `usize` is serialized as 64 bits.
             Primitive::Usize => meta::Primitive::U64,
             Primitive::String => meta::Primitive::String,

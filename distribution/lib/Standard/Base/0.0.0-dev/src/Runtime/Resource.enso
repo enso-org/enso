@@ -19,16 +19,13 @@
 bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
 bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
-## An API for automatic resource management.
+## A managed resource is a special type of resource that is subject to
+   automated cleanup when it is no longer in use.
+
+   This API is intended for use by developers to provide easy-to-use
+   abstractions, and is not expected to be used by end-users.
+@Builtin_Type
 type Managed_Resource
-
-    ## A managed resource is a special type of resource that is subject to
-       automated cleanup when it is no longer in use.
-
-       This API is intended for use by developers to provide easy-to-use
-       abstractions, and is not expected to be used by end-users.
-    @Builtin_Type
-    type Managed_Resource
 
     ## ADVANCED
 

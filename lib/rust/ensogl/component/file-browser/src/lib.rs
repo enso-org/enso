@@ -8,6 +8,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -94,7 +96,7 @@ impl FileBrowser {
     pub fn new() -> Self {
         let logger = Logger::new("FileBrowser");
         let frp = Frp::new();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         Self { logger, frp, display_object }
     }
 }

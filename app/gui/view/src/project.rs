@@ -6,6 +6,7 @@ use ensogl::system::web::traits::*;
 
 use crate::code_editor;
 use crate::component_browser;
+use crate::component_browser::component_list_panel;
 use crate::debug_mode_popup;
 use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::documentation;
@@ -93,7 +94,7 @@ ensogl::define_endpoints! {
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
         editing_committed_old_searcher (NodeId, Option<searcher::entry::Id>),
-        editing_committed              (NodeId, Option<component_browser::list_panel::EntryId>),
+        editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
         open_dialog_shown              (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -155,7 +156,7 @@ pub enum SearcherVariant {
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.enable_new_component_browser.unwrap_or(false) {
+        if ARGS.enable_new_component_browser.unwrap_or(true) {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
             Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
@@ -171,10 +172,10 @@ impl SearcherVariant {
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
-                let list_panel = &view.model().list;
+                let grid = &view.model().list.model().grid;
                 frp::extend! {project_view_network
                     is_empty <- source::<bool>();
-                    editing_committed <- list_panel.expression_accepted.constant(());
+                    editing_committed <- grid.expression_accepted.constant(());
                 }
                 is_empty.emit(false);
                 SearcherFrp {
@@ -260,7 +261,7 @@ struct Model {
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
-    prompt:                 ensogl_text::Area,
+    prompt:                 ensogl_text::Text,
     open_dialog:            Rc<OpenDialog>,
     debug_mode_popup:       debug_mode_popup::View,
 }
@@ -269,14 +270,14 @@ impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
         searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let prompt_background = prompt_background::View::new(&logger);
-        let prompt = ensogl_text::Area::new(app);
+        let prompt_background = prompt_background::View::new();
+        let prompt = ensogl_text::Text::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -344,7 +345,7 @@ impl Model {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             node.position().xy()
         } else {
-            error!(self.logger, "Trying to show searcher under nonexisting node");
+            error!("Trying to show searcher under nonexisting node");
             default()
         }
     }
@@ -579,9 +580,9 @@ impl View {
 
         match &model.searcher {
             SearcherVariant::ComponentBrowser(browser) => {
-                let list_panel = &browser.model().list;
+                let grid = &browser.model().list.model().grid;
                 frp::extend! { network
-                    committed_in_browser <- list_panel.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+                    committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
                     frp.source.editing_committed <+ committed_in_browser;
                     frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
                 }
@@ -611,7 +612,9 @@ impl View {
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
             frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
 
-            adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
+            adding_committed_new_searcher <- frp.editing_committed.map(|(id,_)| *id);
+            adding_committed_old_searcher <- frp.editing_committed_old_searcher.map(|(id,_)| *id);
+            adding_committed <- any(&adding_committed_new_searcher,&adding_committed_old_searcher).gate(&frp.adding_new_node);
             adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
             adding_finished <- any(adding_committed,adding_aborted);
             frp.source.adding_new_node <+ adding_finished.constant(false);
@@ -621,7 +624,6 @@ impl View {
                 graph.deselect_all_nodes();
                 graph.select_node(node);
             });
-            eval adding_aborted  ((node) graph.remove_node(node));
 
 
             // === Editing ===
@@ -729,8 +731,8 @@ impl View {
                     let mut color    = *color;
                     color.alpha     *= weight;
                     model.prompt_background.color_rgba.set(bg_color.into());
-                    model.prompt.set_color_all(color);
-                    model.prompt.set_default_text_size(ensogl_text::Size(*size));
+                    model.prompt.set_property(.., color);
+                    model.prompt.set_property_default(ensogl_text::Size(*size));
                 })
             );
             _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
@@ -799,7 +801,7 @@ impl display::Object for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }
@@ -820,7 +822,7 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[
+        [
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
@@ -833,9 +835,9 @@ impl application::View for View {
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
-        ])
-            .iter()
-            .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-            .collect()
+        ]
+        .iter()
+        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+        .collect()
     }
 }

@@ -123,7 +123,7 @@ impl BlockingGetErrorLog for WebGl2RenderingContext {
             let code_with_num = lines_with_num.join("\n");
             let error_loc_pfx = "ERROR: 0:";
             let preview_code = if let Some(msg) = message.strip_prefix(error_loc_pfx) {
-                let line_num: String = msg.chars().take_while(|c| c.is_digit(10)).collect();
+                let line_num: String = msg.chars().take_while(|c| c.is_ascii_digit()).collect();
                 let line_num = line_num.parse::<usize>().unwrap() - 1;
                 let preview_radius = 5;
                 let preview_line_start = std::cmp::max(0, line_num - preview_radius);

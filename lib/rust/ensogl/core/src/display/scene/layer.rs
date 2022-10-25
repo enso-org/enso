@@ -359,8 +359,7 @@ impl Drop for LayerModel {
 
 impl LayerModel {
     fn new(logger: Logger) -> Self {
-        let logger_dirty = Logger::new_sub(&logger, "dirty");
-        let camera = RefCell::new(Camera2d::new(&logger));
+        let camera = RefCell::new(Camera2d::new());
         let shape_system_registry = default();
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();
@@ -369,9 +368,9 @@ impl LayerModel {
         let depth_order = default();
         let parents = default();
         let on_mut = on_depth_order_dirty(&parents);
-        let depth_order_dirty = dirty::SharedBool::new(logger_dirty, on_mut);
+        let depth_order_dirty = dirty::SharedBool::new(on_mut);
         let global_element_depth_order = default();
-        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"), &parents);
+        let sublayers = Sublayers::new(&parents);
         let mask = default();
         let scissor_box = default();
         let mem_mark = default();
@@ -903,11 +902,10 @@ impl PartialEq for Sublayers {
 
 impl Sublayers {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, parents: &Rc<RefCell<Vec<Sublayers>>>) -> Self {
-        let element_dirty_logger = Logger::new_sub(&logger, "dirty");
+    pub fn new(parents: &Rc<RefCell<Vec<Sublayers>>>) -> Self {
         let model = default();
         let dirty_on_mut = on_element_depth_order_dirty(parents);
-        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, dirty_on_mut);
+        let element_depth_order_dirty = dirty::SharedBool::new(dirty_on_mut);
         Self { model, element_depth_order_dirty }
     }
 }

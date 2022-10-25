@@ -11,6 +11,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -21,6 +23,7 @@
 // ==============
 
 pub mod cartesian;
+pub mod clone_ref;
 pub mod generator;
 pub mod shared;
 pub mod singleton;

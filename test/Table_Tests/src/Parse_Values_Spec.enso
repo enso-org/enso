@@ -1,17 +1,13 @@
 from Standard.Base import all
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Time_Of_Day
 
-import Standard.Table
-from Standard.Table import Data_Formatter
+from Standard.Table import Table, Data_Formatter
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
 import Standard.Visualization
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
@@ -287,4 +283,4 @@ spec = Test.group "Table.parse_values" <|
         t2.at "floats" . to_vector . should_equal c2
         t2.at "bools" . to_vector . should_equal c3
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

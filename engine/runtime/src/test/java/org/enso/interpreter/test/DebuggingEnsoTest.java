@@ -28,7 +28,7 @@ public class DebuggingEnsoTest {
       .allowExperimentalOptions(true)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
+        Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
       ).build();
     Context ctx = Context.newBuilder()
       .engine(eng)
@@ -77,7 +77,7 @@ public class DebuggingEnsoTest {
       .allowExperimentalOptions(true)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
+        Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
       ).build();
     Context ctx = Context.newBuilder()
       .engine(eng)
@@ -93,18 +93,18 @@ public class DebuggingEnsoTest {
         import Standard.Base.Runtime.Unsafe
 
         type Gen
-            type Empty
-            type Generator a:Int tail:Gen
+            Empty
+            Generator a:Int tail:Gen
 
         ones : Gen
         ones =
-            g = Generator 1 Empty
+            g = Gen.Generator 1 Gen.Empty
             Unsafe.set_atom_field g 1 g
             g
 
         next g = case g of
-            Generator a tail -> a
-            Empty -> -1
+            Gen.Generator a tail -> a
+            Gen.Empty -> -1
         """, "ones.enso")
             .uri(onceUri)
             .buildLiteral();

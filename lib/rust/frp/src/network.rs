@@ -158,6 +158,11 @@ impl WeakNetwork {
     pub fn id(&self) -> NetworkId {
         NetworkId(self.data.as_ptr() as *const () as usize)
     }
+
+    /// Gets the number of strong (Rc) pointers to this allocation.
+    pub fn strong_count(&self) -> usize {
+        self.data.strong_count()
+    }
 }
 
 
@@ -188,7 +193,10 @@ impl BridgeNetwork {
     }
 
     fn destroy(&self) {
-        *self.data.borrow_mut() = None
+        self.data.take();
+        // Beware: doing it in another, also intuitive way
+        // *self.data.borrow_mut() = None
+        // May cause a panic, because the drop procedure is done while keeping data borrowed.
     }
 }
 

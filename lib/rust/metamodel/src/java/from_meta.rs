@@ -75,8 +75,11 @@ impl FromMeta {
     fn primitive(&self, ty: &meta::Primitive) -> Result<Primitive, Class> {
         match ty {
             meta::Primitive::Bool => Ok(Primitive::Bool),
-            meta::Primitive::U64 => Ok(Primitive::Long { unsigned: true }),
+            meta::Primitive::I32 => Ok(Primitive::Int { unsigned: false }),
+            meta::Primitive::I64 => Ok(Primitive::Long { unsigned: false }),
             meta::Primitive::U32 => Ok(Primitive::Int { unsigned: true }),
+            meta::Primitive::U64 => Ok(Primitive::Long { unsigned: true }),
+            meta::Primitive::Char => Ok(Primitive::Int { unsigned: true }),
             meta::Primitive::String => Err(Class::string()),
             meta::Primitive::Option(t0_) => Err(Class::optional(self.meta_to_java[t0_])),
             meta::Primitive::Sequence(t0_) => Err(Class::list(self.meta_to_java[t0_])),
@@ -106,15 +109,20 @@ impl FromMeta {
         let mut fields = Vec::with_capacity(fields_.size_hint().0);
         for field in fields_ {
             let meta::Field { name, type_, hide, .. } = field;
-            let mut name_ = meta::FieldName::from_snake_case("field");
-            name_.append(name.clone());
-            let name = name_.to_camel_case().expect("Unimplemented: Tuples.");
-            let field = match self.primitives.get(type_) {
-                Some(primitive) => Field::primitive(name, *primitive),
-                None => Field::object(name, self.meta_to_java[type_], true),
+            let mut prefixed_name = meta::FieldName::from_snake_case("field");
+            prefixed_name.append(name.clone());
+            let prefixed_name = prefixed_name.to_camel_case().unwrap();
+            let mut field = match self.primitives.get(type_) {
+                Some(primitive) => Field::primitive(prefixed_name, *primitive),
+                None => Field::object(prefixed_name, self.meta_to_java[type_], true),
             };
-            if !hide {
-                methods.push(Method::Dynamic(Dynamic::Getter(field.id())));
+            if *hide {
+                field.hide_in_tostring();
+            } else {
+                let mut getter_name = meta::FieldName::from_snake_case("get");
+                getter_name.append(name.clone());
+                let getter_name = getter_name.to_camel_case().unwrap();
+                methods.push(Method::Dynamic(Dynamic::GetterNamed(field.id(), getter_name)));
             }
             fields.push(field);
         }

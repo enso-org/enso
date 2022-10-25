@@ -1,35 +1,33 @@
 from Standard.Base import all
 
-from Standard.Table import Sort_Column, Sort_Column_Selector
-from Standard.Table.Data.Column_Selector import By_Name
-from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
+from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
 
 from Standard.Database import all
-from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Data.Table import combine_names, fresh_names
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 import project.Database.Helpers.Fake_Test_Connection
 
 spec =
-    int = Sql_Type.integer
-    bool = Sql_Type.boolean
-    str = Sql_Type.varchar
+    int = SQL_Type.integer
+    bool = SQL_Type.boolean
+    str = SQL_Type.varchar
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
         table3 = ["T3", [["A", int], ["E", bool], ["F", int]]]
         tables = Map.from_vector [table1, table2, table3]
         Fake_Test_Connection.make Dialect.sqlite tables
-    t1 = test_connection.access_table "T1"
+    t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
-            q1 = t1.where (t1.at "A" == 42) . to_json
+            q1 = t1.filter (t1.at "A" == 42) . to_json
             part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
             interp = Json.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
             part2 = Json.from_pairs [["sql_interpolation", interp]]
@@ -43,7 +41,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select_columns (By_Name ["C", "B", "undefined"]) reorder=True
+            t2 = t1.select_columns (Column_Selector.By_Name ["C", "B", "undefined"]) reorder=True
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"
@@ -53,18 +51,18 @@ spec =
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         Test.specify "should fail if at is called for a non-existent column" <|
-            t1.at "undefined" . should_fail_with No_Such_Column_Error
+            t1.at "undefined" . should_fail_with No_Such_Column_Error_Data
 
         Test.specify "should allow to limit the amount of returned results" <|
             t2 = t1.limit 5
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns (By_Name [])
+            empty = t1.select_columns (Column_Selector.By_Name [])
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.column_count . should_equal 0
-            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error
+            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error_Data
 
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
@@ -92,16 +90,39 @@ spec =
 
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
-            t2 = t1.where (t1.at "A" == 42)
+            t2 = t1.filter (t1.at "A" == 42)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
 
         Test.specify "should allow selecting column rows based on a boolean expression" <|
-            c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
+            c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
+        Test.specify "should generate a single BETWEEN expression" <|
+            t2 = t1.filter "A" (Filter_Condition.Between 10 20)
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
+
+            t3 = t1.filter "A" (Filter_Condition.Between (t1.at "B") (t1.at "C"))
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND "T1"."C")', []]
+
+            t4 = t1.filter "A" (Filter_Condition.Between (t1.at "B") 33)
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [[33, int]]]
+
+        Test.specify "should generate an IN expression" <|
+            t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [[1, int], [2, int], ["foo", int]]]
+
+            t3 = t1.filter "A" (Filter_Condition.Is_In [1])
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [[1, int]]]
+
+            t4 = t1.filter "A" (Filter_Condition.Is_In [])
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
+
+            t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
+            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
+
     Test.group "[Codegen] Joining Tables" <|
-        t2 = test_connection.access_table "T2"
-        t3 = test_connection.access_table "T3"
+        t2 = test_connection.query (SQL_Query.Table_Name "T2")
+        t3 = test_connection.query (SQL_Query.Table_Name "T3")
         Test.specify "should allow joining tables index-on-index" <|
             r1 = t1.set_index 'A' . join (t2.set_index 'D')
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."A_1" = "T2"."D")', []]
@@ -124,13 +145,13 @@ spec =
                 table2 = ["T2", [["X", int], ["A", int], ["B", int]]]
                 tables = Map.from_vector [table1, table2]
                 Fake_Test_Connection.make Dialect.sqlite tables
-            t1 = connection.access_table "T1"
-            t2 = connection.access_table "T2"
-            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error
+            t1 = connection.query (SQL_Query.Table_Name "T1")
+            t2 = connection.query (SQL_Query.Table_Name "T2")
+            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should ensure that name suffixes are distinct" <|
             err = (t1.set_index 'A').join (t2.set_index 'D') left_suffix='foo' right_suffix='foo'
-            err . should_fail_with Illegal_State_Error
+            err . should_fail_with Illegal_State_Error_Data
 
         Test.specify "should correctly handle self-joins" <|
             r1 = t1.join (t1.set_index 'A') on='B'
@@ -141,13 +162,12 @@ spec =
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
 
-        Test.specify "drop_missing should drop missing rows in a Column" <|
-            col = t1.at "A" . drop_missing
-            col.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL))', []]
+        Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
+            t2 = t1.filter_blank_rows when_any=True
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) OR (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) OR ("T1"."C" IS NULL)))', []]
 
-        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            t2 = t1.drop_missing_rows
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
+            t3 = t1.filter_blank_rows when_any=False
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) AND (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) AND ("T1"."C" IS NULL)))', []]
 
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
@@ -169,7 +189,7 @@ spec =
             action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
             tester table =
                 table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|
@@ -180,7 +200,7 @@ spec =
             combined.first . should_equal ["A_1", "B"]
             combined.second . should_equal ["A_2", "C"]
 
-            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error
+            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error_Data
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]
@@ -195,4 +215,4 @@ spec =
             code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
             code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

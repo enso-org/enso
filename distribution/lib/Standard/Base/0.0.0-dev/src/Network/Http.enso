@@ -1,7 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time
+from Standard.Base.Error.Common import Time_Error
+
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
@@ -35,7 +36,7 @@ polyglot java import org.enso.base.Http_Utils
 
    > Example
      Create an HTTP client with extended timeout.
-         Http.new timeout=30.seconds
+         Http.new timeout=(Duration.new seconds=30)
 
    > Example
      Create an HTTP client with extended timeout and proxy settings.
@@ -45,10 +46,10 @@ polyglot java import org.enso.base.Http_Utils
          import Standard.Base.Network.Proxy
 
          example_new =
-            Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
+            Http.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
-    Http timeout follow_redirects proxy version
+new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+    Http_Data timeout follow_redirects proxy version
 
 ## Send an Options request.
 
@@ -279,6 +280,10 @@ put uri body (headers = []) = new.put uri body headers
 put_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
 put_json uri body_json (headers = []) = new.put_json uri body_json headers
 
+## TODO Dubious constructor export
+from project.Network.Http.Http import all
+from project.Network.Http.Http export all
+
 type Http
 
     ## PRIVATE
@@ -290,7 +295,7 @@ type Http
        - follow_redirects: Whether or not the client should follow redirects.
        - proxy: The proxy that the client should use, if any.
        - version: The HTTP version supported by the client.
-    type Http timeout follow_redirects proxy version
+    Http_Data timeout follow_redirects proxy version
 
     ## Send an Options request.
 
@@ -590,12 +595,12 @@ type Http
              example_request =
                  form = [Form.text_field "name" "John Doe"]
                  req = Request.new Method.Post "http://httpbin.org/post" . with_form form
-                 http = Http.new (timeout = 30.seconds)
+                 http = Http.new (timeout = (Duration.new seconds=30))
                  http.request req
     request : Request -> Response ! Request_Error
     request self req =
         handle_request_error =
-            Panic.catch_java Any handler=(err-> Error.throw (Request_Error 'IllegalArgumentException' err.getMessage))
+            Panic.catch_java Any handler=(err-> Error.throw (Request_Error_Data 'IllegalArgumentException' err.getMessage))
         Panic.recover Any <| handle_request_error <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
@@ -604,14 +609,14 @@ type Http
             # prepare headers and body
             req_with_body = case req.body of
                 Request_Body.Empty ->
-                    Pair req body_publishers.noBody
+                    Pair_Data req body_publishers.noBody
                 Request_Body.Text text ->
                     builder.header Header.text_plain.name Header.text_plain.value
-                    Pair req (body_publishers.ofString text)
+                    Pair_Data req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
                     json_body = if json.is_a Text then json else json.to_text
-                    Pair req (body_publishers.ofString json_body)
+                    Pair_Data req (body_publishers.ofString json_body)
                 Request_Body.Form form ->
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
@@ -619,18 +624,18 @@ type Http
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
                         boundary = body_builder.get_boundary
-                        Pair (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                        Pair_Data (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
                     add_urlencoded form =
                         body_builder = Http_Utils.urlencoded_body_builder
                         form.parts.map part-> case part.value of
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
-                        Pair req body_builder.build
+                        Pair_Data req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
                 Request_Body.Bytes bytes ->
                     builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair req (body_publishers.ofByteArray bytes.to_array)
+                    Pair_Data req (body_publishers.ofByteArray bytes.to_array)
             # method
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"
@@ -642,14 +647,14 @@ type Http
                 Method.Trace -> "TRACE"
                 Method.Connect -> "CONNECT"
             case req_with_body of
-                Pair req body ->
+                Pair_Data req body ->
                     # set method and body
                     builder.method req_http_method body
                     # set headers
                     req.headers.map h-> builder.header h.name h.value
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.Response (self.internal_http_client.send http_request body_handler)
+            Response.Response_Data (self.internal_http_client.send http_request body_handler)
 
     ## PRIVATE
 
@@ -657,9 +662,7 @@ type Http
     internal_http_client : HttpClient
     internal_http_client self =
         builder = HttpClient.newBuilder
-        # timeout
-        if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
-            builder.connectTimeout self.timeout.internal_duration
+        builder.connectTimeout self.timeout
         # redirect
         redirect = HttpClient.Redirect
         redirect_policy = case self.follow_redirects of
@@ -685,6 +688,10 @@ type Http
         # build http client
         builder.build
 
+## TODO Dubious constructor export
+from project.Network.Http.Request_Error import all
+from project.Network.Http.Request_Error export all
+
 ## UNSTABLE
 
    An error when sending an Http request.
@@ -692,13 +699,15 @@ type Http
    Arguments:
    - error_type: The type of the error.
    - message: The message for the error.
-type Request_Error error_type message
+type Request_Error
+    Request_Error_Data error_type message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Convert a request error to a human-readable form.
-Request_Error.to_display_text self =
-    description_text = case self.message of
-        Nothing -> ""
-        _ -> " " + self.message
-    self.error_type + " error when sending request." + description_text
+       Convert a request error to a human-readable form.
+    to_display_text : Text
+    to_display_text self =
+        description_text = case self.message of
+            Nothing -> ""
+            _ -> " " + self.message
+        self.error_type + " error when sending request." + description_text

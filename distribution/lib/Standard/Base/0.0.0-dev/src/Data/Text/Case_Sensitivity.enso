@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+# TODO Dubious constructor export
+from project.Data.Text.Case_Sensitivity.Case_Sensitivity import all
+from project.Data.Text.Case_Sensitivity.Case_Sensitivity export all
+
+type Case_Sensitivity
+    ## Represents a case-sensitive comparison mode.
+    Sensitive
+
+    ## Represents a case-insensitive comparison mode.
+
+       Arguments:
+       - locale: The locale used for the comparison.
+    Insensitive locale=Locale.default

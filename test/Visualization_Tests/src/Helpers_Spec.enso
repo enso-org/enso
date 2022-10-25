@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
+from Standard.Table import Table
 
 import Standard.Visualization.Helpers
 
-import Standard.Test
+from Standard.Test import Test
 
 import project.Helpers
 

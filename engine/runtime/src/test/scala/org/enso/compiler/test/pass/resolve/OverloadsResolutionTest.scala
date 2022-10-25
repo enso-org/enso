@@ -121,49 +121,20 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Atom]
+      exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Type]
     }
 
     "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.Atom]
+      ir.bindings(1) shouldBe an[IR.Error.Redefined.Type]
       ir.bindings(1)
-        .asInstanceOf[IR.Error.Redefined.Atom]
-        .atomName
+        .asInstanceOf[IR.Error.Redefined.Type]
+        .typeName
         .name shouldEqual atomName
-      ir.bindings(2) shouldBe an[IR.Error.Redefined.Atom]
+      ir.bindings(2) shouldBe an[IR.Error.Redefined.Type]
       ir.bindings(2)
-        .asInstanceOf[IR.Error.Redefined.Atom]
-        .atomName
+        .asInstanceOf[IR.Error.Redefined.Type]
+        .typeName
         .name shouldEqual atomName
-    }
-  }
-
-  "Atom overloads method resolution" should {
-    implicit val ctx: ModuleContext = mkModuleContext
-
-    val atomName   = "Foo"
-    val methodName = atomName.toLowerCase
-
-    val ir =
-      s"""|
-          |type $atomName
-          |$methodName = 0
-          |Unit.$methodName = 1
-          |""".stripMargin.preprocessModule.resolve
-
-    "detect overloads within a given module" in {
-      exactly(1, ir.bindings) shouldBe an[
-        IR.Error.Redefined.MethodClashWithAtom
-      ]
-    }
-
-    "replace all overloads by an error node" in {
-      ir.bindings(1) shouldBe an[IR.Error.Redefined.MethodClashWithAtom]
-      ir.bindings(1)
-        .asInstanceOf[IR.Error.Redefined.MethodClashWithAtom]
-        .methodName
-        .name shouldEqual methodName
-      ir.bindings(2) shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
     }
   }
 

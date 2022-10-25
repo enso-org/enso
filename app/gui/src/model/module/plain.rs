@@ -3,6 +3,8 @@
 use crate::prelude::*;
 
 use crate::model::module::Content;
+use crate::model::module::ImportMetadata;
+use crate::model::module::ImportMetadataNotFound;
 use crate::model::module::Metadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
@@ -14,10 +16,11 @@ use crate::model::module::TextChange;
 use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
+use double_representation::module::ImportId;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 
 
 
@@ -32,7 +35,6 @@ use parser::Parser;
 /// (text and graph).
 #[derive(Debug)]
 pub struct Module {
-    logger:        Logger,
     path:          Path,
     content:       RefCell<Content>,
     notifications: notification::Publisher<Notification>,
@@ -42,14 +44,12 @@ pub struct Module {
 impl Module {
     /// Create state with given content.
     pub fn new(
-        parent: impl AnyLogger,
         path: Path,
         ast: ast::known::Module,
         metadata: Metadata,
         repository: Rc<model::undo_redo::Repository>,
     ) -> Self {
         Module {
-            logger: Logger::new_sub(parent, path.to_string()),
             content: RefCell::new(ParsedSourceFile { ast, metadata }),
             notifications: default(),
             path,
@@ -65,10 +65,10 @@ impl Module {
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
-            debug!(self.logger, "Ignoring spurious update.");
+            debug!("Ignoring spurious update.");
             return Ok(());
         }
-        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
+        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content.borrow().clone());
 
@@ -171,9 +171,9 @@ impl model::module::API for Module {
         parser: &Parser,
         new_id_map: ast::IdMap,
     ) -> FallibleResult {
-        let mut code: enso_text::Text = self.ast().repr().into();
-        let replaced_start = code.location_of_byte_offset_snapped(change.range.start);
-        let replaced_end = code.location_of_byte_offset_snapped(change.range.end);
+        let mut code: enso_text::Rope = self.ast().repr().into();
+        let replaced_start = code.offset_to_location_snapped(change.range.start);
+        let replaced_end = code.offset_to_location_snapped(change.range.end);
         let replaced_location = enso_text::Range::new(replaced_start, replaced_end);
         code.apply_change(change.as_ref());
         let new_ast = parser.parse(code.into(), new_id_map)?.try_into()?;
@@ -209,6 +209,32 @@ impl model::module::API for Module {
             content.metadata.ide.node.insert(id, data);
         })
     }
+
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult {
+        self.update_content(NotificationKind::MetadataChanged, |content| {
+            let lookup = content.metadata.ide.import.remove(&id);
+            let mut data = lookup.unwrap_or_default();
+            fun(&mut data);
+            content.metadata.ide.import.insert(id, data);
+        })
+    }
+
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+        let content = self.content.borrow();
+        content.metadata.ide.import.clone().into_iter().collect()
+    }
+
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+        self.try_updating_content(NotificationKind::MetadataChanged, |content| {
+            let lookup = content.metadata.ide.import.remove(&id);
+            lookup.ok_or_else(|| ImportMetadataNotFound(id).into())
+        })
+    }
+
 
     fn boxed_with_project_metadata(&self, fun: Box<dyn FnOnce(&ProjectMetadata) + '_>) {
         let content = self.content.borrow();
@@ -255,14 +281,14 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::Position;
 
-    use enso_text::traits::*;
+    use enso_text::index::*;
 
     #[wasm_bindgen_test]
     fn applying_code_change() {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
         let change = TextChange {
-            range: enso_text::Range::new(2.bytes(), 5.bytes()),
+            range: enso_text::Range::new(2.byte(), 5.byte()),
             text:  "- abc".to_string(),
         };
         module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
@@ -293,13 +319,13 @@ mod test {
 
         // Code change
         let change = TextChange {
-            range: enso_text::Range::new(0.bytes(), 1.bytes()),
+            range: enso_text::Range::new(0.byte(), 1.byte()),
             text:  "foo".to_string(),
         };
         module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
         let replaced_location = enso_text::Range {
-            start: enso_text::Location { line: 0.line(), column: 0.column() },
-            end:   enso_text::Location { line: 0.line(), column: 1.column() },
+            start: enso_text::Location { line: 0.into(), offset: 0.byte() },
+            end:   enso_text::Location { line: 0.into(), offset: 1.byte() },
         };
         expect_notification(NotificationKind::CodeChanged { change, replaced_location });
 

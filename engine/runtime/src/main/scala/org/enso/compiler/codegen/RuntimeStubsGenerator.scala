@@ -1,10 +1,12 @@
 package org.enso.compiler.codegen
 
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
+import org.enso.interpreter.runtime.data.Type
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
@@ -23,17 +25,38 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    localBindings.constructors.foreach { tp =>
+    val types = localBindings.definedEntities.collect {
+      case t: BindingsMap.Type => t
+    }
+    types.foreach { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {
-          throw new CompilerError("Unknown @BuiltinType " + tp.name)
+          throw new CompilerError("Unknown @Builtin_Type " + tp.name)
         }
-        scope.registerConstructor(builtinType)
-        builtinType.setShadowDefinitions(scope)
+        if (
+          Set(tp.members: _*).map(_.name) != Set(
+            builtinType.getConstructors.toIndexedSeq: _*
+          )
+            .map(_.getName)
+        ) {
+          throw new CompilerError(
+            s"Wrong constructors declared in the builtin ${tp.name}."
+          )
+        }
+        scope.registerType(builtinType.getType)
+        builtinType.getType.setShadowDefinitions(scope, true)
       } else {
-        val constructor = new AtomConstructor(tp.name, scope)
-        scope.registerConstructor(constructor)
+        val rtp = if (tp.members.nonEmpty || tp.builtinType) {
+          Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
+        } else {
+          Type.createSingleton(tp.name, scope, builtins.any(), false)
+        }
+        scope.registerType(rtp)
+        tp.members.foreach { cons =>
+          val constructor = new AtomConstructor(cons.name, scope, rtp)
+          rtp.registerConstructor(constructor)
+        }
       }
     }
   }

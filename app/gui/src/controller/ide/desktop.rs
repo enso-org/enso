@@ -16,7 +16,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
 use engine_protocol::project_manager::ProjectName;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 

@@ -19,11 +19,11 @@ ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
 ensogl-gui-component = { path = "../../../lib/rust/ensogl/component/gui" }
 ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
-ensogl-text-msdf-sys = { path = "../../../lib/rust/ensogl/component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-component-browser = { path = "component-browser" }
 ide-view-graph-editor = { path = "graph-editor" }
-parser = { path = "../language/parser" }
+parser-scala = { path = "../language/parser" }
 span-tree = { path = "../language/span-tree" }
 js-sys = { version = "0.3.28" }
 multi-map = { version = "1.3.0" }

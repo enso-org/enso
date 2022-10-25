@@ -3,11 +3,12 @@
 //! necessary for the generated code to compile.
 
 // === Features ===
-#![feature(bool_to_option)]
 #![feature(exact_size_is_empty)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -148,13 +149,15 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
 }
 
 /// Exposes the function as an application entry point. Entry points are alternative application
-/// running modes that you can access by adding `?entry=` to the end of the application URL.
+/// running modes that you can access by adding `?entry=` to the end of the application URL. If no
+/// explicit name is provided to this macro (as an argument), the crate name will be used as the
+/// entry point name.
 #[proc_macro_attribute]
 pub fn entry_point(
-    _: proc_macro::TokenStream,
+    args: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    derive_entry_point::derive(item)
+    derive_entry_point::derive(args, item)
 }
 
 #[allow(missing_docs)]

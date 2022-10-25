@@ -7,6 +7,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -81,7 +83,7 @@ ensogl_core::define_endpoints! {
 #[derive(Clone, Debug)]
 struct Model {
     background:     background::View,
-    label:          text::Area,
+    label:          text::Text,
     display_object: display::object::Instance,
     style:          StyleWatch,
 }
@@ -90,10 +92,9 @@ impl Model {
     fn new(app: Application) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let logger = Logger::new("TextLabel");
-        let display_object = display::object::Instance::new(&logger);
-        let label = app.new_view::<text::Area>();
-        let background = background::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let label = app.new_view::<text::Text>();
+        let background = background::View::new();
 
         display_object.add_child(&background);
         display_object.add_child(&label);
@@ -139,16 +140,15 @@ impl Model {
         padded_size
     }
 
-    fn set_content(&self, t: &str) -> Vector2 {
+    fn set_content(&self, t: &str) {
         self.label.set_content(t);
-        self.set_width(self.label.width.value())
     }
 
     fn set_opacity(&self, value: f32) {
         let text_color_path = theme::text;
         let text_color = self.style.get_color(text_color_path).multiply_alpha(value);
-        self.label.frp.set_color_all.emit(text_color);
-        self.label.frp.set_default_color.emit(text_color);
+        self.label.frp.set_property(.., text_color);
+        self.label.frp.set_property_default(text_color);
 
         let bg_color_path = theme::background;
         let bg_color = self.style.get_color(bg_color_path).multiply_alpha(value);
@@ -178,7 +178,7 @@ impl Label {
     }
 
     /// Set layers for Label's background and text respectively. This is needed because
-    /// `text::Area` uses its own `add_to_scene_layer` method instead of utilizing more common
+    /// `text::Text` uses its own `add_to_scene_layer` method instead of utilizing more common
     /// [`Layer::add_exclusive`].
     pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
         self.model.set_layers(background_layer, text_layer);
@@ -190,8 +190,9 @@ impl Label {
         let model = &self.model;
 
         frp::extend! { network
-            frp.source.size <+ frp.set_content.map(f!((t)
-                model.set_content(t)
+            eval frp.set_content((t) model.set_content(t));
+            frp.source.size <+ model.label.width.map(f!((w)
+                model.set_width(*w)
             ));
 
             eval frp.set_opacity((value) model.set_opacity(*value));

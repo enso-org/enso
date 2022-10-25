@@ -6,10 +6,10 @@ type Match_Columns
        A `Column_Name_Mismatch` error occurs if any column name in the existing
        data could not be matched to the new data, or any column name in the new
        data was not found in the existing data.
-    type By_Name
+    By_Name
 
     ## Columns are matched by Position against the existing data.
        Note: column names are not compared.
        A `Column_Count_Mismatch` error occurs if the existing data has a
        different number of columns than the table.
-    type By_Position
+    By_Position

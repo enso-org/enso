@@ -10,16 +10,16 @@ edition = "2021"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-enso-data-structures = { path = "../data-structures" }
 enso-debug-api = { path = "../debug-api" }
-enso-logger = { path = "../logger" }
-enso-prelude = { path = "../prelude", features = ["wasm-bindgen"] }
 console_error_panic_hook = { version = "0.1.6", optional = true }
 failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+derivative = "2.2.0"
+tracing = "0.1"
+enso-shapely = { path = "../shapely" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std = { version = "1.5.0" }
@@ -53,6 +53,9 @@ features = [
   'DomRectReadOnly',
   'Location',
   'ReadableStream',
+  'AddEventListenerOptions',
+  'KeyboardEvent',
+  'WheelEvent',
 ]
 
 [dev-dependencies]

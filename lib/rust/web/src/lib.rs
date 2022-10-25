@@ -4,6 +4,7 @@
 
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(default_free_fn)]
 #![feature(trait_alias)]
 #![feature(negative_impls)]
 #![feature(specialization)]
@@ -12,6 +13,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -55,9 +58,16 @@ pub mod prelude {
     pub use super::JsCast;
     pub use super::JsValue;
     pub use super::Object;
-    pub use enso_logger::DefaultInfoLogger as Logger;
-    pub use enso_logger::*;
-    pub use enso_prelude::*;
+    pub use enso_shapely::clone_ref::*;
+    pub use std::cell::RefCell;
+    pub use std::default::default;
+    pub use std::fmt::Debug;
+    pub use std::marker::PhantomData;
+    pub use std::ops::Deref;
+    pub use std::rc::Rc;
+    pub use tracing;
+    pub use tracing::debug;
+    pub use tracing::warn;
 }
 
 
@@ -241,9 +251,11 @@ macro_rules! ops {
 
             /// WASM bindings.
             pub mod wasm {
-                use enso_prelude::*;
                 use super::binding::wasm::*;
                 use super::wasm_traits::*;
+                pub use tracing;
+                pub use tracing::warn;
+                pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
                 impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
@@ -252,9 +264,11 @@ macro_rules! ops {
 
             /// Mock bindings.
             pub mod mock {
-                use enso_prelude::*;
                 use super::binding::mock::*;
                 use super::mock_traits::*;
+                pub use tracing;
+                pub use tracing::warn;
+                pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
                 impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
@@ -442,7 +456,7 @@ ops! { WindowOps for Window
             f: &Closure<dyn FnMut(f64)>,
         ) -> Result<i32, JsValue>;
         fn request_animation_frame_with_closure_or_panic(&self, f: &Closure<dyn FnMut(f64)>) -> i32;
-        fn cancel_animation_frame_or_panic(&self, id: i32);
+        fn cancel_animation_frame_or_warn(&self, id: i32);
         fn performance_or_panic(&self) -> Performance;
     }
 
@@ -459,8 +473,10 @@ ops! { WindowOps for Window
             self.request_animation_frame_with_closure(f).unwrap()
         }
 
-        fn cancel_animation_frame_or_panic(&self, id: i32) {
-            self.cancel_animation_frame(id).unwrap();
+        fn cancel_animation_frame_or_warn(&self, id: i32) {
+            self.cancel_animation_frame(id).unwrap_or_else(|err| {
+                tracing::error!("Error when canceling animation frame: {err:?}");
+            });
         }
 
         fn performance_or_panic(&self) -> Performance {
@@ -539,7 +555,7 @@ ops! { DocumentOps for Document
             let root_elem = self.get_element_by_id(id);
             match root_elem {
                 Some(v) => f(v),
-                None => WARNING!("Failed to get element by ID."),
+                None => warn!("Failed to get element by ID."),
             }
         }
     }
@@ -564,7 +580,7 @@ ops! { NodeOps for Node
         fn append_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
             if self.append_child(node).is_err() {
-                WARNING!(warn_msg)
+                warn!(warn_msg)
             };
         }
 
@@ -572,7 +588,7 @@ ops! { NodeOps for Node
             let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
             let first_c = self.first_child();
             if self.insert_before(node, first_c.as_ref()).is_err() {
-                WARNING!(warn_msg)
+                warn!(warn_msg)
             }
         }
 
@@ -580,7 +596,7 @@ ops! { NodeOps for Node
             let warn_msg: &str =
                 &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
             if self.insert_before(node, Some(ref_node)).is_err() {
-                WARNING!(warn_msg)
+                warn!(warn_msg)
             }
         }
 
@@ -588,7 +604,7 @@ ops! { NodeOps for Node
             if let Some(parent) = self.parent_node() {
                 let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
                 if parent.remove_child(self).is_err() {
-                    WARNING!(warn_msg)
+                    warn!(warn_msg)
                 }
             }
         }
@@ -596,7 +612,7 @@ ops! { NodeOps for Node
         fn remove_child_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
             if self.remove_child(node).is_err() {
-                WARNING!(warn_msg)
+                warn!(warn_msg)
             }
         }
     }
@@ -610,17 +626,17 @@ ops! { NodeOps for Node
 
 ops! { ElementOps for Element
     trait {
-        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U);
+        fn set_attribute_or_warn<T: AsRef<str>, U: AsRef<str>>(&self, name: T, value: U);
     }
 
     impl {
-        fn set_attribute_or_warn<T: Str, U: Str>(&self, name: T, value: U) {
+        fn set_attribute_or_warn<T: AsRef<str>, U: AsRef<str>>(&self, name: T, value: U) {
             let name = name.as_ref();
             let value = value.as_ref();
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set attribute {}", values);
             if self.set_attribute(name, value).is_err() {
-                WARNING!(warn_msg)
+                warn!(warn_msg)
             }
         }
     }
@@ -644,7 +660,7 @@ ops! { HtmlElementOps for HtmlElement
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set style {}", values);
             if self.style().set_property(name, value).is_err() {
-                WARNING!(warn_msg);
+                warn!(warn_msg);
             }
         }
     }
@@ -719,7 +735,7 @@ impl EventListenerHandle {
     /// Constructor.
     pub fn new<T: ?Sized + 'static>(
         target: EventTarget,
-        name: ImString,
+        name: Rc<String>,
         closure: Closure<T>,
     ) -> Self {
         let closure = Box::new(closure);
@@ -736,7 +752,7 @@ impl EventListenerHandle {
 /// associated function to be pruned from memory.
 struct EventListenerHandleData {
     target:  EventTarget,
-    name:    ImString,
+    name:    Rc<String>,
     closure: Box<dyn traits::ClosureOps>,
 }
 
@@ -761,7 +777,7 @@ macro_rules! gen_add_event_listener {
             // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
             target.$wbindgen_name(name, closure.as_js_function() $(,$arg)*).ok();
             let target = target.clone();
-            let name = name.into();
+            let name = Rc::new(name.to_string());
             EventListenerHandle::new(target, name, closure)
         }
     };
@@ -883,9 +899,14 @@ pub fn simulate_sleep(duration: f64) {
 // =============
 
 /// Enables forwarding panic messages to `console.error`.
+#[cfg(target_arch = "wasm32")]
 pub fn forward_panic_hook_to_console() {
     std::panic::set_hook(Box::new(report_panic))
 }
+
+/// Enables forwarding panic messages to `console.error`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn forward_panic_hook_to_console() {}
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {
@@ -895,11 +916,6 @@ fn report_panic(info: &std::panic::PanicInfo) {
         api.error(&msg);
     }
     web_sys::console::error_1(&msg.into());
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn report_panic(info: &std::panic::PanicInfo) {
-    eprintln!("{}", info);
 }
 
 

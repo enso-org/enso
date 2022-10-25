@@ -1,12 +1,9 @@
-## Generic utilities for interacting with other languages.
+## A type representing interactions with polyglot languages.
+    Polyglot is a term that refers to other languages (such as Java) that are
+    running on the same JVM.
+
+@Builtin_Type
 type Polyglot
-
-    ## A type representing interactions with polyglot languages.
-        Polyglot is a term that refers to other languages (such as Java) that are
-        running on the same JVM.
-
-    @Builtin_Type
-    type Polyglot
 
 ## Reads the number of elements in a given polyglot array object.
 
@@ -14,6 +11,13 @@ type Polyglot
    - array: a polyglot array object, originating in any supported language.
 get_array_size : Any -> Integer
 get_array_size array = @Builtin_Method "Polyglot.get_array_size"
+
+## Reads the element in a given polyglot array object.
+
+   Arguments:
+   - index: The index to get the element from.
+read_array_element : Any -> Integer -> Any
+read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
 
 ## Executes a polyglot function object (e.g. a lambda).
 

@@ -12,7 +12,7 @@ use crate::display::scene::Scene;
 use crate::frp;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
-use crate::DEPRECATED_Tween;
+use crate::Easing;
 
 
 
@@ -91,7 +91,7 @@ impl Style {
         Self { press, ..default() }
     }
 
-    pub fn new_text_cursor() -> Self {
+    pub fn cursor() -> Self {
         let size = Vector2::new(3.0, DEFAULT_SIZE().y);
         let size = Some(StyleValue::new(size));
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
@@ -200,9 +200,9 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let logger = Logger::new("cursor");
-        let display_object = display::object::Instance::new(&logger);
-        let view = shape::View::new(&logger);
-        let port_selection = shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let view = shape::View::new();
+        let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
@@ -217,7 +217,7 @@ impl CursorModel {
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
         for view in &[&self.view, &self.port_selection] {
-            f(*view)
+            f(view)
         }
     }
 }
@@ -270,10 +270,10 @@ impl Cursor {
         let inactive_fade = DEPRECATED_Animation::<f32>::new(network);
         let host_position = DEPRECATED_Animation::<Vector3>::new(network);
         let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
-        let host_attached_weight = DEPRECATED_Tween::new(network);
+        let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
 
-        host_attached_weight.set_duration(300.0.ms());
+        host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
         color_alpha.set_target_value(DEFAULT_COLOR.alpha);
         radius.set_target_value(DEFAULT_RADIUS);
@@ -303,8 +303,8 @@ impl Cursor {
             });
 
             eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
-                host_attached_weight.stop_and_rewind();
-                if new_style.host.is_some() { host_attached_weight.start() }
+                host_attached_weight.stop_and_rewind(0.0);
+                if new_style.host.is_some() { host_attached_weight.target(1.0) }
 
                 let def = 0.0;
                 match &new_style.press {

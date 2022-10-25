@@ -110,14 +110,9 @@ case object TailCall extends IRPass {
           "Sugared method definitions should not occur during tail call " +
           "analysis."
         )
-      case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
-        atom
-          .copy(
-            arguments = args.map(analyseDefArgument)
-          )
-          .updateMetadata(this -->> TailPosition.Tail)
-      case _: IR.Module.Scope.Definition.UnionType => definition
       case _: IR.Module.Scope.Definition.Type =>
+        definition.updateMetadata(this -->> TailPosition.Tail)
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "tail call analysis."
@@ -399,6 +394,12 @@ case object TailCall extends IRPass {
       case literal: Pattern.Literal =>
         literal
           .updateMetadata(this -->> TailPosition.NotTail)
+      case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
+        tpePattern
+          .copy(
+            name = analyseName(name, isInTailPosition = false),
+            tpe  = analyseName(tpe, isInTailPosition = false)
+          )
       case err: IR.Error.Pattern =>
         err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>

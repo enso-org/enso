@@ -104,7 +104,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         case VOID:
           return new String[] {
             "  " + qual + "." + name + "(" + paramsApplied + ");",
-            "  return Context.get(this).getBuiltins().nothing().newInstance();"
+            "  return Context.get(this).getBuiltins().nothing();"
           };
         case ARRAY:
           return new String[] {
@@ -136,11 +136,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
   }
 
-  public List<String> generate(
-      ProcessingEnvironment processingEnv,
-      String name,
-      String owner,
-      Map<String, Integer> builtinTypesParameterCounts) {
+  public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
 
     SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;
@@ -170,7 +166,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         method.add("  " + statement);
       }
       for (int i = 0; i < exceptionWrappers.length; i++) {
-        method.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
+        method.addAll(exceptionWrappers[i].toCatchClause());
       }
       method.add("  }");
       method.add("}");

@@ -7,6 +7,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -90,6 +92,41 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    /// Return a viewport with given center position and size.
+    pub fn from_center_point_and_size(position: Vector2, size: Vector2) -> Self {
+        let half_size = size / 2.0;
+        let top = position.y + half_size.y;
+        let bottom = position.y - half_size.y;
+        let left = position.x - half_size.x;
+        let right = position.x + half_size.x;
+        Self { top, bottom, left, right }
+    }
+
+    /// Return a viewport with unchanged size, moved such that it contains the top-left corner of
+    /// the other viewport and as much of its area as fits in the size. If there is more than one
+    /// such viewport possible, return the one closest to the original viewport.
+    pub fn moved_to_contain(self, other: Self) -> Self {
+        let size = self.size();
+        let top = if self.top < other.top {
+            other.top
+        } else if self.bottom > other.bottom {
+            other.bottom + size.y
+        } else {
+            self.top
+        };
+        let bottom = top - size.y;
+        let left = if self.left > other.left {
+            other.left
+        } else if self.right < other.right {
+            other.right - size.x
+        } else {
+            self.left
+        };
+        let right = left + size.x;
+        Self { top, bottom, left, right }
+    }
+
+
     /// Clamp the given coordinates to this viewport.
     pub fn clamp(&self, pos: Vector2) -> Vector2 {
         let x = pos.x.clamp(self.left, self.right);
@@ -198,7 +235,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &*self.model.display_object
+        &self.model.display_object
     }
 }
 
@@ -209,22 +246,22 @@ impl ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
         let camera = scene.layers.node_searcher.camera();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content_layer = display_object.layer.masked_layer.create_sublayer();
         let ui_layer = display_object.layer.masked_layer.create_sublayer();
 
-        let content = display::object::Instance::new(&logger);
+        let content = display::object::Instance::new();
         display_object.add_child(&content);
         content_layer.add_exclusive(&content);
 
-        let scrollbars = display::object::Instance::new(&logger);
+        let scrollbars = display::object::Instance::new();
         display_object.add_child(&scrollbars);
         ui_layer.add_exclusive(&scrollbars);
 
-        let mask = mask::View::new(&logger);
+        let mask = mask::View::new();
         display_object.add_child(&mask);
         display_object.layer.mask_layer.add_exclusive(&mask);
 

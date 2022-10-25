@@ -93,7 +93,7 @@ impl Container {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let logger = Logger::new("error::Container");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let background_dom = Self::create_background_dom(&scene);
         let visualization = error_visualization::Error::new(&scene);
 
@@ -134,7 +134,7 @@ impl Container {
 
     /// Move the container with visualization to `layer`.
     pub fn set_layer(&self, layer: visualization::Layer) {
-        self.visualization.frp.set_layer.emit(&layer);
+        self.visualization.frp.set_layer.emit(layer);
         layer.apply_for_html_component(&self.scene, &self.background_dom);
     }
 }

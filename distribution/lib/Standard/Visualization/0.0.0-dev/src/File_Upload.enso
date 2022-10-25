@@ -9,9 +9,9 @@ from Standard.Base import all
    - `path`: The path to which the file is being uploaded.
 file_uploading : (File.File | Text) -> File.File ! File_Being_Uploaded
 file_uploading path =
-    err = File_Being_Uploaded <| case path of
-        Text -> path
-        File.File -> path.path
+    err = File_Being_Uploaded.Value <| case path of
+        _ : Text -> path
+        _ : File.File -> path.path
         _ -> ""
     Error.throw err
 
@@ -21,4 +21,5 @@ file_uploading path =
 
    Arguments:
    - file_path: The path at which the file is being uploaded.
-type File_Being_Uploaded file_path
+type File_Being_Uploaded
+    Value file_path

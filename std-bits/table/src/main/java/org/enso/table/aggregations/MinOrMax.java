@@ -11,7 +11,7 @@ import java.util.List;
  * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a group.
  */
 public class MinOrMax extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final int minOrMax;
   private final Comparator<Object> objectComparator;
 
@@ -23,7 +23,7 @@ public class MinOrMax extends Aggregator {
    * @param minOrMax <0 for minimum, >0 for maximum
    */
   public MinOrMax(String name, Column column, int minOrMax, Comparator<Object> objectComparator) {
-    super(name, Storage.Type.OBJECT);
+    super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
     this.objectComparator = objectComparator;

@@ -4,6 +4,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -61,8 +63,13 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = api.network.clone();
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        _app: &Application,
+        model: &Model,
+        _style: &StyleWatchFrp,
+    ) {
         frp::extend! { network
             eval api.input.set_profile ((profile) model.set_profile(profile));
             let model = model.clone_ref();
@@ -94,9 +101,9 @@ impl component::Model for Model {
         "SequenceDiagram"
     }
 
-    fn new(app: &Application, logger: &Logger) -> Self {
+    fn new(app: &Application) -> Self {
         let app = app.clone();
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let actor_lines = default();
         let message_lines = default();
         let origin_x = default();
@@ -144,7 +151,7 @@ impl Model {
                     line.set_cap(cap);
 
                     let height_rows =
-                        (message.recipient.id as i32 - message.sender.id as i32).abs() as u32;
+                        (message.recipient.id as i32 - message.sender.id as i32).unsigned_abs();
                     let height_px = ROW_HEIGHT * height_rows as f32;
                     let start = message.recipient.id.min(message.sender.id) as u32;
                     line.set_size(Vector2::new(LINE_WIDTH, height_px));

@@ -84,7 +84,7 @@ object MethodCalls extends IRPass {
               targetBindings match {
                 case Some(bindings) =>
                   val resolution =
-                    bindings.exportedSymbols.get(name.name.toLowerCase)
+                    bindings.exportedSymbols.get(name.name)
                   resolution match {
                     case Some(List(resolution)) =>
                       val newName =

@@ -3,23 +3,19 @@ import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
 
-## Dataflow errors.
+## A type representing dataflow errors.
+
+   A dataflow error in Enso is one that behaves like a standard value, and
+   hence represents erroneous states in a way that exists _within_ standard
+   control flow.
+
+   ? Dataflow Errors or Panics
+     Whilst a Panic is useful for unrecoverable situations, most Enso APIs
+     are designed to use dataflow errors instead. As they exist within the
+     normal program control flow, they are able to be represented on the
+     Enso graph.
+@Builtin_Type
 type Error
-
-    ## A type representing dataflow errors.
-
-       A dataflow error in Enso is one that behaves like a standard value, and
-       hence represents erroneous states in a way that exists _within_ standard
-       control flow.
-
-       ? Dataflow Errors or Panics
-         Whilst a Panic is useful for unrecoverable situations, most Enso APIs
-         are designed to use dataflow errors instead. As they exist within the
-         normal program control flow, they are able to be represented on the
-         Enso graph.
-    @Builtin_Type
-    type Error
-
     ## Creates a new dataflow error containing the provided payload.
 
        Arguments:
@@ -78,8 +74,8 @@ type Error
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error "My message")
-                 error.catch Illegal_Argument_Error (err -> err.message)
+                 error = Error.throw (Illegal_Argument_Error_Data "My message")
+                 error.catch Illegal_Argument_Error_Data (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.
@@ -166,6 +162,16 @@ type Error
     is_error : Boolean
     is_error self = True
 
+    ## PRIVATE
+       TODO this is a kludge until we have proper eigentypes and statics.
+       Allows to check equality of the `Error` type with itself.
+    == self that = if Meta.is_error self then self else
+        if Meta.is_error that then that else
+            Meta.is_same_object self that
+
+# TODO Dubious constructor export
+from project.Error.Common.Illegal_State_Error import all
+from project.Error.Common.Illegal_State_Error export all
 
 type Illegal_State_Error
 
@@ -178,7 +184,11 @@ type Illegal_State_Error
        - message: the error message explaining why the operation cannot be
          performed.
        - cause: (optional) another error that is the cause of this one.
-    type Illegal_State_Error message cause=Nothing
+    Illegal_State_Error_Data message cause=Nothing
+
+# TODO Dubious constructor export
+from project.Error.Common.Illegal_Argument_Error import all
+from project.Error.Common.Illegal_Argument_Error export all
 
 type Illegal_Argument_Error
 
@@ -190,12 +200,16 @@ type Illegal_Argument_Error
        Arguments:
        - message: the error message explaining why the argument is illegal.
        - cause: (optional) another error that is the cause of this one.
-    type Illegal_Argument_Error message cause=Nothing
+    Illegal_Argument_Error_Data message cause=Nothing
 
     ## PRIVATE
        Capture a Java IllegalArgumentException and rethrow
     handle_java_exception =
-        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error_Data cause.getMessage cause))
+
+# TODO Dubious constructor export
+from project.Error.Common.Index_Out_Of_Bounds_Error import all
+from project.Error.Common.Index_Out_Of_Bounds_Error export all
 
 ## UNSTABLE
 
@@ -204,24 +218,36 @@ type Illegal_Argument_Error
    Arguments:
    - index: The requested index.
    - length: The length of the collection.
-type Index_Out_Of_Bounds_Error index length
+@Builtin_Type
+type Index_Out_Of_Bounds_Error
+    Index_Out_Of_Bounds_Error_Data index length
 
-## UNSTABLE
+    ## PRIVATE
 
-   Pretty prints an index out of bounds error.
-Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text self =
-    "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+       Pretty prints an index out of bounds error.
+    to_display_text : Text
+    to_display_text self =
+        "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+
+# TODO Dubious constructor export
+from project.Error.Common.Wrapped_Dataflow_Error import all
+from project.Error.Common.Wrapped_Dataflow_Error export all
 
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
-type Wrapped_Dataflow_Error payload
+type Wrapped_Dataflow_Error
+    Wrapped_Dataflow_Error_Data payload
 
-## PRIVATE
-   Throws the original error.
-Wrapped_Dataflow_Error.unwrap self = Error.throw self.payload
+    ## PRIVATE
+       Throws the original error.
+    unwrap self = Error.throw self.payload
 
+# TODO Dubious constructor export
+from project.Error.Common.Caught_Panic import all
+from project.Error.Common.Caught_Panic export all
+
+@Builtin_Type
 type Caught_Panic
     ## A wrapper for a caught panic.
 
@@ -231,8 +257,7 @@ type Caught_Panic
          the source of this panic. Only for internal use. To get the Java exception
          from polyglot exceptions, match the `payload` on `Polyglot_Error` and
          extract the Java object from there.
-    @Builtin_Type
-    type Caught_Panic payload internal_original_exception
+    Caught_Panic_Data payload internal_original_exception
 
     ## Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
@@ -244,21 +269,18 @@ type Caught_Panic
     stack_trace self =
         Panic.get_attached_stack_trace self
 
-## Panics.
+## A panic is an error condition that is based _outside_ of the normal
+   program control flow.
+
+   Panics "bubble up" through the program until they reach either an
+   invocation of Panic.recover Any or the program's main method. An unhandled
+   panic in main will terminate the program.
+
+   ? Dataflow Errors or Panics
+     Panics are designed to be used for unrecoverable situations that need
+     to be handled through non-linear control flow mechanisms.
+@Builtin_Type
 type Panic
-
-    ## A panic is an error condition that is based _outside_ of the normal
-       program control flow.
-
-       Panics "bubble up" through the program until they reach either an
-       invocation of Panic.recover Any or the program's main method. An unhandled
-       panic in main will terminate the program.
-
-       ? Dataflow Errors or Panics
-         Panics are designed to be used for unrecoverable situations that need
-         to be handled through non-linear control flow mechanisms.
-    @Builtin_Type
-    type Panic
 
     ## Throws a new panic with the provided payload.
 
@@ -278,7 +300,7 @@ type Panic
          and rethrow any others, without affecting their stacktraces.
 
              Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
-                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 Illegal_Argument_Error_Data message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
@@ -316,10 +338,10 @@ type Panic
     get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
-            Caught_Panic _ internal_original_exception -> internal_original_exception
+            Caught_Panic_Data _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
-        stack_with_prims = Vector.Vector prim_stack
+        stack_with_prims = Vector.from_polyglot_array prim_stack
         stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
     ## Takes any value, and if it is a dataflow error, throws it as a Panic,
@@ -357,13 +379,13 @@ type Panic
        > Example
          Handling a specific type of panic.
 
-             Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught an `Illegal_Argument_Error`: "+error.payload.message
 
        > Example
          Handling any panic.
 
-             Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Any (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught some panic!"
 
        > Example
@@ -374,7 +396,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
     catch panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
@@ -383,7 +405,7 @@ type Panic
                     True -> handler caught_panic
                     False -> Panic.throw caught_panic
                 True -> case caught_panic.payload of
-                    Polyglot_Error java_exception ->
+                    Polyglot_Error_Data java_exception ->
                         case java_exception.is_a panic_type of
                             True -> handler caught_panic
                             False -> Panic.throw caught_panic
@@ -409,11 +431,11 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+java_exception.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+java_exception.getMessage)
     catch_java : Any -> Any -> (Throwable -> Any) -> Any
     catch_java panic_type ~action handler =
         Panic.catch_primitive action caught_panic-> case caught_panic.payload of
-            Polyglot_Error java_exception ->
+            Polyglot_Error_Data java_exception ->
                 case (panic_type == Any) || (java_exception.is_a panic_type) of
                     True -> handler java_exception
                     False -> Panic.throw caught_panic
@@ -436,16 +458,16 @@ type Panic
        > Example
          Converting an expected panic to a dataflow error.
 
-             Panic.recover Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+             Panic.recover Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
 
        > Example
          Converting one of many expected panic types to a dataflow error.
 
-             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
     recover : (Vector.Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            Vector.Vector _ -> expected_types
+            _ : Vector.Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->
@@ -460,7 +482,7 @@ type Panic
        - value: value to return if not an error, or rethrow as a Panic.
     throw_wrapped_if_error : Any -> Any
     throw_wrapped_if_error ~value =
-        if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
+        if value.is_error then Panic.throw (Wrapped_Dataflow_Error_Data value.catch) else value
 
     ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
 
@@ -468,15 +490,24 @@ type Panic
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
     handle_wrapped_dataflow_error : Any -> Any
     handle_wrapped_dataflow_error ~action =
-        Panic.catch Wrapped_Dataflow_Error action caught_panic->
+        Panic.catch Wrapped_Dataflow_Error_Data action caught_panic->
             Error.throw caught_panic.payload.payload
+
+# TODO Dubious constructor export
+from project.Error.Common.Syntax_Error import all
+from project.Error.Common.Syntax_Error export all
 
 ## The runtime representation of a syntax error.
 
    Arguments:
    - message: A description of the erroneous syntax.
 @Builtin_Type
-type Syntax_Error message
+type Syntax_Error
+    Syntax_Error_Data message
+
+# TODO Dubious constructor export
+from project.Error.Common.Type_Error import all
+from project.Error.Common.Type_Error export all
 
 ## The runtime representation of a type error.
 
@@ -485,21 +516,36 @@ type Syntax_Error message
    - actual: The actual type at the error location.
    - name: The name of the argument whose type is mismatched.
 @Builtin_Type
-type Type_Error expected actual name
+type Type_Error
+    Type_Error_Data expected actual name
+
+# TODO Dubious constructor export
+from project.Error.Common.Compile_Error import all
+from project.Error.Common.Compile_Error export all
 
 ## The runtime representation of a compilation error.
 
    Arguments:
    - message: A description of the erroneous state.
 @Builtin_Type
-type Compile_Error message
+type Compile_Error
+    Compile_Error_Data message
+
+# TODO Dubious constructor export
+from project.Error.Common.Inexhaustive_Pattern_Match_Error import all
+from project.Error.Common.Inexhaustive_Pattern_Match_Error export all
 
 ## The error thrown when a there is no pattern to match on the scrutinee.
 
    Arguments:
    - scrutinee: The scrutinee that failed to match.
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error scrutinee
+type Inexhaustive_Pattern_Match_Error
+    Inexhaustive_Pattern_Match_Error_Data scrutinee
+
+# TODO Dubious constructor export
+from project.Error.Common.Arity_Error import all
+from project.Error.Common.Arity_Error export all
 
 ## The error thrown when the number of arguments provided to an operation
    does not match the expected number of arguments.
@@ -509,7 +555,12 @@ type Inexhaustive_Pattern_Match_Error scrutinee
      - expected_max: the maximum expected number of arguments.
      - actual: the actual number of arguments passed.
 @Builtin_Type
-type Arity_Error expected_min expected_max actual
+type Arity_Error
+    Arity_Error_Data expected_min expected_max actual
+
+# TODO Dubious constructor export
+from project.Error.Common.Uninitialized_State import all
+from project.Error.Common.Uninitialized_State export all
 
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
@@ -517,7 +568,12 @@ type Arity_Error expected_min expected_max actual
    Arguments:
    - key: The key for the state slot that was not initialized.
 @Builtin_Type
-type Uninitialized_State key
+type Uninitialized_State
+    Uninitialized_State_Data key
+
+# TODO Dubious constructor export
+from project.Error.Common.No_Such_Method_Error import all
+from project.Error.Common.No_Such_Method_Error export all
 
 ## The error thrown when the specified symbol does not exist as a method on
    the target.
@@ -526,44 +582,58 @@ type Uninitialized_State key
    - target: The target on which the attempted method call was performed.
    - symbol: The symbol that was attempted to be called on target.
 @Builtin_Type
-type No_Such_Method_Error target symbol
+type No_Such_Method_Error
+    No_Such_Method_Error_Data target symbol
 
-## ADVANCED
-   UNSTABLE
+    ## ADVANCED
+       UNSTABLE
 
-   Returns the method name of the method that could not be found.
+       Returns the method name of the method that could not be found.
 
-   > Example
-     Getting the method name from a no such method error.
+       > Example
+         Getting the method name from a no such method error.
 
-         import Standard.Examples
+             import Standard.Examples
 
-         example_method_name =
-             error = Examples.no_such_method
-             error.method_name
-No_Such_Method_Error.method_name : Text
-No_Such_Method_Error.method_name self =
-    Meta.meta self.symbol . name
+             example_method_name =
+                 error = Examples.no_such_method
+                 error.method_name
+    method_name : Text
+    method_name self =
+        Meta.meta self.symbol . name
 
+# TODO Dubious constructor export
+from project.Error.Common.Polyglot_Error import all
+from project.Error.Common.Polyglot_Error export all
 
 ## An error that occurred across a polyglot boundary.
 
    Arguments:
    - cause: A polyglot object corresponding to the original error.
 @Builtin_Type
-type Polyglot_Error cause
+type Polyglot_Error
+    Polyglot_Error_Data cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
 @Builtin_Type
 type Module_Not_In_Package_Error
 
+# TODO Dubious constructor export
+from project.Error.Common.Arithmetic_Error import all
+from project.Error.Common.Arithmetic_Error export all
+
 ## An error for when an erroneous arithmetic computation takes place.
 
    Arguments:
    - message: A description of the error condition.
 @Builtin_Type
-type Arithmetic_Error message
+type Arithmetic_Error
+    Arithmetic_Error_Data message
+
+# TODO Dubious constructor export
+from project.Error.Common.Invalid_Array_Index_Error import all
+from project.Error.Common.Invalid_Array_Index_Error export all
 
 ## An error that occurs when a program requests a read from an array index
    that is out of bounds in the array.
@@ -572,7 +642,12 @@ type Arithmetic_Error message
    - array: The array in which the index was requested.
    - index: The index that was out of bounds.
 @Builtin_Type
-type Invalid_Array_Index_Error array index
+type Invalid_Array_Index_Error
+    Invalid_Array_Index_Error_Data array index
+
+# TODO Dubious constructor export
+from project.Error.Common.Not_Invokable_Error import all
+from project.Error.Common.Not_Invokable_Error export all
 
 ## An error that occurs when an object is used as a function in a function
    call, but it cannot be called.
@@ -580,22 +655,38 @@ type Invalid_Array_Index_Error array index
    Arguments:
      - target: The called object.
 @Builtin_Type
-type Not_Invokable_Error target
+type Not_Invokable_Error
+    Not_Invokable_Error_Data target
+
+# TODO Dubious constructor export
+from project.Error.Common.Unsupported_Argument_Types import all
+from project.Error.Common.Unsupported_Argument_Types export all
 
 ## An error that occurs when arguments used in a function call are invalid
    types for the function.
 
    Arguments:
      - arguments: The passed arguments.
+     - message: A detailed message.
 @Builtin_Type
-type Unsupported_Argument_Types arguments
+type Unsupported_Argument_Types
+    Unsupported_Argument_Types_Data arguments message
+
+## TODO Dubious constructor export
+from project.Error.Common.Module_Does_Not_Exist import all
+from project.Error.Common.Module_Does_Not_Exist export all
 
 ## An error that occurs when the specified module cannot be found.
 
    Arguments:
      - name: The module searched for.
 @Builtin_Type
-type Module_Does_Not_Exist name
+type Module_Does_Not_Exist
+    Module_Does_Not_Exist_Data name
+
+## TODO Dubious constructor export
+from project.Error.Common.Invalid_Conversion_Target_Error import all
+from project.Error.Common.Invalid_Conversion_Target_Error export all
 
 ## An error that occurs when the specified value cannot be converted to a given type
 ## FIXME: please check
@@ -603,7 +694,12 @@ type Module_Does_Not_Exist name
    Arguments:
      - target: ...
 @Builtin_Type
-type Invalid_Conversion_Target_Error target
+type Invalid_Conversion_Target_Error
+    Invalid_Conversion_Target_Error_Data target
+
+## TODO Dubious constructor export
+from project.Error.Common.No_Such_Conversion_Error import all
+from project.Error.Common.No_Such_Conversion_Error export all
 
 ## An error that occurs when the conversion from one type to another does not exist
 ## FIXME: please check
@@ -614,6 +710,11 @@ type Invalid_Conversion_Target_Error target
      - conversion: ...
 @Builtin_Type
 type No_Such_Conversion_Error
+    No_Such_Conversion_Error_Data target that conversion
+
+## TODO Dubious constructor export
+from project.Error.Common.Unimplemented_Error import all
+from project.Error.Common.Unimplemented_Error export all
 
 ## UNSTABLE
 
@@ -621,13 +722,14 @@ type No_Such_Conversion_Error
 
    Arguments:
    - message: The message describing what implementation is missing.
-type Unimplemented_Error message
+type Unimplemented_Error
+    Unimplemented_Error_Data message
 
-## UNSTABLE
+    ## PRIVATE
 
-   Converts the unimplemented error to a human-readable error message.
-Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text self = "An implementation is missing: " + self.message
+       Converts the unimplemented error to a human-readable error message.
+    to_display_text : Text
+    to_display_text self = "An implementation is missing: " + self.message
 
 ## ADVANCED
 
@@ -644,4 +746,36 @@ Unimplemented_Error.to_display_text self = "An implementation is missing: " + se
 
          example_unimplemented = Errors.unimplemented
 unimplemented : Text -> Void
-unimplemented message="" = Panic.throw (Unimplemented_Error message)
+unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
+
+## TODO Dubious constructor export
+from project.Error.Common.Time_Error import all
+from project.Error.Common.Time_Error export all
+
+type Time_Error
+
+    ## UNSTABLE
+
+       An error produced while working with time- and date-related methods.
+
+       Arguments:
+       - error_message: The message for the error.
+    Time_Error_Data error_message
+
+## TODO Dubious constructor export
+from project.Error.Common.Unsupported_File_Type import all
+from project.Error.Common.Unsupported_File_Type export all
+
+## Indicates that the given file's type is not supported.
+type Unsupported_File_Type
+    Unsupported_File_Type_Data filename
+
+    to_display_text : Text
+    to_display_text self =
+        "The "+self.filename+" has a type that is not supported."
+
+## UNSTABLE
+
+   An error indicating that some elements are incomparable.
+
+type Incomparable_Values_Error

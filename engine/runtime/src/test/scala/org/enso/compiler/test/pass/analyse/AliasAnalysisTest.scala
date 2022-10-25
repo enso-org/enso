@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -397,17 +397,23 @@ class AliasAnalysisTest extends CompilerTest {
 
     val goodAtom =
       """
-        |type MyAtom a b (c=a)
+        |type M
+        |    MyAtom a b (c=a)
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Atom]
+        .asInstanceOf[IR.Module.Scope.Definition.Type]
+        .members
+        .head
     val goodMeta  = goodAtom.getMetadata(AliasAnalysis)
     val goodGraph = goodMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 
     val badAtom =
       """
-        |type MyAtom a=b b
+        |type M
+        |    MyAtom a=b b
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Atom]
+        .asInstanceOf[IR.Module.Scope.Definition.Type]
+        .members
+        .head
     val badMeta  = badAtom.getMetadata(AliasAnalysis)
     val badGraph = badMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 
@@ -1012,9 +1018,10 @@ class AliasAnalysisTest extends CompilerTest {
     val methodWithCase =
       """
         |List.sum = a -> case a of
-        |    Cons a b -> a + b
-        |    Nil      -> 0
-        |    _        -> 0
+        |    Cons a b      -> a + b
+        |    Nil           -> 0
+        |    num : Integer -> process num Integer
+        |    _             -> 0
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val lambda    = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
@@ -1079,9 +1086,16 @@ class AliasAnalysisTest extends CompilerTest {
           .get
           .unsafeAs[Info.Scope.Child]
           .scope
-      val fallbackBranchScope =
+      val tpeBranchScope =
         caseExpr
           .branches(2)
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Scope.Child]
+          .scope
+      val fallbackBranchScope =
+        caseExpr
+          .branches(3)
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[Info.Scope.Child]
@@ -1091,6 +1105,7 @@ class AliasAnalysisTest extends CompilerTest {
 
       rootScope.childScopes should contain(consBranchScope)
       rootScope.childScopes should contain(nilBranchScope)
+      rootScope.childScopes should contain(tpeBranchScope)
       rootScope.childScopes should contain(fallbackBranchScope)
     }
 
@@ -1133,6 +1148,46 @@ class AliasAnalysisTest extends CompilerTest {
 
       graph.links should contain(Link(aUseId, 1, consBranchADefId))
       graph.links should contain(Link(bUseId, 1, consBranchBDefId))
+    }
+
+    "correctly link to pattern variables in type patterns" in {
+      val tpeBranch = caseExpr.branches(2)
+      val pattern   = tpeBranch.pattern.asInstanceOf[Pattern.Type]
+      val body      = tpeBranch.expression.asInstanceOf[IR.Application.Prefix]
+
+      val tpeBranchNameDef   = pattern.name
+      val tpeTpeBranchTpeDef = pattern.tpe
+      val tpeBranchNameDefId =
+        tpeBranchNameDef
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Occurrence]
+          .id
+      val tpeBranchTpeDefId =
+        tpeTpeBranchTpeDef
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Occurrence]
+          .id
+
+      val numUse = body
+        .arguments(0)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val numUseId =
+        numUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
+
+      val integerUse = body
+        .arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val integerUseId =
+        integerUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
+
+      graph.links should contain(Link(numUseId, 1, tpeBranchNameDefId))
+      graph.links should not contain (Link(integerUseId, 1, tpeBranchTpeDefId))
     }
   }
 

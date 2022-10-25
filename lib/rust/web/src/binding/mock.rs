@@ -4,7 +4,7 @@
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::boxed_local)]
 
-use enso_prelude::*;
+use crate::prelude::*;
 
 use std::marker::Unsize;
 
@@ -78,13 +78,13 @@ macro_rules! mock_struct {
         }
 
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl$(<$($param $(:?$param_tp)?),*>)?
         $name $(<$($param),*>)? {
             /// Const constructor.
             pub const fn const_new() -> Self {
-                unsafe { mem::transmute(()) }
+                unsafe { std::mem::transmute(()) }
             }
         }
 
@@ -138,12 +138,12 @@ macro_rules! mock_struct_as_ref {
         $(=> $deref:ident)?
     ) => {
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
         AsRef<__T__> for $name $(<$($param),*>)? {
             fn as_ref(&self) -> &__T__ {
-                unsafe { mem::transmute(self) }
+                unsafe { std::mem::transmute(self) }
             }
         }
     };
@@ -230,6 +230,7 @@ macro_rules! mock_fn_gen_print {
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
         #[allow(unused_variables)]
         #[allow(clippy::too_many_arguments)]
+        #[allow(clippy::should_implement_trait)]
         #[allow(missing_docs)]
         $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
             $($body)*
@@ -317,6 +318,9 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
     fn is_null(&self) -> bool;
+    fn from_str(s: &str) -> JsValue;
+    fn from_f64(n: f64) -> JsValue;
+    fn as_f64(&self) -> Option<f64>;
 }
 
 impl JsValue {
@@ -351,6 +355,13 @@ mock_data! { [NO_AS_REF] Closure<T: ?Sized>
 }
 
 #[allow(missing_docs)]
+impl Closure<dyn FnOnce()> {
+    pub fn once_into_js<F>(_fn_once: F) -> JsValue {
+        default()
+    }
+}
+
+#[allow(missing_docs)]
 impl<T: ?Sized> Closure<T> {
     pub fn new<F>(_t: F) -> Closure<T>
     where F: Unsize<T> + 'static {
@@ -364,7 +375,7 @@ impl<T: ?Sized> Closure<T> {
 #[allow(unsafe_code)]
 impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     fn as_ref(&self) -> &JsValue {
-        unsafe { mem::transmute(self) }
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -395,6 +406,10 @@ impl From<&JsString> for String {
 // === Array ===
 mock_data! { Array => Object
     fn length(&self) -> u32;
+    fn of2(a: &JsValue, b: &JsValue) -> Array;
+    fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
+    fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
+    fn of5(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue, e: &JsValue) -> Array;
 }
 
 
@@ -496,6 +511,7 @@ mock_data! { KeyboardEvent => Event
     fn code(&self) -> String;
     fn alt_key(&self) -> bool;
     fn ctrl_key(&self) -> bool;
+    fn shift_key(&self) -> bool;
 }
 
 

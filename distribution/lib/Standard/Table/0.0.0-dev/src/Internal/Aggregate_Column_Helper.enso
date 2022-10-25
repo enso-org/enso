@@ -1,18 +1,16 @@
 from Standard.Base import all hiding First, Last
-
-from Standard.Table.Data.Column import Column
-from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
-import Standard.Table.Internal.Problem_Builder
-import Standard.Table.Internal.Unique_Name_Strategy
-import Standard.Table.Internal.Table_Helpers
-
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-
 import Standard.Base.Data.Ordering.Comparator
 
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+import project.Data.Column.Column
+import project.Data.Column_Selector.Column_Selector
+import project.Data.Sort_Column.Sort_Column
+import project.Data.Sort_Column_Selector.Sort_Column_Selector
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+from project.Data.Aggregate_Column.Aggregate_Column import all
+from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -39,7 +37,8 @@ polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
    - key_columns: Vector of Columns from the table to group by
    - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
    - problems: Set of any problems when validating the input
-type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+type Validated_Aggregate_Columns
+    Value (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
 
 ## PRIVATE
    Prepares an aggregation input for further processing:
@@ -70,17 +69,17 @@ prepare_aggregate_columns aggregates table =
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
         new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
-        Pair new_name agg
+        Pair_Data new_name agg
 
     # Build Problems Output
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
 
-    Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
+    Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
@@ -117,15 +116,16 @@ default_aggregate_column_name aggregate_column =
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
 resolve_aggregate table problem_builder aggregate_column =
     table_columns = table.columns
+    columns_helper = table.columns_helper
 
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
-        res = Table_Helpers.resolve_column_helper table_columns c problem_builder
+        res = columns_helper.resolve_column_helper c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
+        resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_order_by selector = case selector of
@@ -141,10 +141,7 @@ resolve_aggregate table problem_builder aggregate_column =
         Count new_name -> Count new_name
         Count_Distinct c new_name ignore_nothing ->
             new_c = case c of
-                ## TODO once we have sum type pattern matching this could be replaced with a single branch
-                By_Name _ _ -> resolve_selector_to_vector c
-                By_Index _ -> resolve_selector_to_vector c
-                By_Column _ -> resolve_selector_to_vector c
+                _ : Column_Selector -> resolve_selector_to_vector c
                 _ -> [resolve c]
             Count_Distinct new_c new_name ignore_nothing
         Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
@@ -175,7 +172,7 @@ type Internal_Missing_Column_Error
 
 ## PRIVATE
    Creates a Java Aggregator for the Aggregate_Column
-java_aggregator : Aggregate_Column->Aggregator
+java_aggregator : Aggregate_Column -> Aggregator
 java_aggregator name column =
     case column of
         Group_By c _ -> GroupByAggregator.new name c.java_column
@@ -208,7 +205,7 @@ java_aggregator name column =
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
         Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
-        _ -> Error.throw (Invalid_Aggregation name -1 "Unsupported aggregation")
+        _ -> Error.throw (Invalid_Aggregation_Data name -1 "Unsupported aggregation")
 
 ## PRIVATE
    Convert Java aggregated problems to Enso Vector of equivalents
@@ -218,10 +215,10 @@ parse_aggregated_problems problems =
         problems_array = problems.getProblems
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName (Vector.Vector p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName (Vector.Vector p.getRows) else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName (Vector.Vector p.getRows) else
-                        Invalid_Aggregation Nothing -1 "Unknown Error"
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation_Data p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                        Invalid_Aggregation_Data Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings (problems.getCount - problems_array.length)]
+            parsed + [Additional_Warnings_Data (problems.getCount - problems_array.length)]

@@ -17,6 +17,7 @@ const LINEAR_SCALE = 'linear'
 const LOGARITHMIC_SCALE = 'logarithmic'
 const VISIBLE_POINTS = 'visible'
 const BUTTONS_HEIGHT = 25
+const DEFAULT_LIMIT = 1024
 
 /**
  * A d3.js ScatterPlot visualization.
@@ -49,13 +50,26 @@ class ScatterPlot extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('process_to_json_text', 'Standard.Visualization.Scatter_Plot')
+        this.bounds = null
+        this.limit = DEFAULT_LIMIT
+        this.updatePreprocessor()
         this.dataPoints = []
         this.axis = {
             x: { scale: LINEAR_SCALE },
             y: { scale: LINEAR_SCALE },
         }
         this.points = { labels: VISIBLE_POINTS }
+    }
+
+    updatePreprocessor() {
+        let args = []
+        if (this.bounds) {
+            args.push('[' + this.bounds.join(',') + ']')
+        } else {
+            args.push('Nothing')
+        }
+        args.push(this.limit.toString())
+        this.setPreprocessor('Standard.Visualization.Scatter_Plot', 'process_to_json_text', ...args)
     }
 
     /**
@@ -376,6 +390,9 @@ class ScatterPlot extends Visualization {
             let xMax = zoom.transformedScale.xScale.invert(extent[1][0])
             let yMin = zoom.transformedScale.yScale.invert(extent[1][1])
             let yMax = zoom.transformedScale.yScale.invert(extent[0][1])
+
+            this.bounds = [xMin, yMin, xMax, yMax]
+            this.updatePreprocessor()
 
             zoom.transformedScale.xScale.domain([xMin, xMax])
             zoom.transformedScale.yScale.domain([yMin, yMax])
@@ -726,7 +743,7 @@ class ScatterPlot extends Visualization {
         addStyleToElem(
             'button',
             `
-            margin-left: 5px; 
+            margin-left: 5px;
             margin-bottom: 5px;
             display: inline-block;
             padding: 2px 10px;
@@ -806,6 +823,10 @@ class ScatterPlot extends Visualization {
             zoom.transformedScale.yScale.domain(domainY)
 
             self.zoomingHelper(zoom.transformedScale, boxWidth, scatter, points)
+
+            self.bounds = null
+            self.limit = DEFAULT_LIMIT
+            self.updatePreprocessor()
         }
 
         document.addEventListener('keydown', e => {

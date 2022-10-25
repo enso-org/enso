@@ -1039,7 +1039,7 @@ mod tests {
         let sheet = Sheet::new();
         sheet.set("button.size", data(1.0));
         assert_query_sheet_count(&sheet, 0, 2);
-        sheet.set("circle.radius", Expression::new(&["button.size"], |args| args[0] + &data(10.0)));
+        sheet.set("circle.radius", Expression::new(["button.size"], |args| args[0] + &data(10.0)));
         assert_query_sheet_count(&sheet, 1, 4);
         assert_eq!(sheet.value("circle.radius"), Some(data(11.0)));
         sheet.unset("button.size");
@@ -1192,10 +1192,10 @@ mod tests {
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(1.0)));
         style.set(
             "graph.button.size",
-            Expression::new(&["button.size"], |args| args[0] + &data(10.0)),
+            Expression::new(["button.size"], |args| args[0] + &data(10.0)),
         );
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(11.0)));
-        style.set("button.size", Expression::new(&["size"], |args| args[0] + &data(100.0)));
+        style.set("button.size", Expression::new(["size"], |args| args[0] + &data(100.0)));
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(111.0)));
         style.set("size", data(2.0));
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(112.0)));
@@ -1208,8 +1208,8 @@ mod tests {
     #[test]
     pub fn expr_circular() {
         let mut style = SheetData::new();
-        style.set("a", Expression::new(&["b"], |args| args[0].clone()));
-        style.set("b", Expression::new(&["a"], |args| args[0].clone()));
+        style.set("a", Expression::new(["b"], |args| args[0].clone()));
+        style.set("b", Expression::new(["a"], |args| args[0].clone()));
         assert!(style.value("a").is_none());
         assert!(style.value("b").is_none());
     }

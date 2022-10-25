@@ -1,11 +1,9 @@
 from Standard.Base import all
 
-import Standard.Table
-from Standard.Table import Column_Selector
+from Standard.Table import Table, Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
+from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
@@ -13,7 +11,7 @@ vector_size = 2500
 iter_size = 20
 num_iterations = 3
 
-create_table : Integer->Integer->Table
+create_table : Integer -> Integer -> Table
 create_table rows (seed=1646322139) =
     faker = Faker.new seed
     key1 = ["Code", 0.up_to rows . map _-> faker.alpha 3]

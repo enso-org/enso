@@ -44,10 +44,7 @@ public abstract class MethodGenerator {
   }
 
   public abstract List<String> generate(
-      ProcessingEnvironment processingEnv,
-      String name,
-      String owner,
-      Map<String, Integer> builtinTypesParameterCounts);
+      ProcessingEnvironment processingEnv, String name, String owner);
 
   /**
    * Generate node's `execute` method definition (return type and necessary parameters). '
@@ -142,7 +139,6 @@ public abstract class MethodGenerator {
 
     private static final String FromElementName = "from";
     private static final String ToElementName = "to";
-    private static final String PropagateElementName = "propagate";
     private static final String ValueElementName = "value";
 
     private Class<? extends Annotation> wrapExceptionAnnotationClass;
@@ -188,7 +184,6 @@ public abstract class MethodGenerator {
         if (am.getAnnotationType().equals(builtinType)) {
           Attribute.Class valueFrom = null;
           Attribute.Class valueTo = null;
-          Attribute.Constant valuePropagate = null;
           for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
               am.getElementValues().entrySet()) {
             Name key = entry.getKey().getSimpleName();
@@ -196,12 +191,10 @@ public abstract class MethodGenerator {
               valueFrom = (Attribute.Class) (entry.getValue());
             } else if (key.toString().equals(ToElementName)) {
               valueTo = (Attribute.Class) (entry.getValue());
-            } else if (key.toString().equals(PropagateElementName)) {
-              valuePropagate = (Attribute.Constant) (entry.getValue());
             }
           }
           if (valueFrom != null && valueTo != null) {
-            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo, valuePropagate));
+            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo));
           }
         }
       }
@@ -226,7 +219,6 @@ public abstract class MethodGenerator {
               for (int i = 0; i < wrapExceptions.values.length; i++) {
                 Attribute.Class valueFrom = null;
                 Attribute.Class valueTo = null;
-                Attribute.Constant valuePropagate = null;
                 Attribute.Compound attr = (Attribute.Compound) wrapExceptions.values[i];
                 for (Pair<Symbol.MethodSymbol, Attribute> p : attr.values) {
                   Name key = p.fst.getSimpleName();
@@ -234,13 +226,10 @@ public abstract class MethodGenerator {
                     valueFrom = (Attribute.Class) p.snd;
                   } else if (key.contentEquals(ToElementName)) {
                     valueTo = (Attribute.Class) p.snd;
-                  } else if (key.contentEquals(PropagateElementName)) {
-                    valuePropagate = (Attribute.Constant) p.snd;
                   }
                 }
                 if (valueFrom != null && valueTo != null) {
-                  SafeWrapException converted =
-                      new SafeWrapException(valueFrom, valueTo, valuePropagate);
+                  SafeWrapException converted = new SafeWrapException(valueFrom, valueTo);
                   wrappedExceptions.add(converted);
                 }
               }

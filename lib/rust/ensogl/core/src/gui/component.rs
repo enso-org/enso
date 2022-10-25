@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::application::command::Command;
+use crate::application::command::CommandApi;
 use crate::application::Application;
 use crate::display;
 use crate::display::scene;
@@ -11,6 +13,7 @@ use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
+use crate::frp;
 
 
 // ==============
@@ -44,8 +47,8 @@ impl<S> Deref for ShapeView<S> {
 
 impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let model = Rc::new(ShapeViewModel::new(logger));
+    pub fn new() -> Self {
+        let model = Rc::new(ShapeViewModel::new());
         Self { model }.init()
     }
 
@@ -66,6 +69,12 @@ impl<S: DynamicShapeInternals + 'static> ShapeView<S> {
 
 impl<S> HasContent for ShapeView<S> {
     type Content = S;
+}
+
+impl<S: DynamicShapeInternals + 'static> Default for ShapeView<S> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 
@@ -131,12 +140,8 @@ impl<S: DynamicShapeInternals> ShapeViewModel<S> {
 
 impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let shape = S::new(logger);
-        let events = PointerTarget::new();
-        let registry = default();
-        let pointer_targets = default();
-        ShapeViewModel { shape, events, registry, pointer_targets }
+    pub fn new() -> Self {
+        default()
     }
 
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
@@ -284,5 +289,16 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
 impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
     fn display_object(&self) -> &display::object::Instance<Scene> {
         &self.data.display_object
+    }
+}
+
+impl<Model: 'static, Frp: 'static + crate::application::frp::API> CommandApi
+    for Widget<Model, Frp>
+{
+    fn command_api(&self) -> Rc<RefCell<HashMap<String, Command>>> {
+        self.data.frp.public().command_api()
+    }
+    fn status_api(&self) -> Rc<RefCell<HashMap<String, frp::Sampler<bool>>>> {
+        self.data.frp.public().status_api()
     }
 }

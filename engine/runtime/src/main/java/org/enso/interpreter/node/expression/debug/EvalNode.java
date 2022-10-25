@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.debug;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
@@ -59,6 +60,7 @@ public abstract class EvalNode extends BaseNode {
    */
   public abstract Stateful execute(CallerInfo callerInfo, Object state, Text expression);
 
+  @CompilerDirectives.TruffleBoundary
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     Context context = Context.get(this);
     LocalScope localScope = scope.createChild();

@@ -1,93 +1,77 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.HashSet;
+import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
-import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.graalvm.polyglot.Value;
 
 /** A column storing strings. */
-public class StringStorage extends ObjectStorage {
-
-  private static final MapOpStorage<StringStorage> ops = buildOps();
+public final class StringStorage extends SpecializedStorage<String> {
 
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public StringStorage(Object[] data, int size) {
-    super(data, size);
+  public StringStorage(String[] data, int size) {
+    super(data, size, ops);
   }
 
-  /**
-   * @param idx an index
-   * @return the data item contained at the given index.
-   */
-  public String getItem(long idx) {
-    return (String) super.getItem(idx);
-  }
-
-  /** @inheritDoc */
   @Override
-  public long getType() {
+  protected SpecializedStorage<String> newInstance(String[] data, int size) {
+    return new StringStorage(data, size);
+  }
+
+  @Override
+  protected String[] newUnderlyingArray(int size) {
+    return new String[size];
+  }
+
+  @Override
+  public int getType() {
     return Type.STRING;
   }
 
-  @Override
-  protected boolean isOpVectorized(String name) {
-    return ops.isSupported(name);
-  }
+  private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof String) {
+  public Storage<?> fillMissing(Value arg) {
+    if (arg.isString()) {
       return fillMissingHelper(arg, new StringBuilder(size()));
     } else {
       return super.fillMissing(arg);
     }
   }
 
-  @Override
-  public StringStorage mask(BitSet mask, int cardinality) {
-    ObjectStorage storage = super.mask(mask, cardinality);
-    return new StringStorage(storage.getData(), cardinality);
-  }
-
-  @Override
-  public StringStorage applyMask(OrderMask mask) {
-    ObjectStorage storage = super.applyMask(mask);
-    return new StringStorage(storage.getData(), storage.size());
-  }
-
-  @Override
-  public StringStorage countMask(int[] counts, int total) {
-    ObjectStorage storage = super.countMask(counts, total);
-    return new StringStorage(storage.getData(), total);
-  }
-
-  private static MapOpStorage<StringStorage> buildOps() {
-    MapOpStorage<StringStorage> t = ObjectStorage.ops.makeChild();
+  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
         new MapOperation<>(Maps.EQ) {
           @Override
-          public Storage runMap(StringStorage storage, Object arg) {
+          public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null) {
                 missing.set(i);
-              } else if (storage.getItem(i).equals(arg)) {
+              } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
@@ -95,46 +79,57 @@ public class StringStorage extends ObjectStorage {
           }
 
           @Override
-          public Storage runZip(StringStorage storage, Storage arg) {
+          public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
-              } else if (storage.getItem(i).equals(arg.getItemBoxed(i))) {
+              } else if (arg.getItemBoxed(i) instanceof String s
+                  && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
             }
             return new BoolStorage(r, missing, storage.size(), false);
+          }
+        });
+    t.add(
+        new UnaryMapOperation<>(Maps.IS_EMPTY) {
+          @Override
+          protected BoolStorage run(SpecializedStorage<String> storage) {
+            BitSet r = new BitSet();
+            for (int i = 0; i < storage.size; i++) {
+              String s = storage.data[i];
+              if (s == null || s.isEmpty()) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, new BitSet(), storage.size, false);
           }
         });
     t.add(
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.startsWith(b);
+            return Text_Utils.starts_with(a, b);
           }
         });
     t.add(
         new StringBooleanOp(Maps.ENDS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.endsWith(b);
+            return Text_Utils.ends_with(a, b);
           }
         });
     t.add(
         new StringBooleanOp(Maps.CONTAINS) {
           @Override
           protected boolean doString(String a, String b) {
-            return a.contains(b);
+            return Text_Utils.contains(a, b);
           }
         });
+    t.add(new LikeOp());
+    t.add(new StringIsInOp<>());
     return t;
-  }
-
-  @Override
-  public StringStorage slice(int offset, int limit) {
-    ObjectStorage storage = super.slice(offset, limit);
-    return new StringStorage(storage.getData(), storage.size());
   }
 }

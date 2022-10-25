@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -51,7 +52,7 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 /// Notification about change in the executed graph.
 ///
 /// It may pertain either the state of the graph itself or the notifications from the execution.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// The notification passed from the graph controller.
     Graph(controller::graph::Notification),
@@ -142,10 +143,10 @@ impl Handle {
     pub fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<model::module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        self.execution_ctx.modify_visualization(id, expression, module)
+        self.execution_ctx.modify_visualization(id, method_pointer, arguments)
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].
@@ -163,18 +164,6 @@ impl Handle {
     /// See [`model::ExecutionContext::expression_info_registry`].
     pub fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
         self.execution_ctx.computed_value_info_registry()
-    }
-
-    /// Modify preprocessor code in visualization. See also
-    /// [`model::ExecutionContext::modify_visualization`].
-    #[profile(Detail)]
-    pub async fn set_visualization_preprocessor(
-        &self,
-        id: VisualizationId,
-        code: String,
-        module: model::module::QualifiedName,
-    ) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
     }
 
     /// See [`model::ExecutionContext::component_groups`].
@@ -235,14 +224,14 @@ impl Handle {
     ///
     /// Fails if method graph cannot be created (see `graph_for_method` documentation).
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
-        debug!(self.logger, "Entering node {local_call.call}.");
+        debug!("Entering node {}.", local_call.call);
         let method_ptr = &local_call.definition;
         let graph = controller::Graph::new_method(&self.logger, &self.project, method_ptr);
         let graph = graph.await?;
         self.execution_ctx.push(local_call.clone()).await?;
-        debug!(self.logger, "Replacing graph with {graph:?}.");
+        debug!("Replacing graph with {graph:?}.");
         self.graph.replace(graph);
-        debug!(self.logger, "Sending graph invalidation signal.");
+        debug!("Sending graph invalidation signal.");
         self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
 
         Ok(())
@@ -387,7 +376,7 @@ pub mod tests {
     impl MockData {
         pub fn controller(&self) -> Handle {
             let logger = Logger::new("test");
-            let parser = parser::Parser::new_or_panic();
+            let parser = parser_scala::Parser::new_or_panic();
             let repository = Rc::new(model::undo_redo::Repository::new(&logger));
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();

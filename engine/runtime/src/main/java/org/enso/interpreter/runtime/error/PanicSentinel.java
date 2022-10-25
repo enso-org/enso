@@ -4,7 +4,7 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
  * A sentinel value used to trace the propagation of panics through the program.
@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
  * <p>This tracing is enabled by the active intervention of the runtime instrumentation, and does
  * not function in textual mode.
  */
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public class PanicSentinel extends AbstractTruffleException {
   final PanicException panic;
 
@@ -43,11 +43,6 @@ public class PanicSentinel extends AbstractTruffleException {
 
   @ExportMessage
   boolean hasSpecialDispatch() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasSpecialConversion() {
     return true;
   }
 }

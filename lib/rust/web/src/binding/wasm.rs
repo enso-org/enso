@@ -1,12 +1,13 @@
 //! Native bindings to the web-api.
 
-use enso_prelude::*;
+use crate::prelude::*;
 
 
 // ==============
 // === Export ===
 // ==============
 
+pub use js_sys::Array;
 pub use js_sys::Error;
 pub use js_sys::Function;
 pub use js_sys::JsString;

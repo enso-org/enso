@@ -11,6 +11,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -32,7 +34,7 @@ use ensogl_core::define_shape_system;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -68,8 +70,8 @@ impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = DefaultTraceLogger::new("Button");
-        let display_object = display::object::Instance::new(&logger);
-        let shape = shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let shape = shape::View::new();
         shape.size.set(Vector2::new(100.0, 100.0));
         display_object.add_child(&shape);
         Self { app, logger, display_object, shape }
@@ -133,7 +135,7 @@ impl Deref for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }

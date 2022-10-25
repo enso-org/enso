@@ -1,16 +1,16 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
-
+from Standard.Table import Table
 import Standard.Visualization.Geo_Map
 
-import Standard.Test
+from Standard.Test import Test
 
 import project.Helpers
 
-spec = 
-    expect value expected_json_text = 
+spec =
+    expect value expected_json_text =
         result = Geo_Map.process_to_json_text value
+        IO.println result
         Json.parse result . should_equal <| Json.parse expected_json_text
 
     Test.group "Geo_Map" <|

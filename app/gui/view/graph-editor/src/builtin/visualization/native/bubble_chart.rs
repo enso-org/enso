@@ -66,7 +66,7 @@ impl BubbleChartModel {
 
         // Avoid re-creating views, if we have already created some before.
         let mut views = self.views.borrow_mut();
-        views.resize_with(data_inner.len(), || shape::View::new(&self.logger));
+        views.resize_with(data_inner.len(), shape::View::new);
 
         // TODO[mm] this is somewhat inefficient, as the canvas for each bubble is too large.
         // But this ensures that we can get a cropped view area and avoids an issue with the data
@@ -106,7 +106,7 @@ impl BubbleChart {
 
     pub fn new(scene: &Scene) -> Self {
         let logger = Logger::new("bubble");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let views = Rc::new(RefCell::new(vec![]));
         let network = frp::Network::new("bubble_chart");
         let frp = visualization::instance::Frp::new(&network);

@@ -84,6 +84,16 @@ pub enum Data {
     Primitive(Primitive),
 }
 
+impl Data {
+    /// If this is a [`Data::Struct`], return its fields.
+    pub fn as_struct(&self) -> Option<&[Field]> {
+        match self {
+            Data::Struct(fields) => Some(&fields[..]),
+            _ => None,
+        }
+    }
+}
+
 /// Standard types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Primitive {
@@ -93,6 +103,12 @@ pub enum Primitive {
     U32,
     /// An unsigned 64-bit integer.
     U64,
+    /// A signed 32-bit integer.
+    I32,
+    /// A signed 64-bit integer.
+    I64,
+    /// A unicode code point (in the range 0 to 0x10FFFF).
+    Char,
     /// An UTF-8-encoded string.
     String,
     /// Zero or more values of a type.
@@ -350,8 +366,11 @@ impl TypeGraph {
                     rewrite(t1);
                 }
                 Data::Primitive(Primitive::U32)
-                | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::U64)
+                | Data::Primitive(Primitive::I32)
+                | Data::Primitive(Primitive::I64)
+                | Data::Primitive(Primitive::Bool)
+                | Data::Primitive(Primitive::Char)
                 | Data::Primitive(Primitive::String) => {}
             }
         }
@@ -394,8 +413,11 @@ impl TypeGraph {
                     to_visit.insert(*t1);
                 }
                 Data::Primitive(Primitive::U32)
-                | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::U64)
+                | Data::Primitive(Primitive::I32)
+                | Data::Primitive(Primitive::I64)
+                | Data::Primitive(Primitive::Bool)
+                | Data::Primitive(Primitive::Char)
                 | Data::Primitive(Primitive::String) => {}
             }
         }
@@ -406,6 +428,20 @@ impl TypeGraph {
                 self.types.remove(id);
             }
         }
+    }
+}
+
+impl TypeGraph {
+    /// Return the type's hierarchy. The first element of the hierarchy is the type itself; each
+    /// element followed by its parent, if it has one.
+    pub fn hierarchy(&self, id: TypeId) -> Vec<TypeId> {
+        let mut hierarchy = vec![];
+        let mut id_ = Some(id);
+        while let Some(id) = id_ {
+            hierarchy.push(id);
+            id_ = self[id].parent;
+        }
+        hierarchy
     }
 }
 

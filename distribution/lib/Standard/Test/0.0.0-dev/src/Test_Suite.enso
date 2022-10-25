@@ -1,0 +1,75 @@
+from Standard.Base import all
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Runtime.State
+import Standard.Base.System
+
+import project.Suite_Config.Suite_Config
+import project.Test_Reporter
+
+polyglot java import java.lang.StringBuilder
+
+type Test_Suite
+    ## PRIVATE
+
+       The top-level entry point for a test suite.
+
+       Arguments:
+       - config: Suite_Config controlloing the test run.
+       - specs: The specs contained within the test suite.
+       - builder: StringBuilder for JUnit output.
+    Value config specs builder
+
+    ## Creates a new test group, describing properties of the object
+       described by `self`.
+
+       Arguments:
+       - specs: An action encapsulating a number of test specs or groups.
+
+       > Example
+         Building a basic test suite.
+
+             from Standard.Test import Test, Test_Suite
+
+             example_run_main = Test_Suite.run_main <|
+                 Test.group "Number" <|
+                     Test.specify "should define addition" <|
+                         2+3 . should_equal 5
+                     Test.specify "should define multiplication" <|
+                         2*3 . should_equal 6
+    run_main : Any -> Nothing
+    run_main ~specs =
+        config = Suite_Config.from_environment
+        r = Test_Suite.run specs config
+        code = if r.is_fail then 1 else 0
+        System.exit code
+
+    ## Creates a new test group, describing properties of the object
+       described by `self`.
+
+       Arguments:
+       - specs: An action encapsulating a number of test specs or groups.
+
+       > Example
+         Building a basic test suite.
+
+             from Standard.Test import Test, Test_Suite
+
+             example_run = Test_Suite.run <|
+                 Test.group "Number" <|
+                     Test.specify "should define addition" <|
+                         2+3 . should_equal 5
+                     Test.specify "should define multiplication" <|
+                         2*3 . should_equal 6
+    run : Any -> Suite_Config -> Any
+    run ~specs config =
+        builder = if config.should_output_junit then StringBuilder.new else Nothing
+        Test_Reporter.wrap_junit_testsuites config builder <|
+            State.run Test_Suite (Test_Suite.Value config Nil builder) <|
+                specs
+                State.get Test_Suite
+
+    ## PRIVATE
+
+       Checks if the suite contains any failures, and hence fails itself.
+    is_fail : Boolean
+    is_fail self = self.specs.any .is_fail

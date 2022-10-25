@@ -3,8 +3,8 @@ from Standard.Base import all
 type Position
    ## UNSTABLE
       Selected columns will be moved to the front of the output table.
-   type Before_Other_Columns
+   Before_Other_Columns
 
    ## UNSTABLE
       Selected columns will be moved to the back of the output table.
-   type After_Other_Columns
+   After_Other_Columns

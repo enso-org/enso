@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from project.Internal.Vector_Builder.Vector_Builder import Leaf, Append
+
 ## PRIVATE
 
    An efficient builder for concatenating vectors.
@@ -16,7 +18,7 @@ type Vector_Builder
 
        Arguments:
        - vec: The vector at the leaf.
-    type Leaf vec
+    Leaf vec
 
     ## PRIVATE
 
@@ -26,7 +28,7 @@ type Vector_Builder
        - left: The left subtree.
        - right: The right subtree.
        - len: The length of the vectors across the subtrees.
-    type Append left right len
+    Append left right len
 
     ## PRIVATE
 
@@ -56,7 +58,7 @@ type Vector_Builder
                ix2 = go ix l
                go ix2 r
        go 0 self
-       Vector.Vector array
+       Vector.from_polyglot_array array
 
     ## PRIVATE
 
@@ -73,20 +75,20 @@ type Vector_Builder
         case other of
             Leaf _ -> Append self other len
             Append _ _ _ -> Append self other len
-            Vector.Vector _ -> Append self (Leaf other) len
+            _ : Vector.Vector -> Append self (Leaf other) len
 
-## PRIVATE
+    ## PRIVATE
 
-   Creates an empty vector builder.
-empty : Vector_Builder Any
-empty = Leaf []
+       Creates an empty vector builder.
+    empty : Vector_Builder Any
+    empty = Leaf []
 
-## PRIVATE
+    ## PRIVATE
 
-   Creates a vector builder from a vector.
+       Creates a vector builder from a vector.
 
-   Arguments:
-   - vec: The vector to create a vector builder from.
-from_vector : Vector.Vector Any -> Vector_Builder Any
-from_vector vec = Leaf vec
+       Arguments:
+       - vec: The vector to create a vector builder from.
+    from_vector : Vector.Vector Any -> Vector_Builder Any
+    from_vector vec = Leaf vec
 

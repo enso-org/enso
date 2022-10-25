@@ -109,7 +109,7 @@ public class PrimInferredStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     if (type == Type.LONG) {
       return new LongStorage(data, size, isMissing);
     } else {

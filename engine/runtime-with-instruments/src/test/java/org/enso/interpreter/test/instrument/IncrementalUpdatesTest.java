@@ -16,6 +16,7 @@ import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
+import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$MethodPointer;
 import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
@@ -35,6 +36,8 @@ import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
+import scala.collection.immutable.Set;
+import scala.collection.immutable.Set$;
 import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
@@ -168,7 +171,7 @@ public class IncrementalUpdatesTest {
 
     Function<Character, UUID> registerRegion = (ch) -> {
       int[] beginAndLength = pos.get(ch);
-      return metadata.addItem(beginAndLength[0], beginAndLength[1]);
+      return metadata.addItem(beginAndLength[0], beginAndLength[1], null);
     };
     // foo definition
     registerRegion.apply('&');
@@ -213,10 +216,10 @@ public class IncrementalUpdatesTest {
       )
     );
 
-    assertSameElements(context.receiveNIgnoreStdLib(4, 10),
+    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING, false),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
@@ -230,10 +233,10 @@ public class IncrementalUpdatesTest {
         new Runtime$Api$PushContextRequest(contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))
       )
     );
-    assertSameElements(context.receiveN(4, 10),
+    assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, fooX, exprType),
-      TestMessages.update(contextId, fooRes, exprType),
+      TestMessages.update(contextId, fooX, exprType, false),
+      TestMessages.update(contextId, fooRes, exprType, false),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
@@ -265,7 +268,7 @@ public class IncrementalUpdatesTest {
         ),
         true
     )));
-    return context.receiveN(1, 10);
+    return context.receiveNIgnorePendingExpressionUpdates(1, 10, emptySet());
   }
 
   private List<Runtime$Api$Response> sendExpressionValue(String originalText, String newText) {
@@ -281,7 +284,7 @@ public class IncrementalUpdatesTest {
       UUID.randomUUID(),
       newText
     )));
-    return context.receiveN(1, 10);
+    return context.receiveNIgnoreExpressionUpdates(1, 10);
   }
 
   private <T extends Node> T findLiteralNode(Class<T> type, Map<Class, java.util.List<Node>> nodes) {
@@ -295,6 +298,11 @@ public class IncrementalUpdatesTest {
     assertEquals("Same size: " + actual, seq.length, actual.size());
     for (int i = 0; i < seq.length; i++) {
       var real = actual.drop(i).head();
+      if (real instanceof Runtime$Api$Response response) {
+        if (response.payload() instanceof Runtime$Api$ExpressionUpdates) {
+          continue;
+        }
+      }
       assertEquals("Check on #" + i, seq[i], real);
     }
   }
@@ -311,6 +319,10 @@ public class IncrementalUpdatesTest {
   @SuppressWarnings("unchecked")
   private static <T> Option<T> None() {
     return (Option<T>) scala.None$.MODULE$;
+  }
+
+  private static <T> Set<T> emptySet() {
+    return Set$.MODULE$.empty();
   }
 
   private static Runtime$Api$Request Request(UUID id, org.enso.polyglot.runtime.Runtime.ApiRequest request) {

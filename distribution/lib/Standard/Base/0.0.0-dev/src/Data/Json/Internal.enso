@@ -1,4 +1,5 @@
 from Standard.Base import all hiding Number, Boolean, Array
+import Standard.Base
 
 import Standard.Base.Data.Numbers as Base_Number
 import Standard.Base.Runtime.Ref
@@ -6,6 +7,10 @@ from Standard.Base.Data.Json import all
 
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
+
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Consumer import all
+from project.Data.Json.Internal.Consumer export all
 
 ## PRIVATE
 
@@ -23,7 +28,7 @@ type Consumer
        - value: The value being consumed.
 
        Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
-    type Consumer child_consumer value
+    Consumer_Data child_consumer value
 
     ## PRIVATE
 
@@ -133,6 +138,10 @@ type Consumer
     on_null : Nothing
     on_null self = self.on_value Null
 
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Array_Consumer import all
+from project.Data.Json.Internal.Array_Consumer export all
+
 ## PRIVATE
 
    A child consumer, used to process events inside arrays.
@@ -144,7 +153,7 @@ type Array_Consumer
        Arguments:
        - builder: The builder for array values.
        - parent: The parent consumer.
-    type Array_Consumer builder parent
+    Array_Consumer_Data builder parent
 
     ## PRIVATE
 
@@ -163,6 +172,10 @@ type Array_Consumer
         vec = self.builder.to_vector
         Array vec
 
+# TODO Dubious constructor export
+from project.Data.Json.Internal.Object_Consumer import all
+from project.Data.Json.Internal.Object_Consumer export all
+
 ## PRIVATE
 
    A child consumer, used to process events inside objects.
@@ -175,7 +188,7 @@ type Object_Consumer
        - last_key: The last object key that has been seen.
        - map: The map representing the object.
        - parent: The parent consumer.
-    type Object_Consumer last_key map parent
+    Object_Consumer_Data last_key map parent
 
     ## PRIVATE
 
@@ -217,7 +230,7 @@ mk_object_consumer : Any -> Object_Consumer
 mk_object_consumer parent =
     k = Ref.new ""
     m = Ref.new Map.empty
-    Object_Consumer k m parent
+    Object_Consumer_Data k m parent
 
 ## PRIVATE
 
@@ -228,7 +241,7 @@ mk_object_consumer parent =
 mk_array_consumer : Any -> Array_Consumer
 mk_array_consumer parent =
     bldr = Vector.new_builder
-    Array_Consumer bldr parent
+    Array_Consumer_Data bldr parent
 
 ## PRIVATE
 
@@ -237,7 +250,7 @@ mk_consumer : Consumer
 mk_consumer =
     child = Ref.new Nil
     val = Ref.new Nothing
-    Consumer child val
+    Consumer_Data child val
 
 ## PRIVATE
 
@@ -287,24 +300,24 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    Base.Vector.Vector field -> case json of
-        Array items -> items.map (into_helper field)
+    _ : Base.Vector.Vector -> case json of
+        Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Boolean -> case json of
+    _ : Base.Boolean -> case json of
         Boolean v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base_Number.Number -> case json of
+    _ : Base_Number.Number -> case json of
         Number v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Text -> case json of
+    _ : Base.Text -> case json of
         String v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     _ ->
         m = Meta.meta fmt
         case m of
-            Meta.Atom _ -> case json of
+            Meta.Atom_Data _ -> case json of
                 Object json_fields ->
-                    cons = Meta.Constructor m.constructor
+                    cons = Meta.Constructor_Data m.constructor
                     fnames = cons.fields
                     ffmts = m.fields
                     field_values = fnames.zip ffmts n-> inner_fmt->

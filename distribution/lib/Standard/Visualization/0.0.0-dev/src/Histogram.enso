@@ -1,20 +1,19 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
-import Standard.Visualization.Helpers
+from Standard.Table import Table, Column
+import project.Helpers
 
 ## PRIVATE
 
    Get first numeric column of the table.
-Table.Table.first_numeric : Table -> Column ! Nothing
-Table.Table.first_numeric self = self.all_columns.find _.is_numeric
+Table.first_numeric : Table -> Column ! Nothing
+Table.first_numeric self = self.all_columns.find _.is_numeric
 
 ## PRIVATE
 
    Get the value column - the column that will be used to create histogram.
-Table.Table.value_column : Table -> Column ! Nothing
-Table.Table.value_column self =
+Table.value_column : Table -> Column ! Nothing
+Table.value_column self =
     named_col = self.lookup_ignore_case 'value'
     named_col.catch_ self.first_numeric
 
@@ -24,7 +23,7 @@ Table.Table.value_column self =
 type Update
 
     ## PRIVATE
-    type Update values label
+    Value values label
 
     ## PRIVATE
 
@@ -44,21 +43,21 @@ from_table table =
     col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
-    Update values label
+    Update.Value values label
 
 ## PRIVATE
 from_vector : Vector -> Update
 from_vector vector =
-    Update vector Nothing
+    Update.Value vector Nothing
 
 ## PRIVATE
 from_value : Any -> Update
 from_value value =
     case value of
-        Table.Table _   -> from_table value
-        Vector.Vector _ -> from_vector value
-        Column.Column _ -> from_table value.to_table
-        _               -> from_vector value.to_vector
+        _ : Table         -> from_table value
+        _ : Vector.Vector -> from_vector value
+        _ : Column        -> from_table value.to_table
+        _                 -> from_vector value.to_vector
 
 ## PRIVATE
 

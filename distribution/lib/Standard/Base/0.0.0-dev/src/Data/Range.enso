@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Range.Range import all
+from project.Data.Range.Range export all
+
 ## Represents a right-exclusive range of integer values.
 type Range
 
@@ -11,7 +15,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    type Range (start : Integer) (end : Integer) (step : Integer = 1)
+    Range_Data (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -26,12 +30,12 @@ type Range
              10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
     with_step : Integer -> Range
     with_step self new_step = case new_step of
-        Integer ->
+        _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range self.start self.end self.step.signum*new_step
+                if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range_Data self.start self.end self.step.signum*new_step
         _ ->
-            Error.throw (Illegal_Argument_Error "Range step should be an integer.")
+            Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
 
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
@@ -92,22 +96,26 @@ type Range
     map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
-    ## Returns a vector of all elements of this range which satisfy a predicate.
+    ## Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - filter: The filter to apply to the range. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
 
        > Example
          Selecting all elements that are greater than 3.
 
              (0.up_to 7).filter (> 3)
-    filter : (Any -> Boolean) -> Vector Any
-    filter self predicate =
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+             (0.up_to 7).filter (Filter_Condition.Greater than=3)
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter filter.to_predicate
+        predicate : Function ->
+            builder = self.fold Vector.new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
 
     ## Applies a function for each element in the range.
 
@@ -261,7 +269,7 @@ type Range
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
     contains self value = case value of
-        Integer ->
+        _ : Integer ->
             if self.step > 0 then (value >= self.start) && (value < self.end) && (((value - self.start) % self.step) == 0) else
                 if self.step < 0 then (value <= self.start) && (value > self.end) && (((self.start - value) % (-self.step)) == 0) else
                     throw_zero_step_error
@@ -270,7 +278,7 @@ type Range
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
         _ ->
-            Error.throw (Illegal_Argument_Error "`Range.contains` only accepts Integers.")
+            Error.throw (Illegal_Argument_Error_Data "`Range.contains` only accepts Integers.")
 
 ## ALIAS Range
 
@@ -285,8 +293,8 @@ type Range
          0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to self n = case n of
-    Integer -> Range self n
-    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+    _ : Integer -> Range_Data self n
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## ALIAS Range
 
@@ -301,8 +309,8 @@ Integer.up_to self n = case n of
          5.down_to 0
 Integer.down_to : Integer -> Range
 Integer.down_to self n = case n of
-    Integer -> Range self n -1
-    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+    _ : Integer -> Range_Data self n -1
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## PRIVATE
-throw_zero_step_error = Error.throw (Illegal_State_Error "A range with step = 0 is ill-formed.")
+throw_zero_step_error = Error.throw (Illegal_State_Error_Data "A range with step = 0 is ill-formed.")

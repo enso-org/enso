@@ -88,9 +88,9 @@ struct StatusIndicatorModel {
 }
 
 impl StatusIndicatorModel {
-    fn new(logger: &Logger) -> Self {
-        let shape = status_indicator_shape::View::new(logger);
-        let root = display::object::Instance::new(&logger);
+    fn new() -> Self {
+        let shape = status_indicator_shape::View::new();
+        let root = display::object::Instance::new();
         root.add_child(&shape);
         StatusIndicatorModel { shape, root }
     }
@@ -145,8 +145,7 @@ pub struct StatusIndicator {
 impl StatusIndicator {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new("status_indicator");
-        let model = Rc::new(StatusIndicatorModel::new(&logger));
+        let model = Rc::new(StatusIndicatorModel::new());
         let frp = Frp::new();
         Self { model, frp }.init_frp(app)
     }

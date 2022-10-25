@@ -7,6 +7,8 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -21,5 +23,5 @@
 // === Export ===
 // ==============
 
-pub use ide_view_component_group as component_group;
-pub use ide_view_component_list_panel as list_panel;
+pub use ide_view_component_list_panel as component_list_panel;
+pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;

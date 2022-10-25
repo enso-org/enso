@@ -1,5 +1,6 @@
 //! A module with Javascript IO bindings utilities.
 
+use crate::prelude::*;
 use enso_web::prelude::*;
 
 use crate as frp;

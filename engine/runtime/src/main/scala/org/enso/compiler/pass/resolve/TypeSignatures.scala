@@ -135,11 +135,10 @@ case object TypeSignatures extends IRPass {
 
         lastSignature = None
         res
-      case atom: IR.Module.Scope.Definition.Atom =>
-        Some(atom.mapExpressions(resolveExpression))
-      case ut: IR.Module.Scope.Definition.UnionType => Some(ut)
-      case err: IR.Error                            => Some(err)
-      case _: IR.Module.Scope.Definition.Type =>
+      case ut: IR.Module.Scope.Definition.Type =>
+        Some(ut.mapExpressions(resolveExpression))
+      case err: IR.Error => Some(err)
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +
           "signature resolution."

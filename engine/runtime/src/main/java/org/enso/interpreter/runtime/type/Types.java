@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-// import org.enso.interpreter.runtime.ConstantsGen;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -11,10 +10,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -37,6 +33,7 @@ import org.enso.polyglot.data.TypeGraph;
   Function.class,
   Atom.class,
   AtomConstructor.class,
+  Type.class,
   DataflowError.class,
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
@@ -48,13 +45,18 @@ import org.enso.polyglot.data.TypeGraph;
   Ref.class,
   PanicException.class,
   PanicSentinel.class,
+  Vector.class,
   Warning.class,
   EnsoFile.class,
-  EnsoDate.class
+  EnsoDate.class,
+  EnsoDateTime.class,
+  EnsoTimeOfDay.class,
+  EnsoTimeZone.class,
+  EnsoDuration.class
 })
 public class Types {
 
-  private static TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final TypeGraph typeHierarchy = buildTypeHierarchy();
 
   /**
    * A simple pair type
@@ -63,8 +65,8 @@ public class Types {
    * @param <B> the type of the second element
    */
   public static class Pair<A, B> {
-    private A first;
-    private B second;
+    private final A first;
+    private final B second;
 
     private Pair(A first, B second) {
       this.first = first;
@@ -119,10 +121,12 @@ public class Types {
       return ConstantsGen.TEXT;
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
-    } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
-    } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
+    } else if (value instanceof Atom atom) {
+      return atom.getConstructor().getQualifiedName().toString();
+    } else if (value instanceof AtomConstructor cons) {
+      return cons.getQualifiedName().toString();
+    } else if (value instanceof Type t) {
+      return t.getQualifiedName().toString();
     } else if (TypesGen.isDataflowError(value)) {
       return ConstantsGen.ERROR;
     } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
@@ -131,6 +135,20 @@ public class Types {
       return ConstantsGen.MANAGED_RESOURCE;
     } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
+    } else if (TypesGen.isVector(value)) {
+      return ConstantsGen.VECTOR;
+    } else if (TypesGen.isEnsoDate(value)) {
+      return ConstantsGen.DATE;
+    } else if (TypesGen.isEnsoDateTime(value)) {
+      return ConstantsGen.DATE_TIME;
+    } else if (TypesGen.isEnsoTimeOfDay(value)) {
+      return ConstantsGen.TIME_OF_DAY;
+    } else if (TypesGen.isEnsoDuration(value)) {
+      return ConstantsGen.DURATION;
+    } else if (TypesGen.isEnsoTimeZone(value)) {
+      return ConstantsGen.TIME_ZONE;
+    } else if (TypesGen.isEnsoFile(value)) {
+      return ConstantsGen.FILE;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
@@ -139,6 +157,10 @@ public class Types {
       return ConstantsGen.PANIC;
     } else if (TypesGen.isPanicSentinel(value)) {
       return ConstantsGen.PANIC;
+    } else if (TypesGen.isWarning(value)) {
+      return ConstantsGen.WARNING;
+    } else if (value instanceof WithWarnings) {
+      return getName(((WithWarnings) value).getValue());
     } else {
       return null;
     }
@@ -202,7 +224,9 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /** @return the language type hierarchy */
+  /**
+   * @return the language type hierarchy
+   */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
   }
@@ -221,6 +245,11 @@ public class Types {
     graph.insert(ConstantsGen.PANIC, ConstantsGen.ANY);
     graph.insert(ConstantsGen.REF, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TEXT, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE_TIME, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_OF_DAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DURATION, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_ZONE, ConstantsGen.ANY);
     graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);
     graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);

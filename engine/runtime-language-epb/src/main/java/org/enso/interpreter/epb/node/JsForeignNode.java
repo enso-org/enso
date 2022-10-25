@@ -12,6 +12,8 @@ import java.util.Arrays;
 @NodeField(name = "arity", type = int.class)
 public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
+  private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
+
   abstract Object getForeignFunction();
 
   abstract int getArity();
@@ -35,8 +37,9 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
     Object[] positionalArgs = new Object[newLength];
     System.arraycopy(arguments, 1, positionalArgs, 0, newLength);
     try {
-      return interopLibrary.invokeMember(
-          getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
+      return coercePrimitiveNode.execute(
+          interopLibrary.invokeMember(
+              getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs)));
     } catch (UnsupportedMessageException
         | UnknownIdentifierException
         | ArityException

@@ -273,12 +273,15 @@ impl<'g> ProgramBuilder<'g> {
         match primitive {
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
             // to encode compatibly with other types.
-            Primitive::U32 => self.emit(Op::U32(1234567890)),
+            Primitive::U32 | Primitive::I32 => self.emit(Op::U32(1234567890)),
             // Value 1 chosen to detect errors better: 0 encodes the same way as Option::None.
             Primitive::Bool => self.emit(Op::U8(1)),
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
             // to encode compatibly with other types.
-            Primitive::U64 => self.emit(Op::U64(1234567890123456789)),
+            Primitive::Char => self.emit(Op::U32(0x10FFFF)),
+            // Value doesn't matter, but this will be recognizable in the output, and will tend not
+            // to encode compatibly with other types.
+            Primitive::U64 | Primitive::I64 => self.emit(Op::U64(1234567890123456789)),
             Primitive::String => self.emit(Op::U64("".len() as u64)),
             Primitive::Sequence(_) if basecase => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) => {
@@ -370,46 +373,54 @@ impl<'g> ProgramBuilder<'g> {
             Data::Struct(fields) => fields,
             _ => panic!(),
         };
+        if ty.child_field == Some(0) {
+            self.child(id, hierarchy, basecase)
+        }
         for (i, field) in fields.iter().enumerate() {
-            if ty.child_field == Some(i) {
-                if hierarchy.is_empty() {
-                    let basecase_discriminant = self.basecase_discriminant[&id];
-                    let discriminants = &ty.discriminants;
-                    let basecase_ty = discriminants[&basecase_discriminant];
-                    hierarchy.push(basecase_ty);
-                    if basecase {
-                        self.emit(Op::U32(basecase_discriminant as u32));
-                        self.object_(hierarchy, basecase);
-                    } else {
-                        let (&max, _) = discriminants.last_key_value().unwrap();
-                        self.emit(Op::SwitchPush);
-                        self.emit(Op::U32(basecase_discriminant as u32));
-                        self.debug_prev(&self.graph[basecase_ty].name);
-                        self.object_(hierarchy, basecase);
-                        self.emit(Op::Case(Case::Accept));
-                        for i in 0..=(max + 1) {
-                            if i == basecase_discriminant {
-                                continue;
-                            }
-                            self.emit(Op::U32(i as u32));
-                            match discriminants.get(&i) {
-                                Some(id) => {
-                                    hierarchy.push(*id);
-                                    self.debug_prev(&self.graph[*id].name);
-                                    self.object_(hierarchy, basecase);
-                                    self.emit(Op::Case(Case::Accept));
-                                }
-                                None => self.emit(Op::Case(Case::Reject)),
-                            }
-                        }
-                        self.emit(Op::SwitchPop);
-                    }
-                } else {
-                    self.object_(hierarchy, basecase);
-                }
-            }
             self.type_(field.type_, basecase);
             self.debug_prev(format!(".{}", &field.name));
+            if ty.child_field == Some(i + 1) {
+                self.child(id, hierarchy, basecase)
+            }
+        }
+    }
+
+    fn child(&mut self, id: TypeId, hierarchy: &mut Vec<TypeId>, basecase: bool) {
+        let ty = &self.graph[id];
+        if hierarchy.is_empty() {
+            let basecase_discriminant = self.basecase_discriminant[&id];
+            let discriminants = &ty.discriminants;
+            let basecase_ty = discriminants[&basecase_discriminant];
+            hierarchy.push(basecase_ty);
+            if basecase {
+                self.emit(Op::U32(basecase_discriminant as u32));
+                self.object_(hierarchy, basecase);
+            } else {
+                let (&max, _) = discriminants.last_key_value().unwrap();
+                self.emit(Op::SwitchPush);
+                self.emit(Op::U32(basecase_discriminant as u32));
+                self.debug_prev(&self.graph[basecase_ty].name);
+                self.object_(hierarchy, basecase);
+                self.emit(Op::Case(Case::Accept));
+                for i in 0..=(max + 1) {
+                    if i == basecase_discriminant {
+                        continue;
+                    }
+                    self.emit(Op::U32(i as u32));
+                    match discriminants.get(&i) {
+                        Some(id) => {
+                            hierarchy.push(*id);
+                            self.debug_prev(&self.graph[*id].name);
+                            self.object_(hierarchy, basecase);
+                            self.emit(Op::Case(Case::Accept));
+                        }
+                        None => self.emit(Op::Case(Case::Reject)),
+                    }
+                }
+                self.emit(Op::SwitchPop);
+            }
+        } else {
+            self.object_(hierarchy, basecase);
         }
     }
 }
@@ -552,8 +563,8 @@ impl<'p> Interpreter<'p> {
                     self.run_continuation(cont_stack, &mut prefix);
                 }
                 Op::U8(data) => prefix.push(*data),
-                Op::U32(data) => prefix.extend(&data.to_le_bytes()),
-                Op::U64(data) => prefix.extend(&data.to_le_bytes()),
+                Op::U32(data) => prefix.extend(data.to_le_bytes()),
+                Op::U64(data) => prefix.extend(data.to_le_bytes()),
                 Op::Case(case) => {
                     if DEBUG {
                         match case {
@@ -601,8 +612,8 @@ impl<'p> Interpreter<'p> {
                 Op::SwitchPush => stack.push(self.continuations[&pc]),
                 Op::SwitchPop => panic!("Fell through a switch at {pc}."),
                 Op::U8(data) => out.push(*data),
-                Op::U32(data) => out.extend(&data.to_le_bytes()),
-                Op::U64(data) => out.extend(&data.to_le_bytes()),
+                Op::U32(data) => out.extend(data.to_le_bytes()),
+                Op::U64(data) => out.extend(data.to_le_bytes()),
                 Op::Case(Case::Accept) => {
                     if let Some(pc_) = stack.pop() {
                         if DEBUG {

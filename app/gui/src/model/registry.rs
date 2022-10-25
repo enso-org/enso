@@ -173,9 +173,7 @@ mod test {
             let ast = ast::Ast::one_line_module(line).try_into().unwrap();
             let path = ModulePath::from_mock_module_name("Test");
             let urm = default();
-            let logger = Logger::new("Test");
-            let state =
-                Rc::new(model::module::Plain::new(logger, path.clone(), ast, default(), urm));
+            let state = Rc::new(model::module::Plain::new(path.clone(), ast, default(), urm));
             let registry = Registry::default();
             let expected = state.clone_ref();
 
@@ -196,9 +194,7 @@ mod test {
         let path1 = ModulePath::from_mock_module_name("Test");
         let path2 = path1.clone();
         let urm = default();
-        let logger = Logger::new("Test");
-        let state1 =
-            Rc::new(model::module::Plain::new(logger, path1.clone_ref(), ast, default(), urm));
+        let state1 = Rc::new(model::module::Plain::new(path1.clone_ref(), ast, default(), urm));
         let state2 = state1.clone_ref();
         let registry1 = Rc::new(Registry::default());
         let registry2 = registry1.clone_ref();

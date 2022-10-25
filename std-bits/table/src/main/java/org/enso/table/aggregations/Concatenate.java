@@ -1,13 +1,14 @@
 package org.enso.table.aggregations;
 
-import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.data.table.problems.UnquotedDelimiter;
 
+import java.util.List;
+
 public class Concatenate extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final String separator;
   private final String prefix;
   private final String suffix;

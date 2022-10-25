@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 
-use ast::constants::keywords;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::module;
@@ -76,7 +75,7 @@ im_string_newtype! {
 }
 
 /// A fully qualified name of an [`Entry`].
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
@@ -135,6 +134,23 @@ impl<'a> IntoIterator for &'a QualifiedName {
     fn into_iter(self) -> Self::IntoIter {
         self.segments.iter()
     }
+}
+
+
+
+// ==================
+// === ModuleSpan ===
+// ==================
+
+/// A span in a module identified by qualified name.
+///
+/// Span uses UTF-16 code units as units of measurement, so it is compatible with the format used
+/// internally by the suggestion database entries.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModuleSpan {
+    pub module: module::QualifiedName,
+    pub span:   Location<enso_text::Utf16CodeUnit>,
 }
 
 
@@ -198,8 +214,12 @@ pub enum Scope {
     Everywhere,
     /// Local symbol that is visible only in a particular section of the module where it has been
     /// defined.
+    ///
+    /// We are using UTF-16 codepoints because this is what Language Server speaks.
+    /// To convert to bytes (or other system) one would need to know the whole module code which
+    /// is not available to the suggestions database.
     #[allow(missing_docs)]
-    InModule { range: RangeInclusive<Location> },
+    InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
 }
 
 /// Represents code snippet and the imports needed for it to work.
@@ -261,14 +281,14 @@ impl Entry {
             imports.insert(self.module.clone());
         }
 
-        let this_expr = if generate_this {
+        let this_expr: Option<String> = if generate_this {
             // TODO [mwu] Currently we support `self` generation for module atoms only.
             //            This should be extended to any atom that is known to be nullary.
             //            Tracked by https://github.com/enso-org/ide/issues/1299
             if self.is_regular_module_method() {
                 if is_local_entry {
-                    // No additional import for `here`.
-                    Some(keywords::HERE.to_owned())
+                    // No additional import for entries defined in this module.
+                    Some(self.module.name().into())
                 } else {
                     // If we are inserting an additional `self` argument, the used name must be
                     // visible.
@@ -326,10 +346,11 @@ impl Entry {
     }
 
     /// Checks if entry is visible at given location in a specific module.
-    pub fn is_visible_at(&self, module: &module::QualifiedName, location: Location) -> bool {
+    pub fn is_visible_at(&self, location: &ModuleSpan) -> bool {
+        let ModuleSpan { module, span } = location;
         match &self.scope {
             Scope::Everywhere => true,
-            Scope::InModule { range } => self.module == *module && range.contains(&location),
+            Scope::InModule { range } => self.module == *module && range.contains(span),
         }
     }
 
@@ -362,7 +383,7 @@ impl Entry {
                         entry {self:?}. Every entry with the 'Method' kind should have a self \
                         type set, but this entry is missing the self type."
                     );
-                    event!(ERROR, "{msg}");
+                    error!("{msg}");
                     default()
                 }
             },
@@ -377,6 +398,14 @@ impl Entry {
         match self.kind {
             Kind::Module => self.module.parent_module(),
             _ => Some(self.module.clone()),
+        }
+    }
+
+    /// Returns true if this entry is a main module of the project.
+    pub fn is_main_module(&self) -> bool {
+        match self.kind {
+            Kind::Module => self.module.is_main_module(),
+            _ => false,
         }
     }
 }
@@ -485,7 +514,7 @@ impl Entry {
             docs_html
         } else {
             docs.map(|docs| {
-                let parser = parser::DocParser::new();
+                let parser = parser_scala::DocParser::new();
                 match parser {
                     Ok(p) => {
                         let output = p.generate_html_doc_pure((*docs).to_string());
@@ -689,7 +718,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
-            let icon_name = IconName::from_snake_case(&body);
+            let icon_name = IconName::from_snake_case(body);
             let as_snake_case = icon_name.to_snake_case();
             if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
                 let msg = format!(
@@ -697,7 +726,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
                     documentation of a component is not a valid, losslessly-convertible snake_case \
                     identifier. The component may be displayed with a different icon than expected."
                 );
-                event!(WARN, "{msg}");
+                warn!("{msg}");
             }
             Some(icon_name)
         }
@@ -791,7 +820,7 @@ mod test {
 
         expect(&module_method, None, true, "Project.module_method", &[&main_module]);
         expect(&module_method, None, false, "module_method", &[]);
-        expect(&module_method, Some(&main_module), true, "here.module_method", &[]);
+        expect(&module_method, Some(&main_module), true, "Main.module_method", &[]);
         expect(&module_method, Some(&main_module), false, "module_method", &[]);
         expect(&module_method, Some(&another_module), true, "Project.module_method", &[
             &main_module,
@@ -810,7 +839,13 @@ mod test {
             &[&another_module],
         );
         expect(&another_module_method, Some(&main_module), false, "module_method", &[]);
-        expect(&another_module_method, Some(&another_module), true, "here.module_method", &[]);
+        expect(
+            &another_module_method,
+            Some(&another_module),
+            true,
+            "Another_Module.module_method",
+            &[],
+        );
         expect(&another_module_method, Some(&another_module), false, "module_method", &[]);
 
         // TODO [mwu] Extensions on nullary atoms should also be able to generate this.
@@ -925,7 +960,7 @@ mod test {
     /// Test the results of converting a [`QualifiedName`] to a string using various methods.
     #[test]
     fn qualified_name_to_string() {
-        let qualified_name = QualifiedName::from_iter(&["Foo", "Bar"]);
+        let qualified_name = QualifiedName::from_iter(["Foo", "Bar"]);
         assert_eq!(qualified_name.to_string(), "Foo.Bar".to_string());
         assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
     }

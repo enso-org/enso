@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::ExecutedGraph;
 use crate::executor::global::spawn;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -11,28 +12,8 @@ use crate::sync::Synchronized;
 
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::future::ready;
-use ide_view::graph_editor::component::visualization;
-use ide_view::graph_editor::component::visualization::instance::ContextModule;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::SharedHashMap;
-
-
-
-// ================================
-// === Resolving Context Module ===
-// ================================
-
-/// Resolve the context module to a fully qualified name.
-pub fn resolve_context_module(
-    context_module: &ContextModule,
-    main_module_name: impl FnOnce() -> model::module::QualifiedName,
-) -> FallibleResult<model::module::QualifiedName> {
-    use visualization::instance::ContextModule::*;
-    match context_module {
-        ProjectMain => Ok(main_module_name()),
-        Specific(module_name) => model::module::QualifiedName::from_text(module_name),
-    }
-}
 
 
 
@@ -93,7 +74,8 @@ pub enum Notification {
 // ==============
 
 /// Describes the state of the visualization on the Language Server.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum Status {
     /// Not attached and no ongoing background work.
     NotAttached,
@@ -174,7 +156,7 @@ impl Default for Status {
 
 /// Desired visualization described using unresolved view metadata structure.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Desired {
     pub visualization_id: VisualizationId,
     pub expression_id:    ast::Id,
@@ -222,10 +204,8 @@ impl Description {
 /// As this type wraps asynchronous operations, it should be stored using `Rc` pointer.
 #[derive(Debug)]
 pub struct Manager {
-    logger:              Logger,
     visualizations:      SharedHashMap<ast::Id, Description>,
     executed_graph:      ExecutedGraph,
-    project:             model::Project,
     notification_sender: futures::channel::mpsc::UnboundedSender<Notification>,
 }
 
@@ -234,20 +214,9 @@ impl Manager {
     ///
     /// Return a handle to the Manager and the receiver for notifications.
     /// Note that receiver cannot be re-retrieved or changed in the future.
-    pub fn new(
-        logger: impl AnyLogger,
-        executed_graph: ExecutedGraph,
-        project: model::Project,
-    ) -> (Rc<Self>, UnboundedReceiver<Notification>) {
-        let logger = logger.sub("visualization::Manager");
+    pub fn new(executed_graph: ExecutedGraph) -> (Rc<Self>, UnboundedReceiver<Notification>) {
         let (notification_sender, notification_receiver) = futures::channel::mpsc::unbounded();
-        let ret = Self {
-            logger,
-            visualizations: default(),
-            executed_graph,
-            project,
-            notification_sender,
-        };
+        let ret = Self { visualizations: default(), executed_graph, notification_sender };
         (Rc::new(ret), notification_receiver)
     }
 
@@ -326,7 +295,7 @@ impl Manager {
     }
 
     fn write_new_desired(self: &Rc<Self>, target: ast::Id, new_desired: Option<Desired>) {
-        debug!(self.logger, "Requested to set visualization {target}: {new_desired:?}");
+        debug!("Requested to set visualization {target}: {new_desired:?}");
         let mut current = match self.visualizations.get_cloned(&target) {
             None => {
                 if new_desired.is_none() {
@@ -345,28 +314,26 @@ impl Manager {
             self.synchronize(target);
         } else {
             debug!(
-                self.logger,
                 "Visualization for {target} was already in the desired state: \
             {new_desired:?}"
             );
         }
     }
 
-    fn resolve_context_module(
-        &self,
-        context_module: &ContextModule,
-    ) -> FallibleResult<model::module::QualifiedName> {
-        resolve_context_module(context_module, || self.project.main_module())
-    }
-
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
-        let context_module = desired.metadata.preprocessor.module;
-        let resolved_module = self.resolve_context_module(&context_module)?;
+        let preprocessor_module = desired.metadata.preprocessor.module;
+        let preprocessor_method = desired.metadata.preprocessor.method;
+        let method_pointer = QualifiedMethodPointer::from_qualified_text(
+            &preprocessor_module,
+            &preprocessor_module,
+            &preprocessor_method,
+        )?;
+        let arguments = desired.metadata.preprocessor.arguments.deref().iter().map_into().collect();
         Ok(Visualization {
-            id:                desired.visualization_id,
-            expression_id:     desired.expression_id,
-            preprocessor_code: desired.metadata.preprocessor.code.to_string(),
-            context_module:    resolved_module,
+            id: desired.visualization_id,
+            expression_id: desired.expression_id,
+            method_pointer,
+            arguments,
         })
     }
 
@@ -395,7 +362,7 @@ impl Manager {
             let desired_vis_id = description.desired.as_ref().map(|v| v.visualization_id);
             let new_visualization = description.desired.and_then(|desired| {
                 this.prepare_visualization(desired.clone()).handle_err(|error| {
-                    error!(this.logger, "Failed to prepare visualization {desired:?}: {error}")
+                    error!("Failed to prepare visualization {desired:?}: {error}")
                 })
             });
             match (status, new_visualization) {
@@ -423,10 +390,7 @@ impl Manager {
         target: ast::Id,
         new_visualization: Visualization,
     ) {
-        info!(
-            self.logger,
-            "Will attach visualization {new_visualization.id} to expression {target}"
-        );
+        info!("Will attach visualization {} to expression {target}", new_visualization.id);
         let status = Status::BeingAttached(new_visualization.clone());
         self.update_status(target, status);
         let notifier = self.notification_sender.clone();
@@ -462,7 +426,7 @@ impl Manager {
 
     #[profile(Detail)]
     async fn detach_visualization(self: Rc<Self>, target: ast::Id, so_far: Visualization) {
-        info!(self.logger, "Will detach from {target}: {so_far:?}");
+        info!("Will detach from {target}: {so_far:?}");
         let status = Status::BeingDetached(so_far.clone());
         self.update_status(target, status);
         let detaching_result = self.executed_graph.detach_visualization(so_far.id);
@@ -494,18 +458,15 @@ impl Manager {
         so_far: Visualization,
         new_visualization: Visualization,
     ) {
-        info!(
-            self.logger,
-            "Will modify visualization on {target} from {so_far:?} to {new_visualization:?}"
-        );
+        info!("Will modify visualization on {target} from {so_far:?} to {new_visualization:?}");
         let status =
             Status::BeingModified { from: so_far.clone(), to: new_visualization.clone() };
         self.update_status(target, status);
         let id = so_far.id;
-        let expression = new_visualization.preprocessor_code.clone();
-        let module = new_visualization.context_module.clone();
+        let method_pointer = new_visualization.method_pointer.clone();
+        let arguments = new_visualization.arguments.clone();
         let modifying_result =
-            self.executed_graph.modify_visualization(id, Some(expression), Some(module));
+            self.executed_graph.modify_visualization(id, Some(method_pointer), Some(arguments));
         match modifying_result.await {
             Ok(_) => {
                 let status = Status::Attached(new_visualization);
@@ -532,8 +493,10 @@ impl Manager {
 mod tests {
     use super::*;
 
+    use crate::model::module;
+
+    use double_representation::identifier::Identifier;
     use futures::future::ready;
-    use ide_view::graph_editor::component::visualization::instance::ContextModule;
     use ide_view::graph_editor::component::visualization::instance::PreprocessorConfiguration;
     use std::assert_matches::assert_matches;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -553,12 +516,17 @@ mod tests {
             Self { inner, node_id }
         }
 
-        fn vis_metadata(&self, code: impl Into<String>) -> Metadata {
+        fn vis_metadata(
+            &self,
+            method: impl Into<String>,
+            arguments: Vec<impl Into<String>>,
+        ) -> Metadata {
             Metadata {
-                preprocessor: PreprocessorConfiguration {
-                    module: ContextModule::Specific(self.inner.module_name().to_string().into()),
-                    code:   code.into().into(),
-                },
+                preprocessor: PreprocessorConfiguration::new(
+                    self.inner.module_name().to_string(),
+                    method.into(),
+                    arguments.into_iter().map_into().collect(),
+                ),
             }
         }
     }
@@ -567,11 +535,7 @@ mod tests {
     enum ExecutionContextRequest {
         Attach(Visualization),
         Detach(VisualizationId),
-        Modify {
-            id:         VisualizationId,
-            expression: Option<String>,
-            module:     Option<model::module::QualifiedName>,
-        },
+        Modify { id: VisualizationId, method_pointer: Option<QualifiedMethodPointer> },
     }
 
     #[derive(Shrinkwrap)]
@@ -590,11 +554,18 @@ mod tests {
 
     impl VisOperationsTester {
         fn new(inner: Fixture) -> Self {
+            let qualified_module = inner.project.qualified_module_name(inner.module.path());
+            let method_pointer = QualifiedMethodPointer {
+                module:          qualified_module.clone(),
+                defined_on_type: qualified_module.into(),
+                name:            Identifier::from_text("faux").unwrap(),
+            };
+            let arguments = vec!["foo".to_owned()];
             let faux_vis = Visualization {
-                id:                default(),
-                expression_id:     default(),
-                context_module:    inner.project.qualified_module_name(inner.module.path()),
-                preprocessor_code: "faux value".into(),
+                id: default(),
+                expression_id: default(),
+                method_pointer,
+                arguments,
             };
             let is_ready = Synchronized::new(false);
             let mut execution_context = model::execution_context::MockAPI::new();
@@ -619,8 +590,8 @@ mod tests {
 
             let sender = request_sender;
             execution_context.expect_modify_visualization().returning_st(
-                move |id, expression, module| {
-                    let request = ExecutionContextRequest::Modify { id, expression, module };
+                move |id, method_pointer, _| {
+                    let request = ExecutionContextRequest::Modify { id, method_pointer };
                     sender.unbounded_send(request).unwrap();
                     ready(Ok(())).boxed_local()
                 },
@@ -632,21 +603,16 @@ mod tests {
                 inner.project.clone_ref(),
                 execution_context,
             );
-            let logger: Logger = inner.logger.sub("manager");
-            let (manager, notifier) =
-                Manager::new(logger, executed_graph.clone_ref(), inner.project.clone_ref());
+            let (manager, notifier) = Manager::new(executed_graph.clone_ref());
             Self { inner, is_ready, manager, notifier, requests }
         }
     }
 
-    fn matching_metadata(
-        manager: &Manager,
-        visualization: &Visualization,
-        metadata: &Metadata,
-    ) -> bool {
-        let PreprocessorConfiguration { module, code } = &metadata.preprocessor;
-        visualization.preprocessor_code == code.to_string()
-            && visualization.context_module == manager.resolve_context_module(module).unwrap()
+    fn matching_metadata(visualization: &Visualization, metadata: &Metadata) -> bool {
+        let PreprocessorConfiguration { module, method, .. } = &metadata.preprocessor;
+        let qualified_module: module::QualifiedName = module.deref().try_into().unwrap();
+        visualization.method_pointer.module == qualified_module
+            && visualization.method_pointer.name.name() == method.deref()
     }
 
     #[wasm_bindgen_test]
@@ -654,8 +620,8 @@ mod tests {
         let fixture = Fixture::new();
         let node_id = fixture.node_id;
         let fixture = VisOperationsTester::new(fixture);
-        let desired_vis_1 = fixture.vis_metadata("expr1");
-        let desired_vis_2 = fixture.vis_metadata("expr2");
+        let desired_vis_1 = fixture.vis_metadata("expr1", vec!["one"]);
+        let desired_vis_2 = fixture.vis_metadata("expr2", vec!["two"]);
         let VisOperationsTester { mut requests, manager, mut inner, is_ready, .. } = fixture;
 
         // No requests are sent before execution context is ready.
@@ -686,15 +652,15 @@ mod tests {
         manager.request_visualization(node_id, desired_vis_1.clone());
         manager.request_visualization(node_id, desired_vis_1.clone());
         inner.run_until_stalled();
-        if let ExecutionContextRequest::Modify { id, expression, module } = requests.expect_one() {
-            assert!(expression.contains(&desired_vis_1.preprocessor.code.to_string()));
+        if let ExecutionContextRequest::Modify { id, method_pointer } = requests.expect_one() {
+            let desired_method_pointer = QualifiedMethodPointer::from_qualified_text(
+                &desired_vis_1.preprocessor.module,
+                &desired_vis_1.preprocessor.module,
+                &desired_vis_1.preprocessor.method,
+            )
+            .unwrap();
+            assert!(method_pointer.contains(&desired_method_pointer));
             assert_eq!(id, attached_id);
-            let get_main_module = || inner.inner.project.main_module();
-            let expected_module =
-                resolve_context_module(&desired_vis_1.preprocessor.module, get_main_module)
-                    .unwrap();
-            assert_eq!(module, Some(expected_module));
-            // assert!(module.is_none());
         }
 
         // If visualization changes ID, then we need to use detach-attach API.
@@ -716,6 +682,6 @@ mod tests {
             other => panic!("Expected a detach request, got: {:?}", other),
         }
         assert_matches!(requests.expect_next(), ExecutionContextRequest::Attach(vis)
-            if matching_metadata(&manager,&vis,&desired_vis_3.metadata));
+            if matching_metadata(&vis,&desired_vis_3.metadata));
     }
 }

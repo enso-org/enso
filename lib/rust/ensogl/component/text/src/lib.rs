@@ -9,9 +9,16 @@
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(option_zip)]
+#![feature(generators)]
+#![feature(btree_drain_filter)]
+#![feature(allocator_api)]
+#![feature(let_chains)]
+#![feature(step_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -22,13 +29,27 @@
 #![warn(unused_qualifications)]
 
 
+
+// ==============
+// === Consts ===
+// ==============
+
+/// If set to true, animations will be running slow. This is useful for debugging purposes.
+pub const DEBUG_ANIMATION_SLOWDOWN: bool = false;
+
+/// Spring factor for animations. If [`DEBUG_ANIMATION_SLOWDOWN`] is set to true, this value will be
+/// used for animation simulators.
+pub const DEBUG_ANIMATION_SPRING_FACTOR: f32 = if DEBUG_ANIMATION_SLOWDOWN { 0.1 } else { 1.0 };
+
+
+
 // ==============
 // === Export ===
 // ==============
 
 pub mod buffer;
 pub mod component;
-pub mod typeface;
+pub mod font;
 
 
 
@@ -37,6 +58,10 @@ pub mod prelude {
     pub use ensogl_core::prelude::*;
 }
 
+pub use buffer::formatting;
+pub use buffer::formatting::*;
+pub use buffer::traits;
 pub use buffer::*;
-pub use component::Area;
+pub use component::Text;
+pub use enso_text::unit::*;
 pub use ensogl_core::data;

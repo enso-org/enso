@@ -1,13 +1,15 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
-use enso_prelude::*;
-use wasm_bindgen::prelude::*;
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use enso_prelude::*;
 use enso_text::traits::*;
 use span_tree::*;
+use wasm_bindgen::prelude::*;
 
 use enso_web as web;
 use span_tree::builder::Builder;
@@ -17,14 +19,8 @@ use uuid::Uuid;
 
 
 
-#[wasm_bindgen]
+#[entry_point(span_tree)]
 #[allow(dead_code)]
-pub fn entry_point_span_tree() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-    main();
-}
-
 pub fn main() {
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];
     let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };

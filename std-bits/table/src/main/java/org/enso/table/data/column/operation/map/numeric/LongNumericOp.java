@@ -3,13 +3,14 @@ package org.enso.table.data.column.operation.map.numeric;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
+import org.enso.table.data.column.storage.NumericStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a boolean. */
-public abstract class LongNumericOp extends MapOperation<LongStorage> {
+public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
   private final boolean alwaysCast;
 
   public LongNumericOp(String name, boolean alwaysCast) {
@@ -26,7 +27,7 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
   public abstract long doLong(long in, long arg);
 
   @Override
-  public Storage runMap(LongStorage storage, Object arg) {
+  public NumericStorage<?> runMap(LongStorage storage, Object arg) {
     if (arg instanceof Long && !alwaysCast) {
       long x = (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -50,9 +51,8 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
   }
 
   @Override
-  public Storage runZip(LongStorage storage, Storage arg) {
-    if (arg instanceof LongStorage) {
-      LongStorage v = (LongStorage) arg;
+  public NumericStorage<?> runZip(LongStorage storage, Storage<?> arg) {
+    if (arg instanceof LongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -63,8 +63,7 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
         }
       }
       return new LongStorage(out, storage.size(), newMissing);
-    } else if (arg instanceof DoubleStorage) {
-      DoubleStorage v = (DoubleStorage) arg;
+    } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {

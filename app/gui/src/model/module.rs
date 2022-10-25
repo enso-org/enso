@@ -8,12 +8,13 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
+use double_representation::module::ImportId;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -35,10 +36,15 @@ pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 // == Errors ==
 // ============
 
-/// Failure for missing node metadata.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Fail)]
 #[fail(display = "Node with ID {} was not found in metadata.", _0)]
 pub struct NodeMetadataNotFound(pub ast::Id);
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Import with ID {} was not found in metadata.", _0)]
+pub struct ImportMetadataNotFound(pub ImportId);
 
 /// Failed attempt to tread a file path as a module path.
 #[derive(Clone, Debug, Fail)]
@@ -69,7 +75,7 @@ pub enum ModulePathViolation {
 // ===============
 
 /// A specialization of text change used in module's text changes across controllers.
-pub type TextChange = enso_text::Change<enso_text::unit::Bytes, String>;
+pub type TextChange = enso_text::Change<enso_text::index::Byte, String>;
 
 
 
@@ -176,7 +182,7 @@ impl Path {
 
     /// Get the file path.
     pub fn file_path(&self) -> &FilePath {
-        &*self.file_path
+        &self.file_path
     }
 
     /// Gives the file name for the given module name.
@@ -283,7 +289,7 @@ pub enum NotificationKind {
         /// The code change description.
         change:            TextChange,
         /// Information about line:col position of replaced fragment.
-        replaced_location: enso_text::Range<enso_text::Location>,
+        replaced_location: enso_text::Range<enso_text::Location<enso_text::Byte>>,
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
@@ -336,7 +342,7 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
-impl parser::api::Metadata for Metadata {}
+impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
@@ -350,7 +356,7 @@ impl Default for Metadata {
 }
 
 /// Project-level metadata. It is stored as part of the project's main module's metadata.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProjectMetadata {
     /// The execution context of the displayed graph editor.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
@@ -363,18 +369,23 @@ pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    import:  HashMap<ImportId, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
 }
 
 /// Metadata about a nodes edit status.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
 pub enum NodeEditStatus {
     /// The node was edited and had a previous expression.
     Edited {
         /// Expression of the node before the edit was started.
-        previous_expression: String,
+        previous_expression:      String,
+        /// Intended method of the node before editing (if known).
+        previous_intended_method: Option<MethodId>,
     },
     /// The node was created and did not previously exist.
     Created,
@@ -458,7 +469,7 @@ impl Add for Position {
     }
 }
 
-impl std::ops::AddAssign for Position {
+impl AddAssign for Position {
     fn add_assign(&mut self, rhs: Self) {
         self.vector += rhs.vector
     }
@@ -512,6 +523,15 @@ pub struct UploadingFile {
     pub error:          Option<String>,
 }
 
+#[allow(missing_docs)]
+#[allow(missing_copy_implementations)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct ImportMetadata {
+    #[serde(skip_serializing_if = "core::ops::Not::not")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    pub is_temporary: bool,
+}
+
 
 // ==============
 // === Module ===
@@ -529,6 +549,11 @@ pub trait API: Debug + model::undo_redo::Aware {
     // === Getters ===
     /// Get the module path.
     fn path(&self) -> &Path;
+
+    /// Get the module name.
+    fn name(&self) -> ReferentName {
+        self.path().module_name()
+    }
 
     /// Get module sources as a string, which contains both code and metadata.
     fn serialized_content(&self) -> FallibleResult<SourceFile>;
@@ -581,6 +606,19 @@ pub trait API: Debug + model::undo_redo::Aware {
         id: ast::Id,
         fun: Box<dyn FnOnce(&mut NodeMetadata) + '_>,
     ) -> FallibleResult;
+
+    /// Modify metadata of given import.
+    fn with_import_metadata(
+        &self,
+        id: ImportId,
+        fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
+    ) -> FallibleResult;
+
+    /// Returns the import metadata fof the module.
+    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)>;
+
+    /// Removes the import metadata of the import.
+    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata>;
 
     /// This method exists as a monomorphication for [`with_project_metadata`]. Users are encouraged
     /// to use it rather then this method.
@@ -701,16 +739,15 @@ pub mod test {
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
             let ast = parser.parse_module(self.code.clone(), self.id_map.clone()).unwrap();
-            let logger = Logger::new("MockModule");
-            let module =
-                Plain::new(logger, self.path.clone(), ast, self.metadata.clone(), repository);
+            let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
             Rc::new(module)
         }
     }
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }.plain(&parser::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }
+            .plain(&parser_scala::Parser::new_or_panic(), urm)
     }
 
     #[test]
