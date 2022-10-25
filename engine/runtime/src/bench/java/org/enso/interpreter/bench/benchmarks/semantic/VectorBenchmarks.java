@@ -2,8 +2,10 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
+import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
@@ -68,6 +70,10 @@ public class VectorBenchmarks {
       "to_vector arr = Vector.from_polyglot_array arr\n" +
       "to_array vec = vec.to_array\n" +
       "slice vec = vec.slice\n" +
+      "fill_proxy proxy vec = \n" +
+      "  size v = vec.length\n" +
+      "  at i = vec.at i\n" +
+      "  proxy.init size at\n" +
       "\n");
 
     this.self = module.invokeMember("get_associated_type");
@@ -99,6 +105,14 @@ public class VectorBenchmarks {
         this.arrayOfFibNumbers = Value.asValue(copy);
         break;
       }
+      case "averageAbstractList": {
+        long[] copy = copyToPolyglotArray(arr);
+        final ProxyList<Long> proxyList = new ProxyList<Long>();
+        getMethod.apply("fill_proxy").execute(self, proxyList, copy);
+        this.arrayOfFibNumbers = Value.asValue(proxyList);
+        break;
+      }
+
       default:
         throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
@@ -138,6 +152,11 @@ public class VectorBenchmarks {
     performBenchmark(matter);
   }
 
+  @Benchmark
+  public void averageAbstractList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
   private void performBenchmark(Blackhole matter) throws AssertionError {
     var average = avg.execute(self, arrayOfFibNumbers);
     if (!average.fitsInDouble()) {
@@ -149,6 +168,26 @@ public class VectorBenchmarks {
       throw new AssertionError("Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
     }
     matter.consume(result);
+  }
+  
+  public static final class ProxyList<T> extends AbstractList<T> {
+    private Function<Object, Integer> size;
+    private Function<Integer, T> get;
+
+    public void init(Function<Object, Integer> size, Function<Integer, T> get) {
+      this.size = size;
+      this.get = get;
+    }
+
+    @Override
+    public T get(int i) {
+      return get.apply(i);
+    }
+
+    @Override
+    public int size() {
+      return size.apply(0);
+    }
   }
 }
 
