@@ -14,7 +14,7 @@ import org.enso.table.data.column.storage.Storage;
  * do not match that type and then rely on a consistent definition of hashcode for these builtin
  * types (which is not available in general for custom objects).
  */
-public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, S> {
+public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, S> {
   /**
    * An optimized representation of the vector of values to match.
    *
@@ -23,10 +23,8 @@ public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, 
    */
   public record CompactRepresentation<T>(HashSet<T> coercedValues, boolean hasNulls) {}
 
-  private final Function<List<?>, CompactRepresentation<T>> prepareList;
-
   /**
-   * Creates a new operation with a given preprocessing function.
+   * Preprocesses a given input list for the operation.
    *
    * <p>The responsibility of the function is to analyse the list and create a hashmap of relevant
    * elements, coerced to a type that is consistent with the storage type of the given column. Any
@@ -38,36 +36,10 @@ public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, 
    * fractional part need to be converted into a Long. These conversions can be achieved with the
    * {@code NumericConverter} class.
    */
-  public static <T, S extends Storage<T>> SpecializedIsInOp<T, S> make(
-      Function<List<?>, CompactRepresentation<T>> prepareList) {
-    return new SpecializedIsInOp<>(prepareList);
-  }
+  protected abstract CompactRepresentation<T> prepareList(List<?> list);
 
-  /**
-   * Creates a new operation which ensures the Enso Date/Time types are correctly coerced.
-   *
-   * <p>It uses the provided {@code storageClass} to only keep the elements that are of the same
-   * type as expected in the storage.
-   */
-  public static <T, S extends Storage<T>> SpecializedIsInOp<T, S> makeForTimeColumns(Class<T> storageClass) {
-    return SpecializedIsInOp.make(
-        list -> {
-          HashSet<T> set = new HashSet<>();
-          boolean hasNulls = false;
-          for (Object o : list) {
-            hasNulls |= o == null;
-            Object coerced = Polyglot_Utils.convertPolyglotValue(o);
-            if (storageClass.isInstance(coerced)) {
-              set.add(storageClass.cast(coerced));
-            }
-          }
-          return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-        });
-  }
-
-  SpecializedIsInOp(Function<List<?>, CompactRepresentation<T>> prepareList) {
+  protected SpecializedIsInOp() {
     super(Storage.Maps.IS_IN);
-    this.prepareList = prepareList;
   }
 
   @Override
@@ -80,7 +52,7 @@ public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, 
   }
 
   public Storage<?> runMap(S storage, List<?> arg) {
-    CompactRepresentation<T> compactRepresentation = prepareList.apply(arg);
+    CompactRepresentation<T> compactRepresentation = prepareList(arg);
     BitSet newVals = new BitSet();
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i) && compactRepresentation.hasNulls) {
@@ -94,6 +66,6 @@ public class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, 
 
   @Override
   public Storage<?> runZip(S storage, Storage<?> arg) {
-    throw new IllegalStateException("Zip mode is not supported for this operation.");
+    return runMap(storage, arg.toList());
   }
 }
