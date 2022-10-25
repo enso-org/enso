@@ -1,19 +1,20 @@
 grammar Expression;
 prog:   expr EOF ;
-expr:   expr (OR) expr
-    |   expr (AND) expr
-    |   UNARY_NOT expr
-    |   expr BETWEEN expr AND expr
-    |   expr IN '(' expr (',' expr)* ')'
-    |   expr LIKE expr
-    |   expr (IS_NULL|IS_EMPTY)
-    |   expr (EQUALS|NOT_EQUALS|'<='|'>='|'>'|'<') expr
-    |   expr (ADD|SUBTRACT) expr
+expr:   expr POWER expr
     |   expr (MULTIPLY|DIVIDE|MODULO) expr
-    |   expr POWER expr
+    |   expr (ADD|MINUS) expr
+    |   expr (EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr
+    |   expr (IS_NULL|IS_EMPTY)
+    |   expr LIKE expr
+    |   expr IN '(' expr (',' expr)* ')'
+    |   expr BETWEEN expr AND expr
+    |   UNARY_NOT expr
+    |   expr AND expr
+    |   expr OR expr
+    |   (NULL | NOTHING | TRUE | FALSE)
     |   IDENTIFIER '(' (expr (',' expr)*)? ')'
     |   '(' expr ')'
-    |   '-' expr
+    |   MINUS expr
     |   COLUMN_NAME
     |   value
     ;
@@ -23,9 +24,13 @@ MULTIPLY : '*';
 DIVIDE : '/';
 MODULO : '%';
 ADD : '+';
-SUBTRACT : '-';
+MINUS : '-';
 EQUALS : '==' | '=';
 NOT_EQUALS : '!=' | '<>';
+LESS_THAN_OR_EQUAL : '<=';
+GREATER_THAN_OR_EQUAL : '>=';
+LESS_THAN : '<';
+GREATER_THAN : '>';
 
 UNARY_NOT : (N O T) | '!';
 
@@ -59,27 +64,22 @@ fragment Y:[yY];
 fragment Z:[zZ];
 fragment LETTER : [A-Za-z];
 fragment DIGIT : [0-9];
-IDENTIFIER : LETTER (LETTER|DIGIT|'_')*;
-
 fragment IS : I S;
-NULL : N U L L;
-NOTHING : N O T H I N G;
 fragment EMPTY : E M P T Y;
 
 AND : A N D ;
 OR : O R ;
-
+NULL : N U L L;
+NOTHING : N O T H I N G;
 IS_NULL: IS ' ' (NOTHING | NULL);
 IS_EMPTY: IS ' ' EMPTY;
 LIKE : L I K E;
 IN : I N;
-
 BETWEEN : B E T W E E N;
-
-COLUMN_NAME : '[' (']]'|~']')* ']';
-
 TRUE : T R U E;
 FALSE : F A L S E;
+
+IDENTIFIER : LETTER (LETTER|DIGIT|'_')*;
 
 EXCEL_STRING : '"' ('""'|~'"')* '"';
 
@@ -88,9 +88,17 @@ fragment ESC : '\\' (["\\/bfnrt] | UNICODE);
 fragment UNICODE : 'u' HEX HEX HEX HEX;
 fragment HEX : [0-9a-fA-F];
 
-DATE : '#' DIGIT DIGIT DIGIT DIGIT '-' DIGIT DIGIT '-' DIGIT DIGIT '#' ;
-TIME : '#' DIGIT DIGIT ':' DIGIT DIGIT (':' DIGIT DIGIT)? '#' ;
-// DATE_TIME
+fragment YEAR : DIGIT DIGIT DIGIT DIGIT;
+fragment DATE_PART : '-' DIGIT DIGIT;
+fragment HOUR : DIGIT DIGIT;
+fragment TIME_PART : ':' DIGIT DIGIT;
+fragment UTCOFFSET : ('Z' | ('+'|'-') HOUR TIME_PART?);
+fragment TIMEZONE : '[' (~']')+ ']';
+
+DATE : '#' YEAR DATE_PART DATE_PART '#' ;
+TIME : '#' HOUR TIME_PART TIME_PART? '#' ;
+DATE_TIME : '#' YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART TIME_PART? UTCOFFSET? TIMEZONE? '#' ;
+// Doesn't include timezone and shift yet
 
 fragment INTEGER : '0' | [1-9] (DIGIT | '_')* ;
 NUMBER : '-'? INTEGER ('.' INTEGER)? ;
@@ -102,7 +110,10 @@ value
     |   FALSE
     |   DATE
     |   TIME
+    |   DATE_TIME
     |   NUMBER
     |   EXCEL_STRING
     |   PYTHON_STRING
     ;
+
+COLUMN_NAME : '[' (']]'|~']')* ']';
