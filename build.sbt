@@ -1882,7 +1882,8 @@ lazy val `std-table` = project
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"               % "5.2.2",
-      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0"
+      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0",
+      "org.antlr"           % "antlr4-runtime"          % "4.10.1"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

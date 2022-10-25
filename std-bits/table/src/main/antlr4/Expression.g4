@@ -1,16 +1,17 @@
 grammar Expression;
 prog:   expr EOF ;
-expr:   expr POWER expr                         # Power
-    |   expr (MULTIPLY|DIVIDE|MODULO) expr      # MultDivMod
-    |   expr (ADD|MINUS) expr                   # AddSub
-    |   expr (EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr  # Compare
+
+expr:   expr op=POWER expr                      # Power
+    |   expr op=(MULTIPLY|DIVIDE|MODULO) expr   # MultDivMod
+    |   expr op=(ADD|MINUS) expr                # AddSub
+    |   expr op=(EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr  # Compare
     |   expr (IS_NULL|IS_EMPTY)                 # IsNull
-    |   expr LIKE expr                          # Like
+    |   expr op=LIKE expr                       # Like
     |   expr IN '(' expr (',' expr)* ')'        # In
     |   expr BETWEEN expr AND expr              # Between
     |   UNARY_NOT expr                          # UnaryNot
-    |   expr AND expr                           # And
-    |   expr OR expr                            # Or
+    |   expr op=AND expr                        # And
+    |   expr op=OR expr                         # Or
     |   IDENTIFIER '(' (expr (',' expr)*)? ')'  # Function
     |   '(' expr ')'                            # Paren
     |   MINUS expr                              # UnaryMinus
@@ -63,6 +64,7 @@ fragment Y:[yY];
 fragment Z:[zZ];
 fragment LETTER : [A-Za-z];
 fragment DIGIT : [0-9];
+fragment HEX : [0-9a-fA-F];
 fragment IS : I S;
 fragment EMPTY : E M P T Y;
 
@@ -85,7 +87,6 @@ EXCEL_STRING : '"' ('""'|~'"')* '"';
 PYTHON_STRING : '\'' (ESC|~('\''|'\\'))* '\'';
 fragment ESC : '\\' (["\\/bfnrt] | UNICODE);
 fragment UNICODE : 'u' HEX HEX HEX HEX;
-fragment HEX : [0-9a-fA-F];
 
 fragment YEAR : DIGIT DIGIT DIGIT DIGIT;
 fragment DATE_PART : '-' DIGIT DIGIT;
@@ -94,25 +95,22 @@ fragment TIME_PART : ':' DIGIT DIGIT;
 fragment UTCOFFSET : ('Z' | ('+'|'-') HOUR TIME_PART?);
 fragment TIMEZONE : '[' (~']')+ ']';
 
-DATE : '#' YEAR DATE_PART DATE_PART '#' ;
-TIME : '#' HOUR TIME_PART TIME_PART? '#' ;
-DATE_TIME : '#' YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART TIME_PART? UTCOFFSET? TIMEZONE? '#' ;
-// Doesn't include timezone and shift yet
+DATE : YEAR DATE_PART DATE_PART ;
+TIME : HOUR TIME_PART TIME_PART? ;
+DATE_TIME : YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART TIME_PART? UTCOFFSET? TIMEZONE? ;
 
 fragment INTEGER : '0' | [1-9] (DIGIT | '_')* ;
 NUMBER : '-'? INTEGER ('.' INTEGER)? ;
 
 value
-    :   NOTHING
-    |   NULL
-    |   TRUE
-    |   FALSE
-    |   DATE
-    |   TIME
-    |   DATE_TIME
-    |   NUMBER
-    |   EXCEL_STRING
-    |   PYTHON_STRING
+    :   (NULL | NOTHING)       # nullOrNothing
+    |   (TRUE | FALSE)         # boolean
+    |   '#' text=DATE '#'      # date
+    |   '#' text=TIME '#'      # time
+    |   '#' text=DATE_TIME '#' # datetime
+    |   NUMBER                 # number
+    |   EXCEL_STRING           # excelString
+    |   PYTHON_STRING          # pythonString
     ;
 
 COLUMN_NAME : '[' (']]'|~']')* ']';

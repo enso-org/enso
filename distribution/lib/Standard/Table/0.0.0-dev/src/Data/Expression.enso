@@ -3,6 +3,7 @@ from Standard.Base import all
 import project.Data.Column.Column
 
 polyglot java import org.enso.table.expressions.ExpressionEvaluator
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
 type Expression
     For_Column expression:Text
@@ -10,4 +11,4 @@ type Expression
     ## PRIVATE
     evaluate : (Text -> Column) -> (Any -> Column) -> Text -> Column
     evaluate self getColumn makeConstant columnName="Standard.Table.Data.Column" =
-        ExpressionEvaluator.evaluate self.expression getColumn makeConstant columnName
+        ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant columnName

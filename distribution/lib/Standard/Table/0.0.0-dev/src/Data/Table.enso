@@ -955,7 +955,9 @@ type Table
     evaluate : Text -> Column
     evaluate self expression =
         getColumn name = self.at name
-        makeConstant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new self.row_count _->value)
+        makeConstant value = case value of
+            _ : Column -> value
+            _ -> Column.from_vector (UUID.randomUUID.to_text) (Vector.new self.row_count _->value)
         Expression.For_Column expression . evaluate getColumn makeConstant
 
     ## Returns the vector of columns contained in this table.
