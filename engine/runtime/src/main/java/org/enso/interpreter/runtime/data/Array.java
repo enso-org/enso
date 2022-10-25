@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -20,24 +19,6 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
-  public static class InvalidIndexException extends RuntimeException {
-    private final long index;
-    private final Array array;
-
-    public InvalidIndexException(long index, Array array) {
-      this.index = index;
-      this.array = array;
-    }
-
-    public long getIndex() {
-      return index;
-    }
-
-    public Array getArray() {
-      return array;
-    }
-  }
-
   private final Object[] items;
 
   /**
