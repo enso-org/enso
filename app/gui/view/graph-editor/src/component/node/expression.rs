@@ -15,7 +15,7 @@ use span_tree::SpanTree;
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Expression {
     pub pattern:             Option<String>,
-    pub code:                String,
+    pub code:                ImString,
     pub whole_expression_id: Option<ast::Id>,
     pub input_span_tree:     SpanTree,
     pub output_span_tree:    SpanTree,
@@ -25,9 +25,9 @@ impl Expression {
     /// Constructor without output SpanTree and with single node as an input SpanTree.
     pub fn new_plain(code: impl Into<String>) -> Self {
         let pattern = default();
-        let code = code.into();
+        let code = ImString::new(code.into());
         let input_span_tree =
-            code.generate_tree(&span_tree::generate::context::Empty).unwrap_or_default();
+            code.as_str().generate_tree(&span_tree::generate::context::Empty).unwrap_or_default();
         let output_span_tree = default();
         let whole_expression_id = default();
         Self { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
