@@ -69,7 +69,8 @@
 - [Remove here keyword from IDE.][3749]
 - [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
-- [Added support for scrolling by pressing and holding a mouse button on a scrollbar.][3824]
+- [Added support for scrolling by pressing and holding a mouse button on a
+  scrollbar.][3824]
 
 #### EnsoGL (rendering engine)
 
