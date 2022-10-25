@@ -16,7 +16,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
 
-  public static Value evaluate(String expression, Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn, String moduleName) {
+  public static Value evaluate(
+      String expression,
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      String moduleName) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     var tokens = new CommonTokenStream(lexer);
     var parser = new ExpressionParser(tokens);
@@ -29,11 +33,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private final Function<Object, Value> makeConstantColumn;
   private final Function<String, Value> getMethod;
 
-  private ExpressionVisitorImpl(Function<String, Value> getColumn, Function<Object, Value> makeConstantColumn, String moduleName) {
+  private ExpressionVisitorImpl(
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      String moduleName) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
 
-    final Value module = Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
+    final Value module =
+        Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", "Column");
     this.getMethod = name -> module.invokeMember("get_method", type, name);
   }
