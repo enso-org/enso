@@ -1,4 +1,4 @@
-package org.enso.table.parsing;
+package org.enso.table.expressions;
 
 import java.util.ArrayList;
 import java.util.List;

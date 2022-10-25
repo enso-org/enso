@@ -1,4 +1,4 @@
-package org.enso.table.parsing;
+package org.enso.table.expressions;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
