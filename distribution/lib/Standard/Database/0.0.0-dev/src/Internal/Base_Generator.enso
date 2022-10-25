@@ -176,7 +176,7 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     text = [is_empty, bin "LIKE"]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
-    contains = [["IS_IN", make_is_in]]
+    contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
@@ -214,14 +214,26 @@ make_is_in arguments = case arguments.length of
     0 -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN requires at least one argument.")
     ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
        `IN ()` would be more meaningful, but it is a syntax error.
-    1 -> code '2=1' . paren
+    1 -> code 'FALSE' . paren
     _ ->
         expr = arguments.first
         list = arguments.tail
         is_in = expr ++ " IN (" ++ (SQL.join ", " list) ++ ")"
         ## We ensure that even `NULL IN (...)` is coalesced to False, so that
            negation will work as expected.
-        code "COALESCE(" ++ is_in ++ ", 2=1)"
+        code "COALESCE(" ++ is_in ++ ", FALSE)"
+
+## PRIVATE
+make_is_in_column : Vector Builder -> Builder
+make_is_in_column arguments = case arguments.length of
+    3 ->
+        expr = arguments.at 0
+        in_query = arguments.at 1
+        has_nulls_query = arguments.at 2
+        is_in = code "COALESCE(" ++ expr ++ " IN (" ++ in_query ++ "), FALSE)"
+        has_nulls = has_nulls_query.paren ++ " = TRUE"
+        code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
+    _ -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
 
 ## PRIVATE
 
@@ -230,7 +242,7 @@ make_is_in arguments = case arguments.length of
    Arguments:
    - dialect: The SQL dialect in which the expression is being generated.
    - expr: The expression to generate SQL code for.
-generate_expression : Internal_Dialect -> Expression | Order_Descriptor -> Builder
+generate_expression : Internal_Dialect -> Expression | Order_Descriptor | Query -> Builder
 generate_expression dialect expr = case expr of
     Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
@@ -239,7 +251,8 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
-    _ : Order_Descriptor -> generate_order dialect expr
+    query : Query -> generate_query dialect query
+    descriptor : Order_Descriptor -> generate_order dialect descriptor
 
 ## PRIVATE
 
