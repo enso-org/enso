@@ -1,0 +1,27 @@
+from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Test, Test_Suite
+
+spec =
+    Test.group "Array_Proxy" <|
+        Test.specify "should correctly delegate to the callback" <|
+            arr = Array_Proxy.new 3 (ix -> ix + 10)
+            arr.length . should_equal 3
+            arr.at 0 . should_equal 10
+            arr.at 1 . should_equal 11
+            arr.at 2 . should_equal 12
+            arr.at 3 . should_fail_with Index_Out_Of_Bounds_Error_Data
+
+        Test.specify "should be able to be used to construct a Vector" <|
+            v = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> ix + 10))
+            v.length . should_equal 3
+            v . should_equal [10, 11, 12]
+
+            v.map (x -> x + 1) . should_equal [11, 12, 13]
+
+            v2 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> v.at 2 - ix))
+            v2.should_equal [12, 11, 10]
+            v2.sort . should_equal [10, 11, 12]
+
+main = Test_Suite.run_main spec
