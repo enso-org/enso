@@ -10,13 +10,11 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -141,48 +139,6 @@ public final class Atom implements TruffleObject {
       }
     }
     throw UnknownIdentifierException.create(member);
-  }
-
-  @ExportMessage
-  public boolean hasArrayElements() {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
-    return members != null && members.containsKey("at") && members.containsKey("length");
-  }
-
-  @ExportMessage
-  public Object readArrayElement(long index) throws InvalidArrayIndexException, UnsupportedMessageException {
-    if (index >= getArraySize() || index < 0) {
-      throw InvalidArrayIndexException.create(index);
-    }
-
-    UnresolvedSymbol symbol = InvokeMember.buildSym(getConstructor(), "at");
-    try {
-      Object[] args = new Object[] { index };
-      return InvokeMember.doCached(this, "at", args, getConstructor(), "at", symbol, InteropLibrary.getUncached());
-    } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
-      throw UnsupportedMessageException.create();
-    }
-  }
-
-  @ExportMessage
-  long getArraySize() throws UnsupportedMessageException {
-    String member = "length";
-    UnresolvedSymbol symbol = InvokeMember.buildSym(getConstructor(), member);
-    try {
-      var result = InvokeMember.doCached(this, member, new Object[0], getConstructor(), member, symbol, InteropLibrary.getUncached());
-      return TypesGen.expectLong(result);
-    } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException | UnexpectedResultException e) {
-      throw UnsupportedMessageException.create();
-    }
-  }
-
-  @ExportMessage
-  boolean isArrayElementReadable(long index) {
-    try {
-    return index < getArraySize() && index >= 0;
-    } catch (UnsupportedMessageException e) {
-      return false;
-    }
   }
 
   @ExportMessage
