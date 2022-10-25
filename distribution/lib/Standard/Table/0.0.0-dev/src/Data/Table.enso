@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
@@ -943,7 +944,8 @@ type Table
         table = case max_rows of
             Nothing -> self
             _ : Integer -> self.slice 0 max_rows
-        Vector.from_polyglot_array (Rows_View.Value table)
+        proxy = Rows_View.Value table
+        Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## Sets the index of this table, using the column with the provided name.
 

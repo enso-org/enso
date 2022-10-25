@@ -2,3 +2,7 @@
 type Array_Proxy
     new : Integer -> (Integer -> Any) -> Array_Proxy
     new length at = @Builtin_Method "Array_Proxy.new"
+
+    from_proxy_object : Any -> Array_Proxy
+    from_proxy_object proxy =
+        Array_Proxy.new proxy.length proxy.at

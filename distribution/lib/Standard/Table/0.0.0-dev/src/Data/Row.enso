@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 
 from project.Data.Table import Table
 
@@ -17,4 +18,4 @@ type Row
 
     ## Gets the row as a Vector.
     to_vector : Vector
-    to_vector self = Vector.from_polyglot_array self
+    to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
