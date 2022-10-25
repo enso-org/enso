@@ -23,7 +23,6 @@ public abstract class RunThreadNode extends Node {
   @Specialization
   Thread doExecute(State state, Object self) {
     Context ctx = Context.get(this);
-    var stateCopy = state.duplicate();
     Thread thread =
         ctx.getEnvironment()
             .createThread(
@@ -31,7 +30,7 @@ public abstract class RunThreadNode extends Node {
                   Object p = ctx.getThreadManager().enter();
                   try {
                     ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(self, stateCopy, BaseNode.TailStatus.NOT_TAIL);
+                        .executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
                   } finally {
                     ctx.getThreadManager().leave(p);
                   }

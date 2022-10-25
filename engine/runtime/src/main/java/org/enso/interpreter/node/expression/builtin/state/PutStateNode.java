@@ -27,7 +27,7 @@ public abstract class PutStateNode extends Node {
       State state,
       Object key,
       Object new_state,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state.container()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, new_state);
     return new_state;

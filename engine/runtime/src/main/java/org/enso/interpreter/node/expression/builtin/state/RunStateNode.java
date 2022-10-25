@@ -34,14 +34,14 @@ public abstract class RunStateNode extends Node {
       Object key,
       Object local,
       Object computation,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state.container()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
       return thunkExecutorNode.executeThunk(computation, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      objects.put(state.getContainer(), key, old);
+      objects.put(state.container(), key, old);
     }
   }
 
@@ -51,7 +51,7 @@ public abstract class RunStateNode extends Node {
       Object key,
       Object local,
       Object computation,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state.container()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {

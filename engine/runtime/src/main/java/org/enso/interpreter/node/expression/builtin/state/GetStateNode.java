@@ -29,7 +29,7 @@ public abstract class GetStateNode extends Node {
   Object doRead(
       State state,
       Object key,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state.container()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     return objects.getOrDefault(data, key, null);
   }

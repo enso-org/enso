@@ -1,0 +1,53 @@
+package org.enso.interpreter.node.controlflow.permission;
+
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.State;
+
+public class PermissionGuardNode extends ExpressionNode {
+  private @Child ExpressionNode body;
+  private final boolean checkInput;
+  private final boolean checkOutput;
+  private final BranchProfile inputDisallowed = BranchProfile.create();
+  private final BranchProfile outputDisallowed = BranchProfile.create();
+
+  public PermissionGuardNode(ExpressionNode body, boolean checkInput, boolean checkOutput) {
+    this.body = body;
+    this.checkInput = checkInput;
+    this.checkOutput = checkOutput;
+  }
+
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
+    State state = (State) FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+
+    if (checkInput && !state.ioPermissions().isInputAllowed()) {
+      inputDisallowed.enter();
+      throw new PanicException(
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .getForbiddenOperation()
+              .newInstance(Text.create("Input")),
+          this);
+    }
+
+    if (checkOutput && !state.ioPermissions().isOutputAllowed()) {
+      outputDisallowed.enter();
+      throw new PanicException(
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .getForbiddenOperation()
+              .newInstance(Text.create("Output")),
+          this);
+    }
+
+    return body.executeGeneric(frame);
+  }
+}
