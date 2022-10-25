@@ -6,10 +6,12 @@ import Standard.Table.Data.Column.Column as Materialized_Column
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Integrity_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
@@ -650,12 +652,12 @@ type Column
     like self pattern = self.make_binary_op "LIKE" pattern new_type=SQL_Type.boolean
 
     ## Checks for each element of the column if it is contained within the
-       provided vector.
+       provided vector or column.
 
        Arguments:
-       - vector: A vector of elements. The resulting column will contain true at
-         the positions where the corresponding element of `self` is contained
-         in `vector`.
+       - vector: A vector of elements or another column. The resulting column
+         will contain true at the positions where the corresponding element of
+         `self` is contained in `vector`.
 
        > Example
          Check if elements of a column are contained in a provided vector.
@@ -663,35 +665,56 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in self vector =
-        ## This is slightly hacky - we don't provide operand types as we want to
-           allow any type to get through and currently we do not have a mapping
-           from Enso types to SQL types (it may be available in the future). So
-           we just rely on Nothing resolving to the current column type. That
-           type may not always match the operands, but the current
-           implementation uses this type only for two purposes: generated SQL
-           visualization (so the color will be consistent with the column type
-           and not the value type - that can be confusing, we probably want to
-           fix it later) and setting up the query - but at the set up this only
-           applies to adding nulls - setting any other object does not check the
-           type at this level anyway.
-        partitioned = vector.partition .is_nothing
-        nulls = partitioned.first
-        non_nulls = partitioned.second
-        ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
-           separately. So we handle all non-null values using `IS_IN` and then
-           `OR` that with a null check (if the vector contained any nulls to
-           begin with). The implementation also ensures that even
-           `NULL IN (...)` is coalesced to False, so that negation works as
-           expected.
-        is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_type=SQL_Type.boolean
-        case nulls.not_empty of
-            True -> is_in_not_null || self.is_missing
-            False -> is_in_not_null
+    is_in : Column | Vector -> Column
+    is_in self vector = case vector of
+        _ : Vector.Vector ->
+            ## This is slightly hacky - we don't provide operand types as we want to
+               allow any type to get through and currently we do not have a mapping
+               from Enso types to SQL types (it may be available in the future). So
+               we just rely on Nothing resolving to the current column type. That
+               type may not always match the operands, but the current
+               implementation uses this type only for two purposes: generated SQL
+               visualization (so the color will be consistent with the column type
+               and not the value type - that can be confusing, we probably want to
+               fix it later) and setting up the query - but at the set up this only
+               applies to adding nulls - setting any other object does not check the
+               type at this level anyway.
+            partitioned = vector.partition .is_nothing
+            nulls = partitioned.first
+            non_nulls = partitioned.second
+            ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
+               separately. So we handle all non-null values using `IS_IN` and then
+               `OR` that with a null check (if the vector contained any nulls to
+               begin with). The implementation also ensures that even
+               `NULL IN (...)` is coalesced to False, so that negation works as
+               expected.
+            is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_type=SQL_Type.boolean
+            case nulls.not_empty of
+                True -> is_in_not_null || self.is_missing
+                False -> is_in_not_null
+        column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
+            ## We slightly abuse the expression syntax putting a Query as one of
+               the sub-expressions. Once type-checking is added, we may need to
+               amend the signature of `Expression.Operation` to account for
+               this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
+               need to do separate handling of nulls - we check if the target
+               column has any nulls and if so, we will do `IS NULL` checks for
+               our columns too. That is because, we want the containment check
+               for `NULL` to work the same way as for any other value.
+            in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
+            has_nulls_expression = Expression.Operation "BOOL_OR" [column.is_missing.expression]
+            has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
+            new_type = SQL_Type.boolean
+            new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
+            Column.Value self.name self.connection new_type new_expr self.context
 
     ## PRIVATE
     as_internal : Internal_Column
     as_internal self = Internal_Column.Value self.name self.sql_type self.expression
+
+    ## Provides a simplified text representation for display in the REPL and errors.
+    to_text : Text
+    to_text self = "(Database Column "+self.name.to_text+")"
 
 ## PRIVATE
 

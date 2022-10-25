@@ -66,11 +66,12 @@ make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest]+concat_ops+cases
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan]
+    bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -252,3 +253,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
     (arg ++ " = double precision 'NaN'").paren
+
+## PRIVATE
+bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
+    code "bool_or(" ++ arg ++ ")"

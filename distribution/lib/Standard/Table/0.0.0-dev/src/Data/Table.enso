@@ -23,7 +23,6 @@ import project.Internal.Table_Helpers
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-import project.IO.Auto_Detect.Auto_Detect
 
 from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
@@ -1179,7 +1178,16 @@ type Table
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) self on_existing_file match_columns on_problems
+        file = File.new path
+        case format of
+            _ : Auto_Detect ->
+                base_format = format.get_format file
+                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
+                    self.write file format=base_format on_existing_file match_columns on_problems
+            _ ->
+                Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                    name = Meta.get_constructor_name (Meta.meta format).constructor
+                    Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

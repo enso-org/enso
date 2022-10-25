@@ -67,6 +67,8 @@
   visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
 - [Remove here keyword from IDE.][3749]
+- [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
+  Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 
 #### EnsoGL (rendering engine)
 
@@ -348,6 +350,7 @@
 [3790]: https://github.com/enso-org/enso/pull/3790
 [3805]: https://github.com/enso-org/enso/pull/3805
 [3812]: https://github.com/enso-org/enso/pull/3812
+[3823]: https://github.com/enso-org/enso/pull/3823
 
 #### Enso Compiler
 
@@ -400,6 +403,8 @@
 - [Fix performance of method calls on polyglot arrays][3781]
 - [Missing foreign language generates proper Enso error][3798]
 - [Made Vector performance to be on par with Array][3811]
+- [Accept Array-like object seamlessly in builtins][3817]
+- [Initialize Builtins at Native Image build time][3821]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -455,6 +460,8 @@
 [3781]: https://github.com/enso-org/enso/pull/3781
 [3798]: https://github.com/enso-org/enso/pull/3798
 [3811]: https://github.com/enso-org/enso/pull/3811
+[3817]: https://github.com/enso-org/enso/pull/3817
+[3821]: https://github.com/enso-org/enso/pull/3821
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
