@@ -1,22 +1,21 @@
 grammar Expression;
 prog:   expr EOF ;
-expr:   expr POWER expr
-    |   expr (MULTIPLY|DIVIDE|MODULO) expr
-    |   expr (ADD|MINUS) expr
-    |   expr (EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr
-    |   expr (IS_NULL|IS_EMPTY)
-    |   expr LIKE expr
-    |   expr IN '(' expr (',' expr)* ')'
-    |   expr BETWEEN expr AND expr
-    |   UNARY_NOT expr
-    |   expr AND expr
-    |   expr OR expr
-    |   (NULL | NOTHING | TRUE | FALSE)
-    |   IDENTIFIER '(' (expr (',' expr)*)? ')'
-    |   '(' expr ')'
-    |   MINUS expr
-    |   COLUMN_NAME
-    |   value
+expr:   expr POWER expr                         # Power
+    |   expr (MULTIPLY|DIVIDE|MODULO) expr      # MultDivMod
+    |   expr (ADD|MINUS) expr                   # AddSub
+    |   expr (EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr  # Compare
+    |   expr (IS_NULL|IS_EMPTY)                 # IsNull
+    |   expr LIKE expr                          # Like
+    |   expr IN '(' expr (',' expr)* ')'        # In
+    |   expr BETWEEN expr AND expr              # Between
+    |   UNARY_NOT expr                          # UnaryNot
+    |   expr AND expr                           # And
+    |   expr OR expr                            # Or
+    |   IDENTIFIER '(' (expr (',' expr)*)? ')'  # Function
+    |   '(' expr ')'                            # Paren
+    |   MINUS expr                              # UnaryMinus
+    |   COLUMN_NAME                             # Column
+    |   value                                   # Literal
     ;
 
 POWER : '^';
