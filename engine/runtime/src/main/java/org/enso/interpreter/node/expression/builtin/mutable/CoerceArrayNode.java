@@ -39,7 +39,6 @@ public abstract class CoerceArrayNode extends Node {
       Builtins builtins = Context.get(this).getBuiltins();
       Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
-
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = Context.get(this).getBuiltins();
       throw new PanicException(
