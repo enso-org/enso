@@ -219,6 +219,7 @@
 - [Replaced `Table.drop_missing_columns` with
   `Table.remove_columns Column_Selector.Blank_Columns` by adding the new column
   selector variant.][3812]
+- [Implemented `Table.rows` giving access to a vector of rows.][3827]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -351,6 +352,7 @@
 [3805]: https://github.com/enso-org/enso/pull/3805
 [3812]: https://github.com/enso-org/enso/pull/3812
 [3823]: https://github.com/enso-org/enso/pull/3823
+[3827]: https://github.com/enso-org/enso/pull/3827
 
 #### Enso Compiler
 
