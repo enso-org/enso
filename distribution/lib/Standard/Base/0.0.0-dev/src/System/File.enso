@@ -6,6 +6,7 @@ import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
+from Standard.Base.Error.Common import Unsupported_File_Type
 
 polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
@@ -41,6 +42,32 @@ new path =
     _ : Text -> get_file path
     _ : File -> path
     _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
+
+## ALIAS Read Text File, Read File
+
+   Read a file using the specified file format
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - format: A File_Format object used to read file into memory.
+     If `Auto_Detect` is specified; the provided file determines the specific
+     type and configures it appropriately. If there is no matching type then
+     a `Unsupported_File_Type` error is returned.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   ? Module or Instance?
+     If you have a variable `file` of type `File`, we recommend calling the
+     `.read` method on it directly, rather than using `File.read file`. The
+     later, however, will still work.
+read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+read path (format=Auto_Detect) (on_problems=Report_Warning) =
+    file = new path
+    file.read format on_problems
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -245,6 +272,39 @@ type File
     with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
         Resource.bracket (self.new_input_stream open_options) (_.close) action
+
+    ## Read a file using the specified file format
+
+       Arguments:
+       - format: A `File_Format` object used to read file into memory.
+         If `Auto_Detect` is specified; the provided file determines the specific
+         type and configures it appropriately. If there is no matching type then
+         a `Unsupported_File_Type` error is returned.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+
+       > Example
+         Read the first sheet of an XLSX from disk and convert it into a table.
+
+             from Standard.Table import all
+             import Standard.Examples
+
+             example_xlsx_to_table = Examples.xlsx.read
+
+       > Example
+         Read the sheet named `Dates` from an XLS and convert it to a table.
+
+             from Standard.Table import all
+             from Standard.Table import Excel, Worksheet
+             import Standard.Examples
+
+             example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
+    read : File_Format -> Problem_Behavior -> Any ! File.File_Error | Unsupported_File_Type
+    read self format=Auto_Detect (on_problems=Report_Warning) =
+        format.read self on_problems
 
     ## Reads all bytes in this file into a byte vector.
 

@@ -675,12 +675,12 @@ type Column
         run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
 
     ## Checks for each element of the column if it is contained within the
-       provided vector.
+       provided vector or column.
 
        Arguments:
-       - vector: A vector of elements. The resulting column will contain true at
-         the positions where the corresponding element of `self` is contained
-         in `vector`.
+       - vector: A vector of elements or another column. The resulting column
+         will contain true at the positions where the corresponding element of
+         `self` is contained in `vector`.
 
        > Example
          Check if elements of a column are contained in a provided vector.
@@ -688,8 +688,29 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
+    is_in : Column | Vector -> Column
     is_in self vector =
-        run_vectorized_binary_op self "is_in" (elem -> vector -> vector.contains elem) vector skip_nulls=False
+        op_name = "is_in"
+        result_name = "Result"
+        case self.java_column.getStorage.isOpVectorized op_name of
+            True ->
+                fallback_fn _ _ =
+                    Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
+                run_vectorized_binary_op self op_name fallback_fn vector skip_nulls=False new_name=result_name
+            False ->
+                ## We have custom code for the non-vectorized case, because
+                   usually a vectorized binary op will apply the fallback
+                   function element-wise if the other argument is a Column. But
+                   for `Is_In` we want each element of `self` to be checked
+                   against the whole other column, instead of just the
+                   corresponding row - so we need to go around a bit.
+                true_vector = case vector of
+                    _ : Vector.Vector -> vector
+                    ## This does no copying, as `Column.to_vector` just returns
+                       a view of the storage.
+                    column : Column -> column.to_vector
+                new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
+                Column.from_vector result_name new_vector
 
     ## ALIAS Transform Column
 
@@ -1245,19 +1266,20 @@ type Empty_Error
      value results in null without passing it to the function. If set to
      `False`, the null values are passed as any other value and can have custom
      handling logic.
-run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
-run_vectorized_binary_op column name fallback_fn operand skip_nulls=True = case operand of
+   - new_name: The name of the column created as the result of this operation.
+run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Boolean -> Text -> Column
+run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
     Column.Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Column_Data (Java_Column.new "Result" ix rs)
+        Column.Column_Data (Java_Column.new new_name ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Column_Data (Java_Column.new "Result" ix rs)
+        Column.Column_Data (Java_Column.new new_name ix rs)
 
 ## PRIVATE
 

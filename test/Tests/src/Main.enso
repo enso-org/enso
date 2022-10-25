@@ -65,6 +65,7 @@ import project.Runtime.Lazy_Generator_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
+import project.System.File_Read_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
@@ -84,6 +85,7 @@ main = Test_Suite.run_main <|
     Error_Spec.spec
     Environment_Spec.spec
     File_Spec.spec
+    File_Read_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec
     Http_Header_Spec.spec

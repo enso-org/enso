@@ -68,7 +68,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
