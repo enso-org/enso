@@ -81,7 +81,7 @@ impl RawTimeout {
     fn start(&self, time: i32) {
         let js_func = self.closure.as_js_function();
         let result = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_func, time);
-        let handle = result.expect("setTimeout should not fail when provided with valid callback");
+        let handle = result.expect("setTimeout should never fail when callback is a function.");
 
         if let Some(old_handle) = self.timer_handle.borrow_mut().replace(handle) {
             window.clear_timeout_with_handle(old_handle);
