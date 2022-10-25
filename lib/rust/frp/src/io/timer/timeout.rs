@@ -67,6 +67,11 @@ impl Timeout {
     }
 }
 
+
+// ==================
+// === RawTimeout ===
+// ==================
+
 #[derive(Debug)]
 struct RawTimeout {
     closure:      TimerClosure,

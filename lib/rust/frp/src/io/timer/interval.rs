@@ -62,6 +62,11 @@ impl Interval {
     }
 }
 
+
+// ===================
+// === RawInterval ===
+// ===================
+
 #[derive(Debug)]
 struct RawInterval {
     closure:      TimerClosure,
