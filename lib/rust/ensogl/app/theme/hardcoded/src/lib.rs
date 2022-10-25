@@ -205,7 +205,7 @@ define_themes! { [light:0, dark:1]
                             font = "default", "default";
                             size = 12.0, 12.0;
                             color_intensity = 1.0, 1.0;
-                            highlight_bold = 0.04, 0.04;
+                            highlight_bold = 0.02, 0.02;
                         }
                         icon {
                             size = 16.0, 16.0;
