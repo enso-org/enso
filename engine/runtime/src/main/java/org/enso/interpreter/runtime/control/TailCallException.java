@@ -21,8 +21,7 @@ public class TailCallException extends ControlFlowException {
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    */
-  public TailCallException(
-      Function function, CallerInfo callerInfo, Object[] arguments) {
+  public TailCallException(Function function, CallerInfo callerInfo, Object[] arguments) {
     this.function = function;
     this.callerInfo = callerInfo;
     this.arguments = arguments;

@@ -116,16 +116,12 @@ public final class Function implements TruffleObject {
     return callTarget;
   }
 
-  /**
-   * @return the name of this function.
-   */
+  /** @return the name of this function. */
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
 
-  /**
-   * @return the source section this function was defined in.
-   */
+  /** @return the source section this function was defined in. */
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
   }

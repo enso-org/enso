@@ -243,9 +243,7 @@ public class Context {
     return in;
   }
 
-  /**
-   * @return the standard input stream of characters.
-   */
+  /** @return the standard input stream of characters. */
   public BufferedReader getInReader() {
     return inReader;
   }
@@ -417,58 +415,42 @@ public class Context {
     return environment.createThread(runnable);
   }
 
-  /**
-   * @return the thread manager for this context.
-   */
+  /** @return the thread manager for this context. */
   public ThreadManager getThreadManager() {
     return threadManager;
   }
 
-  /**
-   * @return the resource manager for this context
-   */
+  /** @return the resource manager for this context */
   public ResourceManager getResourceManager() {
     return resourceManager;
   }
 
-  /**
-   * @return whether inline caches should be disabled for this context.
-   */
+  /** @return whether inline caches should be disabled for this context. */
   public boolean isInlineCachingDisabled() {
     return isInlineCachingDisabled;
   }
 
-  /**
-   * @return whether IR caching should be disabled for this context.
-   */
+  /** @return whether IR caching should be disabled for this context. */
   public boolean isIrCachingDisabled() {
     return isIrCachingDisabled;
   }
 
-  /**
-   * @return the compiler configuration for this language
-   */
+  /** @return the compiler configuration for this language */
   public CompilerConfig getCompilerConfig() {
     return compilerConfig;
   }
 
-  /**
-   * @return the distribution manager for this language
-   */
+  /** @return the distribution manager for this language */
   public DistributionManager getDistributionManager() {
     return distributionManager;
   }
 
-  /**
-   * @return The logger for this language
-   */
+  /** @return The logger for this language */
   public TruffleLogger getLogger() {
     return logger;
   }
 
-  /**
-   * @return the package repository
-   */
+  /** @return the package repository */
   public PackageRepository getPackageRepository() {
     return packageRepository;
   }

@@ -40,9 +40,7 @@ public final class UnresolvedSymbol implements TruffleObject {
     return name;
   }
 
-  /**
-   * @return the scope this symbol was used in.
-   */
+  /** @return the scope this symbol was used in. */
   public ModuleScope getScope() {
     return scope;
   }

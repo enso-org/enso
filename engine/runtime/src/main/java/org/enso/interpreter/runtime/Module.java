@@ -213,16 +213,12 @@ public final class Module implements TruffleObject {
     this.compilationStage = CompilationStage.INITIAL;
   }
 
-  /**
-   * @return the literal source of this module.
-   */
+  /** @return the literal source of this module. */
   public Rope getLiteralSource() {
     return sources.rope();
   }
 
-  /**
-   * @return true if this module represents a synthetic (compiler-generated) module
-   */
+  /** @return true if this module represents a synthetic (compiler-generated) module */
   public boolean isSynthetic() {
     return synthetic;
   }
@@ -314,9 +310,7 @@ public final class Module implements TruffleObject {
     }
   }
 
-  /**
-   * @return the location of this module.
-   */
+  /** @return the location of this module. */
   public String getPath() {
     return sources.getPath();
   }
@@ -401,16 +395,12 @@ public final class Module implements TruffleObject {
     context.getCompiler().run(this);
   }
 
-  /**
-   * @return IR defined by this module.
-   */
+  /** @return IR defined by this module. */
   public IR.Module getIr() {
     return ir;
   }
 
-  /**
-   * @return the current compilation stage of this module.
-   */
+  /** @return the current compilation stage of this module. */
   public CompilationStage getCompilationStage() {
     return compilationStage;
   }
@@ -439,16 +429,12 @@ public final class Module implements TruffleObject {
     this.ir = ir;
   }
 
-  /**
-   * @return the runtime scope of this module.
-   */
+  /** @return the runtime scope of this module. */
   public ModuleScope getScope() {
     return scope;
   }
 
-  /**
-   * @return the qualified name of this module.
-   */
+  /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
   }
@@ -466,9 +452,7 @@ public final class Module implements TruffleObject {
     this.name = name.renameProject(newName);
   }
 
-  /**
-   * @return the indexed flag.
-   */
+  /** @return the indexed flag. */
   public boolean isIndexed() {
     return isIndexed;
   }
@@ -478,37 +462,27 @@ public final class Module implements TruffleObject {
     isIndexed = indexed;
   }
 
-  /**
-   * @return the source file of this module.
-   */
+  /** @return the source file of this module. */
   public TruffleFile getSourceFile() {
     return sources.file();
   }
 
-  /**
-   * @return {@code true} if the module is interactive, {@code false} otherwise
-   */
+  /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
     return patchedValues != null;
   }
 
-  /**
-   * @return the cache for this module
-   */
+  /** @return the cache for this module */
   public ModuleCache getCache() {
     return cache;
   }
 
-  /**
-   * @return {@code true} if the module was loaded from the cache, {@code false} otherwise
-   */
+  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
   public boolean wasLoadedFromCache() {
     return wasLoadedFromCache;
   }
 
-  /**
-   * @param wasLoadedFromCache whether or not the module was loaded from the cache
-   */
+  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
   public void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
@@ -521,9 +495,7 @@ public final class Module implements TruffleObject {
     return hasCrossModuleLinks;
   }
 
-  /**
-   * @param hasCrossModuleLinks whether or not the module has cross-module links restored
-   */
+  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
   public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
@@ -606,7 +578,10 @@ public final class Module implements TruffleObject {
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       return callOptimiserNode.executeDispatch(
-          eval, callerInfo, context.emptyState(), new Object[] {builtins.debug(), Text.create(expr)});
+          eval,
+          callerInfo,
+          context.emptyState(),
+          new Object[] {builtins.debug(), Text.create(expr)});
     }
 
     private static Object generateDocs(Module module, Context context) {

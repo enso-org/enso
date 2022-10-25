@@ -29,9 +29,7 @@ public final class UnresolvedConversion implements TruffleObject {
     this.scope = scope;
   }
 
-  /**
-   * @return the scope this symbol was used in.
-   */
+  /** @return the scope this symbol was used in. */
   public ModuleScope getScope() {
     return scope;
   }

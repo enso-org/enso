@@ -174,9 +174,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return argumentsExecutionMode;
   }
 
-  /**
-   * @return the source section for this node.
-   */
+  /** @return the source section for this node. */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();

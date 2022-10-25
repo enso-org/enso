@@ -90,15 +90,14 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return indirectInvokeFunctionNode
-        .execute(
-            function,
-            null,
-            state,
-            args,
-            buildSchema(arguments.length),
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-            BaseNode.TailStatus.NOT_TAIL);
+    return indirectInvokeFunctionNode.execute(
+        function,
+        null,
+        state,
+        args,
+        buildSchema(arguments.length),
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        BaseNode.TailStatus.NOT_TAIL);
   }
 }

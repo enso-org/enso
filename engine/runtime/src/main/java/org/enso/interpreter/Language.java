@@ -199,9 +199,7 @@ public final class Language extends TruffleLanguage<Context> {
     return context.getTopScope();
   }
 
-  /**
-   * @return a reference to the execution instrument
-   */
+  /** @return a reference to the execution instrument */
   public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }

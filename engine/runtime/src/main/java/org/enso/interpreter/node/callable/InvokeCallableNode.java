@@ -63,9 +63,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   public enum ArgumentsExecutionMode {
     /** Arguments are pre-executed for this call. */
     PRE_EXECUTED,
-    /**
-     * Arguments are passed as thunks and should be executed before calling the function.
-     */
+    /** Arguments are passed as thunks and should be executed before calling the function. */
     EXECUTE;
 
     /**
@@ -285,9 +283,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     invokeConversionNode.setTailStatus(isTail);
   }
 
-  /**
-   * @return the source section for this node.
-   */
+  /** @return the source section for this node. */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();
