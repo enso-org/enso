@@ -861,6 +861,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testDocAtEndOfBlock() throws Exception {
+    parseTest("""
+    x =
+      23
+      ## end of block
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
