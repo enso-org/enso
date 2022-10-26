@@ -989,6 +989,7 @@ final class TreeToIr {
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
         yield new IR$Pattern$Type(expr, type instanceof IR.Name ? (IR.Name) type : null, Option.empty(), meta(), diag());
       }
+      case Tree.Group group -> translatePattern(group.getBody());
       default -> throw new UnhandledEntity(pattern, "translatePattern");
     };
   }
