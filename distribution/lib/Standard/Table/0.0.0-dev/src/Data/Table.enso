@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
@@ -28,6 +29,7 @@ from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Delimited.Delimited_Format import Delimited
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Rows_View import Rows_View
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 import Standard.Visualization
@@ -928,6 +930,22 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns : Vector
     columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
+
+    ## Returns a vector of rows contained in this table.
+
+       In the database backend, it first materializes the table to in-memory.
+
+       Arguments:
+       - max_rows: The maximum amount of rows to return. It is mainly meant for
+         the Database backend, to limit how many rows are downloaded. In the
+         in-memory backend it is only kept for API compatibility.
+    rows : Integer -> Vector Row
+    rows self max_rows=Nothing =
+        table = case max_rows of
+            Nothing -> self
+            _ : Integer -> self.slice 0 max_rows
+        proxy = Rows_View.Value table
+        Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## Sets the index of this table, using the column with the provided name.
 

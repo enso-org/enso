@@ -14,8 +14,4 @@ public class InvalidArrayIndexError extends UniquelyConstructibleBuiltin {
   protected List<String> getConstructorParamNames() {
     return List.of("array", "index");
   }
-
-  public Atom wrap(Context c, Array.InvalidIndexException e) {
-    return newInstance(e.getArray(), e.getIndex());
-  }
 }
