@@ -1,22 +1,23 @@
 grammar Expression;
 prog:   expr EOF ;
 
-expr:   expr op=POWER expr                      # Power
-    |   expr op=(MULTIPLY|DIVIDE|MODULO) expr   # MultDivMod
-    |   expr op=(ADD|MINUS) expr                # AddSub
+expr:   expr op=POWER expr                                # Power
+    |   expr op=(MULTIPLY|DIVIDE|MODULO) expr             # MultDivMod
+    |   expr op=(ADD|MINUS) expr                          # AddSub
     |   expr op=(EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr  # Compare
-    |   expr (IS_NULL|IS_EMPTY)                 # IsNull
-    |   expr op=LIKE expr                       # Like
-    |   expr IN '(' expr (',' expr)* ')'        # In
-    |   expr BETWEEN expr AND expr              # Between
-    |   UNARY_NOT expr                          # UnaryNot
-    |   expr op=AND expr                        # And
-    |   expr op=OR expr                         # Or
-    |   IDENTIFIER '(' (expr (',' expr)*)? ')'  # Function
-    |   '(' expr ')'                            # Paren
-    |   MINUS expr                              # UnaryMinus
-    |   COLUMN_NAME                             # Column
-    |   value                                   # Literal
+    |   expr (IS_NULL|IS_EMPTY|IS_NOT_EMPTY|IS_NOT_NULL)  # IsNull
+    |   expr (LIKE|NOT_LIKE) expr                         # Like
+    |   expr IN '(' expr (',' expr)* ')'                  # In
+    |   expr (NOT_BETWEEN | BETWEEN) expr AND expr        # Between
+    |   UNARY_NOT expr                                    # UnaryNot
+    |   expr op=AND expr                                  # And
+    |   expr op=OR expr                                   # Or
+    |   IF expr THEN expr ELSE expr                       # If
+    |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function
+    |   '(' expr ')'                                      # Paren
+    |   MINUS expr                                        # UnaryMinus
+    |   COLUMN_NAME                                       # Column
+    |   value                                             # Literal
     ;
 
 POWER : '^';
@@ -31,8 +32,6 @@ LESS_THAN_OR_EQUAL : '<=';
 GREATER_THAN_OR_EQUAL : '>=';
 LESS_THAN : '<';
 GREATER_THAN : '>';
-
-UNARY_NOT : (N O T) | '!';
 
 WHITESPACE : [ \t\r\n]+ -> skip;
 
@@ -73,12 +72,20 @@ OR : O R ;
 NULL : N U L L;
 NOTHING : N O T H I N G;
 IS_NULL: IS ' ' (NOTHING | NULL);
+IS_NOT_NULL : IS ' ' N O T  ' ' (NOTHING | NULL);
 IS_EMPTY: IS ' ' EMPTY;
+IS_NOT_EMPTY : IS ' ' N O T  ' ' EMPTY;
 LIKE : L I K E;
+NOT_LIKE : N O T  ' ' LIKE;
 IN : I N;
 BETWEEN : B E T W E E N;
+NOT_BETWEEN : N O T  ' ' BETWEEN;
 TRUE : T R U E;
 FALSE : F A L S E;
+IF : I F;
+THEN : T H E N;
+ELSE : E L S E;
+UNARY_NOT : (N O T) | '!';
 
 IDENTIFIER : LETTER (LETTER|DIGIT|'_')*;
 

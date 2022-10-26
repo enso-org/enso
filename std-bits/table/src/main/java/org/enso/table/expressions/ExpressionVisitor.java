@@ -131,6 +131,14 @@ public interface ExpressionVisitor<T> extends ParseTreeVisitor<T> {
    */
   T visitIsNull(ExpressionParser.IsNullContext ctx);
   /**
+   * Visit a parse tree produced by the {@code If} labeled alternative in {@link
+   * ExpressionParser#expr}.
+   *
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitIf(ExpressionParser.IfContext ctx);
+  /**
    * Visit a parse tree produced by the {@code Power} labeled alternative in {@link
    * ExpressionParser#expr}.
    *

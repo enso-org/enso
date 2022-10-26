@@ -51,7 +51,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private Value wrapAsColumn(Value value) {
     var metaObject = value.getMetaObject();
-    return metaObject != null && metaObject.asHostObject() instanceof Class<?> ?  makeConstantColumn.apply(value) : value;
+    return metaObject != null && metaObject.asHostObject() instanceof Class<?>
+        ? makeConstantColumn.apply(value)
+        : value;
   }
 
   private Value executeMethod(String name, Value... args) {
@@ -98,13 +100,22 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitLike(ExpressionParser.LikeContext ctx) {
-    return executeMethod("like", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    var condition = executeMethod("like", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return ctx.NOT_LIKE() != null ? executeMethod("not", condition) : condition;
   }
 
   @Override
   public Value visitIsNull(ExpressionParser.IsNullContext ctx) {
-    var op = ctx.IS_NULL() != null ? "is_missing" : "is_empty";
-    return executeMethod(op, visit(ctx.expr()));
+    var op = ctx.IS_NULL() != null | ctx.IS_NOT_NULL() != null ? "is_missing" : "is_empty";
+    var condition = executeMethod(op, visit(ctx.expr()));
+    return ctx.IS_NOT_NULL() != null || ctx.IS_NOT_EMPTY() != null
+        ? executeMethod("not", condition)
+        : condition;
+  }
+
+  @Override
+  public Value visitIf(ExpressionParser.IfContext ctx) {
+    return super.visitIf(ctx);
   }
 
   @Override
@@ -189,7 +200,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var self = visit(ctx.expr(0));
     var lower = visit(ctx.expr(1));
     var upper = visit(ctx.expr(2));
-    return executeMethod("&&", executeMethod(">=", self, lower), executeMethod("<=", self, upper));
+    return ctx.BETWEEN() != null
+        ? executeMethod("&&", executeMethod(">=", self, lower), executeMethod("<=", self, upper))
+        : executeMethod("||", executeMethod("<", self, lower), executeMethod(">", self, upper));
   }
 
   @Override

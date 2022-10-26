@@ -216,6 +216,20 @@ public interface ExpressionListener extends ParseTreeListener {
    */
   void exitIsNull(ExpressionParser.IsNullContext ctx);
   /**
+   * Enter a parse tree produced by the {@code If} labeled alternative in {@link
+   * ExpressionParser#expr}.
+   *
+   * @param ctx the parse tree
+   */
+  void enterIf(ExpressionParser.IfContext ctx);
+  /**
+   * Exit a parse tree produced by the {@code If} labeled alternative in {@link
+   * ExpressionParser#expr}.
+   *
+   * @param ctx the parse tree
+   */
+  void exitIf(ExpressionParser.IfContext ctx);
+  /**
    * Enter a parse tree produced by the {@code Power} labeled alternative in {@link
    * ExpressionParser#expr}.
    *

@@ -169,6 +169,16 @@ public class ExpressionBaseVisitor<T> extends AbstractParseTreeVisitor<T>
    * ctx}.
    */
   @Override
+  public T visitIf(ExpressionParser.IfContext ctx) {
+    return visitChildren(ctx);
+  }
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The default implementation returns the result of calling {@link #visitChildren} on {@code
+   * ctx}.
+   */
+  @Override
   public T visitPower(ExpressionParser.PowerContext ctx) {
     return visitChildren(ctx);
   }
