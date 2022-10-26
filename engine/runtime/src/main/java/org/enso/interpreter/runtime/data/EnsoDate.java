@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.time.LocalTime;
 
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -31,13 +32,13 @@ public final class EnsoDate implements TruffleObject {
     this.date = date;
   }
 
-  @Builtin.Method(description = "Return current Date")
+  @Builtin.Method(description = "Return current Date", owner = Owner.MODULE)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate now() {
     return new EnsoDate(LocalDate.now());
   }
 
-  @Builtin.Method(name = "internal_parse", description = "Constructs a new Date from text with optional pattern")
+  @Builtin.Method(name = "internal_parse", description = "Constructs a new Date from text with optional pattern", owner = Owner.MODULE)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -51,7 +52,7 @@ public final class EnsoDate implements TruffleObject {
     }
   }
 
-  @Builtin.Method(name = "internal_new", description = "Constructs a new Date from a year, month, and day")
+  @Builtin.Method(name = "internal_new", description = "Constructs a new Date from a year, month, and day", owner = Owner.MODULE)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate create(long year, long month, long day) {

@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -15,7 +16,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Meta",
     name = "get_unresolved_symbol_name",
-    description = "Gets the name of an unresolved symbol")
+    description = "Gets the name of an unresolved symbol",
+    owner = Owner.MODULE)
 public abstract class GetUnresolvedSymbolNameNode extends Node {
   static GetUnresolvedSymbolNameNode build() {
     return GetUnresolvedSymbolNameNodeGen.create();

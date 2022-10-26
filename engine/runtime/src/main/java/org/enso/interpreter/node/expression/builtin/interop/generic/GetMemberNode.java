@@ -7,13 +7,15 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_member",
-    description = "Gets a member by name from a polyglot object.")
+    description = "Gets a member by name from a polyglot object.",
+    owner = Owner.MODULE)
 public class GetMemberNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

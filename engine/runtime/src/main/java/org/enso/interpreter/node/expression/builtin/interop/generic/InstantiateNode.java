@@ -10,13 +10,15 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Polyglot",
     name = "new",
-    description = "Instantiates a polyglot constructor.")
+    description = "Instantiates a polyglot constructor.",
+    owner = Owner.MODULE)
 public abstract class InstantiateNode extends Node {
 
   private @Child InteropLibrary library =

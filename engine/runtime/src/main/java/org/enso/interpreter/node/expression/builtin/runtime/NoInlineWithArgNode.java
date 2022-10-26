@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -14,7 +15,8 @@ import org.enso.interpreter.runtime.state.State;
     type = "Runtime",
     name = "no_inline_with_arg",
     description =
-        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.")
+        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.",
+    owner = Owner.MODULE)
 public class NoInlineWithArgNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 

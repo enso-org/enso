@@ -14,6 +14,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -38,7 +39,8 @@ public final class Vector implements TruffleObject {
 
   @Builtin.Method(
       name = "new_builtin",
-      description = "Creates new Vector with given length and provided elements.")
+      description = "Creates new Vector with given length and provided elements.",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
     Object[] target = new Object[Math.toIntExact(length)];

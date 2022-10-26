@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -21,7 +22,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "Meta",
     name = "type_of_builtin",
-    description = "Returns the type of a value.")
+    description = "Returns the type of a value.",
+    owner = Owner.MODULE)
 public abstract class TypeOfNode extends Node {
 
   public abstract Object execute(@AcceptsError Object value);

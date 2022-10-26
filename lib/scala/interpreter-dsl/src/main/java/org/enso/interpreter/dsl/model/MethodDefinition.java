@@ -1,6 +1,7 @@
 package org.enso.interpreter.dsl.model;
 
 import org.enso.interpreter.dsl.*;
+import org.enso.interpreter.dsl.Owner;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -204,6 +205,10 @@ public class MethodDefinition {
         .findFirst()
         .map(arg -> arg.isSyntheticSelf())
         .orElseGet(() -> false);
+  }
+
+  public Owner owner() {
+    return annotation.owner();
   }
 
   public interface ArgumentDefinition {

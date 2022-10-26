@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
@@ -53,7 +54,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "create",
-      description = "Creates a new instance of the primitive warning value.")
+      description = "Creates a new instance of the primitive warning value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   public static Warning create(Context ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.clockTick());
@@ -67,7 +69,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "attach_with_stacktrace",
-      description = "Attaches the given warning to the value.")
+      description = "Attaches the given warning to the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   public static WithWarnings attach(
       Context ctx, WithWarnings value, Object warning, Object origin) {
@@ -76,7 +79,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "attach_with_stacktrace",
-      description = "Attaches the given warning to the value.")
+      description = "Attaches the given warning to the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize(fallback = true)
   public static WithWarnings attach(Context ctx, Object value, Object warning, Object origin) {
     return new WithWarnings(value, new Warning(warning, origin, ctx.clockTick()));
@@ -84,7 +88,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "get_all_array",
-      description = "Gets all the warnings associated with the value.")
+      description = "Gets all the warnings associated with the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value) {
@@ -97,7 +102,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "get_all_array",
-      description = "Gets all the warnings associated with the value.")
+      description = "Gets all the warnings associated with the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize(fallback = true)
   public static Array getAll(Object value) {
     return new Array();
@@ -105,7 +111,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "set_array",
-      description = "Gets all the warnings associated with the value.")
+      description = "Gets all the warnings associated with the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   public static Object set(WithWarnings value, Object warnings, InteropLibrary interop) {
     return setGeneric(value.getValue(), interop, warnings);
@@ -113,7 +120,8 @@ public final class Warning implements TruffleObject {
 
   @Builtin.Method(
       name = "set_array",
-      description = "Gets all the warnings associated with the value.")
+      description = "Gets all the warnings associated with the value.",
+      owner = Owner.MODULE)
   @Builtin.Specialize(fallback = true)
   public static Object set(Object value, Object warnings, InteropLibrary interop) {
     return setGeneric(value, interop, warnings);

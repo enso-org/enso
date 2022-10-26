@@ -6,11 +6,13 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 
 @BuiltinMethod(
     type = "Meta",
     name = "is_same_object",
-    description = "Checks if the two arguments share an underlying reference.")
+    description = "Checks if the two arguments share an underlying reference.",
+    owner = Owner.MODULE)
 public abstract class IsSameObjectNode extends Node {
 
   public static IsSameObjectNode build() {

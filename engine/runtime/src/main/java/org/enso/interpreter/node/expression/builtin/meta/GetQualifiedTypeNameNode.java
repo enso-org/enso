@@ -3,13 +3,15 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.Types;
 
 @BuiltinMethod(
     type = "Meta",
     name = "get_qualified_type_name",
-    description = "Returns a qualified type name of the given value.")
+    description = "Returns a qualified type name of the given value.",
+    owner = Owner.MODULE)
 public class GetQualifiedTypeNameNode extends Node {
   Text execute(@AcceptsError Object value) {
     var typeName = Types.getName(value);

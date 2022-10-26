@@ -9,9 +9,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 
 public abstract class MethodNodeClassGenerator {
   ClassName builtinNode;
@@ -39,7 +39,8 @@ public abstract class MethodNodeClassGenerator {
       ProcessingEnvironment processingEnv,
       String methodName,
       String description,
-      String ownerMethodName)
+      String ownerMethodName,
+      Owner owner)
       throws IOException {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(builtinNode.jvmFriendlyFullyQualifiedName());
@@ -54,6 +55,10 @@ public abstract class MethodNodeClassGenerator {
       }
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
       out.println();
+      String moduleOwnerInfo = "";
+      if (owner != Owner.TYPE) {
+        moduleOwnerInfo = ",\n owner = Owner." + owner;
+      }
       out.println(
           "@BuiltinMethod(type = \""
               + ensoTypeName
@@ -61,7 +66,9 @@ public abstract class MethodNodeClassGenerator {
               + ensoMethodName
               + "\", description = \"\"\"\n"
               + description
-              + "\"\"\")");
+              + "\"\"\""
+              + moduleOwnerInfo
+              + ")");
       if (isAbstract()) {
         out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();

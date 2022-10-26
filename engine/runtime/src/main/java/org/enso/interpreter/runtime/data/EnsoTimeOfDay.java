@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -32,7 +33,8 @@ public final class EnsoTimeOfDay implements TruffleObject {
 
   @Builtin.Method(
       name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern")
+      description = "Constructs a new DateTime from text with optional pattern",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -40,7 +42,10 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return new EnsoTimeOfDay(LocalTime.parse(text));
   }
 
-  @Builtin.Method(name = "new_builtin", description = "Constructs a new Time_OF_Day from an hour")
+  @Builtin.Method(
+      name = "new_builtin",
+      description = "Constructs a new Time_OF_Day from an hour",
+      owner = Owner.MODULE)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
@@ -52,7 +57,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
             Math.toIntExact(nanosecond)));
   }
 
-  @Builtin.Method(description = "Gets a value of hour")
+  @Builtin.Method(description = "Gets a value of hour", owner = Owner.MODULE)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay now() {
     return new EnsoTimeOfDay(LocalTime.now());

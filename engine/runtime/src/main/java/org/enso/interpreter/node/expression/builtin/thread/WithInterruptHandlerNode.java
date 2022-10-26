@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.thread;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -11,7 +12,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Thread",
     name = "with_interrupt_handler",
-    description = "Runs a computation with a handler for thread interrupts.")
+    description = "Runs a computation with a handler for thread interrupts.",
+    owner = Owner.MODULE)
 public class WithInterruptHandlerNode extends Node {
   private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build();

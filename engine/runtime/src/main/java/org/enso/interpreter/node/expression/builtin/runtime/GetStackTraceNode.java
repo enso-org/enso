@@ -3,13 +3,15 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Runtime",
     name = "primitive_get_stack_trace",
-    description = "Gets the current execution stacktrace.")
+    description = "Gets the current execution stacktrace.",
+    owner = Owner.MODULE)
 public class GetStackTraceNode extends Node {
   Array execute() {
     var exception = new PanicException("Stacktrace", this);

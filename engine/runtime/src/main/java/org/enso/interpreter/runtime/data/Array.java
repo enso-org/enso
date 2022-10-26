@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -26,7 +27,7 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.")
+  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", owner = Owner.MODULE)
   public Array(Object... items) {
     this.items = items;
   }
@@ -36,7 +37,7 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.")
+  @Builtin.Method(description = "Creates an uninitialized array of a given size.", owner = Owner.MODULE)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -80,7 +81,7 @@ public final class Array implements TruffleObject {
   }
 
   /** @return an empty array */
-  @Builtin.Method(description = "Creates an empty Array")
+  @Builtin.Method(description = "Creates an empty Array", owner = Owner.MODULE)
   public static Object empty() {
     return new Array();
   }

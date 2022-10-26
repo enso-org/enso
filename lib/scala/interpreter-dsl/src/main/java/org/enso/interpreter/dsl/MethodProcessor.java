@@ -23,6 +23,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 import org.openide.util.lookup.ServiceProvider;
@@ -108,10 +109,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       return;
     }
     String fullClassName = def.getPackageName() + "." + def.getClassName();
-    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic());
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic(), def.owner());
     if (def.hasAliases()) {
       for (String alias : def.aliases()) {
-        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic());
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.owner());
       }
     }
   }
@@ -472,13 +473,16 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     }
   }
 
-  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic) {
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic, Owner owner) {
     Map<String, String[]> methods = builtinMethods.get(f);
     if (methods == null) {
       methods = new HashMap<>();
       builtinMethods.put(f, methods);
     }
-    methods.put(name, new String[] { clazzName, String.valueOf(isStatic) });
+    if ((owner == Owner.MODULE) && !isStatic) {
+      throw new RuntimeException("Module method `" + name + "` is not static!");
+    }
+    methods.put(name, new String[] { clazzName, String.valueOf(isStatic), String.valueOf(owner) });
   }
 
   @Override
@@ -511,11 +515,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return SourceVersion.latest();
   }
 
-  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic) implements MetadataEntry {
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic, Owner owner) implements MetadataEntry {
 
     @Override
     public String toString() {
-      return fullEnsoName + ":" + clazzName + ":" + isStatic;
+      return fullEnsoName + ":" + clazzName + ":" + isStatic + ":" + owner;
     }
 
     @Override
@@ -527,9 +531,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length < 2 || elements.length > 3) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    boolean isStatic = elements.length == 3 ? Boolean.valueOf(elements[2]) : false;
-    return new MethodMetadataEntry(elements[0], elements[1], isStatic);
+    if (elements.length < 2 || elements.length > 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    boolean isStatic = elements.length >= 3 ? Boolean.valueOf(elements[2]) : false;
+    Owner owner = elements.length == 4 ? Owner.valueOf(elements[3]) : Owner.TYPE;
+    return new MethodMetadataEntry(elements[0], elements[1], isStatic, owner);
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";

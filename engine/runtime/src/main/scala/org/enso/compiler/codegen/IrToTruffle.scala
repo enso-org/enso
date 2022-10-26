@@ -266,6 +266,19 @@ class IrToTruffle(
       runtimeType.generateGetters(language)
     }
 
+    context.getBuiltins
+      .getBuiltinFunctionsForModule(
+        moduleScope.getModule.getName.item,
+        language
+      )
+      .forEach(builtinMeta =>
+        moduleScope.registerMethod(
+          moduleScope.getAssociatedType,
+          builtinMeta.getFunctionName,
+          builtinMeta.getFunction
+        )
+      )
+
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val scopeInfo = methodDef
@@ -331,8 +344,10 @@ class IrToTruffle(
       }
 
       consOpt.foreach { cons =>
+        val fullMethodDefName =
+          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
         val expressionProcessor = new ExpressionProcessor(
-          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+          fullMethodDefName,
           scopeInfo.graph,
           scopeInfo.graph.rootScope,
           dataflowInfo
@@ -377,7 +392,13 @@ class IrToTruffle(
               // The non-static builtins have already been registered with
               // types during Builtins initialization.
               )
-              .map(_.filter(f => f.isStatic).map(_.getFunction))
+              .map(fOpt =>
+                // If builtin is used as a body of a differently named/owned method
+                // then it was not previously registered.
+                fOpt
+                  .filter(_ => fullMethodName.text != fullMethodDefName)
+                  .map(_.getFunction)
+              )
           case fn: IR.Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(

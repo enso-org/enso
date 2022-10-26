@@ -9,13 +9,18 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(type = "Array", name = "copy", description = "Copies one array to another.")
+@BuiltinMethod(
+    type = "Array",
+    name = "copy",
+    description = "Copies one array to another.",
+    owner = Owner.MODULE)
 public abstract class CopyNode extends Node {
 
   static CopyNode build() {

@@ -7,6 +7,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -15,7 +16,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "State",
     name = "run",
-    description = "Runs a stateful computation in a local state environment.")
+    description = "Runs a stateful computation in a local state environment.",
+    owner = Owner.MODULE)
 @ReportPolymorphism
 public abstract class RunStateNode extends Node {
   static RunStateNode build() {

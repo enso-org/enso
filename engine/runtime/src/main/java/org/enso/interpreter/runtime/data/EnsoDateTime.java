@@ -34,12 +34,12 @@ public final class EnsoDateTime implements TruffleObject {
     this.dateTime = dateTime;
   }
 
-  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch")
+  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch", owner = Owner.MODULE)
   public static EnsoDateTime epochStart() {
     return epochStart;
   }
 
-  @Builtin.Method(description = "Return current DateTime")
+  @Builtin.Method(description = "Return current DateTime", owner = Owner.MODULE)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
@@ -62,7 +62,8 @@ public final class EnsoDateTime implements TruffleObject {
    */
   @Builtin.Method(
       name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern")
+      description = "Constructs a new DateTime from text with optional pattern",
+      owner = Owner.MODULE)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -78,7 +79,8 @@ public final class EnsoDateTime implements TruffleObject {
 
   @Builtin.Method(
       name = "new_builtin",
-      description = "Constructs a new Date from a year, month, and day")
+      description = "Constructs a new Date from a year, month, and day",
+      owner = Owner.MODULE)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(
