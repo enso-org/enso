@@ -10,6 +10,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.function.Function;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
@@ -46,14 +47,24 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     this.getMethod = name -> module.invokeMember("get_method", type, name);
   }
 
-  private Value executeMethod(String name, Value self, Value... args) {
-    return getMethod.apply(name).execute(makeConstantColumn.apply(self), args);
+  // Either a literal value (string, bool, number, date/time) or a Column
+
+  private Value wrapAsColumn(Value value) {
+    var metaObject = value.getMetaObject();
+    return metaObject != null && metaObject.asHostObject() instanceof Class<?> ?  makeConstantColumn.apply(value) : value;
+  }
+
+  private Value executeMethod(String name, Value... args) {
+    Value method = getMethod.apply(name);
+    Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
+    objects[0] = wrapAsColumn(args[0]);
+    return method.execute(objects);
   }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
     Value base = visit(ctx.expr());
-    return makeConstantColumn.apply(base);
+    return wrapAsColumn(base);
   }
 
   @Override
@@ -190,7 +201,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
-    var args = ctx.expr().stream().skip(1).map(this::visit).toArray(Value[]::new);
-    return executeMethod(name, visit(ctx.expr(0)), args);
+    var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
+    return executeMethod(name, args);
   }
 }

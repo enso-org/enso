@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import project.Data.Column.Column
 
-polyglot java import org.enso.table.expressions.ExpressionEvaluator
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
 type Expression

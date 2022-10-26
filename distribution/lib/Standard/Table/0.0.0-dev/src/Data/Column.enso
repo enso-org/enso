@@ -453,9 +453,6 @@ type Column
         _ : Column -> Column.from_vector "Result_OR" (self.to_vector.map_with_index i->v->(v.bit_or (other.at i)))
         _ -> self.map v->(v.bit_or other)
 
-    is_not_empty : Column
-    is_not_empty self = self.map v->(v == "" || v == Nothing).not
-
     ## ALIAS OR Columns
 
        Element-wise boolean disjunction.
