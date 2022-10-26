@@ -439,12 +439,14 @@ final class TreeToIr {
                   && ".".equals(oprApp.getOpr().getRight().codeRepr())
                   && oprApp.getRhs() instanceof Tree.Ident) {
             func = translateExpression(oprApp.getRhs(), true);
-            if (oprApp.getLhs() == null) {
+            if (oprApp.getLhs() == null && args.isEmpty()) {
               return func;
             }
-            var self = translateExpression(oprApp.getLhs(), false);
-            var loc = getIdentifiedLocation(oprApp.getLhs());
-            args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
+            if (oprApp.getLhs() != null) {
+              var self = translateExpression(oprApp.getLhs(), false);
+              var loc = getIdentifiedLocation(oprApp.getLhs());
+              args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
+            }
           } else if (args.isEmpty()) {
             return null;
           } else {
