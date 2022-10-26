@@ -172,7 +172,7 @@ pub fn allow_owner_execute(path: impl AsRef<Path>) -> Result {
         let mode = permissions.mode();
         let owner_can_execute = 0o0100;
         permissions.set_mode(mode | owner_can_execute);
-        set_permissions(path.as_ref(), permissions).anyhow_err();
+        set_permissions(path.as_ref(), permissions)?;
     }
     Ok(())
 }
