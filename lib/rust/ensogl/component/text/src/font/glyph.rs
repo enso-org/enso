@@ -31,6 +31,9 @@ use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
 
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::gpu::Texture;
+
 
 
 // ===========
@@ -41,6 +44,10 @@ ensogl_core::define_endpoints_2! {
     Input {
         set_color(color::Lcha),
         skip_color_animation(),
+    }
+
+    Output {
+        target_color(color::Lcha),
     }
 }
 
@@ -142,7 +149,6 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
 
 
 type Context = world::Context;
-
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -328,7 +334,7 @@ crate::with_formatting_property_diffs!(define_formatting_property_diffs);
 impl Glyph {
     /// Color getter.
     pub fn color(&self) -> color::Lcha {
-        self.set_color.value()
+        self.target_color.value()
     }
 
     /// SDF-based glyph thickness getter.
@@ -498,6 +504,7 @@ impl System {
 
         let network = frp.network();
         frp::extend! {network
+            frp.private.output.target_color <+ frp.set_color;
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
             eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));

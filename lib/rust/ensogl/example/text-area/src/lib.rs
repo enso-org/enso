@@ -170,7 +170,11 @@ fn init(app: Application) {
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
     // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcdefg");
+    area.set_property_default(color::Rgba::red());
+    area.set_content("abcdefgdasdsadasdsssadsd");
+    area.set_long_text_truncation_mode(true);
+    area.set_view_width(60.0);
+    // area.set_content("abcdefg");
     // area.set_font("default");
     area.focus();
     area.hover();
@@ -184,6 +188,7 @@ fn init(app: Application) {
 
     // TODO: Task na unit testyy do textow
     // TODO: next PR - > Text area to gui component.
+    // TODO: M1 Plus
 
 
     let scene = &app.display.default_scene;

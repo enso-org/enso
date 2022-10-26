@@ -1426,6 +1426,7 @@ impl TextModel {
             line.set_divs(divs);
             line.glyphs.truncate(column.value - to_be_truncated);
             line.set_truncated(Some(default_size));
+            line.update_truncation_color();
         } else {
             line.set_divs(divs);
             line.glyphs.truncate(column.value);
@@ -1567,7 +1568,10 @@ impl TextModel {
         property: formatting::Property,
     ) {
         let property = self.buffer.resolve_property(property);
-        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.set_property(property));
+        let color_change = property.tag() == formatting::PropertyTag::Color;
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, color_change, |g| {
+            g.set_property(property)
+        });
     }
 
     /// Modify the property of selected glyphs. No redraw will be performed.
@@ -1576,17 +1580,21 @@ impl TextModel {
         ranges: &Vec<buffer::Range<Byte>>,
         property: formatting::PropertyDiff,
     ) {
-        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
+        let color_change = property.tag() == formatting::PropertyTag::Color;
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, color_change, |g| {
+            g.mod_property(property)
+        });
     }
 
     /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_ranges_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<Byte>>,
+        color_change: bool,
         f: impl Fn(&Glyph),
     ) {
         for &range in ranges {
-            self.modify_glyphs_in_range_without_line_redraw(range, &f);
+            self.modify_glyphs_in_range_without_line_redraw(range, color_change, &f);
         }
     }
 
@@ -1594,18 +1602,23 @@ impl TextModel {
     fn modify_glyphs_in_range_without_line_redraw(
         &self,
         range: buffer::Range<Byte>,
+        color_change: bool,
         f: impl Fn(&Glyph),
     ) {
         let range = buffer::Range::<ViewLocation<Byte>>::from_in_context_snapped(self, range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
-            for glyph in &lines[range.start.line] {
+            let line = &lines[range.start.line];
+            for glyph in line {
                 if glyph.line_byte_offset.get() >= range.end.offset {
                     break;
                 }
                 if glyph.line_byte_offset.get() >= range.start.offset {
                     f(glyph)
                 }
+            }
+            if color_change {
+                line.update_truncation_color();
             }
         } else {
             let first_line = range.start.line;

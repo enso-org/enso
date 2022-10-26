@@ -134,7 +134,7 @@ macro_rules! define_property {
 
         /// A property name without values.
         #[allow(missing_docs)]
-        #[derive(Clone, Copy, Debug, From)]
+        #[derive(Clone, Copy, Debug, From, PartialEq)]
         pub enum PropertyTag {
             $([<$field:camel>]),*
         }
@@ -458,6 +458,13 @@ macro_rules! define_property_diffs {
         #[derive(Clone, Copy, Debug, From)]
         pub enum PropertyDiff {
             $($field([<$field Diff>])),*
+        }
+
+        impl PropertyDiff {
+            /// The property tag accessor.
+            pub fn tag(self) -> PropertyTag {
+                self.into()
+            }
         }
 
         impl From<PropertyDiff> for PropertyTag {
