@@ -850,6 +850,13 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testSidesPlus() throws Exception {
+    parseTest("""
+    result = reduce (+)
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();

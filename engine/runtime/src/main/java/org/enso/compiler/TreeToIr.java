@@ -4,6 +4,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Operator$Section$Right;
+import org.enso.compiler.core.IR$Application$Operator$Section$Sides;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Case$Branch;
@@ -761,7 +762,7 @@ final class TreeToIr {
             ) : rhs != null ? new IR$Application$Operator$Section$Right(
               name, rhs,
               loc, meta(), diag()
-            ) : new IR$Error$Syntax(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
+            ) : new IR$Application$Operator$Section$Sides(name, Option.empty(), meta(), diag());
           }
         };
       }
