@@ -9,7 +9,7 @@ tags: [product, ui]
 
 #### The <kbd>meta</kbd> key.
 
-The <kbd>meta</kbd> key was introduced to make the shortcuts consistent across
+The <kbd>cmd</kbd> key was introduced to make the shortcuts consistent across
 platforms. It is defined as <kbd>command</kbd> on macOS, and as <kbd>ctrl</kbd>
 on Windows and Linux.
 
@@ -39,7 +39,7 @@ broken and require further investigation.
 | <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>shift</kbd>+<kbd>t</kbd> | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)                                                                                         |
 | <kbd>ctrl</kbd>+<kbd>`</kbd>                                | Show Code Editor. Please note that the Code Editor implementation is in a very early stage and you should not use it. Even just openning it can cause errors in the IDE. Do not try using the graph editor while having the code editor tab openned. |
 | <kbd>cmd</kbd>+<kbd>o</kbd>                                 | Open project                                                                                                                                                                                                                                         |
-| <kbd>meta</kbd>+<kbd>s</kbd>                                | Save module                                                                                                                                                                                                                                          |
+| <kbd>cmd</kbd>+<kbd>s</kbd>                                 | Save module                                                                                                                                                                                                                                          |
 | <kbd>cmd</kbd>+<kbd>z</kbd>                                 | Undo last action                                                                                                                                                                                                                                     |
 | <kbd>cmd</kbd>+<kbd>y</kbd>                                 | Redo last undone action                                                                                                                                                                                                                              |
 | <kbd>cmd</kbd>+<kbd>q</kbd>                                 | Close the application (MacOS)                                                                                                                                                                                                                        |
@@ -59,7 +59,7 @@ broken and require further investigation.
 | <kbd>RMB</kbd> drag                              | Zoom the scene.                 |
 | <kbd>LMB</kbd> double press node name            | Step into the node.             |
 | :warning: <kbd>LMB</kbd> double press background | Step out of the current node.   |
-| <kbd>enter</kbd>                                 | Step in the last selected node. |
+| <kbd>cmd</kbd>+<kbd>enter</kbd>                  | Step in the last selected node. |
 | <kbd>alt</kbd>+<kbd>enter</kbd>                  | Step out of the current node.   |
 
 #### Node Layout
@@ -90,14 +90,16 @@ broken and require further investigation.
 
 #### Node Editing
 
-| Shortcut                                         | Action                                       |
-| ------------------------------------------------ | -------------------------------------------- |
-| <kbd>tab</kbd>                                   | Show / hide node searcher.                   |
-| <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes.                       |
-| <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes.             |
-| <kbd>meta</kbd>+<kbd>LMB</kbd>                   | Start editing node expression.               |
-| <kbd>meta</kbd>+<kbd>enter</kbd>                 | Start editing node expression.               |
-| <kbd>enter</kbd> or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing. |
+| Shortcut                                         | Action                                                      |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| <kbd>tab</kbd>                                   | Open Component Browser to create a new node .               |
+| <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes.                                      |
+| <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes.                            |
+| <kbd>cmd</kbd>+<kbd>LMB</kbd>                    | Start editing node expression.                              |
+| <kbd>cmd</kbd>+<kbd>enter</kbd>                  | Start editing node expression.                              |
+| <kbd>enter</kbd> or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing.                |
+| <kbd>cmd</kbd> + <kbd>enter</kbd>                | Accept the current Component Browser expression input as-is |
+| <kbd>tab</kbd>                                   | Pick selected suggestion and continue editing.              |
 
 #### Visualization
 
@@ -111,10 +113,10 @@ broken and require further investigation.
 
 #### Visualizations Implementations
 
-| Shortcut                       | Action                                             |
-| ------------------------------ | -------------------------------------------------- |
-| <kbd>meta</kbd> + <kbd>a</kbd> | Show all points if available in visualization.     |
-| <kbd>meta</kbd> + <kbd>z</kbd> | Zoom into selection if available in visualization. |
+| Shortcut                      | Action                                             |
+| ----------------------------- | -------------------------------------------------- |
+| <kbd>cmd</kbd> + <kbd>a</kbd> | Show all points if available in visualization.     |
+| <kbd>cmd</kbd> + <kbd>z</kbd> | Zoom into selection if available in visualization. |
 
 #### Debug
 

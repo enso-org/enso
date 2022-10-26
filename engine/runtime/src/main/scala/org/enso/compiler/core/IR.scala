@@ -736,6 +736,9 @@ object IR {
             s"""
             |IR.Module.Scope.Import.Module(
             |name = $name,
+            |rename = $rename,
+            |onlyNames = $onlyNames,
+            |hiddenNames = $hiddenNames,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -6373,9 +6376,9 @@ object IR {
 
       /** @inheritdoc */
       override def toString: String =
+        //|doc = $doc,
         s"""
            |IR.Case.Pattern.Doc(
-           |doc = $doc,
            |location = $location,
            |passData = ${this.showPassData},
            |diagnostics = $diagnostics,

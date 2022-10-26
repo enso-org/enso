@@ -34,6 +34,12 @@ macro_rules! block {
     }
 }
 
+macro_rules! test {
+    ( $code:expr, $block:tt ) => {
+        test($code, block![$block]);
+    }
+}
+
 
 
 // =============
@@ -207,14 +213,18 @@ fn type_operator_methods() {
         "type Foo",
         "    + : Foo -> Foo -> Foo",
         "    + self b = b",
+        "    Foo.+ : Foo",
+        "    Foo.+ self b = b",
     ];
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Foo #() #()
-         #((OperatorTypeSignature "+" ":"
+         #((TypeSignature (Ident #"+") ":"
             (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-            (OperatorFunction "+" #((() (Ident self) () ()) (() (Ident b) () ()))
-                              "=" (Ident b))))];
+            (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))
+            (TypeSignature (OprApp (Ident Foo) (Ok ".") (Ident #"+")) ":" (Ident Foo))
+            (Function (OprApp (Ident Foo) (Ok ".") (Ident #"+"))
+                      #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))))];
     test(&code.join("\n"), expected);
 }
 
@@ -327,6 +337,20 @@ fn function_qualified() {
         (Function (OprApp (Ident Id) (Ok ".") (Ident id)) #((() (Ident x) () ())) "=" (Ident x))]);
 }
 
+#[test]
+fn ignored_arguments() {
+    test!("f ~_ = x", (Function (Ident f) #(("~" (Wildcard -1) () ())) "=" (Ident x)));
+}
+
+#[test]
+fn foreign_functions() {
+    test!("foreign python my_method a b = \"42\"",
+        (ForeignFunction foreign python my_method
+            #((() (Ident a) () ()) (() (Ident b) () ()))
+            "="
+            (TextLiteral #((Section "42")))));
+}
+
 
 // === Named arguments ===
 
@@ -344,8 +368,15 @@ fn named_arguments() {
 
 #[test]
 fn default_app() {
-    let cases = [("f default", block![(DefaultApp (Ident f) default)])];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("f default", (DefaultApp (Ident f) default));
+}
+
+#[test]
+fn argument_named_default() {
+    test!("f default x = x",
+        (Function (Ident f) #((() (Ident default) () ()) (() (Ident x) () ())) "=" (Ident x)));
+    test!("f x default = x",
+        (Function (Ident f) #((() (Ident x) () ()) (() (Ident default) () ())) "=" (Ident x)));
 }
 
 #[test]
@@ -549,21 +580,19 @@ fn precedence() {
 }
 
 #[test]
+fn dot_operator_precedence() {
+    test!("x y . f v", (App (OprApp (App (Ident x) (Ident y)) (Ok ".") (Ident f)) (Ident v)));
+}
+
+#[test]
 fn right_associative_operators() {
-    let code = ["x --> y ---> z"];
-    let expected = block![
-        (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z)))
-    ];
-    test(&code.join("\n"), expected);
+    test!("x --> y ---> z", (OprApp (Ident x) (Ok "-->") (OprApp (Ident y) (Ok "--->") (Ident z))));
+    test!("x <| y <<| z", (OprApp (Ident x) (Ok "<|") (OprApp (Ident y) (Ok "<<|") (Ident z))));
 }
 
 #[test]
 fn left_associative_operators() {
-    let code = ["x + y + z"];
-    let expected = block![
-        (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z))
-    ];
-    test(&code.join("\n"), expected);
+    test!("x + y + z", (OprApp (OprApp (Ident x) (Ok "+") (Ident y)) (Ok "+") (Ident z)));
 }
 
 #[test]
@@ -691,19 +720,15 @@ fn minus_section() {
 
 #[test]
 fn minus_unary() {
-    #[rustfmt::skip]
-    let cases = [
-        ("f -x", block![(App (Ident f) (UnaryOprApp "-" (Ident x)))]),
-        ("-x", block![(UnaryOprApp "-" (Ident x))]),
-        ("(-x)", block![(Group (UnaryOprApp "-" (Ident x)))]),
-        ("-(x * x)", block![
-            (UnaryOprApp "-" (Group (OprApp (Ident x) (Ok "*") (Ident x))))]),
-        ("x=-x", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x)))]),
-        ("-x+x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x))]),
-        ("-x*x", block![(OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x))]),
-        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("f -x", (App (Ident f) (UnaryOprApp "-" (Ident x))));
+    test!("-x", (UnaryOprApp "-" (Ident x)));
+    test!("(-x)", (Group (UnaryOprApp "-" (Ident x))));
+    test!("-(x * x)", (UnaryOprApp "-" (Group (OprApp (Ident x) (Ok "*") (Ident x)))));
+    test!("x=-x", (Assignment (Ident x) "=" (UnaryOprApp "-" (Ident x))));
+    test!("-x+x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "+") (Ident x)));
+    test!("-x*x", (OprApp (UnaryOprApp "-" (Ident x)) (Ok "*") (Ident x)));
+    test!("-2.1", (UnaryOprApp "-" (Number () "2" ("." "1"))));
+    //test!("-1.x", (OprApp (UnaryOprApp "-" (Number () "1" ())) (Ok ".") (Ident x)));
 }
 
 
@@ -749,6 +774,11 @@ fn import() {
              ()
              ((Ident as) (Ident Java_URI))
              ())]),
+        ("from Standard.Base import Foo, Bar, Baz", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz)))
+             () () ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
     test_invalid("from Standard.Base.Data.Array import new as array_new");
@@ -928,6 +958,8 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
+    test!("foo = bar '''\n baz",
+        (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
 }
 
 #[test]
@@ -1136,18 +1168,17 @@ fn tuple_literals() {
 
 #[test]
 fn numbers() {
-    let cases = [
-        ("100_000", block![(Number () "100_000" ())]),
-        ("10_000.99", block![(Number () "10_000" ("." "99"))]),
-        ("1 . 0", block![(OprApp (Number () "1" ()) (Ok ".") (Number () "0" ()))]),
-        ("1 .0", block![(App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ()))))]),
-        ("1. 0", block![(OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))]),
-        ("0b10101010", block![(Number "0b" "10101010" ())]),
-        ("0o122137", block![(Number "0o" "122137" ())]),
-        ("0xAE2F14", block![(Number "0x" "AE2F14" ())]),
-        ("pi = 3.14", block![(Assignment (Ident pi) "=" (Number () "3" ("." "14")))])
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("100_000", (Number () "100_000" ()));
+    test!("10_000.99", (Number () "10_000" ("." "99")));
+    test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
+    test!("1 .0",
+        (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
+    test!("1. 0",
+        (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))));
+    test!("0b10101010", (Number "0b" "10101010" ()));
+    test!("0o122137", (Number "0o" "122137" ()));
+    test!("0xAE2F14", (Number "0x" "AE2F14" ()));
+    test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
 }
 
 

@@ -543,10 +543,12 @@ impl token::Variant {
     #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
+        let is_operator = false;
         token::variant::Ident(
             info.starts_with_underscore,
             info.lift_level,
             info.starts_with_uppercase,
+            is_operator,
             info.is_default,
         )
     }
@@ -561,7 +563,8 @@ impl token::Variant {
         } else {
             let is_free = info.starts_with_underscore;
             let is_type = info.starts_with_uppercase;
-            token::Variant::ident(is_free, info.lift_level, is_type, info.is_default)
+            let is_operator = false;
+            token::Variant::ident(is_free, info.lift_level, is_type, is_operator, info.is_default)
         }
     }
 }
@@ -660,7 +663,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_annotation(),
         "-" =>
             return operator
-                .with_unary_prefix_mode(token::Precedence::max())
+                .with_unary_prefix_mode(token::Precedence::unary_minus())
                 .with_binary_infix_precedence(14),
         // "There are a few operators with the lowest precedence possible."
         // - These 3 "consume everything to the right".
@@ -684,12 +687,14 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
                 .as_arrow(),
-        "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
+        "!" => return operator.with_binary_infix_precedence(3),
+        "||" | "\\\\" | "&&" => return operator.with_binary_infix_precedence(4),
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
-        "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
+        "|>" | "|>>" => return operator.with_binary_infix_precedence(6),
+        "<|" | "<<|" => return operator.with_binary_infix_precedence(6).as_right_associative(),
         // Other special operators.
         "<=" | ">=" => return operator.with_binary_infix_precedence(14),
-        "==" => return operator.with_binary_infix_precedence(1),
+        "==" | "!=" => return operator.with_binary_infix_precedence(5),
         "," =>
             return operator
                 .with_binary_infix_precedence(1)
@@ -697,7 +702,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_special()
                 .as_sequence(),
         "." =>
-            return operator.with_binary_infix_precedence(21).with_decimal_interpretation().as_dot(),
+            return operator.with_binary_infix_precedence(80).with_decimal_interpretation().as_dot(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"
@@ -866,6 +871,9 @@ impl<'s> Lexer<'s> {
             self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
+        if text_type.use_compatibility_trim_mode() {
+            initial_indent = Some(quote_indent + VisibleOffset(1));
+        }
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > quote_indent {
@@ -1127,6 +1135,11 @@ impl TextType {
     fn expects_initial_newline(self) -> bool {
         self != TextType::Documentation
     }
+
+    /// Reproduce a quirk of the old parser for testing.
+    fn use_compatibility_trim_mode(self) -> bool {
+        self == TextType::Documentation
+    }
 }
 
 
@@ -1334,7 +1347,8 @@ pub mod test {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, false)
+        let is_operator = false;
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
     }
 
     /// Constructor.

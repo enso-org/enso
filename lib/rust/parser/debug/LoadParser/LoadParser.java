@@ -18,6 +18,7 @@ import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
+import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.syntax.text.AST;
 import org.enso.syntax.text.Shape;
 import org.enso.syntax2.Parser;
@@ -50,15 +51,9 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     public static void main(String[] args) throws Exception {
         var root = new File(".").getAbsoluteFile();
         try (LoadParser checker = new LoadParser(root)) {
-            if (args.length == 0) {
-                checker.scan("distribution");
-                checker.scan("test");
-            } else {
-                for (var p : args) {
-                    var file = new File(p).toPath();
-                    checker.visitFile(file, null);
-                }
-            }
+            checker.scan("distribution");
+            checker.scan("test");
+
             checker.printSummary(true);
         }
     }
@@ -221,6 +216,8 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             public Boolean apply(IR$Module$Scope$Definition exp) {
                 if (exp instanceof IR$Comment$Documentation) {
                     return false;
+                } else if (exp instanceof IR$Type$Ascription) {
+                    return false;
                 } else {
                     return true;
                 }
@@ -238,5 +235,4 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         );
         return m2;
     }
-
 }
