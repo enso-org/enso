@@ -1,11 +1,18 @@
+//! This crate is meant to provide a foundational set of utilities and reexports, that should be
+//! common for the whole Enso codebase. Eventually both WASM and native code should use this crate.
+//!
+//! Currently it is employed by the native build scripts code.
+
 // === Features ===
 #![feature(pin_macro)]
 #![feature(default_free_fn)]
 #![feature(result_flattening)]
 #![feature(associated_type_bounds)]
 #![feature(extend_one)]
+#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
+#![warn(missing_docs)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
@@ -21,7 +28,10 @@ pub mod fs;
 
 
 pub mod prelude {
+    //! This module contains all the reexports of the most common traits and types used in the
+    //! Enso codebase.
 
+    /// anyhow-based result type.
     pub type Result<T = ()> = anyhow::Result<T>;
 
     pub use std::borrow::Borrow;

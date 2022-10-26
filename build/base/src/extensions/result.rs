@@ -1,8 +1,10 @@
+//! Extension methods for [`Result`].
+
 use crate::prelude::*;
 
-
-
+/// Extension methods for `Result`.
 pub trait ResultExt<T, E>: Sized {
+    /// Maps the value and wraps it as a [`Future`].
     #[allow(clippy::type_complexity)]
     fn map_async<'a, T2, F, Fut>(
         self,
@@ -15,6 +17,8 @@ pub trait ResultExt<T, E>: Sized {
         F: FnOnce(T) -> Fut,
         Fut: Future<Output = T2> + 'a;
 
+    /// Maps the `Ok` value to a [`Future`] value. If the result is `Err`, the error is returned
+    /// as a [`std::future::Ready`] future.
     fn and_then_async<'a, T2, E2, F, Fut>(
         self,
         f: F,
@@ -27,9 +31,13 @@ pub trait ResultExt<T, E>: Sized {
         E2: Send + 'a;
 
 
+    /// Convert the error type to [`anyhow::Error`].
+    ///
+    /// If there are additional context-specific information, use [`context`] instead.
     fn anyhow_err(self) -> Result<T>
     where E: Into<anyhow::Error>;
 
+    /// Convert the `[Result]<[Future]>` to `Future<Result>`.
     fn flatten_fut(
         self,
     ) -> futures::future::Either<

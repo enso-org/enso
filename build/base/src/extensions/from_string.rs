@@ -1,3 +1,5 @@
+//!Module with utilities for converting string-like values into other types.
+
 use crate::prelude::*;
 
 use anyhow::Context;

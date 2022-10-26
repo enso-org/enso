@@ -1,3 +1,5 @@
+//! Extension methods for `Path` and `Path`-like types.1
+
 use crate::prelude::*;
 
 use serde::de::DeserializeOwned;
@@ -135,6 +137,7 @@ pub trait PathExt: AsRef<Path> {
 
 impl<T: AsRef<Path>> PathExt for T {}
 
+/// A method that displays a value using `Display` trait.
 pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
     std::fmt::Display::fmt(&path.display(), f)
 }
