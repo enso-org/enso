@@ -37,6 +37,7 @@ case class ArgumentRow(
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
+  * @param isStatic the flag indicating whether a method is static or instance
   * @param scopeStartLine the line of the start position of the scope
   * @param scopeStartOffset the offset of the start position of the scope
   * @param scopeEndLine the line of the end position of the scope
@@ -52,6 +53,7 @@ case class SuggestionRow(
   name: String,
   selfType: String,
   returnType: String,
+  isStatic: Boolean,
   scopeStartLine: Int,
   scopeStartOffset: Int,
   scopeEndLine: Int,
@@ -164,6 +166,7 @@ final class SuggestionsTable(tag: Tag)
   def name            = column[String]("name")
   def selfType        = column[String]("self_type")
   def returnType      = column[String]("return_type")
+  def isStatic        = column[Boolean]("is_static")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -185,6 +188,7 @@ final class SuggestionsTable(tag: Tag)
       name,
       selfType,
       returnType,
+      isStatic,
       scopeStartLine,
       scopeStartOffset,
       scopeEndLine,
@@ -263,5 +267,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 7
+  val CurrentVersion: Long = 8
 }
