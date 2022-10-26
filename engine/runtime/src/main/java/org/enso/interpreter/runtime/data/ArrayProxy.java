@@ -11,6 +11,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -29,9 +31,11 @@ public final class ArrayProxy implements TruffleObject {
   @Builtin.Method(description = "Creates an array backed by a proxy object.")
   public ArrayProxy(long length, Object at) {
     if (CompilerDirectives.inInterpreter()) {
-      if (!InteropLibrary.getUncached().isExecutable(at)) {
-        throw new IllegalArgumentException(
-            "Array_Proxy needs an executable callback, but got: " + at);
+      InteropLibrary interop = InteropLibrary.getUncached();
+      if (!interop.isExecutable(at)) {
+        throw new PanicException(
+            Context.get(interop).getBuiltins().error().makeTypeError("Function", at, "at"),
+            interop);
       }
     }
 
