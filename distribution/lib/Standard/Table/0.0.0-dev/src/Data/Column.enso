@@ -14,6 +14,10 @@ polyglot java import org.enso.table.operations.OrderBuilder
 
 from project.Data.Column.Column import Column_Data
 
+## PRIVATE
+var_args_functions : Vector
+var_args_functions = ['is_in', 'min', 'max', 'coalesce']
+
 type Column
     ## PRIVATE
 
@@ -507,7 +511,16 @@ type Column
         Storage.Boolean ->
             s = self.java_column.getStorage
             ix = self.java_column.getIndex
-            rs = s.iif when_true when_false
+
+            true_val = case when_true of
+                _ : Column -> when_true.java_column.getStorage
+                _ -> when_true
+
+            false_val = case when_false of
+                _ : Column -> when_false.java_column.getStorage
+                _ -> when_false
+
+            rs = s.iif true_val false_val
             Column.Column_Data (Java_Column.new "Result" ix rs)
         _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
 

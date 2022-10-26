@@ -115,7 +115,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitIf(ExpressionParser.IfContext ctx) {
-    return super.visitIf(ctx);
+    return executeMethod("iif", visit(ctx.expr(0)), visit(ctx.expr(1)), visit(ctx.expr(2)));
   }
 
   @Override

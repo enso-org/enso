@@ -12,7 +12,7 @@ expr:   expr op=POWER expr                                # Power
     |   UNARY_NOT expr                                    # UnaryNot
     |   expr op=AND expr                                  # And
     |   expr op=OR expr                                   # Or
-    |   IF expr THEN expr ELSE expr                       # If
+    |   IF expr THEN expr ELSE expr END?                  # If
     |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function
     |   '(' expr ')'                                      # Paren
     |   MINUS expr                                        # UnaryMinus
@@ -86,6 +86,7 @@ IF : I F;
 THEN : T H E N;
 ELSE : E L S E;
 UNARY_NOT : (N O T) | '!';
+END : E N D IF?;
 
 IDENTIFIER : LETTER (LETTER|DIGIT|'_')*;
 
