@@ -249,7 +249,7 @@ impl Frp {
             // === Click and hold repeated scrolling ===
 
             background_drag_start <- base_frp.is_dragging_background.on_true();
-            click_and_hold_timer.start <+ background_drag_start.constant(click_and_hold_config);
+            click_and_hold_timer.restart <+ background_drag_start.constant(click_and_hold_config);
             click_and_hold_timer.stop <+ base_frp.is_dragging_background.on_false();
 
             mouse_pos_at_timer_trigger <- mouse_position.sample(&click_and_hold_timer.on_trigger);

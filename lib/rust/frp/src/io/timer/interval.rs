@@ -18,11 +18,11 @@ type TimerClosure = Closure<dyn FnMut()>;
 
 /// Periodic timer.
 ///
-/// The timer can be started or stopped at any time using `start` and `stop` inputs. After it is
-/// started, an `on_interval` event will be emitted periodically with period provided during
-/// start. The events will be emitted until the timer is stopped.
+/// The timer can be started or stopped at any time using `restart` and `stop` inputs. After it is
+/// started, an `on_interval` event will be emitted periodically with period provided during start.
+/// The events will be emitted until the timer is stopped.
 ///
-/// in `start`:        5ms-------------2ms---------------3ms------
+/// in `restart`:      5ms-------------2ms---------------3ms------
 /// in `stop`:         -----------------------------x-----x-------
 /// out `on_interval`: -----x-----x-------x--x--x--x--------------
 ///
@@ -33,7 +33,7 @@ type TimerClosure = Closure<dyn FnMut()>;
 pub struct Interval {
     /// Starts the timer with provided period value, specified in integer milliseconds. If the
     /// timer was already started, it is restarted with new period value.
-    pub start:       frp::Any<i32>,
+    pub restart:     frp::Any<i32>,
     /// Stops the timer. No `on_interval` events will be emitted until it is started again.
     pub stop:        frp::Any,
     /// Triggered periodically after the timer is started.
@@ -48,17 +48,17 @@ impl Interval {
             on_interval <- any_mut();
         }
 
-        let closure: TimerClosure = Closure::new(f!(() on_interval.emit(())));
+        let closure: TimerClosure = Closure::new(f!(on_interval.emit(())));
         let raw_interval = Rc::new(RawInterval::new(closure));
 
         frp::extend! { network
-            start <- any_mut::<i32>();
-            stop  <- any_mut::<()>();
-            eval  start((duration) raw_interval.start(*duration));
-            eval_ stop(raw_interval.stop());
+            restart <- any_mut::<i32>();
+            stop    <- any_mut::<()>();
+            eval    restart((duration) raw_interval.restart(*duration));
+            eval_   stop(raw_interval.stop());
         }
         let on_interval = on_interval.into();
-        Self { on_interval, start, stop, raw_interval }
+        Self { on_interval, restart, stop, raw_interval }
     }
 }
 
@@ -78,7 +78,7 @@ impl RawInterval {
         Self { closure, timer_handle: default() }
     }
 
-    fn start(&self, time: i32) {
+    fn restart(&self, time: i32) {
         let js_func = self.closure.as_js_function();
         let result = window.set_interval_with_callback_and_timeout_and_arguments_0(js_func, time);
         let handle = result.expect("setInterval should never fail when callback is a function.");

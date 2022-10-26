@@ -15,7 +15,7 @@ use frp::io::timer::Timeout;
 ///
 /// The timer will generate `on_trigger` events over time, as long as it is active.
 ///
-/// The timer is activated when `start` receives an event with [`DelayedIntervalConfig`] structure
+/// The timer is activated when `restart` receives an event with [`DelayedIntervalConfig`] structure
 /// containing `delay_ms` and `interval_ms` values. Every activation begins a sequence of actions:
 ///     - If the timer was already active, it is stopped and started again.
 ///     - First `on_trigger` event will be emitted after specified `delay_ms` time.
@@ -23,7 +23,7 @@ use frp::io::timer::Timeout;
 /// Once `stop` receives an event, no more `on_trigger` events will be emitted until the timer
 /// is activated again.
 ///
-/// in `start`:       -5,2--------------3,1-----4,3-----------------
+/// in `restart`:     -5,2--------------3,1-----4,3-----------------
 /// in `stop`:        -------------x-----------------------x---x----
 /// out `on_trigger`: ------x-x-x-x--------xxxxx----x--x--x---------
 ///
@@ -38,7 +38,7 @@ pub struct DelayedInterval {
     /// Timer activation and configuration input. Any time an event is sent to this input, the
     /// timer will be started with provided delay and interval values. If the timer was already
     /// started, it will be restarted with new values.
-    pub start:      frp::Any<DelayedIntervalConfig>,
+    pub restart:    frp::Any<DelayedIntervalConfig>,
     /// Timer deactivation input. Any time an event is sent to this input, the timer will be
     /// stopped and mo more `on_trigger` will be emitted until it is started again.
     pub stop:       frp::Any,
@@ -53,18 +53,18 @@ impl DelayedInterval {
         let interval_timer = Interval::new(network);
 
         frp::extend! { network
-            start <- any_mut::<DelayedIntervalConfig>();
+            restart <- any_mut::<DelayedIntervalConfig>();
             stop <- any_mut();
 
-            delay_timer.start    <+ start.map(|c| c.delay_ms);
-            interval_timer.start <+ start.map(|c| c.interval_ms).sample(&delay_timer.on_expired);
+            delay_timer.restart    <+ restart.map(|c| c.delay_ms);
+            interval_timer.restart <+ restart.map(|c| c.interval_ms).sample(&delay_timer.on_expired);
 
             delay_timer.cancel  <+ stop;
-            interval_timer.stop <+ any_(stop, start);
+            interval_timer.stop <+ any_(stop, restart);
 
             on_trigger <- any(delay_timer.on_expired, interval_timer.on_interval);
         }
-        Self { delay_timer, interval_timer, start, stop, on_trigger }
+        Self { delay_timer, interval_timer, restart, stop, on_trigger }
     }
 }
 

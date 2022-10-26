@@ -18,13 +18,13 @@ type TimerClosure = Closure<dyn FnMut()>;
 
 /// One-shot timer.
 ///
-/// The timer can be started or cancelled at any time using `start` and `cancel` inputs. After it is
-/// started, an `on_expired` event will be emitted at most once after the specified time provided
+/// The timer can be started or cancelled at any time using `restart` and `cancel` inputs. After it
+/// is started, an `on_expired` event will be emitted at most once after the specified time provided
 /// during start. If the timer is cancelled before it expires, no event will be emitted during that
 /// run. Starting the timer again while it is already running is treated as a restart - previous run
 /// is canceled.
 ///
-/// in `start`:       5ms--------20ms--3ms-------3ms-------
+/// in `restart`:     5ms--------20ms--3ms-------3ms-------
 /// in `cancel`:      ----------------------------x----x---
 /// out `on_expired`: -----x--------------x----------------
 ///
@@ -36,12 +36,11 @@ type TimerClosure = Closure<dyn FnMut()>;
 pub struct Timeout {
     /// Starts the timer immediately with provided timeout value, specified in integer
     /// milliseconds. If the timer was already started, it is cancelled and restarted.
-    pub start:      frp::Any<i32>,
+    pub restart:    frp::Any<i32>,
     /// Stops the timer if it is running. No `on_expired` events will be emitted until it is
     /// started again.
     pub cancel:     frp::Any,
-    /// Emitted when timer expires. At most one event is emitted for each
-    /// start of the timer.
+    /// Emitted when timer expires. At most one event is emitted for each start of the timer.
     pub on_expired: frp::Stream<()>,
     raw_timeout:    Rc<RawTimeout>,
 }
@@ -53,17 +52,17 @@ impl Timeout {
             on_expired <- any_mut();
         }
 
-        let closure: TimerClosure = Closure::new(f!(() on_expired.emit(())));
+        let closure: TimerClosure = Closure::new(f!(on_expired.emit(())));
         let raw_timeout = Rc::new(RawTimeout::new(closure));
 
         frp::extend! { network
-            start  <- any_mut::<i32>();
-            cancel <- any_mut::<()>();
-            eval   start((timeout) raw_timeout.start(*timeout));
-            eval_  cancel(raw_timeout.cancel());
+            restart <- any_mut::<i32>();
+            cancel  <- any_mut::<()>();
+            eval    restart((timeout) raw_timeout.restart(*timeout));
+            eval_   cancel(raw_timeout.cancel());
         }
         let on_expired = on_expired.into();
-        Self { on_expired, start, cancel, raw_timeout }
+        Self { on_expired, restart, cancel, raw_timeout }
     }
 }
 
@@ -83,7 +82,7 @@ impl RawTimeout {
         Self { closure, timer_handle: default() }
     }
 
-    fn start(&self, time: i32) {
+    fn restart(&self, time: i32) {
         let js_func = self.closure.as_js_function();
         let result = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_func, time);
         let handle = result.expect("setTimeout should never fail when callback is a function.");
