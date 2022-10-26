@@ -90,6 +90,15 @@ time_execution ~function =
     duration = new nanoseconds=(end - start)
     Pair_Data duration result
 
+## PRIVATE
+ensure_duration : Any -> Suspend (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
+ensure_duration object ~action =
+    case object of
+        _ : Duration -> action
+        _ : Period.Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
+        x ->
+            Error.throw Illegal_Argument_Error_Data <|
+                "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
 
 @Builtin_Type
 type Duration
@@ -114,14 +123,9 @@ type Duration
              example_add = (Duration.minutes 30) + (Duration.hours 12)
     + : Duration -> Duration ! Time_Error
     + self that =
-        case that of
-            _ : Duration ->
-                Panic.catch ArithmeticException (self.plus_builtin that) err->
-                    Error.throw (Time_Error_Data err.getMessage)
-            _ : Period.Period ->
-                Error.throw (Time_Error_Data "Adding Period to Duration is not supported")
-            _ ->
-                Error.throw (Illegal_Argument_Error_Data "Illegal argument `that`")
+        ensure_duration that <|
+            Panic.catch ArithmeticException (self.plus_builtin that) err->
+                Error.throw (Time_Error_Data err.getMessage)
 
     ## Subtract the specified amount of time from this duration.
 
@@ -136,14 +140,9 @@ type Duration
              example_subtract = (Duration.hours 6) - (Duration.minutes 30)
     - : Duration -> Duration ! Time_Error
     - self that =
-        case that of
-            _ : Duration ->
-                Panic.catch ArithmeticException (self.minus_builtin that) err->
-                    Error.throw (Time_Error_Data err.getMessage)
-            _ : Period.Period ->
-                Error.throw Time_Error_Data "Subtracting Period from Duration is not supported"
-            _ ->
-                Error.throw Illegal_State_Error_Data "Illegal argument `that`"
+        ensure_duration that <|
+            Panic.catch ArithmeticException (self.minus_builtin that) err->
+                Error.throw (Time_Error_Data err.getMessage)
 
     ## Check two durations for equality.
 
@@ -156,8 +155,10 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_eq = (Duration.seconds 60).total_minutes == (Duration.minutes 1).total_minutes
-    == : Duration -> Boolean
-    == self that = self.equals_builtin that
+    == : Duration -> Boolean ! Time_Error
+    == self that =
+        ensure_duration that <|
+            self.equals_builtin that
 
     ## Compares `self` to `that` to produce an ordering.
 
@@ -174,7 +175,9 @@ type Duration
                  duration_2 = (Duration.minutes 60) + (Duration.minutes 5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to self that = Ordering.from_sign (self.compare_to_builtin that)
+    compare_to self that =
+        ensure_duration that <|
+            Ordering.from_sign (self.compare_to_builtin that)
 
     ## Get the portion of the duration expressed in nanoseconds.
 

@@ -58,7 +58,7 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
     case object of
         _ : Period -> action
         _ : Duration.Duration ->
-            Error.throw Time_Error_Data error_msg
+            Error.throw (Time_Error_Data error_msg)
         x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Period type, got: " + (Meta.get_qualified_type_name x)
@@ -156,20 +156,21 @@ type Period
     ## Compare this period to another period to produce an ordering.
     compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
     compare_to self that =
-        case self of
-            Period.Period_With_Date _ start_date_self ->
-                case that of
-                    Period.Period_With_Date _ start_date_that ->
-                        end_date_self = start_date_self + self
-                        duration_self = Duration.between start_date_self.to_date_time end_date_self.to_date_time
-                        end_date_that = start_date_that + that
-                        duration_that = Duration.between start_date_that.to_date_time end_date_that.to_date_time
-                        duration_self.compare_to duration_that
-                    Period.Period_Without_Date _ ->
-                        (start_date_self + self).compare_to (start_date_self + that)
-            Period.Period_Without_Date _ ->
-                case that of
-                    Period.Period_With_Date _ start_date_that ->
-                        (start_date_that + self).compare_to (start_date_that + that)
-                    Period.Period_Without_Date _ ->
-                        Error.throw (Time_Error_Data "Cannot compare two Period_Without_Date, as there is no start date")
+        ensure_period that <|
+            case self of
+                Period.Period_With_Date _ start_date_self ->
+                    case that of
+                        Period.Period_With_Date _ start_date_that ->
+                            end_date_self = start_date_self + self
+                            duration_self = Duration.between start_date_self.to_date_time end_date_self.to_date_time
+                            end_date_that = start_date_that + that
+                            duration_that = Duration.between start_date_that.to_date_time end_date_that.to_date_time
+                            duration_self.compare_to duration_that
+                        Period.Period_Without_Date _ ->
+                            (start_date_self + self).compare_to (start_date_self + that)
+                Period.Period_Without_Date _ ->
+                    case that of
+                        Period.Period_With_Date _ start_date_that ->
+                            (start_date_that + self).compare_to (start_date_that + that)
+                        Period.Period_Without_Date _ ->
+                            Error.throw (Time_Error_Data "Cannot compare two Period_Without_Date, as there is no start date")
