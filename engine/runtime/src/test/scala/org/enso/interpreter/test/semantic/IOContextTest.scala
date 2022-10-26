@@ -50,9 +50,9 @@ class DevelopmentContextTest extends InterpreterTest {
           |input_action i = i * 2
           |
           |main =
-          |    r_1 = allow_input_in "development" <| input_action 123
-          |    r_2 = allow_output_in "development" <| output_action 123
-          |    r_3 = allow_input_in "development" <| allow_output_in "development" <| output_action <| input_action 123
+          |    r_1 = Runtime.allow_input_in "development" <| input_action 123
+          |    r_2 = Runtime.allow_output_in "development" <| output_action 123
+          |    r_3 = Runtime.allow_input_in "development" <| Runtime.allow_output_in "development" <| output_action <| input_action 123
           |    [r_1, r_2, r_3].to_text
           |""".stripMargin
       eval(code) shouldEqual "[246, 124, 247]"

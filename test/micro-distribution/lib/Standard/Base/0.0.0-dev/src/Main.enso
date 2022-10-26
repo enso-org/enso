@@ -29,7 +29,7 @@ import project.Polyglot.Java
 export project.Polyglot.Java
 
 import project.Runtime
-from project.Runtime export Runtime, allow_input_in, allow_output_in
+export project.Runtime
 
 import project.Warning
 export project.Warning

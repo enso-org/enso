@@ -79,16 +79,12 @@ public class ExecutionService {
     this.connectedLockManager = connectedLockManager;
   }
 
-  /**
-   * @return the language context.
-   */
+  /** @return the language context. */
   public Context getContext() {
     return context;
   }
 
-  /**
-   * @return the execution service logger.
-   */
+  /** @return the execution service logger. */
   public TruffleLogger getLogger() {
     return logger;
   }
