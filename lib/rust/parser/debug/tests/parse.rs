@@ -577,6 +577,8 @@ fn precedence() {
                     (OprApp (Ident y) (Ok "*") (Ident z)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("x - 1 + 2",
+        (OprApp (OprApp (Ident x) (Ok "-") (Number () "1" ())) (Ok "+") (Number () "2" ())));
 }
 
 #[test]
