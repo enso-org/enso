@@ -33,8 +33,6 @@ pub mod prelude {
 use crate::prelude::*;
 use std::future::join;
 
-use ide_ci::env::Variable;
-
 use crate::arg::java_gen;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
@@ -80,6 +78,7 @@ use enso_build::source::WithDestination;
 use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
+use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::global;
 use ide_ci::log::setup_logging;
@@ -98,11 +97,8 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
     input.unwrap_or_else(|| project.artifact_name())
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct BuildKind;
-impl Variable for BuildKind {
-    const NAME: &'static str = "ENSO_BUILD_KIND";
-    type Value = enso_build::version::BuildKind;
+define_env_var! {
+    ENSO_BUILD_KIND, enso_build::version::Kind;
 }
 
 /// The basic, common information available in this application.
@@ -124,14 +120,10 @@ impl Processor {
     /// Setup common build environment information based on command line input and local
     /// environment.
     pub async fn new(cli: &Cli) -> Result<Self> {
-        // let build_kind = match &cli.target {
-        //     Target::Release(release) => release.kind,
-        //     _ => enso_build::version::BuildKind::Dev,
-        // };
         let absolute_repo_path = cli.repo_path.absolutize()?;
         let octocrab = setup_octocrab().await?;
         let remote_repo = cli.repo_remote.handle(&octocrab);
-        let versions = enso_build::version::deduce_versions(
+        let versions = enso_build::version::deduce_or_generate(
             Ok(&remote_repo),
             cli.build_kind,
             &absolute_repo_path,

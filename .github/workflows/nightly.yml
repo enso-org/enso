@@ -157,7 +157,6 @@ jobs:
       - run: ./run release deploy-gui
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
-          AWS_DEFAULT_REGION: us-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       - name: List files if failed (Windows)

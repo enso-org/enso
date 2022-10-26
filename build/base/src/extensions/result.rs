@@ -2,7 +2,9 @@
 
 use crate::prelude::*;
 
-/// Extension methods for `Result`.
+
+
+/// Extension methods for [`Result`].
 pub trait ResultExt<T, E>: Sized {
     /// Maps the value and wraps it as a [`Future`].
     #[allow(clippy::type_complexity)]

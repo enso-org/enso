@@ -8,6 +8,7 @@
       changelog.yml:
       gui.yml:
       nightly.yml:
+      release.yml:
       scala-new.yml:
   app/:
     gui/:

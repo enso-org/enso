@@ -11,6 +11,7 @@ use futures_util::FutureExt as _;
 use futures_util::TryFutureExt as _;
 
 
+
 /// Extension methods for [`Future`].
 pub trait FutureExt: Future {
     /// Discard the result of this future.

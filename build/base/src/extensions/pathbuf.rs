@@ -1,10 +1,13 @@
-//! Extensions to the `PathBuf` type.
+//! Extensions to the [`PathBuf`] type.
 
 use crate::prelude::*;
 
-/// Extension methods for `PathBuf`.
+
+
+/// Extension methods for [`PathBuf`].
 pub trait PathBufExt {
-    /// Replace the parent directory of the path, maintaining the filename.
+    /// Replace the [parent][std::path::Path::parent] directory of the path, maintaining the
+    /// [filename][std::path::Path::file_name].
     fn set_parent(&mut self, parent: impl AsRef<Path>);
 }
 

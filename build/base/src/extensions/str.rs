@@ -2,12 +2,15 @@
 
 use crate::prelude::*;
 
+
+
 /// Extension methods for strings and similar types.
 pub trait StrLikeExt {
     /// Convenience variant of `FromString::from_str`.
     ///
     /// Should be preferred over [`str::parse`] due to better error messages.
-    // FIXME: this needs better name!
+    // FIXME: This needs better name! However, we cannot use `parse` as it conflicts with
+    //        `str::parse`. As a method on `str`, it would take priority over an extension trait.
     fn parse2<T: FromString>(&self) -> Result<T>;
 
     /// Convenience variant of `FromString::parse_into`.

@@ -5,6 +5,7 @@ use crate::prelude::*;
 use serde::de::DeserializeOwned;
 
 
+
 /// A number of extensions for `Path`-like types.
 pub trait PathExt: AsRef<Path> {
     /// Append multiple segments to this path.

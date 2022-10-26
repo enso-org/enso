@@ -21,6 +21,8 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
+
+
 pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
     Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
@@ -35,6 +37,7 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
         crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
 
     debug!("Preparing release {} for commit {}", versions.version, commit);
+
     let release = context
         .remote_repo_handle()
         .repos()
@@ -49,7 +52,6 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
         .await?;
 
     ide_ci::actions::workflow::set_output(&crate::env::ENSO_RELEASE_ID, &release.id);
-    // ide_ci::actions::env::set_and_emit(&crate::env::ENSO_RELEASE_ID, &release.id)?;
     Ok(release)
 }
 
