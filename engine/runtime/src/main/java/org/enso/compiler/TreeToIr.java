@@ -101,7 +101,7 @@ final class TreeToIr {
           var expr = line.getExpression();
           // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
           // placed in `bindings` by AstToIr.
-          if (expr instanceof Tree.Documented doc) {
+          while (expr instanceof Tree.Documented doc) {
             bindings = cons(translateComment(doc, doc.getDocumentation()), bindings);
             expr = doc.getExpression();
           }
@@ -182,7 +182,7 @@ final class TreeToIr {
           var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements());
+        var text = buildTextConstant(body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
@@ -280,9 +280,7 @@ final class TreeToIr {
         yield cons(ir, appendTo);
       }
       case Tree.ForeignFunction fn when fn.getBody() instanceof Tree.TextLiteral body -> {
-        var name = fn.getName();
-        var nameLoc = getIdentifiedLocation(name);
-        var methodRef = new IR$Name$MethodReference(Option.empty(), buildName(name), nameLoc, meta(), diag());
+        var name = buildName(fn.getName());
         var args = translateArgumentsDefinition(fn.getArgs());
         var languageName = fn.getLanguage().codeRepr();
         var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
@@ -291,9 +289,9 @@ final class TreeToIr {
           var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements());
+        var text = buildTextConstant(body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
-        var binding = new IR$Function$Binding(methodRef, args, def, getIdentifiedLocation(fn), false, meta(), diag());
+        var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), false, meta(), diag());
         yield cons(binding, appendTo);
       }
       case Tree.Documented doc -> {
@@ -594,7 +592,7 @@ final class TreeToIr {
           if (last != null) {
             expressions.add(last);
           }
-          if (expr instanceof Tree.Documented doc) {
+          while (expr instanceof Tree.Documented doc) {
             expr = doc.getExpression();
             // Emit the documentation, unless it was at the end of the block.
             if (expr != null) {
@@ -720,6 +718,9 @@ final class TreeToIr {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
       }
+      // Documentation can be attached to an expression in a few cases, like if someone documents a line of an
+      // `ArgumentBlockApplication`. The documentation is ignored.
+      case Tree.Documented docu -> translateExpression(docu.getExpression());
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
   }
@@ -844,18 +845,21 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
+    var stripComments = txt.getOpen().codeRepr().length() > 1;
     // Splices are not yet supported in the IR.
-    var value = buildTextConstant(txt.getElements());
+    var value = buildTextConstant(txt.getElements(), stripComments);
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String buildTextConstant(Iterable elements) {
+  String buildTextConstant(Iterable elements, boolean stripComments) {
     StringBuilder sb = new StringBuilder();
     for (var t : elements) {
       switch (t) {
         case TextElement.Section s -> {
           var text = s.getText().codeRepr();
-          // Reproduce an AstToIr bug for testing.
-          text = text.replaceAll("#[^\n\r]*", "");
+          if (stripComments) {
+            // Reproduce an AstToIr bug for testing.
+            text = text.replaceAll("#[^\n\r]*", "");
+          }
           sb.append(text);
         }
         case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
@@ -1145,7 +1149,7 @@ final class TreeToIr {
     * @return the [[IR]] representation of `comment`
     */
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
-    var text = buildTextConstant(doc.getElements());
+    var text = buildTextConstant(doc.getElements(), true);
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 

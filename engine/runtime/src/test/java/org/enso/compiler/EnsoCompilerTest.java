@@ -139,15 +139,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
-  public void testIsDigitWithoutSpaces() throws Exception {
-    parseTest("""
-    compare =
-        is_digit=character -> 42
-    """);
-  }
-
-  @Test
   public void testComments() throws Exception {
     parseTest("""
     # a b c
@@ -405,7 +396,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // wrong order of exported symbols
   public void testExportFromTen() throws Exception {
     parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
   }
@@ -625,7 +615,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testExtensionOperator() throws Exception {
     parseTest("""
     Text.* : Integer -> Text
@@ -806,6 +795,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNameAsMethodApp() throws Exception {
+    parseTest("""
+    f = foo x=A.B
+    """);
+  }
+
+  @Test
   public void testIsMethodWithSpaces() throws Exception {
     parseTest("""
     f = 0.up_to . all f
@@ -847,6 +843,21 @@ public class EnsoCompilerTest {
   public void testVectorVector() throws Exception {
     parseTest("""
     get_stack_trace : Vector.Vector Stack_Trace_Element
+    """);
+  }
+
+  @Test
+  public void testConstructorMultipleNamedArgs1() throws Exception {
+    parseTest("""
+    x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
+  public void testConstructorMultipleNamedArgs2() throws Exception {
+    parseTest("""
+    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
     """);
   }
 
