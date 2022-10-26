@@ -1,9 +1,9 @@
 package org.enso.polyglot
 
-import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import org.enso.logger.masking.ToLogString
+
+import java.util.UUID
 
 /** A search suggestion. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -14,8 +14,8 @@ import org.enso.logger.masking.ToLogString
       name  = "suggestionModule"
     ),
     new JsonSubTypes.Type(
-      value = classOf[Suggestion.Atom],
-      name  = "suggestionAtom"
+      value = classOf[Suggestion.Constructor],
+      name  = "suggestionConstructor"
     ),
     new JsonSubTypes.Type(
       value = classOf[Suggestion.Method],
@@ -53,19 +53,19 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
-        case _: Module     => Module
-        case _: Atom       => Atom
-        case _: Method     => Method
-        case _: Conversion => Conversion
-        case _: Function   => Function
-        case _: Local      => Local
+        case _: Module      => Module
+        case _: Constructor => Constructor
+        case _: Method      => Method
+        case _: Conversion  => Conversion
+        case _: Function    => Function
+        case _: Local       => Local
       }
 
     /** The module suggestion. */
     case object Module extends Kind
 
-    /** The atom suggestion. */
-    case object Atom extends Kind
+    /** The constructor suggestion. */
+    case object Constructor extends Kind
 
     /** The method suggestion. */
     case object Method extends Kind
@@ -89,7 +89,7 @@ object Suggestion {
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
         case _: Module      => None
-        case _: Atom        => None
+        case _: Constructor => None
         case method: Method => Some(method.selfType)
         case _: Conversion  => None
         case _: Function    => None
@@ -101,12 +101,12 @@ object Suggestion {
   object Documentation {
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
-        case module: Module   => module.documentation
-        case atom: Atom       => atom.documentation
-        case method: Method   => method.documentation
-        case conv: Conversion => conv.documentation
-        case _: Function      => None
-        case _: Local         => None
+        case module: Module           => module.documentation
+        case constructor: Constructor => constructor.documentation
+        case method: Method           => method.documentation
+        case conv: Conversion         => conv.documentation
+        case _: Function              => None
+        case _: Local                 => None
       }
   }
 
@@ -195,7 +195,7 @@ object Suggestion {
     * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this atom
     */
-  case class Atom(
+  case class Constructor(
     externalId: Option[ExternalId],
     module: String,
     name: String,
@@ -210,7 +210,7 @@ object Suggestion {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      "Atom(" +
+      "Constructor(" +
       s"externalId=$externalId," +
       s"module=$module," +
       s"name=$name," +

@@ -933,7 +933,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         val (ids, xs1, xs2, xs3, xs4, res) = Await.result(action, Timeout)
 
         xs1 should contain theSameElementsAs ids.zip(all).flatMap {
-          case (idOpt, _: Suggestion.Atom) =>
+          case (idOpt, _: Suggestion.Constructor) =>
             idOpt.map((_, "local.Best.Main.Test.Main"))
           case (idOpt, _) =>
             idOpt.map((_, newModuleName))
@@ -992,7 +992,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           .flatMap {
             case (idOpt, _: Suggestion.Module) =>
               idOpt.map((_, newMainModuleName))
-            case (idOpt, _: Suggestion.Atom) =>
+            case (idOpt, _: Suggestion.Constructor) =>
               idOpt.map((_, newMainModuleName))
             case (idOpt, _) =>
               idOpt.map((_, newFooModuleName))
@@ -1366,7 +1366,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "search suggestion by kind" taggedAs Retry in withRepo { repo =>
-      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val kinds = Seq(Suggestion.Kind.Constructor, Suggestion.Kind.Local)
       val action = for {
         _   <- repo.insert(suggestion.module)
         id1 <- repo.insert(suggestion.atom)
@@ -1540,7 +1540,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "search suggestion by return type and kind" taggedAs Retry in withRepo {
       repo =>
-        val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+        val kinds = Seq(Suggestion.Kind.Constructor, Suggestion.Kind.Local)
         val action = for {
           _   <- repo.insert(suggestion.module)
           _   <- repo.insert(suggestion.atom)
@@ -1584,7 +1584,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "search suggestion by kind and scope" taggedAs Retry in withRepo { repo =>
-      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val kinds = Seq(Suggestion.Kind.Constructor, Suggestion.Kind.Local)
       val action = for {
         _   <- repo.insert(suggestion.module)
         id1 <- repo.insert(suggestion.atom)
@@ -1629,7 +1629,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "search suggestion by module, return type and kind" taggedAs Retry in withRepo {
       repo =>
-        val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+        val kinds = Seq(Suggestion.Kind.Constructor, Suggestion.Kind.Local)
         val action = for {
           _   <- repo.insert(suggestion.module)
           _   <- repo.insert(suggestion.atom)
@@ -1652,7 +1652,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "search suggestion by return type, kind and scope" taggedAs Retry in withRepo {
       repo =>
-        val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+        val kinds = Seq(Suggestion.Kind.Constructor, Suggestion.Kind.Local)
         val action = for {
           _   <- repo.insert(suggestion.module)
           _   <- repo.insert(suggestion.atom)
@@ -1675,7 +1675,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "search suggestion by all parameters" taggedAs Retry in withRepo { repo =>
       val kinds = Seq(
-        Suggestion.Kind.Atom,
+        Suggestion.Kind.Constructor,
         Suggestion.Kind.Method,
         Suggestion.Kind.Function
       )
@@ -1708,8 +1708,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         documentation = Some("This is a main module.")
       )
 
-    val atom: Suggestion.Atom =
-      Suggestion.Atom(
+    val atom: Suggestion.Constructor =
+      Suggestion.Constructor(
         externalId = None,
         module     = "local.Test.Main",
         name       = "Standard.Builtins.Pair",

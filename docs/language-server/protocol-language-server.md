@@ -455,7 +455,7 @@ type SuggestionEntry =
   // A module
   | SuggestionEntryModule
   // A value constructor
-  | SuggestionEntryAtom
+  | SuggestionEntryConstructor
   // A method defined on a type
   | SuggestionEntryMethod
   // A function
@@ -480,7 +480,7 @@ interface SuggestionEntryModule {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryAtom {
+interface SuggestionEntryConstructor {
   /** The external id. */
   externalId?: UUID;
 
@@ -590,7 +590,7 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Module | Atom | Method | Function | Local;
+type SuggestionEntryType = Module | Constructor | Method | Function | Local;
 ```
 
 ### `SuggestionId`
@@ -3913,7 +3913,7 @@ main =
 #### MyType
 
 ```typescript
-<SuggestionEntryAtom>{
+<SuggestionEntryConstructor>{
   name: "MyType",
   arguments: [],
   returnType: "MyType",
@@ -3923,7 +3923,7 @@ main =
 #### Maybe.Nothing
 
 ```typescript
-<SuggestionEntryAtom>{
+<SuggestionEntryConstructor>{
   name: "Nothing",
   arguments: [],
   returnType: "Maybe",
@@ -3933,7 +3933,7 @@ main =
 #### Maybe.Just
 
 ```typescript
-<SuggestionEntryAtom>{
+<SuggestionEntryConstructor>{
   name: "Just",
   arguments: [
     {

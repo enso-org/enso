@@ -998,7 +998,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport         = reexport
         )
         row -> Seq()
-      case Suggestion.Atom(
+      case Suggestion.Constructor(
             expr,
             module,
             name,
@@ -1013,7 +1013,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
-          kind             = SuggestionKind.ATOM,
+          kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
           selfType         = SelfTypeColumn.EMPTY,
@@ -1179,8 +1179,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           documentationSections = None,
           reexport              = suggestion.reexport
         )
-      case SuggestionKind.ATOM =>
-        Suggestion.Atom(
+      case SuggestionKind.CONSTRUCTOR =>
+        Suggestion.Constructor(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module                = suggestion.module,

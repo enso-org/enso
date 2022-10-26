@@ -294,8 +294,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
-  ): Suggestion.Atom =
-    Suggestion.Atom(
+  ): Suggestion.Constructor =
+    Suggestion.Constructor(
       externalId    = None,
       module        = module.toString,
       name          = name,

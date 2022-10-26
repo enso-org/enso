@@ -49,7 +49,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "type" : "Add",
                 "id" : 1,
                 "suggestion" : {
-                  "type" : "atom",
+                  "type" : "constructor",
                   "module" : "local.Test.Main",
                   "name" : "MyType",
                   "arguments" : [
@@ -351,7 +351,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
               {
                 "id" : 1,
                 "suggestion" : {
-                  "type" : "atom",
+                  "type" : "constructor",
                   "module" : "local.Test.Main",
                   "name" : "MyType",
                   "arguments" : [

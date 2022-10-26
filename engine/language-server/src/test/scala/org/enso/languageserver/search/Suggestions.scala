@@ -37,7 +37,7 @@ object Suggestions {
     documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
-  val atom: Suggestion.Atom = Suggestion.Atom(
+  val atom: Suggestion.Constructor = Suggestion.Constructor(
     externalId            = None,
     module                = "local.Test.Main",
     name                  = "MyType",

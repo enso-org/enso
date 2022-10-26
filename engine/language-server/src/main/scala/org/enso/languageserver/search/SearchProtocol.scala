@@ -31,7 +31,7 @@ object SearchProtocol {
 
     val Module = "module"
 
-    val Atom = "atom"
+    val Constructor = "constructor"
 
     val Method = "method"
 
@@ -127,10 +127,12 @@ object SearchProtocol {
         Encoder[Suggestion.Module]
           .apply(module)
           .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Module.asJson))
-      case atom: Suggestion.Atom =>
-        Encoder[Suggestion.Atom]
-          .apply(atom)
-          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Atom.asJson))
+      case constructor: Suggestion.Constructor =>
+        Encoder[Suggestion.Constructor]
+          .apply(constructor)
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Constructor.asJson)
+          )
           .dropNullValues
 
       case method: Suggestion.Method =>
@@ -195,8 +197,8 @@ object SearchProtocol {
         case SuggestionType.Module =>
           Decoder[Suggestion.Module].tryDecode(cursor)
 
-        case SuggestionType.Atom =>
-          Decoder[Suggestion.Atom].tryDecode(cursor)
+        case SuggestionType.Constructor =>
+          Decoder[Suggestion.Constructor].tryDecode(cursor)
 
         case SuggestionType.Method =>
           Decoder[Suggestion.Method].tryDecode(cursor)
@@ -412,12 +414,12 @@ object SearchProtocol {
       */
     def apply(kind: Suggestion.Kind): SuggestionKind =
       kind match {
-        case Suggestion.Kind.Module     => Module
-        case Suggestion.Kind.Atom       => Atom
-        case Suggestion.Kind.Method     => Method
-        case Suggestion.Kind.Conversion => Conversion
-        case Suggestion.Kind.Function   => Function
-        case Suggestion.Kind.Local      => Local
+        case Suggestion.Kind.Module      => Module
+        case Suggestion.Kind.Constructor => Atom
+        case Suggestion.Kind.Method      => Method
+        case Suggestion.Kind.Conversion  => Conversion
+        case Suggestion.Kind.Function    => Function
+        case Suggestion.Kind.Local       => Local
       }
 
     /** Convert from API kind to [[Suggestion.Kind]]
@@ -428,7 +430,7 @@ object SearchProtocol {
     def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
       kind match {
         case Module     => Suggestion.Kind.Module
-        case Atom       => Suggestion.Kind.Atom
+        case Atom       => Suggestion.Kind.Constructor
         case Method     => Suggestion.Kind.Method
         case Conversion => Suggestion.Kind.Conversion
         case Function   => Suggestion.Kind.Function

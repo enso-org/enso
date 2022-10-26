@@ -54,7 +54,7 @@ object SuggestionDiff {
         Api.SuggestionUpdate(e, Api.SuggestionAction.Add())
       case These.Both(e1: Suggestion.Module, e2: Suggestion.Module) =>
         diffModules(e1, e2)
-      case These.Both(e1: Suggestion.Atom, e2: Suggestion.Atom) =>
+      case These.Both(e1: Suggestion.Constructor, e2: Suggestion.Constructor) =>
         diffAtoms(e1, e2)
       case These.Both(e1: Suggestion.Method, e2: Suggestion.Method) =>
         diffMethods(e1, e2)
@@ -144,8 +144,8 @@ object SuggestionDiff {
   }
 
   private def diffAtoms(
-    e1: Suggestion.Atom,
-    e2: Suggestion.Atom
+    e1: Suggestion.Constructor,
+    e2: Suggestion.Constructor
   ): Api.SuggestionUpdate = {
     var op = Api.SuggestionAction.Modify()
     if (e1.externalId != e2.externalId) {

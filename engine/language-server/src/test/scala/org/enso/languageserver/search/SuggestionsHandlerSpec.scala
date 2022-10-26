@@ -416,7 +416,7 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         val moduleName = "Test.Foo"
-        val fooAtom = Suggestion.Atom(
+        val fooAtom = Suggestion.Constructor(
           externalId            = None,
           module                = moduleName,
           name                  = "Foo",
@@ -1228,8 +1228,8 @@ class SuggestionsHandlerSpec
     val docSectionsBuilder: DocSectionsBuilder =
       DocSectionsBuilder()
 
-    val atom: Suggestion.Atom =
-      Suggestion.Atom(
+    val atom: Suggestion.Constructor =
+      Suggestion.Constructor(
         externalId = None,
         module     = "Test.Pair",
         name       = "Pair",

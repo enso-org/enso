@@ -23,7 +23,7 @@ object SuggestionRandom {
   def nextSuggestion(): Suggestion = {
     nextKind() match {
       case Suggestion.Kind.Module     => nextSuggestionModule()
-      case Suggestion.Kind.Atom       => nextSuggestionAtom()
+      case Suggestion.Kind.Constructor       => nextSuggestionAtom()
       case Suggestion.Kind.Method     => nextSuggestionMethod()
       case Suggestion.Kind.Conversion => nextSuggestionMethod()
       case Suggestion.Kind.Function   => nextSuggestionFunction()
@@ -38,8 +38,8 @@ object SuggestionRandom {
       documentationHtml = optional(nextString())
     )
 
-  def nextSuggestionAtom(): Suggestion.Atom =
-    Suggestion.Atom(
+  def nextSuggestionAtom(): Suggestion.Constructor =
+    Suggestion.Constructor(
       externalId        = optional(UUID.randomUUID()),
       module            = "Test.Main",
       name              = nextString(),
@@ -96,7 +96,7 @@ object SuggestionRandom {
   def nextKind(): Suggestion.Kind =
     Random.nextInt(5) match {
       case 0 => Suggestion.Kind.Module
-      case 1 => Suggestion.Kind.Atom
+      case 1 => Suggestion.Kind.Constructor
       case 2 => Suggestion.Kind.Method
       case 3 => Suggestion.Kind.Function
       case 4 => Suggestion.Kind.Local

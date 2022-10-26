@@ -963,7 +963,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Atom(
+                  Suggestion.Constructor(
                     None,
                     "Enso_Test.Test.A",
                     "MkA",
