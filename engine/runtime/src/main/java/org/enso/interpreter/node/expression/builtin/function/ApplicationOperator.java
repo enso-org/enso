@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.builtin.function;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -26,8 +25,7 @@ public class ApplicationOperator extends Node {
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(
-      VirtualFrame frame, @MonadicState State state, Object self, @Suspend Object argument) {
+  Object execute(VirtualFrame frame, State state, Object self, @Suspend Object argument) {
     return invokeCallableNode.execute(self, frame, state, new Object[] {argument});
   }
 }

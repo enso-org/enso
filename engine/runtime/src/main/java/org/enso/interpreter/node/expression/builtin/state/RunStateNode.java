@@ -7,7 +7,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -25,8 +24,7 @@ public abstract class RunStateNode extends Node {
 
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  abstract Object execute(
-      @MonadicState State state, Object key, Object local_state, @Suspend Object computation);
+  abstract Object execute(State state, Object key, Object local_state, @Suspend Object computation);
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doExisting(
@@ -34,14 +32,14 @@ public abstract class RunStateNode extends Node {
       Object key,
       Object local,
       Object computation,
-      @Bind("state.container()") State.Container data,
+      @Bind("state.getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
       return thunkExecutorNode.executeThunk(computation, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      objects.put(state.container(), key, old);
+      objects.put(state.getContainer(), key, old);
     }
   }
 
@@ -51,7 +49,7 @@ public abstract class RunStateNode extends Node {
       Object key,
       Object local,
       Object computation,
-      @Bind("state.container()") State.Container data,
+      @Bind("state.getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {

@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -78,12 +79,16 @@ public class ExecutionService {
     this.connectedLockManager = connectedLockManager;
   }
 
-  /** @return the language context. */
+  /**
+   * @return the language context.
+   */
   public Context getContext() {
     return context;
   }
 
-  /** @return the execution service logger. */
+  /**
+   * @return the execution service logger.
+   */
   public TruffleLogger getLogger() {
     return logger;
   }
@@ -102,7 +107,7 @@ public class ExecutionService {
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, Context.get(null).emptyState(), arguments);
+        function, State.create(Context.get(null)), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {

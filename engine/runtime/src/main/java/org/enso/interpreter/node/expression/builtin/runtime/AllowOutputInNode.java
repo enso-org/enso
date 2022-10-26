@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -17,7 +16,7 @@ public class AllowOutputInNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
-  Object execute(@MonadicState State state, Object env_name, @Suspend Object action) {
+  Object execute(State state, Object env_name, @Suspend Object action) {
     String envName = expectStringNode.execute(env_name);
     return thunkExecutorNode.executeThunk(
         action, state.withOutputAllowedIn(envName), BaseNode.TailStatus.NOT_TAIL);

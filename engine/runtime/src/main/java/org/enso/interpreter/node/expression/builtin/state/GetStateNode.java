@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -23,13 +22,13 @@ public abstract class GetStateNode extends Node {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState State state, Object key);
+  abstract Object execute(State state, Object key);
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doRead(
       State state,
       Object key,
-      @Bind("state.container()") State.Container data,
+      @Bind("state.getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     return objects.getOrDefault(data, key, null);
   }

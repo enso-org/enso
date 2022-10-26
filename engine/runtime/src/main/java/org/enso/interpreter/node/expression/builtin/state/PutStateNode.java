@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -20,14 +19,14 @@ public abstract class PutStateNode extends Node {
     return PutStateNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState State state, Object key, Object new_state);
+  abstract Object execute(State state, Object key, Object new_state);
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doPut(
       State state,
       Object key,
       Object new_state,
-      @Bind("state.container()") State.Container data,
+      @Bind("state.getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, new_state);
     return new_state;

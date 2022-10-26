@@ -4,12 +4,9 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -42,13 +39,12 @@ public abstract class CatchPanicNode extends Node {
     return CatchPanicNodeGen.create();
   }
 
-  abstract Object execute(
-      VirtualFrame frame, @MonadicState State state, @Suspend Object action, Object handler);
+  abstract Object execute(VirtualFrame frame, State state, @Suspend Object action, Object handler);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
-      @MonadicState State state,
+      State state,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,

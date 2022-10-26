@@ -9,7 +9,6 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import java.util.Comparator;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.runtime.Context;
@@ -25,8 +24,7 @@ public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private final BranchProfile resultProfile = BranchProfile.create();
 
-  abstract Object execute(
-      VirtualFrame frame, @MonadicState State state, Object self, Object comparator);
+  abstract Object execute(VirtualFrame frame, State state, Object self, Object comparator);
 
   static SortNode build() {
     return SortNodeGen.create();

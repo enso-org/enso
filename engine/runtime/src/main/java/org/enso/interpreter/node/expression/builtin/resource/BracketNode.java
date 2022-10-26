@@ -6,7 +6,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -50,7 +49,7 @@ public abstract class BracketNode extends Node {
   }
 
   abstract Object execute(
-      @MonadicState State state,
+      State state,
       VirtualFrame frame,
       @Suspend Object constructor,
       Object destructor, // TODO: based on stdlib signature this should be suspended as well

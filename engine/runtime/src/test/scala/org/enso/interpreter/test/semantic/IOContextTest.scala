@@ -3,6 +3,8 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.graalvm.polyglot.Context
 
+// This test conceivably be written in pure Enso, but it requires a special way
+// of spawning the engine, hence it's easier to keep here.
 class DevelopmentContextTest extends InterpreterTest {
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =

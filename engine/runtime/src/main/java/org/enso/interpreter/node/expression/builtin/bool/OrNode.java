@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -23,7 +22,7 @@ public abstract class OrNode extends Node {
     return OrNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState State state, boolean self, @Suspend Object that);
+  abstract Object execute(State state, boolean self, @Suspend Object that);
 
   @Specialization
   Object executeBool(

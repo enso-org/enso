@@ -84,8 +84,6 @@ public class ClosureRootNode extends EnsoRootNode {
     if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
       com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    frame.setObject(this.getStateFrameSlot(), state);
     return body.executeGeneric(frame);
   }
 

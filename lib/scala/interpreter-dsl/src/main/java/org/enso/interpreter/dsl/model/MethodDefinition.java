@@ -387,7 +387,7 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       name = element.getSimpleName().toString();
-      isState = element.getAnnotation(MonadicState.class) != null;
+      isState = type.toString().equals(STATE);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
           (element.getAnnotation(AcceptsError.class) != null)

@@ -474,7 +474,15 @@ public class Context {
     return clock.getAndIncrement();
   }
 
+  public IOPermissions getRootIOPermissions() {
+    return rootIOPermissions;
+  }
+
+  public Shape getRootStateShape() {
+    return rootStateShape;
+  }
+
   public State emptyState() {
-    return new State(new State.Container(rootStateShape), rootIOPermissions);
+    return State.create(this);
   }
 }

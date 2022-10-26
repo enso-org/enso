@@ -9,7 +9,6 @@ import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.state.State;
@@ -36,7 +35,7 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
     return true;
   }
 
-  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo, @MonadicState State state);
+  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo, State state);
 
   @Specialization
   Object doExecute(VirtualFrame frame, CallerInfo callerInfo, State state) {

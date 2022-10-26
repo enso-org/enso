@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
@@ -17,7 +16,7 @@ public abstract class RunThreadNode extends Node {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(@MonadicState State state, @Suspend Object self);
+  abstract Thread execute(State state, @Suspend Object self);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization

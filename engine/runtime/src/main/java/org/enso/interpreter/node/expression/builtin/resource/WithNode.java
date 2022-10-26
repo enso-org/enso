@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.ResourceManager;
@@ -29,8 +28,7 @@ public abstract class WithNode extends Node {
     return WithNodeGen.create();
   }
 
-  abstract Object execute(
-      @MonadicState State state, VirtualFrame frame, Object self, Object action);
+  abstract Object execute(State state, VirtualFrame frame, Object self, Object action);
 
   @Specialization
   Object doWith(State state, VirtualFrame frame, ManagedResource self, Object action) {

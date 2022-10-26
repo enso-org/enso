@@ -11,7 +11,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
@@ -28,8 +27,7 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
-  abstract Object execute(
-      VirtualFrame frame, @MonadicState State state, @AcceptsError Object message);
+  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Object doPrintText(

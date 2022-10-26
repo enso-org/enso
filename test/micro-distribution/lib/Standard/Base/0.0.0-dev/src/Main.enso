@@ -29,10 +29,7 @@ import project.Polyglot.Java
 export project.Polyglot.Java
 
 import project.Runtime
-export project.Runtime
+from project.Runtime export Runtime, allow_input_in, allow_output_in
 
 import project.Warning
 export project.Warning
-
-allow_input_in env = @Builtin_Method "Runtime.allow_input_in"
-allow_output_in env = @Builtin_Method "Runtime.allow_output_in"

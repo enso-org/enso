@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.debug;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectTextNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -22,7 +21,7 @@ public class DebugEvalNode extends Node {
     evalNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(CallerInfo callerInfo, @MonadicState State state, Object expression) {
+  Object execute(CallerInfo callerInfo, State state, Object expression) {
     return evalNode.execute(callerInfo, state, expectTextNode.execute(expression));
   }
 }

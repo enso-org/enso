@@ -9,8 +9,10 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -86,7 +88,7 @@ public abstract class CaseNode extends ExpressionNode {
       guards = {"!isDataflowError(object)", "!isPanicSentinel(object)", "!isWarning(object)"})
   @ExplodeLoop
   public Object doMatch(VirtualFrame frame, Object object) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    State state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       for (BranchNode branchNode : cases) {
         branchNode.execute(frame, state, object);
