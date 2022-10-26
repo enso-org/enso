@@ -2,8 +2,10 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
+import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
@@ -48,6 +50,7 @@ public class VectorBenchmarks {
       .build();
     var module = ctx.eval("enso", "\n" +
       "import Standard.Base.Data.Vector\n" +
+      "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
       "\n" +
       "avg arr =\n" +
       "    sum acc i = if i == arr.length then acc else\n" +
@@ -68,37 +71,55 @@ public class VectorBenchmarks {
       "to_vector arr = Vector.from_polyglot_array arr\n" +
       "to_array vec = vec.to_array\n" +
       "slice vec = vec.slice\n" +
+      "fill_proxy proxy vec = \n" +
+      "  size v = vec.length\n" +
+      "  at i = vec.at i\n" +
+      "  proxy.init size at\n" +
+      "create_array_proxy vec =\n" +
+      "  Array_Proxy.from_proxy_object vec\n" +
       "\n");
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     var length = 1000;
-    Value arr = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
+    Value vec = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
     switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
       case "averageOverVector": {
-        this.arrayOfFibNumbers = arr;
+        this.arrayOfFibNumbers = vec;
         break;
       }
       case "averageOverSlice": {
-        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, arr, 1, length);
+        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, vec, 1, length);
         break;
       }
       case "averageOverArray": {
-        this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, arr);
+        this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, vec);
         break;
       }
       case "averageOverPolyglotVector": {
-        long[] copy = copyToPolyglotArray(arr);
+        long[] copy = copyToPolyglotArray(vec);
         this.arrayOfFibNumbers = getMethod.apply("to_vector").execute(self, copy);
         break;
       }
       case "averageOverPolyglotArray": {
-        long[] copy = copyToPolyglotArray(arr);
+        long[] copy = copyToPolyglotArray(vec);
         this.arrayOfFibNumbers = Value.asValue(copy);
         break;
       }
+      case "averageOverArrayProxy": {
+        this.arrayOfFibNumbers = getMethod.apply("create_array_proxy").execute(self, vec);
+        break;
+      }
+      case "averageAbstractList": {
+        long[] copy = copyToPolyglotArray(vec);
+        final ProxyList<Long> proxyList = new ProxyList<Long>();
+        getMethod.apply("fill_proxy").execute(self, proxyList, copy);
+        this.arrayOfFibNumbers = Value.asValue(proxyList);
+        break;
+      }
+
       default:
         throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
@@ -138,6 +159,16 @@ public class VectorBenchmarks {
     performBenchmark(matter);
   }
 
+  @Benchmark
+  public void averageOverArrayProxy(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void averageAbstractList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
   private void performBenchmark(Blackhole matter) throws AssertionError {
     var average = avg.execute(self, arrayOfFibNumbers);
     if (!average.fitsInDouble()) {
@@ -149,6 +180,26 @@ public class VectorBenchmarks {
       throw new AssertionError("Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
     }
     matter.consume(result);
+  }
+
+  public static final class ProxyList<T> extends AbstractList<T> {
+    private Function<Object, Integer> size;
+    private Function<Integer, T> get;
+
+    public void init(Function<Object, Integer> size, Function<Integer, T> get) {
+      this.size = size;
+      this.get = get;
+    }
+
+    @Override
+    public T get(int i) {
+      return get.apply(i);
+    }
+
+    @Override
+    public int size() {
+      return size.apply(0);
+    }
   }
 }
 
