@@ -1,4 +1,4 @@
-// Generated from C:/Repos/Enso/Epressions/src/org/enso/table/parsing\Expression.g4 by ANTLR 4.10.1
+// Generated from C:/Repos/Enso/ide/std-bits/table/src/main/antlr4\Expression.g4 by ANTLR 4.10.1
 package org.enso.table.expressions;
 
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
