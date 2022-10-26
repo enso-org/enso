@@ -139,7 +139,7 @@ type Period
     == : Period -> Boolean ! (Time_Error | Illegal_Argument_Error)
     == self that =
         ensure_period that <|
-            self.internal_period.equals that.internal_period
+            (self.compare_to that) == Ordering.Equal
 
     ## Compare this period to another period to produce an ordering.
     compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
