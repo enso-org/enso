@@ -1,12 +1,12 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -17,9 +17,10 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.librarymanager.ProjectLoadingFailure;
@@ -66,7 +67,9 @@ public class Context {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-  @CompilerDirectives.CompilationFinal private Optional<AtomConstructor> date;
+
+  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  private final IOPermissions rootIOPermissions;
 
   /**
    * Creates a new Enso context.
@@ -99,6 +102,7 @@ public class Context {
         environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.rootIOPermissions = environment.getOptions().get(Language.IO_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -468,5 +472,17 @@ public class Context {
    */
   public long clockTick() {
     return clock.getAndIncrement();
+  }
+
+  public IOPermissions getRootIOPermissions() {
+    return rootIOPermissions;
+  }
+
+  public Shape getRootStateShape() {
+    return rootStateShape;
+  }
+
+  public State emptyState() {
+    return State.create(this);
   }
 }

@@ -7,7 +7,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.util.concurrent.locks.Lock;
 
@@ -43,8 +43,8 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
-  public Stateful executeDispatch(
-      Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
+  public Object executeDispatch(
+      Function function, CallerInfo callerInfo, State state, Object[] arguments) {
     try {
       return executeCallNode.executeCall(function, callerInfo, state, arguments);
     } catch (TailCallException e) {
@@ -60,8 +60,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
           lock.unlock();
         }
       }
-      return next.executeDispatch(
-          e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
+      return next.executeDispatch(e.getFunction(), e.getCallerInfo(), state, e.getArguments());
     }
   }
 }

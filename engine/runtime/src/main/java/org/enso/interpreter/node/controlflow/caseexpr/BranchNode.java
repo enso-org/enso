@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /** An abstract representation of a case branch. */
 @NodeInfo(shortName = "case_branch", description = "Represents a case branch at runtime.")
@@ -35,10 +34,8 @@ public abstract class BranchNode extends BaseNode {
    */
   protected void accept(VirtualFrame frame, Object state, Object[] args) {
     // Note [Caller Info For Case Branches]
-    Stateful result =
-        (Stateful)
-            callNode.call(
-                Function.ArgumentsHelper.buildArguments(frame.materialize(), state, args));
+    var result =
+        callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), state, args));
     throw new BranchSelectedException(result);
   }
 
