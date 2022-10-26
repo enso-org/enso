@@ -112,14 +112,14 @@ spec_with name create_new_date parse_date =
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based Duration" <|
-            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
+            case (create_new_date 1970 + (Duration.hours 1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting time-based Duration" <|
-            case (create_new_date 1970 - (Duration.new minutes=1)) . catch of
+            case (create_new_date 1970 - (Duration.minutes 1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->

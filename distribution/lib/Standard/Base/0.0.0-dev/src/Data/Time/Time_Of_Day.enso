@@ -217,7 +217,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
-             example_plus = Time_Of_Day.new + (Duration.new seconds=3)
+             example_plus = Time_Of_Day.new + (Duration.seconds 3)
     + : Duration -> Time_Of_Day
     + self amount =
         case amount of
@@ -236,7 +236,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
-             example_minus = Time_Of_Day.now - (Duration.new hours=12)
+             example_minus = Time_Of_Day.now - (Duration.hours 12)
     - : Duration -> Time_Of_Day
     - self amount = self.minus_builtin amount
 
