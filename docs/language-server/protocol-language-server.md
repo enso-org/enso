@@ -453,17 +453,19 @@ interface SuggestionEntryScope {
 // A type of suggestion entries.
 type SuggestionEntry =
   // A module
-  | SuggestionEntryModule
-  // A value constructor
-  | SuggestionEntryConstructor
+  | Module
+  // A type
+  | Type
+  // A type constructor
+  | Constructor
   // A method defined on a type
-  | SuggestionEntryMethod
+  | Method
   // A function
-  | SuggestionEntryFunction
+  | Function
   // A local value
-  | SuggestionEntryLocal;
+  | Local;
 
-interface SuggestionEntryModule {
+interface Module {
   /** The fully qualified module name. */
   module: string;
 
@@ -480,7 +482,36 @@ interface SuggestionEntryModule {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryConstructor {
+interface Type {
+  /** The external id. */
+  externalId?: UUID;
+
+  /** The atom name. */
+  name: string;
+
+  /** The module name where the atom is defined. */
+  module: string;
+
+  /** The list of type parameters. */
+  params: SuggestionEntryArgument[];
+
+  /** The type of an atom. */
+  returnType: string;
+
+  /** The fully qualified module name re-exporting this type. */
+  reexport?: string;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
+}
+
+interface Constructor {
   /** The external id. */
   externalId?: UUID;
 
@@ -496,11 +527,11 @@ interface SuggestionEntryConstructor {
   /** The type of an atom. */
   returnType: string;
 
+  /** The fully qualified module name re-exporting this constructor. */
+  reexport?: string;
+
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -509,7 +540,7 @@ interface SuggestionEntryConstructor {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryMethod {
+interface Method {
   /** The external id. */
   externalId?: UUID;
 
@@ -531,11 +562,11 @@ interface SuggestionEntryMethod {
   /** The flag indicating whether this method is static or instance. */
   isStatic: boolean;
 
+  /** The fully qualified module name re-exporting this method. */
+  reexport?: string;
+
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -544,7 +575,7 @@ interface SuggestionEntryMethod {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryFunction {
+interface Function {
   /** The external id. */
   externalId?: UUID;
 
@@ -564,7 +595,7 @@ interface SuggestionEntryFunction {
   scope: SuggestionEntryScope;
 }
 
-interface SuggestionEntryLocal {
+interface Local {
   /** The external id. */
   externalId?: UUID;
 
@@ -3913,7 +3944,7 @@ main =
 #### MyType
 
 ```typescript
-<SuggestionEntryConstructor>{
+<Constructor>{
   name: "MyType",
   arguments: [],
   returnType: "MyType",
@@ -3923,7 +3954,7 @@ main =
 #### Maybe.Nothing
 
 ```typescript
-<SuggestionEntryConstructor>{
+<Constructor>{
   name: "Nothing",
   arguments: [],
   returnType: "Maybe",
@@ -3933,7 +3964,7 @@ main =
 #### Maybe.Just
 
 ```typescript
-<SuggestionEntryConstructor>{
+<Constructor>{
   name: "Just",
   arguments: [
     {
@@ -3950,7 +3981,7 @@ main =
 #### Maybe.is_just
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "is_just",
   arguments: [],
   selfType: "Maybe",
@@ -3961,7 +3992,7 @@ main =
 #### foo
 
 ```typescript
-<SuggestionEntryFunction>{
+<Function>{
   name: "foo",
   arguments: [
     {
@@ -3978,7 +4009,7 @@ main =
 #### Number.baz
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "baz",
   arguments: [
     {
@@ -3996,7 +4027,7 @@ main =
 #### Local x
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "x",
   returnType: "Number",
 };
@@ -4005,7 +4036,7 @@ main =
 #### Local y
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "y",
   returnType: "Number",
 };
