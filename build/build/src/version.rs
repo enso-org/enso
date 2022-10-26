@@ -33,7 +33,7 @@ define_env_var! {
 
 pub const LOCAL_BUILD_PREFIX: &str = "dev";
 pub const NIGHTLY_BUILD_PREFIX: &str = "nightly";
-pub const RC_BUILD_PREFIX: &str = "rv";
+pub const RC_BUILD_PREFIX: &str = "rc";
 
 /// Check if the given GitHub release matches the provided kind.
 pub fn is_release_of_kind(release: &Release, kind: Kind) -> bool {
