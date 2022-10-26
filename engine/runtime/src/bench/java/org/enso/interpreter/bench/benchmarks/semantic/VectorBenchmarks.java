@@ -50,6 +50,7 @@ public class VectorBenchmarks {
       .build();
     var module = ctx.eval("enso", "\n" +
       "import Standard.Base.Data.Vector\n" +
+      "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
       "\n" +
       "avg arr =\n" +
       "    sum acc i = if i == arr.length then acc else\n" +
@@ -74,39 +75,45 @@ public class VectorBenchmarks {
       "  size v = vec.length\n" +
       "  at i = vec.at i\n" +
       "  proxy.init size at\n" +
+      "create_array_proxy vec =\n" +
+      "  Array_Proxy.from_proxy_object vec\n" +
       "\n");
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     var length = 1000;
-    Value arr = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
+    Value vec = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
     switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
       case "averageOverVector": {
-        this.arrayOfFibNumbers = arr;
+        this.arrayOfFibNumbers = vec;
         break;
       }
       case "averageOverSlice": {
-        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, arr, 1, length);
+        this.arrayOfFibNumbers = getMethod.apply("slice").execute(self, vec, 1, length);
         break;
       }
       case "averageOverArray": {
-        this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, arr);
+        this.arrayOfFibNumbers = getMethod.apply("to_array").execute(self, vec);
         break;
       }
       case "averageOverPolyglotVector": {
-        long[] copy = copyToPolyglotArray(arr);
+        long[] copy = copyToPolyglotArray(vec);
         this.arrayOfFibNumbers = getMethod.apply("to_vector").execute(self, copy);
         break;
       }
       case "averageOverPolyglotArray": {
-        long[] copy = copyToPolyglotArray(arr);
+        long[] copy = copyToPolyglotArray(vec);
         this.arrayOfFibNumbers = Value.asValue(copy);
         break;
       }
+      case "averageOverArrayProxy": {
+        this.arrayOfFibNumbers = getMethod.apply("create_array_proxy").execute(self, vec);
+        break;
+      }
       case "averageAbstractList": {
-        long[] copy = copyToPolyglotArray(arr);
+        long[] copy = copyToPolyglotArray(vec);
         final ProxyList<Long> proxyList = new ProxyList<Long>();
         getMethod.apply("fill_proxy").execute(self, proxyList, copy);
         this.arrayOfFibNumbers = Value.asValue(proxyList);
@@ -153,6 +160,11 @@ public class VectorBenchmarks {
   }
 
   @Benchmark
+  public void averageOverArrayProxy(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
   public void averageAbstractList(Blackhole matter) {
     performBenchmark(matter);
   }
@@ -169,7 +181,7 @@ public class VectorBenchmarks {
     }
     matter.consume(result);
   }
-  
+
   public static final class ProxyList<T> extends AbstractList<T> {
     private Function<Object, Integer> size;
     private Function<Integer, T> get;
