@@ -10,13 +10,16 @@ spec =
             period.days . should_equal 0
 
         Test.specify "should add two Periods" <|
-            ((Period.years 1) + (Period.years 2)) . should_equal (Period.years 3)
-            ((Period.days 1) + (Period.months 2)) . should_equal (Period.new days=1 months=2)
-            ((Period.months 2) + (Period.days 1)) . should_equal (Period.new days=1 months=2)
+            ((Period.years 1) + (Period.years 2)).years . should_equal 3
+            ((Period.days 1) + (Period.months 2)).days . should_equal 1
+            ((Period.days 1) + (Period.months 2)).months . should_equal 2
+            ((Period.months 2) + (Period.days 1)).days . should_equal 1
+            ((Period.months 2) + (Period.days 1)).months . should_equal 2
 
         Test.specify "should subtract two Periods" <|
-            ((Period.years 2) - (Period.years 1)) . should_equal (Period.years 1)
-            ((Period.years 1) - (Period.months 2)) . should_equal (Period.new years=1 months=(-2))
+            ((Period.years 2) - (Period.years 1)).years . should_equal 1
+            ((Period.years 1) - (Period.months 2)).months . should_equal (-2)
+            ((Period.years 1) - (Period.months 2)).years . should_equal 1
 
         Test.specify "should get Period between two dates" <|
             (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.years 50)
