@@ -128,7 +128,8 @@ impl Colors {
     pub fn from_main_color(
         network: &frp::Network,
         style_watch: &StyleWatchFrp,
-        color: &frp::Stream<color::Lcha>,
+        main_color: &frp::Stream<color::Lcha>,
+        dimmed_color: &frp::Stream<color::Lcha>,
         color_intensities: &frp::Stream<ColorIntensities>,
         is_dimmed: &frp::Stream<bool>,
     ) -> Self {
@@ -137,8 +138,8 @@ impl Colors {
         }
         let app_bg = style_watch.get_color(ensogl_hardcoded_theme::application::background);
         let color_intensities = color_intensities.clone_ref();
+        let color_anim = color::Animation::new(&network);
 
-        let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
 
@@ -151,11 +152,9 @@ impl Colors {
 
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();
-            intensity.target <+ is_dimmed.switch(&one, &dimmed_intensity);
+            color_anim.target <+ switch(&is_dimmed, main_color, dimmed_color);
             app_bg <- all_with(&app_bg, &init, |col, ()| color::Lcha::from(col));
-            app_bg_and_input <- all(&app_bg, color);
-            main <- app_bg_and_input.all_with(&intensity.value, mix);
-            app_bg_and_main <- all(&app_bg, &main);
+            app_bg_and_main <- all(&app_bg, &color_anim.value);
             background <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
             hover_highlight <- app_bg_and_main.all_with(&hover_hg_intensity, mix).sampler();
             text <- app_bg_and_main.all_with(&text_intensity, mix).sampler();
@@ -163,7 +162,7 @@ impl Colors {
             icon_strong <- app_bg_and_main.all_with(&icon_strong_intensity, mix).sampler();
 
             skip_animations <- any(...);
-            intensity.skip <+ skip_animations;
+            color_anim.skip <+ skip_animations;
         }
         init.emit(());
         Self { icon_weak, icon_strong, text, background, hover_highlight, skip_animations }

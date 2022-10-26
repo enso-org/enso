@@ -186,6 +186,7 @@ pub struct GroupColors {
     variants:          [color::Lcha; GROUP_COLOR_VARIANT_COUNT],
     /// The color of the group in Local Scope section.
     local_scope_group: color::Lcha,
+    dimmed:            color::Lcha,
 }
 
 
@@ -634,10 +635,12 @@ impl component::Frp<Model> for Frp {
             let group5 = style_frp.get_color(theme::group_colors::group_5);
             groups <- all7(&style.init, &group0, &group1, &group2, &group3, &group4, &group5);
             let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
-            group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
+            let dimmed = style_frp.get_color(theme::group_colors::dimmed);
+            group_colors <- all_with3(&groups, &local_scope_group, &dimmed, |&((), g0, g1, g2, g3, g4, g5), ls, dimmed| {
                 GroupColors {
                     variants: [g0, g1, g2, g3, g4, g5].map(color::Lcha::from),
-                    local_scope_group: ls.into()
+                    local_scope_group: ls.into(),
+                    dimmed: dimmed.into(),
                 }
             });
 

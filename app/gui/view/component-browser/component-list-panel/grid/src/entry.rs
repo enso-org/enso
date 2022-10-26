@@ -467,7 +467,8 @@ impl grid_view::Entry for View {
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
+            dimmed_color <- group_colors.map(|g| g.dimmed);
+            let colors = Colors::from_main_color(network, &data.style, &color, &dimmed_color, &color_intensities, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));

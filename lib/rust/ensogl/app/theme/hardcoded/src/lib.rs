@@ -220,8 +220,8 @@ define_themes! { [light:0, dark:1]
                                 background.color_intensity = 1.0, 1.0;
                                 dimmed.color_intensity = 0.5, 0.5;
                                 text.color_intensity = 0.2, 0.2;
-                                icon_strong.color_intensity = 0.5, 0.5;
-                                icon_weak.color_intensity = 0.2, 0.2;
+                                icon_strong.color_intensity = 0.0, 0.0;
+                                icon_weak.color_intensity = 0.5, 0.5;
                             }
                         }
                         shadow = shadow , shadow;
@@ -249,6 +249,7 @@ define_themes! { [light:0, dark:1]
                         // Orange
                         group_5 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
+                        dimmed = Lcha(0.666, 0.0188, 0.75, 1.0), Lcha(66.61, 1.88, 0.75, 1.0);
                     }
                 }
                 menu_height = 44.0, 44.0;
