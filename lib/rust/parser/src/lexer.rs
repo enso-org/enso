@@ -19,6 +19,9 @@ use std::str;
 /// An optimization constant. Based on it, the estimated memory is allocated on the beginning of
 /// parsing.
 pub const AVERAGE_TOKEN_LEN: usize = 5;
+/// Within an indented text block, this sets the minimum whitespace to be trimmed from the start of
+/// each line.
+const MIN_TEXT_TRIM: VisibleOffset = VisibleOffset(4);
 
 
 
@@ -108,7 +111,7 @@ pub enum State {
     /// Reading a multi-line text literal.
     MultilineText {
         /// Indentation level of the quote symbol introducing the block.
-        quote_indent:   VisibleOffset,
+        block_indent:   VisibleOffset,
         /// Indentation level of the first line of the block.
         initial_indent: Option<VisibleOffset>,
     },
@@ -863,7 +866,7 @@ impl<'s> Lexer<'s> {
     fn multiline_text(
         &mut self,
         open_quote_start: (Bytes, Offset<'s>),
-        quote_indent: VisibleOffset,
+        block_indent: VisibleOffset,
         text_type: TextType,
     ) {
         let open_quote_end = self.mark();
@@ -871,27 +874,21 @@ impl<'s> Lexer<'s> {
             self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
-        if text_type.use_compatibility_trim_mode() {
-            initial_indent = Some(quote_indent + VisibleOffset(1));
-        }
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
-            if self.last_spaces_visible_offset > quote_indent {
+            if self.last_spaces_visible_offset > block_indent {
                 initial_indent = self.last_spaces_visible_offset.into();
             }
         }
-        let text_start = self.mark();
-        self.text_content(
-            Some(text_start),
-            None,
-            text_type.is_interpolated(),
-            State::MultilineText { quote_indent, initial_indent },
-        );
+        self.text_content(None, text_type.is_interpolated(), State::MultilineText {
+            block_indent,
+            initial_indent,
+        });
     }
 
     fn inline_quote(&mut self, quote_char: char, text_type: TextType) {
         let is_interpolated = text_type.is_interpolated();
-        self.text_content(None, quote_char.into(), is_interpolated, State::InlineText);
+        self.text_content(quote_char.into(), is_interpolated, State::InlineText);
     }
 
     fn end_splice(&mut self, state: State) {
@@ -904,63 +901,85 @@ impl<'s> Lexer<'s> {
         match state {
             State::InlineText => self.inline_quote('\'', TextType::Interpolated),
             State::MultilineText { .. } => {
-                self.text_content(None, None, true, state);
+                self.text_content(None, true, state);
             }
         }
     }
 
     fn text_content(
         &mut self,
-        start: Option<(Bytes, Offset<'s>)>,
         closing_char: Option<char>,
         interpolate: bool,
         mut state: State,
     ) -> TextEndedAt {
-        let mut text_start = start.unwrap_or_else(|| self.mark());
+        let mut text_start = self.mark();
         let is_multiline = matches!(state, State::MultilineText { .. });
         while let Some(char) = self.current_char {
             if closing_char == Some(char) || (!is_multiline && is_newline_char(char)) {
                 break;
             }
-            let before_newline = self.mark();
-            let mut newline = self.take_1('\r');
-            newline = newline || self.take_1('\n');
-            if newline && let State::MultilineText { quote_indent, initial_indent } = &mut state {
-                let text_end = self.mark();
-                if let Some(indent) = *initial_indent {
-                    self.spaces_after_lexeme_with_limit(indent);
-                } else {
-                    self.spaces_after_lexeme();
-                }
-                if let Some(char) = self.current_char && !is_newline_char(char) {
-                    let block_indent = self.last_spaces_visible_offset;
-                    if block_indent <= *quote_indent {
-                        let token = self.make_token(
-                            text_start,
-                            before_newline.clone(),
-                            token::Variant::text_section(),
-                        );
-                        if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
-                            self.output.push(token);
-                        }
-                        self.output.push(Token::from(token::text_end("", "")));
-                        self.end_blocks(block_indent);
-                        let token =
-                            self.make_token(before_newline, text_end, token::Variant::newline());
+            if let State::MultilineText { block_indent, initial_indent } = &mut state {
+                // Consume newlines and following whitespace until we encounter a line that, after
+                // left-trimming, is not empty.
+                //
+                // Buffer the newline tokens, because whether they are interpreted as part of the
+                // text content or code formatting after the block depends on whether non-empty text
+                // lines follow.
+                let mut newlines = vec![];
+                let mut new_indent = None;
+                loop {
+                    let mut before_newline = self.mark();
+                    if before_newline.0 == text_start.0 {
+                        before_newline = text_start.clone();
+                    }
+                    let mut newline = self.take_1('\r');
+                    newline = self.take_1('\n') || newline;
+                    if !newline {
+                        break;
+                    }
+                    let token = self.make_token(
+                        text_start.clone(),
+                        before_newline.clone(),
+                        token::Variant::text_section()
+                    );
+                    if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
                         self.output.push(token);
-                        return TextEndedAt::End;
+                    } else {
+                        before_newline = text_start;
                     }
-                    if initial_indent.is_none() {
-                        *initial_indent = block_indent.into();
+                    let newline_end = self.mark();
+                    let token =
+                        self.make_token(before_newline, newline_end, token::Variant::newline());
+                    newlines.push(token);
+                    if let Some(initial) = *initial_indent {
+                        let trim = std::cmp::max(initial, *block_indent + MIN_TEXT_TRIM);
+                        self.spaces_after_lexeme_with_limit(trim);
+                    } else {
+                        self.spaces_after_lexeme();
                     }
-                };
-                let token =
-                    self.make_token(text_start.clone(), text_end.clone(), token::Variant::text_section());
-                if !token.code.is_empty() {
-                    self.output.push(token);
+                    let new_indent_ = self.last_spaces_visible_offset;
+                    new_indent = new_indent_.into();
+                    if initial_indent.is_none() && new_indent_ > *block_indent {
+                        *initial_indent = new_indent_.into();
+                    }
                     text_start = self.mark();
                 }
-                continue;
+                if let Some(indent) = new_indent {
+                    if indent <= *block_indent {
+                        self.output.push(Token::from(token::text_end("", "")));
+                        self.end_blocks(indent);
+                        self.output.extend(newlines);
+                        if self.current_offset == text_start.0 {
+                            self.last_spaces_visible_offset = text_start.1.visible;
+                            self.last_spaces_offset = text_start.1.code.len();
+                        }
+                        return TextEndedAt::End;
+                    }
+                    let newlines = newlines
+                        .into_iter()
+                        .map(|token| token.with_variant(token::Variant::text_section()));
+                    self.output.extend(newlines);
+                }
             }
             if interpolate && char == '\\' {
                 let mut backslash_start = self.mark();
@@ -1134,11 +1153,6 @@ impl TextType {
 
     fn expects_initial_newline(self) -> bool {
         self != TextType::Documentation
-    }
-
-    /// Reproduce a quirk of the old parser for testing.
-    fn use_compatibility_trim_mode(self) -> bool {
-        self == TextType::Documentation
     }
 }
 

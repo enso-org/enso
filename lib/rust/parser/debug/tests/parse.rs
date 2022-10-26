@@ -35,8 +35,8 @@ macro_rules! block {
 }
 
 macro_rules! test {
-    ( $code:expr, $block:tt ) => {
-        test($code, block![$block]);
+    ( $code:expr, $($statements:tt)* ) => {
+        test($code, block![$( $statements )*]);
     }
 }
 
@@ -920,11 +920,12 @@ x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "part of the string\n")
-           (Section "   3-spaces indented line, part of the Text Block\n")
-           (Section "this does not end the string -> '''\n")
+         #((Section "part of the string") (Section "\n")
+           (Section "   3-spaces indented line, part of the Text Block") (Section "\n")
+           (Section "this does not end the string -> '''") (Section "\n")
            (Section "\n")
-           (Section "`also` part of the string\n")))
+           (Section "`also` part of the string")))
+        ()
         (Ident x)
     ];
     test(code, expected);
@@ -937,6 +938,7 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
+
     let code = "  x = \"\"\"\n    Indented multiline\n  x";
     #[rustfmt::skip]
     let expected = block![
@@ -945,11 +947,7 @@ x"#;
     ];
     test(code, expected);
     let code = "'''\n    \\nEscape at start\n";
-    #[rustfmt::skip]
-    let expected = block![
-        (TextLiteral #((Escape '\n') (Section "Escape at start\n")))
-    ];
-    test(code, expected);
+    test!(code, (TextLiteral #((Escape '\n') (Section "Escape at start"))) ());
     let code = "x =\n x = '''\n  x\nx";
     #[rustfmt::skip]
     let expected = block![
