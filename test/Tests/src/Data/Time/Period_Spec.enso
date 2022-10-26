@@ -5,23 +5,23 @@ from Standard.Base.Data.Time import Period
 spec =
     Test.group "Period" <|
         Test.specify "should create period years" <|
-            period = (Period.new years=5)
+            period = (Period.years 5)
             period.years . should_equal 5
             period.days . should_equal 0
 
         Test.specify "should add two Periods" <|
-            ((Period.new years=1) + (Period.new years=2)) . should_equal (Period.new years=3)
-            ((Period.new days=1) + (Period.new months=2)) . should_equal (Period.new days=1 months=2)
-            ((Period.new months=2) + (Period.new days=1)) . should_equal (Period.new days=1 months=2)
+            ((Period.years 1) + (Period.years 2)) . should_equal (Period.years 3)
+            ((Period.days 1) + (Period.months 2)) . should_equal (Period.new days=1 months=2)
+            ((Period.months 2) + (Period.days 1)) . should_equal (Period.new days=1 months=2)
 
         Test.specify "should subtract two Periods" <|
-            ((Period.new years=2) - (Period.new years=1)) . should_equal (Period.new years=1)
-            ((Period.new years=1) - (Period.new months=2)) . should_equal (Period.new years=1 months=(-2))
+            ((Period.years 2) - (Period.years 1)) . should_equal (Period.years 1)
+            ((Period.years 1) - (Period.months 2)) . should_equal (Period.new years=1 months=(-2))
 
         Test.specify "should get Period between two dates" <|
-            (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.new years=50)
+            (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.years 50)
             (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=(-50))
-            (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.new days=13)
+            (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.days 13)
 
         Test.specify "should compare between two Periods_With_Date" <|
             ((Period.between (Date.new 2022 1 1) (Date.new 2022 1 2)) == (Period.between (Date.new 2022 5 1) (Date.new 2022 5 2))) . should_be_true

@@ -40,6 +40,18 @@ new : Integer -> Integer -> Integer -> Period
 new years=0 months=0 days=0 =
     Period.Period_Without_Date (Java_Period.of years months days)
 
+## Create a new Period from days.
+days : Integer -> Period
+days d = new days=d
+
+## Create a new Period from months.
+months : Integer -> Period
+months m = new months=m
+
+## Create a new Period from years.
+years : Integer -> Period
+years y = new years=y
+
 ## PRIVATE
 ensure_period : Any -> Suspend (Any -> Any) -> Text -> Any ! (Time_Error | Illegal_Argument_Error)
 ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
@@ -98,7 +110,7 @@ type Period
 
            import Standard.Base.Data.Time.Period
 
-           example_add = (Period.new months=1) + (Period.new days=1)
+           example_add = (Period.months 1) + (Period.days 1)
     + : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     + self other_period =
         ensure_period other_period <|
@@ -118,7 +130,7 @@ type Period
 
              import Standard.Base.Data.Time.Period
 
-             example_subtract = (Period.new years=3) - (Period.new months=11)
+             example_subtract = (Period.years 3) - (Period.months 11)
 
     - : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     - self other_period =
@@ -131,7 +143,7 @@ type Period
     ## Check two periods for equality.
 
        Note that two periods are equal if they have the exact same amount of
-       years, months, and days. So `(Period.new days=30)` and
+       years, months, and days. So `(Period.days 30)` and
        `(Period.new months=1`) are not equal.
 
        Arguments:
