@@ -305,8 +305,8 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 // We need to create the table in two parts, left and right of the cursor to achieve
                 // the right cell arangement.
-                let left_table  = table(2,2).translate(((-8.0).px(), (-4.0).px()));
-                let right_table = table(2,2).translate(((-1.0).px(),(-4.0).px()));
+                let left_table  = table(2,2, 4.0).translate(((-8.0).px(), (-4.0).px()));
+                let right_table = table(2,2, 4.0).translate(((-1.0).px(),(-4.0).px()));
                 let gap         = Rect((4.0.px(),16.0.px()));
                 let table = left_table + right_table - gap;
                 let table = table.fill(weak_color);
@@ -344,7 +344,7 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let table_color = weak_color;
                 let table =
-                    table(2,3).translate(((-8.0).px(),(-7.0).px())).fill(table_color.clone());
+                    table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(table_color.clone());
 
                 let eraser_x = 3.5;
                 let eraser_y = -2.0;
@@ -377,10 +377,10 @@ crate::define_icons! {
                 let old_color = weak_color;
                 let new_color = strong_color;
 
-                let old_column = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(old_color);
+                let old_column = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(old_color);
                 let new_column =
-                    table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(new_color.clone());
-                let plus = plus(5.0,1.0).fill(new_color).translate_x(5.0.px());
+                    table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px())).fill(new_color.clone());
+                let plus = plus(6.0,2.0).fill(new_color).translate_x(5.0.px());
 
                 let shape = old_column + new_column + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -398,10 +398,10 @@ crate::define_icons! {
                 let old_color = weak_color;
                 let new_color = strong_color;
 
-                let old_row = table(3,1).translate(((-6.5).px(),3.0.px())).fill(old_color);
+                let old_row = table(3,1, 4.0).translate(((-7.0).px(),4.0.px())).fill(old_color);
                 let new_row =
-                    table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(new_color.clone());
-                let plus = plus(5.0,1.0).fill(new_color).translate_y((-5.0).px());
+                    table(3,1, 4.0).translate(((-7.0).px(),(-1.0).px())).fill(new_color.clone());
+                let plus = plus(6.0,2.0).fill(new_color).translate_y((-5.0).px());
 
                 let shape = old_row + new_row + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -416,9 +416,9 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let unselected = table(2,3).translate(((-8.0).px(),(-6.5).px()));
+                let unselected = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
                 let unselected = unselected.fill(weak_color);
-                let selected   = table(1,3).translate((3.0.px(),(-6.5).px()));
+                let selected   = table(1,3, 4.0).translate((4.0.px(),(-7.0).px()));
                 let selected   = selected.fill(strong_color);
 
                 let shape = unselected + selected;
@@ -434,9 +434,9 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let unselected = table(3,2).translate(((-6.5).px(),(-1.0).px()));
+                let unselected = table(3,2, 4.0).translate(((-7.0).px(),(-1.0).px()));
                 let unselected = unselected.fill(weak_color);
-                let selected   = table(3,1).translate(((-6.5).px(),(-8.0).px()));
+                let selected   = table(3,1, 4.0).translate(((-7.0).px(),(-8.0).px()));
                 let selected   = selected.fill(strong_color);
 
                 let shape = unselected + selected;
@@ -447,6 +447,7 @@ crate::define_icons! {
     }
 
     /// A light column, a dark column and a lightning bolt on the right.
+    // FIXME no design
     pub mod dataframe_map_column(DataframeMapColumn) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -455,9 +456,9 @@ crate::define_icons! {
                 let weak_color   = weak_color;
                 let strong_color = strong_color;
 
-                let weak_column   = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(weak_color);
+                let weak_column   = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(weak_color);
                 let strong_column =
-                    table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(strong_color.clone());
+                    table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px())).fill(strong_color.clone());
                 let lightning = lightning_bolt().translate_x(5.25.px()).fill(strong_color);
 
                 let shape = weak_column + strong_column + lightning;
@@ -476,9 +477,9 @@ crate::define_icons! {
                 let weak_color   = weak_color;
                 let strong_color = strong_color;
 
-                let weak_row   = table(3,1).translate(((-6.5).px(),3.0.px())).fill(weak_color);
+                let weak_row   = table(3,1, 4.0).translate(((-7.0).px(),4.0.px())).fill(weak_color);
                 let strong_row =
-                    table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(strong_color.clone());
+                    table(3,1, 4.0).translate(((-7.0).px(),(-1.0).px())).fill(strong_color.clone());
                 let lightning  = lightning_bolt().rotate((PI/2.0).radians());
                 let lightning  = lightning.translate_y((-5.25).px()).fill(strong_color);
 
@@ -495,13 +496,13 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let column_color = weak_color;
-                let plus_color   = strong_color;
+                let column_color = weak_color.clone();
+                let plus_color   = weak_color;
 
                 let left_column  =
-                    table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(column_color.clone());
-                let right_column = table(1,3).translate((3.0.px(),(-6.5).px())).fill(column_color);
-                let plus         = plus(5.0,1.0).fill(plus_color);
+                    table(1,3, 3.0).translate(((-8.0).px(),(-5.5).px())).fill(column_color.clone());
+                let right_column = table(1,3, 3.0).translate((5.0.px(),(-5.5).px())).fill(column_color);
+                let plus         = plus(6.0,1.0).fill(plus_color);
 
                 let shape = left_column + right_column + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -516,12 +517,12 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let row_color  = weak_color;
-                let plus_color = strong_color;
+                let row_color  = weak_color.clone();
+                let plus_color = weak_color;
 
-                let top_row = table(3,1).translate(((-6.5).px(),3.0.px())).fill(row_color.clone());
-                let bottom_row = table(3,1).translate(((-6.5).px(),(-8.0).px())).fill(row_color);
-                let plus = plus(5.0,1.0).fill(plus_color);
+                let top_row = table(3,1, 3.0).translate(((-5.5).px(),5.0.px())).fill(row_color.clone());
+                let bottom_row = table(3,1, 3.0).translate(((-5.5).px(),(-8.0).px())).fill(row_color);
+                let plus = plus(6.0,1.0).fill(plus_color);
 
                 let shape = top_row + bottom_row + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -530,7 +531,7 @@ crate::define_icons! {
         }
     }
 
-    /// A capital "Σ".
+    /// A capital "Σ". // FIXME no design
     pub mod sigma(Sigma) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -554,6 +555,7 @@ crate::define_icons! {
 
     /// The shape of a sheet of paper that has been ripped apart with a vertical crack through the
     /// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
+    // FIXME no design
     pub mod split_text(SplitText) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -602,7 +604,7 @@ crate::define_icons! {
         }
     }
 
-    /// Some rectangles and circles in different colors.
+    /// Some rectangles and circles in different colors. // FIXME no design
     pub mod data_science(DataScience) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -625,7 +627,7 @@ crate::define_icons! {
         }
     }
 
-    /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it.
+    /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it. // FIXME no design
     pub mod network(Network) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -648,7 +650,7 @@ crate::define_icons! {
         }
     }
 
-    /// A dark rectangle containing the simple terminal prompt ">_".
+    /// A dark rectangle containing the simple terminal prompt ">_". // FIXME no design
     pub mod system(System) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -740,7 +742,7 @@ crate::define_icons! {
     }
 
     /// Two half arrow, one on top and pointing to the right, one at the bottom and pointing to the
-    /// left. The shape has an outline in a darker color.
+    /// left. The shape has an outline in a darker color. // FIXME no design
     pub mod io(IO) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -763,7 +765,7 @@ crate::define_icons! {
 
     /// The shape of a funnel, consisting of a big upside-down triangle at the top connected with
     /// a thin rectangular tube shape below with a triangular end piece. The whole shape has an
-    /// outline.
+    /// outline. // FIXME no design
     pub mod preparation(Preparation) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -812,8 +814,9 @@ crate::define_icons! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let left_circle = Circle(5.0.px()).translate_x((-3.0).px());
-                let right_circle = Circle(5.0.px()).translate_x(3.0.px());
+                // FIXME outline colors
+                let left_circle = Circle(5.0.px()).translate_x((-2.5).px());
+                let right_circle = Circle(5.0.px()).translate_x(2.5.px());
                 let intersection = &left_circle * &right_circle;
                 let left_outline = left_circle.grow(1.0.px()) - &left_circle;
                 let right_outline = right_circle.grow(1.0.px()) - &right_circle;
@@ -831,7 +834,7 @@ crate::define_icons! {
     }
 
     /// A page with three lines representing text. The upper line is part of an arrow pointing out
-    /// to the right.
+    /// to the right. // FIXME no design
     pub mod text(Text) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -856,7 +859,7 @@ crate::define_icons! {
         }
     }
 
-    /// A clock shape.
+    /// A clock shape. // FIXME no design
     pub mod date_and_time(DateAndTime) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -878,7 +881,7 @@ crate::define_icons! {
     }
 
     /// The shape location marker. A thick circle outline going over into a triangle that poins
-    /// down. Around the tip there is an ellipse outline.
+    /// down. Around the tip there is an ellipse outline. // FIXME no design
     pub mod spatial(Spatial) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -904,7 +907,7 @@ crate::define_icons! {
         }
     }
 
-    /// The shape of a christal ball with a bas below.
+    /// The shape of a christal ball with a bas below. // FIXME no design
     pub mod predictive(Predictive) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -930,7 +933,7 @@ crate::define_icons! {
         }
     }
 
-    /// The shape of an android.
+    /// The shape of an android. // FIXME no design
     pub mod machine_learning(MachineLearning) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
@@ -958,7 +961,7 @@ crate::define_icons! {
     }
 
     /// The simplified shape of a camera. It consists of a small red circle in a bigger circle
-    /// outline, representing the lens and a base above that the camera is mounted on.
+    /// outline, representing the lens and a base above that the camera is mounted on. // FIXME no design
     pub mod computer_vision(ComputerVision) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];

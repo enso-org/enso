@@ -57,19 +57,17 @@ pub fn arc(outer_radius: f32, stroke_width: f32, start_angle: f32, end_angle: f3
     (circle * angle).into()
 }
 
-/// The shape of a table, given by a grid with size `columns` x `rows`. The stroke width is 1.0 and
-/// the cell size 4.0. The origin is at the lower left corner.
-pub fn table(columns: i32, rows: i32) -> AnyShape {
+/// TODO docs
+pub fn table(columns: i32, rows: i32, cell_size: f32) -> AnyShape {
     const GAP: f32 = 1.0;
-    const CELL_SIZE: f32 = 4.0;
 
-    let cell = Rect((CELL_SIZE.px(), CELL_SIZE.px()));
-    let table = cell.repeat(((CELL_SIZE + GAP).px(), (CELL_SIZE + GAP).px()));
-    let table = table.translate_x((-CELL_SIZE / 2.0 - GAP).px());
-    let table = table.translate_y((-CELL_SIZE / 2.0 - GAP).px());
+    let cell = Rect((cell_size.px(), cell_size.px()));
+    let table = cell.repeat(((cell_size + GAP).px(), (cell_size + GAP).px()));
+    let table = table.translate_x((-cell_size / 2.0 - GAP).px());
+    let table = table.translate_y((-cell_size / 2.0 - GAP).px());
 
-    let width = (CELL_SIZE + GAP) * columns as f32 - GAP;
-    let height = (CELL_SIZE + GAP) * rows as f32 - GAP;
+    let width = (cell_size + GAP) * columns as f32 - GAP;
+    let height = (cell_size + GAP) * rows as f32 - GAP;
 
     let bounds = Rect((width.px(), height.px()));
     let bounds = bounds.translate_x((width / 2.0).px());
