@@ -250,7 +250,7 @@ class SuggestionsHandlerSpec
             ),
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -310,7 +310,7 @@ class SuggestionsHandlerSpec
           Vector(
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Modify(
                   arguments = Some(
                     Seq(
@@ -490,7 +490,7 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         val suggestions = Seq(
-          Suggestions.atom,
+          Suggestions.constructor,
           Suggestions.method,
           Suggestions.function,
           Suggestions.local
@@ -500,7 +500,7 @@ class SuggestionsHandlerSpec
           Vector(
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -560,7 +560,7 @@ class SuggestionsHandlerSpec
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
           contentsVersion("1"),
-          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
+          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)),
           Vector(),
           Tree.Root(Vector())
         )
@@ -605,7 +605,7 @@ class SuggestionsHandlerSpec
             ),
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -670,8 +670,9 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                  Suggestions.atom.module,
-                  Suggestions.atom.name
+                  Suggestions.
+                  constructor.module,
+                Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
@@ -715,8 +716,8 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                  Suggestions.atom.module,
-                  Suggestions.atom.name
+                Suggestions.constructor.module,
+                Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
@@ -761,7 +762,7 @@ class SuggestionsHandlerSpec
 
     "get suggestions database version" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(1))
@@ -776,20 +777,20 @@ class SuggestionsHandlerSpec
 
     "get suggestions database" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
           SearchProtocol.GetSuggestionsDatabaseResult(
             1,
-            Seq(SuggestionDatabaseEntry(1L, Suggestions.atom))
+            Seq(SuggestionDatabaseEntry(1L, Suggestions.constructor))
           )
         )
     }
 
     "invalidate suggestions database" taggedAs Retry in withDb {
       (_, repo, _, connector, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.InvalidateSuggestionsDatabase
 
         connector.expectMsgClass(classOf[Api.Request]) match {
@@ -804,7 +805,7 @@ class SuggestionsHandlerSpec
 
     "rename module when renaming project" taggedAs Retry in withDb {
       (_, repo, router, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         val clientId      = UUID.randomUUID()
         val newModuleName = "Vest"
 
