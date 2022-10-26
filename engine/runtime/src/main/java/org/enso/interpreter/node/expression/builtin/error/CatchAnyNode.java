@@ -1,13 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "Any",
@@ -26,7 +23,7 @@ public class CatchAnyNode extends Node {
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object self, Object handler) {
-    return new Stateful(state, self);
+  Object execute(Object self, Object handler) {
+    return self;
   }
 }

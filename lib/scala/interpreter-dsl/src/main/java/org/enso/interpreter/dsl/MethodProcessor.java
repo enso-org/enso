@@ -135,7 +135,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
           "org.enso.interpreter.runtime.error.WithWarnings",
-          "org.enso.interpreter.runtime.state.Stateful",
+          "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen");
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
@@ -224,8 +224,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
 
       out.println("  @Override");
-      out.println("  public Stateful execute(VirtualFrame frame) {");
-      out.println("    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      out.println("  public Object execute(VirtualFrame frame) {");
+      out.println("    State state = Function.ArgumentsHelper.getState(frame.getArguments());");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
             "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");
@@ -253,29 +253,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       if (warningsPossible) {
         out.println("    if (anyWarnings) {");
         out.println("      anyWarningsProfile.enter();");
-        if (methodDefinition.modifiesState()) {
-          out.println("      Stateful result = " + executeCall + ";");
-          out.println(
-              "      Object newValue = WithWarnings.appendTo(result.getValue(), gatheredWarnings);");
-          out.println("      return new Stateful(result.getState(), newValue);");
-        } else {
-          out.println("      Object result = " + executeCall + ";");
-          out.println(
-              "      return new Stateful(state, WithWarnings.appendTo(result, gatheredWarnings));");
-        }
+        out.println("      Object result = " + executeCall + ";");
+        out.println("      return WithWarnings.appendTo(result, gatheredWarnings);");
         out.println("    } else {");
-        if (methodDefinition.modifiesState()) {
-          out.println("      return " + executeCall + ";");
-        } else {
-          out.println("      return new Stateful(state, " + executeCall + ");");
-        }
+        out.println("      return " + executeCall + ";");
         out.println("    }");
       } else {
-        if (methodDefinition.modifiesState()) {
-          out.println("    return " + executeCall + ";");
-        } else {
-          out.println("    return new Stateful(state, " + executeCall + ");");
-        }
+        out.println("    return " + executeCall + ";");
       }
       out.println("  }");
 
@@ -324,9 +308,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + ".profile(TypesGen.isDataflowError("
               + argReference
               + "))) {\n"
-              + "      return new Stateful(state, "
+              + "      return "
               + argReference
-              + ");\n"
+              + ";\n"
               + "    }");
     }
     if (!arg.isSelf()) {

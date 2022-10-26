@@ -405,6 +405,7 @@
 - [Fix performance of method calls on polyglot arrays][3781]
 - [Missing foreign language generates proper Enso error][3798]
 - [Made Vector performance to be on par with Array][3811]
+- [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
 
@@ -462,6 +463,7 @@
 [3781]: https://github.com/enso-org/enso/pull/3781
 [3798]: https://github.com/enso-org/enso/pull/3798
 [3811]: https://github.com/enso-org/enso/pull/3811
+[3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
 
