@@ -1,6 +1,12 @@
 package org.enso.interpreter.runtime.data;
 
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -16,12 +22,19 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Array_Proxy.Array_Proxy")
-public class ArrayProxy implements TruffleObject {
+public final class ArrayProxy implements TruffleObject {
   private final long length;
   private final Object at;
 
   @Builtin.Method(description = "Creates an array backed by a proxy object.")
   public ArrayProxy(long length, Object at) {
+    if (CompilerDirectives.inInterpreter()) {
+      if (!InteropLibrary.getUncached().isExecutable(at)) {
+        throw new IllegalArgumentException(
+            "Array_Proxy needs an executable callback, but got: " + at);
+      }
+    }
+
     this.length = length;
     this.at = at;
   }

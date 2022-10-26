@@ -3,6 +3,8 @@ from Standard.Base.Data.Array_Proxy import Array_Proxy
 
 from Standard.Test import Test, Test_Suite
 
+polyglot java import java.lang.IlllegalArgumentException
+
 spec =
     Test.group "Array_Proxy" <|
         Test.specify "should correctly delegate to the callback" <|
@@ -23,5 +25,8 @@ spec =
             v2 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> v.at 2 - ix))
             v2.should_equal [12, 11, 10]
             v2.sort . should_equal [10, 11, 12]
+
+        Test.specify "should check the callback type validity at construction" <|
+            Text.expect_panic_with (Array_Proxy.new 0 0) IllegalArgumentException
 
 main = Test_Suite.run_main spec
