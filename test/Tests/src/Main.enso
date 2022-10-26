@@ -19,8 +19,9 @@ import project.Semantic.Js_Interop_Spec
 import project.Semantic.Python_Interop_Spec
 import project.Semantic.R_Interop_Spec
 
-import project.Data.Array_Polyglot_Spec
 import project.Data.Array_Spec
+import project.Data.Array_Polyglot_Spec
+import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
@@ -76,8 +77,9 @@ import project.Random_Spec
 
 main = Test_Suite.run_main <|
     Any_Spec.spec
-    Array_Polyglot_Spec.spec
     Array_Spec.spec
+    Array_Proxy_Spec.spec
+    Array_Polyglot_Spec.spec
     Bool_Spec.spec
     Function_Spec.spec
     Case_Spec.spec
