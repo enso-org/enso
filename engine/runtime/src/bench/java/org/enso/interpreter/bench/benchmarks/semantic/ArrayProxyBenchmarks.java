@@ -43,33 +43,38 @@ public class ArrayProxyBenchmarks {
     var module =
         ctx.eval(
             "enso",
-            """
-                import Standard.Base.Data.Vector
-                from Standard.Base.Data.Array_Proxy import Array_Proxy
-                sum arr =
-                    go acc i = if i == arr.length then acc else
-                        @Tail_Call go (acc + arr.at i) i+1
-                    sum 0 0
-                
-                make_vector n =
-                    Vector.new n (i -> 3 + 5*i)
-                make_proxy n =
-                    Array_Proxy.new n (i -> 3 + 5*i)
-                make_proxied_vector n =
-                    Vector.from_polyglot_array (make_proxy n)
-                """);
+            "import Standard.Base.Data.Vector\n" +
+            "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
+            "sum arr =\n" +
+            "    go acc i = if i == arr.length then acc else\n" +
+            "        @Tail_Call go (acc + arr.at i) i+1\n" +
+            "    sum 0 0\n" +
+            "\n" +
+            "make_vector n =\n" +
+            "    Vector.new n (i -> 3 + 5*i)\n" +
+            "make_proxy n =\n" +
+            "    Array_Proxy.new n (i -> 3 + 5*i)\n" +
+            "make_proxied_vector n =\n" +
+            "    Vector.from_polyglot_array (make_proxy n)\n");
 
     this.self = module.invokeMember("get_associated_type");
     Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
-    String test_builder =
-        switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
-          case "sumOverVector" -> "make_vector";
-          case "sumOverArrayProxy" -> "make_proxy";
-          case "sumOverVectorBackedByProxy" -> "make_proxied_vector";
-          default -> throw new IllegalStateException(
-              "Unexpected benchmark: " + params.getBenchmark());
-        };
+    String test_builder;
+    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+      case "sumOverVector":
+        test_builder = "make_vector";
+        break;
+      case "sumOverArrayProxy":
+        test_builder = "make_proxy";
+        break;
+      case "sumOverVectorBackedByProxy":
+        test_builder = "make_proxied_vector";
+        break;
+      default:
+        throw new IllegalStateException(
+            "Unexpected benchmark: " + params.getBenchmark());
+    }
     this.arrayOfNumbers = getMethod.apply(test_builder).execute(self, length);
     this.sum = getMethod.apply("sum");
   }
