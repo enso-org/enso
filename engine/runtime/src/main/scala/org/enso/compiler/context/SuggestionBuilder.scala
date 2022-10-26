@@ -83,13 +83,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _
                 ) if !m.isStaticWrapperForInstanceMethod =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            val selfTypeOpt = typePtr match {
+            val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
-                typePtr
+                val selfType = typePtr
                   .getMetadata(MethodDefinitions)
                   .map(_.target.qualifiedName)
+                selfType -> m.isStatic
               case None =>
-                Some(module)
+                Some(module) -> true
             }
             val methodOpt = selfTypeOpt.map { selfType =>
               buildMethod(
@@ -97,6 +98,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 module,
                 methodName.name,
                 selfType,
+                isStatic,
                 args,
                 doc,
                 typeSignature
@@ -192,6 +194,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     module: QualifiedName,
     name: String,
     selfType: QualifiedName,
+    isStatic: Boolean,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
@@ -206,6 +209,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       arguments     = methodArgs,
       selfType      = selfType.toString,
       returnType    = buildReturnType(returnTypeDef),
+      isStatic      = isStatic,
       documentation = doc
     )
   }
@@ -318,6 +322,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       module        = module,
       name          = getterName,
       selfType      = module.createChild(typeName),
+      isStatic      = false,
       args          = Seq(thisArg),
       doc           = None,
       typeSignature = None

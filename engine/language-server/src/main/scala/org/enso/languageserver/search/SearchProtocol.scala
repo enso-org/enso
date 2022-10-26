@@ -181,6 +181,7 @@ object SearchProtocol {
       arg +: conversion.arguments,
       conversion.returnType,
       conversion.returnType,
+      isStatic = false,
       conversion.documentation,
       conversion.documentationHtml,
       None,
@@ -586,18 +587,6 @@ object SearchProtocol {
         }
       }
   }
-
-  /** The result of the import request.
-    *
-    * @param module the definition module of the symbol
-    * @param symbol the resolved symbol
-    * @param exports the list of re-exports
-    */
-  case class ImportResult(
-    module: String,
-    symbol: String,
-    exports: Seq[Export]
-  )
 
   /** The request to invalidate the modules index. */
   case object InvalidateModulesIndex

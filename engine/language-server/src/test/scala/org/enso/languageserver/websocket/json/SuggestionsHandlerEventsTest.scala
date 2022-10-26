@@ -155,6 +155,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
+                  "isStatic" : false,
                   "documentation" : "Lovely",
                   "documentationSections" : [
                     {
@@ -348,6 +349,48 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           "result" : {
             "entries" : [
               {
+                "id" : 1,
+                "suggestion" : {
+                  "type" : "atom",
+                  "module" : "local.Test.Main",
+                  "name" : "MyType",
+                  "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null,
+                      "tagValues" : null
+                    }
+                  ],
+                  "returnType" : "MyAtom",
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
+                  "documentationSections" : [
+                    {
+                      "type" : "tag",
+                      "name" : "PRIVATE",
+                      "body" : ""
+                    },
+                    {
+                      "type" : "paragraph",
+                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
+                    },
+                    {
+                      "type" : "keyed",
+                      "key" : "Arguments",
+                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
+                    },
+                    {
+                      "type" : "marked",
+                      "mark" : "Info",
+                      "header" : "Info",
+                      "body" : " Here is a thing."
+                    }
+                  ]
+                }
+              },
+              {
                 "id" : 3,
                 "suggestion" : {
                   "type" : "function",
@@ -394,68 +437,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               },
               {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "atom",
-                  "module" : "local.Test.Main",
-                  "name" : "MyType",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    }
-                  ],
-                  "returnType" : "MyAtom",
-                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "documentationSections" : [
-                    {
-                      "type" : "tag",
-                      "name" : "PRIVATE",
-                      "body" : ""
-                    },
-                    {
-                      "type" : "paragraph",
-                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
-                    },
-                    {
-                      "type" : "keyed",
-                      "key" : "Arguments",
-                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
-                    },
-                    {
-                      "type" : "marked",
-                      "mark" : "Info",
-                      "header" : "Info",
-                      "body" : " Here is a thing."
-                    }
-                  ]
-                }
-              },
-              {
-                "id" : 4,
-                "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
-                  "module" : "local.Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
-                    }
-                  }
-                }
-              },
-              {
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
@@ -482,6 +463,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
+                  "isStatic" : false,
                   "documentation" : "Lovely",
                   "documentationSections" : [
                     {
@@ -489,6 +471,26 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "body" : "Lovely"
                     }
                   ]
+                }
+              },
+              {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : ${Suggestions.local.externalId.get},
+                  "module" : "local.Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
                 }
               }
             ],
