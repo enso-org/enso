@@ -763,23 +763,54 @@ impl<'s> Lexer<'s> {
     fn number(&mut self) {
         let mut base = None;
         let token = self.token(|this| {
-            while this.take_while_1(is_decimal_digit) {
-                if this.current_char == Some('_') {
+            let mut old_hex_chars_matched = 0;
+            let mut old_bin_chars_matched = 0;
+            let mut new_based_chars_matched = 0;
+            match this.current_char {
+                Some('0') => new_based_chars_matched = 1,
+                Some('1') => old_hex_chars_matched = 1,
+                Some('2') => old_bin_chars_matched = 1,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return,
+            }
+            this.next_input_char();
+            let mut prev_was_underscore = false;
+            match this.current_char {
+                Some('_') if old_bin_chars_matched == 1 => base = Some(token::Base::Binary),
+                Some('_') => prev_was_underscore = true,
+                Some('b') if new_based_chars_matched == 1 => base = Some(token::Base::Binary),
+                Some('o') if new_based_chars_matched == 1 => base = Some(token::Base::Octal),
+                Some('x') if new_based_chars_matched == 1 => base = Some(token::Base::Hexadecimal),
+                Some('6') if old_hex_chars_matched == 1 => old_hex_chars_matched = 2,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return
+            }
+            this.next_input_char();
+            if base.is_some() {
+                return;
+            }
+            let mut was_underscore = false;
+            match this.current_char {
+                Some('_') if old_hex_chars_matched == 2 => {
+                    base = Some(token::Base::Hexadecimal);
                     this.next_input_char();
-                    continue;
+                    return;
+                },
+                Some('_') if !prev_was_underscore => was_underscore = true,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return
+            }
+            prev_was_underscore = was_underscore;
+            this.next_input_char();
+            loop {
+                let mut was_underscore = false;
+                match this.current_char {
+                    Some('_') if !prev_was_underscore => was_underscore = true,
+                    Some(d) if is_decimal_digit(d) => (),
+                    _ => return
                 }
-                if this.current_offset == Bytes(1) {
-                    base = match this.current_char {
-                        Some('b') => Some(token::Base::Binary),
-                        Some('o') => Some(token::Base::Octal),
-                        Some('x') => Some(token::Base::Hexadecimal),
-                        _ => None,
-                    };
-                    if base.is_some() {
-                        this.next_input_char();
-                        return;
-                    }
-                }
+                prev_was_underscore = was_underscore;
+                this.next_input_char();
             }
         });
         if let Some(token) = token {

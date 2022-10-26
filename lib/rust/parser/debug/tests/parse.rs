@@ -123,9 +123,9 @@ fn doc_comments() {
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
         (Documented
-         (#((Section " The Identity Function\n")
+         (#((Section " The Identity Function") (Section "\n")
            (Section "\n")
-           (Section "Arguments:\n")
+           (Section "Arguments:") (Section "\n")
            (Section "- x: value to do nothing to"))
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
@@ -1166,8 +1166,6 @@ fn tuple_literals() {
 
 #[test]
 fn numbers() {
-    test!("100_000", (Number () "100_000" ()));
-    test!("10_000.99", (Number () "10_000" ("." "99")));
     test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
     test!("1 .0",
         (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
@@ -1177,6 +1175,21 @@ fn numbers() {
     test!("0o122137", (Number "0o" "122137" ()));
     test!("0xAE2F14", (Number "0x" "AE2F14" ()));
     test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
+}
+
+#[test]
+// This syntax cannot be used until we remove old-nondecimal number support, which is
+// needed for compatibility until the old parser is fully replaced.
+#[ignore]
+fn new_delimited_numbers() {
+    test!("100_000", (Number () "100_000" ()));
+    test!("10_000.99", (Number () "10_000" ("." "99")));
+}
+
+#[test]
+fn old_nondecimal_numbers() {
+    test!("2_01101101", (Number "2_" "01101101" ()));
+    test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
 }
 
 
