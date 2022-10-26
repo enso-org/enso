@@ -511,6 +511,9 @@ type Table
                 _ : Integer -> SQL_Type.bigint
                 _ : Decimal -> SQL_Type.double
                 _ : Text -> SQL_Type.varchar
+                _ : Date.Date -> SQL_Type.date
+                _ : Time_Of_Day.Time_Of_Day -> SQL_Type.time
+                _ : Date_Time.Date_Time -> SQL_Type.date_time
             other = Expression.Constant new_type value
             Column.Value (UUID.randomUUID.to_text) self.connection new_type other self.context
         Derived_Expression.For_Column expression . evaluate getColumn makeConstant "Standard.Database.Data.Column"

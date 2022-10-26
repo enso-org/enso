@@ -49,12 +49,12 @@ type SQL_Type
     numeric : SQL_Type
     numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
-    ## The SQL type representing one of the suppported textual types.
+    ## The SQL type representing one of the supported textual types.
     varchar : SQL_Type
     varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
 
     ## UNSTABLE
-       The SQL type representing one of the suppported textual types.
+       The SQL type representing one of the supported textual types.
 
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
     text : SQL_Type
@@ -63,6 +63,18 @@ type SQL_Type
     ## The SQL type representing a binary object.
     blob : SQL_Type
     blob = SQL_Type.Value Types.BLOB "BLOB"
+
+    ## The SQL type representing a date type.
+    date : SQL_Type
+    date = SQL_Type.Value Types.DATE "DATE"
+
+    ## The SQL type representing a time type.
+    time : SQL_Type
+    time = SQL_Type.Value Types.TIME "TIME"
+
+    ## The SQL type representing a time type.
+    date_time : SQL_Type
+    date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
 
     ## PRIVATE
 

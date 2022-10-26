@@ -45,6 +45,8 @@ type SQL_Statement
             # TODO at some point we may try more sophisticated serialization based on data type
             SQL_Fragment.Interpolation _ obj -> case obj of
                 Number -> obj.to_text
+                Date.Date -> "'" + obj.to_text + "'"
+                Time_Of_Day.Time_Of_Day -> "'" + obj.to_text + "'"
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 

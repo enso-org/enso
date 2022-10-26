@@ -3,6 +3,7 @@ from Standard.Base import all
 import project.Data.Column.Column
 
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
+polyglot java import java.lang.IllegalArgumentException
 
 type Expression
     For_Column expression:Text
@@ -10,4 +11,8 @@ type Expression
     ## PRIVATE
     evaluate : (Text -> Column) -> (Any -> Column) -> Text -> Column
     evaluate self getColumn makeConstant columnName="Standard.Table.Data.Column" =
-        ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant columnName
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Expression_Syntax.Error cause.getMessage))
+            ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant columnName
+
+type Expression_Syntax
+    Error message:Text

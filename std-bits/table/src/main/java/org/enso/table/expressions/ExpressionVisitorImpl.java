@@ -58,6 +58,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private Value executeMethod(String name, Value... args) {
     Value method = getMethod.apply(name);
+    if (!method.canExecute()) {
+      throw new IllegalArgumentException("Method " + name + " not found");
+    }
+
     Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
     objects[0] = wrapAsColumn(args[0]);
     return method.execute(objects);
