@@ -1010,6 +1010,7 @@ impl<'s> Lexer<'s> {
                         .into_iter()
                         .map(|token| token.with_variant(token::Variant::text_section()));
                     self.output.extend(newlines);
+                    continue;
                 }
             }
             if interpolate && char == '\\' {

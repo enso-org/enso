@@ -958,6 +958,9 @@ x"#;
     test(code, expected);
     test!("foo = bar '''\n baz",
         (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
+    test!("'''\n \\t'", (TextLiteral #((Escape '\t') (Section "'"))));
+    test!("'''\n x\n \\t'",
+        (TextLiteral #((Section "x") (Section "\n") (Escape '\t') (Section "'"))));
 }
 
 #[test]
