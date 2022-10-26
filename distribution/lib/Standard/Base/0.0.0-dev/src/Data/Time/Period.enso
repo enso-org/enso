@@ -21,7 +21,7 @@ polyglot java import java.lang.ArithmeticException
          example_period = Period.between (Date.new 2022 10 21) (Date.new 2022 9 12)
 between : Date -> Date -> Period
 between start_date_inclusive end_date_exclusive =
-    Period.Period_Data (Java_Period.between start_date_inclusive end_date_exclusive)
+    Period.Period_With_Date (Java_Period.between start_date_inclusive end_date_exclusive) start_date_inclusive
 
 ## Create a new Period from years, months and days.
 
@@ -38,7 +38,7 @@ between start_date_inclusive end_date_exclusive =
          example_period = Period.new 2 0 5
 new : Integer -> Integer -> Integer -> Period
 new years=0 months=0 days=0 =
-    Period.Period_Data (Java_Period.of years months days)
+    Period.Period_Without_Date (Java_Period.of years months days)
 
 ## PRIVATE
 ensure_period : Any -> Suspend (Any -> Any) -> Text -> Any ! (Time_Error | Illegal_Argument_Error)
@@ -65,7 +65,15 @@ type Period
        Arguments:
        - internal_period: An internal representation of period of type
          java.time.Period.
-    Period_Data internal_period
+    Period_Without_Date internal_period
+
+    ## PRIVATE
+
+       Arguments:
+       - internal_period: An internal representation of period of type
+         java.time.Period.
+       - start_date: Starting Date
+    Period_With_Date internal_period start_date
 
     ## Get the portion of the period expressed in years.
     years : Integer
@@ -136,11 +144,20 @@ type Period
     ## Compare this period to another period to produce an ordering.
     compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
     compare_to self that =
-        other_period = ensure_period that
-        if self.years > other_period.years then Ordering.Greater else
-            if self.years < other_period.years then Ordering.Less else
-                if self.months > other_period.months then Ordering.Greater else
-                    if self.months < other_period.months then Ordering.Less else
-                        if self.days > other_period.days then Ordering.Greater else
-                            if self.days < other_period.days then Ordering.Less else
-                                Ordering.Equal
+        case self of
+            Period_With_Date _ start_date_self ->
+                case that of
+                    Period_With_Date _ start_date_that ->
+                        end_date_self = start_date_self + self
+                        duration_self = Duration.between start_date_self.to_date_time end_date_self.to_date_time
+                        end_date_that = start_date_that + that
+                        duration_that = Duration.between start_date_that.to_date_time end_date_that.to_date_time
+                        duration_self.compare_to duration_that
+                    Period_Without_Date _ ->
+                        (start_date_self + self).compare_to (start_date_self + that)
+            Period_Without_Date _ ->
+                case that of
+                    Period_With_Date _ start_date_that ->
+                        (start_date_that + self).compare_to (start_date_that + that)
+                    Period_Without_Date _ ->
+                        Error.throw (Time_Error_Data "Cannot compare two Period_Without_Date, as there is no start date")
