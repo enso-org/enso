@@ -18,7 +18,6 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -30,7 +29,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
     return IndirectInvokeConversionNodeGen.create();
   }
 
-  public abstract Stateful execute(
+  public abstract Object execute(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -44,7 +43,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       int thatArgumentPosition);
 
   @Specialization(guards = {"dispatch.hasType(that)", "!dispatch.hasSpecialDispatch(that)"})
-  Stateful doConvertFrom(
+  Object doConvertFrom(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -77,7 +76,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
   }
 
   @Specialization
-  Stateful doDataflowError(
+  Object doDataflowError(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -108,12 +107,12 @@ public abstract class IndirectInvokeConversionNode extends Node {
           argumentsExecutionMode,
           isTail);
     } else {
-      return new Stateful(state, that);
+      return that;
     }
   }
 
   @Specialization
-  Stateful doPanicSentinel(
+  Object doPanicSentinel(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -129,7 +128,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
   }
 
   @Specialization
-  Stateful doWarning(
+  Object doWarning(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -144,7 +143,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @Cached IndirectInvokeConversionNode childDispatch) {
     arguments[thatArgumentPosition] = that.getValue();
     ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
-    Stateful result =
+    Object result =
         childDispatch.execute(
             frame,
             state,
@@ -157,11 +156,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
             argumentsExecutionMode,
             isTail,
             thatArgumentPosition);
-    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+    return WithWarnings.prependTo(result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")
-  Stateful doConvertText(
+  Object doConvertText(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -207,7 +206,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
         "!interop.isString(that)",
         "!methods.hasSpecialDispatch(that)"
       })
-  Stateful doFallback(
+  Object doFallback(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,

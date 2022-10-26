@@ -1,67 +1,41 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.runtime.state.data.SingletonMap;
-import org.enso.interpreter.runtime.state.data.SmallMap;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "State",
     name = "get",
     description = "Returns the current value of monadic state.")
-@ImportStatic(SmallMap.class)
 @ReportPolymorphism
 public abstract class GetStateNode extends Node {
   static GetStateNode build() {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState Object state, Object key);
+  abstract Object execute(State state, Object key);
 
-  @Specialization(guards = {"state.getKey() == key"})
-  Object doSingleton(SingletonMap state, Object key) {
-    return state.getValue();
-  }
-
-  @Specialization(
-      guards = {"state.getKeys() == cachedKeys", "key == cachedKey", "idx != NOT_FOUND"})
-  Object doMultiCached(
-      SmallMap state,
+  @Specialization(guards = "objects.containsKey(data, key)")
+  Object doRead(
+      State state,
       Object key,
-      @Cached("key") Object cachedKey,
-      @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedKeys,
-      @Cached("state.indexOf(key)") int idx) {
-    return state.getValues()[idx];
+      @Bind("state.getContainer()") State.Container data,
+      @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
+    return objects.getOrDefault(data, key, null);
   }
 
-  @Specialization
-  Object doMultiUncached(SmallMap state, Object key) {
-    int idx = state.indexOf(key);
-    if (idx == SmallMap.NOT_FOUND) {
-      return DataflowError.withoutTrace(
-          Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
-    } else {
-      return state.getValues()[idx];
-    }
-  }
-
-  @Specialization
-  Object doEmpty(EmptyMap state, Object key) {
-    return DataflowError.withoutTrace(
-        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
-  }
-
-  @Specialization
-  Object doSingletonError(SingletonMap state, Object key) {
-    return DataflowError.withoutTrace(
+  @Fallback
+  Object doMissing(State state, Object key) {
+    throw new PanicException(
         Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 }

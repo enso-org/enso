@@ -95,7 +95,7 @@ class StateTest extends InterpreterTest {
       consumeOut shouldEqual List("11", "16")
     }
 
-    "undo changes on Panics" in {
+    "retain changes on Panics" in {
       val code =
         """from Standard.Base import all
           |import Standard.Base.Runtime.State
@@ -111,7 +111,7 @@ class StateTest extends InterpreterTest {
           |
           |main = State.run Number 0 stater
           |""".stripMargin
-      eval(code) shouldEqual 5
+      eval(code) shouldEqual 400
     }
 
     "localize properly with State.run when 1 key used" in {
