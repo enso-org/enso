@@ -88,7 +88,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 val selfType = typePtr
                   .getMetadata(MethodDefinitions)
                   .map(_.target.qualifiedName)
-                selfType -> false
+                selfType -> m.isStatic
               case None =>
                 Some(module) -> true
             }

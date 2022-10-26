@@ -1560,7 +1560,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               ),
               selfType      = "Unnamed.Test.List",
               returnType    = "Unnamed.Test.List",
-              isStatic      = false,
+              isStatic      = true,
               documentation = Some(" a method")
             ),
             Vector()
