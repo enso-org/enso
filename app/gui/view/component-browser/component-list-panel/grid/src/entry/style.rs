@@ -5,6 +5,7 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::style::data::DataMatch;
 use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
@@ -12,6 +13,43 @@ use entry_theme::highlight::selection as selection_theme;
 use grid_theme::entry as entry_theme;
 
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Color {
+    Intensity(f32),
+    Arbitrary(color::Lcha),
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self::Intensity(0.0)
+    }
+}
+
+impl Color {
+    fn accessor<P: Into<ensogl_core::display::style::Path>>(
+        style: &StyleWatchFrp,
+        path: P,
+    ) -> frp::Sampler<Self> {
+        let network = style.network();
+        let path = path.into();
+        let value = style.get(path.clone());
+        frp::extend! { network
+            init <- source_();
+            color <- value.all_with(&init, move |data, _| {
+                data.color().map(|color| {
+                    let color = color::Lcha::from(color);
+                    Color::Arbitrary(color)
+                }).unwrap_or_else(|| {
+                    let intensity = data.number().unwrap_or(0.0);
+                    Color::Intensity(intensity)
+                })
+            });
+            sampler <- color.sampler();
+        }
+        init.emit(());
+        sampler
+    }
+}
 
 // =============
 // === Style ===
@@ -25,7 +63,8 @@ use grid_theme::entry as entry_theme;
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct ColorIntensities {
     #[theme_path = "entry_theme::text::color_intensity"]
-    pub text:            f32,
+    #[accessor = "Color::accessor"]
+    pub text:            Color,
     #[theme_path = "entry_theme::background::color_intensity"]
     pub background:      f32,
     #[theme_path = "entry_theme::highlight::hover::color_intensity"]
@@ -34,7 +73,8 @@ pub struct ColorIntensities {
     pub dimmed:          f32,
     /// The more contrasting parts of the [icon](crate::icon::Any).
     #[theme_path = "entry_theme::icon::strong_color_intensity"]
-    pub icon_strong:     f32,
+    #[accessor = "Color::accessor"]
+    pub icon_strong:     Color,
     /// The less contrasting parts of the [icon](crate::icon::Any).
     #[theme_path = "entry_theme::icon::weak_color_intensity"]
     pub icon_weak:       f32,
@@ -47,12 +87,14 @@ pub struct ColorIntensities {
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionColorIntensities {
     #[theme_path = "selection_theme::text::color_intensity"]
-    pub text:        f32,
+    #[accessor = "Color::accessor"]
+    pub text:        Color,
     #[theme_path = "selection_theme::background::color_intensity"]
     pub background:  f32,
     /// The more contrasting parts of the [icon](crate::icon::Any).
     #[theme_path = "selection_theme::icon_strong::color_intensity"]
-    pub icon_strong: f32,
+    #[accessor = "Color::accessor"]
+    pub icon_strong: Color,
     /// The less contrasting parts of the [icon](crate::icon::Any).
     #[theme_path = "selection_theme::icon_weak::color_intensity"]
     pub icon_weak:   f32,
@@ -143,7 +185,6 @@ impl Colors {
         frp::extend! { network
             init <- source_();
 
-            text_intensity <- color_intensities.map(|c| c.text);
             bg_intensity <- color_intensities.map(|c| c.background);
             hover_hg_intensity <- color_intensities.map(|c| c.hover_highlight);
             dimmed_intensity <- color_intensities.map(|c| c.dimmed);
@@ -157,14 +198,31 @@ impl Colors {
             app_bg_and_main <- all(&app_bg, &color_anim.value);
             background <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
             hover_highlight <- app_bg_and_main.all_with(&hover_hg_intensity, mix).sampler();
-            text <- app_bg_and_main.all_with(&text_intensity, mix).sampler();
+            text_color <- color_intensities.all_with(&app_bg_and_main, |i, app_bg_and_main| {
+                match i.text {
+                    Color::Arbitrary(color) => color,
+                    Color::Intensity(int) => mix(app_bg_and_main, &int),
+                }
+            }).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
-            icon_strong <- app_bg_and_main.all_with(&icon_strong_intensity, mix).sampler();
+            icon_strong <- color_intensities.all_with(&app_bg_and_main, |i, app_bg_and_main| {
+                match i.icon_strong {
+                    Color::Arbitrary(color) => color,
+                    Color::Intensity(int) => mix(app_bg_and_main, &int),
+                }
+            }).sampler();
 
             skip_animations <- any(...);
             color_anim.skip <+ skip_animations;
         }
         init.emit(());
-        Self { icon_weak, icon_strong, text, background, hover_highlight, skip_animations }
+        Self {
+            icon_weak,
+            icon_strong,
+            text: text_color,
+            background,
+            hover_highlight,
+            skip_animations,
+        }
     }
 }

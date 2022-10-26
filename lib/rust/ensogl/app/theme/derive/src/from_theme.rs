@@ -20,6 +20,7 @@ use syn::Type;
 const BASE_PATH_ATTRIBUTE_NAME: &str = "base_path";
 // Sadly we can't use `path` here, because it conflicts with Rust's builtin attribute.
 const PATH_ATTRIBUTE_NAME: &str = "theme_path";
+const ACCESSOR_ATTRIBUTE_NAME: &str = "accessor";
 
 
 // ==================
@@ -31,6 +32,7 @@ enum ThemeTypes {
     Color,
     String,
     Number,
+    Unknown,
 }
 
 impl ThemeTypes {
@@ -46,11 +48,7 @@ impl ThemeTypes {
             Type::Path(type_path)
                 if type_path.clone().into_token_stream().to_string().contains("Rgba") =>
                 Self::Color,
-            _ => panic!(
-                "The type `{:?}` cannot be derived from a theme. Only `ImString`,\
-             `color::Rgba` and `f32` are supported.",
-                ty
-            ),
+            _ => Self::Unknown,
         }
     }
 }
@@ -120,13 +118,8 @@ fn make_struct_inits(
             .ident
             .as_ref()
             .expect("Encountered unnamed struct field. This cannot not happen.");
-        let init = match ThemeTypes::from_ty(&field.ty) {
-            ThemeTypes::Color | ThemeTypes::Number => quote! {
-                #field_name:*#field_name,
-            },
-            ThemeTypes::String => quote! {
-                #field_name:#field_name.clone(),
-            },
+        let init = quote! {
+            #field_name : #field_name.clone(),
         };
         combined.extend(init);
     }
@@ -202,19 +195,26 @@ fn make_theme_getters(
                 (None, None) => panic!("Neither `base_path` nor `path` attributes were set."),
             };
 
-            let accessor = match ThemeTypes::from_ty(&f.ty) {
-                ThemeTypes::Color => quote! {
-                  get_color
-                },
-                ThemeTypes::String => quote! {
-                  get_text
-                },
-                ThemeTypes::Number => quote! {
-                  get_number
-                },
-            };
+            // TODO: handle missing accessor
+            let accessor = get_path_from_metadata(&f.attrs, ACCESSOR_ATTRIBUTE_NAME)
+                .map(|accessor| {
+                    quote! { #accessor }
+                })
+                .unwrap_or_else(|| match ThemeTypes::from_ty(&f.ty) {
+                    ThemeTypes::Color => quote! {
+                      StyleWatchFrp::get_color
+                    },
+                    ThemeTypes::String => quote! {
+                      StyleWatchFrp::get_text
+                    },
+                    ThemeTypes::Number => quote! {
+                      StyleWatchFrp::get_number
+                    },
+                    ThemeTypes::Unknown => panic!("Unknown type for theme value."),
+                });
+
             quote! {
-                let #field_name = style.#accessor(#field_path);
+                let #field_name = #accessor(style, #field_path);
             }
         })
         .collect()

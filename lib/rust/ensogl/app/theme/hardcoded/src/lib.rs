@@ -219,8 +219,8 @@ define_themes! { [light:0, dark:1]
                             selection {
                                 background.color_intensity = 1.0, 1.0;
                                 dimmed.color_intensity = 0.5, 0.5;
-                                text.color_intensity = 0.2, 0.2;
-                                icon_strong.color_intensity = 0.0, 0.0;
+                                text.color_intensity = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
+                                icon_strong.color_intensity = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
                                 icon_weak.color_intensity = 0.5, 0.5;
                             }
                         }
@@ -237,7 +237,7 @@ define_themes! { [light:0, dark:1]
 
                     group_colors {
                         // Yellow
-                        group_0 = Rgba(122.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                        group_0 = Lcha(0.54780, 0.47925, 0.281, 1.0), Lcha(0.54780, 0.47925, 0.281, 1.0);
                         // Green
                         group_1 = Rgba(63.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
                         // Light blue
