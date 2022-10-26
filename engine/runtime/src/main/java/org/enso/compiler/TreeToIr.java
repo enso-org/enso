@@ -291,7 +291,7 @@ final class TreeToIr {
         }
         var text = buildTextConstant(body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
-        var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), false, meta(), diag());
+        var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
       }
       case Tree.Documented doc -> {
