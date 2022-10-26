@@ -322,12 +322,9 @@ impl View {
 
     /// Set the truncation color to the last glyph color.
     pub fn update_truncation_color(&self) {
-        warn!("update_truncation_color");
         if let Some(truncation) = self.truncation.borrow().as_ref() {
-            warn!("was truncated");
             if let Some(glyph) = self.glyphs.last() {
                 let color = color::Rgba::from(glyph.color());
-                warn!("last glyph is there! {:?}", color);
                 truncation.ellipsis.rgba.set(color.into());
             }
         }

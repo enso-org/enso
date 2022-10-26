@@ -601,6 +601,7 @@ impl BufferModel {
             Selection::<ViewLocation>::from_in_context_snapped(self, byte_selection);
         let line_selection = line_selection.map_shape(|s| s.normalized());
         let range = byte_selection.range();
+        warn!("rope replace");
         self.rope.replace(range, &text);
 
         let new_byte_cursor_pos = range.start + text_byte_size;
