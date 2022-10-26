@@ -101,7 +101,7 @@ specWith name create_new_time parse_time =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting date-based interval" <|
-            case (create_new_time 0 - ((Period.days 1) - (Duration.minutes 1))) . catch of
+            case (create_new_time 0 - (Period.days 1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->

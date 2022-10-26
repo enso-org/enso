@@ -66,7 +66,6 @@ spec =
             duration_1<duration_2 . should_be_false
 
         Test.specify "should not mix Duration and Period" <|
-            handler err = err.is_error . should_be_true
             durations = [(Duration.hours 1), (Duration.zero), (Duration.new hours=1 seconds=30)]
             periods = [(Period.days 1), (Period.new 0), (Period.years 30), (Period.new years=3 months=2)]
             durations.each duration->
