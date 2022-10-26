@@ -16,3 +16,6 @@ type Expression
 
 type Expression_Syntax
     Error message:Text
+
+    to_display_text : Text
+    to_display_text self = "Expression_Syntax.Error: '" + self.message + "'"

@@ -3,6 +3,7 @@ package org.enso.table.expressions;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
 import java.time.LocalDate;
@@ -59,12 +60,24 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private Value executeMethod(String name, Value... args) {
     Value method = getMethod.apply(name);
     if (!method.canExecute()) {
-      throw new IllegalArgumentException("Method " + name + " not found");
+      throw new IllegalArgumentException("Method " + name + " not found.");
     }
 
     Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
     objects[0] = wrapAsColumn(args[0]);
-    return method.execute(objects);
+
+    try {
+      var result = method.execute(objects);
+      if (result.canExecute()) {
+        throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+      }
+      return result;
+    } catch (PolyglotException e) {
+      if (e.getMessage().startsWith("Type error: expected a function")) {
+        throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+      }
+      throw e;
+    }
   }
 
   @Override
