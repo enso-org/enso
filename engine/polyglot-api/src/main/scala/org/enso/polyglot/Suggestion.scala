@@ -14,6 +14,10 @@ import java.util.UUID
       name  = "suggestionModule"
     ),
     new JsonSubTypes.Type(
+      value = classOf[Suggestion.Type],
+      name  = "suggestionType"
+    ),
+    new JsonSubTypes.Type(
       value = classOf[Suggestion.Constructor],
       name  = "suggestionConstructor"
     ),
@@ -54,6 +58,7 @@ object Suggestion {
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
         case _: Module      => Module
+        case _: Type        => Type
         case _: Constructor => Constructor
         case _: Method      => Method
         case _: Conversion  => Conversion
@@ -63,6 +68,9 @@ object Suggestion {
 
     /** The module suggestion. */
     case object Module extends Kind
+
+    /** The type suggestion. */
+    case object Type extends Kind
 
     /** The constructor suggestion. */
     case object Constructor extends Kind
@@ -89,6 +97,7 @@ object Suggestion {
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
         case _: Module      => None
+        case _: Type        => None
         case _: Constructor => None
         case method: Method => Some(method.selfType)
         case _: Conversion  => None
@@ -102,6 +111,7 @@ object Suggestion {
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
         case module: Module           => module.documentation
+        case tpe: Type                => tpe.documentation
         case constructor: Constructor => constructor.documentation
         case method: Method           => method.documentation
         case conv: Conversion         => conv.documentation
@@ -184,11 +194,48 @@ object Suggestion {
       s",reexport=$reexport)"
   }
 
-  /** A value constructor.
+  /** A type definition.
     *
     * @param externalId the external id
     * @param module the module name
     * @param name the atom name
+    * @param params the list of parameters
+    * @param returnType the type of an atom
+    * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
+    * @param reexport the module re-exporting this atom
+    */
+  case class Type(
+    externalId: Option[ExternalId],
+    module: String,
+    name: String,
+    params: Seq[Argument],
+    returnType: String,
+    documentation: Option[String],
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
+  ) extends Suggestion
+      with ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Type(" +
+      s"externalId=$externalId," +
+      s"module=$module," +
+      s"name=$name," +
+      s"params=${params.map(_.toLogString(shouldMask))}," +
+      s"returnType=$returnType" +
+      s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                            else documentation) +
+      s",reexport=$reexport)"
+  }
+
+  /** A value constructor.
+    *
+    * @param externalId the external id
+    * @param module the module name
+    * @param name the constructor name
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
