@@ -53,6 +53,10 @@ pub const PADDING: f32 = 3.0;
 const MIN_THUMB_SIZE: f32 = 12.0;
 /// After an animation, the thumb will be visible for this time, before it hides again.
 const HIDE_DELAY: f32 = 1000.0;
+/// Time delay before holding down a mouse button triggers first scroll, in milliseconds.
+const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
+/// Time interval between scrolls while holding down a mouse button, in milliseconds.
+const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
 
 const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 
@@ -120,6 +124,12 @@ impl Frp {
         let hover_color = style.get_color(theme::component::slider::track::hover_color);
         let bg_default_color = style.get_color(theme::component::slider::background::color);
         let bg_hover_color = style.get_color(theme::component::slider::background::hover_color);
+
+        let click_and_hold_timer = frp::io::timer::DelayedInterval::new(network);
+        let click_and_hold_config = frp::io::timer::DelayedIntervalConfig::new(
+            CLICK_AND_HOLD_DELAY_MS,
+            CLICK_AND_HOLD_INTERVAL_MS,
+        );
 
         frp::extend! { network
 
@@ -232,6 +242,27 @@ impl Frp {
             frp.scroll_by <+ base_frp.background_click.map3(&thumb_center_px,&frp.set_thumb_size,
                 |click_position,thumb_center,thumb_size| {
                     let direction = if click_position.x > *thumb_center { 1.0 } else { -1.0 };
+                    direction * thumb_size * CLICK_JUMP_PERCENTAGE
+                });
+
+
+            // === Click and hold repeated scrolling ===
+
+            background_drag_start <- base_frp.is_dragging_background.on_true();
+            click_and_hold_timer.restart <+ background_drag_start.constant(click_and_hold_config);
+            click_and_hold_timer.stop <+ base_frp.is_dragging_background.on_false();
+
+            mouse_pos_at_timer_trigger <- mouse_position.sample(&click_and_hold_timer.on_trigger);
+            offset_from_thumb_px <- mouse_pos_at_timer_trigger.map2(&thumb_center_px,
+                |mouse_pos, thumb_center| thumb_center - mouse_pos.x);
+            offset_from_thumb <- offset_from_thumb_px.map3(&inner_length, &frp.set_max,
+                |offset_px, length_px, max| offset_px / length_px * max);
+
+            frp.scroll_by <+ offset_from_thumb.map2(&frp.set_thumb_size,
+                |mouse_offset, thumb_size| {
+                    let half_thumb_size = thumb_size / 2.0;
+                    let mouse_outside_thumb = mouse_offset.abs() > half_thumb_size;
+                    let direction = if mouse_outside_thumb { -mouse_offset.signum() } else { 0.0 };
                     direction * thumb_size * CLICK_JUMP_PERCENTAGE
                 });
 

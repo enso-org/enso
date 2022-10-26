@@ -242,6 +242,17 @@ macro_rules! extend_line2 {
 // === Utils ===
 
 /// Internal helper for `extend` macro.
+///
+/// Divide input tokens into groups separated by semicolons, expand to a call
+/// of provided $f macro with those groups passed as individual token trees.
+///
+/// ```ignore
+/// divide_on_terminator!([[path::to::my_macro] [arg1 arg2]] a b c; d e; f g h i;)
+/// ```
+/// Expands into
+/// ```ignore
+/// path::to::my_macro!([arg1 arg2] [[a b c] [d e] [f g h i]]);
+/// ```
 #[macro_export]
 macro_rules! divide_on_terminator {
     ($f:tt $($ts:tt)*) => { $crate::_divide_on_terminator! { $f [] [] $($ts)* } };
