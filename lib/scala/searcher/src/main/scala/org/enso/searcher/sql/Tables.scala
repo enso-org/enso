@@ -85,11 +85,12 @@ case class ModuleVersionRow(module: String, digest: Array[Byte])
 object SuggestionKind {
 
   val MODULE: Byte      = 0
-  val CONSTRUCTOR: Byte = 1
-  val METHOD: Byte      = 2
-  val FUNCTION: Byte    = 3
-  val LOCAL: Byte       = 4
-  val CONVERSION: Byte  = 5
+  val TYPE: Byte        = 1
+  val CONSTRUCTOR: Byte = 2
+  val METHOD: Byte      = 3
+  val FUNCTION: Byte    = 4
+  val LOCAL: Byte       = 5
+  val CONVERSION: Byte  = 6
 
   /** Create a database suggestion kind.
     *
@@ -99,6 +100,7 @@ object SuggestionKind {
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
       case Suggestion.Kind.Module      => MODULE
+      case Suggestion.Kind.Type        => TYPE
       case Suggestion.Kind.Constructor => CONSTRUCTOR
       case Suggestion.Kind.Method      => METHOD
       case Suggestion.Kind.Conversion  => CONVERSION
@@ -267,5 +269,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 8
+  val CurrentVersion: Long = 9
 }
