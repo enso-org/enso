@@ -58,6 +58,7 @@ object Suggestions {
     ),
     selfType              = "MyType",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = Some("Lovely"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
@@ -96,6 +97,7 @@ object Suggestions {
     ),
     selfType              = "Any",
     returnType            = "Any",
+    isStatic              = false,
     documentation         = Some("Lovely"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
@@ -110,6 +112,7 @@ object Suggestions {
     ),
     selfType              = "Number",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = None,
     documentationHtml     = None,
     documentationSections = None
@@ -124,6 +127,7 @@ object Suggestions {
     ),
     selfType              = "Integer",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = Some("Blah, blah"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
