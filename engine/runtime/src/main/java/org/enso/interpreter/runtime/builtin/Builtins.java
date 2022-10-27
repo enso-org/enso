@@ -3,11 +3,14 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.CompilerDirectives;
 
 import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
@@ -45,14 +48,13 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
 
   private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
-  private static final Map<String, Method> loadedBbuiltinMethods;
+  private static final Map<String, LoadedBuiltinMethod> loadedBbuiltinMethods;
 
   static {
     loadedBuiltinConstructors = readBuiltinTypes();
@@ -284,9 +286,9 @@ public class Builtins {
   private Map<String, Map<String, LoadedBuiltinMethod>> readBuiltinMethodsMetadata(
       Map<String, LoadedBuiltinMethod> classes, ModuleScope scope) {
 
-    Map<String, Map<String, Method>> methodNodes = new HashMap<>();
+    Map<String, Map<String, LoadedBuiltinMethod>> methodNodes = new HashMap<>();
     classes.forEach(
-        (fullBuiltinName, meth) -> {
+        (fullBuiltinName, builtin) -> {
           String[] builtinName = fullBuiltinName.split("\\.");
           if (builtinName.length != 2) {
             throw new CompilerError("Invalid builtin metadata for " + fullBuiltinName);
@@ -296,22 +298,22 @@ public class Builtins {
           Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
               .ifPresentOrElse(
                   constr -> {
-                    Map<String, Method> atomNodes = methodNodes.get(builtinMethodOwner);
+                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
                     if (atomNodes == null) {
                       atomNodes = new HashMap<>();
                       // TODO: move away from String Map once Builtins are gone
                       methodNodes.put(constr.getName(), atomNodes);
                     }
-                    atomNodes.put(builtinMethodName, meth);
+                    atomNodes.put(builtinMethodName, builtin);
                   },
                   () -> {
-                    Map<String, Method> atomNodes = methodNodes.get(builtinMethodOwner);
+                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
                     if (atomNodes == null) {
                       atomNodes = new HashMap<>();
                       // TODO: move away from String Map once Builtins are gone
                       methodNodes.put(builtinMethodOwner, atomNodes);
                     }
-                    atomNodes.put(builtinMethodName, meth);
+                    atomNodes.put(builtinMethodName, builtin);
                   });
         });
     return methodNodes;
@@ -339,48 +341,33 @@ public class Builtins {
       ioe.printStackTrace();
     }
 
-    lines.forEach(
-        line -> {
-          String[] builtinMeta = line.split(":");
-          if (builtinMeta.length < 2 || builtinMeta.length > 4) {
-            throw new CompilerError("Invalid builtin metadata in: " + line);
-          }
-          String[] builtinName = builtinMeta[0].split("\\.");
-          if (builtinName.length != 2) {
-            throw new CompilerError("Invalid builtin metadata in : " + line);
-          }
-          try {
-            @SuppressWarnings("unchecked")
-            Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-            String builtinMethodOwner = builtinName[0];
-            String builtinMethodName = builtinName[1];
-            boolean isStatic = builtinMeta.length == 3 ? java.lang.Boolean.valueOf(builtinMeta[2]) : false;
-            Owner owner = builtinMeta.length == 4 ? Owner.valueOf(builtinMeta[3]) : Owner.TYPE;
-            Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
-                .ifPresentOrElse(
-                    constr -> {
-                      Map<String, LoadedBuiltinMethod> atomNodes =
-                          methodNodes.get(builtinMethodOwner);
-                      if (atomNodes == null) {
-                        atomNodes = new HashMap<>();
-                        methodNodes.put(constr.getName(), atomNodes);
-                      }
-                      atomNodes.put(builtinMethodName, new LoadedBuiltinMethod(clazz, isStatic, owner));
-                    },
-                    () -> {
-                      Map<String, LoadedBuiltinMethod> atomNodes =
-                          methodNodes.get(builtinMethodOwner);
-                      if (atomNodes == null) {
-                        atomNodes = new HashMap<>();
-                        methodNodes.put(builtinMethodOwner, atomNodes);
-                      }
-                      atomNodes.put(builtinMethodName, new LoadedBuiltinMethod(clazz, isStatic, owner));
-                    });
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          }
-        });
-    return methodNodes;
+    return lines.stream()
+            .map(
+                line -> {
+                  String[] builtinMeta = line.split(":");
+                  if (builtinMeta.length < 2 || builtinMeta.length > 4) {
+                    throw new CompilerError("Invalid builtin metadata in: " + line);
+                  }
+                  String[] builtinName = builtinMeta[0].split("\\.");
+                  if (builtinName.length != 2) {
+                    throw new CompilerError("Invalid builtin metadata in : " + line);
+                  }
+                  boolean isStatic = builtinMeta.length == 3 ? java.lang.Boolean.valueOf(builtinMeta[2]) : false;
+                  Owner owner = builtinMeta.length == 4 ? Owner.valueOf(builtinMeta[3]) : Owner.TYPE;
+
+                  try {
+                    @SuppressWarnings("unchecked")
+                    Class<BuiltinRootNode> clazz =
+                            (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
+                    Method meth = clazz.getMethod("makeFunction", Language.class);
+                    LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, owner);
+                    return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
+                  } catch (ClassNotFoundException | NoSuchMethodException e) {
+                    e.printStackTrace();
+                    throw new CompilerError("Invalid builtin method " + line);
+                  }
+                })
+           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**
@@ -637,10 +624,9 @@ public class Builtins {
     return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 
-  private record LoadedBuiltinMethod(Class<BuiltinRootNode> clazz, boolean isStatic, Owner owner) {
+  private record LoadedBuiltinMethod(Method meth, boolean isStatic, Owner owner) {
     Optional<BuiltinFunction> toFunction(Language language) {
       try {
-        Method meth = clazz.getMethod("makeFunction", Language.class);
         return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isStatic, owner));
       } catch (Exception e) {
         e.printStackTrace();
