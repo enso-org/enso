@@ -225,14 +225,15 @@ pub struct Face {
 impl Face {
     /// Load the font face from memory. Corrupted faces will be reported.
     fn load_from_memory(name: &str, embedded: &Embedded) -> Option<Face> {
-        embedded.data.get(name).and_then(|data| {
-            let result =
-                ttf::OwnedFace::from_vec((**data).into(), TTF_FONT_FACE_INDEX).map(|ttf| {
-                    let msdf = msdf::OwnedFace::load_from_memory(data);
-                    Face { msdf, ttf }
-                });
-            result.map_err(|err| error!("Error parsing font: {}", err)).ok()
-        })
+        let result = Self::load_from_memory_internal(name, embedded);
+        result.map_err(|err| error!("Error parsing font: {}", err)).ok()
+    }
+
+    fn load_from_memory_internal(name: &str, embedded: &Embedded) -> anyhow::Result<Face> {
+        let data = embedded.data.get(name).ok_or_else(|| anyhow!("Font '{}' not found", name))?;
+        let ttf = ttf::OwnedFace::from_vec((**data).into(), TTF_FONT_FACE_INDEX)?;
+        let msdf = msdf::OwnedFace::load_from_memory(data)?;
+        Ok(Face { msdf, ttf })
     }
 }
 

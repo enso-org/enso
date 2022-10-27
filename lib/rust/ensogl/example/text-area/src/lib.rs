@@ -175,20 +175,12 @@ fn init(app: Application) {
     area.set_long_text_truncation_mode(true);
     area.set_view_width(60.0);
     // area.set_content("abcdefg");
-    // area.set_font("default");
+    // area.set_font("mplus1p");
     area.focus();
     area.hover();
 
     let borders = Borders::default();
     borders.show(&app, &area);
-
-    // FIXME: fix forward_panic_hook_to_console
-    // FIXME: fix test in monitor
-
-    // TODO: Task na unit testyy do textow
-    // TODO: next PR - > Text area to gui component.
-    // TODO: M1 Plus
-
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());

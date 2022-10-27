@@ -16,6 +16,9 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+#![feature(specialization)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 
 use crate::prelude::*;
 use binding::*;
@@ -30,8 +33,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
+// use web::JsValueOps;
 
-
+use enso_web::prelude::JsValueOps;
 
 mod binding;
 pub mod emscripten_data;
@@ -128,15 +132,15 @@ impl OwnedFace {
     ///
     /// Loads font from any format which freetype library can handle. See
     /// [https://www.freetype.org/freetype2/docs/index.html] for reference.
-    pub fn load_from_memory(data: &[u8]) -> Self {
+    pub fn load_from_memory(data: &[u8]) -> anyhow::Result<Self> {
         if cfg!(target_arch = "wasm32") {
             Self::load_from_memory_wasm(data)
         } else {
-            Self::mock_font()
+            Ok(Self::mock_font())
         }
     }
 
-    fn load_from_memory_wasm(data: &[u8]) -> Self {
+    fn load_from_memory_wasm(data: &[u8]) -> anyhow::Result<Self> {
         let array_type_js = JsValue::from_str(ccall_types::ARRAY);
         let number_type_js = JsValue::from_str(ccall_types::NUMBER);
         let data_js_array = Uint8Array::from(data);
@@ -149,7 +153,8 @@ impl OwnedFace {
         let params = web::Array::of2(&data_js, &data_size_js);
 
         let handle = emscripten_call_function(function_name, return_type, param_types, params);
-        OwnedFace { handle }
+        let handle = handle.map_err(|e| anyhow::Error::msg(e.print_to_string()));
+        handle.map(|handle| OwnedFace { handle })
     }
 
     /// Set font's variation axis.

@@ -281,7 +281,7 @@ impl WorldData {
     }
 
     fn init_environment(&self) {
-        init_wasm();
+        init_global();
     }
 
     fn init_debug_hotkeys(&self) {

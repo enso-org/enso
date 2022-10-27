@@ -3,12 +3,31 @@
 #![allow(clippy::too_many_arguments)]
 
 use enso_web as web;
-
+use enso_web::JsValue;
 
 
 // ================
 // === Bindings ===
 // ================
+
+auto trait NotResult {}
+impl<T, E> !NotResult for Result<T, E> {}
+
+trait MockBindingResultDefault {
+    fn mock_binding_result_default() -> Self;
+}
+
+impl<T: NotResult + Default> MockBindingResultDefault for T {
+    default fn mock_binding_result_default() -> Self {
+        Default::default()
+    }
+}
+
+impl<T: Default, E> MockBindingResultDefault for Result<T, E> {
+    fn mock_binding_result_default() -> Self {
+        Ok(Default::default())
+    }
+}
 
 macro_rules! define_bindings {
     ($( $(#$meta:tt)* pub fn $fn:ident $args:tt $(-> $ret:ty)?; )*) => {
@@ -39,7 +58,7 @@ macro_rules! define_native_binding {
         pub fn $fn $args {}
     };
     ( $(#$meta:tt)* pub fn $fn:ident $args:tt -> $ret:ty; ) => {
-        pub fn $fn $args -> $ret { Default::default() }
+        pub fn $fn $args -> $ret { MockBindingResultDefault::mock_binding_result_default() }
     };
 }
 
@@ -50,13 +69,13 @@ define_bindings! {
     #[wasm_bindgen(js_name = "isInitialized")]
     pub fn is_emscripten_runtime_initialized() -> bool;
 
-    #[wasm_bindgen(js_name = "ccall")]
+    #[wasm_bindgen(js_name = "ccall", catch)]
     pub fn emscripten_call_function(
         name: &str,
         return_type: &str,
         types: web::Array,
         values: web::Array,
-    ) -> web::JsValue;
+    ) -> Result<web::JsValue, web::JsValue>;
 
     #[wasm_bindgen(js_name = "getValue")]
     pub fn emscripten_get_value_from_memory(address: usize, a_type: &str) -> web::JsValue;
