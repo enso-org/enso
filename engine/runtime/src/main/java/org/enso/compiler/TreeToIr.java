@@ -1099,7 +1099,7 @@ final class TreeToIr {
     Option<List<IR$Name$Literal>> hidingNames = Option.apply(imp.getHiding()).map(
             hiding -> buildNameSequence(hiding.getBody()));
     return new IR$Module$Scope$Import$Module(
-      qualifiedName, rename, isAll, onlyNames,
+      qualifiedName, rename, isAll || onlyNames.isDefined() || hidingNames.isDefined(), onlyNames,
       hidingNames, getIdentifiedLocation(imp), false,
       meta(), diag()
     );

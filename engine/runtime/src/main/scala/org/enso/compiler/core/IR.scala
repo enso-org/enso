@@ -739,6 +739,7 @@ object IR {
             |rename = $rename,
             |onlyNames = $onlyNames,
             |hiddenNames = $hiddenNames,
+            |isAll = $isAll,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,

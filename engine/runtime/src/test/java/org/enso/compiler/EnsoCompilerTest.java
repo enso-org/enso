@@ -87,6 +87,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testImportTrue() throws Exception {
+    parseTest("""
+    from Standard.Base import True
+    """);
+  }
+
+  @Test
   public void testMeaningOfWorld() throws Exception {
     parseTest("""
     import Standard.Base.IO
