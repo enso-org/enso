@@ -20,10 +20,6 @@ public class BuiltinFunction {
     return this.isStatic;
   }
 
-  /*public boolean isModuleOwner() {
-    return this.owner == Owner.MODULE;
-  }*/
-
   public Function getFunction() {
     return this.fun;
   }
