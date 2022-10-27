@@ -35,8 +35,8 @@ macro_rules! block {
 }
 
 macro_rules! test {
-    ( $code:expr, $block:tt ) => {
-        test($code, block![$block]);
+    ( $code:expr, $($statements:tt)* ) => {
+        test($code, block![$( $statements )*]);
     }
 }
 
@@ -123,9 +123,9 @@ fn doc_comments() {
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
         (Documented
-         (#((Section " The Identity Function\n")
+         (#((Section " The Identity Function") (Section "\n")
            (Section "\n")
-           (Section "Arguments:\n")
+           (Section "Arguments:") (Section "\n")
            (Section "- x: value to do nothing to"))
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
@@ -577,6 +577,8 @@ fn precedence() {
                     (OprApp (Ident y) (Ok "*") (Ident z)))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("x - 1 + 2",
+        (OprApp (OprApp (Ident x) (Ok "-") (Number () "1" ())) (Ok "+") (Number () "2" ())));
 }
 
 #[test]
@@ -920,11 +922,12 @@ x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "part of the string\n")
-           (Section "   3-spaces indented line, part of the Text Block\n")
-           (Section "this does not end the string -> '''\n")
+         #((Section "part of the string") (Section "\n")
+           (Section "   3-spaces indented line, part of the Text Block") (Section "\n")
+           (Section "this does not end the string -> '''") (Section "\n")
            (Section "\n")
-           (Section "`also` part of the string\n")))
+           (Section "`also` part of the string")))
+        ()
         (Ident x)
     ];
     test(code, expected);
@@ -937,6 +940,7 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
+
     let code = "  x = \"\"\"\n    Indented multiline\n  x";
     #[rustfmt::skip]
     let expected = block![
@@ -945,11 +949,7 @@ x"#;
     ];
     test(code, expected);
     let code = "'''\n    \\nEscape at start\n";
-    #[rustfmt::skip]
-    let expected = block![
-        (TextLiteral #((Escape '\n') (Section "Escape at start\n")))
-    ];
-    test(code, expected);
+    test!(code, (TextLiteral #((Escape '\n') (Section "Escape at start"))) ());
     let code = "x =\n x = '''\n  x\nx";
     #[rustfmt::skip]
     let expected = block![
@@ -960,6 +960,9 @@ x"#;
     test(code, expected);
     test!("foo = bar '''\n baz",
         (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
+    test!("'''\n \\t'", (TextLiteral #((Escape '\t') (Section "'"))));
+    test!("'''\n x\n \\t'",
+        (TextLiteral #((Section "x") (Section "\n") (Escape '\t') (Section "'"))));
 }
 
 #[test]
@@ -1168,8 +1171,6 @@ fn tuple_literals() {
 
 #[test]
 fn numbers() {
-    test!("100_000", (Number () "100_000" ()));
-    test!("10_000.99", (Number () "10_000" ("." "99")));
     test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
     test!("1 .0",
         (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
@@ -1179,6 +1180,21 @@ fn numbers() {
     test!("0o122137", (Number "0o" "122137" ()));
     test!("0xAE2F14", (Number "0x" "AE2F14" ()));
     test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
+}
+
+#[test]
+// This syntax cannot be used until we remove old-nondecimal number support, which is
+// needed for compatibility until the old parser is fully replaced.
+#[ignore]
+fn new_delimited_numbers() {
+    test!("100_000", (Number () "100_000" ()));
+    test!("10_000.99", (Number () "10_000" ("." "99")));
+}
+
+#[test]
+fn old_nondecimal_numbers() {
+    test!("2_01101101", (Number "2_" "01101101" ()));
+    test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
 }
 
 

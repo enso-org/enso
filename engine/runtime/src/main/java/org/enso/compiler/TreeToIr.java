@@ -291,7 +291,7 @@ final class TreeToIr {
         }
         var text = buildTextConstant(body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
-        var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), false, meta(), diag());
+        var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
       }
       case Tree.Documented doc -> {
@@ -439,12 +439,14 @@ final class TreeToIr {
                   && ".".equals(oprApp.getOpr().getRight().codeRepr())
                   && oprApp.getRhs() instanceof Tree.Ident) {
             func = translateExpression(oprApp.getRhs(), true);
-            if (oprApp.getLhs() == null) {
+            if (oprApp.getLhs() == null && args.isEmpty()) {
               return func;
             }
-            var self = translateExpression(oprApp.getLhs(), false);
-            var loc = getIdentifiedLocation(oprApp.getLhs());
-            args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
+            if (oprApp.getLhs() != null) {
+              var self = translateExpression(oprApp.getLhs(), false);
+              var loc = getIdentifiedLocation(oprApp.getLhs());
+              args.add(new IR$CallArgument$Specified(Option.empty(), self, loc, meta(), diag()));
+            }
           } else if (args.isEmpty()) {
             return null;
           } else {
@@ -594,12 +596,17 @@ final class TreeToIr {
           }
           while (expr instanceof Tree.Documented doc) {
             expr = doc.getExpression();
-            // Emit the documentation, unless it was at the end of the block.
-            if (expr != null) {
-              expressions.add(translateComment(doc, doc.getDocumentation()));
-            }
+            expressions.add(translateComment(doc, doc.getDocumentation()));
           }
           last = translateExpression(expr, false);
+        }
+        // If the block ended in a documentation node without an expression, last may be null;
+        // the return value of the block is a doc comment.
+        // (This is to match the behavior of AstToIr; after the parser transition, we should probably
+        // ignore the orphaned documentation and return the last actual expression in the block.)
+        if (last == null && expressions.size() > 0) {
+          last = expressions.get(expressions.size() - 1);
+          expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
         yield new IR$Expression$Block(list, last, getIdentifiedLocation(body), false, meta(), diag());

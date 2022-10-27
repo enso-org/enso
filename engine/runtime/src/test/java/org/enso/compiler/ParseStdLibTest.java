@@ -173,84 +173,21 @@ public final class ParseStdLibTest extends TestCase {
         }
     }
 
-    private static final Set<String> KNOWN_TO_FAIL;
+    private static final Set<String> SHOULD_FAIL;
     static {
-        KNOWN_TO_FAIL = new HashSet<>();
-        KNOWN_TO_FAIL.addAll(Arrays.asList(
-            "Data/Filter_Condition.enso",
+        SHOULD_FAIL = new HashSet<>();
+        SHOULD_FAIL.addAll(Arrays.asList(
+            // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
-            "Data/Interval/Bound.enso",
-            "Data/Interval.enso",
-            "Data/Json.enso",
-            "Data/Json/Internal.enso",
-            "Data/List.enso",
-            "Data/Locale.enso",
-            "Data/Map.enso",
-            "Data/Maybe.enso",
-            "Data/Numbers.enso",
-            "Data/Ordering.enso",
-            "Data/Ordering/Sort_Direction.enso",
-            "Data/Pair.enso",
-            "Data/Range.enso",
-            "Data/Regression.enso",
-            "Data/Statistics.enso",
-            "Data/Statistics/Rank_Method.enso",
-            "Data/Text/Case.enso",
-            "Data/Text/Case_Sensitivity.enso",
-            "Data/Text/Encoding.enso",
-            "Data/Text/Extensions.enso",
-            "Data/Text/Line_Ending_Style.enso",
-            "Data/Text/Matching.enso",
             "Data/Text/Regex/Engine/Default.enso",
-            "Data/Text/Regex/Engine.enso",
-            "Data/Text/Regex.enso",
-            "Data/Text/Regex_Matcher.enso",
-            "Data/Text/Regex/Option.enso",
-            "Data/Text/Regex/Regex_Mode.enso",
-            "Data/Text/Span.enso",
-            "Data/Text/Text_Matcher.enso",
-            "Data/Text/Text_Ordering.enso",
-            "Data/Text/Text_Sub_Range.enso",
-            "Data/Time/Date.enso",
-            "Data/Time/Date_Period.enso",
-            "Data/Time/Date_Time.enso",
-            "Data/Time/Duration.enso",
-            "Data/Time/Time_Of_Day.enso",
-            "Data/Time/Time_Zone.enso",
-            "Data/Vector.enso",
-            "Error/Common.enso",
-            "Error/Problem_Behavior.enso",
             "Function.enso",
-            "Main.enso",
-            "Meta.enso",
-            "Meta/Enso_Project.enso",
-            "Network/Http.enso",
-            "Network/Http/Form.enso",
-            "Network/Http/Header.enso",
-            "Network/Http/Method.enso",
-            "Network/Http/Request/Body.enso",
-            "Network/Http/Request.enso",
-            "Network/Http/Response/Body.enso",
-            "Network/Http/Response.enso",
-            "Network/Http/Status_Code.enso",
-            "Network/Http/Version.enso",
-            "Network/Proxy.enso",
-            "Network/URI.enso",
-            "Random.enso",
-            "Runtime.enso",
-            "Runtime/Extensions.enso",
-            "System/File.enso",
-            "System/File/Existing_File_Behavior.enso",
-            "System/File/File_Permissions.enso",
-            "System/File/Option.enso",
-            "System/Platform.enso",
-            "System/Process.enso",
-            "System/Process/Exit_Code.enso",
-            "Warning.enso"
+            "Internal/Base_Generator.enso",
+            "Data/Sort_Column_Selector.enso",
+            "Data/Value_Type.enso"
         ));
     }
     private static boolean isKnownToWork(String name) {
-        return !KNOWN_TO_FAIL.contains(name);
+        return !SHOULD_FAIL.contains(name);
     }
 
     private static final class Dump {
