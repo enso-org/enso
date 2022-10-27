@@ -681,4 +681,9 @@ public final class Module implements TruffleObject {
         MethodNames.Module.GET_ASSOCIATED_TYPE,
         MethodNames.Module.EVAL_EXPRESSION);
   }
+
+  @Override
+  public String toString() {
+    return "Module[" + name + ']';
+  }
 }
