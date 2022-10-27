@@ -207,23 +207,30 @@ pub fn ast_as_import_match(ast: &Ast) -> Option<known::Match> {
     is_match_import(&macro_match).then_some(macro_match)
 }
 
-/// Check if the given macro match node is an import declaration.
-pub fn is_match_import(ast: &known::Match) -> bool {
+/// If the given AST node is a qualified import declaration (`import <module name>`), returns it as
+/// a Match (which is the only shape capable of storing import declarations). Returns `None`
+/// otherwise.
+pub fn is_match_qualified_import(ast: &known::Match) -> bool {
     let segment = &ast.segs.head;
     let keyword = crate::identifier::name(&segment.head);
-    if keyword.contains_if(|str| *str == UNQUALIFIED_IMPORT_KEYWORD) {
-        let second_segment = &ast.segs.tail.first();
-        match second_segment {
-            Some(seg) => {
-                let keyword_2 = crate::identifier::name(&seg.head);
-                if keyword_2.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD) {
-                    return true;
-                }
-            }
-            None => return false,
-        }
-    }
     keyword.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD)
+}
+
+/// If the given AST node is an unqualified import declaration (`from <module name> import <...>`),
+/// returns it as a Match (which is the only shape capable of storing import declarations). Returns
+/// `None` otherwise.
+pub fn is_match_unqualified_import(ast: &known::Match) -> bool {
+    let first_segment = &ast.segs.head;
+    let first_keyword = crate::identifier::name(&first_segment.head);
+    let second_segment = &ast.segs.tail.first();
+    let second_keyword = second_segment.and_then(|s| crate::identifier::name(&s.head));
+    first_keyword == Some(UNQUALIFIED_IMPORT_KEYWORD)
+        && second_keyword == Some(QUALIFIED_IMPORT_KEYWORD)
+}
+
+/// Check if the given macro match node is an import declaration.
+pub fn is_match_import(ast: &known::Match) -> bool {
+    is_match_qualified_import(ast) || is_match_unqualified_import(ast)
 }
 
 /// Check if the given ast node is an import declaration.
