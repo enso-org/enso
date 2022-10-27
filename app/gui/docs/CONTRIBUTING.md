@@ -278,21 +278,18 @@ have prepared several scripts which maximally automate the process:
 
 The following branches are used to develop the product:
 
-- **wip/[github_user_name]/[feature]**  
-  Feature branches. These are temporary branches used by the team to develop a
-  particular feature.
-- **develop**  
-  Contains the most recent changes to the product. After successful review, the
-  feature branches are merged here. Each commit to this branch will result in a
-  nightly build of the product accessible as CI artifacts.
+- **wip/[github_user_name]/[feature]** Feature branches. These are temporary
+  branches used by the team to develop a particular feature.
+- **develop** Contains the most recent changes to the product. After successful
+  review, the feature branches are merged here. Each commit to this branch will
+  result in a nightly build of the product accessible as CI artifacts.
 
-- **unstable**  
-  Contains only those commits which can be considered unstable product releases.
-  Each commit to this branch will result in an unstable release of the product
-  and will be published on GitHub as a pre-release. The build version and build
-  description will be automatically fetched from the newest `CHANGELOG.md` entry
-  and will fail if the version will not be of the form
-  `[major].[minor].[patch]-[sfx]`, where `[sfx]` is one of `alpha.[n]`,
+- **unstable** Contains only those commits which can be considered unstable
+  product releases. Each commit to this branch will result in an unstable
+  release of the product and will be published on GitHub as a pre-release. The
+  build version and build description will be automatically fetched from the
+  newest `CHANGELOG.md` entry and will fail if the version will not be of the
+  form `[major].[minor].[patch]-[sfx]`, where `[sfx]` is one of `alpha.[n]`,
   `beta.[n]`, or `rc.[n]`, where `[n]` is an unstable build number.
 
 - **stable** Contains only those commits which can be considered stable product
@@ -312,9 +309,8 @@ PR, simply add `[ci build]` anywhere in the PR description.
 
 By default, CI would fail if the `CHANGELOG.md` file does not need to be
 updated. However, sometimes there are PRs that does not change anything
-significant in the final product. You can then simply add
-`[ci no changelog needed]` anywhere in your PR description to skip this
-assertion.
+significant in the final product. You can then simply add the 'CI: No changelog
+needed' label to the PR to skip this assertion.
 
 ### Publishing Results
 
