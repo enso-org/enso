@@ -932,6 +932,7 @@ pub enum SuggestionEntry {
         module:                 String,
         arguments:              Vec<SuggestionEntryArgument>,
         return_type:            String,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
@@ -945,6 +946,8 @@ pub enum SuggestionEntry {
         arguments:              Vec<SuggestionEntryArgument>,
         self_type:              String,
         return_type:            String,
+        is_static:              bool,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
@@ -1104,6 +1107,7 @@ pub struct SuggestionsDatabaseModification {
     pub documentation:      Option<FieldUpdate<String>>,
     pub documentation_html: Option<FieldUpdate<String>>,
     pub scope:              Option<FieldUpdate<SuggestionEntryScope>>,
+    pub reexport:           Option<FieldUpdate<String>>,
 }
 
 /// Notification about change in the suggestions database.

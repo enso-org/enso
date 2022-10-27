@@ -176,7 +176,7 @@ impl Display for Component {
             Data::FromDatabase { entry, .. } => {
                 let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
                 let self_type_ref = entry.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
+                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
                     write!(f, "{} {}", self_name, entry_name)
@@ -332,10 +332,11 @@ pub(crate) mod tests {
     ) -> model::suggestion_database::Entry {
         model::suggestion_database::Entry {
             kind:               Kind::Function,
-            module:             module.clone(),
+            defined_in:         module.clone(),
             name:               name.to_owned(),
             arguments:          vec![],
             return_type:        "Standard.Builtin.Integer".to_string(),
+            reexported_in:      None,
             documentation_html: None,
             self_type:          None,
             scope:              model::suggestion_database::entry::Scope::Everywhere,
@@ -349,12 +350,12 @@ pub(crate) mod tests {
         let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
         let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
         let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
-        let fun1 = mock_function(&top_module_1.module, "fun1");
-        let fun2 = mock_function(&top_module_1.module, "fun2");
-        let fun3 = mock_function(&top_module_2.module, "fun3");
-        let fun4 = mock_function(&sub_module_1.module, "fun4");
-        let fun5 = mock_function(&sub_module_2.module, "fun5");
-        let fun6 = mock_function(&sub_module_3.module, "fun6");
+        let fun1 = mock_function(&top_module_1.defined_in, "fun1");
+        let fun2 = mock_function(&top_module_1.defined_in, "fun2");
+        let fun3 = mock_function(&top_module_2.defined_in, "fun3");
+        let fun4 = mock_function(&sub_module_1.defined_in, "fun4");
+        let fun5 = mock_function(&sub_module_2.defined_in, "fun5");
+        let fun6 = mock_function(&sub_module_3.defined_in, "fun6");
         let all_entries = [
             top_module_1,
             top_module_2,
@@ -411,8 +412,8 @@ pub(crate) mod tests {
     fn filtering_component_list() {
         let top_module = mock_module("test.Test.TopModule");
         let sub_module = mock_module("test.Test.TopModule.SubModule");
-        let fun1 = mock_function(&top_module.module, "fun1");
-        let funx2 = mock_function(&sub_module.module, "funx1");
+        let fun1 = mock_function(&top_module.defined_in, "fun1");
+        let funx2 = mock_function(&sub_module.defined_in, "funx1");
         let all_entries = [&top_module, &sub_module, &fun1, &funx2];
         let suggestion_db = model::SuggestionDatabase::new_empty();
         for (id, entry) in all_entries.into_iter().enumerate() {

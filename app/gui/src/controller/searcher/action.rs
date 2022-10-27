@@ -5,7 +5,10 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::CodeToInsert;
 
+use crate::model::SuggestionDatabase;
+use double_representation::import;
 use double_representation::module;
+
 
 
 // ==============
@@ -31,15 +34,17 @@ pub enum Suggestion {
 
 impl Suggestion {
     /// Return the code to be inserted in searcher input upon picking suggestion.
-    pub fn code_to_insert(
-        &self,
-        current_module: Option<&module::QualifiedName>,
-        generate_this: bool,
-    ) -> CodeToInsert {
+    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self {
-            Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
-            Suggestion::Hardcoded(s) =>
-                CodeToInsert { code: s.code.to_owned(), imports: default() },
+            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
+            Suggestion::Hardcoded(s) => s.code.into(),
+        }
+    }
+
+    pub(crate) fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
+        match self {
+            Suggestion::FromDatabase(s) => s.required_imports(db),
+            Suggestion::Hardcoded(s) => None,
         }
     }
 

@@ -4,9 +4,11 @@ use crate::prelude::*;
 
 use crate::model::module::MethodId;
 
+use ast::opr;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::identifier::ReferentName;
+use double_representation::import;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -21,10 +23,10 @@ use std::collections::BTreeSet;
 // === Export ===
 // ==============
 
+use crate::model::SuggestionDatabase;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
-
 
 
 // =================
@@ -227,11 +229,11 @@ pub enum Scope {
 /// Represents code snippet and the imports needed for it to work.
 /// Typically is module-specific, as different modules may require different imports.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodeToInsert {
+pub struct CodeToInsert<'a> {
     /// Code to be inserted.
-    pub code:    String,
-    /// Modules that need to be imported when inserting this code.
-    pub imports: BTreeSet<module::QualifiedName>,
+    pub code:   Cow<'a, str>,
+    /// An import which should be added to have the code working.
+    pub import: Option<import::Info>,
 }
 
 /// The Suggestion Database Entry.
@@ -239,19 +241,23 @@ pub struct CodeToInsert {
 pub struct Entry {
     /// A type of suggestion.
     pub kind:               Kind,
-    /// A module where the suggested object is defined, represented as vector of segments.
-    pub module:             module::QualifiedName,
+    /// A module where the suggested object is defined.
+    pub defined_in:         module::QualifiedName,
     /// A name of suggested object.
     pub name:               String,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments:          Vec<Argument>,
     /// A type returned by the suggested object.
-    pub return_type:        String,
+    pub return_type:        tp::QualifiedName,
+    /// A module reexporting this entity.
+    pub reexported_in:      Option<module::QualifiedName>,
     /// A HTML documentation associated with object.
     pub documentation_html: Option<String>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
     pub self_type:          Option<tp::QualifiedName>,
+    /// A flag set to true if the method is a static or module method.
+    pub is_static:          bool,
     /// A scope where this suggestion is visible.
     pub scope:              Scope,
     /// A name of a custom icon to use when displaying the entry.
@@ -259,71 +265,168 @@ pub struct Entry {
 }
 
 impl Entry {
+    pub fn new(
+        kind: Kind,
+        defined_in: module::QualifiedName,
+        name: impl Into<String>,
+        return_type: tp::QualifiedName,
+    ) -> Self {
+        Self {
+            kind,
+            defined_in,
+            name: name.into(),
+            arguments: vec![],
+            return_type,
+            is_static: false,
+            reexported_in: None,
+            documentation_html: None,
+            self_type: None,
+            scope: Scope::Everywhere,
+            icon_name: None,
+        }
+    }
+
+    pub fn new_method(
+        on_type: tp::QualifiedName,
+        name: impl Into<String>,
+        return_type: tp::QualifiedName,
+        is_static: bool,
+    ) -> Self {
+        let module = on_type.parent_module();
+        Self {
+            self_type: Some(on_type),
+            is_static,
+            ..Self::new(Kind::Method, module, name, return_type)
+        }
+    }
+
+    pub fn new_extension_method(
+        defined_in: module::QualifiedName,
+        on_type: tp::QualifiedName,
+        name: impl Into<String>,
+        return_type: tp::QualifiedName,
+        is_static: bool,
+    ) -> Self {
+        Self {
+            self_type: Some(on_type),
+            is_static,
+            ..Self::new(Kind::Method, defined_in, name, return_type)
+        }
+    }
+
+    pub fn new_type(defined_in: module::QualifiedName, name: impl Into<String>) -> Self {
+        let name = name.into();
+        let return_type = tp::QualifiedName::new_module_member(defined_in.clone(), name.clone());
+        Self::new(Kind::Type, defined_in, name, return_type)
+    }
+
+    pub fn new_constructor(of_type: tp::QualifiedName, name: impl Into<String>) -> Self {
+        let defined_in_module = of_type.parent_module();
+        Self {
+            self_type: Some(on_type),
+            is_static: true,
+            ..Self::new(Kind::Constructor, defined_in_module, name, of_type)
+        }
+    }
+
+    pub fn new_function(
+        defined_in: module::QualifiedName,
+        name: impl Into<String>,
+        return_type: tp::QualifiedName,
+        scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
+    ) -> Self {
+        Self {
+            scope: Scope::InModule { range: scope_range },
+            ..Self::new(Kind::Function, defined_in, name, return_type)
+        }
+    }
+
+    pub fn new_local(
+        defined_in: module::QualifiedName,
+        name: impl Into<String>,
+        return_type: impl Into<String>,
+        scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
+    ) -> Self {
+        Self {
+            scope: Scope::InModule { range: scope_range },
+            ..Self::new(Kind::Local, defined_in, name, return_type)
+        }
+    }
+
+    pub fn new_module(full_name: module::QualifiedName) -> Self {
+        let name = String::from(full_name.name());
+        let return_type = (&name).into();
+        Self::new(Kind::Module, full_name, name, return_type)
+    }
+
+    pub fn with_arguments(mut self, arguments: impl IntoIterator<Item = Argument>) -> Self {
+        self.arguments = arguments.into_iter().collect();
+        self
+    }
+
+    pub fn reexported_in(mut self, module: module::QualifiedName) -> Self {
+        self.reexported_in = Some(module);
+        self
+    }
+
+    pub fn with_documentation(mut self, html: String) -> Self {
+        self.documentation_html = Some(html);
+        self
+    }
+
+    pub fn with_icon(mut self, icon_name: IconName) -> Self {
+        self.icon_name = Some(icon_name);
+        self
+    }
+
     /// Check if this entry has self type same as the given identifier.
     pub fn has_self_type<TypeName>(&self, self_type: &TypeName) -> bool
     where TypeName: PartialEq<tp::QualifiedName> {
         self.self_type.contains(self_type)
     }
 
-    /// Describes code insertion to be done when Searcher input suggestion is picked.
-    pub fn code_to_insert(
-        &self,
-        current_module: Option<&module::QualifiedName>,
-        generate_this: bool,
-    ) -> CodeToInsert {
-        let is_local_entry = current_module.contains(&&self.module);
-        let mut imports = BTreeSet::new();
-
-        // Entry import should be skipped when:
-        // * it is a regular (i.e. non extension) method, as it will bee found dynamically through
-        //   the `self` argument;
-        // * it is an entry defined in the current module, so it is already visible.
-        let should_skip_import = self.is_regular_method() || is_local_entry;
-        if !should_skip_import {
-            imports.insert(self.module.clone());
-        }
-
-        let this_expr: Option<String> = if generate_this {
-            // TODO [mwu] Currently we support `self` generation for module atoms only.
-            //            This should be extended to any atom that is known to be nullary.
-            //            Tracked by https://github.com/enso-org/ide/issues/1299
-            if self.is_regular_module_method() {
-                if is_local_entry {
-                    // No additional import for entries defined in this module.
-                    Some(self.module.name().into())
+    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
+        match self.kind {
+            Kind::Method if generate_this && self.is_static =>
+                if let Some(self_type) = &self.self_type {
+                    format!("{}{}{}", self_type.name, opr::predefined::ACCESS, self.name).into()
                 } else {
-                    // If we are inserting an additional `self` argument, the used name must be
-                    // visible.
-                    imports.insert(self.module.clone());
-                    let mut module = self.module.clone();
-                    module.remove_main_module_segment();
-                    Some(module.name().into())
-                }
-            } else {
-                // Only nullary atoms can be generated by inserting their name.
-                None
-            }
-        } else {
-            // No "this" expression unless we have been requested to add one.
-            None
-        };
-
-        let code = match this_expr {
-            Some(this_expr) =>
-                format!("{}{}{}", this_expr, ast::opr::predefined::ACCESS, self.name),
-            None => self.name.clone(),
-        };
-
-        CodeToInsert { code, imports }
+                    format!("_{}{}", opr::predefined::ACCESS, self.name).into()
+                },
+            Kind::Method if generate_this =>
+                format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
+            _ => Cow::from(&self.name),
+        }
     }
 
-    /// Check if this is a non-extension module method.
-    // TODO [mwu] Currently we have no means to recognize module extension methods. It will be
-    //            needed for implementing https://github.com/enso-org/ide/issues/1299
-    //            Then likely separate methods `is_module_method` and `is_regular_method` should
-    //            be introduced.
-    pub fn is_regular_module_method(&self) -> bool {
-        self.has_self_type(&self.module)
+    pub fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
+        match self.kind {
+            //TODO[ao] extension methods.
+            Kind::Method if self.is_static => {
+                warn!("Checking imports of {self:?}");
+                let self_type_entry =
+                    self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp));
+                if let Some((_, entry)) = self_type_entry {
+                    entry.required_imports(db)
+                } else {
+                    self.self_type
+                        .as_ref()
+                        .map(|t| import::Info::new_single_name(&t.parent_module(), t.name.clone()))
+                }
+            }
+            Kind::Method => None,
+            Kind::Module =>
+                if let Some(reexport) = &self.reexported_in {
+                    Some(import::Info::new_single_name(reexport, self.name.clone()))
+                } else {
+                    Some(import::Info::new_qualified(&self.defined_in))
+                },
+            Kind::Atom => {
+                let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
+                Some(import::Info::new_single_name(imported_from, self.name.clone()))
+            }
+            Kind::Function | Kind::Local => None,
+        }
     }
 
     /// Returns the code which should be inserted to Searcher input when suggestion is picked,
@@ -340,7 +443,7 @@ impl Entry {
             None
         } else {
             self.self_type.as_ref().map(|self_type| MethodId {
-                module:          self.module.clone(),
+                module:          self.defined_in.clone(),
                 defined_on_type: self_type.clone(),
                 name:            self.name.clone(),
             })
@@ -352,7 +455,7 @@ impl Entry {
         let ModuleSpan { module, span } = location;
         match &self.scope {
             Scope::Everywhere => true,
-            Scope::InModule { range } => self.module == *module && range.contains(span),
+            Scope::InModule { range } => self.defined_in == *module && range.contains(span),
         }
     }
 
@@ -369,8 +472,8 @@ impl Entry {
     /// Check if this is a regular method (i.e. non-extension method).
     pub fn is_regular_method(&self) -> bool {
         let is_method = self.kind == Kind::Method;
-        let not_extension = self.self_type.contains_if(|this| this.in_module(&self.module))
-            || self.self_type.contains(&self.module);
+        let not_extension = self.self_type.contains_if(|this| this.in_module(&self.defined_in))
+            || self.self_type.contains(&self.defined_in);
         is_method && not_extension
     }
 
@@ -389,8 +492,8 @@ impl Entry {
                     default()
                 }
             },
-            Kind::Module => self.module.into_iter().collect(),
-            _ => chain_iter_and_entry_name(&self.module, self).collect(),
+            Kind::Module => self.defined_in.into_iter().collect(),
+            _ => chain_iter_and_entry_name(&self.defined_in, self).collect(),
         }
     }
 
@@ -398,15 +501,15 @@ impl Entry {
     /// the entry represents a top-level module.
     pub fn parent_module(&self) -> Option<module::QualifiedName> {
         match self.kind {
-            Kind::Module => self.module.parent_module(),
-            _ => Some(self.module.clone()),
+            Kind::Module => self.defined_in.parent_module(),
+            _ => Some(self.defined_in.clone()),
         }
     }
 
     /// Returns true if this entry is a main module of the project.
     pub fn is_main_module(&self) -> bool {
         match self.kind {
-            Kind::Module => self.module.is_main_module(),
+            Kind::Module => self.defined_in.is_main_module(),
             _ => false,
         }
     }
@@ -417,117 +520,48 @@ impl Entry {
 
 impl Entry {
     /// Create entry from the structure deserialized from the Language Server responses.
-    pub fn from_ls_entry(entry: language_server::types::SuggestionEntry) -> FallibleResult<Self> {
+    pub fn from_ls_entry(
+        mut entry: language_server::types::SuggestionEntry,
+    ) -> FallibleResult<Self> {
         use language_server::types::SuggestionEntry::*;
-        let this = match entry {
-            #[allow(unused)]
-            Type {
-                name,
-                module,
-                params,
-                documentation,
-                documentation_html,
-                documentation_sections,
-                ..
-            } => {
-                let referent_name = ReferentName::new(name.clone())?;
-                let mut module_name: module::QualifiedName = module.clone().try_into()?;
-                module_name.push_segment(referent_name);
-                let return_type = module_name.to_string();
-                Self {
-                    name,
-                    arguments: params,
-                    return_type,
-                    documentation_html: Self::make_html_docs(documentation, documentation_html),
-                    module: module.try_into()?,
-                    self_type: None,
-                    kind: Kind::Type,
-                    scope: Scope::Everywhere,
-                    icon_name: find_icon_name_in_doc_sections(&documentation_sections),
-                }
+        let (documentation, icon_name) = match &mut entry {
+            Atom { documentation, documentation_html, documentation_sections, .. }
+            | Method { documentation, documentation_html, documentation_sections, .. }
+            | Module { documentation, documentation_html, documentation_sections, .. } => {
+                let documentation =
+                    Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
+                let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
+                (documentation, icon_name)
             }
-            #[allow(unused)]
-            Constructor {
-                name,
-                module,
-                arguments,
-                return_type,
-                documentation,
-                documentation_html,
-                documentation_sections,
-                ..
-            } => Self {
-                name,
-                arguments,
-                return_type,
-                documentation_html: Self::make_html_docs(documentation, documentation_html),
-                module: module.try_into()?,
-                self_type: None,
-                kind: Kind::Constructor,
-                scope: Scope::Everywhere,
-                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
-            },
-            #[allow(unused)]
-            Method {
-                name,
-                module,
-                arguments,
-                self_type,
-                return_type,
-                documentation,
-                documentation_html,
-                documentation_sections,
-                ..
-            } => Self {
-                name,
-                arguments,
-                return_type,
-                documentation_html: Self::make_html_docs(documentation, documentation_html),
-                module: module.try_into()?,
-                self_type: Some(self_type.try_into()?),
-                kind: Kind::Method,
-                scope: Scope::Everywhere,
-                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
-            },
-            Function { name, module, arguments, return_type, scope, .. } => Self {
-                name,
-                arguments,
-                return_type,
-                module: module.try_into()?,
-                self_type: None,
-                documentation_html: default(),
-                kind: Kind::Function,
-                scope: Scope::InModule { range: scope.into() },
-                icon_name: None,
-            },
-            Local { name, module, return_type, scope, .. } => Self {
-                name,
-                return_type,
-                arguments: default(),
-                module: module.try_into()?,
-                self_type: None,
-                documentation_html: default(),
-                kind: Kind::Local,
-                scope: Scope::InModule { range: scope.into() },
-                icon_name: None,
-            },
-            Module {
-                module, documentation, documentation_html, documentation_sections, ..
-            } => {
-                let module_name: module::QualifiedName = module.clone().try_into()?;
-                Self {
-                    documentation_html: Self::make_html_docs(documentation, documentation_html),
-                    name:               module_name.id().name().into(),
-                    arguments:          default(),
-                    module:             module_name,
-                    self_type:          None,
-                    kind:               Kind::Module,
-                    scope:              Scope::Everywhere,
-                    return_type:        module,
-                    icon_name:          find_icon_name_in_doc_sections(&documentation_sections),
-                }
-            }
+            _ => (None, None),
         };
+        let reexported_in: Option<module::QualifiedName> = match &mut entry {
+            Atom { reexport: Some(reexport), .. }
+            | Method { reexport: Some(reexport), .. }
+            | Module { reexport: Some(reexport), .. } => Some(mem::take(reexport).try_into()?),
+            _ => None,
+        };
+        let mut this = match entry {
+            Atom { name, module, return_type, arguments, .. } =>
+                Self::new_atom(module.try_into()?, name, return_type).with_arguments(arguments),
+            Method { name, module, self_type, return_type, is_static, arguments, .. } =>
+                Self::new_method(
+                    module.try_into()?,
+                    self_type.try_into()?,
+                    name,
+                    return_type,
+                    is_static,
+                )
+                .with_arguments(arguments),
+            Function { name, module, return_type, scope, .. } =>
+                Self::new_function(module.try_into()?, name, return_type, scope.into()),
+            Local { name, module, return_type, scope, .. } =>
+                Self::new_local(module.try_into()?, name, return_type, scope.into()),
+            Module { module, .. } => Self::new_module(module.try_into()?),
+        };
+        this.documentation_html = documentation;
+        this.icon_name = icon_name;
+        this.reexported_in = reexported_in;
         Ok(this)
     }
 
@@ -562,6 +596,7 @@ impl Entry {
         let m = modification;
         let module = m.module.map(|f| f.try_map(module::QualifiedName::from_text)).transpose();
         let self_type = m.self_type.map(|f| f.try_map(tp::QualifiedName::from_text)).transpose();
+        let reexport = m.reexport.map(|f| f.try_map(module::QualifiedName::from_text)).transpose();
         let other_update_results = [
             Entry::apply_field_update("return_type", &mut self.return_type, m.return_type),
             Entry::apply_opt_field_update(
@@ -569,10 +604,13 @@ impl Entry {
                 &mut self.documentation_html,
                 m.documentation_html,
             ),
-            module.and_then(|m| Entry::apply_field_update("module", &mut self.module, m)),
+            module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
                 .and_then(|s| Entry::apply_opt_field_update("self_type", &mut self.self_type, s)),
             self.apply_scope_update(m.scope),
+            reexport.and_then(|r| {
+                Entry::apply_opt_field_update("reexport", &mut self.reexported_in, r)
+            }),
         ];
         let other_update_results = SmallVec::from_buf(other_update_results).into_iter();
         let other_update_errors = other_update_results.filter_map(|res| res.err());
@@ -692,7 +730,7 @@ impl TryFrom<&Entry> for language_server::MethodPointer {
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
             defined_on_type: defined_on_type.into(),
-            module:          entry.module.to_string(),
+            module:          entry.defined_in.to_string(),
             name:            entry.name.clone(),
         })
     }
@@ -771,181 +809,74 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use web_sys::self_;
 
+    use enso_text::unit::*;
 
     #[test]
     fn code_from_entry() {
-        fn expect(
-            entry: &Entry,
-            current_module: Option<&module::QualifiedName>,
-            generate_this: bool,
-            expected_code: &str,
-            expected_imports: &[&module::QualifiedName],
-        ) {
+        fn expect(entry: &Entry, expected_code: &str, expected_imports: &[&module::QualifiedName]) {
             let code_to_insert = entry.code_to_insert(current_module, generate_this);
             assert_eq!(code_to_insert.code, expected_code);
             assert_eq!(code_to_insert.imports.iter().collect_vec().as_slice(), expected_imports);
         }
-        let main_module = module::QualifiedName::from_text("local.Project.Main").unwrap();
-        let another_module =
-            module::QualifiedName::from_text("local.Project.Another_Module").unwrap();
-        let tpe = Entry {
-            name:               "Type".to_owned(),
-            kind:               Kind::Type,
-            module:             main_module.clone(),
-            arguments:          vec![],
-            return_type:        "Number".to_owned(),
-            documentation_html: None,
-            self_type:          None,
-            scope:              Scope::Everywhere,
-            icon_name:          None,
+        let module = module::QualifiedName::from_text("local.Project.Main").unwrap();
+        let tp = tp::QualifiedName::from_text("local.Project.Test_Type").unwrap();
+        let atom = Entry::new_atom(main_module.clone(), "Atom", tp.clone());
+        let return_type = "Standard.Base.Number";
+        let scope = Location { line: 3.line(), offset: 0.utf16_code_unit() }..=Location {
+            line:   10.line,
+            offset: 0.utf16_code_unit(),
         };
-        let constructor =
-            Entry { name: "Constructor".to_owned(), kind: Kind::Constructor, ..tpe.clone() };
-        let method = Entry {
-            name: "method".to_string(),
-            kind: Kind::Method,
-            self_type: Some("std.Base.Main.Number".to_string().try_into().unwrap()),
-            ..constructor.clone()
-        };
-        let module_method = Entry {
-            name: "module_method".to_owned(),
-            self_type: Some(main_module.clone().into()),
-            ..method.clone()
-        };
-        let another_module_method = Entry {
-            module: another_module.clone(),
-            self_type: Some(another_module.clone().into()),
-            ..module_method.clone()
-        };
-        let module_extension = Entry {
-            module: another_module.clone(),
-            name: "module_extension".to_string(),
-            ..module_method.clone()
-        };
-        let type_module = tpe.module.clone();
-        let type_type = tp::QualifiedName::new_module_member(type_module, tpe.name.clone());
-        let type_extension = Entry {
-            module: another_module.clone(),
-            name: "type_extension".to_string(),
-            self_type: Some(type_type),
-            ..module_method.clone()
-        };
-
-        expect(&tpe, None, true, "Type", &[&main_module]);
-        expect(&tpe, None, false, "Type", &[&main_module]);
-        expect(&tpe, Some(&main_module), true, "Type", &[]);
-        expect(&tpe, Some(&main_module), false, "Type", &[]);
-        expect(&tpe, Some(&another_module), true, "Type", &[&main_module]);
-        expect(&tpe, Some(&another_module), false, "Type", &[&main_module]);
-        expect(&tpe, Some(&another_module), true, "Type", &[&main_module]);
-        expect(&tpe, Some(&another_module), false, "Type", &[&main_module]);
-
-        expect(&constructor, None, true, "Constructor", &[&main_module]);
-        expect(&constructor, None, false, "Constructor", &[&main_module]);
-        expect(&constructor, Some(&main_module), true, "Constructor", &[]);
-        expect(&constructor, Some(&main_module), false, "Constructor", &[]);
-        expect(&constructor, Some(&another_module), true, "Constructor", &[&main_module]);
-        expect(&constructor, Some(&another_module), false, "Constructor", &[&main_module]);
-        expect(&constructor, Some(&another_module), true, "Constructor", &[&main_module]);
-        expect(&constructor, Some(&another_module), false, "Constructor", &[&main_module]);
-
-        expect(&method, None, true, "method", &[&main_module]);
-        expect(&method, None, false, "method", &[&main_module]);
-        expect(&method, Some(&main_module), true, "method", &[]);
-        expect(&method, Some(&main_module), false, "method", &[]);
-        expect(&method, Some(&another_module), true, "method", &[&main_module]);
-        expect(&method, Some(&another_module), false, "method", &[&main_module]);
-
-        expect(&module_method, None, true, "Project.module_method", &[&main_module]);
-        expect(&module_method, None, false, "module_method", &[]);
-        expect(&module_method, Some(&main_module), true, "Main.module_method", &[]);
-        expect(&module_method, Some(&main_module), false, "module_method", &[]);
-        expect(&module_method, Some(&another_module), true, "Project.module_method", &[
-            &main_module,
-        ]);
-        expect(&module_method, Some(&another_module), false, "module_method", &[]);
-
-        expect(&another_module_method, None, true, "Another_Module.module_method", &[
-            &another_module,
-        ]);
-        expect(&another_module_method, None, false, "module_method", &[]);
-        expect(
-            &another_module_method,
-            Some(&main_module),
+        let method =
+            Entry::new_method(main_module.clone(), tp.clone(), "method", return_type, false);
+        let static_method =
+            Entry::new_method(main_module.clone(), tp.clone(), "static_method", return_type, true);
+        let module_method = Entry::new_method(
+            main_module.clone(),
+            main_module.clone().into(),
+            "module_method",
+            return_type,
             true,
-            "Another_Module.module_method",
-            &[&another_module],
         );
-        expect(&another_module_method, Some(&main_module), false, "module_method", &[]);
-        expect(
-            &another_module_method,
-            Some(&another_module),
-            true,
-            "Another_Module.module_method",
-            &[],
-        );
-        expect(&another_module_method, Some(&another_module), false, "module_method", &[]);
+        let function = Entry::new_function(module.clone(), "function", return_type, scope.clone());
+        let local = Entry::new_local(module, "local", return_type, scope);
 
-        // TODO [mwu] Extensions on nullary atoms should also be able to generate this.
-        //            The tests below will need to be adjusted, once that behavior is fixed.
-        //            See https://github.com/enso-org/ide/issues/1299
-        expect(&module_extension, None, true, "module_extension", &[&another_module]);
-        expect(&module_extension, None, false, "module_extension", &[&another_module]);
-        expect(&module_extension, Some(&main_module), true, "module_extension", &[&another_module]);
-        expect(&module_extension, Some(&main_module), false, "module_extension", &[
-            &another_module,
-        ]);
-        expect(&module_extension, Some(&another_module), true, "module_extension", &[]);
-        expect(&module_extension, Some(&another_module), false, "module_extension", &[]);
-
-        expect(&type_extension, None, true, "type_extension", &[&another_module]);
-        expect(&type_extension, None, false, "type_extension", &[&another_module]);
-        expect(&type_extension, Some(&main_module), true, "type_extension", &[&another_module]);
-        expect(&type_extension, Some(&main_module), false, "type_extension", &[&another_module]);
-        expect(&type_extension, Some(&another_module), true, "type_extension", &[]);
-        expect(&type_extension, Some(&another_module), false, "type_extension", &[]);
+        for generate_this in [true, false] {
+            assert_eq!(atom.code_to_insert(generate_this), "Atom");
+            assert_eq!(function.code_to_insert(generate_this), "function");
+            assert_eq!(local.code_to_insert(generate_this), "local");
+        }
+        assert_eq!(method.code_to_insert(false), "method");
+        assert_eq!(method.code_to_insert(true), "_.method");
+        assert_eq!(static_method.code_to_insert(false), "static_method");
+        assert_eq!(static_method.code_to_insert(true), "Number.static_method");
+        assert_eq!(module_method.code_to_insert(false), "module_method");
+        assert_eq!(module_method.code_to_insert(true), "Project.static_method");
     }
 
     #[test]
     fn method_id_from_entry() {
-        let non_method = Entry {
-            name:               "function".to_string(),
-            kind:               Kind::Function,
-            module:             "Test.Test".to_string().try_into().unwrap(),
-            arguments:          vec![],
-            return_type:        "Number".to_string(),
-            documentation_html: None,
-            self_type:          None,
-            scope:              Scope::Everywhere,
-            icon_name:          None,
-        };
-        let method = Entry {
-            name: "method".to_string(),
-            kind: Kind::Method,
-            self_type: Some("Base.Main.Number".to_string().try_into().unwrap()),
-            ..non_method.clone()
-        };
-        let expected = MethodId {
-            module:          "Test.Test".to_string().try_into().unwrap(),
-            defined_on_type: "Base.Main.Number".to_string().try_into().unwrap(),
-            name:            "method".to_string(),
-        };
+        let module = module::QualifiedName::from_text("test.Test.Test").unwrap();
+        let self_type = tp::QualifiedName::from_text("Standard.Base.Number").unwrap();
+        let non_method = Entry::new_function(module.clone(), "function", "Number", default());
+        let method =
+            Entry::new_method(module.clone(), self_type.clone(), "method", "Number", false);
+        let expected = MethodId { module, defined_on_type: self_type, name: "method".to_owned() };
         assert_eq!(non_method.method_id(), None);
         assert_eq!(method.method_id(), Some(expected));
     }
 
     /// Test the result of the [`Entry::qualified_name`] method when applied to entries with
-    /// different values of [`Entry::kind`]. The entries are constructed from mock Language Server
-    /// responses.
+    /// different values of [`Entry::kind`].
     #[test]
     fn qualified_name_of_entry() {
-        fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
-            let entry = Entry::from_ls_entry(ls_entry).unwrap();
+        fn expect(entry: Entry, qualified_name: &str) {
             let entry_qualified_name = entry.qualified_name();
             let expected_qualified_name = qualified_name.split('.').collect();
             assert_eq!(entry_qualified_name, expected_qualified_name);
         }
+<<<<<<< HEAD
         let tpe = language_server::SuggestionEntry::Type {
             name:                   "TextType".to_string(),
             module:                 "TestProject.TestModule".to_string(),
@@ -979,31 +910,23 @@ mod test {
             documentation_sections: default(),
             external_id:            None,
         };
+
         expect(method, "Standard.Builtins.Main.System.create_process");
-        let module = language_server::SuggestionEntry::Module {
-            module:                 "local.Unnamed_6.Main".to_string(),
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            reexport:               None,
-        };
+
+        // Module
+        let module = Entry::new_module("local.Unnamed_6.Main".try_inro().unwrap());
         expect(module, "local.Unnamed_6.Main");
-        let local = language_server::SuggestionEntry::Local {
-            module:      "local.Unnamed_6.Main".to_string(),
-            name:        "operator1".to_string(),
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            external_id: None,
-            scope:       (default()..=default()).into(),
-        };
+
+        // Local
+        let defined_in = "local.Unnamed_6.Main".try_inro().unwrap();
+        let return_type = "Standard.Base.Data.Vector.Vector".to_owned();
+        let local = Entry::new_local(defined_in, "operator1", return_type, default());
         expect(local, "local.Unnamed_6.Main.operator1");
-        let function = language_server::SuggestionEntry::Function {
-            module:      "NewProject.NewModule".to_string(),
-            name:        "testFunction1".to_string(),
-            arguments:   vec![],
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            scope:       (default()..=default()).into(),
-            external_id: None,
-        };
+
+        // Function
+        let defined_in = "NewProject.NewModule".try_into().unwrap();
+        let return_type = "Standard.Base.Data.Vector.Vector".to_owned();
+        let function = Entry::new_function(defined_in, "testFunction1", return_type, default());
         expect(function, "NewProject.NewModule.testFunction1");
     }
 

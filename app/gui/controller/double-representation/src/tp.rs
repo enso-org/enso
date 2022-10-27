@@ -57,7 +57,6 @@ impl QualifiedName {
     pub fn from_module(module: module::QualifiedName) -> Self {
         let module::QualifiedName { project_name, id } = module;
         let mut module_segments = id.into_segments();
-        // We may unwrap, because the `module::QualifiedName` guarantees segments to be non-empty.
         let name = module_segments.pop().unwrap().into();
         QualifiedName { project_name, module_segments, name }
     }
@@ -101,11 +100,10 @@ impl QualifiedName {
         self.project_name == module.project_name && &self.module_segments == module.id.segments()
     }
 
-    /// Get the qualified name of module containing this type. Returns [`None`] if the type is
-    /// defined in the project's root module.
-    pub fn parent_module(&self) -> Option<module::QualifiedName> {
-        let id = module::Id::try_new(&self.module_segments).ok()?;
-        Some(module::QualifiedName::new(self.project_name.clone(), id))
+    /// Get the qualified name of module containing this type.
+    pub fn parent_module(&self) -> module::QualifiedName {
+        let id = module::Id::new(self.module_segments.clone());
+        module::QualifiedName::new(self.project_name.clone(), id)
     }
 }
 

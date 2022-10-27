@@ -63,7 +63,7 @@ impl ModuleGroups {
         component_id: component::Id,
         entry: &suggestion_database::Entry,
     ) -> FallibleResult<Self> {
-        let is_top_module = entry.module.is_top_module();
+        let is_top_module = entry.defined_in.is_top_module();
         let qualified_name = entry.qualified_name();
         let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
@@ -159,7 +159,7 @@ impl List {
                 // Entry has no parent module, so either it belongs to the main module of the
                 // project, or it is a main module itself.
                 if !entry.is_main_module() {
-                    let project_name = entry.module.project_name.clone();
+                    let project_name = entry.defined_in.project_name.clone();
                     let main_module = module::QualifiedName::new_main(project_name);
                     if let Some(main_group) = self.lookup_module_group(db, &main_module) {
                         main_group.content.entries.borrow_mut().push(component.clone_ref());

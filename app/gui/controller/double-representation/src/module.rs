@@ -140,6 +140,10 @@ impl Id {
     pub fn top_module(&self) -> Self {
         Id { segments: self.segments.first().cloned().into_iter().collect() }
     }
+
+    pub fn push_segment(&mut self, segment: ReferentName) {
+        self.segments.push(segment)
+    }
 }
 
 
@@ -175,7 +179,7 @@ impl QualifiedName {
 
     /// Create a qualified name for the project's main module.
     pub fn new_main(project_name: project::QualifiedName) -> QualifiedName {
-        Self::new(project_name, project::main_module_id())
+        Self::new(project_name, Id::new(iter::empty()))
     }
 
     /// Constructs a qualified name from its text representation.
@@ -242,7 +246,11 @@ impl QualifiedName {
 
     /// Get the module's name. It is also the module's typename.
     pub fn name(&self) -> ReferentName {
-        if self.id.segments.is_empty() {
+        self.id.name()
+    }
+
+    pub fn aliased_name(&self) -> ReferentName {
+        if self.is_main_module() {
             self.project_name.project.clone()
         } else {
             self.id.name()
@@ -291,7 +299,7 @@ impl QualifiedName {
 
     /// Check if the name refers to some library's top module.
     pub fn is_top_module(&self) -> bool {
-        self.id.segments.len() <= 1
+        !is_main_module() && self.id.segments.len() <= 1
     }
 
     /// Check if the name refers to some project's Main module.
@@ -382,6 +390,17 @@ impl TryFrom<&engine_protocol::language_server::MethodPointer> for QualifiedName
         method: &engine_protocol::language_server::MethodPointer,
     ) -> Result<Self, Self::Error> {
         Self::try_from(method.module.clone())
+    }
+}
+
+impl TryFrom<tp::QualifiedName> for QualifiedName {
+    type Error = failure::Error;
+
+    fn try_from(
+        tp::QualifiedName { project_name, mut module_segments, name }: tp::QualifiedName,
+    ) -> Result<Self, Self::Error> {
+        module_segments.push(name.try_into()?);
+        Ok(Self::new(project_name, Id::new(module_segments)))
     }
 }
 

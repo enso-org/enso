@@ -100,7 +100,7 @@ pub mod mock {
             let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "foo".to_owned(),
-                module:             module::QualifiedName::from_segments(project_name, &["Main"])
+                defined_in:         module::QualifiedName::from_segments(project_name, &["Main"])
                     .unwrap(),
                 self_type:          Some("Standard.Base.Main".to_owned().try_into().unwrap()),
                 arguments:          vec![foo_method_parameter(), foo_method_parameter2()],
@@ -116,7 +116,7 @@ pub mod mock {
             let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "bar".to_owned(),
-                module:             module::QualifiedName::from_segments(project_name, &["Other"])
+                defined_in:         module::QualifiedName::from_segments(project_name, &["Other"])
                     .unwrap(),
                 self_type:          Some("Standard.Base.Other".to_owned().try_into().unwrap()),
                 arguments:          vec![bar_method_parameter()],

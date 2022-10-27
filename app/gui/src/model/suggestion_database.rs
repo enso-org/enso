@@ -423,6 +423,9 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::suggestion_database::entry::Scope;
 
+    use crate::model::module;
+    use double_representation::identifier::ReferentName;
+    use double_representation::tp;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
@@ -436,6 +439,64 @@ mod test {
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
+
+    #[derive(Debug, Default)]
+    struct MockBuilder {
+        next_id:        entry::Id,
+        result:         SuggestionDatabase,
+        context: Option<tp::QualifiedName>,
+    }
+
+    impl MockBuilder {
+        fn add_entry(&mut self, entry: Entry) {
+            let id = self.next_id;
+            self.next_id += 1;
+            self.result.put_entry(self.next_id, entry);
+        }
+
+        pub fn add_and_enter_module<S>(&mut self, segment: S)
+        where S: TryInto<ReferentName> + TryInto<module::QualifiedName> {
+            let new_context = if let Some(context) = &mut self.context {
+                context.id.push_segment(segment.try_into().unwrap());
+                context.clone()
+            } else {
+                let new_context = segment.try_into().unwrap();
+                self.contest = Some(new_context.clone());
+                new_context
+            };
+            self.add_entry(Entry::new_module(new_context));
+        }
+
+        pub fn add_and_enter_type(&mut self, type_name: impl Into<String>) {
+            let type_name = type_name.into();
+            let module = self.current_module.clone().expect("Cannot add type without module");
+            self.current_type = Some(type_name.clone());
+            self.add_entry(Entry::new_type(module, type_name))
+        }
+
+        pub fn leave(&mut self) {
+            let type_left = self.current_type.take().is_none();
+            if !type_left {
+                self.current_module = self.current_module.and_then(|m| m.parent_module())
+            }
+        }
+
+        fn current_type_or_module(&self) -> tp::QualifiedName {
+            let module =
+        }
+
+        pub fn add_method(
+            &mut self,
+            name: impl Into<String>,
+            arguments: Vec<SuggestionEntryArgument>,
+            return_type: impl TryInto<tp::QualifiedName>,
+        ) -> Self {
+            let on_type =
+            self.add_entry(Entry::new_method())
+        }
+    }
+
+
 
     const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
 
@@ -460,6 +521,7 @@ mod test {
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
+            reexport:               None,
         };
         let db_entry = SuggestionsDatabaseEntry { id: 12, suggestion: entry };
         let response = language_server::response::GetSuggestionDatabase {
@@ -471,6 +533,8 @@ mod test {
         assert_eq!(*db.lookup(12).unwrap().name, "TextAtom".to_string());
         assert_eq!(db.version.get(), 456);
     }
+
+
 
     //TODO[ao] this test should be split between various cases of applying modification to single
     //  entry and here only for testing whole database.
@@ -486,6 +550,7 @@ mod test {
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
+            reexport:               None,
         };
         let entry2 = SuggestionEntry::Constructor {
             name:                   "Entry2".to_owned(),
@@ -496,6 +561,7 @@ mod test {
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
+            reexport:               None,
         };
         let new_entry2 = SuggestionEntry::Constructor {
             name:                   "NewEntry2".to_owned(),
@@ -506,6 +572,7 @@ mod test {
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
+            reexport:               None,
         };
         let arg1 = SuggestionEntryArgument {
             name:          "Argument1".to_owned(),

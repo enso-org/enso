@@ -93,14 +93,14 @@ impl Group {
 
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
-        let name: String = if entry.module.is_top_module() {
-            let project = &entry.module.project_name.project;
-            let module = entry.module.name();
+        let name: String = if entry.defined_in.is_top_module() {
+            let project = &entry.defined_in.project_name.project;
+            let module = entry.defined_in.name();
             format!("{}.{}", project, module)
         } else {
-            entry.module.name().into()
+            entry.defined_in.name().into()
         };
-        let project_name = entry.module.project_name.clone();
+        let project_name = entry.defined_in.project_name.clone();
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 

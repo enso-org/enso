@@ -409,18 +409,18 @@ pub struct FragmentAddedByPickingSuggestion {
 
 impl FragmentAddedByPickingSuggestion {
     /// Check if the picked fragment is still unmodified by user.
-    fn is_still_unmodified(&self, input: &ParsedInput, current_module: &QualifiedName) -> bool {
-        let expected = self.code_to_insert(current_module, &None);
-        input.completed_fragment(self.id).contains(&expected.code)
+    fn is_still_unmodified(&self, input: &ParsedInput) -> bool {
+        let expected = self.code_to_insert(&None);
+        input.completed_fragment(self.id).contains(&expected)
     }
 
-    fn code_to_insert(
-        &self,
-        current_module: &QualifiedName,
-        this_node: &Option<ThisNode>,
-    ) -> CodeToInsert {
+    fn code_to_insert(&self, this_node: &Option<ThisNode>) -> Cow<str> {
         let generate_this = self.id != CompletedFragmentId::Function || this_node.is_none();
-        self.picked_suggestion.code_to_insert(Some(current_module), generate_this)
+        self.picked_suggestion.code_to_insert(generate_this)
+    }
+
+    fn required_imports(&self, db: &model::SuggestionDatabase) -> Option<import::Info> {
+        self.picked_suggestion.required_imports(db)
     }
 }
 
@@ -467,7 +467,7 @@ impl Data {
             // This is meant to work with single function calls (without "this" argument).
             // In other case we should know what the function is from the engine, as the function
             // should be resolved.
-            fragment.is_still_unmodified(&input, &current_module).and_option(Some(fragment))
+            fragment.is_still_unmodified(&input).and_option(Some(fragment))
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
@@ -738,8 +738,8 @@ impl Searcher {
     ///
     /// Code depends on the location, as the first fragment can introduce `self` variable access,
     /// and then we don't want to put any module name.
-    fn code_to_insert(&self, fragment: &FragmentAddedByPickingSuggestion) -> CodeToInsert {
-        fragment.code_to_insert(&self.module_qualified_name(), self.this_arg.as_ref())
+    fn code_to_insert<'a>(&self, fragment: &'a FragmentAddedByPickingSuggestion) -> Cow<'a, str> {
+        fragment.code_to_insert(&*self.this_arg)
     }
 
     /// Pick a completion suggestion.
@@ -752,9 +752,9 @@ impl Searcher {
         info!("Picking suggestion: {picked_suggestion:?}.");
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
-        let code_to_insert = self.code_to_insert(&picked_completion).code;
+        let code_to_insert = self.code_to_insert(&picked_completion);
         debug!("Code to insert: \"{code_to_insert}\"");
-        let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
+        let added_ast = self.ide.parser().parse_line_ast(code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
         let new_parsed_input = ParsedInput {
@@ -831,9 +831,9 @@ impl Searcher {
 
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
-        let code_to_insert = self.code_to_insert(&picked_completion).code;
+        let code_to_insert = self.code_to_insert(&picked_completion);
         debug!("Code to insert: \"{code_to_insert}\".",);
-        let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
+        let added_ast = self.ide.parser().parse_line_ast(code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         {
             // This block serves to limit the borrow of `self.data`.
@@ -932,11 +932,10 @@ impl Searcher {
     ///
     /// False if it was modified after picking or if it wasn't picked at all.
     pub fn is_function_fragment_unmodified(&self) -> bool {
-        let current_module = self.module_qualified_name();
         with(self.data.borrow(), |data| {
             data.fragments_added_by_picking.first().contains_if(|frag| {
                 let is_function = frag.id == CompletedFragmentId::Function;
-                is_function && frag.is_still_unmodified(&data.input, &current_module)
+                is_function && frag.is_still_unmodified(&data.input)
             })
         })
     }
@@ -1040,8 +1039,7 @@ impl Searcher {
         let data = data.deref_mut();
         let input = &data.input;
         let current_module = self.module_qualified_name();
-        data.fragments_added_by_picking
-            .drain_filter(|frag| !frag.is_still_unmodified(input, &current_module));
+        data.fragments_added_by_picking.drain_filter(|frag| !frag.is_still_unmodified(input));
     }
 
     #[profile(Debug)]
@@ -1050,24 +1048,22 @@ impl Searcher {
         fragments: impl Iterator<Item = &'a FragmentAddedByPickingSuggestion>,
         permanent: bool,
     ) -> FallibleResult {
-        let imports = fragments.flat_map(|frag| self.code_to_insert(frag).imports);
+        let imports = fragments.flat_map(|frag| frag.required_imports(&*self.database));
         let mut module = self.module();
         let here = self.module_qualified_name();
         // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
         //     documentation.
         let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
         for mut import in without_enso_project {
-            import.remove_main_module_segment();
-            let import_info = import::Info::new_qualified(&import);
-
-            let already_exists = module.iter_imports().contains(&import_info);
-            if already_exists {
-                continue;
+            // TODO[ao]
+            // import.remove_main_module_segment();
+            let import_id = import.id();
+            let already_imported = module.iter_imports().any(|existing| existing.contains(&import));
+            if !already_imported {
+                module.add_import(self.ide.parser(), import);
             }
-
-            module.add_module_import(&here, self.ide.parser(), &import);
             self.graph.graph().module.with_import_metadata(
-                import_info.id(),
+                import_id,
                 Box::new(|import_metadata| {
                     import_metadata.is_temporary = !permanent;
                 }),
@@ -1385,13 +1381,15 @@ impl Searcher {
             let entry = model::suggestion_database::Entry {
                 name:               (*method).to_owned(),
                 kind:               model::suggestion_database::entry::Kind::Method,
-                module:             module.clone(),
+                defined_in:         module.clone(),
                 arguments:          vec![],
                 return_type:        "Standard.Base.System.File.File".to_owned(),
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
+                is_static:          true,
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
                 icon_name:          None,
+                reexported_in:      None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
@@ -1803,13 +1801,14 @@ pub mod test {
         let entry1 = model::suggestion_database::Entry {
             name: "testFunction1".to_string(),
             kind: Kind::Function,
-            module: crate::test::mock::data::module_qualified_name(),
+            defined_in: crate::test::mock::data::module_qualified_name(),
             arguments: vec![],
             return_type: "Number".to_string(),
             documentation_html: default(),
             self_type: None,
             scope,
             icon_name: None,
+            reexported_in: None,
         };
         let entry2 = model::suggestion_database::Entry {
             name: "TestVar1".to_string(),
@@ -1841,7 +1840,7 @@ pub mod test {
         };
         let entry4 = model::suggestion_database::Entry {
             self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
-            module: "test.Test.Test".to_owned().try_into().unwrap(),
+            defined_in: "test.Test.Test".to_owned().try_into().unwrap(),
             arguments: vec![
                 Argument {
                     repr_type:     "Any".to_string(),
@@ -1862,14 +1861,15 @@ pub mod test {
         };
         let entry5 = model::suggestion_database::Entry {
             kind:               Kind::Module,
-            module:             entry1.module.clone(),
+            defined_in:         entry1.defined_in.clone(),
             name:               MODULE_NAME.to_owned(),
             arguments:          default(),
-            return_type:        entry1.module.to_string(),
+            return_type:        entry1.defined_in.to_string(),
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
             icon_name:          None,
+            reexported_in:      None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),
@@ -1893,7 +1893,7 @@ pub mod test {
         };
         let entry10 = model::suggestion_database::Entry {
             name: "testFunction3".to_string(),
-            module: "test.Test.Other".to_owned().try_into().unwrap(),
+            defined_in: "test.Test.Other".to_owned().try_into().unwrap(),
             scope: Scope::Everywhere,
             ..entry9.clone()
         };
@@ -2130,7 +2130,7 @@ pub mod test {
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
             let expected_group_name =
-                format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
+                format!("{}.{}", entry1.defined_in.project_name.project, entry1.defined_in.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name() == entry9.name);
@@ -2435,8 +2435,8 @@ pub mod test {
         expect_inserted_import_for(&entry1, vec![]);
         expect_inserted_import_for(&entry2, vec![]);
         expect_inserted_import_for(&entry3, vec![]);
-        expect_inserted_import_for(&entry4, vec![&entry4.module]);
-        expect_inserted_import_for(&entry10, vec![&entry10.module]);
+        expect_inserted_import_for(&entry4, vec![&entry4.defined_in]);
+        expect_inserted_import_for(&entry10, vec![&entry10.defined_in]);
     }
 
     #[wasm_bindgen_test]
