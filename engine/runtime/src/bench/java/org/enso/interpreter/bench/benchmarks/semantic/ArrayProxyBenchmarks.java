@@ -27,7 +27,7 @@ public class ArrayProxyBenchmarks {
   private Value arrayOfNumbers;
   private Value sum;
   private Value self;
-  private final long length = 100000;
+  private final long length = 1000;
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) {
@@ -55,7 +55,8 @@ public class ArrayProxyBenchmarks {
             "make_proxy n =\n" +
             "    Array_Proxy.new n (i -> 3 + 5*i)\n" +
             "make_proxied_vector n =\n" +
-            "    Vector.from_polyglot_array (make_proxy n)\n");
+            "    Vector.from_polyglot_array (make_proxy n)\n" +
+	    "\n");
 
     this.self = module.invokeMember("get_associated_type");
     Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
@@ -104,7 +105,7 @@ public class ArrayProxyBenchmarks {
     boolean isResultCorrect = result == expectedResult;
     if (!isResultCorrect) {
       throw new AssertionError(
-          "Expecting reasonable average but was " + result + "\n" + arrayOfNumbers);
+          "Expecting reasonable result but was " + result);
     }
     matter.consume(result);
   }
