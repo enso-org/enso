@@ -169,7 +169,7 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [bin "+", bin "-", bin "*", bin "/", bin "%"]
+    arith = [bin "+", bin "-", bin "*", bin "/", bin "%", ["^", make_function "POWER"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]

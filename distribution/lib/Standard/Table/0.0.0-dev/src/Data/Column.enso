@@ -404,7 +404,6 @@ type Column
     % : Column | Any -> Column
     % self other = run_vectorized_binary_op self '%' (%) other
 
-
     ## ALIAS Power Columns
 
        Element-wise raising to the power.
@@ -463,25 +462,6 @@ type Column
     && self other =
         run_vectorized_binary_op self "&&" (&&) other
 
-
-    bit_not : Column
-    bit_not self = self.map v->(v.bit_not)
-
-    bit_and : Column | Any -> Column
-    bit_and self other = case other of
-        _ : Column -> Column.from_vector "Result_AND" (self.to_vector.map_with_index i->v->(v.bit_and (other.at i)))
-        _ -> self.map v->(v.bit_and other)
-
-    bit_xor : Column | Any -> Column
-    bit_xor self other = case other of
-        _ : Column -> Column.from_vector "Result_XOR" (self.to_vector.map_with_index i->v->(v.bit_xor (other.at i)))
-        _ -> self.map v->(v.bit_xor other)
-
-    bit_or : Column | Any -> Column
-    bit_or self other = case other of
-        _ : Column -> Column.from_vector "Result_OR" (self.to_vector.map_with_index i->v->(v.bit_or (other.at i)))
-        _ -> self.map v->(v.bit_or other)
-
     ## ALIAS OR Columns
 
        Element-wise boolean disjunction.
@@ -529,6 +509,10 @@ type Column
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
+
+       Arguments:
+       - when_true: value or column when `self` is `True`.
+       - when_false: value or column when `self` is `False`.
 
        > Example
          If the value in a column is `True`, replace it with `1`, otherwise `0`.

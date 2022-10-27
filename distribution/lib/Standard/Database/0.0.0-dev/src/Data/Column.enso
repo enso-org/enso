@@ -422,6 +422,34 @@ type Column
     % : Column | Any -> Column
     % self other = self.make_binary_op "%" other
 
+    ## ALIAS Power Columns
+
+       Element-wise raising to the power.
+
+       Arguments:
+       - other: The exponent to raise `self` by. If `other` is a column, the
+         power operation is performed pairwise between corresponding elements
+         of `self` and `other`.
+
+       Returns a column containing the result of raising each element of `self`
+       by `other`.
+
+       > Example
+         Squares the elements of one column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ 2
+
+       > Example
+         Raises each value in a column by the value in another column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ Examples.integer_column
+    ^ : Column | Any -> Column
+    ^ self other = self.make_binary_op '^' other
+
     ## UNSTABLE
 
        Element-wise boolean conjunction.
@@ -461,8 +489,9 @@ type Column
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
 
-       TODO: Currently `when_true` and `when_false` need to be a single value.
-       In the future the API will also support row-based IIF if they are columns.
+       Arguments:
+       - when_true: value or column when `self` is `True`.
+       - when_false: value or column when `self` is `False`.
     iif : Any -> Any -> Column
     iif self when_true when_false =
         ## TODO we should adjust new_type based on types when_true and
