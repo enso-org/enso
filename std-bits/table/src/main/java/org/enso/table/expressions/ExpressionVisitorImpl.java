@@ -1,7 +1,6 @@
 package org.enso.table.expressions;
 
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.*;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -18,16 +17,33 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
 
+  private static class ThrowOnErrorListener extends BaseErrorListener {
+    public static final ThrowOnErrorListener INSTANCE = new ThrowOnErrorListener();
+
+    @Override
+    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e)
+        throws IllegalArgumentException {
+      throw new IllegalArgumentException("Syntax error at line " + line + ":" + charPositionInLine + " " + msg);
+    }
+  }
+
   public static Value evaluate(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       String moduleName) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
+
     var tokens = new CommonTokenStream(lexer);
     var parser = new ExpressionParser(tokens);
-    var expr = parser.prog();
+    parser.removeErrorListeners();
+    parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
+
     var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName);
+
+    var expr = parser.prog();
     return visitor.visit(expr);
   }
 
