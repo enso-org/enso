@@ -229,6 +229,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param selfType the self type of a method
     * @param returnType the return type of a method
+    * @param isStatic the flag indicating whether a method is static or instance
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this method
@@ -240,6 +241,7 @@ object Suggestion {
     arguments: Seq[Argument],
     selfType: String,
     returnType: String,
+    isStatic: Boolean,
     documentation: Option[String],
     documentationHtml: Option[String]               = None,
     documentationSections: Option[List[DocSection]] = None,
@@ -255,6 +257,7 @@ object Suggestion {
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
       s"returnType=$returnType," +
+      s"isStatic=$isStatic," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
       s",reexport=$reexport)"

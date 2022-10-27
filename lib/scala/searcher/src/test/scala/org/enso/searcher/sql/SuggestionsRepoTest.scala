@@ -67,6 +67,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
               suggestion.module,
               suggestion.atom,
               suggestion.method,
+              suggestion.instanceMethod,
               suggestion.conversion,
               suggestion.function,
               suggestion.local
@@ -80,6 +81,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         suggestion.module,
         suggestion.atom,
         suggestion.method,
+        suggestion.instanceMethod,
         suggestion.conversion,
         suggestion.function,
         suggestion.local
@@ -1727,6 +1729,19 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         arguments     = Seq(),
         selfType      = "local.Test.Main",
         returnType    = "Standard.Builtins.IO",
+        isStatic      = true,
+        documentation = None
+      )
+
+    val instanceMethod: Suggestion.Method =
+      Suggestion.Method(
+        externalId    = Some(UUID.randomUUID()),
+        module        = "local.Test.Main",
+        name          = "foo",
+        arguments     = Seq(),
+        selfType      = "local.Test.Main.A",
+        returnType    = "Standard.Builtins.Nothing",
+        isStatic      = false,
         documentation = None
       )
 

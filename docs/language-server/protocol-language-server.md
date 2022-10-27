@@ -528,6 +528,9 @@ interface SuggestionEntryMethod {
   /** The return type of this method. */
   returnType: string;
 
+  /** The flag indicating whether this method is static or instance. */
+  isStatic: boolean;
+
   /** The documentation string. */
   documentation?: string;
 

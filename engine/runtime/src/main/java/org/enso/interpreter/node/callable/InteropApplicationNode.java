@@ -12,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle function application for the interop library. */
 @GenerateUncached
@@ -66,7 +67,7 @@ public abstract class InteropApplicationNode extends Node {
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       Function function,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
@@ -75,7 +76,7 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return sorterNode.execute(function, null, state, args).getValue();
+    return sorterNode.execute(function, null, state, args);
   }
 
   @Specialization(replaces = "callCached")
@@ -89,16 +90,14 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return indirectInvokeFunctionNode
-        .execute(
-            function,
-            null,
-            state,
-            args,
-            buildSchema(arguments.length),
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-            BaseNode.TailStatus.NOT_TAIL)
-        .getValue();
+    return indirectInvokeFunctionNode.execute(
+        function,
+        null,
+        state,
+        args,
+        buildSchema(arguments.length),
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        BaseNode.TailStatus.NOT_TAIL);
   }
 }

@@ -13,7 +13,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldWithMatchNode extends RootNode {
@@ -56,15 +55,14 @@ public class GetFieldWithMatchNode extends RootNode {
   }
 
   @ExplodeLoop
-  public Stateful execute(VirtualFrame frame) {
+  public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     var constructor = atom.getConstructor();
     for (int i = 0; i < getterPairs.length; i++) {
       var getter = getterPairs[i];
       if (getter.target == constructor) {
-        return new Stateful(state, atom.getFields()[getter.index]);
+        return atom.getFields()[getter.index];
       }
     }
     throw new PanicException(

@@ -92,13 +92,13 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . should_equal Time_Zone.system
 
         Test.specify "should parse time Z" <|
-            time = parse_datetime "1970-01-01T00:00:01Z"
-            time . to_epoch_seconds . should_equal 1
+            time = parse_datetime "1582-10-15T00:00:01Z"
+            time . to_enso_epoch_seconds . should_equal 1
             time . zone . zone_id . should_equal "Z"
 
         Test.specify "should parse time UTC" <|
-            time = parse_datetime "1970-01-01T00:00:01Z[UTC]"
-            time . to_epoch_seconds . should_equal 1
+            time = parse_datetime "1582-10-15T00:00:01Z[UTC]"
+            time . to_enso_epoch_seconds . should_equal 1
             time . zone . zone_id . should_equal "UTC"
 
         Test.specify "should parse time with nanoseconds" <|
@@ -171,13 +171,14 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should get epoch seconds" <|
-            time = create_new_datetime 1970 1 1 0 0 8 (zone = Time_Zone.utc)
-            time . to_epoch_seconds . should_equal 8
+        Test.specify "should get Enso epoch seconds" <|
+            (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_seconds . should_equal 8
+            (Date_Time.enso_epoch_start + (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal (2 * 60)
+            (Date_Time.enso_epoch_start - (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal -(2 * 60)
 
-        Test.specify "should get epoch millis" <|
-            time = create_new_datetime 1970 1 1 0 0 8 (zone = Time_Zone.utc)
-            time . to_epoch_milliseconds . should_equal 8000
+        Test.specify "should get Enso epoch millis" <|
+            (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_milliseconds . should_equal 8000
+            (Date_Time.enso_epoch_start + (Duration.new seconds=2)).to_enso_epoch_milliseconds . should_equal (2 * 1000)
 
         Test.specify "should set offset-based timezone" <|
             tz = Time_Zone.new 1 1 1
@@ -324,6 +325,27 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1.compare_to date . should_fail_with Type_Error_Data
             time_1==date . should_be_false
 
+        Test.specify "simple computations before Enso epoch should produce a warning" <|
+            expect_value_with_warning actual_value expected_value=Nothing =
+                if expected_value != Nothing then actual_value . should_equal expected_value
+                (((Warning.get_all actual_value).length) > 0) . should_be_true
+
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new hours=3)) (create_new_datetime 1582 10 14 21 (zone = Time_Zone.utc))
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new minutes=1)) (create_new_datetime 1582 10 14 23 59 (zone = Time_Zone.utc))
+
+            expect_value_with_warning (create_new_datetime 100).week_of_year
+            expect_value_with_warning (create_new_datetime 100).is_leap_year
+            expect_value_with_warning (create_new_datetime 100).length_of_year
+            expect_value_with_warning (create_new_datetime 100 4).length_of_month
+            expect_value_with_warning (create_new_datetime 100 4 15).day_of_week
+
+        Test.specify "should create datetime before epoch start" <|
+            (create_new_datetime 100 1 2 3 4).year   . should_equal 100
+            (create_new_datetime 100 1 2 3 4).month  . should_equal 1
+            (create_new_datetime 100 1 2 3 4).day    . should_equal 2
+            (create_new_datetime 100 1 2 3 4).hour   . should_equal 3
+            (create_new_datetime 100 1 2 3 4).minute . should_equal 4
+
         Test.specify "should correctly determine the type of datetime" <|
             new_datetime = create_new_datetime 2020 6 1 10 0 0
             parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
@@ -443,8 +465,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
             d1_start = d1.start_of Time_Period.Hour
             d1_end = d1.end_of Time_Period.Hour
-            (d1.to_epoch_seconds - d1_start.to_epoch_seconds) . should_equal (34*60 + 15)
-            (d1_end.to_epoch_seconds - d1.to_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            (d1.to_enso_epoch_seconds - d1_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
+            (d1_end.to_enso_epoch_seconds - d1.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
             d1_start . should_equal (Date_Time.new 2022 3 27 1 0 0 0 tz)
             d1_end . should_equal (Date_Time.new 2022 3 27 1 59 59 max_nanos tz)
             d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 tz)
@@ -452,8 +474,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
             d2_start = d2.start_of Time_Period.Hour
             d2_end = d2.end_of Time_Period.Hour
-            (d2.to_epoch_seconds - d2_start.to_epoch_seconds) . should_equal (34*60 + 15)
-            (d2_end.to_epoch_seconds - d2.to_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            (d2.to_enso_epoch_seconds - d2_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
+            (d2_end.to_enso_epoch_seconds - d2.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
             d2_start . should_equal (Date_Time.new 2022 3 27 3 0 0 0 tz)
             d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 max_nanos tz)
 
@@ -466,7 +488,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d4.hour . should_equal 2
             d3.minute . should_equal 30
             d4.minute . should_equal 30
-            (d4.to_epoch_milliseconds - d3.to_epoch_milliseconds) . should_equal 60*60*1000
+            (d4.to_enso_epoch_milliseconds - d3.to_enso_epoch_milliseconds) . should_equal 60*60*1000
             Time_Utils.get_datetime_offset d3 . should_equal offset_2_h
             Time_Utils.get_datetime_offset d4 . should_equal offset_1_h
 
@@ -482,8 +504,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
             d3_start = d3.start_of Time_Period.Hour
             d3_end = d3.end_of Time_Period.Hour
-            (d3.to_epoch_seconds - d3_start.to_epoch_seconds) . should_equal (30*60 + 15)
-            (d3_end.to_epoch_seconds - d3.to_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            (d3.to_enso_epoch_seconds - d3_start.to_enso_epoch_seconds) . should_equal (30*60 + 15)
+            (d3_end.to_enso_epoch_seconds - d3.to_enso_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
             d3_start . should_equal (Date_Time.new 2022 10 30 2 0 0 0 tz)
             Time_Utils.get_datetime_offset d3_start . should_equal offset_2_h
             d3_end . should_equal (Date_Time.new 2022 10 30 2 59 59 max_nanos tz)
@@ -491,8 +513,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
             d4_start = d4.start_of Time_Period.Hour
             d4_end = d4.end_of Time_Period.Hour
-            (d4.to_epoch_seconds - d4_start.to_epoch_seconds) . should_equal (30*60 + 15)
-            (d4_end.to_epoch_seconds - d4.to_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            (d4.to_enso_epoch_seconds - d4_start.to_enso_epoch_seconds) . should_equal (30*60 + 15)
+            (d4_end.to_enso_epoch_seconds - d4.to_enso_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
             d4_start.hour . should_equal 2
             d4_start.minute . should_equal 0
             Time_Utils.get_datetime_offset d4_start . should_equal offset_1_h

@@ -7,7 +7,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -17,7 +16,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Panic",
@@ -40,13 +39,12 @@ public abstract class CatchPanicNode extends Node {
     return CatchPanicNodeGen.create();
   }
 
-  abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, @Suspend Object action, Object handler);
+  abstract Object execute(VirtualFrame frame, State state, @Suspend Object action, Object handler);
 
   @Specialization
-  Stateful doExecute(
+  Object doExecute(
       VirtualFrame frame,
-      @MonadicState Object state,
+      State state,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
@@ -65,9 +63,9 @@ public abstract class CatchPanicNode extends Node {
     }
   }
 
-  private Stateful executeCallback(
+  private Object executeCallback(
       VirtualFrame frame,
-      Object state,
+      State state,
       Object handler,
       Object payload,
       AbstractTruffleException originalException) {

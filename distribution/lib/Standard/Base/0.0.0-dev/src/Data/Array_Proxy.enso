@@ -1,0 +1,34 @@
+from Standard.Base import Any, Array, Integer
+
+## A helper type used for creating an array from a length and a callback
+   providing its elements.
+
+   It can be used to create an array from some non-standard underlying storage
+   without copying. The created proxy is read only and behaves like any `Array`
+   type returned from polyglot calls to other languages. The most common
+   use-case for it is to pass it to `Vector.from_polyglot_array` to create a
+   vector backed by such custom storage.
+@Builtin_Type
+type Array_Proxy
+    ## ADVANCED
+       UNSTABLE
+       Creates a new `Array_Proxy` from a length and a callback.
+
+       Arguments:
+       - length: The length of the array to create.
+       - at: A function which returns each element of the array.
+
+       > Example
+         Create a Vector of 10 million elements without allocating any storage.
+
+             Vector.from_polyglot_array (Array_Proxy.new 10000000 (i -> i))
+    new : Integer -> (Integer -> Any) -> Array
+    new length at = @Builtin_Method "Array_Proxy.new"
+
+    ## ADVANCED
+       UNSTABLE
+       Creates a new `Array_Proxy` from an object providing `length` and `at`
+       methods.
+    from_proxy_object : Any -> Array
+    from_proxy_object proxy =
+        Array_Proxy.new proxy.length proxy.at

@@ -4,14 +4,16 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.State;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
@@ -93,9 +95,11 @@ public final class UnresolvedConversion implements TruffleObject {
     static Object doDispatch(
         UnresolvedConversion conversion,
         Object[] arguments,
-        @Cached InteropConversionCallNode interopConversionCallNode)
-        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
-      return interopConversionCallNode.execute(conversion, EmptyMap.create(), arguments);
+        @Cached InteropConversionCallNode interopConversionCallNode,
+        @CachedLibrary("conversion") InteropLibrary thisLib)
+        throws ArityException {
+      return interopConversionCallNode.execute(
+          conversion, Context.get(thisLib).emptyState(), arguments);
     }
   }
 }

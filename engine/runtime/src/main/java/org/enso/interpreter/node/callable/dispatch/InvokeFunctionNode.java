@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.util.UUID;
 
@@ -68,10 +68,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
   @Specialization(
       guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
-  Stateful invokeCached(
+  Object invokeCached(
       Function function,
       VirtualFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
@@ -88,12 +88,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
     }
     functionCallInstrumentationNode.execute(
-        callerFrame, function, mappedArguments.getState(), mappedArguments.getSortedArguments());
+        callerFrame, function, state, mappedArguments.getSortedArguments());
     return curryNode.execute(
         callerFrame,
         function,
         callerInfo,
-        mappedArguments.getState(),
+        state,
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments());
   }
@@ -109,10 +109,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
-  Stateful invokeUncached(
+  Object invokeUncached(
       Function function,
       VirtualFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
@@ -135,13 +135,13 @@ public abstract class InvokeFunctionNode extends BaseNode {
     }
 
     functionCallInstrumentationNode.execute(
-        callerFrame, function, mappedArguments.getState(), mappedArguments.getSortedArguments());
+        callerFrame, function, state, mappedArguments.getSortedArguments());
 
     return curryNode.execute(
         callerFrame == null ? null : callerFrame.materialize(),
         function,
         callerInfo,
-        mappedArguments.getState(),
+        state,
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),
@@ -159,8 +159,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
-  public abstract Stateful execute(
-      Function callable, VirtualFrame callerFrame, Object state, Object[] arguments);
+  public abstract Object execute(
+      Function callable, VirtualFrame callerFrame, State state, Object[] arguments);
 
   public CallArgumentInfo[] getSchema() {
     return schema;
