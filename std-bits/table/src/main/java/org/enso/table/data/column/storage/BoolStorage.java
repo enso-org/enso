@@ -186,7 +186,7 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   private static IntFunction<Object> makeRowProvider(Value value) {
-    if (value.asHostObject() instanceof Storage<?> s) {
+    if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
       return i->(Object)s.getItemBoxed(i);
     }
     var converted = Polyglot_Utils.convertPolyglotValue(value);
