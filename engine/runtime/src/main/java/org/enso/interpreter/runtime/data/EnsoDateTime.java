@@ -35,7 +35,10 @@ public final class EnsoDateTime implements TruffleObject {
     this.dateTime = dateTime;
   }
 
-  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch", owner = Owner.MODULE)
+  @Builtin.Method(
+      name = "epoch_start",
+      description = "Return the Enso start of the Epoch",
+      owner = Owner.MODULE)
   public static EnsoDateTime epochStart() {
     return epochStart;
   }
