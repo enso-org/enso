@@ -451,7 +451,7 @@ mod test {
         assert_eq!(db.version.get(), 123);
 
         // Non-empty db
-        let entry = SuggestionEntry::Atom {
+        let entry = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
@@ -477,7 +477,7 @@ mod test {
     #[test]
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
-        let entry1 = SuggestionEntry::Atom {
+        let entry1 = SuggestionEntry::Constructor {
             name:                   "Entry1".to_owned(),
             module:                 "TestProject.TestModule".to_owned(),
             arguments:              vec![],
@@ -487,7 +487,7 @@ mod test {
             documentation_sections: default(),
             external_id:            None,
         };
-        let entry2 = SuggestionEntry::Atom {
+        let entry2 = SuggestionEntry::Constructor {
             name:                   "Entry2".to_owned(),
             module:                 "TestProject.TestModule".to_owned(),
             arguments:              vec![],
@@ -497,7 +497,7 @@ mod test {
             documentation_sections: default(),
             external_id:            None,
         };
-        let new_entry2 = SuggestionEntry::Atom {
+        let new_entry2 = SuggestionEntry::Constructor {
             name:                   "NewEntry2".to_owned(),
             module:                 "TestProject.TestModule".to_owned(),
             arguments:              vec![],
@@ -773,7 +773,7 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
-        let entry1 = SuggestionEntry::Atom {
+        let entry1 = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
@@ -858,7 +858,7 @@ mod test {
     #[test]
     fn initialize_database_with_invalid_entries() {
         // Prepare some nonsense inputs from the Engine.
-        let entry_with_empty_name = SuggestionEntry::Atom {
+        let entry_with_empty_name = SuggestionEntry::Constructor {
             name:                   "".to_string(),
             module:                 "Empty.Entry".to_string(),
             arguments:              vec![],
@@ -900,7 +900,7 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update() {
         // Initialize a suggestion database with a few sample entries.
-        let entry1 = SuggestionEntry::Atom {
+        let entry1 = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
@@ -977,7 +977,7 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update_reuses_id() {
         // Initialize a suggestion database with a sample entry.
-        let entry1 = SuggestionEntry::Atom {
+        let entry1 = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
