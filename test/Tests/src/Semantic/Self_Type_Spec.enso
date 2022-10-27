@@ -1,0 +1,16 @@
+from Standard.Base import all
+from Standard.Test import Test
+
+
+type My_Type
+    Cons_A x
+
+    my_static_helper z = z * 2
+    my_static y = Self.my_static_helper y.x + 1
+    method self = Self.my_static self + Self.my_static (Self.Cons_A 10)
+
+
+spec = Test.group "the Self construct" <|
+    Test.specify "should allow calling statics and constructors" <|
+        My_Type.Cons_A 1000 . method . should_equal 2022
+
