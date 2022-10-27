@@ -1,16 +1,13 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.stream.LongStream;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
@@ -292,6 +289,16 @@ public final class LongStorage extends NumericStorage<Long> {
               }
             })
         .add(
+            new LongNumericOp(Maps.POWER, true) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return Math.pow(in, arg);
+              }
+
+              @Override
+              public long doLong(long in, long arg) { throw new UnsupportedOperationException("Power operation should cast to double.");}
+            })
+        .add(
             new LongNumericOp(Maps.DIV, true) {
               @Override
               public double doDouble(long in, double arg) {
@@ -299,9 +306,7 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg) {
-                return in / arg;
-              }
+              public long doLong(long in, long arg) { throw new UnsupportedOperationException("Divide operation should cast to double.");}
             })
         .add(
             new LongBooleanOp(Maps.GT) {

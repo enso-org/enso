@@ -73,6 +73,7 @@ public abstract class Storage<T> {
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
+    public static final String POWER = "^";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
