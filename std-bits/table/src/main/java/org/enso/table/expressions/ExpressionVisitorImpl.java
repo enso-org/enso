@@ -31,7 +31,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      String moduleName) {
+      String moduleName,
+      String typeName) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -41,7 +42,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
-    var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName);
+    var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName, typeName);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -54,13 +55,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      String moduleName) {
+      String moduleName,
+      String typeName) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
 
     final Value module =
         Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", "Column");
+    final Value type = module.invokeMember("get_type", typeName);
     this.getMethod = name -> module.invokeMember("get_method", type, name);
   }
 
