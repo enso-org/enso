@@ -50,10 +50,6 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Panic.catch_java Any (new_builtin hour minute second nanosecond) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
-## PRIVATE
-new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
-new_builtin hour minute second = @Builtin_Method "Time_Of_Day.new_builtin"
-
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
    Arguments:
@@ -121,10 +117,6 @@ parse text pattern=Nothing locale=Locale.default =
         case pattern of
             Nothing -> parse_builtin text
             _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
-
-## PRIVATE
-parse_builtin : Text -> Text | Nothing -> Locale -> Time_Of_Day
-parse_builtin text pattern locale = @Builtin_Method "Time_Of_Day.parse_builtin"
 
 ## PRIVATE
 

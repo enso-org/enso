@@ -27,7 +27,7 @@ polyglot java import java.lang.ClassCastException
 
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
-new length constructor = @Builtin_Method "Vector.new_builtin"
+new length constructor = @Builtin_Method "Vector.new"
 
 ## ADVANCED
 

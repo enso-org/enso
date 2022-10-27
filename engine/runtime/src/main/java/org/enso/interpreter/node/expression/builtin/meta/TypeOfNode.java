@@ -21,7 +21,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "type_of_builtin",
+    name = "type_of",
     description = "Returns the type of a value.",
     owner = Owner.MODULE)
 public abstract class TypeOfNode extends Node {

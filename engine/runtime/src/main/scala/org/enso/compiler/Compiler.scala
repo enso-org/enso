@@ -13,7 +13,8 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
   ExportCycleException,
   ExportsResolution,
-  ImportResolver
+  ImportResolver,
+  ModuleBuiltins
 }
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -45,6 +46,7 @@ class Compiler(
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
+  private val moduleBuiltins: ModuleBuiltins   = new ModuleBuiltins(builtins)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator(builtins)
   private val irCachingEnabled = !context.isIrCachingDisabled
@@ -460,8 +462,10 @@ class Compiler(
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
+    val withBuiltins =
+      moduleBuiltins.inject(module, exprWithModuleExports, context.getLanguage)
     val discoveredModule =
-      recognizeBindings(exprWithModuleExports, moduleContext)
+      recognizeBindings(withBuiltins, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
     module.setLoadedFromCache(false)

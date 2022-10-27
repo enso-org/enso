@@ -38,7 +38,7 @@ public final class Vector implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "new_builtin",
+      name = "new",
       description = "Creates new Vector with given length and provided elements.",
       owner = Owner.MODULE)
   @Builtin.Specialize

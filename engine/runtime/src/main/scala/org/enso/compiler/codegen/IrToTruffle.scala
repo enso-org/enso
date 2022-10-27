@@ -266,19 +266,6 @@ class IrToTruffle(
       runtimeType.generateGetters(language)
     }
 
-    context.getBuiltins
-      .getBuiltinFunctionsForModule(
-        moduleScope.getModule.getName.item,
-        language
-      )
-      .forEach(builtinMeta =>
-        moduleScope.registerMethod(
-          moduleScope.getAssociatedType,
-          builtinMeta.getFunctionName,
-          builtinMeta.getFunction
-        )
-      )
-
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val scopeInfo = methodDef
@@ -393,11 +380,15 @@ class IrToTruffle(
               // types during Builtins initialization.
               )
               .map(fOpt =>
-                // If builtin is used as a body of a differently named/owned method
-                // then it was not previously registered.
+                // Register builtin iff
+                // - a method refers to a builtin with a diferent name or owner
+                // - a module method has been implicitly added by the compiler rather than being explicitly declared
+                // In all other cases, a builtin method should already have been registered.
                 fOpt
-                  .filter(_ => fullMethodName.text != fullMethodDefName)
-                  .map(_.getFunction)
+                  .filter(_ =>
+                    methodDef.methodReference.typePointer.isEmpty || fullMethodName.text != fullMethodDefName
+                  )
+                  .map(m => m.getFunction)
               )
           case fn: IR.Function =>
             val bodyBuilder =
