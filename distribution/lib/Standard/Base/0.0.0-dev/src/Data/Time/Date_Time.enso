@@ -22,7 +22,7 @@ polyglot java import org.enso.base.Time_Utils
     is computed for all the date times, including those before an epoch start,
     with today's rules. Trying to get some Gregorian calendar related properties
     for a historical date times that is defined before the epoch is likely an error,
-    as the Gregorian calendar had not yet been discovered. Therefore, for such
+    as the Gregorian calendar had not yet been introduced. Therefore, for such
     historical date times, a warning is attached to the result.
 enso_epoch_start : Date_Time
 enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
@@ -32,7 +32,7 @@ unix_epoch_start : Date_Time
 unix_epoch_start = Date_Time.new 1970
 
 ## PRIVATE
-ensure_in_epoch : (Date_Time | Date) -> Suspend (Any -> Any) -> Any
+ensure_in_epoch : (Date_Time | Date) -> (Any -> Any) -> Any
 ensure_in_epoch date ~action =
     datetime = case date of
         x : Date_Time -> x
@@ -41,7 +41,7 @@ ensure_in_epoch date ~action =
     case enso_epoch_start <= datetime of
         True -> ret_value
         False ->
-            Warning.attach ("Date time '" + datetime.to_text + "' start before Enso epoch") ret_value
+            Warning.attach (Time_Error_Data ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
 
 ## ALIAS Current Time
 
@@ -281,7 +281,7 @@ type Date_Time
 
     ## Return the number of seconds from the Unix epoch start (1.1.1970)
 
-       If this Date_Time is before an epoch start, returns a negative number.
+       If this Date_Time is before the epoch start, returns a negative number.
 
        > Example
          Get the current number of seconds from the Unix epoch.
