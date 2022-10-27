@@ -139,6 +139,35 @@ spec_with name create_new_date parse_date =
             date_1>=datetime . should_fail_with Type_Error_Data
             date_1==datetime . should_be_false
 
+        Test.specify "should create date before epoch start" <|
+            (create_new_date 100 1 2).year   . should_equal 100
+            (create_new_date 100 1 2).month  . should_equal 1
+            (create_new_date 100 1 2).day    . should_equal 2
+
+        Test.specify "Gregorian calendar related functionality should produce warning before epoch start" <|
+            expect_warning value =
+                (Warning.get_all value . map .value . exists (_.is_a Time_Error_Data)) . should_be_true
+            dates_before_epoch = [(create_new_date 100), (create_new_date 500 6 3)]
+            dates_before_epoch.each date->
+                expect_warning date.week_of_year
+                expect_warning date.is_leap_year
+                expect_warning date.day_of_week
+                expect_warning date.length_of_month
+                expect_warning date.length_of_year
+                expect_warning date.week_of_year
+
+        Test.specify "Gregorian calendar related functionality should work after epoch start" <|
+            expect_no_warning value =
+                ((Warning.get_all value).length == 0) . should_be_true
+            dates_after_epoch = [(create_new_date 1583), (create_new_date 1582 10 16), (create_new_date 2020)]
+            dates_after_epoch.each date->
+                expect_no_warning date.week_of_year
+                expect_no_warning date.is_leap_year
+                expect_no_warning date.day_of_week
+                expect_no_warning date.length_of_month
+                expect_no_warning date.length_of_year
+                expect_no_warning date.week_of_year
+
         Test.specify "should correctly determine the type of date" <|
             new_date = create_new_date 2020 6 1
             parsed_date = parse_date "2021-01-02"

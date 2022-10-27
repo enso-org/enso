@@ -762,6 +762,11 @@ type Time_Error
        - error_message: The message for the error.
     Time_Error_Data error_message
 
+    ## PRIVATE
+    epoch_start : Time_Error
+    epoch_start = Time_Error_Data "Epoch start underflow"
+
+
 ## TODO Dubious constructor export
 from project.Error.Common.Unsupported_File_Type import all
 from project.Error.Common.Unsupported_File_Type export all

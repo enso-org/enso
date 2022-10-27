@@ -184,6 +184,8 @@ type Date
 
     ## Returns the number of week of year this date falls into.
 
+       Produces a warning for a Date that is before epoch start.
+
        Arguments:
        - locale: the locale used to define the notion of weeks of year.
          If no locale is provided, then the ISO 8601 week of year is used.
@@ -198,14 +200,21 @@ type Date
          properly specify the `locale` argument.
     week_of_year : (Locale.Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
-        if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
-            Time_Utils.week_of_year_localdate self locale.java_locale
+        Date_Time.ensure_in_epoch self <|
+            if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
+                Time_Utils.week_of_year_localdate self locale.java_locale
 
     ## Returns if the date is in a leap year.
+
+       Produces a warning for a Date that is before epoch start.
     is_leap_year : Boolean
-    is_leap_year self = Time_Utils.is_leap_year self
+    is_leap_year self =
+        Date_Time.ensure_in_epoch self <|
+            Time_Utils.is_leap_year self
 
     ## Returns the number of days in the year represented by this date.
+
+       Produces a warning for a Date that is before epoch start.
     length_of_year : Integer
     length_of_year self = if self.is_leap_year then 366 else 365
 
@@ -219,17 +228,24 @@ type Date
     quarter self = Time_Utils.get_field_as_localdate self IsoFields.QUARTER_OF_YEAR
 
     ## Returns the number of days in the month represented by this date.
+
+       Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
-    length_of_month self = Time_Utils.length_of_month self
+    length_of_month self =
+        Date_Time.ensure_in_epoch self <|
+            Time_Utils.length_of_month self
 
     ## Returns the day of the year.
     day_of_year : Integer
     day_of_year self = Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_YEAR
 
     ## Returns the day of the week.
+
+       Produces a warning for a Date that is before epoch start.
     day_of_week : Day_Of_Week
     day_of_week self =
-        Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
+        Date_Time.ensure_in_epoch self <|
+            Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
@@ -241,6 +257,9 @@ type Date
 
     ## Counts workdays between self (inclusive) and the provided end date
        (exclusive).
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
 
        Arguments:
        - end: the end date of the interval to count workdays in.
@@ -270,15 +289,16 @@ type Date
              example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
-        if include_end_date then self.work_days_until (end + 1.day) holidays include_end_date=False else
-            weekdays = week_days_between self end
-            ## We count holidays that occurred within the period, but not on the
-               weekends (as weekend days have already been excluded from the count).
-               We also need to ensure we exclude each holiday only once, even if the
-               user provided it multiple times.
-            overlapping_holidays = holidays.filter holiday->
-                fits_in_range self end holiday && (is_weekend holiday).not
-            weekdays - overlapping_holidays.distinct.length
+        Date_Time.ensure_in_epoch self <|
+            if include_end_date then self.work_days_until (end + 1.day) holidays include_end_date=False else
+                weekdays = week_days_between self end
+                ## We count holidays that occurred within the period, but not on the
+                   weekends (as weekend days have already been excluded from the count).
+                   We also need to ensure we exclude each holiday only once, even if the
+                   user provided it multiple times.
+                overlapping_holidays = holidays.filter holiday->
+                    fits_in_range self end holiday && (is_weekend holiday).not
+                weekdays - overlapping_holidays.distinct.length
 
     ## ALIAS Date to Time
 
@@ -316,6 +336,9 @@ type Date
        For the purpose of this method, the business days are defined to be
        Monday through Friday.
 
+       Produces a warning for a Date that is before epoch start. See
+       `Date_Time.enso_epoch_start`.
+
        This method always returns a day which is a business day - if the shift
        amount is zero, the closest following business day is returned. For the
        purpose of calculating the shift, the holidays are treated as if we were
@@ -343,81 +366,83 @@ type Date
 
              example_shift = Date.new 2020 2 3 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date
-    add_work_days self days=1 holidays=[] = case days >= 0 of
-        True ->
-            full_weeks = days.div 5
-            remaining_days = days % 5
+    add_work_days self days=1 holidays=[] =
+        Date_Time.ensure_in_epoch self <|
+            case days >= 0 of
+                True ->
+                    full_weeks = days.div 5
+                    remaining_days = days % 5
 
-            # If the current day is a Saturday, the ordinal will be 6.
-            ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Monday start_at_zero=False
+                    # If the current day is a Saturday, the ordinal will be 6.
+                    ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Monday start_at_zero=False
 
-            ## If the current day is a Sunday, we just need to shift by one day
-               to 'escape' the weekend, regardless of the overall remaining
-               shift. On any other day, we check if current day plus the shift
-               overlaps a weekend, we need the shift to be 2 days since we need
-               to skip both Saturday and Sunday.
-            additional_shift = if ordinal == 7 then 1 else
-                if ordinal + remaining_days > 5 then 2 else 0
+                    ## If the current day is a Sunday, we just need to shift by one day
+                       to 'escape' the weekend, regardless of the overall remaining
+                       shift. On any other day, we check if current day plus the shift
+                       overlaps a weekend, we need the shift to be 2 days since we need
+                       to skip both Saturday and Sunday.
+                    additional_shift = if ordinal == 7 then 1 else
+                        if ordinal + remaining_days > 5 then 2 else 0
 
-            days_to_shift = full_weeks*7 + remaining_days + additional_shift
-            end = self + days_to_shift.days
+                    days_to_shift = full_weeks*7 + remaining_days + additional_shift
+                    end = self + days_to_shift.days
 
-            ## We have shifted the date so that weekends are taken into account,
-               but other holidays may have happened during that shift period.
-               Thus we may have shifted by less workdays than really desired. We
-               compute the difference and if there are still remaining workdays
-               to shift by, we re-run the whole shift procedure.
-            workdays = self.work_days_until end holidays include_end_date=False
-            diff = days - workdays
-            if diff > 0 then @Tail_Call end.add_work_days diff holidays else
-                ## Otherwise we have accounted for all workdays we were asked
-                   to. But that is still not the end - we still need to ensure
-                   that the final day on which we have 'landed' is a workday
-                   too. Our procedure ensures that it is not a weekend, but it
-                   can still be a holiday. So we will be shifting the end date
-                   as long as needed to fall on a non-weekend non-holiday
-                   workday.
-                go end_date =
-                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + 1.day) else end_date
-                go end
-        False ->
-            ## We shift a bit so that if shifting by N full weeks, the 'last'
-               shift is done on `remaining_days` and not full weeks. That is
-               because shifting a Saturday back 5 days does not want us to get
-               to the earlier Saturday and fall back to the Friday before it,
-               but we want to stop at the Monday just after that Saturday.
-            full_weeks = (days + 1).div 5
-            remaining_days = (days + 1) % 5 - 1
+                    ## We have shifted the date so that weekends are taken into account,
+                       but other holidays may have happened during that shift period.
+                       Thus we may have shifted by less workdays than really desired. We
+                       compute the difference and if there are still remaining workdays
+                       to shift by, we re-run the whole shift procedure.
+                    workdays = self.work_days_until end holidays include_end_date=False
+                    diff = days - workdays
+                    if diff > 0 then @Tail_Call end.add_work_days diff holidays else
+                        ## Otherwise we have accounted for all workdays we were asked
+                           to. But that is still not the end - we still need to ensure
+                           that the final day on which we have 'landed' is a workday
+                           too. Our procedure ensures that it is not a weekend, but it
+                           can still be a holiday. So we will be shifting the end date
+                           as long as needed to fall on a non-weekend non-holiday
+                           workday.
+                        go end_date =
+                            if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + 1.day) else end_date
+                        go end
+                False ->
+                    ## We shift a bit so that if shifting by N full weeks, the 'last'
+                       shift is done on `remaining_days` and not full weeks. That is
+                       because shifting a Saturday back 5 days does not want us to get
+                       to the earlier Saturday and fall back to the Friday before it,
+                       but we want to stop at the Monday just after that Saturday.
+                    full_weeks = (days + 1).div 5
+                    remaining_days = (days + 1) % 5 - 1
 
-            # If the current day is a Sunday, the ordinal will be 1.
-            ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Sunday start_at_zero=False
+                    # If the current day is a Sunday, the ordinal will be 1.
+                    ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Sunday start_at_zero=False
 
-            ## If we overlapped the weekend, we need to increase the shift by
-               one day (our current shift already shifts us by one day, but we
-               need one more to skip the whole two-day weekend).
-            additional_shift = if ordinal == 1 then -1 else
-                if ordinal + remaining_days <= 1 then -2 else 0
+                    ## If we overlapped the weekend, we need to increase the shift by
+                       one day (our current shift already shifts us by one day, but we
+                       need one more to skip the whole two-day weekend).
+                    additional_shift = if ordinal == 1 then -1 else
+                        if ordinal + remaining_days <= 1 then -2 else 0
 
-            ## The rest of the logic is analogous to the positive case, we
-               just need to correctly handle the reverse order of dates. The
-               `days_to_shift` will be negative so `end` will come _before_
-               `self`.
-            days_to_shift = full_weeks*7 + remaining_days + additional_shift
-            end = self + days_to_shift.days
-            workdays = end.work_days_until self holidays include_end_date=False
+                    ## The rest of the logic is analogous to the positive case, we
+                       just need to correctly handle the reverse order of dates. The
+                       `days_to_shift` will be negative so `end` will come _before_
+                       `self`.
+                    days_to_shift = full_weeks*7 + remaining_days + additional_shift
+                    end = self + days_to_shift.days
+                    workdays = end.work_days_until self holidays include_end_date=False
 
-            ## `days` is negative but `workdays` is positive, `diff` will be
-               zero if we accounted for all days or negative if there are
-               still workdays we need to shift by - then it will be exactly
-               the remaining offset that we need to shift by.
-            diff = days + workdays
-            if diff < 0 then @Tail_Call end.add_work_days diff holidays else
-                ## As in the positive case, if the final end date falls on a
-                   holiday, we need to ensure that we move it - this time
-                   backwards - to the first workday.
-                go end_date =
-                    if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - 1.day) else end_date
-                go end
+                    ## `days` is negative but `workdays` is positive, `diff` will be
+                       zero if we accounted for all days or negative if there are
+                       still workdays we need to shift by - then it will be exactly
+                       the remaining offset that we need to shift by.
+                    diff = days + workdays
+                    if diff < 0 then @Tail_Call end.add_work_days diff holidays else
+                        ## As in the positive case, if the final end date falls on a
+                           holiday, we need to ensure that we move it - this time
+                           backwards - to the first workday.
+                        go end_date =
+                            if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - 1.day) else end_date
+                        go end
 
     ## Subtract the specified amount of time from this instant to get another
        date.
