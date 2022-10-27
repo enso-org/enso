@@ -2,6 +2,7 @@ from Standard.Base import all
 
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.UnsupportedOperationException
 
 type Expression
     For_Column expression:Text
@@ -9,11 +10,20 @@ type Expression
     ## PRIVATE
     evaluate : (Text -> Any) -> (Any -> Any) -> Text -> Text -> Any
     evaluate self getColumn makeConstant moduleName="Standard.Table.Data.Column" typeName="Column" =
-        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Expression_Syntax.Error cause.getMessage))
-            ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant moduleName typeName
+        Panic.catch_java ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.getMessage cause.getLine cause.getColumn))
+            Panic.catch_java UnsupportedOperationException handler=(cause-> Error.throw (Expression_Error.Unsupported_Operation cause.getMessage))
+                Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Expression_Error.Argument_Mismatch cause.getMessage))
+                    ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant moduleName typeName
 
-type Expression_Syntax
-    Error message:Text
+type Expression_Error
+    Syntax_Error message:Text line:Integer column:Integer
+
+    Unsupported_Operation name:Text
+
+    Argument_Mismatch message:Text
 
     to_display_text : Text
-    to_display_text self = "Expression_Syntax.Error: '" + self.message + "'"
+    to_display_text self = case self of
+        Expression_Error.Syntax_Error _ _ _ -> "Expression.Syntax_Error: " + self.message + " (line " + self.line.to_text + ", column " + self.column.to_text + ")."
+        Expression_Error.Unsupported_Operation _ -> "Expression.Unsupported: " + self.name + " is not a supported method."
+        Expression_Error.Argument_Mismatch _ -> "Expression.Argument_Mismatch: " + self.message

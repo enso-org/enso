@@ -1,6 +1,11 @@
 package org.enso.table.expressions;
 
-import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -22,8 +27,27 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     @Override
     public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e)
-        throws IllegalArgumentException {
-      throw new IllegalArgumentException("Syntax error at line " + line + ":" + charPositionInLine + " " + msg);
+        throws SyntaxErrorException {
+      throw new SyntaxErrorException(msg, line, charPositionInLine);
+    }
+  }
+
+  public static class SyntaxErrorException extends RuntimeException {
+    private final int line;
+    private final int column;
+
+    public SyntaxErrorException(String message, int line, int column) {
+      super(message);
+      this.line = line;
+      this.column = column;
+    }
+
+    public int getLine() {
+      return line;
+    }
+
+    public int getColumn() {
+      return column;
     }
   }
 
@@ -32,7 +56,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       String moduleName,
-      String typeName) {
+      String typeName) throws UnsupportedOperationException, IllegalArgumentException {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -78,7 +102,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private Value executeMethod(String name, Value... args) {
     Value method = getMethod.apply(name);
     if (!method.canExecute()) {
-      throw new IllegalArgumentException("Method " + name + " not found.");
+      throw new UnsupportedOperationException(name);
     }
 
     Object[] objects = Arrays.copyOf(args, args.length, Object[].class);

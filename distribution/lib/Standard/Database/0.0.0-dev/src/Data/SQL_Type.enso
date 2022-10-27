@@ -91,6 +91,15 @@ type SQL_Type
 
     ## PRIVATE
 
+       Returns True if this type represents an integer or a double.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_numeric : Boolean
+    is_definitely_numeric self = self.is_definitely_double || self.is_definitely_integer
+
+    ## PRIVATE
+
        Returns True if this type represents an integer.
 
        It only handles the standard types so it may return false negatives for

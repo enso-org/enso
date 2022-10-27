@@ -136,6 +136,7 @@ type Column
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 Expression.Constant actual_operand_type constant
+
         actual_operand_types = operand_types.if_nothing (Vector.fill operands.length Nothing)
         expressions = operands.zip actual_operand_types prepare_operand
 
@@ -355,7 +356,11 @@ type Column
        of `self`.  If `other` is a column, the operation is performed pairwise
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
-    + self other = self.make_binary_op "+" other
+    + self other =
+        op = case other of
+            _ : Column -> if self.sql_type.is_definitely_numeric.not && other.sql_type.is_definitely_integer.not then 'ADD_TEXT' else 'ADD_NUMBER'
+            _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
+        self.make_binary_op op other
 
     ## UNSTABLE
 
