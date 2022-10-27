@@ -456,7 +456,8 @@ type Column
     not : Column
     not self = self.make_unary_op "NOT"
 
-    ## UNSTABLE
+    ## ALIAS IF
+
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
 
@@ -473,14 +474,14 @@ type Column
            when_false being either columns or regular values and rely on a
            mapping of Enso base types to SQL types, and a rule for extracting a
            common type.
-        approximate_type x = case x of
-            _ : Integer -> SQL_Type.integer
-            _ : Decimal -> SQL_Type.real
-            _ : Text -> SQL_Type.text
-            _ : Boolean -> SQL_Type.boolean
-            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
-        left_type = approximate_type when_true
-        right_type = approximate_type when_false
+        left_type = case when_true of
+            _ : Column -> when_true.sql_type
+            _ -> SQL_Type.approximate_type when_true
+
+        right_type = case when_false of
+             _ : Column -> when_false.sql_type
+             _ -> SQL_Type.approximate_type when_false
+
         if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
             self.make_op "IIF" [when_true, when_false] new_type=left_type
 
@@ -704,9 +705,8 @@ type Column
             in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
             has_nulls_expression = Expression.Operation "BOOL_OR" [column.is_missing.expression]
             has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
-            new_type = SQL_Type.boolean
             new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-            Column.Value self.name self.connection new_type new_expr self.context
+            Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 
     ## PRIVATE
     as_internal : Internal_Column
