@@ -773,6 +773,16 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
+        let entry0 = SuggestionEntry::Type {
+            name:                   "TextType".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            params:                 vec![],
+            return_type:            "TestType".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
         let entry1 = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
@@ -818,6 +828,7 @@ mod test {
         };
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
+                db_entry(0, entry0),
                 db_entry(1, entry1),
                 db_entry(2, entry2),
                 db_entry(3, entry3),
@@ -830,6 +841,7 @@ mod test {
 
         // Check that the entries used to initialize the database can be found using the
         // `lookup_by_fully_qualified_name` method.
+        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextType");
         lookup_and_verify_result_name(&db, "TestProject.TestModule.TextAtom");
         lookup_and_verify_result_name(&db, "Standard.Builtins.Main.System.create_process");
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
@@ -900,6 +912,16 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update() {
         // Initialize a suggestion database with a few sample entries.
+        let entry0 = SuggestionEntry::Type {
+            name:                   "TextType".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            params:                 vec![],
+            return_type:            "TestType".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
         let entry1 = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
             module:                 "TestProject.TestModule".to_string(),
@@ -924,15 +946,29 @@ mod test {
         fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
             SuggestionsDatabaseEntry { id, suggestion }
         }
+        let id0 = 0;
         let id1 = 1;
         let id2 = 2;
         let response = language_server::response::GetSuggestionDatabase {
-            entries:         vec![db_entry(id1, entry1), db_entry(id2, entry2)],
+            entries:         vec![
+                db_entry(id0, entry0),
+                db_entry(id1, entry1),
+                db_entry(id2, entry2),
+            ],
             current_version: 1,
         };
         let db = SuggestionDatabase::from_ls_response(response);
 
         // Modify the database contents by applying an update event.
+        let entry0_modification = Box::new(SuggestionsDatabaseModification {
+            arguments:          vec![],
+            module:             None,
+            self_type:          None,
+            return_type:        None,
+            documentation:      Some(FieldUpdate::set("New doc".to_string())),
+            documentation_html: None,
+            scope:              None,
+        });
         let entry1_modification = Box::new(SuggestionsDatabaseModification {
             arguments:          vec![],
             module:             Some(FieldUpdate::set("NewProject.NewModule".to_string())),
@@ -952,6 +988,11 @@ mod test {
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![
                 entry::Update::Modify {
+                    id:           id0,
+                    external_id:  None,
+                    modification: entry0_modification,
+                },
+                entry::Update::Modify {
                     id:           id1,
                     external_id:  None,
                     modification: entry1_modification,
@@ -966,6 +1007,7 @@ mod test {
         // Check the results of `lookup_by_fully_qualified_name` after the update.
         lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
         lookup_and_verify_result_name(&db, "NewProject.NewModule.TextAtom");
+        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextType");
         lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.System.create_process");
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
