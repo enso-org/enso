@@ -155,10 +155,11 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_eq = (Duration.seconds 60).total_minutes == (Duration.minutes 1).total_minutes
-    == : Duration -> Boolean ! Time_Error
+    == : Duration -> Boolean
     == self that =
-        ensure_duration that <|
-            self.equals_builtin that
+        case that of
+            _ : Duration -> self.equals_builtin that
+            _ -> false
 
     ## Compares `self` to `that` to produce an ordering.
 
