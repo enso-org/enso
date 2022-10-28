@@ -1,0 +1,29 @@
+## This benchmark reproduces the benchmark from `engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/semantic/ArrayProxyBenchmarks.java`.
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Bench
+
+sum arr =
+    go acc i = if i >= arr.length then acc else
+        @Tail_Call go (acc + arr.at i) i+1
+    sum 0 0
+
+make_vector n =
+    Vector.new n (i -> 3 + 5*i)
+make_proxy n =
+    Array_Proxy.new n (i -> 3 + 5*i)
+make_proxied_vector n =
+    Vector.from_polyglot_array (make_proxy n)
+
+vector_size = 1000
+iter_size = 100
+num_iterations = 10
+
+main =
+    vec = make_vector vector_size
+    proxy = make_proxy vector_size
+    proxied_vec = make_proxied_vector vector_size
+
+    Bench.measure (sum vec) "Sum Vector" iter_size num_iterations
+    Bench.measure (sum proxy) "Sum Proxy" iter_size num_iterations
+    Bench.measure (sum proxied_vec) "Sum Vector relying on Proxy" iter_size num_iterations
