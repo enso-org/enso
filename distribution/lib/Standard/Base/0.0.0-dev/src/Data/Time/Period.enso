@@ -21,7 +21,7 @@ polyglot java import java.lang.ArithmeticException
          example_period = Period.between (Date.new 2022 10 21) (Date.new 2022 9 12)
 between : Date -> Date -> Period
 between start_date_inclusive end_date_exclusive =
-    Period.Period_With_Date (Java_Period.between start_date_inclusive end_date_exclusive) start_date_inclusive
+    Period.Period_Data (Java_Period.between start_date_inclusive end_date_exclusive)
 
 ## Create a new Period from years, months and days.
 
@@ -38,7 +38,7 @@ between start_date_inclusive end_date_exclusive =
          example_period = Period.new 2 0 5
 new : Integer -> Integer -> Integer -> Period
 new years=0 months=0 days=0 =
-    Period.Period_Without_Date (Java_Period.of years months days)
+    Period.Period_Data (Java_Period.of years months days)
 
 ## Create a new Period from days.
 days : Integer -> Period
@@ -77,15 +77,7 @@ type Period
        Arguments:
        - internal_period: An internal representation of period of type
          java.time.Period.
-    Period_Without_Date internal_period
-
-    ## PRIVATE
-
-       Arguments:
-       - internal_period: An internal representation of period of type
-         java.time.Period.
-       - start_date: Starting Date
-    Period_With_Date internal_period start_date
+    Period_Data internal_period
 
     ## Get the portion of the period expressed in years.
     years : Integer
@@ -114,7 +106,7 @@ type Period
     + : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     + self other_period =
         ensure_period other_period <|
-            Panic.catch Any (Period.Period_Without_Date (self.internal_period.plus other_period.internal_period)) err->
+            Panic.catch Any (Period.Period_Data (self.internal_period.plus other_period.internal_period)) err->
                 case err of
                     _ : DateTimeException -> Error.throw Time_Error_Data "Period addition failed:"+err.getMessage
                     _ : ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error:"+err.getMessage cause=err
@@ -135,7 +127,7 @@ type Period
     - : Period -> Period ! (Time_Error | Illegal_Argument_Error)
     - self other_period =
         ensure_period other_period <|
-            Panic.catch Any (Period.Period_Without_Date (self.internal_period.minus other_period.internal_period)) err->
+            Panic.catch Any (Period.Period_Data (self.internal_period.minus other_period.internal_period)) err->
                 case err of
                     DateTimeException -> Error.throw Time_Error_Data "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
@@ -144,33 +136,20 @@ type Period
 
        Note that two periods are equal if they have the exact same amount of
        years, months, and days. So `(Period.days 30)` and
-       `(Period.new months=1`) are not equal.
+       `(Period.months 1)` are not equal. Even `(Period.years 1)` and
+       `(Period.months 12)` are not equal.
 
        Arguments:
        - other_period: The period to compare against `self`.
-    == : Period -> Boolean ! (Time_Error | Illegal_Argument_Error)
+    == : Period -> Boolean
     == self that =
         ensure_period that <|
-            (self.compare_to that) == Ordering.Equal
+            self.internal_period.equals that.internal_period
 
-    ## Compare this period to another period to produce an ordering.
-    compare_to : Period -> Ordering ! (Time_Error | Illegal_Argument_Error)
-    compare_to self that =
-        ensure_period that <|
-            case self of
-                Period.Period_With_Date _ start_date_self ->
-                    case that of
-                        Period.Period_With_Date _ start_date_that ->
-                            end_date_self = start_date_self + self
-                            duration_self = Duration.between start_date_self.to_date_time end_date_self.to_date_time
-                            end_date_that = start_date_that + that
-                            duration_that = Duration.between start_date_that.to_date_time end_date_that.to_date_time
-                            duration_self.compare_to duration_that
-                        Period.Period_Without_Date _ ->
-                            (start_date_self + self).compare_to (start_date_self + that)
-                Period.Period_Without_Date _ ->
-                    case that of
-                        Period.Period_With_Date _ start_date_that ->
-                            (start_date_that + self).compare_to (start_date_that + that)
-                        Period.Period_Without_Date _ ->
-                            Error.throw (Time_Error_Data "Cannot compare two Period_Without_Date, as there is no start date")
+    ## Just throws Incomparable_Values_Error, because periods cannot be
+       compared without additional context.
+
+       To compare two Periods, use something like:
+       `(start_date + period1) .compare_to (start_date + period2)`
+    compare_to : Period -> Nothing ! Incomparable_Values_Error
+    compare_to self _ = Error.throw Incomparable_Values_Error

@@ -376,7 +376,7 @@ spec_with name create_new_date parse_date =
         Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = create_new_date year 1 1
-                Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
+                Vector.new first_day.length_of_year (n -> first_day + (Period.days n))
 
             two_years_vacation = all_year_holiday 1999 + all_year_holiday 2000
 

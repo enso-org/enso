@@ -26,29 +26,18 @@ spec =
             (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=(-50))
             (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.days 13)
 
-        Test.specify "should compare between two Periods_With_Date" <|
-            ((Period.between (Date.new 2022 1 1) (Date.new 2022 1 2)) == (Period.between (Date.new 2022 5 1) (Date.new 2022 5 2))) . should_be_true
-            ((Period.between (Date.new 2022 1 1) (Date.new 2022 1 15)) > (Period.between (Date.new 2022 5 1) (Date.new 2022 5 2))) . should_be_true
-            ((Period.between (Date.new 2022 1 1) (Date.new 2022 1 15)) > (Period.between (Date.new 2022 5 1) (Date.new 2022 3 2))) . should_be_true
-            ((Period.between (Date.new 2022 1 1) (Date.new 2022 1 2)) < (Period.between (Date.new 2022 5 1) (Date.new 2022 5 10))) . should_be_true
-            ((Period.between (Date.new 2022 1 10) (Date.new 2022 1 1)) < (Period.between (Date.new 2022 5 1) (Date.new 2022 5 10))) . should_be_true
-            ((Period.between (Date.new 2022 1 10) (Date.new 2022 1 1)) != (Period.between (Date.new 2022 5 1) (Date.new 2022 5 10))) . should_be_true
-            # 2020 is a leap year, so February in 2020 has more days than February in 2021
-            ((Period.between (Date.new 2020 2 1) (Date.new 2020 3 1)) > (Period.between (Date.new 2021 2 1) (Date.new 2021 3 1))) . should_be_true
+        Test.specify "should not compare between two periods" <|
+            ((Period.days 10) > (Period.days 1)) . should_fail_with Incomparable_Values_Error
+            ((Period.years 10) > (Period.days 1)) . should_fail_with Incomparable_Values_Error
+            ((Period.new years=10 months=3) > (Period.months 5)) . should_fail_with Incomparable_Values_Error
 
-        Test.specify "should compare between Period_With_Date and Period_Without_Date" <|
-            (Period.between (Date.new 2022 1 1) (Date.new 2022 1 2)) == (Period.days 1)
-            (Period.between (Date.new 2022 1 1) (Date.new 2022 1 10)) > (Period.days 1)
-            (Period.between (Date.new 2022 1 1) (Date.new 2001 1 1)) < (Period.days 1)
-            (Period.days 1) == (Period.between (Date.new 2022 1 1) (Date.new 2022 1 2))
-            (Period.days 1) > (Period.between (Date.new 2022 1 1) (Date.new 2022 1 10))
-            (Period.days 1) < (Period.between (Date.new 2022 1 1) (Date.new 2001 1 1))
-
-        Test.specify "should not compare between two Period_Without_Date" <|
-            ((Period.days 1) == (Period.days 1)) . should_fail_with Time_Error_Data
-            ((Period.days 10) > (Period.days 1)) . should_fail_with Time_Error_Data
-            ((Period.years 10) > (Period.days 1)) . should_fail_with Time_Error_Data
-            ((Period.new years=10 months=3) > (Period.months 5)) . should_fail_with Time_Error_Data
+        Test.specify "two Periods are equal iff their fields are equal" <|
+            ((Period.days 1) == (Period.days 1)) . should_be_true
+            ((Period.months 12) == (Period.years 1)) . should_be_false
+            ((Period.months 3) == (Period.months 3)) . should_be_true
+            ((Period.days (-5)) == (Period.days (-5))) . should_be_true
+            ((Period.new years=1 days=10) == (Period.new years=1 days=10)) . should_be_true
+            ((Period.days 1) != (Period.months 1)) . should_be_true
 
 
 main = Test_Suite.run_main spec

@@ -74,8 +74,6 @@ spec =
                     (duration - period).should_fail_with Time_Error_Data
                     (period + duration).should_fail_with Time_Error_Data
                     (period - duration).should_fail_with Time_Error_Data
-                    (period > duration).should_fail_with Time_Error_Data
-                    (period < duration).should_fail_with Time_Error_Data
                     (duration > period).should_fail_with Time_Error_Data
                     (duration < period).should_fail_with Time_Error_Data
 
