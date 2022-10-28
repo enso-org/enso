@@ -931,6 +931,17 @@ type Column
             if storage.isNa index then Nothing else
                 storage.getItem index
 
+    ## UNSTABLE
+
+       Returns a column containing rows of this column.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    read : (Nothing | Integer) -> Column
+    read self max_rows=Nothing =
+        if max_rows.is_nothing then self else self.slice 0 max_rows
+
     ## Returns a vector containing all the elements in this column.
 
        > Example
@@ -1103,29 +1114,6 @@ type Column
             (Vector.from_polyglot_array v).reduce (+) / v.length
         self.java_column.aggregate 'mean' vec_mean True
 
-    ## Computes the variance of the sample represented by this column.
-
-       Arguments:
-       - degrees_of_freedom_correction: a correction to account for the
-         missing degrees of freedom in the sample. The default value of `1`
-         computes a sample variance. Setting it to `0` will compute population
-         variance instead.
-    variance self degrees_of_freedom_correction=1 =
-        mean = self.mean
-        shifted = self - mean
-        sq = shifted * shifted
-        sq.sum / (self.length - degrees_of_freedom_correction)
-
-    ## Computes the standard deviation of the sample represented by this column.
-
-       Arguments:
-       - degrees_of_freedom_correction: a correction to account for the
-         missing degrees of freedom in the sample. The default value of `1`
-         computes a sample standard deviation. Setting it to `0` will compute
-         population standard deviation instead.
-    standard_deviation self degrees_of_freedom_correction=1 =
-        self.variance degrees_of_freedom_correction . sqrt
-
     ## UNSTABLE
 
        Sorts the column according to the specified rules.
@@ -1197,7 +1185,7 @@ type Column
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Column
-    slice self start end =
+    slice self start=0 end=(self.length-1) =
         length = self.length
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
