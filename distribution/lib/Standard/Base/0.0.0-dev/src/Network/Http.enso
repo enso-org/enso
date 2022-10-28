@@ -36,7 +36,7 @@ polyglot java import org.enso.base.Http_Utils
 
    > Example
      Create an HTTP client with extended timeout.
-         Http.new timeout=(Duration.new seconds=30)
+         Http.new timeout=(Duration.seconds 30)
 
    > Example
      Create an HTTP client with extended timeout and proxy settings.
@@ -46,9 +46,9 @@ polyglot java import org.enso.base.Http_Utils
          import Standard.Base.Network.Proxy
 
          example_new =
-            Http.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.new "example.com" 8080)
+            Http.new (timeout = (Duration.seconds 30)) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
-new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+new (timeout = (Duration.seconds 10)) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http_Data timeout follow_redirects proxy version
 
 ## Send an Options request.
@@ -595,7 +595,7 @@ type Http
              example_request =
                  form = [Form.text_field "name" "John Doe"]
                  req = Request.new Method.Post "http://httpbin.org/post" . with_form form
-                 http = Http.new (timeout = (Duration.new seconds=30))
+                 http = Http.new (timeout = (Duration.seconds 30))
                  http.request req
     request : Request -> Response ! Request_Error
     request self req =
