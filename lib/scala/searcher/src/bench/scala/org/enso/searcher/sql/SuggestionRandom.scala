@@ -22,12 +22,13 @@ object SuggestionRandom {
 
   def nextSuggestion(): Suggestion = {
     nextKind() match {
-      case Suggestion.Kind.Module     => nextSuggestionModule()
-      case Suggestion.Kind.Constructor       => nextSuggestionAtom()
-      case Suggestion.Kind.Method     => nextSuggestionMethod()
-      case Suggestion.Kind.Conversion => nextSuggestionMethod()
-      case Suggestion.Kind.Function   => nextSuggestionFunction()
-      case Suggestion.Kind.Local      => nextSuggestionLocal()
+      case Suggestion.Kind.Module      => nextSuggestionModule()
+      case Suggestion.Kind.Type        => nextSuggestionType()
+      case Suggestion.Kind.Constructor => nextSuggestionConstructor()
+      case Suggestion.Kind.Method      => nextSuggestionMethod()
+      case Suggestion.Kind.Conversion  => nextSuggestionMethod()
+      case Suggestion.Kind.Function    => nextSuggestionFunction()
+      case Suggestion.Kind.Local       => nextSuggestionLocal()
     }
   }
 
@@ -38,7 +39,18 @@ object SuggestionRandom {
       documentationHtml = optional(nextString())
     )
 
-  def nextSuggestionAtom(): Suggestion.Constructor =
+  def nextSuggestionType(): Suggestion.Type =
+    Suggestion.Type(
+      externalId        = optional(UUID.randomUUID()),
+      module            = "Test.Main",
+      name              = nextString(),
+      params            = Seq(),
+      returnType        = nextString(),
+      documentation     = optional(nextString()),
+      documentationHtml = optional(nextString())
+    )
+
+  def nextSuggestionConstructor(): Suggestion.Constructor =
     Suggestion.Constructor(
       externalId        = optional(UUID.randomUUID()),
       module            = "Test.Main",
