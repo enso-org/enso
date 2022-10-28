@@ -120,11 +120,11 @@ public class ArrayProxyBenchmarks {
       throw new AssertionError("Shall be a long: " + resultValue);
     }
     long result = resultValue.asLong();
-    long expectedResult = length * 3 + (5 * (length * (length + 1) / 2));
+    long expectedResult = length * 3L + (5L * (length * (length - 1L) / 2L));
     boolean isResultCorrect = result == expectedResult;
     if (!isResultCorrect) {
       throw new AssertionError(
-          "Expecting reasonable result but was " + result);
+          "Expecting " + expectedResult + " but was " + result);
     }
     matter.consume(result);
   }
