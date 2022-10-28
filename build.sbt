@@ -1872,11 +1872,19 @@ lazy val `std-base` = project
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
+  .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
+    Antlr4 / antlr4PackageName := Some("org.enso.table.expressions"),
+    Antlr4 / antlr4Version := "4.10.1",
+    Antlr4 / antlr4GenVisitor := true,
+    Antlr4 / antlr4TreatWarningsAsErrors := true,
+    Compile / managedSourceDirectories += {
+      (Antlr4 / sourceManaged).value / "main" / "antlr4"
+    },
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
