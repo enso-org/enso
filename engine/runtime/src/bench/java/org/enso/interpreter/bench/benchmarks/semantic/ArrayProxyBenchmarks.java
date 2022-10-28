@@ -79,7 +79,7 @@ public class ArrayProxyBenchmarks {
         test_builder = "make_computing_vector";
         break;
       case "sumOverVectorBackedByDelegatingProxy":
-        test_builder = "make_computing_vector";
+        test_builder = "make_delegating_vector";
         break;
       default:
         throw new IllegalStateException(
