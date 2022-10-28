@@ -79,15 +79,18 @@ public class Time_Utils {
     return date.atTime(time).atZone(zone);
   }
 
-  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period duration) {
-    switch (op) {
-      case PLUS:
-        return date.plus(duration);
-      case MINUS:
-        return date.minus(duration);
-      default:
-        throw new DateTimeException("Unknown adjust operation");
-    }
+  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
+    return switch (op) {
+      case PLUS -> date.plus(period);
+      case MINUS -> date.minus(period);
+    };
+  }
+
+  public static ZonedDateTime datetime_adjust(ZonedDateTime datetime, AdjustOp op, Period period) {
+    return switch (op) {
+      case PLUS -> datetime.plus(period);
+      case MINUS -> datetime.minus(period);
+    };
   }
 
   public static int get_field_as_localdate(LocalDate date, TemporalField field) {

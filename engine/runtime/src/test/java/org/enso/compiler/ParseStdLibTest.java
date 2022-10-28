@@ -215,6 +215,7 @@ public final class ParseStdLibTest extends TestCase {
             "Data/Time/Date_Period.enso",
             "Data/Time/Date_Time.enso",
             "Data/Time/Duration.enso",
+            "Data/Time/Period.enso",
             "Data/Time/Time_Of_Day.enso",
             "Data/Time/Time_Zone.enso",
             "Data/Vector.enso",

@@ -223,6 +223,7 @@
   selector variant.][3812]
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
+- [Implemented `Period` type][3818]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -358,6 +359,7 @@
 [3827]: https://github.com/enso-org/enso/pull/3827
 [3824]: https://github.com/enso-org/enso/pull/3824
 [3804]: https://github.com/enso-org/enso/pull/3804
+[3818]: https://github.com/enso-org/enso/pull/3818
 
 #### Enso Compiler
 
