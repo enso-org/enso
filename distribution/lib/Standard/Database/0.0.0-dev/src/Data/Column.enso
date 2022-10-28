@@ -473,17 +473,29 @@ type Column
            when_false being either columns or regular values and rely on a
            mapping of Enso base types to SQL types, and a rule for extracting a
            common type.
-        left_type = case when_true of
-            _ : Column -> when_true.sql_type
-            _ -> SQL_Type.approximate_type when_true
-
-        right_type = case when_false of
-             _ : Column -> when_false.sql_type
-             _ -> SQL_Type.approximate_type when_false
-
+        left_type = get_approximate_type when_true self.sql_type
+        right_type = get_approximate_type when_false self.sql_type
         if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
             self.make_op "IIF" [when_true, when_false] new_type=left_type
 
+    ## Returns a column of first non-`Nothing` value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to coalesce with `self`.
+
+       > Example
+         Get the first non-`Nothing` value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
+    coalesce : (Any | Vector Any) -> Column
+    coalesce self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "COALESCE" values new_type=self.sql_type
+        _ -> self.coalesce [values]
 
     ## UNSTABLE
 
@@ -726,3 +738,9 @@ type Column
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
+
+## PRIVATE
+get_approximate_type value default = case value of
+    _ : Column -> value.sql_type
+    Nothing -> default
+    _ -> SQL_Type.approximate_type value

@@ -534,6 +534,60 @@ type Column
             Column.Column_Data (Java_Column.new "Result" ix rs)
         _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
 
+    ## Returns a column of first non-`Nothing` value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to coalesce with `self`.
+
+       > Example
+         Get the first non-`Nothing` value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
+    coalesce : (Any | Vector Any) -> Column
+    coalesce self values =
+        fallback a b = a.if_nothing b
+        run_vectorized_many_op self "coalesce" fallback values
+
+    ## Returns a column of minimum non-Nothing value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to minimum with `self`.
+
+       > Example
+         Get the first minimum value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.min Examples.integer_column
+    min : (Any | Vector Any) -> Column
+    min self values =
+        fallback a b = if a.is_nothing then b else
+            if b.is_nothing then a else
+                if b < a then b else a
+        run_vectorized_many_op self "minimum" fallback values new_name=new_name
+
+    ## Returns a column of maximum non-Nothing value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to maximum with `self`.
+
+       > Example
+         Get the first minimum value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.max Examples.integer_column
+    max : (Any | Vector Any) -> Column
+    max self values =
+        fallback a b = if a.is_nothing then b else
+            if b.is_nothing then a else
+                if b > a then b else a
+        run_vectorized_many_op self "maximum" fallback values new_name=new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -1192,6 +1246,11 @@ type Column
     duplicate_count : Column
     duplicate_count self = Column_Data self.java_column.duplicateCount
 
+    ## PRIVATE
+       Helper for the expression to tell it which functions needs a Vector.
+    var_args_functions : Vector
+    var_args_functions = ['coalesce', 'min', 'max', 'sum', 'mean']
+
 ## UNSTABLE
 
    An error for when the column contains no elements.
@@ -1201,6 +1260,31 @@ type Empty_Error
        Pretty prints the empty column error.
     to_display_text : Text
     to_display_text self = "The column is empty."
+
+## PRIVATE
+
+   Executes a vectorized operation over the provided column and values.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+   - operands: The vector of operands to apply to the function after `column`.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - new_name: The name of the column created as the result of this operation.
+run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Boolean -> Text -> Column
+run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
+    case operands of
+        _ : Vector.Vector ->
+            folded = operands.fold column.java_column.getStorage current->operand->
+                case operand of
+                    _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
+                    _ -> current.bimap name fallback_fn operand False
+            Column.Column_Data (Java_Column.new new_name column.java_column.getIndex folded)
+        _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
 ## PRIVATE
 
@@ -1216,7 +1300,7 @@ type Empty_Error
      `False`, the null values are passed as any other value and can have custom
      handling logic.
    - new_name: The name of the column created as the result of this operation.
-run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Boolean -> Text -> Column
+run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boolean -> Text -> Column
 run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
     Column.Column_Data col2 ->
         s1 = column.java_column.getStorage
