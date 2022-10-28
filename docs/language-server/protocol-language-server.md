@@ -621,7 +621,13 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Module | Constructor | Method | Function | Local;
+type SuggestionEntryType =
+  | Module
+  | Type
+  | Constructor
+  | Method
+  | Function
+  | Local;
 ```
 
 ### `SuggestionId`
