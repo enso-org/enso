@@ -14,10 +14,6 @@ polyglot java import org.enso.table.operations.OrderBuilder
 
 from project.Data.Column.Column import Column_Data
 
-## PRIVATE
-var_args_functions : Vector
-var_args_functions = ['is_in', 'min', 'max', 'coalesce']
-
 type Column
     ## PRIVATE
 
@@ -1056,63 +1052,6 @@ type Column
         max_data = 100
         data = ['data', self.to_vector.take (First max_data)]
         Json.from_pairs [size, name, data] . to_text
-
-    ## ALIAS Sum Columns
-
-       Sums the values in this column.
-
-       > Example
-         Sum the values in a column.
-
-             import Standard.Examples
-
-             example_sum = Examples.integer_column.sum
-    sum : Any
-    sum self = self.java_column.aggregate 'sum' (x-> Vector.from_polyglot_array x . reduce (+)) True
-
-    ## ALIAS Max Columns
-
-       Computes the maximum element of this column.
-
-       > Example
-         Compute the maximum value of a column.
-
-             import Standard.Examples
-
-             example_max = Examples.integer_column.max
-    max : Any
-    max self =
-        self.java_column.aggregate 'max' (x-> Vector.from_polyglot_array x . reduce Math.max) True
-
-    ## ALIAS Min Columns
-
-       Computes the minimum element of this column.
-
-       > Example
-         Compute the minimum value of a column.
-
-             import Standard.Examples
-
-             example_min = Examples.integer_column.min
-    min : Any
-    min self =
-        self.java_column.aggregate 'min' (x-> Vector.from_polyglot_array x . reduce Math.min) True
-
-    ## ALIAS Mean Columns
-
-       Computes the mean of non-missing elements of this column.
-
-       > Example
-         Compute the mean value of a column.
-
-             import Standard.Examples
-
-             example_mean = Examples.integer_column.mean
-    mean : Any
-    mean self =
-        vec_mean v = if v.length == 0 then Nothing else
-            (Vector.from_polyglot_array v).reduce (+) / v.length
-        self.java_column.aggregate 'mean' vec_mean True
 
     ## UNSTABLE
 

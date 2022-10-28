@@ -9,8 +9,6 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
@@ -86,13 +84,6 @@ public abstract class Storage<T> {
     public static final String IS_IN = "is_in";
   }
 
-  public static final class Aggregators {
-    public static final String SUM = "sum";
-    public static final String MEAN = "mean";
-    public static final String MAX = "max";
-    public static final String MIN = "min";
-  }
-
   /**
    * Specifies if the given operation has a vectorized implementation available for this storage.
    */
@@ -134,27 +125,6 @@ public abstract class Storage<T> {
       }
     }
     return builder.seal();
-  }
-
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    return null;
-  }
-
-  /**
-   * Returns an aggregator created based on the provided parameters.
-   *
-   * @param name name of a vectorized operation that can be used if possible. If null is passed,
-   *     this parameter is unused.
-   * @param fallback the function to use if a vectorized operation is not available.
-   * @param skipNa whether missing values should be passed to the {@code fallback} function.
-   * @param resultSize the number of times the {@link
-   *     Aggregator#nextGroup(java.util.stream.IntStream)} method will be called.
-   * @return an aggregator satisfying the above properties.
-   */
-  public final Aggregator getAggregator(
-      String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
-    Aggregator result = getVectorizedAggregator(name, resultSize);
-    return result == null ? new FunctionAggregator(fallback, this, skipNa, resultSize) : result;
   }
 
   /**

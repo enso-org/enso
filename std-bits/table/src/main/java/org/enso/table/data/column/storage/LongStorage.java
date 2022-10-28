@@ -2,11 +2,7 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
@@ -103,46 +99,6 @@ public final class LongStorage extends NumericStorage<Long> {
   @Override
   protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
-  }
-
-  @Override
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    return switch (name) {
-      case Aggregators.SUM -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          long[] elements = items.toArray();
-          if (elements.length == 0) {
-            submitMissing();
-          } else {
-            submit(LongStream.of(elements).sum());
-          }
-        }
-      };
-      case Aggregators.MAX -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          OptionalLong r = items.max();
-          if (r.isPresent()) {
-            submit(r.getAsLong());
-          } else {
-            submitMissing();
-          }
-        }
-      };
-      case Aggregators.MIN -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          OptionalLong r = items.min();
-          if (r.isPresent()) {
-            submit(r.getAsLong());
-          } else {
-            submitMissing();
-          }
-        }
-      };
-      default -> super.getVectorizedAggregator(name, resultSize);
-    };
   }
 
   private Storage<?> fillMissingDouble(double arg) {

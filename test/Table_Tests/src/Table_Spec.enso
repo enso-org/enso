@@ -425,14 +425,6 @@ spec =
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 
-    Test.group "Column-wide statistics" <|
-        Test.specify 'should allow computing basic column-wide stats' <|
-            price = Column.from_vector 'price' [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]
-            price.sum.should_equal 107.6
-            price.min.should_equal 0.4
-            price.max.should_equal 97
-            price.mean.should_equal 26.9
-
     Test.group "Sorting Tables" <|
         df = (enso_project.data / "clothes.csv").read
 

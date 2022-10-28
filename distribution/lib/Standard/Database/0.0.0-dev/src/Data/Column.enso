@@ -198,41 +198,6 @@ type Column
 
     ## UNSTABLE
 
-       Sums the values in this column.
-    sum : Any
-    sum self = self.compute_aggregate "SUM"
-
-    ## UNSTABLE
-
-       Computes the maximum element of this column.
-    max : Any
-    max self = self.compute_aggregate "MAX"
-
-    ## UNSTABLE
-
-       Computes the minimum element of this column.
-    min : Any
-    min self = self.compute_aggregate "MIN"
-
-    ## UNSTABLE
-
-       Computes the mean of non-missing elements of this column.
-    mean : Any
-    mean self = self.compute_aggregate "AVG"
-
-    ## PRIVATE
-
-       Computes an aggregate operator.
-
-       Arguments:
-       - op_name: The name of the operator to compute.
-    compute_aggregate : Text
-    compute_aggregate self op_name =
-        agg = make_aggregate self op_name
-        agg.to_vector . at 0
-
-    ## UNSTABLE
-
        Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
@@ -761,49 +726,3 @@ type Column
     ## Provides a simplified text representation for display in the REPL and errors.
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
-
-## PRIVATE
-
-   A helper method for creating an aggregated column by applying some
-   operation.
-
-   Arguments:
-   - column: The column to aggregate.
-   - operation: The name of the aggregation operation.
-   - name_suffix: The suffix to apply to the name of the aggregate column.
-   - new_type: The SQL type of the result column.
-make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
-make_aggregate column operation name_suffix="_agg" new_type=Nothing =
-    actual_new_type = new_type.if_nothing column.sql_type
-    expr = Expression.Operation operation [column.expression]
-    case Helpers.ensure_name_is_sane name_suffix of
-        True ->
-            new_name = column.name + name_suffix
-            lift_aggregate new_name column.connection actual_new_type expr column.context
-
-## PRIVATE
-
-   A helper function that lifts an aggregate query into a subquery to ensure
-   correctness of further processing.
-
-   Argument:
-   - new_name: The new name for the aggregate column.
-   - connection: The connection with which the aggregate is associated.
-   - expected_type: The expected SQL type of the column.
-   - expr: The expression for the query.
-   - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> SQL_Type -> Expression -> Context -> Column
-lift_aggregate new_name connection expected_type expr context =
-    # TODO [RW] This is a simple workaround for #1643 - we always wrap the
-    # aggregate into a subquery, thus making it safe to use it everywhere. A
-    # more complex solution may be adopted at some point.
-    ixes = freshen_columns [new_name] context.meta_index
-    col = Internal_Column.Value new_name expected_type expr
-    setup = context.as_subquery new_name+"_sub" [[col], ixes]
-    subquery = setup.first
-    cols = setup.second
-    new_col = cols.first.first
-    new_ixes = cols.second
-    new_ctx = Context.for_subquery subquery . set_index new_ixes
-    Column.Value new_name connection new_col.sql_type new_col.expression new_ctx
-
