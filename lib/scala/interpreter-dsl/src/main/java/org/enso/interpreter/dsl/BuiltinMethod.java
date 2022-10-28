@@ -21,6 +21,6 @@ public @interface BuiltinMethod {
   /** @return a list of aliases (names) of this method */
   String aliases() default "";
 
-  /** @return is the owner of the method a module rather than a type */
+  /** @return an owner of the method */
   Owner owner() default Owner.TYPE;
 }

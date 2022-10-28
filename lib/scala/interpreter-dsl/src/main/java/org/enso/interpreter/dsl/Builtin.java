@@ -156,7 +156,7 @@ public @interface Builtin {
 
     /**
      * `owner` property indicates the builtin method's owner. By default a builtin method belongs to
-     * its type If `Owner.MODULE`, the builtin method must be static i.e. no `self` parameter must
+     * its type. If `Owner.MODULE`, the builtin method must be static i.e. no `self` parameter must
      * be present.
      */
     Owner owner() default Owner.TYPE;

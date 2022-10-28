@@ -376,8 +376,6 @@ class IrToTruffle(
                   cons == context.getBuiltins.number().getInteger
                 ) Right(None)
                 else Left(l)
-              // The non-static builtins have already been registered with
-              // types during Builtins initialization.
               )
               .map(fOpt =>
                 // Register builtin iff
