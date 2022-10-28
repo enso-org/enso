@@ -3,6 +3,7 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Expression.Expression as Derived_Expression
+import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -20,7 +21,6 @@ import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
-import project.Internal.IR.Expression.Expression_Error
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
