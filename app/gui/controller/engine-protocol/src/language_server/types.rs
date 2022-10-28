@@ -919,7 +919,6 @@ pub enum SuggestionEntry {
         name:                   String,
         module:                 String,
         params:                 Vec<SuggestionEntryArgument>,
-        return_type:            String,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]

@@ -61,8 +61,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "defaultValue" : null,
                       "tagValues" : null
                     }
-                  ],
-                  "returnType" : "Newtype"
+                  ]
                }
              }
            ],
@@ -513,8 +512,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "defaultValue" : null,
                       "tagValues" : null
                     }
-                  ],
-                  "returnType" : "Newtype"
+                  ]
                 }
               },
               {

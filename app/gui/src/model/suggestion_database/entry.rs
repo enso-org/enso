@@ -6,6 +6,7 @@ use crate::model::module::MethodId;
 
 use convert_case::Case;
 use convert_case::Casing;
+use double_representation::identifier::ReferentName;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -424,22 +425,27 @@ impl Entry {
                 name,
                 module,
                 params,
-                return_type,
                 documentation,
                 documentation_html,
                 documentation_sections,
                 ..
-            } => Self {
-                name,
-                arguments: params,
-                return_type,
-                documentation_html: Self::make_html_docs(documentation, documentation_html),
-                module: module.try_into()?,
-                self_type: None,
-                kind: Kind::Type,
-                scope: Scope::Everywhere,
-                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
-            },
+            } => {
+                let referent_name = ReferentName::new(name.clone())?;
+                let mut module_name: module::QualifiedName = module.clone().try_into()?;
+                module_name.push_segment(referent_name);
+                let return_type = module_name.to_string();
+                Self {
+                    name,
+                    arguments: params,
+                    return_type,
+                    documentation_html: Self::make_html_docs(documentation, documentation_html),
+                    module: module.try_into()?,
+                    self_type: None,
+                    kind: Kind::Type,
+                    scope: Scope::Everywhere,
+                    icon_name: find_icon_name_in_doc_sections(&documentation_sections),
+                }
+            }
             #[allow(unused)]
             Constructor {
                 name,
@@ -944,7 +950,6 @@ mod test {
             name:                   "TextType".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             params:                 vec![],
-            return_type:            "TestType".to_string(),
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),

@@ -5,6 +5,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{DocSection, Suggestion}
 import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
@@ -16,6 +17,24 @@ object SearchProtocol {
   private object CodecField {
 
     val Type = "type"
+
+    val ExternalId = "externalId"
+
+    val Module = "module"
+
+    val Name = "name"
+
+    val Params = "params"
+
+    val ReturnType = "returnType"
+
+    val Documentation = "documentation"
+
+    val DocumentationHtml = "documentationHtml"
+
+    val DocumentationSections = "documentationSections"
+
+    val Reexport = "reexport"
   }
 
   private object CodecType {
@@ -134,7 +153,10 @@ object SearchProtocol {
         Encoder[Suggestion.Type]
           .apply(tpe)
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Type.asJson)
+            Json.obj(
+              CodecField.Type       -> SuggestionType.Type.asJson,
+              CodecField.ReturnType -> Json.Null
+            )
           )
           .dropNullValues
 
@@ -202,6 +224,44 @@ object SearchProtocol {
     )
   }
 
+  private val suggestionTypeDecoder: Decoder[Suggestion.Type] =
+    Decoder.instance { cursor =>
+      for {
+        externalId <- cursor
+          .downField(CodecField.ExternalId)
+          .as[Option[Suggestion.ExternalId]]
+        module <- cursor.downField(CodecField.Module).as[String]
+        name   <- cursor.downField(CodecField.Name).as[String]
+        params <- cursor
+          .downField(CodecField.Params)
+          .as[Seq[Suggestion.Argument]]
+        documentation <- cursor
+          .downField(CodecField.Documentation)
+          .as[Option[String]]
+        documentationHtml <- cursor
+          .downField(CodecField.DocumentationHtml)
+          .as[Option[String]]
+        documentationSections <- cursor
+          .downField(CodecField.DocumentationSections)
+          .as[Option[List[DocSection]]]
+        reexport <- cursor.downField(CodecField.Reexport).as[Option[String]]
+      } yield {
+        val returnType =
+          QualifiedName.fromString(module).createChild(name).toString
+        Suggestion.Type(
+          externalId,
+          module,
+          name,
+          params,
+          returnType,
+          documentation,
+          documentationHtml,
+          documentationSections,
+          reexport
+        )
+      }
+    }
+
   implicit val suggestionDecoder: Decoder[Suggestion] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Type).as[String].flatMap {
@@ -209,7 +269,7 @@ object SearchProtocol {
           Decoder[Suggestion.Module].tryDecode(cursor)
 
         case SuggestionType.Type =>
-          Decoder[Suggestion.Type].tryDecode(cursor)
+          suggestionTypeDecoder.tryDecode(cursor)
 
         case SuggestionType.Constructor =>
           Decoder[Suggestion.Constructor].tryDecode(cursor)
