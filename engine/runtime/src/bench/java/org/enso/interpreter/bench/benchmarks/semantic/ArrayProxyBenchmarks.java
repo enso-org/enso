@@ -27,7 +27,7 @@ public class ArrayProxyBenchmarks {
   private Value arrayOfNumbers;
   private Value sum;
   private Value self;
-  private final long length = 1000;
+  private final long length = 100000;
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) {

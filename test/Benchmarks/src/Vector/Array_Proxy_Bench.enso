@@ -16,7 +16,7 @@ make_proxy n =
 make_proxied_vector n =
     Vector.from_polyglot_array (make_proxy n)
 
-vector_size = 1000
+vector_size = 100000
 iter_size = 100
 num_iterations = 10
 
