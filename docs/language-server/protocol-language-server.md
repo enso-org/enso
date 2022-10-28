@@ -244,8 +244,8 @@ A representation of an executable position in code, used by the execution APIs.
 `ExplicitCall` is a call performed at the top of the stack, to initialize the
 context with first execution. The `thisArgumentsPosition` field can be omitted,
 in which case the context will try to infer the argument on a best-effort basis.
-E.g. for a module-level method, or a method defined on a parameter-less atom
-type, `this` will be substituted for the unambiguous singleton instance.
+E.g. for a module-level method, or a method defined on a parameter-less type,
+`this` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
@@ -420,7 +420,7 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 #### Format
 
 ```typescript
-// The argument of an atom, method or function suggestion
+// The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
   // The argument name
   name: string;
@@ -486,17 +486,14 @@ interface Type {
   /** The external id. */
   externalId?: UUID;
 
-  /** The atom name. */
+  /** The type name. */
   name: string;
 
-  /** The module name where the atom is defined. */
+  /** The qualified module name where the type is defined. */
   module: string;
 
   /** The list of type parameters. */
   params: SuggestionEntryArgument[];
-
-  /** The type of an atom. */
-  returnType: string;
 
   /** The fully qualified module name re-exporting this type. */
   reexport?: string;
@@ -515,16 +512,16 @@ interface Constructor {
   /** The external id. */
   externalId?: UUID;
 
-  /** The atom name. */
+  /** The constructor name. */
   name: string;
 
-  /** The module name where the atom is defined. */
+  /** The qualified module name where this constructor is defined. */
   module: string;
 
   /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
 
-  /** The type of an atom. */
+  /** The type of the constructor. */
   returnType: string;
 
   /** The fully qualified module name re-exporting this constructor. */
