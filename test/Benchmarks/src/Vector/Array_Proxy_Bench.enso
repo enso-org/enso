@@ -1,12 +1,13 @@
 ## This benchmark reproduces the benchmark from `engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/semantic/ArrayProxyBenchmarks.java`.
+import Standard.Base.Data.Vector
 from Standard.Base.Data.Array_Proxy import Array_Proxy
-
+from Standard.Base import all
 from Standard.Test import Bench
 
 sum arr =
     go acc i = if i >= arr.length then acc else
         @Tail_Call go (acc + arr.at i) i+1
-    sum 0 0
+    go 0 0
 
 make_vector n =
     Vector.new n (i -> 3 + 5*i)

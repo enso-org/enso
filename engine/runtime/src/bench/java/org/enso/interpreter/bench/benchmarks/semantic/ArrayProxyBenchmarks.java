@@ -48,7 +48,7 @@ public class ArrayProxyBenchmarks {
             "sum arr =\n" +
             "    go acc i = if i >= arr.length then acc else\n" +
             "        @Tail_Call go (acc + arr.at i) i+1\n" +
-            "    sum 0 0\n" +
+            "    go 0 0\n" +
             "\n" +
             "make_vector n =\n" +
             "    Vector.new n (i -> 3 + 5*i)\n" +
