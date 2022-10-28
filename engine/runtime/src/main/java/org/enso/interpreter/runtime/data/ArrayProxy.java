@@ -43,6 +43,17 @@ public final class ArrayProxy implements TruffleObject {
       }
     }
 
+    if (length < 0) {
+      CompilerDirectives.transferToInterpreter();
+      InteropLibrary interop = InteropLibrary.getUncached();
+      throw new PanicException(
+          Context.get(interop)
+              .getBuiltins()
+              .error()
+              .makeIllegalArgumentError("Array_Proxy length cannot be negative."),
+          interop);
+    }
+
     this.length = length;
     this.at = at;
   }
@@ -77,6 +88,17 @@ public final class ArrayProxy implements TruffleObject {
     } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
       throw UnsupportedMessageException.create(e);
     }
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean b) {
+    return toString();
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    return "(Array_Proxy " + length + " " + at + ")";
   }
 
   @ExportMessage

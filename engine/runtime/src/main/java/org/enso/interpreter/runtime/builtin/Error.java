@@ -20,6 +20,7 @@ public class Error {
   private final SyntaxError syntaxError;
   private final TypeError typeError;
   private final CompileError compileError;
+  private final IllegalArgumentError illegalArgumentError;
   private final IndexOutOfBounds indexOutOfBounds;
   private final InexhaustivePatternMatch inexhaustivePatternMatch;
   private final UninitializedState uninitializedState;
@@ -52,6 +53,7 @@ public class Error {
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);
     compileError = builtins.getBuiltinType(CompileError.class);
+    illegalArgumentError = builtins.getBuiltinType(IllegalArgumentError.class);
     indexOutOfBounds = builtins.getBuiltinType(IndexOutOfBounds.class);
     inexhaustivePatternMatch = builtins.getBuiltinType(InexhaustivePatternMatch.class);
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
@@ -78,6 +80,14 @@ public class Error {
 
   public Atom makeCompileError(Object message) {
     return compileError.newInstance(message);
+  }
+
+  public Atom makeIllegalArgumentError(String message, Object cause) {
+    return illegalArgumentError.newInstance(message, cause);
+  }
+
+  public Atom makeIllegalArgumentError(String message) {
+    return makeIllegalArgumentError(message, null);
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {

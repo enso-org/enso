@@ -46,7 +46,7 @@ public class ArrayProxyBenchmarks {
             "import Standard.Base.Data.Vector\n" +
             "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
             "sum arr =\n" +
-            "    go acc i = if i == arr.length then acc else\n" +
+            "    go acc i = if i >= arr.length then acc else\n" +
             "        @Tail_Call go (acc + arr.at i) i+1\n" +
             "    sum 0 0\n" +
             "\n" +
