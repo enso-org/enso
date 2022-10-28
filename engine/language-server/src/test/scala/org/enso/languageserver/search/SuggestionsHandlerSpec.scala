@@ -560,7 +560,9 @@ class SuggestionsHandlerSpec
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
           contentsVersion("1"),
-          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)),
+          Vector(
+            Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)
+          ),
           Vector(),
           Tree.Root(Vector())
         )
@@ -670,9 +672,8 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                  Suggestions.
-                  constructor.module,
-                Suggestions.constructor.name
+                  Suggestions.constructor.module,
+                  Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
@@ -716,8 +717,8 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                Suggestions.constructor.module,
-                Suggestions.constructor.name
+                  Suggestions.constructor.module,
+                  Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
