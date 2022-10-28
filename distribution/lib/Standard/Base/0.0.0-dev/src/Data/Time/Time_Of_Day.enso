@@ -218,7 +218,7 @@ type Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
              example_plus = Time_Of_Day.new + (Duration.seconds 3)
-    + : Duration -> Time_Of_Day
+    + : Duration -> Time_Of_Day ! Time_Error
     + self amount =
         case amount of
             duration : Duration.Duration -> self.plus_builtin duration
@@ -237,8 +237,11 @@ type Time_Of_Day
              import Standard.Base.Data.Time.Duration
 
              example_minus = Time_Of_Day.now - (Duration.hours 12)
-    - : Duration -> Time_Of_Day
-    - self amount = self.minus_builtin amount
+    - : Duration -> Time_Of_Day ! Time_Error
+    - self amount =
+        case amount of
+            duration : Duration.Duration -> self.minus_builtin duration
+            _ : Period.Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
 
     ## Format this time of day as text using the default formatter.
 
