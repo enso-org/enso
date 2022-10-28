@@ -22,6 +22,7 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::animation::delayed::DelayedAnimation;
+use ensogl_core::animation::overshoot::OvershootAnimation;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -57,9 +58,8 @@ const HIDE_DELAY: f32 = 1000.0;
 const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
 /// Time interval between scrolls while holding down a mouse button, in milliseconds.
 const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
-
-const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
-
+/// Maximum scroll overshoot in pixels.
+const SCROLL_OVERSHOOT_LIMIT: f32 = 60.0;
 
 
 // ===========
@@ -76,9 +76,12 @@ ensogl_core::define_endpoints! {
         /// Sets the thumb size in scroll units.
         set_thumb_size  (f32),
 
-        /// Scroll smoothly by the given amount in scroll units.
+        /// Scroll smoothly by the given amount in scroll units. Bounded by the scroll area.
         scroll_by       (f32),
-        /// Scroll smoothly to the given position in scroll units.
+        /// Scroll smoothly by the given amount in scroll units. Allows scroll to overshoot and
+        /// bounce back.
+        soft_scroll_by   (f32),
+        /// Scroll smoothly to the given position in scroll units. Bounded by the scroll area.
         scroll_to       (f32),
         /// Jumps to the given position in scroll units without animation and without revealing the
         /// scrollbar.
@@ -99,12 +102,14 @@ impl Frp {
         let network = &frp.network;
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
-        let thumb_position = Animation::new(network);
+        let thumb_position = OvershootAnimation::new(network);
+        thumb_position.set_overshoot_limit(SCROLL_OVERSHOOT_LIMIT);
         let thumb_color = color::Animation::new(network);
         let background_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
+
 
         frp::extend! { network
             resize <- frp.set_length.map(|&length| Vector2::new(length,WIDTH));
@@ -135,21 +140,15 @@ impl Frp {
 
             // Scrolling and Jumping
 
-            frp.scroll_to <+ frp.scroll_by.map2(&thumb_position.target,|delta,pos| *pos+*delta);
+            thumb_position.hard_change_by <+ frp.scroll_by;
+            thumb_position.soft_change_by <+ frp.soft_scroll_by;
+            thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
+            thumb_position.set_max_bound <+ all_with(&frp.set_thumb_size, &frp.set_max,
+                |thumb_size, max| max - thumb_size);
+            thumb_position.skip <+_ frp.jump_to;
 
-            // We will use this to reveal the scrollbar on scrolling. It has to be defined before
-            // the following nodes that update `thumb_position.target`.
-            active <- frp.scroll_to.map2(&thumb_position.target,|&new:&f32,&old:&f32| {
-                (new - old).abs() > ERROR_MARGIN_FOR_ACTIVITY_DETECTION
-            }).on_true();
-
-            unbounded_target_position <- any(&frp.scroll_to,&frp.jump_to);
-            thumb_position.target     <+ all_with3(&unbounded_target_position,&frp.set_thumb_size,
-                &frp.set_max,|target,&size,&max| target.min(max-size).max(0.0));
-            thumb_position.skip       <+ frp.jump_to.constant(());
             frp.source.thumb_position_target <+ thumb_position.target;
             frp.source.thumb_position <+ thumb_position.value;
-
 
             // === Mouse position in local coordinates ===
 
@@ -183,8 +182,8 @@ impl Frp {
             // We start a delayed animation whenever the bar is scrolled to a new place (it is
             // active). This will instantly reveal the scrollbar and hide it after the delay has
             // passed.
-            activity_cool_off.frp.reset <+ active;
-            activity_cool_off.frp.start <+ active;
+            activity_cool_off.frp.reset <+ thumb_position.animating.on_true();
+            activity_cool_off.frp.start <+ thumb_position.animating.on_true();
 
             recently_active <- bool(&activity_cool_off.frp.on_end,&activity_cool_off.frp.on_reset);
 
@@ -233,7 +232,12 @@ impl Frp {
             thumb_center_px     <- all_with(&visual_center,&inner_length, |normalized,length|
                 (normalized - 0.5) * length);
 
-            update_slider <- all(&visual_bounds,&resize);
+            // Because of overshoot, we want to further clamp true visual bounds, so the thumb does
+            // not go outside the bar. We want to only limit the bounds we use for drawing the thumb
+            // itself, without influencing other logic that depends on true thumb size or position.
+            clamped_visual_bounds <- visual_bounds.map(|bounds|
+                Bounds::new(bounds.start.max(0.0), bounds.end.min(1.0)));
+            update_slider <- all(&clamped_visual_bounds,&resize);
             eval update_slider(((value,size)) model.set_background_range(*value,*size));
 
 
