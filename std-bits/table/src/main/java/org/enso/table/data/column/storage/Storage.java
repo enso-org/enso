@@ -10,7 +10,6 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -92,7 +91,6 @@ public abstract class Storage<T> {
     public static final String MEAN = "mean";
     public static final String MAX = "max";
     public static final String MIN = "min";
-    public static final String COUNT = "count";
   }
 
   /**
@@ -139,9 +137,6 @@ public abstract class Storage<T> {
   }
 
   protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    if (name.equals(Aggregators.COUNT)) {
-      return new CountAggregator(this, resultSize);
-    }
     return null;
   }
 
@@ -158,14 +153,8 @@ public abstract class Storage<T> {
    */
   public final Aggregator getAggregator(
       String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
-    Aggregator result = null;
-    if (name != null) {
-      result = getVectorizedAggregator(name, resultSize);
-    }
-    if (result == null) {
-      result = new FunctionAggregator(fallback, this, skipNa, resultSize);
-    }
-    return result;
+    Aggregator result = getVectorizedAggregator(name, resultSize);
+    return result == null ? new FunctionAggregator(fallback, this, skipNa, resultSize) : result;
   }
 
   /**

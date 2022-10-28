@@ -26,7 +26,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     public static final ThrowOnErrorListener INSTANCE = new ThrowOnErrorListener();
 
     @Override
-    public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e)
+    public void syntaxError(
+        Recognizer<?, ?> recognizer,
+        Object offendingSymbol,
+        int line,
+        int charPositionInLine,
+        String msg,
+        RecognitionException e)
         throws SyntaxErrorException {
       throw new SyntaxErrorException(msg, line, charPositionInLine);
     }
@@ -56,7 +62,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       String moduleName,
-      String typeName) throws UnsupportedOperationException, IllegalArgumentException {
+      String typeName)
+      throws UnsupportedOperationException, IllegalArgumentException {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -260,9 +267,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var lower = visit(ctx.expr(1));
     var upper = visit(ctx.expr(2));
     var condition = executeMethod("between", self, lower, upper);
-    return ctx.NOT_BETWEEN() != null
-        ? executeMethod("not", condition)
-        : condition;
+    return ctx.NOT_BETWEEN() != null ? executeMethod("not", condition) : condition;
   }
 
   @Override
