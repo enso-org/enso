@@ -159,7 +159,7 @@ type Duration
     == self that =
         case that of
             _ : Duration -> self.equals_builtin that
-            _ -> false
+            _ -> False
 
     ## Compares `self` to `that` to produce an ordering.
 
