@@ -52,11 +52,14 @@ public class ArrayProxyBenchmarks {
             "\n" +
             "make_vector n =\n" +
             "    Vector.new n (i -> 3 + 5*i)\n" +
-            "make_proxy n =\n" +
+            "make_computing_proxy n =\n" +
             "    Array_Proxy.new n (i -> 3 + 5*i)\n" +
-            "make_proxied_vector n =\n" +
-            "    Vector.from_polyglot_array (make_proxy n)\n" +
-	    "\n");
+            "make_delegating_proxy n =\n" +
+            "    Array_Proxy.from_proxy_object (make_vector n)\n" +
+            "make_computing_vector n =\n" +
+            "    Vector.from_polyglot_array (make_computing_proxy n)\n" +
+            "make_delegating_vector n =\n" +
+            "    Vector.from_polyglot_array (make_delegating_proxy n)\n");
 
     this.self = module.invokeMember("get_associated_type");
     Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
@@ -66,11 +69,17 @@ public class ArrayProxyBenchmarks {
       case "sumOverVector":
         test_builder = "make_vector";
         break;
-      case "sumOverArrayProxy":
-        test_builder = "make_proxy";
+      case "sumOverComputingProxy":
+        test_builder = "make_computing_proxy";
         break;
-      case "sumOverVectorBackedByProxy":
-        test_builder = "make_proxied_vector";
+      case "sumOverDelegatingProxy":
+        test_builder = "make_delegating_proxy";
+        break;
+      case "sumOverVectorBackedByComputingProxy":
+        test_builder = "make_computing_vector";
+        break;
+      case "sumOverVectorBackedByDelegatingProxy":
+        test_builder = "make_computing_vector";
         break;
       default:
         throw new IllegalStateException(
@@ -86,12 +95,22 @@ public class ArrayProxyBenchmarks {
   }
 
   @Benchmark
-  public void sumOverArrayProxy(Blackhole matter) {
+  public void sumOverComputingProxy(Blackhole matter) {
     performBenchmark(matter);
   }
 
   @Benchmark
-  public void sumOverVectorBackedByProxy(Blackhole matter) {
+  public void sumOverDelegatingProxy(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void sumOverVectorBackedByComputingProxy(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void sumOverVectorBackedByDelegatingProxy(Blackhole matter) {
     performBenchmark(matter);
   }
 
