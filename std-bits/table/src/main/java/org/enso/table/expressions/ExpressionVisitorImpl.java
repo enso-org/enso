@@ -259,9 +259,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var self = visit(ctx.expr(0));
     var lower = visit(ctx.expr(1));
     var upper = visit(ctx.expr(2));
-    return ctx.BETWEEN() != null
-        ? executeMethod("&&", executeMethod(">=", self, lower), executeMethod("<=", self, upper))
-        : executeMethod("||", executeMethod("<", self, lower), executeMethod(">", self, upper));
+    var condition = executeMethod("between", self, lower, upper);
+    return ctx.NOT_BETWEEN() != null
+        ? executeMethod("not", condition)
+        : condition;
   }
 
   @Override

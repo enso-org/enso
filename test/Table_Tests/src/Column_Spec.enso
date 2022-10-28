@@ -53,9 +53,8 @@ spec = Test.group "Columns" <|
         test_column.take (Last 7) . to_vector . should_equal expected_2.to_vector
         test_column.take (Last 0) . to_vector . should_equal expected_3.to_vector
 
-    Test.specify "should be able to get the first / head element" <|
+    Test.specify "should be able to get the first element" <|
         test_column.first . should_equal 1
-        test_column.head . should_equal 1
         empty_column.first.should_fail_with Empty_Error
         empty_column.head.should_fail_with Empty_Error
 
@@ -95,15 +94,5 @@ spec = Test.group "Columns" <|
         rand.variance degrees_of_freedom_correction=0 . should_equal 3.4976
         rand.standard_deviation . should_equal 2.090932806 epsilon=(10 ^ -6)
         rand.standard_deviation degrees_of_freedom_correction=0 . should_equal 1.870187156 epsilon=(10 ^ -6)
-
-    Test.specify "should allow computing the R² score of a prediction" <|
-        sample = Column.from_vector 'sample' [1,2,3,4,5]
-        mean_pred = Column.from_vector 'mean' [3,3,3,3,3]
-        perfect_pred = Column.from_vector 'perfect' [1,2,3,4,5]
-        bad_pred = Column.from_vector 'bad' [5,4,3,2,1]
-
-        sample.r_squared mean_pred . should_equal 0
-        sample.r_squared perfect_pred . should_equal 1
-        sample.r_squared bad_pred . should_equal -3
 
 main = Test_Suite.run_main spec

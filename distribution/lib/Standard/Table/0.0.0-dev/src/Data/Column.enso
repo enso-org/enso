@@ -1126,18 +1126,6 @@ type Column
     standard_deviation self degrees_of_freedom_correction=1 =
         self.variance degrees_of_freedom_correction . sqrt
 
-    ## Computes the coefficient of determination of a given prediction column.
-
-       Arguments:
-       - predictions: the column predicting the values of this column.
-    r_squared self predictions =
-        prediction_diff = self - predictions
-        ss_res = prediction_diff*prediction_diff . sum
-        ss_tot_lin = self - self.mean
-        ss_tot = ss_tot_lin*ss_tot_lin . sum
-        1 - ss_res / ss_tot
-
-
     ## UNSTABLE
 
        Sorts the column according to the specified rules.
@@ -1230,22 +1218,6 @@ type Column
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
     first self = self.at 0 . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
-
-    ## UNSTABLE
-
-       Returns the first element in the column, if it exists.
-
-       If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first element of a column.
-
-             import Standard.Examples
-
-             example_head = Examples.integer_column.head
-    head : Any ! Empty_Error
-    head self = self.first
 
     ## UNSTABLE
 
