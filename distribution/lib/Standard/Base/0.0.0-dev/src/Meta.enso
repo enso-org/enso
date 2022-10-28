@@ -327,6 +327,7 @@ is_a value typ = if is_same_object value typ then True else
                     _ : Decimal -> typ == Decimal
                 _ : Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
                 _ : Date.Date      -> typ.is_same_object_as Date.Date
+                _ : Duration.Duration -> typ.is_same_object_as Duration.Duration
                 _ : Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
                 _ : Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
                 Base.Polyglot ->
