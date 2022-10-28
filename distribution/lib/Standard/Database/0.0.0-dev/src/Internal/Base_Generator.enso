@@ -178,7 +178,7 @@ base_dialect =
     text = [is_empty, bin "LIKE"]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
-    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE

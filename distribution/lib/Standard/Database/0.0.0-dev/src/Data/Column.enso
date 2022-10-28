@@ -493,7 +493,7 @@ type Column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
         _ : Vector.Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
                 self.make_op "COALESCE" values new_type=self.sql_type
         _ -> self.coalesce [values]
 

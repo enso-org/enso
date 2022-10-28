@@ -568,7 +568,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b < a then b else a
-        run_vectorized_many_op self "minimum" fallback values new_name=new_name
+        run_vectorized_many_op self "minimum" fallback values
 
     ## Returns a column of maximum non-Nothing value on each row of `self` and
        `values` list.
@@ -587,7 +587,7 @@ type Column
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
-        run_vectorized_many_op self "maximum" fallback values new_name=new_name
+        run_vectorized_many_op self "maximum" fallback values
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
