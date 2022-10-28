@@ -420,6 +420,27 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testRawBlockLiteral() throws Exception {
+    // mimics TextTest
+    parseTest("""
+    x = \"\"\"
+        Foo
+        Bar
+          Baz
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testVariousKindsOfUnicodeWhitespace() throws Exception {
+    // mimics Text_Spec.enso:1049
+    parseTest("""
+    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    """);
+  }
+
+  @Test
   public void testLambda() throws Exception {
     parseTest("""
     f = map _->alphabet
