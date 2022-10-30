@@ -7,6 +7,7 @@ use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
+use double_representation::import;
 use double_representation::module;
 use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;
@@ -154,7 +155,7 @@ impl Handle {
     ///
     /// May create duplicate entries if such import was already present.
     pub fn add_import(&self, target: &module::QualifiedName) -> FallibleResult {
-        let import = module::ImportInfo::from_qualified_name(target);
+        let import = import::Info::new_qualified(target);
         self.modify(|info| info.add_import(&self.parser, import))?;
         Ok(())
     }
@@ -163,12 +164,12 @@ impl Handle {
     ///
     /// Fails, if there was no such declaration found.
     pub fn remove_import(&self, target: &module::QualifiedName) -> FallibleResult {
-        let import = module::ImportInfo::from_qualified_name(target);
+        let import = import::Info::new_qualified(target);
         self.modify(|info| info.remove_import(&import))?
     }
 
     /// Retrieve a vector describing all import declarations currently present in the module.
-    pub fn imports(&self) -> Vec<module::ImportInfo> {
+    pub fn imports(&self) -> Vec<import::Info> {
         let module = self.module_info();
         module.iter_imports().collect()
     }

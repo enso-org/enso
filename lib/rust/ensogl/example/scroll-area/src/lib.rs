@@ -60,7 +60,18 @@ mod content {
     use super::*;
     ensogl_core::define_shape_system! {
         (style:Style) {
-            Circle(50.px()).fill(color::Rgb::new(1.0,0.0,0.0)).into()
+            let circle = Circle(50.px())
+                .translate(((-50.0).px(), 350.0.px()))
+                .fill(color::Rgb::new(1.0,0.0,0.0));
+            let triangle = Triangle(200.px(), 200.px())
+                .translate((0.0.px(), 20.0.px()))
+                .fill(color::Rgb::new(0.0,0.5,0.8));
+            let star = FiveStar(100.px(), 0.6)
+                .rotate(1.0.radians())
+                .translate((100.0.px(), (-350.0).px()))
+                .fill(color::Rgb::new(0.95,0.8,0.0));
+            (circle + triangle + star).into()
+
         }
     }
 }
@@ -98,6 +109,7 @@ fn init(app: &Application) {
     // === Scroll Area ===
 
     let scroll_area = ScrollArea::new(app);
+    scroll_area.set_camera(scene.camera());
     app.display.add_child(&scroll_area);
     scroll_area.resize(Vector2(200.0, 200.0));
     scroll_area.set_content_width(300.0);
@@ -120,9 +132,9 @@ fn init(app: &Application) {
 
     let content = content::View::new();
     scroll_area.content().add_child(&content);
-    content.size.set(Vector2::new(100.0, 100.0));
-    content.set_position_x(100.0);
-    content.set_position_y(-100.0);
+    content.size.set(Vector2::new(300.0, 1000.0));
+    content.set_position_x(150.0);
+    content.set_position_y(-500.0);
     std::mem::forget(content);
 
 

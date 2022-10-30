@@ -92,3 +92,25 @@ wrap_primitive_stack_trace_element el =
 type Stack_Trace_Element
     ## PRIVATE
     Stack_Trace_Element_Data name source_location
+
+## ADVANCED
+   UNSTABLE
+
+   Allows an action in the `Input` context to be performed in the given `env`,
+   regardless of the Env configuration.
+
+   This can be used to enable certain nodes to run their actions in the
+   interactive mode, even if the configuration forbids it.
+allow_input_in : Text -> Any -> Any
+allow_input_in env ~action = @Builtin_Method "Runtime.allow_input_in"
+
+## ADVANCED
+   UNSTABLE
+
+   Allows an action in the `Output` context to be performed in the given `env`,
+   regardless of the Env configuration.
+
+   This can be used to enable certain nodes to run their actions in the
+   interactive mode, even if the configuration forbids it.
+allow_output_in : Text -> Any -> Any
+allow_output_in env ~action = @Builtin_Method "Runtime.allow_output_in"

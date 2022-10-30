@@ -499,6 +499,18 @@ type Table
     columns : Vector Column
     columns self = self.internal_columns . map self.make_column
 
+    ## Returns a vector of rows contained in this table.
+
+       In the database backend, it first materializes the table to in-memory.
+
+       Arguments:
+       - max_rows: The maximum amount of rows to return. It is mainly meant for
+         the Database backend, to limit how many rows are downloaded. In the
+         in-memory backend it is only kept for API compatibility.
+    rows : Integer -> Vector Row
+    rows self max_rows=1000 =
+        self.read max_rows=max_rows . rows
+
     ## UNSTABLE
 
        Sets the index of this table, using the column with the provided name.

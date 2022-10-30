@@ -12,7 +12,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -34,20 +34,17 @@ public abstract class IndirectArgumentSorterNode extends Node {
   }
 
   @ExplodeLoop
-  private Object executeArguments(
+  private void executeArguments(
       ArgumentMapping mapping,
       Object[] arguments,
-      Object state,
+      State state,
       ThunkExecutorNode thunkExecutorNode) {
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i]) {
-        Stateful result =
+        arguments[i] =
             thunkExecutorNode.executeThunk(arguments[i], state, BaseNode.TailStatus.NOT_TAIL);
-        arguments[i] = result.getValue();
-        state = result.getState();
       }
     }
-    return state;
   }
 
   /**
@@ -66,7 +63,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
-      Object state,
+      State state,
       Object[] arguments);
 
   @Specialization
@@ -75,12 +72,12 @@ public abstract class IndirectArgumentSorterNode extends Node {
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached ThunkExecutorNode thunkExecutorNode) {
     FunctionSchema postApplicationSchema = mapping.getPostApplicationSchema();
     if (argumentsExecutionMode.shouldExecute()) {
-      state = executeArguments(mapping, arguments, state, thunkExecutorNode);
+      executeArguments(mapping, arguments, state, thunkExecutorNode);
     }
     Object[] mappedAppliedArguments =
         prepareArguments(preApplicationSchema, postApplicationSchema, mapping, function, arguments);
@@ -90,8 +87,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
           generateOversaturatedArguments(
               preApplicationSchema, postApplicationSchema, mapping, function, arguments);
     }
-    return new ArgumentSorterNode.MappedArguments(
-        state, mappedAppliedArguments, oversaturatedArguments);
+    return new ArgumentSorterNode.MappedArguments(mappedAppliedArguments, oversaturatedArguments);
   }
 
   private Object[] prepareArguments(
