@@ -1284,6 +1284,7 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
                     _ -> current.bimap name fallback_fn operand False
             Column.Column_Data (Java_Column.new new_name column.java_column.getIndex folded)
+        _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
 ## PRIVATE

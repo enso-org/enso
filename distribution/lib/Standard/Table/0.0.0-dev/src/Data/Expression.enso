@@ -4,16 +4,18 @@ polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 
+import project.Data.Column.Column
+
 type Expression
     For_Column expression:Text
 
     ## PRIVATE
-    evaluate : (Text -> Any) -> (Any -> Any) -> Text -> Text -> Any
-    evaluate self getColumn makeConstant moduleName="Standard.Table.Data.Column" typeName="Column" =
+    evaluate : (Text -> Any) -> (Any -> Any) -> Text -> Text -> Vector Text -> Any
+    evaluate self getColumn makeConstant moduleName="Standard.Table.Data.Column" typeName="Column" var_args_functions=Column.var_args_functions =
         Panic.catch_java ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.getMessage cause.getLine cause.getColumn))
             Panic.catch_java UnsupportedOperationException handler=(cause-> Error.throw (Expression_Error.Unsupported_Operation cause.getMessage))
                 Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Expression_Error.Argument_Mismatch cause.getMessage))
-                    ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant moduleName typeName
+                    ExpressionVisitorImpl.evaluate self.expression getColumn makeConstant moduleName typeName var_args_functions.to_array
 
 type Expression_Error
     Syntax_Error message:Text line:Integer column:Integer

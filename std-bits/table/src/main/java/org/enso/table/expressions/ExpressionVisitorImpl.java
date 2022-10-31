@@ -16,6 +16,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
@@ -62,7 +64,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       String moduleName,
-      String typeName)
+      String typeName,
+      String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
@@ -73,7 +76,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
-    var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName, typeName);
+    var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName, typeName, variableArgumentFunctions);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -82,12 +85,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
   private final Function<String, Value> getMethod;
+  private final Set<String> variableArgumentFunctions;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       String moduleName,
-      String typeName) {
+      String typeName,
+      String[] variableArgumentFunctions) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
 
@@ -95,9 +100,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
     this.getMethod = name -> module.invokeMember("get_method", type, name);
-  }
 
-  // Either a literal value (string, bool, number, date/time) or a Column
+    this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
+  }
 
   private Value wrapAsColumn(Value value) {
     var metaObject = value.getMetaObject();
@@ -112,7 +117,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       throw new UnsupportedOperationException(name);
     }
 
-    Object[] objects = Arrays.copyOf(args, args.length, Object[].class);
+    Object[] objects;
+    if (this.variableArgumentFunctions.contains(name)) {
+      objects = new Object[2];
+      objects[0] = args[0];
+      objects[1] = Arrays.copyOfRange(args, 1, args.length - 1, Object[].class);
+    } else {
+      objects = Arrays.copyOf(args, args.length, Object[].class);
+    }
     objects[0] = wrapAsColumn(args[0]);
 
     try {

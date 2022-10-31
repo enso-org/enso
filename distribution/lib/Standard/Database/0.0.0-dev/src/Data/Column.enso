@@ -739,6 +739,11 @@ type Column
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
 
+    ## PRIVATE
+       Helper for the expression to tell it which functions needs a Vector.
+    var_args_functions : Array
+    var_args_functions = ['coalesce', 'min', 'max']
+
 ## PRIVATE
 get_approximate_type value default = case value of
     _ : Column -> value.sql_type
