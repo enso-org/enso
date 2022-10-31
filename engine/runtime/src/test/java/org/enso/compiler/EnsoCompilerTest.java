@@ -911,6 +911,14 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  @Ignore
+  public void testResolveExecutionContext() throws Exception {
+    parseTest("""
+    foo : A -> B -> C in Input
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
