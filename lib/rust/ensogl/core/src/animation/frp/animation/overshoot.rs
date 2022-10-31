@@ -11,12 +11,6 @@ use crate::prelude::*;
 
 use crate::animation::delayed::DelayedAnimation;
 use crate::animation::linear_interpolation;
-use crate::application;
-use crate::application::frp::API;
-use crate::application::Application;
-use crate::data::color;
-use crate::display;
-use crate::display::shape::StyleWatchFrp;
 use crate::Animation;
 
 use enso_frp as frp;
@@ -73,18 +67,21 @@ crate::define_endpoints! {
 
 
 
-// ====================================
-// === OvershootAnimation component ===
-// ====================================
+// ==========================
+// === OvershootAnimation ===
+// ==========================
 
 /// An [`Animation`] wrapper that allows the value to be smoothly manipulated within set bounds,
 /// overshoot set bounds and bounce back.
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct OvershootAnimation {
+    /// Public FRP api.
     pub frp: FrpEndpoints,
 }
 
 impl OvershootAnimation {
+    /// Constructor. Hooks into preexisting network. Created `OvershootAnimation` struct does not
+    /// need to be persisted, all created FRP nodes will be managed by the passed-in network.
     pub fn new(network: &frp::Network) -> Self {
         let frp = Frp::extend(network);
         // let out = &frp.private().output; // version for `define_endpoints_2`
