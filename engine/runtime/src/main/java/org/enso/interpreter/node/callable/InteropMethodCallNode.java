@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle method application for the interop library. */
 @GenerateUncached
@@ -69,7 +70,7 @@ public abstract class InteropMethodCallNode extends Node {
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       UnresolvedSymbol method,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeMethodNode sorterNode,
@@ -80,13 +81,13 @@ public abstract class InteropMethodCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (arguments.length == 0) throw ArityException.create(1, -1, 0);
-    return sorterNode.execute(null, state, method, args[0], args).getValue();
+    return sorterNode.execute(null, state, method, args[0], args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       UnresolvedSymbol method,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached IndirectInvokeMethodNode indirectInvokeMethodNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -96,18 +97,16 @@ public abstract class InteropMethodCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (arguments.length == 0) throw ArityException.create(1, -1, 0);
-    return indirectInvokeMethodNode
-        .execute(
-            null,
-            state,
-            method,
-            args[0],
-            args,
-            buildSchema(arguments.length),
-            DefaultsExecutionMode.EXECUTE,
-            ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL,
-            0)
-        .getValue();
+    return indirectInvokeMethodNode.execute(
+        null,
+        state,
+        method,
+        args[0],
+        args,
+        buildSchema(arguments.length),
+        DefaultsExecutionMode.EXECUTE,
+        ArgumentsExecutionMode.PRE_EXECUTED,
+        TailStatus.NOT_TAIL,
+        0);
   }
 }

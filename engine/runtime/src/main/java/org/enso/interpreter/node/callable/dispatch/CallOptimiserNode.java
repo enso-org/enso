@@ -4,7 +4,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This node handles optimising calls. It performs detection based on the kind of call being made,
@@ -33,6 +33,6 @@ public abstract class CallOptimiserNode extends Node {
    * @param arguments the arguments to {@code callable}
    * @return the result of executing {@code callable} using {@code arguments}
    */
-  public abstract Stateful executeDispatch(
-      Function callable, CallerInfo callerInfo, Object state, Object[] arguments);
+  public abstract Object executeDispatch(
+      Function callable, CallerInfo callerInfo, State state, Object[] arguments);
 }

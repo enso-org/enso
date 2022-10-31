@@ -13,7 +13,6 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "Panic",
@@ -24,7 +23,7 @@ public abstract class ThrowPanicNode extends Node {
     return ThrowPanicNodeGen.create();
   }
 
-  abstract Stateful execute(Object payload);
+  abstract Object execute(Object payload);
 
   Context getContext() {
     return Context.get(this);
@@ -34,7 +33,7 @@ public abstract class ThrowPanicNode extends Node {
       guards = {
         "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
       })
-  Stateful doCaughtPanic(
+  Object doCaughtPanic(
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @Cached BranchProfile typeErrorProfile) {
@@ -59,7 +58,7 @@ public abstract class ThrowPanicNode extends Node {
   }
 
   @Specialization(guards = "interopLibrary.isException(payload)")
-  Stateful doOtherException(
+  Object doOtherException(
       Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     try {
       throw interopLibrary.throwException(payload);
@@ -69,7 +68,7 @@ public abstract class ThrowPanicNode extends Node {
   }
 
   @Fallback
-  Stateful doFallback(Object payload) {
+  Object doFallback(Object payload) {
     throw new PanicException(payload, this);
   }
 }

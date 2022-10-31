@@ -27,7 +27,8 @@ import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GlobalNames,
   MethodDefinitions,
-  Patterns
+  Patterns,
+  TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -42,6 +43,7 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
+import org.enso.interpreter.node.controlflow.permission.PermissionGuardNode
 import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
@@ -80,6 +82,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
@@ -277,6 +280,21 @@ class IrToTruffle(
         "Method definition missing dataflow information."
       )
 
+      @tailrec
+      def getContext(tp: IR.Expression): Option[String] = tp match {
+        case fn: IR.Type.Function => getContext(fn.result)
+        case ctx: IR.Type.Context =>
+          ctx.context match {
+            case lit: IR.Name.Literal => Some(lit.name)
+            case _                    => None
+          }
+        case _ => None
+      }
+
+      val effectContext = methodDef
+        .getMetadata(TypeSignatures)
+        .flatMap(sig => getContext(sig.signature))
+
       val declaredConsOpt =
         methodDef.methodReference.typePointer match {
           case None =>
@@ -360,7 +378,11 @@ class IrToTruffle(
               .map(_.filterNot(_ => cons.isBuiltin))
           case fn: IR.Function =>
             val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
+              new expressionProcessor.BuildFunctionBody(
+                fn.arguments,
+                fn.body,
+                effectContext
+              )
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
@@ -437,7 +459,11 @@ class IrToTruffle(
         val function = methodDef.body match {
           case fn: IR.Function =>
             val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
+              new expressionProcessor.BuildFunctionBody(
+                fn.arguments,
+                fn.body,
+                None
+              )
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
@@ -1419,16 +1445,17 @@ class IrToTruffle(
       */
     class BuildFunctionBody(
       val arguments: List[IR.DefinitionArgument],
-      val body: IR.Expression
+      val body: IR.Expression,
+      val effectContext: Option[String]
     ) {
       private val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
       private lazy val slots = computeSlots()
       private lazy val bodyN = computeBodyNode()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): BlockNode             = bodyN
+      def bodyNode(): RuntimeExpression     = bodyN
 
-      private def computeBodyNode(): BlockNode = {
+      private def computeBodyNode(): RuntimeExpression = {
         val (argSlots, _, argExpressions) = slots
 
         val bodyExpr = body match {
@@ -1441,7 +1468,12 @@ class IrToTruffle(
             )
           case _ => ExpressionProcessor.this.run(body)
         }
-        BlockNode.build(argExpressions.toArray, bodyExpr)
+        val block = BlockNode.build(argExpressions.toArray, bodyExpr)
+        effectContext match {
+          case Some("Input")  => new PermissionGuardNode(block, true, false);
+          case Some("Output") => new PermissionGuardNode(block, false, true);
+          case _              => block
+        }
       }
 
       private def computeSlots(): (
@@ -1518,7 +1550,7 @@ class IrToTruffle(
       location: Option[IdentifiedLocation],
       binding: Boolean = false
     ): CreateFunctionNode = {
-      val bodyBuilder = new BuildFunctionBody(arguments, body)
+      val bodyBuilder = new BuildFunctionBody(arguments, body, None)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,

@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Handles runtime function currying and oversaturated (eta-expanded) calls.
@@ -43,11 +43,11 @@ public abstract class IndirectCurryNode extends Node {
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the {@code function}.
    */
-  public abstract Stateful execute(
+  public abstract Object execute(
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
@@ -56,11 +56,11 @@ public abstract class IndirectCurryNode extends Node {
       BaseNode.TailStatus isTail);
 
   @Specialization
-  Stateful doCurry(
+  Object doCurry(
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
@@ -73,31 +73,30 @@ public abstract class IndirectCurryNode extends Node {
     boolean appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        Stateful result =
+        var value =
             doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
-        var value = result.getValue();
         if (defaultsExecutionMode.isExecute()
             && (value instanceof Function || (value instanceof AtomConstructor cons
               && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
           return oversaturatedCallableNode.execute(
               value,
               frame,
-              result.getState(),
+              state,
               new Object[0],
               new CallArgumentInfo[0],
               defaultsExecutionMode,
               argumentsExecutionMode,
               isTail);
         } else {
-          return result;
+          return value;
         }
       } else {
-        Stateful evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
+        var evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
 
         return oversaturatedCallableNode.execute(
-            evaluatedVal.getValue(),
+            evaluatedVal,
             frame,
-            evaluatedVal.getState(),
+            state,
             oversaturatedArguments,
             postApplicationSchema.getOversaturatedArguments(),
             defaultsExecutionMode,
@@ -105,21 +104,19 @@ public abstract class IndirectCurryNode extends Node {
             isTail);
       }
     } else {
-      return new Stateful(
-          state,
-          new Function(
+      return new Function(
               function.getCallTarget(),
               function.getScope(),
               postApplicationSchema,
               arguments,
-              oversaturatedArguments));
+              oversaturatedArguments);
     }
   }
 
-  private Stateful doCall(
+  private Object doCall(
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       BaseNode.TailStatus isTail,
       ExecuteCallNode directCall,
@@ -128,7 +125,7 @@ public abstract class IndirectCurryNode extends Node {
       case TAIL_DIRECT:
         return directCall.executeCall(function, callerInfo, state, arguments);
       case TAIL_LOOP:
-        throw new TailCallException(function, callerInfo, state, arguments);
+        throw new TailCallException(function, callerInfo, arguments);
       default:
         return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }

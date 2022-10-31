@@ -19,9 +19,11 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.Module;
@@ -181,7 +183,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     @Override
     public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
       if (exception instanceof TailCallException) {
-        onTailCallReturn(exception, context);
+        onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()), context);
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
         onReturnValue(
@@ -239,14 +241,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     @CompilerDirectives.TruffleBoundary
-    private void onTailCallReturn(Throwable exception, EventContext context) {
+    private void onTailCallReturn(Throwable exception, State state, EventContext context) {
         try {
             TailCallException tailCallException = (TailCallException) exception;
             FunctionCallInstrumentationNode.FunctionCall functionCall =
                     new FunctionCallInstrumentationNode.FunctionCall(
-                            tailCallException.getFunction(),
-                            tailCallException.getState(),
-                            tailCallException.getArguments());
+                        tailCallException.getFunction(),
+                        state,
+                        tailCallException.getArguments());
             Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
             onReturnValue(context, null, result);
         } catch (InteropException e) {

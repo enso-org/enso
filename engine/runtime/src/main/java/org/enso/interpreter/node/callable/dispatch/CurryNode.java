@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.util.concurrent.locks.Lock;
 
@@ -96,17 +96,16 @@ public class CurryNode extends BaseNode {
    *     eta-expanded call.
    * @return the result of executing the {@code function}.
    */
-  public Stateful execute(
+  public Object execute(
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       Object[] oversaturatedArguments) {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        Stateful result = doCall(function, callerInfo, state, arguments);
-        var value = result.getValue();
+        var value = doCall(function, callerInfo, state, arguments);
         if (defaultsExecutionMode.isExecute()
             && (value instanceof Function || (value instanceof AtomConstructor cons
               && cons.getConstructorFunction().getSchema().isFullyApplied()))) {
@@ -129,37 +128,33 @@ public class CurryNode extends BaseNode {
             }
           }
 
-          return oversaturatedCallableNode.execute(value, frame, result.getState(), new Object[0]);
+          return oversaturatedCallableNode.execute(value, frame, state, new Object[0]);
         } else {
-          return result;
+          return value;
         }
       } else {
-        Stateful evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
+        var evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
 
         return this.oversaturatedCallableNode.execute(
-            evaluatedVal.getValue(), frame, evaluatedVal.getState(), oversaturatedArguments);
+            evaluatedVal, frame, state, oversaturatedArguments);
       }
     } else {
-      return new Stateful(
-          state,
+      return
           new Function(
               function.getCallTarget(),
               function.getScope(),
               postApplicationSchema,
               arguments,
-              oversaturatedArguments));
+              oversaturatedArguments);
     }
   }
 
-  private Stateful doCall(
-      Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
-    switch (getTailStatus()) {
-      case TAIL_DIRECT:
-        return directCall.executeCall(function, callerInfo, state, arguments);
-      case TAIL_LOOP:
-        throw new TailCallException(function, callerInfo, state, arguments);
-      default:
-        return loopingCall.executeDispatch(function, callerInfo, state, arguments);
-    }
+  private Object doCall(
+      Function function, CallerInfo callerInfo, State state, Object[] arguments) {
+    return switch (getTailStatus()) {
+      case TAIL_DIRECT -> directCall.executeCall(function, callerInfo, state, arguments);
+      case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
+      default -> loopingCall.executeDispatch(function, callerInfo, state, arguments);
+    };
   }
 }

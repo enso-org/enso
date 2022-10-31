@@ -26,7 +26,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -91,6 +91,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
     private ReplExecutionEventNodeState nodeState;
+    private State monadicState;
 
     private EventContext eventContext;
     private DebuggerMessageHandler handler;
@@ -130,15 +131,12 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     public Either<Exception, Object> evaluate(String expression) {
       ReplExecutionEventNodeState savedState = nodeState;
       try {
-        Stateful result =
-            evalNode.execute(
-                nodeState.getLastScope(), nodeState.getLastState(), Text.create(expression));
-        Object lastState = result.getState();
         CaptureResultScopeNode.WithCallerInfo payload =
-            (CaptureResultScopeNode.WithCallerInfo) result.getValue();
+            (CaptureResultScopeNode.WithCallerInfo)
+                evalNode.execute(nodeState.getLastScope(), monadicState, Text.create(expression));
         CallerInfo lastScope = payload.getCallerInfo();
         Object lastReturn = payload.getResult();
-        nodeState = new ReplExecutionEventNodeState(lastReturn, lastState, lastScope);
+        nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
         return new Right<>(formatObject(lastReturn));
       } catch (Exception e) {
         nodeState = savedState;
@@ -180,8 +178,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
       Object lastReturn = Context.get(this).getNothing();
       // Note [Safe Access to State in the Debugger Instrument]
-      Object lastState = Function.ArgumentsHelper.getState(frame.getArguments());
-      nodeState = new ReplExecutionEventNodeState(lastReturn, lastState, lastScope);
+      monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+      nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
       startSession();
     }
 
@@ -203,7 +201,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected Object onUnwind(VirtualFrame frame, Object info) {
-      return new Stateful(nodeState.getLastState(), nodeState.getLastReturn());
+      return nodeState.getLastReturn();
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -227,21 +225,15 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     private static class ReplExecutionEventNodeState {
       private final Object lastReturn;
-      private final Object lastState;
       private final CallerInfo lastScope;
 
-      ReplExecutionEventNodeState(Object lastReturn, Object lastState, CallerInfo lastScope) {
+      ReplExecutionEventNodeState(Object lastReturn, CallerInfo lastScope) {
         this.lastReturn = lastReturn;
-        this.lastState = lastState;
         this.lastScope = lastScope;
       }
 
       Object getLastReturn() {
         return lastReturn;
-      }
-
-      Object getLastState() {
-        return lastState;
       }
 
       CallerInfo getLastScope() {

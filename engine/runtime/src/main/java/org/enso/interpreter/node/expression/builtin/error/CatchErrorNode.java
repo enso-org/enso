@@ -3,12 +3,11 @@ package org.enso.interpreter.node.expression.builtin.error;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Error",
@@ -27,8 +26,7 @@ public class CatchErrorNode extends Node {
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, DataflowError self, Object handler) {
+  Object execute(VirtualFrame frame, State state, DataflowError self, Object handler) {
     return invokeCallableNode.execute(handler, frame, state, new Object[] {self.getPayload()});
   }
 }
