@@ -85,7 +85,7 @@ case object DocumentationComments extends IRPass {
         caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
     })
   } catch {
-    case npe : NullPointerException => {
+    case npe: NullPointerException => {
       System.out.println("Problems with:\n" + ir);
       npe.printStackTrace()
       ir

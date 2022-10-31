@@ -53,7 +53,7 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger = context.getLogger(getClass)
+  private val logger: TruffleLogger      = context.getLogger(getClass)
   private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
@@ -439,13 +439,15 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src = module.getSource
-    val now = System.currentTimeMillis()
+    val src  = module.getSource
+    val now  = System.currentTimeMillis()
     val tree = ensoCompiler.parse(src)
     val size = src.getCharacters().length()
     val expr = ensoCompiler.generateIR(tree)
     val took = System.currentTimeMillis() - now
-    System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
+    System.err.println(
+      "Parsed " + src.getURI() + " in " + took + " ms, size " + size
+    )
 
     val exprWithModuleExports =
       if (module.isSynthetic)
