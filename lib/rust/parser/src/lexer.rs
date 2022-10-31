@@ -783,7 +783,7 @@ impl<'s> Lexer<'s> {
                 Some('x') if new_based_chars_matched == 1 => base = Some(token::Base::Hexadecimal),
                 Some('6') if old_hex_chars_matched == 1 => old_hex_chars_matched = 2,
                 Some(d) if is_decimal_digit(d) => (),
-                _ => return
+                _ => return,
             }
             this.next_input_char();
             if base.is_some() {
@@ -795,10 +795,10 @@ impl<'s> Lexer<'s> {
                     base = Some(token::Base::Hexadecimal);
                     this.next_input_char();
                     return;
-                },
+                }
                 Some('_') if !prev_was_underscore => was_underscore = true,
                 Some(d) if is_decimal_digit(d) => (),
-                _ => return
+                _ => return,
             }
             prev_was_underscore = was_underscore;
             this.next_input_char();
@@ -807,7 +807,7 @@ impl<'s> Lexer<'s> {
                 match this.current_char {
                     Some('_') if !prev_was_underscore => was_underscore = true,
                     Some(d) if is_decimal_digit(d) => (),
-                    _ => return
+                    _ => return,
                 }
                 prev_was_underscore = was_underscore;
                 this.next_input_char();
@@ -971,7 +971,7 @@ impl<'s> Lexer<'s> {
                     let token = self.make_token(
                         text_start.clone(),
                         before_newline.clone(),
-                        token::Variant::text_section()
+                        token::Variant::text_section(),
                     );
                     if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
                         self.output.push(token);
