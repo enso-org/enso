@@ -15,7 +15,6 @@ use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
-use ensogl_shadow as shadow;
 use grid::Col;
 use grid::Row;
 use ide_view_component_list_panel_grid::entry::icon;
@@ -57,24 +56,61 @@ impl From<Style> for icon::Params {
     }
 }
 
+/// Colors of the buttons of the section navigator.
+/// Each of the section buttons can have a different "active" color, but they all share the same
+/// "inactive" color. "active" color is used when the button is highlighted, and the "inactive" is
+/// used as default.
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
+#[base_path = "theme::buttons"]
+#[allow(missing_docs)]
+pub struct Colors {
+    pub inactive:    color::Rgba,
+    #[theme_path = "theme::buttons::active::popular"]
+    pub popular:     color::Rgba,
+    #[theme_path = "theme::buttons::active::local_scope"]
+    pub local_scope: color::Rgba,
+    #[theme_path = "theme::buttons::active::submodules"]
+    pub submodules:  color::Rgba,
+}
 
-
-// =========================================================
-// === Conversions Between SectionId and List View Index ===
-// =========================================================
-
-/// Convert [`SectionId`] to index on [`Navigator::bottom_buttons`].
-fn section_id_to_list_index(id: SectionId) -> (Row, Col) {
-    match id {
-        SectionId::Popular => (1, 0),
-        SectionId::LocalScope => (2, 0),
-        SectionId::SubModules => (0, 0),
+impl Colors {
+    fn get(&self, section: SectionId) -> color::Rgba {
+        match section {
+            SectionId::Popular => self.popular,
+            SectionId::LocalScope => self.local_scope,
+            SectionId::SubModules => self.submodules,
+        }
     }
 }
 
-/// Convert the index on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
+/// Convert [`SectionId`] to the displayed icon id.
+fn section_id_to_icon_id(section: SectionId) -> icon::Id {
+    match section {
+        SectionId::Popular => icon::Id::Star,
+        SectionId::LocalScope => icon::Id::LocalScope,
+        SectionId::SubModules => icon::Id::SubModules,
+    }
+}
+
+
+
+// ============================================================
+// === Conversions Between SectionId and Grid View Location ===
+// ============================================================
+
+/// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
+fn section_id_to_grid_loc(id: SectionId) -> (Row, Col) {
+    const COLUMN: Col = 0;
+    match id {
+        SectionId::Popular => (1, COLUMN),
+        SectionId::LocalScope => (2, COLUMN),
+        SectionId::SubModules => (0, COLUMN),
+    }
+}
+
+/// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
-fn index_to_section_id(&(row, col): &(Row, Col)) -> SectionId {
+fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
     let highest = SectionId::SubModules;
     match row {
         0 => highest,
@@ -109,22 +145,9 @@ pub struct Navigator {
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
 
-const ICON_WEAK_COLOR: color::Lcha = color::Lcha::new(0.81, 0.01535, 0.67, 1.0);
-const ICON_STRONG_COLOR: color::Lcha = color::Lcha::new(0.70472, 0.83671, 0.18, 1.0);
-const ACTIVE_ICON_COLOR: icon::IconColors =
-    icon::IconColors { weak: ICON_WEAK_COLOR, strong: ICON_STRONG_COLOR };
-const INACTIVE_ICON_COLOR: icon::IconColors =
-    icon::IconColors { weak: ICON_WEAK_COLOR, strong: ICON_WEAK_COLOR };
-
-const TOP_BUTTONS: [icon::Model; 2] = [
-    icon::Model::new(icon::Id::Libraries, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
-    icon::Model::new(icon::Id::Marketplace, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
-];
-const BOTTOM_BUTTONS: [icon::Model; 3] = [
-    icon::Model::new(icon::Id::SubModules, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
-    icon::Model::new(icon::Id::Star, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
-    icon::Model::new(icon::Id::LocalScope, ACTIVE_ICON_COLOR, INACTIVE_ICON_COLOR),
-];
+const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
+const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
+const BOTTOM_BUTTONS_COUNT: usize = 3;
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
@@ -133,38 +156,43 @@ impl Navigator {
         let bottom_buttons = Grid::new(app);
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
-        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
-        //top_buttons.hide_selection();
-
-        //top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
-        //bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-        //bottom_buttons.select_entry(Some(section_id_to_list_index(SectionId::Popular)));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let colors = Colors::from_theme(&network, &style_frp);
         frp::extend! { network
             select_section <- any(...);
             bottom_buttons.select_entry <+
-                select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_list_index));
+                select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
             chosen_section <-
-                bottom_buttons.entry_selected.map(|loc| loc.as_ref().map(index_to_section_id));
+                bottom_buttons.entry_selected.map(|loc| loc.as_ref().map(loc_to_section_id));
 
-            model <- bottom_buttons.model_for_entry_needed.map(f!([]
-                ((row, col)) {
-                    BOTTOM_BUTTONS.get(*row).map(|model| (*row, *col, *model))
+            model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
+                ((row, col), colors) {
+                    let section_id = loc_to_section_id(&(*row, *col));
+                    let icon_id = section_id_to_icon_id(section_id);
+                    let active_colors = icon::Colors::monochrome(colors.get(section_id));
+                    let inactive_colors = icon::Colors::monochrome(colors.inactive);
+                    let model = icon::Model::new(icon_id, active_colors, inactive_colors);
+                    (*row, *col, model)
                 }
-            )).filter_map(|m| *m);
+            ));
             bottom_buttons.model_for_entry <+ model;
 
-            model <- top_buttons.model_for_entry_needed.map(f!([]
-                ((row, col)) {
-                    TOP_BUTTONS.get(*row).map(|model| (*row, *col, *model))
+            model <- top_buttons.model_for_entry_needed.map2(&colors.update, f!([]
+                ((row, col), colors) {
+                    let icon_id = TOP_BUTTONS.get(*row).cloned().unwrap_or_default();
+                    let colors = icon::Colors::monochrome(colors.inactive);
+                    let model = icon::Model::new(icon_id, colors, colors);
+                    (*row, *col, model)
                 }
-            )).filter_map(|m| *m);
+            ));
             top_buttons.model_for_entry <+ model;
         }
+        colors.init.emit(());
 
-        bottom_buttons.reset_entries(BOTTOM_BUTTONS.len(), 1);
-        top_buttons.reset_entries(TOP_BUTTONS.len(), 1);
+        bottom_buttons.reset_entries(BOTTOM_BUTTONS_COUNT, 1);
+        top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
 
         Self {
             display_object,
@@ -178,23 +206,26 @@ impl Navigator {
 
     pub(crate) fn update_layout(&self, style: &AllStyles) {
         let size = style.navigator.button_size;
-        let top_buttons_height = size * TOP_BUTTONS.len() as f32;
-        let bottom_buttons_height = size * BOTTOM_BUTTONS.len() as f32;
+        let top_buttons_height = size * TOP_BUTTONS_COUNT as f32;
+        let bottom_buttons_height = size * BOTTOM_BUTTONS_COUNT as f32;
         self.bottom_buttons.set_entries_size(Vector2(size, size));
         self.top_buttons.set_entries_size(Vector2(size, size));
-        let top_buttons_viewport =
-            grid::Viewport { top: 0.0, bottom: -top_buttons_height, left: 0.0, right: size };
+        let (top, left, right) = (0.0, 0.0, size);
+        let viewport = grid::Viewport { top, bottom: 0.0, left, right };
+        let top_buttons_viewport = grid::Viewport { bottom: -top_buttons_height, ..viewport };
+        let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
         self.top_buttons.set_viewport(top_buttons_viewport);
-        let bottom_buttons_viewport = grid::Viewport {
-            top:    0.0,
-            bottom: -bottom_buttons_height,
-            left:   0.0,
-            right:  size,
-        };
         self.bottom_buttons.set_viewport(bottom_buttons_viewport);
         let buttons_params = icon::Params::from(style.navigator.clone());
         self.bottom_buttons.set_entries_params(buttons_params.clone());
-        self.top_buttons.set_entries_params(buttons_params);
+        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
+        let disabled_params = icon::Params {
+            hover_color:              color::Lcha::transparent(),
+            selection_color:          color::Lcha::transparent(),
+            selection_size:           0.0,
+            selection_corners_radius: 0.0,
+        };
+        self.top_buttons.set_entries_params(disabled_params);
 
         let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;

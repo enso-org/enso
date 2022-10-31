@@ -57,11 +57,6 @@ impl StyleWatchFrp {
         Self { network, sheet, vars, handles, callback }
     }
 
-    /// TODO: is it safe?
-    pub fn network(&self) -> &frp::Network {
-        &self.network
-    }
-
     fn get_internal(
         &self,
         path: impl Into<Path>,

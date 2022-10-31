@@ -176,8 +176,8 @@ define_themes! { [light:0, dark:1]
     application {
         // Original RGB values (for reference after fixing color-conversion issues)
         // light: rgb(249,250,251), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        // background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
-        background = Rgba(230.0 / 255.0,234.0 / 255.0,237.0 / 255.0,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        // background = Rgba(231.0 / 255.0,235.0 / 255.0,238.0 / 255.0,1.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -188,7 +188,7 @@ define_themes! { [light:0, dark:1]
                 width = 369.0, 369.0;
             }
             component_list_panel {
-                background_color = Rgba(236.0 / 255.0, 240.0 / 255.0, 242.0 / 255.0, 1.0),Rgba(238.0 / 255.0, 241.0 / 255.0, 242.0 / 255.0, 1.0);
+                background_color = Rgba(1.0, 1.0, 1.0, 0.64),Rgba(1.0, 1.0, 1.0, 0.64);
                 corners_radius = 15.0, 15.0;
                 grid {
                     width = 414.0, 414.0;
@@ -199,7 +199,7 @@ define_themes! { [light:0, dark:1]
 
                     entry {
                         background.color_intensity = 0.08, 0.08;
-                        dimmed.color_intensity = 0.5, 0.5;
+                        dimmed = Lcha(0.666, 0.0188, 0.75, 1.0), Lcha(66.61, 1.88, 0.75, 1.0);
                         padding = 17.0, 17.0;
                         text {
                             font = "default", "default";
@@ -217,9 +217,9 @@ define_themes! { [light:0, dark:1]
                             corners_radius = 12.0, 12.0;
                             hover.color_intensity = 0.4, 0.4;
                             selection {
-                                background.color_intensity = 1.0, 1.0;
+                                background.color_intensity = 0.75, 0.75;
                                 dimmed.color_intensity = 0.5, 0.5;
-                                text.color_intensity = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
+                                text.color_intensity = Rgba::white(), Rgba::white();
                                 icon_strong.color_intensity = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
                                 icon_weak.color_intensity = 0.5, 0.5;
                             }
@@ -237,19 +237,18 @@ define_themes! { [light:0, dark:1]
 
                     group_colors {
                         // Yellow
-                        group_0 = Lcha(0.54780, 0.47925, 0.281, 1.0), Lcha(0.54780, 0.47925, 0.281, 1.0);
+                        group_0 = Rgba(134.0 / 255.0, 135.0 / 255.0, 43.0 / 255.0, 1.0), Rgba(134.0 / 255.0, 135.0 / 255.0, 43.0 / 255.0, 1.0);
                         // Green
                         group_1 = Rgba(63.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
-                        // Light blue
-                        group_2 = Rgba(65.0 / 255.0, 147.0 / 255.0, 207.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                        // Blue
+                        group_2 = Rgba(54.0 / 255.0, 122.0 / 255.0, 185.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
                         // Pink
                         group_3 = Rgba(193.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
-                        // Blue
-                        group_4 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
+                        // Ligth blue
+                        group_4 = Rgba(65.0 / 255.0, 147.0 / 255.0, 207.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
                         // Orange
                         group_5 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
-                        dimmed = Lcha(0.666, 0.0188, 0.75, 1.0), Lcha(66.61, 1.88, 0.75, 1.0);
                     }
                 }
                 menu_height = 44.0, 44.0;
@@ -300,6 +299,14 @@ define_themes! { [light:0, dark:1]
                         color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
                         size = 29.0, 29.0;
                         corners_radius = 12.0, 12.0;
+                    }
+                    buttons {
+                        active {
+                            local_scope = Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0), Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0);
+                            submodules = Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0), Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0);
+                            popular = Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0), Rgba(250.0 / 255.0, 149.0 / 255.0, 31.0 / 255.0, 1.0);
+                        }
+                        inactive = Rgba(201.0 / 255.0, 203.0 / 255.0, 205.0 / 255.0, 1.0), Rgba(201.0 / 255.0, 203.0 / 255.0, 205.0 / 255.0, 1.0);
                     }
                 }
             }

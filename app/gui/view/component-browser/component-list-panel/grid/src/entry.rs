@@ -5,8 +5,8 @@ use ensogl_core::display::shape::*;
 
 use crate::content::GroupId;
 use crate::content::SectionId;
-use crate::entry::style::ColorIntensities;
 use crate::entry::style::Colors;
+use crate::entry::style::StyleColors;
 use crate::GroupColors;
 use crate::Style as GridStyle;
 
@@ -196,11 +196,11 @@ impl DimmedGroups {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
-    pub style:             Style,
-    pub grid_style:        GridStyle,
-    pub color_intensities: ColorIntensities,
-    pub group_colors:      GroupColors,
-    pub dimmed_groups:     DimmedGroups,
+    pub style:         Style,
+    pub grid_style:    GridStyle,
+    pub style_colors:  StyleColors,
+    pub group_colors:  GroupColors,
+    pub dimmed_groups: DimmedGroups,
 }
 
 
@@ -444,7 +444,7 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
-            color_intensities <- input.set_params.map(|p| p.color_intensities).on_change();
+            color_intensities <- input.set_params.map(|p| p.style_colors).on_change();
             group_colors <- input.set_params.map(|p| p.group_colors).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
@@ -467,8 +467,7 @@ impl grid_view::Entry for View {
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            dimmed_color <- group_colors.map(|g| g.dimmed);
-            let colors = Colors::from_main_color(network, &data.style, &color, &dimmed_color, &color_intensities, &is_dimmed);
+            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
             eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
@@ -495,14 +494,9 @@ impl grid_view::Entry for View {
             data.label.set_view_width <+ max_text_width.some();
             content_changed <- data.label.content.constant(());
             style_changed <- style.constant(());
-            highlight_range <= all_with3(
-                &input.set_model,
-                &content_changed,
-                &style_changed,
-                |m, (), ()| m.highlighted.deref().clone()
-            );
-            is_header <- kind.map(|kind| *kind == Kind::Header).on_true();
-            highlight_header <- all3(&input.set_model, &content_changed, &style_changed).filter(|(m, (), ())| m.kind == Kind::Header);
+            set_model <- all3(&input.set_model, &content_changed, &style_changed);
+            highlight_range <= set_model.map(|(m, (), ())| m.highlighted.deref().clone());
+            highlight_header <- set_model.filter(|(m, (), ())| m.kind == Kind::Header);
             data.label.set_property <+ highlight_header.map2(&style, |_, s| {
                 ((..).into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });

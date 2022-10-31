@@ -198,23 +198,23 @@ fn make_theme_getters(
             // TODO: handle missing accessor
             let accessor = get_path_from_metadata(&f.attrs, ACCESSOR_ATTRIBUTE_NAME)
                 .map(|accessor| {
-                    quote! { #accessor }
+                    quote! { #accessor(&network, style, #field_path) }
                 })
                 .unwrap_or_else(|| match ThemeTypes::from_ty(&f.ty) {
                     ThemeTypes::Color => quote! {
-                      StyleWatchFrp::get_color
+                      StyleWatchFrp::get_color(style, #field_path)
                     },
                     ThemeTypes::String => quote! {
-                      StyleWatchFrp::get_text
+                      StyleWatchFrp::get_text(style, #field_path)
                     },
                     ThemeTypes::Number => quote! {
-                      StyleWatchFrp::get_number
+                      StyleWatchFrp::get_number(style, #field_path)
                     },
                     ThemeTypes::Unknown => panic!("Unknown type for theme value."),
                 });
 
             quote! {
-                let #field_name = #accessor(style, #field_path);
+                let #field_name = #accessor;
             }
         })
         .collect()

@@ -5,7 +5,7 @@
 // === Export ===
 // ==============
 
-pub use entry::IconColors;
+pub use entry::Colors;
 pub use entry::Model;
 pub use entry::Params;
 pub use entry::View;

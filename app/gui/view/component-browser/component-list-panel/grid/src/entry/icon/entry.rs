@@ -11,40 +11,81 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::style::Path;
 use ensogl_grid_view as grid;
 
+
+
+// ==============
+// === Colors ===
+// ==============
+
+/// Colors of the entry.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct IconColors {
+pub struct Colors {
+    /// The more contrasting parts of the [icon](crate::icon::Any).
     pub strong: color::Lcha,
+    /// The less contrasting parts of the [icon](crate::icon::Any).
     pub weak:   color::Lcha,
 }
 
+impl Colors {
+    /// For monochrome icons, the weak color is the same as the strong color.
+    pub fn monochrome<C: Into<color::Lcha>>(color: C) -> Self {
+        let color = color.into();
+        Self { strong: color, weak: color }
+    }
+}
+
+
+// =============
+// === Model ===
+// =============
+
+/// Entry's model.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Model {
     icon_id:  icon::Id,
-    active:   IconColors,
-    inactive: IconColors,
+    /// Colors of the icon when the entry is selected.
+    active:   Colors,
+    /// Colors of the icon when the entry is not selected.
+    inactive: Colors,
 }
 
 impl Model {
-    pub const fn new(icon_id: icon::Id, active: IconColors, inactive: IconColors) -> Self {
+    /// Constructor.
+    pub const fn new(icon_id: icon::Id, active: Colors, inactive: Colors) -> Self {
         Self { icon_id, active, inactive }
     }
 }
 
 
-// =================
-// === IconEntry ===
-// =================
 
-/// List view entry type which represents a single icon. We use grid view with icons instead of
+// ==================
+// === IconParams ===
+// ==================
+
+/// Entry parameters of the icon.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[allow(missing_docs)]
+pub struct Params {
+    pub hover_color:              color::Lcha,
+    pub selection_color:          color::Lcha,
+    pub selection_size:           f32,
+    pub selection_corners_radius: f32,
+}
+
+
+
+// ============
+// === Data ===
+// ============
+
+/// Grid view entry type which represents a single icon. We use grid view with icons instead of
 /// multiple buttons to simplify the implementation.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Data {
     display_object: display::object::Instance,
     icon:           Rc<RefCell<Option<icon::Any>>>,
-    icon_id:        Rc<Cell<Option<icon::Id>>>,
     strong_color:   Rc<Cell<color::Lcha>>,
     weak_color:     Rc<Cell<color::Lcha>>,
 }
@@ -53,22 +94,18 @@ impl Data {
     pub fn new() -> Self {
         let display_object = display::object::Instance::new();
         let icon = default();
-        let icon_id = default();
         let strong_color = default();
         let weak_color = default();
-        Self { display_object, icon, icon_id, strong_color, weak_color }
+        Self { display_object, icon, strong_color, weak_color }
     }
 
     fn set_icon(&self, icon_id: icon::Id) {
-        if !self.icon_id.get().contains(&icon_id) {
-            let size = Vector2(icon::SIZE, icon::SIZE);
-            let icon = icon_id.create_shape(size);
-            icon.strong_color.set(self.strong_color.get().into());
-            icon.weak_color.set(self.weak_color.get().into());
-            self.display_object.add_child(&icon);
-            *self.icon.borrow_mut() = Some(icon);
-            self.icon_id.set(Some(icon_id));
-        }
+        let size = Vector2(icon::SIZE, icon::SIZE);
+        let icon = icon_id.create_shape(size);
+        icon.strong_color.set(color::Rgba::from(self.strong_color.get()).into());
+        icon.weak_color.set(color::Rgba::from(self.weak_color.get()).into());
+        self.display_object.add_child(&icon);
+        *self.icon.borrow_mut() = Some(icon);
     }
 
     fn set_strong_color(&self, color: color::Lcha) {
@@ -86,12 +123,13 @@ impl Data {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
-    }
-}
 
+
+// ============
+// === View ===
+// ============
+
+/// The grid view entry.
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
     frp:  grid::entry::EntryFrp<Self>,
@@ -102,7 +140,7 @@ impl grid::entry::Entry for View {
     type Model = Model;
     type Params = Params;
 
-    fn new(app: &Application, _text_layer: Option<&Layer>) -> Self {
+    fn new(_app: &Application, _text_layer: Option<&Layer>) -> Self {
         let frp = grid::entry::EntryFrp::<Self>::new();
         let data = Data::new();
         let network = frp.network();
@@ -141,7 +179,9 @@ impl grid::entry::Entry for View {
             hover_color <- style.map(|s| s.hover_color).on_change();
 
             out.contour <+ input.set_size.map(|s| grid::entry::Contour::rectangular(*s));
-            out.highlight_contour <+ out.contour.all_with(&style, |c,s| grid::entry::Contour { corners_radius: s.selection_corners_radius, ..*c });
+            out.highlight_contour <+ out.contour.all_with(&style,
+                |c,s| grid::entry::Contour { corners_radius: s.selection_corners_radius, ..*c }
+            );
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;
         }
@@ -155,13 +195,8 @@ impl grid::entry::Entry for View {
     }
 }
 
-// === IconParams ===
-
-/// Entry parameters of the icon.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Params {
-    pub hover_color:              color::Lcha,
-    pub selection_color:          color::Lcha,
-    pub selection_size:           f32,
-    pub selection_corners_radius: f32,
+impl display::Object for View {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.data.display_object
+    }
 }
