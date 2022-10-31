@@ -17,9 +17,9 @@ use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
+use ensogl_tooltip::Tooltip;
 use grid::Col;
 use grid::Row;
-use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
@@ -210,9 +210,8 @@ impl Navigator {
 
             // === Show tooltip when hovering the Marketplace button
 
-            let idx_of_marketplace_btn = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
-            marketplace_button_selected <- top_buttons.selected_entry.map(idx_of_marketplace_btn);
-            marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
+            let idx_of_marketplace_btn = |loc: &Option<(Row, Col)>| matches!(loc, Some((row, _)) if *row == MARKETPLACE_BUTTON_INDEX);
+            marketplace_button_hovered <- top_buttons.entry_hovered.map(idx_of_marketplace_btn);
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
             tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
             tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
