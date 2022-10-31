@@ -19,3 +19,18 @@ type Row
     ## Gets the row as a Vector.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
+
+    ## Converts this row into a JSON structure.
+    to_json : Json
+    to_json self = self.to_vector.to_json
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a Text used to display this table in the IDE by default.
+
+       Returns a JSON object containing useful metadata and previews of column
+       values.
+    to_default_visualization_data : Text
+    to_default_visualization_data self =
+        self.to_vector.to_default_visualization_data
