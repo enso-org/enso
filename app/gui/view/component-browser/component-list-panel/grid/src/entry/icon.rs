@@ -325,7 +325,6 @@ define_icons! {
     }
 
     /// A light column, a dark column and a lightning bolt on the right.
-    // FIXME no design
     pub mod dataframe_map_column(DataframeMapColumn) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -409,7 +408,7 @@ define_icons! {
         }
     }
 
-    /// A capital "Σ". // FIXME no design
+    /// A capital "Σ".
     pub mod sigma(Sigma) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -433,7 +432,6 @@ define_icons! {
 
     /// The shape of a sheet of paper that has been ripped apart with a vertical crack through the
     /// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
-    // FIXME no design
     pub mod split_text(SplitText) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -482,7 +480,7 @@ define_icons! {
         }
     }
 
-    /// Some rectangles and circles in different colors. // FIXME no design
+    /// Some rectangles and circles in different colors.
     pub mod data_science(DataScience) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -505,7 +503,7 @@ define_icons! {
         }
     }
 
-    /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it. // FIXME no design
+    /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it.
     pub mod network(Network) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -528,7 +526,7 @@ define_icons! {
         }
     }
 
-    /// A dark rectangle containing the simple terminal prompt ">_". // FIXME no design
+    /// A dark rectangle containing the simple terminal prompt ">_".
     pub mod system(System) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -554,7 +552,7 @@ define_icons! {
     }
 
     /// Two half arrow, one on top and pointing to the right, one at the bottom and pointing to the
-    /// left. The shape has an outline in a darker color. // FIXME no design
+    /// left. The shape has an outline in a darker color.
     pub mod io(IO) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -577,7 +575,7 @@ define_icons! {
 
     /// The shape of a funnel, consisting of a big upside-down triangle at the top connected with
     /// a thin rectangular tube shape below with a triangular end piece. The whole shape has an
-    /// outline. // FIXME no design
+    /// outline.
     pub mod preparation(Preparation) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -646,7 +644,7 @@ define_icons! {
     }
 
     /// A page with three lines representing text. The upper line is part of an arrow pointing out
-    /// to the right. // FIXME no design
+    /// to the right.
     pub mod text(Text) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -671,7 +669,7 @@ define_icons! {
         }
     }
 
-    /// A clock shape. // FIXME no design
+    /// A clock shape.
     pub mod date_and_time(DateAndTime) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -693,7 +691,7 @@ define_icons! {
     }
 
     /// The shape location marker. A thick circle outline going over into a triangle that poins
-    /// down. Around the tip there is an ellipse outline. // FIXME no design
+    /// down. Around the tip there is an ellipse outline.
     pub mod spatial(Spatial) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -719,7 +717,7 @@ define_icons! {
         }
     }
 
-    /// The shape of a christal ball with a bas below. // FIXME no design
+    /// The shape of a christal ball with a bas below.
     pub mod predictive(Predictive) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -745,7 +743,7 @@ define_icons! {
         }
     }
 
-    /// The shape of an android. // FIXME no design
+    /// The shape of an android.
     pub mod machine_learning(MachineLearning) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
@@ -773,7 +771,7 @@ define_icons! {
     }
 
     /// The simplified shape of a camera. It consists of a small red circle in a bigger circle
-    /// outline, representing the lens and a base above that the camera is mounted on. // FIXME no design
+    /// outline, representing the lens and a base above that the camera is mounted on.
     pub mod computer_vision(ComputerVision) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
