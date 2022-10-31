@@ -5,12 +5,15 @@ use crate::prelude::*;
 
 use enso_shapely::shared;
 use ensogl_core::display::scene;
+use ensogl_core::system::gpu;
+use ensogl_core::system::gpu::texture;
 use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
 use std::collections::hash_map::Entry;
 use ttf::AsFaceRef;
+
 
 
 // ==============
@@ -706,8 +709,10 @@ impl<F: Family> FontTemplate<F> {
 }
 
 
-use ensogl_core::system::gpu;
-use ensogl_core::system::gpu::texture;
+
+// =====================
+// === FontWithAtlas ===
+// =====================
 
 type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
@@ -719,6 +724,7 @@ pub struct FontWithAtlas {
     pub font:  Font,
     pub atlas: gpu::Uniform<AtlasTexture>,
 }
+
 
 
 // ================

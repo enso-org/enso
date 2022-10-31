@@ -290,7 +290,7 @@ impl Model {
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add(&prompt_background);
-        prompt.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&prompt);
         prompt.add_to_scene_layer(&scene.layers.panel_text);
 
         display_object.add_child(&graph_editor);

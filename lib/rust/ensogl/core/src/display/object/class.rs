@@ -666,14 +666,6 @@ impl<Host> Instance<Host> {
         }
     }
 
-    // /// Add this object to the provided scene layer and remove it from all other layers. Do not
-    // use /// this method explicitly. Use layers' methods instead.
-    // pub(crate) fn add_to_display_layer_exclusive(&self, layer: &Layer) {
-    //     let layer = layer.downgrade();
-    //     self.dirty.scene_layer.set();
-    //     *self.assigned_layers.borrow_mut() = vec![layer];
-    // }
-
     /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
     /// layers' methods instead.
     pub(crate) fn remove_from_scene_layer(&self, layer: &Layer) {

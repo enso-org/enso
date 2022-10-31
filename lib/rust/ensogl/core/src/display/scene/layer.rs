@@ -1049,16 +1049,6 @@ pub struct ShapeSystemRegistryData {
 }
 
 impl {
-    // // TODO: This API requires Scene to be passed as argument, which is ugly. Consider splitting
-    // //       the Scene into few components.
-    // /// Query the registry for a user defined shape system of a given type. In case the shape system
-    // /// was not yet used, it will be created.
-    // pub fn shape_system<S>(&mut self, scene:&Scene, _phantom:PhantomData<S>) -> ShapeSystem<S>
-    // where S : Shape {
-    //     self.with_get_or_register_mut::<S,_,_>
-    //         (scene,|entry| {entry.shape_system.clone_ref()})
-    // }
-
     /// Instantiate the provided [`ShapeProxy`].
     pub fn instantiate<S>
     (&mut self, scene:&Scene, data: &S::ShapeData) -> (ShapeSystemInfo, SymbolId, ShapeInstance<S>, symbol::GlobalInstanceId)

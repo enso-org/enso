@@ -13,6 +13,7 @@ use enso_web as web;
 auto trait NotResult {}
 impl<T, E> !NotResult for Result<T, E> {}
 
+/// Just like [`Default`], but with a specialization for [`Result`].
 trait MockBindingResultDefault {
     fn mock_binding_result_default() -> Self;
 }

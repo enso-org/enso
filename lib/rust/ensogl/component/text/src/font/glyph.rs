@@ -20,7 +20,7 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-use ensogl_core::display::world;
+use ensogl_core::display::world::Context;
 use ensogl_core::frp;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
@@ -51,12 +51,18 @@ ensogl_core::define_endpoints_2! {
 
 
 
+// ==================
+// === SystemData ===
+// ==================
+
+/// Shape system data. Manages custom GLSL shader code for the glyph shape system.
 #[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
 pub struct SystemData {}
 
 #[cfg(target_os = "macos")]
 const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
+
 #[cfg(not(target_os = "macos"))]
 const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
 
@@ -88,7 +94,12 @@ impl SystemData {
 }
 
 
-/// Data of the glyph shape.
+
+// =================
+// === ShapeData ===
+// =================
+
+/// Shape data. Allows passing font information to the [`SystemData`].
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct ShapeData {
@@ -109,6 +120,7 @@ mod glyph_shape {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
+            // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
         }
     }
@@ -144,9 +156,6 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
 // =============
 // === Glyph ===
 // =============
-
-
-type Context = world::Context;
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]

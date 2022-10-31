@@ -143,7 +143,7 @@ impl ProjectNameModel {
         text_field.set_property_default(text_size);
         text_field.set_single_line_mode(true);
 
-        text_field.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&text_field);
         text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 

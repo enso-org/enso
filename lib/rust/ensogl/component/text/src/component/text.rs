@@ -665,34 +665,14 @@ impl Text {
 // ========================
 
 impl Text {
-    /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
-    /// this view regardless the previous views this component could be added to.
+    /// Add the text area to a specific scene layer.
     // TODO https://github.com/enso-org/ide/issues/1576
-    //     This function needs to be updated. However, it requires a few steps:
-    //     1. The new `ShapeView` and `DynamicShape` are implemented and they use display objects to
-    //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
-    //        is a very non-standard implementation, and thus has to handle the new display object
-    //        callbacks in a special way as well.
-    //     2. The `self.data.layer` currently needs to be stored for two main purposes:
-    //        - so that the [`set_font`] function can add newly created Glyphs to a layer to make
-    //          them visible;
-    //        - to provide a way to convert the screen to object space (see the
-    //          [`screen_to_object_space`] function).
-    //        This is a very temporary solution, as any object can be assigned to more than one
-    //        scene layer. Screen / object space location of events should thus become much more
-    //        primitive information / mechanisms. Please note, that this function handles the
-    //        selection management correctly, as it uses the new shape system definition, and thus,
-    //        inherits the scene layer settings from this display object.
+    //     This function should not be needed - normal `layer.add(this)` should be enough. However,
+    //     we are using layer to compute the screen to object space position (see the
+    //     [`screen_to_object_space`] function). This should be done in a more generic way.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.layer.set(layer.clone_ref());
-        self.data.add_symbols_to_scene_layer();
         layer.add(self);
-    }
-
-    /// Remove this component from view.
-    // TODO see TODO in add_to_scene_layer method.
-    pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        self.data.remove_symbols_from_scene_layer(layer);
     }
 }
 
@@ -750,14 +730,6 @@ impl TextModel {
         let width_dirty = default();
         let height_dirty = default();
         let shaped_lines = default();
-
-        // let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        // let symbol = &shape_system.sprite_system().symbol;
-        //
-        // // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of
-        // mouse // pointer and nodes. Should be refactored when proper sorting mechanisms
-        // are in place. scene.layers.main.remove_symbol(symbol);
-        // scene.layers.label.add(symbol);
 
         let frp = frp.downgrade();
         let data = TextModelData {
@@ -1721,7 +1693,6 @@ impl TextModel {
         self.glyph_system.replace(glyph_system);
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
-        self.add_symbols_to_scene_layer();
         self.redraw();
     }
 }
@@ -1896,40 +1867,6 @@ impl TextModel {
             _ => None,
         }
     }
-}
-
-
-
-// ========================
-// === Layer Management ===
-// ========================
-
-impl TextModel {
-    fn add_symbols_to_scene_layer(&self) {
-        let layer = &self.layer.get();
-        layer.add(&self);
-        // for symbol in self.symbols() {
-        //     layer.add(&symbol);
-        // }
-    }
-
-    fn remove_symbols_from_scene_layer(&self, layer: &display::scene::Layer) {
-        layer.remove(&self);
-
-        // for symbol in self.symbols() {
-        //     layer.remove_symbol(&symbol);
-        // }
-    }
-
-    // fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-    //     panic!()
-    //     // let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
-    //     // let shapes = &self.app.display.default_scene.shapes;
-    //     // let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-    //     // let _selection_symbol = selection_system.sprite_system().symbol.clone_ref();
-    //     // //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-    //     // SmallVec::from_buf([text_symbol /* selection_symbol */])
-    // }
 }
 
 

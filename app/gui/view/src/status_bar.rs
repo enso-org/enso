@@ -172,7 +172,7 @@ impl Model {
         let camera = scene.camera();
 
         scene.layers.panel.add(&background);
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;

@@ -75,7 +75,7 @@ impl View {
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
-        model.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&model);
         model.add_to_scene_layer(&scene.layers.panel_text);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
         //  should be changed in the second part of focus management
