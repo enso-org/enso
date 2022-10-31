@@ -32,12 +32,13 @@ enum ThemeTypes {
     Color,
     String,
     Number,
+    /// The type is not directly supported by the macro, but can be accessed using a custom
+    /// accessor.
     Unknown,
 }
 
 impl ThemeTypes {
-    /// Return the corresponging [`ThemeType`] for the given [`Type`]. Panics with an error message
-    ///  indicating the wrong type if this is not a valid theme type.
+    /// Return the corresponging [`ThemeType`] for the given [`Type`].
     fn from_ty(ty: &Type) -> Self {
         match ty {
             Type::Path(type_path)
@@ -106,8 +107,7 @@ fn build_frp(
     }
 }
 
-/// Create the field initializers for the struct holding the theme values. They differ between
-/// types that implement copy or clone.
+/// Create the field initializers for the struct holding the theme values.
 fn make_struct_inits(
     fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
 ) -> TokenStream {
@@ -118,6 +118,7 @@ fn make_struct_inits(
             .ident
             .as_ref()
             .expect("Encountered unnamed struct field. This cannot not happen.");
+        // Keep in mind that all [`Copy`] types also implement [`Clone`].
         let init = quote! {
             #field_name : #field_name.clone(),
         };
@@ -195,7 +196,6 @@ fn make_theme_getters(
                 (None, None) => panic!("Neither `base_path` nor `path` attributes were set."),
             };
 
-            // TODO: handle missing accessor
             let accessor = get_path_from_metadata(&f.attrs, ACCESSOR_ATTRIBUTE_NAME)
                 .map(|accessor| {
                     quote! { #accessor(&network, style, #field_path) }
@@ -210,7 +210,10 @@ fn make_theme_getters(
                     ThemeTypes::Number => quote! {
                       StyleWatchFrp::get_number(style, #field_path)
                     },
-                    ThemeTypes::Unknown => panic!("Unknown type for theme value."),
+                    ThemeTypes::Unknown => panic!(
+                        "Unknown type for theme value, but no accessor was provided. \
+                        Use the `#[accessor]` attribute to provide a custom accessor function"
+                    ),
                 });
 
             quote! {

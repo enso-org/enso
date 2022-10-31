@@ -12,12 +12,13 @@ use entry_theme::highlight::selection as selection_theme;
 use grid_theme::entry as entry_theme;
 
 
-/// TODO
+/// Color of the different parts of the entry.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
-    /// TODO
+    /// The final color is a result of mixing the application background color with the "main"
+    /// color of the component group using a given coefficient.
     MainColorIntensity(f32),
-    /// TODO
+    /// The final color is defined as an arbitrary color in the stylesheet.
     Arbitrary(color::Lcha),
 }
 
@@ -28,15 +29,20 @@ impl Default for Color {
 }
 
 impl Color {
-    /// TODO
-    fn mix(&self, (main, other): &(color::Lcha, color::Lcha)) -> color::Lcha {
+    /// Get the final color by either taking the value from [`Self::Arbitrary`] or mixing the two
+    /// provided colors.
+    fn mix(&self, (first, second): &(color::Lcha, color::Lcha)) -> color::Lcha {
         match self {
-            Self::MainColorIntensity(intensity) => color::mix(*main, *other, *intensity),
+            Self::MainColorIntensity(intensity) => color::mix(*first, *second, *intensity),
             Self::Arbitrary(color) => *color,
         }
     }
 
-    /// TODO
+    /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
+    /// macro. In the stylesheet the color can be defined as either a `color::Rgba` or a `float`
+    /// value for mixing coefficient. This accessor produces the corresponding variants of [`Color`]
+    /// or returns a default value ([`Color::MainColorIntensity(0.0)`]) if there is no such property
+    /// in the stylesheet.
     fn accessor<P: Into<ensogl_core::display::style::Path>>(
         network: &frp::Network,
         style: &StyleWatchFrp,
@@ -62,56 +68,58 @@ impl Color {
     }
 }
 
+
+
 // =============
 // === Style ===
 // =============
 
-// === Color Intensities ===
+// === Style Colors ===
 
-/// The intensities of various parts of Component Entry view. The actual color is computed by mixing
-/// the main groups color with the application background - see [`Colors`] for more information.
+/// The colors of various parts of Component Entry view. The actual color can be computed by mixing
+/// the main groups color with the application background - see [`Color`] for more information.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct StyleColors {
-    #[theme_path = "entry_theme::text::color_intensity"]
+    #[theme_path = "entry_theme::text::color"]
     #[accessor = "Color::accessor"]
     pub text:            Color,
-    #[theme_path = "entry_theme::background::color_intensity"]
+    #[theme_path = "entry_theme::background::color"]
     #[accessor = "Color::accessor"]
     pub background:      Color,
-    #[theme_path = "entry_theme::highlight::hover::color_intensity"]
+    #[theme_path = "entry_theme::highlight::hover::color"]
     #[accessor = "Color::accessor"]
     pub hover_highlight: Color,
     /// The more contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "entry_theme::icon::strong_color_intensity"]
+    #[theme_path = "entry_theme::icon::strong_color"]
     #[accessor = "Color::accessor"]
     pub icon_strong:     Color,
     /// The less contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "entry_theme::icon::weak_color_intensity"]
+    #[theme_path = "entry_theme::icon::weak_color"]
     #[accessor = "Color::accessor"]
     pub icon_weak:       Color,
     #[theme_path = "entry_theme::dimmed"]
     pub dimmed:          color::Rgba,
 }
 
-/// The intensities of various parts of selected Component Entry view. A subset of
-/// [`ColorIntensities`], but `FromTheme` derive takes different style's paths, plus unrelated
+/// The colors of various parts of selected Component Entry view. A subset of
+/// [`StyleColors`], but `FromTheme` derive takes different style's paths, plus unrelated
 /// entries are omitted.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionStyleColors {
-    #[theme_path = "selection_theme::text::color_intensity"]
+    #[theme_path = "selection_theme::text::color"]
     #[accessor = "Color::accessor"]
     pub text:        Color,
-    #[theme_path = "selection_theme::background::color_intensity"]
+    #[theme_path = "selection_theme::background::color"]
     #[accessor = "Color::accessor"]
     pub background:  Color,
     /// The more contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "selection_theme::icon_strong::color_intensity"]
+    #[theme_path = "selection_theme::icon_strong::color"]
     #[accessor = "Color::accessor"]
     pub icon_strong: Color,
     /// The less contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "selection_theme::icon_weak::color_intensity"]
+    #[theme_path = "selection_theme::icon_weak::color"]
     #[accessor = "Color::accessor"]
     pub icon_weak:   Color,
 }
@@ -119,8 +127,7 @@ pub struct SelectionStyleColors {
 impl From<SelectionStyleColors> for StyleColors {
     fn from(selection: SelectionStyleColors) -> Self {
         let SelectionStyleColors { text, background, icon_strong, icon_weak } = selection;
-        // let dimmed = Color::MainColorIntensity(1.0);
-        let dimmed = color::Rgba::white();
+        let dimmed = default();
         let hover_highlight = background;
         Self { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
     }

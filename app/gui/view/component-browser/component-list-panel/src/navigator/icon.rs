@@ -1,4 +1,3 @@
-use ensogl_core::application::traits::*;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 

@@ -134,7 +134,7 @@ fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
         0 => highest,
         1 => SectionId::Popular,
         2 => SectionId::LocalScope,
-        index => {
+        _ => {
             error!("Tried to create SectionId from too high Navigator List row ({}).", row);
             highest
         }
