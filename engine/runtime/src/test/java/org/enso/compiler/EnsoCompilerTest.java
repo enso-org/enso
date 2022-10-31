@@ -921,6 +921,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testGroupArgument() throws Exception {
+    parseTest("""
+    foo = x -> (y = bar x) -> x + y
+    """);
+  }
+
+  @Test
   @Ignore
   public void testResolveExecutionContext() throws Exception {
     parseTest("""

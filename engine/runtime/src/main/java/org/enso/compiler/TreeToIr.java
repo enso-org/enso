@@ -468,6 +468,27 @@ final class TreeToIr {
     }
   }
 
+  private IR.Name translateOldStyleLambdaArgumentName(Tree arg, IR.Expression[] value) {
+    return switch (arg) {
+      case Tree.Group g -> translateOldStyleLambdaArgumentName(g.getBody(), value);
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+      case Tree.OprApp app when "=".equals(app.getOpr().getRight().codeRepr()) -> {
+          if (value != null) {
+            value[0] = translateExpression(app.getRhs(), false);
+          }
+          yield translateOldStyleLambdaArgumentName(app.getLhs(), null);
+      }
+      case Tree.Ident id -> {
+        IR.Expression identifier = translateIdent(id, false);
+        yield switch (identifier) {
+          case IR.Name name_ -> name_;
+          default -> throw new UnhandledEntity(identifier, "translateOldStyleLambdaArgumentName");
+        };
+      }
+      default -> throw new UnhandledEntity(arg, "translateOldStyleLambdaArgumentName");
+    };
+  }
+
   /** Translates an arbitrary program expression from {@link Tree} into {@link IR}.
    *
    * @param tree the expression to be translated
@@ -501,21 +522,12 @@ final class TreeToIr {
                 arg = susApp.getRhs();
                 isSuspended = true;
             }
-            IR.Name name = switch (arg) {
-              case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
-              case Tree.Ident id -> {
-                IR.Expression identifier = translateIdent(id, false);
-                yield switch (identifier) {
-                  case IR.Name name_ -> name_;
-                  default -> throw new UnhandledEntity(identifier, "translateExpression");
-                };
-              }
-              default -> throw new UnhandledEntity(arg, "translateExpressiontranslateArgumentDefinition");
-            };
+            var defaultValue = new IR.Expression[1];
+            IR.Name name = translateOldStyleLambdaArgumentName(arg, defaultValue);
             var arg_ = new IR$DefinitionArgument$Specified(
                     name,
                     Option.empty(),
-                    Option.empty(),
+                    Option.apply(defaultValue[0]),
                     isSuspended,
                     getIdentifiedLocation(arg),
                     meta(),
