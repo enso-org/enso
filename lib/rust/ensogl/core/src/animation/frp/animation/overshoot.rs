@@ -135,10 +135,3 @@ impl OvershootAnimation {
         OvershootAnimation { frp }
     }
 }
-
-// impl Deref for OvershootAnimation {
-//     type Target = Frp;
-//     fn deref(&self) -> &Self::Target {
-//         &self.frp
-//     }
-// }
