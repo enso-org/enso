@@ -13,11 +13,9 @@ import org.enso.compiler.core.IR$Case$Expr;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
-import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Foreign$Definition;
@@ -57,16 +55,13 @@ import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
-import org.enso.syntax2.Either;
-import org.enso.syntax2.FractionalDigits;
 import org.enso.syntax2.Line;
-import org.enso.syntax2.MultipleOperatorError;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
-import org.enso.syntax2.Token.Operator;
 import org.enso.syntax2.Tree;
 
 import scala.Option;
+import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -161,6 +156,9 @@ final class TreeToIr {
         var args = translateArgumentsDefinition(fn.getArgs());
         var body = translateExpression(fn.getBody());
 
+        if (body == null) {
+            throw new NullPointerException();
+        }
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           methodRef,
           args,
@@ -199,10 +197,14 @@ final class TreeToIr {
       }
       case Tree.Assignment a -> {
         var reference = translateMethodReference(a.getPattern(), false);
+        var body = translateExpression(a.getExpr());
+        if (body == null) {
+            throw new NullPointerException();
+        }
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           reference,
           nil(),
-          translateExpression(a.getExpr()),
+          body,
           getIdentifiedLocation(a),
           meta(), diag()
         );
@@ -581,6 +583,7 @@ final class TreeToIr {
           sep = "_";
         }
         var fn = new IR$Name$Literal(fnName.toString(), true, Option.empty(), meta(), diag());
+        checkArgs(args);
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.BodyBlock body -> {
@@ -628,6 +631,9 @@ final class TreeToIr {
             expressions = cons(last, expressions);
           }
           last = translateExpression(expr, false);
+        }
+        if (last == null) {
+            last = new IR$Name$Blank(Option.empty(), meta(), diag());
         }
         var block = new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
         if (body.getLhs() != null) {
@@ -808,9 +814,13 @@ final class TreeToIr {
 
   @SuppressWarnings("unchecked")
   private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+    if (args.nonEmpty() && args.head() == null) {
+        args = (List<IR.CallArgument>) args.tail();
+    }
     List<IR.CallArgument> allArgs = (List<IR.CallArgument>) pref.arguments().appendedAll(args.reverse());
     final IR$CallArgument$Specified blockArg = new IR$CallArgument$Specified(Option.empty(), block, block.location(), meta(), diag());
     List<IR.CallArgument> withBlockArgs = (List<IR.CallArgument>) allArgs.appended(blockArg);
+    checkArgs(withBlockArgs);
     return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
@@ -1262,4 +1272,14 @@ final class TreeToIr {
       }
     }
   }
+
+    private void checkArgs(List<IR.CallArgument> args) {
+        LinearSeq<IR.CallArgument> a = args;
+        while (!a.isEmpty()) {
+            if (a.head() == null) {
+                throw new IllegalStateException("Problem: " + args);
+            }
+            a = (LinearSeq<IR.CallArgument>) a.tail();
+        }
+    }
 }
