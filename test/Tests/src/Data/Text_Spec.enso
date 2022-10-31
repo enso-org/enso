@@ -1309,21 +1309,30 @@ spec =
             match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal "ab"
 
-    Test.group "Regex matches" <|
-        Test.specify "should be possible on text" <|
-            "My Text: Goes Here".matches "^My Text: (.+)$" . should_be_true
+    Test.group "Text.is_match" <|
+        Test.specify "should default to regex" <|
+            "My Text: Goes Here".is_match "^My Text: (.+)$" . should_be_true
+
+        Test.specify "should allow Text_Matcher too" <|
+            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
+            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Sensitive . should_be_false
+            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Sensitive . should_be_false
+
+            "foobar".is_match "foobar" matcher=Text_Matcher.Case_Insensitive . should_be_true
+            "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Insensitive . should_be_true
+            "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Insensitive . should_be_false
 
         Test.specify "should be possible on unicode text" <|
-            "Korean: 건반".matches "^Korean: (.+)$" . should_be_true
+            "Korean: 건반".is_match "^Korean: (.+)$" . should_be_true
 
         Test.specify "should be possible in ascii mode" <|
-            "İ".matches "\w" match_ascii=True . should_be_false
+            "İ".is_match "\w" (Regex_Matcher.Regex_Matcher_Data match_ascii=True) . should_be_false
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".matches "my" case_insensitive=True . should_be_true
+            "MY".is_match "my" (Regex_Matcher.Regex_Matcher_Data  case_insensitive=True) . should_be_true
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            'Foo\n'.matches "(....)" dot_matches_newline=True . should_be_true
+            'Foo\n'.is_match "(....)" (Regex_Matcher.Regex_Matcher_Data  dot_matches_newline=True) . should_be_true
 
         multiline_matches_message = """
             This test does not make sense once we require matches to match the
@@ -1334,10 +1343,10 @@ spec =
             text = """
                 Foo
                 bar
-            text.matches "^(...)$" multiline=True . should_be_true
+            text.is_match "^(...)$" (Regex_Matcher.Regex_Matcher_Data  multiline=True) . should_be_true
 
         Test.specify "should be possible in comments mode" <|
-            "abcde".matches "(.....) # Match any five characters" comments=True . should_be_true
+            "abcde".is_match "(.....) # Match any five characters" (Regex_Matcher.Regex_Matcher_Data  comments=True) . should_be_true
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|

@@ -246,11 +246,14 @@ Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive
 
          example_match =
              regex = ".+@.+"
-             "contact@enso.org".matches regex
-Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Boolean ! Regex.Compile_Error
-Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.matches self
+             "contact@enso.org".is_match regex
+Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
+Text.is_match self pattern=".*" matcher=Regex_Matcher = case matcher of
+    Text_Matcher.Case_Sensitive -> self == pattern
+    Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
+    _ : Regex_Matcher ->
+        compiled_pattern = matcher.compile pattern
+        compiled_pattern.matches self
 
 ## ALIAS Find Text
 
