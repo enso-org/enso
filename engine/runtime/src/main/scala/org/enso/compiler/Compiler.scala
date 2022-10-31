@@ -440,31 +440,12 @@ class Compiler(
     )
 
     val src = module.getSource
-    def oldParse(print: Boolean) = {
-        val again = System.currentTimeMillis()
-        val parsedAST        = parse(src)
-        val took = System.currentTimeMillis() - again
-        System.err.println("Reparsed " + src.getURI() + " in " + took + " ms")
-        val ir = generateIR(parsedAST)
-        if (print) System.err.println(ir)
-        ir
-    }
-
     val now = System.currentTimeMillis()
-    val expr = try {
-      val tree = ensoCompiler.parse(src)
-      val took = System.currentTimeMillis() - now
-      val size = src.getCharacters().length()
-      System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
-      val ensoIr = ensoCompiler.generateIR(tree)
-      ensoIr
-    } catch {
-      case ex : Throwable => {
-        val fail = System.currentTimeMillis() - now
-        System.err.println(ex.getClass().getSimpleName() + ":" + ex.getMessage() + " in " + src.getURI() + " in " + fail + " ms with ")
-        oldParse(false)
-      }
-    }
+    val tree = ensoCompiler.parse(src)
+    val size = src.getCharacters().length()
+    val expr = ensoCompiler.generateIR(tree)
+    val took = System.currentTimeMillis() - now
+    System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
 
     val exprWithModuleExports =
       if (module.isSynthetic)
