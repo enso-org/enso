@@ -21,16 +21,11 @@ class ModuleBuiltins(builtins: Builtins) {
     * @return enhanced IR with potentially new builtin method definitions
     */
   def inject(module: Module, ir: IR.Module, language: Language): IR.Module = {
-
+    val modName = module.getName.item
     val allBuiltins = builtins
-      .getBuiltinFunctionsForModule(
-        module.getName.item,
-        language
-      )
-      .asScala
+      .getBuiltinFunctionsForModule(modName, language).asScala
 
     if (allBuiltins.nonEmpty) {
-      val modName = module.getName.item
       val existingMethodBindings = ir.bindings.collect {
         case binding: IR.Module.Scope.Definition.Method.Binding =>
           binding.methodName.name
