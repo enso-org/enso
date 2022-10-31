@@ -412,7 +412,9 @@ impl Fixture {
         ];
 
         for macro_usage in macro_usages.iter() {
+            println!(">>>>>>>>>> {}", macro_usage);
             let ast = self.parser.parse_line_ast(*macro_usage).unwrap();
+            println!("{:?}", ast);
             expect_shape::<Match<Ast>>(&ast);
         }
     }

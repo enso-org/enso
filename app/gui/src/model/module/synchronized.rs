@@ -16,7 +16,7 @@ use crate::model::module::API;
 use ast::IdMap;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
-use double_representation::module::ImportId;
+use double_representation::import;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
@@ -255,17 +255,17 @@ impl API for Module {
 
     fn with_import_metadata(
         &self,
-        id: ImportId,
+        id: import::Id,
         fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
     ) -> FallibleResult {
         self.model.with_import_metadata(id, fun)
     }
 
-    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+    fn all_import_metadata(&self) -> Vec<(import::Id, ImportMetadata)> {
         self.model.all_import_metadata()
     }
 
-    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+    fn remove_import_metadata(&self, id: import::Id) -> FallibleResult<ImportMetadata> {
         self.model.remove_import_metadata(id)
     }
 

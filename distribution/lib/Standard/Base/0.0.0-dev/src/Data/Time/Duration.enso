@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System
+from Standard.Base.Data.Time import Period
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
@@ -9,8 +10,8 @@ polyglot java import java.lang.ArithmeticException
 ## Create an interval representing the duration between two points in time.
 
    Arguments:
-   - start_inclusive: The start datetime of the duration.
-   - end_inclusive: The end datetime of the duration.
+   - start_inclusive: The start datetime of the duration, included.
+   - end_exclusive: The end datetime of the duration, excluded.
    - timezone_aware: Whether the duration between two given times should be
      aware of the timezone, that can be set for start or end times.
 
@@ -44,6 +45,25 @@ new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
     Duration.new_builtin hours minutes seconds milliseconds nanoseconds
 
+## Create a Duration from hours.
+hours : Integer -> Duration
+hours h = new hours=h
+
+## Create a Duration from minutes.
+minutes : Integer -> Duration
+minutes m = new minutes=m
+
+## Create a Duration from seconds.
+seconds : Integer -> Duration
+seconds s = new seconds=s
+
+## Create a Duration from milliseconds.
+milliseconds : Integer -> Duration
+milliseconds ms = new milliseconds=ms
+
+## Create a Duration from nanoseconds.
+nanoseconds : Integer -> Duration
+nanoseconds ns = new nanoseconds=ns
 
 ## Create a zero (empty) duration.
    > Example
@@ -51,7 +71,7 @@ new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
 
          import Standard.Base.Data.Time.Duration
 
-         durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
+         durations = [(Duration.seconds 1), (Duration.seconds 2), (Duration.seconds 3)]
          example_sum = durations.fold Duration.zero (+)
 zero : Duration
 zero = new
@@ -70,6 +90,15 @@ time_execution ~function =
     duration = new nanoseconds=(end - start)
     Pair_Data duration result
 
+## PRIVATE
+ensure_duration : Any -> Suspend (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
+ensure_duration object ~action =
+    case object of
+        _ : Duration -> action
+        _ : Period.Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
+        x ->
+            Error.throw Illegal_Argument_Error_Data <|
+                "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
 
 @Builtin_Type
 type Duration
@@ -84,17 +113,19 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
+             example_add = (Duration.minutes 3) + (Duration.seconds 6)
 
        > Example
-         Add 12 hours to a duration of a month.
+         Add 12 hours to a duration of 30 minutes.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = 1.month + (Duration.new hours=12)
+             example_add = (Duration.minutes 30) + (Duration.hours 12)
     + : Duration -> Duration ! Time_Error
     + self that =
-        Panic.catch ArithmeticException (self.plus_builtin that) (err-> Error.throw (Time_Error_Data err.getMessage))
+        ensure_duration that <|
+            Panic.catch ArithmeticException (self.plus_builtin that) err->
+                Error.throw (Time_Error_Data err.getMessage)
 
     ## Subtract the specified amount of time from this duration.
 
@@ -102,21 +133,16 @@ type Duration
        - that: The duration to subtract from `self`.
 
        > Example
-         Subtract 11 months from a duration of 3 years
-
-             import Standard.Base.Data.Time.Duration
-
-             example_subtract = 3.years - 11.months
-
-       > Example
          Substract 30 minutes from a duration of 6 hours.
 
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
+             example_subtract = (Duration.hours 6) - (Duration.minutes 30)
     - : Duration -> Duration ! Time_Error
     - self that =
-        Panic.catch ArithmeticException (self.minus_builtin that) (err -> Error.throw (Time_Error_Data err.getMessage))
+        ensure_duration that <|
+            Panic.catch ArithmeticException (self.minus_builtin that) err->
+                Error.throw (Time_Error_Data err.getMessage)
 
     ## Check two durations for equality.
 
@@ -128,9 +154,12 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
+             example_eq = (Duration.seconds 60).total_minutes == (Duration.minutes 1).total_minutes
     == : Duration -> Boolean
-    == self that = self.equals_builtin that
+    == self that =
+        case that of
+            _ : Duration -> self.equals_builtin that
+            _ -> False
 
     ## Compares `self` to `that` to produce an ordering.
 
@@ -144,10 +173,12 @@ type Duration
 
              example_compare_to =
                  duration_1 = (Duration.new hour=1)
-                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
+                 duration_2 = (Duration.minutes 60) + (Duration.minutes 5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to self that = Ordering.from_sign (self.compare_to_builtin that)
+    compare_to self that =
+        ensure_duration that <|
+            Ordering.from_sign (self.compare_to_builtin that)
 
     ## Get the portion of the duration expressed in nanoseconds.
 
@@ -243,7 +274,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_vec = (Duration.new nanoseconds=800)).to_vector
+             example_to_vec = (Duration.nanoseconds 800)).to_vector
     to_vector : Vector.Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
@@ -254,7 +285,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_json = (Duration.new seconds=10).to_json
+             example_to_json = (Duration.seconds 10).to_json
     to_json : Json.Object
     to_json self =
         b = Vector.new_builder
