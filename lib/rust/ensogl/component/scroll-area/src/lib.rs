@@ -64,6 +64,10 @@ ensogl_core::define_endpoints! {
         jump_to_x          (f32),
         /// Jumps instantly to the given y coordinate, without animation.
         jump_to_y          (f32),
+        /// Determines if scrolling is allowed to overshoot the bounds of the scroll area. Overshoot
+        /// is enabled by default.
+        set_overshoot_enabled (bool),
+
     }
     Output {
         /// The content's x coordinate at the left edge of the area.
@@ -325,6 +329,8 @@ impl ScrollArea {
             model.v_scrollbar.scroll_to <+ frp.scroll_to_y;
             model.h_scrollbar.jump_to   <+ frp.jump_to_x;
             model.v_scrollbar.jump_to   <+ frp.jump_to_y;
+            model.h_scrollbar.set_overshoot_enabled <+ frp.set_overshoot_enabled;
+            model.v_scrollbar.set_overshoot_enabled <+ frp.set_overshoot_enabled;
 
             frp.source.scroll_position_x <+ model.h_scrollbar.thumb_position.map(|x| -x);
             frp.source.scroll_position_y <+ model.v_scrollbar.thumb_position;
@@ -368,8 +374,8 @@ impl ScrollArea {
         let mouse_manager = &mouse.mouse_manager;
         let scroll_handler = f!([model](event:&mouse::OnWheel)
             if hovering.value() {
-                model.h_scrollbar.soft_scroll_by(event.delta_x() as f32);
-                model.v_scrollbar.soft_scroll_by(event.delta_y() as f32);
+                model.h_scrollbar.scroll_by(event.delta_x() as f32);
+                model.v_scrollbar.scroll_by(event.delta_y() as f32);
             }
         );
         let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);

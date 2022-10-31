@@ -68,23 +68,24 @@ const SCROLL_OVERSHOOT_LIMIT: f32 = 60.0;
 ensogl_core::define_endpoints! {
     Input {
         /// Sets the length of the scrollbar as display object in px.
-        set_length      (f32),
+        set_length            (f32),
         /// Sets the number of scroll units on the scroll bar. Should usually be the size of the
         /// scrolled area in px.
-        set_max         (f32),
+        set_max               (f32),
         /// Sets the thumb size in scroll units.
-        set_thumb_size  (f32),
-
-        /// Scroll smoothly by the given amount in scroll units. Bounded by the scroll area.
-        scroll_by       (f32),
+        set_thumb_size        (f32),
+        /// Determines if scrolling is allowed to overshoot the scrollbar bounds. Overshoot is
+        /// enabled by default.
+        set_overshoot_enabled (bool),
         /// Scroll smoothly by the given amount in scroll units. Allows scroll to overshoot and
-        /// bounce back.
-        soft_scroll_by   (f32),
-        /// Scroll smoothly to the given position in scroll units. Bounded by the scroll area.
-        scroll_to       (f32),
+        /// bounce back if `set_overshoot_enabled` is `true`.
+        scroll_by             (f32),
+        /// Scroll smoothly to the given position in scroll units. Always bounded by the scroll
+        /// area, independently of `set_overshoot_enabled` flag.
+        scroll_to             (f32),
         /// Jumps to the given position in scroll units without animation and without revealing the
         /// scrollbar.
-        jump_to         (f32),
+        jump_to               (f32),
     }
     Output {
         /// Scroll position in scroll units.
@@ -137,10 +138,13 @@ impl Frp {
 
         frp::extend! { network
 
-            // Scrolling and Jumping
+            // Overshoot control
+            bar_not_filled <- all_with(&frp.set_thumb_size, &frp.set_max, |&size, &max| size < max);
+            overshoot_enabled <- frp.set_overshoot_enabled && bar_not_filled;
 
-            thumb_position.hard_change_by <+ frp.scroll_by;
-            thumb_position.soft_change_by <+ frp.soft_scroll_by;
+            // Scrolling and Jumping
+            thumb_position.soft_change_by <+ frp.scroll_by.gate(&overshoot_enabled);
+            thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
             thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
             thumb_position.set_max_bound <+ all_with(&frp.set_thumb_size, &frp.set_max,
                 |thumb_size, max| max - thumb_size);
@@ -290,6 +294,7 @@ impl Frp {
 
         // === Init Network ===
 
+        frp.set_overshoot_enabled(true);
         frp.set_length(200.0);
         frp.set_thumb_size(0.2);
         frp.set_max(1.0);
