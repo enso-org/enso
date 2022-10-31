@@ -23,7 +23,8 @@ class ModuleBuiltins(builtins: Builtins) {
   def inject(module: Module, ir: IR.Module, language: Language): IR.Module = {
     val modName = module.getName.item
     val allBuiltins = builtins
-      .getBuiltinFunctionsForModule(modName, language).asScala
+      .getBuiltinFunctionsForModule(modName, language)
+      .asScala
 
     if (allBuiltins.nonEmpty) {
       val existingMethodBindings = ir.bindings.collect {

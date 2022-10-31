@@ -531,10 +531,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length < 2 || elements.length > 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    boolean isStatic = elements.length >= 3 ? Boolean.valueOf(elements[2]) : false;
-    Owner owner = elements.length == 4 ? Owner.valueOf(elements[3]) : Owner.TYPE;
-    return new MethodMetadataEntry(elements[0], elements[1], isStatic, owner);
+    if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.valueOf(elements[2]), Owner.valueOf(elements[3]));
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";

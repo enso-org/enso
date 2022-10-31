@@ -382,9 +382,7 @@ class IrToTruffle(
                 // - a module method has been implicitly added by the compiler rather than being explicitly declared
                 // In all other cases, a builtin method should already have been registered.
                 fOpt
-                  .filter(_ =>
-                    methodDef.methodReference.typePointer.isEmpty
-                  )
+                  .filter(_ => methodDef.methodReference.typePointer.isEmpty)
                   .map(m => m.getFunction)
               )
           case fn: IR.Function =>
