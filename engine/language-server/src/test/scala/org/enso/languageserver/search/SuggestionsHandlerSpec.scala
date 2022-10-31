@@ -909,7 +909,7 @@ class SuggestionsHandlerSpec
               inserted(6).get,
               inserted(7).get,
               inserted(8).get,
-              inserted(3).get,
+              inserted(3).get
             )
           )
         )
