@@ -310,6 +310,10 @@ impl FieldName {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+    /// Return a reference to the underlying identifier.
+    pub fn as_identifier(&self) -> &Identifier {
+        &self.0
+    }
 }
 
 

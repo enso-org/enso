@@ -193,7 +193,7 @@ spec =
         series_c = [Nothing,0.769797,0.281678,0.462145,0.727132,0.327978,Nothing,0.648639,0.562636,Nothing,0.159836,0.367404,0.877087,0.365483,Nothing,0.931873,0.723546,0.558085,0.163396,0.940997,0.399685,0.617509]
         series = [series_a, series_b, series_c]
 
-        Test.specify "can compute Covariance, Correlation and R Squared between a pair of series"
+        Test.specify "can compute Covariance, Correlation and R Squared between a pair of series" <|
             series_a.compute (Covariance series_b) . should_equal -0.0053554 epsilon=double_error
             series_a.compute (Pearson series_b) . should_equal -0.08263943 epsilon=double_error
             series_a.compute (Spearman series_b) . should_equal -0.09313725 epsilon=double_error
