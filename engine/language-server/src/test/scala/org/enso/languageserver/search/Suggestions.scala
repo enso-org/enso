@@ -146,6 +146,7 @@ object Suggestions {
 
   val all = Seq(
     module,
+    tpe,
     constructor,
     method,
     function,
