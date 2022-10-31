@@ -27,184 +27,191 @@ import org.junit.runners.AllTests;
 
 @RunWith(AllTests.class)
 public final class ParseStdLibTest extends TestCase {
-    private static final EnsoCompiler ensoCompiler = new EnsoCompiler();
-    private final File where;
-    private final Dump dump;
+  private static final EnsoCompiler ensoCompiler = new EnsoCompiler();
+  private final File where;
+  private final Dump dump;
 
-    private ParseStdLibTest(String name, File where, Dump dump) {
-        super(name);
-        this.where = where;
-        this.dump = dump;
+  private ParseStdLibTest(String name, File where, Dump dump) {
+    super(name);
+    this.where = where;
+    this.dump = dump;
+  }
+
+  public static TestSuite suite() throws Exception {
+    TestSuite s = new TestSuite();
+    var os = System.getProperty("os.name");
+    if (os != null && os.contains("Window")) {
+      s.addTest(new ParseStdLibTest("IgnoringStdLibParsingOnWindows", null, null));
+    } else {
+      collectDistribution(s, "Base");
     }
+    return s;
+  }
 
-    public static TestSuite suite() throws Exception {
-        TestSuite s = new TestSuite();
-        var os = System.getProperty("os.name");
-        if (os != null && os.contains("Window")) {
-            s.addTest(new ParseStdLibTest("IgnoringStdLibParsingOnWindows", null, null));
-        } else {
-            collectDistribution(s, "Base");
-        }
-        return s;
+  private static File file(File dir, String... relative) {
+    var f = dir;
+    for (var ch : relative) {
+      f = new File(f, ch);
     }
+    return f;
+  }
 
-    private static File file(File dir, String... relative) {
-        var f = dir;
-        for (var ch : relative) {
-            f = new File(f, ch);
-        }
-        return f;
+  private static Path locateDistribution(final String name) throws URISyntaxException {
+    var where =
+        new File(ParseStdLibTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+    var dir = where;
+    for (; ; ) {
+      dir = file(where, "distribution", "lib", "Standard", name, "0.0.0-dev", "src");
+      if (dir.exists()) {
+        break;
+      }
+      where = where.getParentFile();
     }
+    return dir.toPath();
+  }
 
-    private static Path locateDistribution(final String name) throws URISyntaxException {
-        var where = new File(ParseStdLibTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        var dir = where;
-        for (;;) {
-            dir = file(where, "distribution", "lib", "Standard", name, "0.0.0-dev", "src");
-            if (dir.exists()) {
-                break;
-            }
-            where = where.getParentFile();
+  private static void collectDistribution(TestSuite s, String name) throws Exception {
+    var dir = locateDistribution(name);
+    var dump = new Dump();
+    class CollectSuites implements FileVisitor<Path> {
+
+      private final TestSuite suite;
+
+      CollectSuites(TestSuite suite) {
+        this.suite = suite;
+      }
+
+      @Override
+      public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+          throws IOException {
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        if (!file.getFileName().toString().endsWith(".enso")) {
+          return FileVisitResult.CONTINUE;
         }
-        return dir.toPath();
+        final String name = file.toFile().getPath().substring(dir.toFile().getPath().length() + 1);
+        suite.addTest(new ParseStdLibTest(name, file.toFile(), dump));
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+        return FileVisitResult.CONTINUE;
+      }
+
+      @Override
+      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        return FileVisitResult.CONTINUE;
+      }
     }
+    Files.walkFileTree(dir, new CollectSuites(s));
+  }
 
-    private static void collectDistribution(TestSuite s, String name) throws Exception {
-        var dir = locateDistribution(name);
-        var dump = new Dump();
-        class CollectSuites implements FileVisitor<Path> {
+  @SuppressWarnings("unchecked")
+  private void parseTest(Source src, boolean generate) throws IOException {
+    var ir = ensoCompiler.compile(src);
+    assertNotNull("IR was generated", ir);
 
-            private final TestSuite suite;
+    var oldAst = new Parser().runWithIds(src.getCharacters().toString());
+    var oldIr = AstToIr.translate((ASTOf<Shape>) (Object) oldAst);
 
-            CollectSuites(TestSuite suite) {
-                this.suite = suite;
-            }
+    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
 
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (!file.getFileName().toString().endsWith(".enso")) {
-                    return FileVisitResult.CONTINUE;
-                }
-                final String name = file.toFile().getPath().substring(dir.toFile().getPath().length() + 1);
-                suite.addTest(new ParseStdLibTest(name, file.toFile(), dump));
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                return FileVisitResult.CONTINUE;
-            }
-        }
-        Files.walkFileTree(dir, new CollectSuites(s));
+    var old = filter.apply(oldIr);
+    var now = filter.apply(ir);
+    if (!old.equals(now)) {
+      if (generate) {
+        dump.dump(where, old, now);
+      } else {
+        fail("IR for " + where.getName() + " shall be equal");
+      }
     }
+  }
 
-    @SuppressWarnings("unchecked")
-    private void parseTest(Source src, boolean generate) throws IOException {
-        var ir = ensoCompiler.compile(src);
-        assertNotNull("IR was generated", ir);
-
-        var oldAst = new Parser().runWithIds(src.getCharacters().toString());
-        var oldIr = AstToIr.translate((ASTOf<Shape>) (Object) oldAst);
-
-        Function<IR, String> filter = (i) -> {
-            var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-            for (;;) {
-                final String pref = "IdentifiedLocation(";
-                int at = txt.indexOf(pref);
-                if (at == -1) {
-                    break;
-                }
-                int to = at + pref.length();
-                int depth = 1;
-                while (depth > 0) {
-                    switch (txt.charAt(to)) {
-                        case '(' ->
-                            depth++;
-                        case ')' ->
-                            depth--;
-                    }
-                    to++;
-                }
-                txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-            }
-            return txt;
-        };
-
-        var old = filter.apply(oldIr);
-        var now = filter.apply(ir);
-        if (!old.equals(now)) {
-            if (generate) {
-                dump.dump(where, old, now);
-            } else {
-                fail("IR for " + where.getName() + " shall be equal");
-            }
-        }
+  @Override
+  public void runBare() throws Throwable {
+    if (where == null) {
+      return;
     }
-
-    @Override
-    public void runBare() throws Throwable {
-        if (where == null) {
-            return;
-        }
-        var code = Files.readString(where.toPath());
-        var src = Source.newBuilder("enso", code, getName())
-            .uri(where.toURI())
-            .build();
-        if (isKnownToWork(getName())) {
-            parseTest(src, true);
-        } else {
-            try {
-                parseTest(src, false);
-            } catch (Exception | Error e) {
-                // OK
-                return;
-            }
-            fail("This test isn't known to work!");
-        }
+    var code = Files.readString(where.toPath());
+    var src = Source.newBuilder("enso", code, getName()).uri(where.toURI()).build();
+    if (isKnownToWork(getName())) {
+      parseTest(src, true);
+    } else {
+      try {
+        parseTest(src, false);
+      } catch (Exception | Error e) {
+        // OK
+        return;
+      }
+      fail("This test isn't known to work!");
     }
+  }
 
-    private static final Set<String> SHOULD_FAIL;
-    static {
-        SHOULD_FAIL = new HashSet<>();
-        SHOULD_FAIL.addAll(Arrays.asList(
+  private static final Set<String> SHOULD_FAIL;
+
+  static {
+    SHOULD_FAIL = new HashSet<>();
+    SHOULD_FAIL.addAll(
+        Arrays.asList(
             // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
             "Data/Text/Regex/Engine/Default.enso",
             "Function.enso",
             "Internal/Base_Generator.enso",
             "Data/Sort_Column_Selector.enso",
-            "Data/Value_Type.enso"
-        ));
-    }
-    private static boolean isKnownToWork(String name) {
-        return !SHOULD_FAIL.contains(name);
-    }
+            "Data/Value_Type.enso"));
+  }
 
-    private static final class Dump {
-        private boolean first = true;
+  private static boolean isKnownToWork(String name) {
+    return !SHOULD_FAIL.contains(name);
+  }
 
-        public void dump(File where, CharSequence old, CharSequence now) throws IOException {
-            var name = where.getName();
-            var result = where.getParentFile().toPath();
-            final Path oldPath = result.resolve(name + ".old");
-            Files.writeString(oldPath, old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            final Path nowPath = result.resolve(name + ".now");
-            Files.writeString(nowPath, now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            if (first) {
-                first = false;
-                fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'\n ===== Old =====\n" + old + "\n===== Now =====\n" + now);
-            }
-            fail("IR for " + where.getName() + " shall be equal:\n$ diff -u '" + oldPath + "' '" + nowPath + "'");
-        }
+  private static final class Dump {
+    private boolean first = true;
+
+    public void dump(File where, CharSequence old, CharSequence now) throws IOException {
+      var name = where.getName();
+      var result = where.getParentFile().toPath();
+      final Path oldPath = result.resolve(name + ".old");
+      Files.writeString(
+          oldPath,
+          old,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
+      final Path nowPath = result.resolve(name + ".now");
+      Files.writeString(
+          nowPath,
+          now,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
+      if (first) {
+        first = false;
+        fail(
+            "IR for "
+                + where.getName()
+                + " shall be equal:\n$ diff -u '"
+                + oldPath
+                + "' '"
+                + nowPath
+                + "'\n ===== Old =====\n"
+                + old
+                + "\n===== Now =====\n"
+                + now);
+      }
+      fail(
+          "IR for "
+              + where.getName()
+              + " shall be equal:\n$ diff -u '"
+              + oldPath
+              + "' '"
+              + nowPath
+              + "'");
     }
+  }
 }
