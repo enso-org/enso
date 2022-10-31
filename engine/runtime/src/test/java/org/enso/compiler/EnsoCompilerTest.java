@@ -786,6 +786,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testForcedTerms() throws Exception {
+    parseTest("""
+    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
+    """);
+  }
+
+  @Test
   public void testTextArrayType() throws Exception {
     parseTest("""
     type Connection

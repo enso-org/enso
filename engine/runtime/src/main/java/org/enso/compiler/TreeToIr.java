@@ -468,15 +468,15 @@ final class TreeToIr {
     }
   }
 
-  private IR.Name translateOldStyleLambdaArgumentName(Tree arg, IR.Expression[] value) {
+  private IR.Name translateOldStyleLambdaArgumentName(Tree arg, boolean[] suspended, IR.Expression[] defaultValue) {
     return switch (arg) {
-      case Tree.Group g -> translateOldStyleLambdaArgumentName(g.getBody(), value);
+      case Tree.Group g -> translateOldStyleLambdaArgumentName(g.getBody(), suspended, defaultValue);
       case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
       case Tree.OprApp app when "=".equals(app.getOpr().getRight().codeRepr()) -> {
-          if (value != null) {
-            value[0] = translateExpression(app.getRhs(), false);
+          if (defaultValue != null) {
+            defaultValue[0] = translateExpression(app.getRhs(), false);
           }
-          yield translateOldStyleLambdaArgumentName(app.getLhs(), null);
+          yield translateOldStyleLambdaArgumentName(app.getLhs(), suspended, null);
       }
       case Tree.Ident id -> {
         IR.Expression identifier = translateIdent(id, false);
@@ -484,6 +484,12 @@ final class TreeToIr {
           case IR.Name name_ -> name_;
           default -> throw new UnhandledEntity(identifier, "translateOldStyleLambdaArgumentName");
         };
+      }
+      case Tree.UnaryOprApp app when "~".equals(app.getOpr().codeRepr()) -> {
+          if (suspended != null) {
+            suspended[0] = true;
+          }
+          yield translateOldStyleLambdaArgumentName(app.getRhs(), null, defaultValue);
       }
       default -> throw new UnhandledEntity(arg, "translateOldStyleLambdaArgumentName");
     };
@@ -517,18 +523,18 @@ final class TreeToIr {
           case "->" -> {
             // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
             var arg = app.getLhs();
-            var isSuspended = false;
+            var isSuspended = new boolean[1];
             if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
                 arg = susApp.getRhs();
-                isSuspended = true;
+                isSuspended[0] = true;
             }
             var defaultValue = new IR.Expression[1];
-            IR.Name name = translateOldStyleLambdaArgumentName(arg, defaultValue);
+            IR.Name name = translateOldStyleLambdaArgumentName(arg, isSuspended, defaultValue);
             var arg_ = new IR$DefinitionArgument$Specified(
                     name,
                     Option.empty(),
                     Option.apply(defaultValue[0]),
-                    isSuspended,
+                    isSuspended[0],
                     getIdentifiedLocation(arg),
                     meta(),
                     diag()
