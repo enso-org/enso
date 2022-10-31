@@ -58,6 +58,19 @@ crate::define_endpoints_2! {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Application {
+    inner: Rc<ApplicationData>,
+}
+
+impl Deref for Application {
+    type Target = ApplicationData;
+    fn deref(&self) -> &ApplicationData {
+        &self.inner
+    }
+}
+
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ApplicationData {
     pub logger:           Logger,
     pub cursor:           Cursor,
     pub display:          World,
@@ -91,7 +104,7 @@ impl Application {
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
         }
 
-        Self {
+        let data = ApplicationData {
             logger,
             cursor,
             display,
@@ -101,7 +114,9 @@ impl Application {
             themes,
             update_themes_handle,
             frp,
-        }
+        };
+
+        Self { inner: Rc::new(data) }
     }
 
     /// Create a new instance of a view.
