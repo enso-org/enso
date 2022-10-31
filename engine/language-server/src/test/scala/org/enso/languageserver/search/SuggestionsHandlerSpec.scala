@@ -1251,6 +1251,7 @@ class SuggestionsHandlerSpec
         arguments             = Seq(),
         selfType              = "Test.Main",
         returnType            = "IO",
+        isStatic              = true,
         documentation         = None,
         documentationHtml     = None,
         documentationSections = None

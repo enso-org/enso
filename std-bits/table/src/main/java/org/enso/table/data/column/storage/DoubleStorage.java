@@ -9,6 +9,7 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -256,19 +257,19 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            SpecializedIsInOp.make(
-                list -> {
-                  HashSet<Double> set = new HashSet<>();
-                  boolean hasNulls = false;
-                  for (Object o : list) {
-                    hasNulls |= o == null;
-                    Double x = NumericConverter.tryConvertingToDouble(o);
-                    if (x != null) {
-                      set.add(x);
-                    }
+            new UnaryMapOperation<>(Maps.IS_NAN) {
+              @Override
+              public BoolStorage run(DoubleStorage storage) {
+                BitSet nans = new BitSet();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && Double.isNaN(storage.getItem(i))) {
+                    nans.set(i);
                   }
-                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-                }));
+                }
+                return new BoolStorage(nans, new BitSet(), storage.size, false);
+              }
+            })
+        .add(new DoubleIsInOp());
     return ops;
   }
 

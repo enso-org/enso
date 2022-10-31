@@ -16,7 +16,7 @@ use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
-use double_representation::module::ImportInfo;
+use double_representation::import;
 use double_representation::module::QualifiedName;
 use double_representation::node::NodeInfo;
 use double_representation::project;
@@ -1058,7 +1058,7 @@ impl Searcher {
         let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
         for mut import in without_enso_project {
             import.remove_main_module_segment();
-            let import_info = ImportInfo::from_qualified_name(&import);
+            let import_info = import::Info::new_qualified(&import);
 
             let already_exists = module.iter_imports().contains(&import_info);
             if already_exists {
@@ -1319,7 +1319,10 @@ impl Searcher {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {
-                    import.qualified_name().ok().filter(|module| module.name().deref() == this_name)
+                    import
+                        .qualified_module_name()
+                        .ok()
+                        .filter(|module| module.name().deref() == this_name)
                 })
             }
         })
@@ -2421,7 +2424,7 @@ pub mod test {
             let module_info = module.info();
             let imported_names = module_info
                 .iter_imports()
-                .map(|import| import.qualified_name().unwrap())
+                .map(|import| import.qualified_module_name().unwrap())
                 .collect_vec();
 
             let expected_import = expected_import.into_iter().cloned().collect_vec();

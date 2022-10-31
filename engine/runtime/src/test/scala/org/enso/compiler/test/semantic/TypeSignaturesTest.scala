@@ -25,11 +25,15 @@ trait TypeMatchers {
       }
       Union(toUnion(this) ++ toUnion(that))
     }
+
+    def inCtx(context: Name): Sig = In(this, context)
   }
+
   case class Name(name: String)               extends Sig
   case class AnyQualName(name: QualifiedName) extends Sig
   case class Fn(args: List[Sig], result: Sig) extends Sig
   case class Union(items: List[Sig])          extends Sig
+  case class In(item: Sig, context: Name)     extends Sig
 
   implicit def fromString(str: String): Sig = {
     if (str.contains(".")) {
@@ -38,6 +42,8 @@ trait TypeMatchers {
   }
 
   def typeAs(sig: Sig): TypeMatcher = TypeMatcher(sig)
+
+  val Input = Name("Input")
 
   case class TypeMatcher(sig: Sig) extends Matcher[IR.Expression] {
     private def findInequalityWitness(
@@ -80,6 +86,11 @@ trait TypeMatchers {
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
+      case (In(typed, context), IR.Type.Context(irTyped, irContext, _, _, _)) =>
+        findInequalityWitness(typed, irTyped).orElse(
+          findInequalityWitness(context, irContext)
+        )
+
       case _ => Some((sig, expr, "constructors are incompatible"))
     }
 
@@ -229,6 +240,16 @@ class TypeSignaturesTest
         ("Unnamed.Test.Foo" | "my_pkg.My_Lib.Util.Util_2" | "my_pkg.My_Lib.Util.Util_Sum") ->: "Unnamed.Test.Foo"
       )
     }
-  }
 
+    "resolve execution contexts" in {
+      val code =
+        """
+          |foo : A -> B -> C in Input
+          |foo a b = c
+          |""".stripMargin
+      getSignature(code.preprocessModule, "foo") should typeAs(
+        "A" ->: "B" ->: ("C" inCtx Input)
+      )
+    }
+  }
 }

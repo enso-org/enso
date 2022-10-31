@@ -678,7 +678,7 @@ ensogl::define_endpoints_2! {
         node_deselected           (NodeId),
         node_position_set         ((NodeId,Vector2)),
         node_position_set_batched ((NodeId,Vector2)),
-        node_expression_set       ((NodeId,String)),
+        node_expression_set       ((NodeId,ImString)),
         node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
@@ -2513,6 +2513,7 @@ impl application::View for GraphEditor {
         use shortcut::ActionType::*;
         [
             (Press, "!node_editing", "tab", "start_node_creation"),
+            (Press, "!node_editing", "enter", "start_node_creation"),
             // === Drag ===
             (Press, "", "left-mouse-button", "node_press"),
             (Release, "", "left-mouse-button", "node_release"),
@@ -2549,12 +2550,11 @@ impl application::View for GraphEditor {
             (DoublePress, "", "left-mouse-button", "enter_hovered_node"),
             (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
             (Press, "", "right-mouse-button", "start_node_creation_from_port"),
-            (Press, "!node_editing", "enter", "enter_selected_node"),
+            (Press, "!node_editing", "cmd enter", "enter_selected_node"),
             (Press, "", "alt enter", "exit_node"),
             // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
             (Release, "", "cmd", "edit_mode_off"),
-            (Press, "!node_editing", "cmd enter", "edit_selected_node"),
             (Press, "", "cmd left-mouse-button", "edit_mode_on"),
             (Release, "", "cmd left-mouse-button", "edit_mode_off"),
             (Press, "node_editing", "cmd enter", "stop_editing"),

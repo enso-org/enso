@@ -86,19 +86,25 @@ public abstract class TypeOfNode extends Node {
       guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().timeZone();
+    return ctx.getBuiltins().timeZone();
   }
 
   @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
   Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().date();
+    return ctx.getBuiltins().date();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().timeOfDay();
+    return ctx.getBuiltins().timeOfDay();
+  }
+
+  @Specialization(guards = "interop.isDuration(value)")
+  Object doDuration(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().duration();
   }
 
   @Specialization(

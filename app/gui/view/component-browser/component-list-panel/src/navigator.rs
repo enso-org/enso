@@ -9,6 +9,8 @@ use ensogl_core::prelude::*;
 use crate::AllStyles;
 
 use enso_frp as frp;
+use ensogl_core::animation::animation::delayed::DelayedAnimation;
+use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
@@ -17,12 +19,26 @@ use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use grid::Col;
 use grid::Row;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
 
 type Grid = grid::selectable::GridView<icon::View>;
 
+
+
+// =================
+// === Constants ===
+// =================
+
+const MARKETPLACE_BUTTON_INDEX: usize = 1;
+const MARKETPLACE_TOOLTIP_TEXT: &str = "Marketplace will be available soon.";
+const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
+const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
+const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
+const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
+const BOTTOM_BUTTONS_COUNT: usize = 3;
 
 
 // =============
@@ -141,13 +157,10 @@ pub struct Navigator {
     network:            frp::Network,
     bottom_buttons:     Grid,
     top_buttons:        Grid,
+    tooltip:            Tooltip,
     pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
-
-const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
-const BOTTOM_BUTTONS_COUNT: usize = 3;
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
@@ -156,10 +169,16 @@ impl Navigator {
         let bottom_buttons = Grid::new(app);
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
+        let tooltip = Tooltip::new(app);
+        app.display.default_scene.add_child(&tooltip);
+        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let colors = Colors::from_theme(&network, &style_frp);
+        let tooltip_hide_timer = DelayedAnimation::new(&network);
+        tooltip_hide_timer.set_delay(MARKETPLACE_TOOLTIP_HIDE_DELAY_MS);
+        tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             select_section <- any(...);
             bottom_buttons.select_entry <+
@@ -188,9 +207,27 @@ impl Navigator {
                 }
             ));
             top_buttons.model_for_entry <+ model;
+
+            // === Show tooltip when hovering the Marketplace button
+
+            let idx_of_marketplace_btn = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
+            marketplace_button_selected <- top_buttons.selected_entry.map(idx_of_marketplace_btn);
+            marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
+            marketplace_button_hovered <- marketplace_button_hovered.on_change();
+            tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
+            tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
+            tooltip_not_hidden <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
+            showing_tooltip <- marketplace_button_hovered && tooltip_not_hidden;
+            tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
+                    let style = tooltip::Style::set_label(MARKETPLACE_TOOLTIP_TEXT.into());
+                    style.with_placement(MARKETPLACE_TOOLTIP_PLACEMENT)
+                } else {
+                    tooltip::Style::unset_label()
+                }
+            );
         }
         colors.init.emit(());
-
+        tooltip_hide_timer.reset();
         bottom_buttons.reset_entries(BOTTOM_BUTTONS_COUNT, 1);
         top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
 
@@ -198,6 +235,7 @@ impl Navigator {
             display_object,
             top_buttons,
             bottom_buttons,
+            tooltip,
             network,
             select_section,
             chosen_section,
