@@ -36,17 +36,13 @@ public final class LongStorage extends NumericStorage<Long> {
     this(data, data.length, new BitSet());
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -70,17 +66,13 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int getType() {
     return Type.LONG;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
@@ -252,7 +244,9 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg) { throw new UnsupportedOperationException("Power operation should cast to double.");}
+              public long doLong(long in, long arg) {
+                throw new UnsupportedOperationException("Power operation should cast to double.");
+              }
             })
         .add(
             new LongNumericOp(Maps.DIV, true) {
@@ -262,7 +256,9 @@ public final class LongStorage extends NumericStorage<Long> {
               }
 
               @Override
-              public long doLong(long in, long arg) { throw new UnsupportedOperationException("Divide operation should cast to double.");}
+              public long doLong(long in, long arg) {
+                throw new UnsupportedOperationException("Divide operation should cast to double.");
+              }
             })
         .add(
             new LongBooleanOp(Maps.GT) {
