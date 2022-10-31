@@ -905,6 +905,7 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
   public void testConstructorMultipleNamedArgs1() throws Exception {
     parseTest("""
     x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
@@ -950,6 +951,46 @@ public class EnsoCompilerTest {
     """);
   }
 
+  static String simplifyIR(IR i) {
+    var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
+    for (;;) {
+      final String pref = "IdentifiedLocation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = at + pref.length();
+      int depth = 1;
+      while (depth > 0) {
+        switch (txt.charAt(to)) {
+          case '(' -> depth++;
+          case ')' -> depth--;
+        }
+        to++;
+      }
+      txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Comment.Documentation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Case.Pattern.Doc(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+    }
+    return txt;
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
@@ -959,27 +1000,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = (i) -> {
-      var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-      for (;;) {
-        final String pref = "IdentifiedLocation(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-      }
-      return txt;
-    };
+    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);

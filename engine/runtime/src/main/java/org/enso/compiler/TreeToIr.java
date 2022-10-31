@@ -13,6 +13,7 @@ import org.enso.compiler.core.IR$Case$Expr;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
