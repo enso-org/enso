@@ -302,15 +302,6 @@ impl BreadcrumbModel {
         }
 
         scene.layers.panel.add(&view);
-        // FIXME!!!
-        // let background = &scene
-        //     .layers
-        //     .panel
-        //     .shape_system_registry
-        //     .shape_system(scene, PhantomData::<background::Shape>)
-        //     .shape_system
-        //     .symbol;
-        // scene.layers.panel.add(&background);
         scene.layers.panel.add(&icon);
         scene.layers.panel.add(&separator);
 

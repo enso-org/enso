@@ -85,10 +85,18 @@ macro_rules! define_icons {
                     Self::$variant => {
                         let view = $name::View::new();
                         view.size.set(size);
-                        let vivid_color_fn = Box::new(f!([view]() color::Lcha::from(color::Rgba::from(view.vivid_color.get()))));
-                        let dull_color_fn = Box::new(f!([view]() color::Lcha::from(color::Rgba::from(view.dull_color.get()))));
-                        let set_vivid_color_fn = Box::new(f!([view](c) view.vivid_color.set(color::Rgba::from(c).into())));
-                        let set_dull_color_fn = Box::new(f!([view](c) view.dull_color.set(color::Rgba::from(c).into())));
+                        let vivid_color_fn = Box::new(f!([view]()
+                            color::Lcha::from(color::Rgba::from(view.vivid_color.get()))
+                        ));
+                        let dull_color_fn = Box::new(f!([view]()
+                            color::Lcha::from(color::Rgba::from(view.dull_color.get()))
+                        ));
+                        let set_vivid_color_fn = Box::new(f!((c)
+                            view.vivid_color.set(color::Rgba::from(c).into())
+                        ));
+                        let set_dull_color_fn = Box::new(f!((c)
+                            view.dull_color.set(color::Rgba::from(c).into())
+                        ));
                         let view = Box::new(view);
                         $crate::icon::Any {
                             view,

@@ -1,4 +1,21 @@
 //! Generate IntelliJ run configurations and place them in the .idea/runConfigurations directory.
+//!
+//! For each crate several run configs are created, including:
+//! - clippy [wasm],
+//! - clippy [wasm, macOS],
+//! - clippy [wasm, Linux],
+//! - clippy [wasm, Windows],
+//! - test [native],
+//! - run [native] (in case of binaries).
+//!
+//! The run configurations have to be generated for each operating system separately, as it is
+//! impossible to do it in a more generic way:
+//! 1. Cargo does not support `--target native` (or similar) flag,
+//!    see: https://github.com/rust-lang/cargo/issues/11306.
+//! 2. IntelliJ does not support environment variable expansion in the run configuration command,
+//!    see: https://github.com/intellij-rust/intellij-rust/issues/9621.
+//! 3. IntelliJ does not support custom cargo commands,
+//!    see: https://youtrack.jetbrains.com/issue/CPP-30882
 
 // === Features ===
 #![feature(exit_status_error)]
@@ -31,22 +48,49 @@
 #![warn(variant_size_differences)]
 #![warn(unreachable_pub)]
 
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::fs;
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
-use std::time::Duration;
 use std::time::Instant;
 use toml::Value;
+
+
+
+// =================
+// === CONSTANTS ===
+// =================
+
+/// Path to the directory where the run configurations should be placed. This is a special directory
+/// understood by IntelliJ.
+const OUTPUT_DIR: &str = ".idea/runConfigurations";
+
+/// Start searching for crates in these locations.
+const SEARCH_ROOT_PATHS: &[&str] = &["."];
+
+/// Do not traverse these locations.
+const PATH_BLACK_LIST: &[&str] = &["./build", "./integration-test"];
+
+/// Do not traverse these folders (even if they are placed in sub-folders).
+const DIR_BLACK_LIST: &[&str] = &["target", "dist"];
+
+/// Mapping between location and the prefix of the run configuration name. It allows run
+/// configurations to have short, nicely looking names. The last argument is the indentation level
+/// in spaces.
+const FOLDER_TO_HEADER_MAP: &[(&str, &str, usize)] = &[
+    ("build/", "🚧 Build", 10),
+    ("tools/", "🔨 Tools", 9),
+    ("lib/rust/ensogl/example/", "🧸 Example", 4),
+    ("lib/rust/ensogl/", "🎨 EnsoGl", 6),
+    ("lib/rust/ensogl", "🎨 EnsoGl", 0),
+    ("lib/rust/parser/", "👓 Parser", 7),
+    ("lib/rust/parser", "👓 Parser", 0),
+    ("lib/rust/", "📚 Lib", 13),
+    ("app/gui/", "🚥 GUI", 12),
+    ("app/gui", "🚥 GUI", 0),
+];
 
 
 
@@ -54,20 +98,22 @@ use toml::Value;
 // === Processing ===
 // ==================
 
-/// A path to rust source annotated with information whether it is a main or a library main source
-/// file.
-#[derive(Clone, Debug)]
-#[allow(missing_docs)]
-pub struct RustSourcePath {
-    path: PathBuf,
+fn main() {
+    process_paths(SEARCH_ROOT_PATHS);
 }
 
-
-fn process_paths<T: AsRef<Path>>(paths: &[T]) {
-    let start_time = Instant::now();
-    let run_config_path = Path::new("./.idea/runConfigurations");
+/// Clean the [`OUTPUT_DIR`].
+fn clean_output_dir() {
+    let run_config_path = Path::new(OUTPUT_DIR);
     fs::remove_dir_all(run_config_path).ok();
     fs::create_dir(run_config_path).unwrap();
+}
+
+/// Traverse recursively the paths and for each crate found, generate run configurations.
+fn process_paths<T: AsRef<Path>>(paths: &[T]) {
+    let start_time = Instant::now();
+    clean_output_dir();
+
     let paths = discover_paths(paths);
     let paths: HashMap<String, Option<Crate>> = paths
         .into_iter()
@@ -76,11 +122,12 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
         .collect();
 
     println!("Generating run configurations.");
-    let mut base_command_configs = vec![
+    let base_command_configs = vec![
         ("clippy", TargetConfig::default_clippy_set(), false),
         ("test", TargetConfig::default_test_set(), false),
     ];
 
+    let run_config_path = Path::new(OUTPUT_DIR);
     for (name, crate_def) in &paths {
         let mut command_configs = base_command_configs.clone();
         if let Some(crate_def) = crate_def {
@@ -93,7 +140,7 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
                 let file_name_suffix = config.to_file_name_suffix();
                 let file_name = format!("{command}-{name}{file_name_suffix}.xml");
                 let path = run_config_path.join(&file_name);
-                let xml = generate_xml(command, crate_def.as_ref(), config, *is_bin);
+                let xml = generate_run_config_xml(command, crate_def.as_ref(), config, *is_bin);
                 fs::write(&path, xml).expect("Unable to write the run configuration to {path:?}.");
             }
         }
@@ -102,7 +149,36 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
     println!("Done in {time:?}.");
 }
 
-/// Discover all paths containing Rust sources, recursively.
+
+
+// =================
+// === Discovery ===
+// =================
+
+struct Crate {
+    name:      String,
+    root_path: PathBuf,
+    path:      PathBuf,
+    is_bin:    bool,
+}
+
+impl Crate {
+    /// Generate the run configuration folder name for this crate.
+    fn folder_name(&self) -> String {
+        let rel = self.path.parent().unwrap().strip_prefix(&self.root_path).unwrap();
+        let mut path = rel.to_string_lossy().to_string();
+        for (prefix, new_prefix, indent) in FOLDER_TO_HEADER_MAP {
+            if path.starts_with(prefix) {
+                let indent = " ".repeat(*indent);
+                path = format!("{}{}{}", new_prefix, indent, &path[prefix.len()..]);
+                break;
+            }
+        }
+        path
+    }
+}
+
+/// Discover all paths containing Rust crates, recursively.
 fn discover_paths<T: AsRef<Path>>(paths: &[T]) -> HashMap<String, Crate> {
     let start = Instant::now();
     println!("Searching for crates.");
@@ -142,7 +218,7 @@ fn discover_paths_internal(map: &mut HashMap<String, Crate>, root_path: &Path, p
                         return;
                     }
 
-                    let mut is_bin = parent_path.join("src").join("main.rs").exists();
+                    let is_bin = parent_path.join("src").join("main.rs").exists();
 
                     let root_path = root_path.into();
                     let path = path.into();
@@ -154,27 +230,22 @@ fn discover_paths_internal(map: &mut HashMap<String, Crate>, root_path: &Path, p
 }
 
 
-const PATH_BLACK_LIST: &'static [&'static str] = &["./build", "./integration-test"];
-const DIR_BLACK_LIST: &'static [&'static str] = &["target", "dist"];
 
-fn main() {
-    // process_paths(&["./app", "./lib/rust", "./build"]);
-    process_paths(&["."]);
-}
+// ====================
+// === TargetConfig ===
+// ====================
 
+/// Configuration of the target Operating System array. See the docs of the module to learn more of
+/// why it's needed.
 #[derive(Debug, Clone, Copy)]
 struct TargetConfig {
-    pub wasm:    bool,
-    pub macos:   bool,
-    pub linux:   bool,
-    pub windows: bool,
+    wasm:    bool,
+    macos:   bool,
+    linux:   bool,
+    windows: bool,
 }
 
 impl TargetConfig {
-    fn new_wasm() -> Self {
-        Self { wasm: true, macos: false, linux: false, windows: false }
-    }
-
     fn default_clippy_set() -> Vec<Self> {
         vec![
             Self { wasm: true, macos: false, linux: false, windows: false },
@@ -192,7 +263,7 @@ impl TargetConfig {
         vec![Self { wasm: false, macos: false, linux: false, windows: false }]
     }
 
-    fn to_name_vector(&self) -> Vec<&'static str> {
+    fn to_name_vector(self) -> Vec<&'static str> {
         let mut vec = vec![];
         if self.wasm {
             vec.push("wasm");
@@ -212,7 +283,7 @@ impl TargetConfig {
         vec
     }
 
-    fn to_target_vector(&self) -> Vec<&'static str> {
+    fn to_target_vector(self) -> Vec<&'static str> {
         let mut vec = vec![];
         if self.wasm {
             vec.push("wasm32-unknown-unknown");
@@ -229,19 +300,19 @@ impl TargetConfig {
         vec
     }
 
-    fn to_file_name_suffix(&self) -> String {
+    fn to_file_name_suffix(self) -> String {
         format!("-{}", self.to_name_vector().join("-"))
     }
 
-    fn name_suffix(&self) -> String {
+    fn name_suffix(self) -> String {
         format!(" [{}]", self.to_name_vector().join(", "))
     }
 
-    fn target_dir(&self) -> String {
+    fn target_dir(self) -> String {
         format!("--target-dir dist/intellij_{}", self.to_name_vector().join("_"))
     }
 
-    fn targets(&self) -> String {
+    fn targets(self) -> String {
         let targets = self.to_target_vector();
         if targets.is_empty() {
             "".into()
@@ -252,41 +323,13 @@ impl TargetConfig {
     }
 }
 
-pub struct Crate {
-    pub name:      String,
-    pub root_path: PathBuf,
-    pub path:      PathBuf,
-    pub is_bin:    bool,
-}
 
-const FOLDER_NAME_RULES: &'static [(&'static str, &'static str)] = &[
-    ("build/", "🚧 Build          "),
-    ("tools/", "🔨 Tools         "),
-    ("lib/rust/ensogl/example/", "🧸 Example    "),
-    ("lib/rust/ensogl/", "🎨 EnsoGl      "),
-    ("lib/rust/ensogl", "🎨 EnsoGl"),
-    ("lib/rust/parser/", "👓 Parser       "),
-    ("lib/rust/parser", "👓 Parser"),
-    ("lib/rust/", "📚 Lib             "),
-    ("app/gui/", "🚥 GUI            "),
-    ("app/gui", "🚥 GUI"),
-];
 
-impl Crate {
-    pub fn folder_name(&self) -> String {
-        let rel = self.path.parent().unwrap().strip_prefix(&self.root_path).unwrap();
-        let mut path = rel.to_string_lossy().to_string();
-        for (prefix, new_prefix) in FOLDER_NAME_RULES {
-            if path.starts_with(prefix) {
-                path = format!("{}{}", new_prefix, &path[prefix.len()..]);
-                break;
-            }
-        }
-        path
-    }
-}
+// =================================
+// === Run Config XML Generation ===
+// =================================
 
-fn generate_xml(
+fn generate_run_config_xml(
     command: &str,
     crate_target: Option<&Crate>,
     target_config: &TargetConfig,
