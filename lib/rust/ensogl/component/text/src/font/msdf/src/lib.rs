@@ -1,5 +1,10 @@
 //! MSDF-gen libraries bindings and utilities.
 
+// === Features ===
+#![allow(incomplete_features)]
+#![feature(specialization)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -16,16 +21,13 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![feature(specialization)]
-#![feature(auto_traits)]
-#![feature(negative_impls)]
-#![allow(incomplete_features)]
 
 use crate::prelude::*;
 use binding::*;
 
 use emscripten_data::ArrayMemoryView;
 use enso_web as web;
+use enso_web::prelude::JsValueOps;
 use enso_web::Closure;
 use enso_web::JsValue;
 use js_sys::Uint8Array;
@@ -34,9 +36,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
-// use web::JsValueOps;
 
-use enso_web::prelude::JsValueOps;
+
 
 mod binding;
 pub mod emscripten_data;

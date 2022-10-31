@@ -5,6 +5,7 @@
 
 #![recursion_limit = "1024"]
 // === Features ===
+#![allow(incomplete_features)]
 #![feature(const_trait_impl)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
@@ -28,7 +29,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![allow(incomplete_features)]
 
 
 

@@ -23,15 +23,14 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::display::world;
 use ensogl_core::frp;
 use ensogl_core::system::gpu::texture;
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::gpu::Texture;
 use font::FontWithAtlas;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::gpu::Texture;
 
 
 
