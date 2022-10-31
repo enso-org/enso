@@ -245,7 +245,7 @@ A representation of an executable position in code, used by the execution APIs.
 context with first execution. The `thisArgumentsPosition` field can be omitted,
 in which case the context will try to infer the argument on a best-effort basis.
 E.g. for a module-level method, or a method defined on a parameter-less type,
-`this` will be substituted for the unambiguous singleton instance.
+`self` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
