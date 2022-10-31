@@ -189,7 +189,7 @@ define_themes! { [light:0, dark:1]
             }
             component_list_panel {
                 background_color = Rgba(1.0, 1.0, 1.0, 0.64),Rgba(1.0, 1.0, 1.0, 0.64);
-                corners_radius = 15.0, 15.0;
+                corners_radius = 16.0, 16.0;
                 grid {
                     width = 414.0, 414.0;
                     height = 414.0, 414.0;
@@ -199,7 +199,7 @@ define_themes! { [light:0, dark:1]
 
                     entry {
                         background.color_intensity = 0.08, 0.08;
-                        dimmed = Lcha(0.666, 0.0188, 0.75, 1.0), Lcha(66.61, 1.88, 0.75, 1.0);
+                        dimmed = Rgba(158.0 / 255.0, 162.0 / 255.0, 165.0 / 255.0, 1.0), Rgba(158.0 / 255.0, 162.0 / 255.0, 165.0 / 255.0, 1.0);
                         padding = 17.0, 17.0;
                         text {
                             font = "default", "default";
