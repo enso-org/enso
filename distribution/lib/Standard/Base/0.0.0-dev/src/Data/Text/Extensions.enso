@@ -248,10 +248,10 @@ Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive
              regex = ".+@.+"
              "contact@enso.org".is_match regex
 Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
-Text.is_match self pattern=".*" matcher=Regex_Matcher = case matcher of
+Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
-    _ : Regex_Matcher ->
+    _ : Regex_Matcher.Regex_Matcher ->
         compiled_pattern = matcher.compile pattern
         compiled_pattern.matches self
 
@@ -346,8 +346,8 @@ Text.find self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=
          'abc  def\tghi'.split '\\s+' Regex_Matcher.Regex_Matcher_Data == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument_Error_Data "The delimiter cannot be empty.") else
-    case Meta.type_of matcher of
-        Text_Matcher.Text_Matcher ->
+    case matcher of
+        _ : Text_Matcher.Text_Matcher ->
             delimiters = Vector.from_polyglot_array <| case matcher of
                 Text_Matcher.Case_Sensitive ->
                     Text_Utils.span_of_all self delimiter
@@ -359,7 +359,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
                 end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
-        Regex_Matcher.Regex_Matcher ->
+        _ : Regex_Matcher.Regex_Matcher ->
             compiled_pattern = matcher.compile delimiter
             compiled_pattern.split self mode=Regex_Mode.All
 
@@ -441,8 +441,8 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive = if term.is_empty then self else
-    case Meta.type_of matcher of
-        Text_Matcher.Text_Matcher ->
+    case matcher of
+        _ : Text_Matcher.Text_Matcher ->
             array_from_single_result result = case result of
                 Nothing -> Array.empty
                 _ -> Array.new_1 result
@@ -466,7 +466,7 @@ Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.C
                             Text_Utils.span_of_case_insensitive self term locale.java_locale True
                     _ -> Error.throw (Illegal_Argument_Error_Data "Invalid mode.")
             Text_Utils.replace_spans self spans_array new_text
-        Regex_Matcher.Regex_Matcher ->
+        _ : Regex_Matcher.Regex_Matcher ->
             compiled_pattern = matcher.compile term
             compiled_pattern.replace self new_text mode=mode
 
@@ -885,7 +885,7 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
@@ -920,7 +920,7 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
@@ -982,7 +982,7 @@ Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
     Text_Matcher.Case_Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         compiled_pattern = matcher.compile term
         match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
@@ -1475,7 +1475,7 @@ Text.location_of_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.
         grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
         grapheme_spans.map grapheme_span->
             Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span

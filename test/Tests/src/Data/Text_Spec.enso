@@ -1317,10 +1317,12 @@ spec =
             "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
             "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Sensitive . should_be_false
             "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Sensitive . should_be_false
+            "foobar".is_match "foo" matcher=Text_Matcher.Case_Sensitive . should_be_false
 
             "foobar".is_match "foobar" matcher=Text_Matcher.Case_Insensitive . should_be_true
             "foobar".is_match "FOOBAR" matcher=Text_Matcher.Case_Insensitive . should_be_true
             "foobar".is_match "foo.*" matcher=Text_Matcher.Case_Insensitive . should_be_false
+            "foobar".is_match "foo" matcher=Text_Matcher.Case_Insensitive . should_be_false
 
         Test.specify "should be possible on unicode text" <|
             "Korean: 건반".is_match "^Korean: (.+)$" . should_be_true
@@ -1329,7 +1331,7 @@ spec =
             "İ".is_match "\w" (Regex_Matcher.Regex_Matcher_Data match_ascii=True) . should_be_false
 
         Test.specify "should be possible in case-insensitive mode" <|
-            "MY".is_match "my" (Regex_Matcher.Regex_Matcher_Data  case_insensitive=True) . should_be_true
+            "MY".is_match "my" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
 
         Test.specify "should be possible in dot_matches_newline mode" <|
             'Foo\n'.is_match "(....)" (Regex_Matcher.Regex_Matcher_Data  dot_matches_newline=True) . should_be_true
