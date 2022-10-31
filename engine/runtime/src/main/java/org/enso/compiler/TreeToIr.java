@@ -746,6 +746,14 @@ final class TreeToIr {
       // Documentation can be attached to an expression in a few cases, like if someone documents a line of an
       // `ArgumentBlockApplication`. The documentation is ignored.
       case Tree.Documented docu -> translateExpression(docu.getExpression());
+      case Tree.App app -> {
+          var fn = translateExpression(app.getFunc(), isMethod);
+          if (app.getArg() instanceof Tree.AutoScope) {
+              yield new IR$Application$Prefix(fn, nil(), true, getIdentifiedLocation(app), meta(), diag());
+          } else {
+              yield fn;
+          }
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
   }

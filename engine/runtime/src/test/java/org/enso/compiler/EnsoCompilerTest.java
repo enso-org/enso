@@ -778,6 +778,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAutoScope2() throws Exception {
+    parseTest("""
+    fn1 = fn ...
+    fn2 = fn 1 ...
+    """);
+  }
+
+  @Test
   public void testTextArrayType() throws Exception {
     parseTest("""
     type Connection
