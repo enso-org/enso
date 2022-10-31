@@ -266,7 +266,7 @@ spec =
             "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
             "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
 
-        Test.specify "should allow taking or dropping a random sample of a substring"
+        Test.specify "should allow taking or dropping a random sample of a substring" <|
             "AAAAA".take (Sample 3) . should_equal "AAA"
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
@@ -802,8 +802,8 @@ spec =
             long_text = """
                 Hello from a long text. EOL
                 SOL Hmm...
-            long_text . contains "EOL.SOL" ((Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True) . should_be_true
-            long_text . contains "EOL.SOL" ((Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=False) . should_be_false
+            long_text . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
@@ -889,8 +889,8 @@ spec =
             long_text = """
                 EOL
                 SOL Hmm...
-            long_text . starts_with "EOL.SOL" ((Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True) . should_be_true
-            long_text . starts_with "EOL.SOL" ((Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=False) . should_be_false
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
 
             "aaazzz" . starts_with "a|b" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
             "bbbzzz" . starts_with "a|b" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
@@ -1233,7 +1233,7 @@ spec =
             abc.location_of_all "" matcher=regex . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
             abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
 
-        Test.specify "should handle overlapping matches as shown in the examples"
+        Test.specify "should handle overlapping matches as shown in the examples" <|
             "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 1 3) "aaa")
             "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (Range_Data 0 2) "aaa")
 

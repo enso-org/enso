@@ -235,9 +235,10 @@ spec =
             Panic.recover Text throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "Unsupported_Argument_Types message should be readable" <|
-            Panic.catch Unsupported_Argument_Types_Data (Long.decode 42) handler=err ->
+            check err =
                 (err.payload.message) . should_equal "Cannot convert '42'(language: Java, type: java.lang.Long) to Java type 'java.lang.String': Invalid or lossy primitive coercion."
                 (err.payload.message) . should_equal (err.payload.to_display_text)
 
+            Panic.catch Unsupported_Argument_Types_Data (Long.decode 42) handler=check
 
 main = Test_Suite.run_main spec

@@ -231,17 +231,20 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
-        /// An operator definition, like `== self rhs = True`.
-        OperatorFunction {
-            /// The operator being defined.
-            pub name: token::Operator<'s>,
+        /// A foreign function definition.
+        ForeignFunction {
+            /// The `foreign` keyword.
+            pub foreign:  token::Ident<'s>,
+            /// The function's language.
+            pub language: token::Ident<'s>,
+            /// The name to which the function should be bound.
+            pub name:     token::Ident<'s>,
             /// The argument patterns.
-            pub args: Vec<ArgumentDefinition<'s>>,
+            pub args:     Vec<ArgumentDefinition<'s>>,
             /// The `=` token.
-            pub equals: token::Operator<'s>,
-            /// The body, which will typically be an inline expression or a `BodyBlock` expression.
-            /// It is an error for this to be empty.
-            pub body: Option<Tree<'s>>,
+            pub equals:   token::Operator<'s>,
+            /// The body, which is source code for the specified language.
+            pub body:     Tree<'s>,
         },
         /// An import statement.
         Import {
@@ -275,16 +278,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The `:` token.
             pub operator: token::Operator<'s>,
             /// The variable's type.
-            #[reflect(rename = "type")]
-            pub type_:    Tree<'s>,
-        },
-        /// Statement declaring the type of an operator.
-        OperatorTypeSignature {
-            /// Operator whose type is being declared.
-            pub operator: token::Operator<'s>,
-            /// The `:` token.
-            pub colon:    token::Operator<'s>,
-            /// The method's type.
             #[reflect(rename = "type")]
             pub type_:    Tree<'s>,
         },
@@ -763,18 +756,6 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 /// application has special semantics.
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
-        (Variant::TextLiteral(lhs), Variant::TextLiteral(rhs)) if !lhs.closed => {
-            join_text_literals(lhs, rhs, mem::take(&mut arg.span));
-            if let TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
-                    && open.code.starts_with('#') {
-                let mut open = open.clone();
-                open.left_offset += func.span.left_offset;
-                let elements = mem::take(elements);
-                let doc = DocComment { open, elements, newlines: default() };
-                return Tree::documented(doc, default());
-            }
-            func
-        }
         (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
                 Variant::Number(Number { base: None, integer, fractional_digits })) => {
             func_.integer = mem::take(integer);
@@ -838,7 +819,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
 }
 
-fn join_text_literals<'s>(
+/// Join two text literals, merging contents as appropriate to each field.
+pub fn join_text_literals<'s>(
     lhs: &mut TextLiteral<'s>,
     rhs: &mut TextLiteral<'s>,
     rhs_span: Span<'s>,
@@ -934,7 +916,7 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
 impl<'s> From<Token<'s>> for Tree<'s> {
     fn from(token: Token<'s>) -> Self {
         match token.variant {
-            token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+            token::Variant::Ident(ident) => token.with_variant(ident).into(),
             token::Variant::Digits(number) =>
                 Tree::number(None, Some(token.with_variant(number)), None),
             token::Variant::NumberBase(base) =>
@@ -973,11 +955,17 @@ impl<'s> From<Token<'s>> for Tree<'s> {
             // Map an error case in the lexer to an error in the AST.
             | token::Variant::Invalid(_) => {
                 let message = format!("Unexpected token: {token:?}");
-                let ident = token::variant::Ident(false, 0, false, false);
+                let ident = token::variant::Ident(false, 0, false, false, false);
                 let value = Tree::ident(token.with_variant(ident));
                 Tree::with_error(value, message)
             }
         }
+    }
+}
+
+impl<'s> From<token::Ident<'s>> for Tree<'s> {
+    fn from(token: token::Ident<'s>) -> Self {
+        Tree::ident(token)
     }
 }
 
@@ -1013,9 +1001,8 @@ pub fn recurse_left_mut_while<'s>(
             | Variant::Lambda(_)
             | Variant::Array(_)
             | Variant::Annotated(_)
-            | Variant::OperatorFunction(_)
-            | Variant::OperatorTypeSignature(_)
             | Variant::Documented(_)
+            | Variant::ForeignFunction(_)
             | Variant::Tuple(_) => break,
             // Optional LHS.
             Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })

@@ -31,10 +31,10 @@ main =
     Bench.measure ((random_vec.drop (First 20)).sum) "Drop First 20 and Sum" iter_size num_iterations
     Bench.measure ((random_vec.drop (Last 20)).sum) "Drop Last 20 and Sum" iter_size num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
-    Bench.measure (random_vec.filter_with_index (i->x -> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
+    Bench.measure (random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
     Bench.measure (random_vec . map (x -> x +  random_gen.nextLong) . filter (x -> x % 3 == 1)) "Map & Filter" iter_size num_iterations
     Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" iter_size num_iterations
-    Bench.measure (random_vec.partition_with_index (i->x -> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
+    Bench.measure (random_vec.partition_with_index (i-> x-> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
 
     stateful_fun x =
        s = State.get Number
