@@ -418,7 +418,7 @@ impl<T: Copy + Debug> Spanned<T> {
     /// Convert the property to a vector of spans.
     pub fn to_vector(&self) -> Vec<RangedValue<Byte, T>> {
         let spans = self.spans.to_vector().into_iter();
-        /// Sometimes the spans we get from the rope are empty, so we need to filter them out.
+        // Sometimes the spans we get from the rope are empty, so we need to filter them out.
         let non_empty_spans = spans.filter(|t| !t.range.is_empty());
         non_empty_spans.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
     }

@@ -11,7 +11,6 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
-use enso_frp::stream::ValueProvider;
 use enso_text::Byte;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;

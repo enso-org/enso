@@ -19,6 +19,7 @@
 #![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
+#![allow(incomplete_features)]
 
 use crate::prelude::*;
 use binding::*;

@@ -110,29 +110,468 @@ gen_zero_nalgebra!([
 
 
 
-// // =====================
-// // === HasComponents ===
-// // =====================
-//
-// /// Every type which has components, like `Vector<f32>`.
-// pub trait HasComponents {
-//     /// The component type.
-//     type Component;
-// }
+// ===========
+// === Abs ===
+// ===========
+
+/// Types which have an absolute value.
+pub trait Abs {
+    /// Absolute value.
+    fn abs(&self) -> Self;
+}
+
+impl Abs for usize {
+    fn abs(&self) -> Self {
+        *self
+    }
+}
+
+
+// === Impls ===
+
+macro_rules! gen_abs {
+    ([$($ty:ident),*]) => {$(
+        impl Abs for $ty {
+            fn abs(&self) -> Self {
+                if *self < Self::zero() { -self } else { *self }
+            }
+        }
+    )*};
+}
+
+gen_abs!([f32, f64, i32, i64]);
+
+
+
+// ===========
+// === Min ===
+// ===========
+
+/// Types where minimum of the values can be found.
+pub trait Min {
+    /// Lesser of the two values.
+    fn min(a: Self, b: Self) -> Self;
+}
+
+
+// === Impls ===
+
+macro_rules! gen_min {
+    ([$($ty:ident),*]) => {$(
+        impl Min for $ty {
+            fn min(a:Self, b:Self) -> Self {
+                min(a,b)
+            }
+        }
+    )*};
+}
+
+gen_min!([f32, f64, i32, i64, usize]);
+
+
+
+// ===========
+// === Max ===
+// ===========
+
+/// Types where maximum of the values can be found.
+pub trait Max {
+    /// Greater of the two values.
+    fn max(a: Self, b: Self) -> Self;
+}
+
+
+// === Impls ===
+
+macro_rules! gen_max {
+    ([$($ty:ident),*]) => {$(
+        impl Max for $ty {
+            fn max(a:Self, b:Self) -> Self {
+                max(a,b)
+            }
+        }
+    )*};
+}
+
+gen_max!([f32, f64, i32, i64, usize]);
+
+
+
+// ===========
+// === Pow ===
+// ===========
+
+/// Types which can be raised to the given power.
+#[allow(missing_docs)]
+pub trait Pow<T = Self> {
+    type Output;
+    fn pow(self, t: T) -> Self::Output;
+}
+
+impl Pow<f32> for f32 {
+    type Output = f32;
+    fn pow(self, t: f32) -> Self::Output {
+        self.powf(t)
+    }
+}
+
+
+
+// =================
+// === Magnitude ===
+// =================
+
+/// Types which have magnitude value.
+#[allow(missing_docs)]
+pub trait Magnitude {
+    type Output;
+    fn magnitude(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Magnitude for f32 {
+    type Output = f32;
+    fn magnitude(&self) -> Self::Output {
+        self.abs()
+    }
+}
+
+impl<N: ComplexField, R: Dim, C: Dim, S: Storage<N, R, C>> Magnitude for Matrix<N, R, C, S> {
+    type Output = N::RealField;
+    fn magnitude(&self) -> Self::Output {
+        self.norm()
+    }
+}
+
+
+
+// ==============
+// === Signum ===
+// ==============
+
+/// Computes the signum of the value. Returns +1 if its positive, -1 if its negative, 0 if its zero.
+/// It can also return other values for specific types like `NaN` for `NaN`.
+#[allow(missing_docs)]
+pub trait Signum {
+    type Output;
+    fn signum(self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Signum for f32 {
+    type Output = f32;
+    fn signum(self) -> f32 {
+        f32::signum(self)
+    }
+}
+
+
+
+// =============
+// === Clamp ===
+// =============
+
+/// Clamps the value to [min..max] range.
+#[allow(missing_docs)]
+pub trait Clamp {
+    type Output;
+    fn clamp(self, min: Self, max: Self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Clamp for f32 {
+    type Output = f32;
+    fn clamp(self, min: f32, max: f32) -> f32 {
+        self.clamp(min, max)
+    }
+}
+
+
+
+// =================
+// === Min / Max ===
+// =================
+
+/// Compares and returns the minimum of two values.
+pub fn min<T: PartialOrd>(a: T, b: T) -> T {
+    if b < a {
+        b
+    } else {
+        a
+    }
+}
+
+/// Compares and returns the maximum of two values.
+pub fn max<T: PartialOrd>(a: T, b: T) -> T {
+    if b > a {
+        b
+    } else {
+        a
+    }
+}
+
+
+
+// =================
+// === Normalize ===
+// =================
+
+/// Types which can be normalized.
+#[allow(missing_docs)]
+pub trait Normalize {
+    fn normalize(&self) -> Self;
+}
+
+
+// === Impls ===
+
+impl Normalize for f32 {
+    fn normalize(&self) -> f32 {
+        self.signum()
+    }
+}
+
+impl Normalize for Vector2<f32> {
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
+}
+
+impl Normalize for Vector3<f32> {
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
+}
+
+impl Normalize for Vector4<f32> {
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
+}
+
+
+
+// ===================
+// === Square Root ===
+// ===================
+
+/// Types from which a square root can be calculated.
+#[allow(missing_docs)]
+pub trait Sqrt {
+    type Output;
+    fn sqrt(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Sqrt for f32 {
+    type Output = f32;
+    fn sqrt(&self) -> f32 {
+        f32::sqrt(*self)
+    }
+}
+
+
+
+// ===========
+// === Cos ===
+// ===========
+
+/// Types from which a cosine can be calculated.
+#[allow(missing_docs)]
+pub trait Cos {
+    type Output;
+    fn cos(&self) -> Self;
+}
+
+
+// === Impls ===
+
+impl Cos for f32 {
+    type Output = f32;
+    fn cos(&self) -> f32 {
+        f32::cos(*self)
+    }
+}
+
+
+
+// ===========
+// === Sin ===
+// ===========
+
+/// Types from which a sine can be calculated
+#[allow(missing_docs)]
+pub trait Sin {
+    type Output;
+    fn sin(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Sin for f32 {
+    type Output = f32;
+    fn sin(&self) -> f32 {
+        f32::sin(*self)
+    }
+}
+
+
+
+// ============
+// === Asin ===
+// ============
+
+/// Types from which a asin can be calculated
+#[allow(missing_docs)]
+pub trait Asin {
+    type Output;
+    fn asin(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Asin for f32 {
+    type Output = f32;
+    fn asin(&self) -> f32 {
+        f32::asin(*self)
+    }
+}
+
+
+
+// ============
+// === Acos ===
+// ============
+
+/// Types from which a asin can be calculated
+#[allow(missing_docs)]
+pub trait Acos {
+    type Output;
+    fn acos(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Acos for f32 {
+    type Output = f32;
+    fn acos(&self) -> f32 {
+        f32::acos(*self)
+    }
+}
+
+
+
+// =============================
+// === Saturating Operations ===
+// =============================
+
+/// Saturating addition. Computes self + rhs, saturating at the numeric bounds instead of
+/// overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingAdd<Rhs = Self> {
+    type Output;
+    fn saturating_add(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Saturating subtraction. Computes self - rhs, saturating at the numeric bounds instead of
+/// overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingSub<Rhs = Self> {
+    type Output;
+    fn saturating_sub(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Saturating multiplication. Computes self * rhs, saturating at the numeric bounds instead of
+/// overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingMul<Rhs = Self> {
+    type Output;
+    fn saturating_mul(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Saturating power. Computes self ^ exp, saturating at the numeric bounds instead of overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingPow {
+    type Output;
+    fn saturating_pow(self, exp: u32) -> Self::Output;
+}
+
+
+// === Impls ===
+
+macro_rules! impl_saturating_opr {
+    ($name:ident :: $opr:ident for $tgt:ident) => {
+        impl $name<$tgt> for $tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs: $tgt) -> Self::Output {
+                self.$opr(rhs)
+            }
+        }
+
+        impl $name<$tgt> for &$tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs: $tgt) -> Self::Output {
+                (*self).$opr(rhs)
+            }
+        }
+
+        impl $name<&$tgt> for $tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs: &$tgt) -> Self::Output {
+                self.$opr(*rhs)
+            }
+        }
+
+        impl $name<&$tgt> for &$tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs: &$tgt) -> Self::Output {
+                (*self).$opr(*rhs)
+            }
+        }
+    };
+}
+
+macro_rules! impl_saturating_integer {
+    ($($name:ident),* $(,)?) => {
+        $(impl_saturating_opr! {SaturatingAdd::saturating_add for $name})*
+        $(impl_saturating_opr! {SaturatingSub::saturating_sub for $name})*
+        $(impl_saturating_opr! {SaturatingMul::saturating_mul for $name})*
+    }
+}
+
+impl_saturating_integer!(u8, u16, u32, u64, u128, usize);
+
 
 
 // ==================
 // === Dimensions ===
 // ==================
 
-/// Describes types that have the first dimension component.
+/// Component accessors and swizzling for 1-dimensional types.
+#[allow(missing_docs)]
 pub trait Dim1 {
+    /// The type of 1-dimensional projection of this type. For example, for `Vector4<f32>` this is
+    /// `f32`.
     type Dim1Type;
     fn x(&self) -> Self::Dim1Type;
 }
 
-/// Describes types that have the second dimension component.
+/// Component accessors and swizzling for 2-dimensional types.
+#[allow(missing_docs)]
 pub trait Dim2: Dim1 {
+    /// The type of 2-dimensional projection of this type. For example, for `Vector4<f32>` this is
+    /// `Vector2<f32>`.
     type Dim2Type;
     fn y(&self) -> Self::Dim1Type;
     fn xx(&self) -> Self::Dim2Type;
@@ -141,8 +580,11 @@ pub trait Dim2: Dim1 {
     fn yx(&self) -> Self::Dim2Type;
 }
 
-/// Describes types that have the third dimension component.
+/// Component accessors and swizzling for 3-dimensional types.
+#[allow(missing_docs)]
 pub trait Dim3: Dim2 {
+    /// The type of 3-dimensional projection of this type. For example, for `Vector4<f32>` this is
+    /// `Vector3<f32>`.
     type Dim3Type;
     fn z(&self) -> Self::Dim1Type;
     fn zz(&self) -> Self::Dim2Type;
@@ -180,8 +622,11 @@ pub trait Dim3: Dim2 {
     fn zzz(&self) -> Self::Dim3Type;
 }
 
-/// Describes types that have the fourth dimension component.
+/// Component accessors and swizzling for 4-dimensional types.
+#[allow(missing_docs)]
 pub trait Dim4: Dim3 {
+    /// The type of 4-dimensional projection of this type. For example, for `Vector4<f32>` this is
+    /// `Vector4<f32>`.
     type Dim4Type;
     fn w(&self) -> Self::Dim1Type;
     fn ww(&self) -> Self::Dim2Type;
@@ -1486,459 +1931,3 @@ impl<T: Scalar + Copy> Dim4 for Vector4<T> {
         Vector4::new(self.w, self.w, self.w, self.w)
     }
 }
-
-// /// Describes types with at least 4 dimension components, which has their "two-dimension"
-// version, /// for example [`Vector4`] whose "two-dimension" version is [`Vector2`].
-// pub trait HasDim2Version: Dim4 {
-//     /// The type being the "two-dimension" version of self.
-//     type Dim2Version;
-//
-//     /// Create "two-dimension" version constructed from first and second component.
-//     fn xy(&self) -> Self::Dim2Version;
-//     /// Create "two-dimension" version constructed third and fourth component.
-//     fn zw(&self) -> Self::Dim2Version;
-// }
-
-
-
-// ===========
-// === Abs ===
-// ===========
-
-/// Types which have an absolute value.
-pub trait Abs {
-    /// Absolute value.
-    fn abs(&self) -> Self;
-}
-
-impl Abs for usize {
-    fn abs(&self) -> Self {
-        *self
-    }
-}
-
-
-// === Impls ===
-
-macro_rules! gen_abs {
-    ([$($ty:ident),*]) => {$(
-        impl Abs for $ty {
-            fn abs(&self) -> Self {
-                if *self < Self::zero() { -self } else { *self }
-            }
-        }
-    )*};
-}
-
-gen_abs!([f32, f64, i32, i64]);
-
-
-
-// ===========
-// === Min ===
-// ===========
-
-/// Types where minimum of the values can be found.
-pub trait Min {
-    /// Lesser of the two values.
-    fn min(a: Self, b: Self) -> Self;
-}
-
-
-// === Impls ===
-
-macro_rules! gen_min {
-    ([$($ty:ident),*]) => {$(
-        impl Min for $ty {
-            fn min(a:Self, b:Self) -> Self {
-                min(a,b)
-            }
-        }
-    )*};
-}
-
-gen_min!([f32, f64, i32, i64, usize]);
-
-
-
-// ===========
-// === Max ===
-// ===========
-
-/// Types where maximum of the values can be found.
-pub trait Max {
-    /// Greater of the two values.
-    fn max(a: Self, b: Self) -> Self;
-}
-
-
-// === Impls ===
-
-macro_rules! gen_max {
-    ([$($ty:ident),*]) => {$(
-        impl Max for $ty {
-            fn max(a:Self, b:Self) -> Self {
-                max(a,b)
-            }
-        }
-    )*};
-}
-
-gen_max!([f32, f64, i32, i64, usize]);
-
-
-
-// ===========
-// === Pow ===
-// ===========
-
-/// Types which can be raised to the given power.
-#[allow(missing_docs)]
-pub trait Pow<T = Self> {
-    type Output;
-    fn pow(self, t: T) -> Self::Output;
-}
-
-impl Pow<f32> for f32 {
-    type Output = f32;
-    fn pow(self, t: f32) -> Self::Output {
-        self.powf(t)
-    }
-}
-
-
-
-// =================
-// === Magnitude ===
-// =================
-
-/// Types which have magnitude value.
-#[allow(missing_docs)]
-pub trait Magnitude {
-    type Output;
-    fn magnitude(&self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Magnitude for f32 {
-    type Output = f32;
-    fn magnitude(&self) -> Self::Output {
-        self.abs()
-    }
-}
-
-impl<N: ComplexField, R: Dim, C: Dim, S: Storage<N, R, C>> Magnitude for Matrix<N, R, C, S> {
-    type Output = N::RealField;
-    fn magnitude(&self) -> Self::Output {
-        self.norm()
-    }
-}
-
-
-
-// ==============
-// === Signum ===
-// ==============
-
-/// Computes the signum of the value. Returns +1 if its positive, -1 if its negative, 0 if its zero.
-/// It can also return other values for specific types like `NaN` for `NaN`.
-#[allow(missing_docs)]
-pub trait Signum {
-    type Output;
-    fn signum(self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Signum for f32 {
-    type Output = f32;
-    fn signum(self) -> f32 {
-        f32::signum(self)
-    }
-}
-
-
-
-// =============
-// === Clamp ===
-// =============
-
-/// Clamps the value to [min..max] range.
-#[allow(missing_docs)]
-pub trait Clamp {
-    type Output;
-    fn clamp(self, min: Self, max: Self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Clamp for f32 {
-    type Output = f32;
-    fn clamp(self, min: f32, max: f32) -> f32 {
-        self.clamp(min, max)
-    }
-}
-
-
-
-// =================
-// === Min / Max ===
-// =================
-
-/// Compares and returns the minimum of two values.
-pub fn min<T: PartialOrd>(a: T, b: T) -> T {
-    if b < a {
-        b
-    } else {
-        a
-    }
-}
-
-/// Compares and returns the maximum of two values.
-pub fn max<T: PartialOrd>(a: T, b: T) -> T {
-    if b > a {
-        b
-    } else {
-        a
-    }
-}
-
-
-
-// =================
-// === Normalize ===
-// =================
-
-/// Types which can be normalized.
-#[allow(missing_docs)]
-pub trait Normalize {
-    fn normalize(&self) -> Self;
-}
-
-
-// === Impls ===
-
-impl Normalize for f32 {
-    fn normalize(&self) -> f32 {
-        self.signum()
-    }
-}
-
-impl Normalize for Vector2<f32> {
-    fn normalize(&self) -> Self {
-        self.normalize()
-    }
-}
-
-impl Normalize for Vector3<f32> {
-    fn normalize(&self) -> Self {
-        self.normalize()
-    }
-}
-
-impl Normalize for Vector4<f32> {
-    fn normalize(&self) -> Self {
-        self.normalize()
-    }
-}
-
-
-
-// ===================
-// === Square Root ===
-// ===================
-
-/// Types from which a square root can be calculated.
-#[allow(missing_docs)]
-pub trait Sqrt {
-    type Output;
-    fn sqrt(&self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Sqrt for f32 {
-    type Output = f32;
-    fn sqrt(&self) -> f32 {
-        f32::sqrt(*self)
-    }
-}
-
-
-
-// ===========
-// === Cos ===
-// ===========
-
-/// Types from which a cosine can be calculated.
-#[allow(missing_docs)]
-pub trait Cos {
-    type Output;
-    fn cos(&self) -> Self;
-}
-
-
-// === Impls ===
-
-impl Cos for f32 {
-    type Output = f32;
-    fn cos(&self) -> f32 {
-        f32::cos(*self)
-    }
-}
-
-
-
-// ===========
-// === Sin ===
-// ===========
-
-/// Types from which a sine can be calculated
-#[allow(missing_docs)]
-pub trait Sin {
-    type Output;
-    fn sin(&self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Sin for f32 {
-    type Output = f32;
-    fn sin(&self) -> f32 {
-        f32::sin(*self)
-    }
-}
-
-
-
-// ============
-// === Asin ===
-// ============
-
-/// Types from which a asin can be calculated
-#[allow(missing_docs)]
-pub trait Asin {
-    type Output;
-    fn asin(&self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Asin for f32 {
-    type Output = f32;
-    fn asin(&self) -> f32 {
-        f32::asin(*self)
-    }
-}
-
-
-
-// ============
-// === Acos ===
-// ============
-
-/// Types from which a asin can be calculated
-#[allow(missing_docs)]
-pub trait Acos {
-    type Output;
-    fn acos(&self) -> Self::Output;
-}
-
-
-// === Impls ===
-
-impl Acos for f32 {
-    type Output = f32;
-    fn acos(&self) -> f32 {
-        f32::acos(*self)
-    }
-}
-
-
-
-// =============================
-// === Saturating Operations ===
-// =============================
-
-/// Saturating addition. Computes self + rhs, saturating at the numeric bounds instead of
-/// overflowing.
-#[allow(missing_docs)]
-pub trait SaturatingAdd<Rhs = Self> {
-    type Output;
-    fn saturating_add(self, rhs: Rhs) -> Self::Output;
-}
-
-/// Saturating subtraction. Computes self - rhs, saturating at the numeric bounds instead of
-/// overflowing.
-#[allow(missing_docs)]
-pub trait SaturatingSub<Rhs = Self> {
-    type Output;
-    fn saturating_sub(self, rhs: Rhs) -> Self::Output;
-}
-
-/// Saturating multiplication. Computes self * rhs, saturating at the numeric bounds instead of
-/// overflowing.
-#[allow(missing_docs)]
-pub trait SaturatingMul<Rhs = Self> {
-    type Output;
-    fn saturating_mul(self, rhs: Rhs) -> Self::Output;
-}
-
-/// Saturating power. Computes self ^ exp, saturating at the numeric bounds instead of overflowing.
-#[allow(missing_docs)]
-pub trait SaturatingPow {
-    type Output;
-    fn saturating_pow(self, exp: u32) -> Self::Output;
-}
-
-
-// === Impls ===
-
-macro_rules! impl_saturating_opr {
-    ($name:ident :: $opr:ident for $tgt:ident) => {
-        impl $name<$tgt> for $tgt {
-            type Output = $tgt;
-            fn $opr(self, rhs: $tgt) -> Self::Output {
-                self.$opr(rhs)
-            }
-        }
-
-        impl $name<$tgt> for &$tgt {
-            type Output = $tgt;
-            fn $opr(self, rhs: $tgt) -> Self::Output {
-                (*self).$opr(rhs)
-            }
-        }
-
-        impl $name<&$tgt> for $tgt {
-            type Output = $tgt;
-            fn $opr(self, rhs: &$tgt) -> Self::Output {
-                self.$opr(*rhs)
-            }
-        }
-
-        impl $name<&$tgt> for &$tgt {
-            type Output = $tgt;
-            fn $opr(self, rhs: &$tgt) -> Self::Output {
-                (*self).$opr(*rhs)
-            }
-        }
-    };
-}
-
-macro_rules! impl_saturating_integer {
-    ($($name:ident),* $(,)?) => {
-        $(impl_saturating_opr! {SaturatingAdd::saturating_add for $name})*
-        $(impl_saturating_opr! {SaturatingSub::saturating_sub for $name})*
-        $(impl_saturating_opr! {SaturatingMul::saturating_mul for $name})*
-    }
-}
-
-impl_saturating_integer!(u8, u16, u32, u64, u128, usize);

@@ -3,7 +3,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use enso_web as web;
-use enso_web::JsValue;
 
 
 // ================

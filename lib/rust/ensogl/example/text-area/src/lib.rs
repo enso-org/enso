@@ -161,6 +161,7 @@ pub fn main() {
     });
 }
 
+// TODO: pub fn extend do define_endpoints_2
 
 fn init(app: Application) {
     let area = app.new_view::<Text>();

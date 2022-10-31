@@ -2175,13 +2175,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-optics"
-version = "0.2.0"
-dependencies = [
- "enso-prelude",
-]
-
-[[package]]
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
@@ -4125,6 +4118,7 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "regex",
+ "toml",
 ]
 
 [[package]]
