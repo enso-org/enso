@@ -2,8 +2,7 @@
 
 use ensogl_core::prelude::*;
 
-use crate::icon;
-
+use crate::navigator::icon;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -12,6 +11,8 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_grid_view as grid;
+use ide_view_component_list_panel_icons::Any as AnyIcon;
+use ide_view_component_list_panel_icons::SIZE;
 
 
 
@@ -85,7 +86,7 @@ pub struct Params {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Data {
     display_object: display::object::Instance,
-    icon:           Rc<RefCell<Option<icon::Any>>>,
+    icon:           Rc<RefCell<Option<AnyIcon>>>,
     strong_color:   Rc<Cell<color::Lcha>>,
     weak_color:     Rc<Cell<color::Lcha>>,
 }
@@ -100,7 +101,7 @@ impl Data {
     }
 
     fn set_icon(&self, icon_id: icon::Id) {
-        let size = Vector2(icon::SIZE, icon::SIZE);
+        let size = Vector2(SIZE, SIZE);
         let icon = icon_id.create_shape(size);
         icon.strong_color.set(color::Rgba::from(self.strong_color.get()).into());
         icon.weak_color.set(color::Rgba::from(self.weak_color.get()).into());

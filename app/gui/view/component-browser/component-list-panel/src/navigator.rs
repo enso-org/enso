@@ -20,11 +20,13 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use ensogl_tooltip::Tooltip;
 use grid::Col;
 use grid::Row;
-use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
 
-type Grid = grid::selectable::GridView<icon::View>;
+mod entry;
+mod icon;
+
+type Grid = grid::selectable::GridView<entry::View>;
 
 
 
@@ -61,7 +63,7 @@ pub struct Style {
     pub highlight_corners_radius: f32,
 }
 
-impl From<Style> for icon::Params {
+impl From<Style> for entry::Params {
     fn from(style: Style) -> Self {
         Self {
             hover_color:              style.hover_color.into(),
@@ -190,9 +192,9 @@ impl Navigator {
                 ((row, col), colors) {
                     let section_id = loc_to_section_id(&(*row, *col));
                     let icon_id = section_id_to_icon_id(section_id);
-                    let active_colors = icon::Colors::monochrome(colors.get(section_id));
-                    let inactive_colors = icon::Colors::monochrome(colors.inactive);
-                    let model = icon::Model::new(icon_id, active_colors, inactive_colors);
+                    let active_colors = entry::Colors::monochrome(colors.get(section_id));
+                    let inactive_colors = entry::Colors::monochrome(colors.inactive);
+                    let model = entry::Model::new(icon_id, active_colors, inactive_colors);
                     (*row, *col, model)
                 }
             ));
@@ -201,8 +203,8 @@ impl Navigator {
             model <- top_buttons.model_for_entry_needed.map2(&colors.update, f!([]
                 ((row, col), colors) {
                     let icon_id = TOP_BUTTONS.get(*row).cloned().unwrap_or_default();
-                    let colors = icon::Colors::monochrome(colors.inactive);
-                    let model = icon::Model::new(icon_id, colors, colors);
+                    let colors = entry::Colors::monochrome(colors.inactive);
+                    let model = entry::Model::new(icon_id, colors, colors);
                     (*row, *col, model)
                 }
             ));
@@ -253,10 +255,10 @@ impl Navigator {
         let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
         self.top_buttons.set_viewport(top_buttons_viewport);
         self.bottom_buttons.set_viewport(bottom_buttons_viewport);
-        let buttons_params = icon::Params::from(style.navigator.clone());
+        let buttons_params = entry::Params::from(style.navigator.clone());
         self.bottom_buttons.set_entries_params(buttons_params.clone());
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
-        let disabled_params = icon::Params {
+        let disabled_params = entry::Params {
             hover_color:              color::Lcha::transparent(),
             selection_color:          color::Lcha::transparent(),
             selection_size:           0.0,

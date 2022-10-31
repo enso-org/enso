@@ -80,7 +80,7 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, size: Vector2) -> $crate::entry::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::Any {
                 match self {$(
                     Self::$variant => {
                         let view = $name::View::new();
@@ -88,7 +88,7 @@ macro_rules! define_icons {
                         let strong_color = view.strong_color.clone_ref();
                         let weak_color = view.weak_color.clone_ref();
                         let view = Box::new(view);
-                        $crate::entry::icon::Any {view, strong_color, weak_color}
+                        $crate::Any {view, strong_color, weak_color}
                     }
                 )*}
             }
@@ -107,7 +107,7 @@ macro_rules! define_icons {
         }
 
         impl FromStr for Id {
-            type Err = $crate::entry::icon::UnknownIcon;
+            type Err = $crate::UnknownIcon;
             fn from_str(s: &str) -> Result<Id, Self::Err> {
                 match s {
                     $(stringify!($variant) => Ok(Self::$variant),)*
