@@ -144,7 +144,7 @@ object DistributionPackage {
     }
     copyFilesIncremental(
       Seq(file(parser)),
-      distributionRoot / "native-libraries",
+      distributionRoot / "component",
       cacheFactory.make("engine-parser-library")
     )
 
