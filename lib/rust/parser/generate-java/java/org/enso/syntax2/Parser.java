@@ -27,15 +27,16 @@ public final class Parser implements AutoCloseable {
     } catch (URISyntaxException | LinkageError e) {
       System.err.println("Cannot load " + parser);
       File root = new File(".").getAbsoluteFile();
-      for (var dir = new File(new File(new File(root, "target"), "rust"), "debug");;) {
+      for (;;) {
+        var dir = new File(new File(new File(root, "target"), "rust"), "debug");
         parser = new File(dir, name);
         try {
           System.load(parser.getAbsolutePath());
           System.err.println("Succeeded loading " + parser.getAbsolutePath());
           break;
         } catch (LinkageError err) {
-          dir = dir.getParentFile();
-          if (dir == null) {
+          root = root.getParentFile();
+          if (root == null) {
             throw err;
           }
         }
