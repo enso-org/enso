@@ -38,6 +38,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
+  public void testSpacesAtTheEndOfFile() throws Exception {
+    var fourSpaces = "    ";
+    parseTest("""
+    main = add_ten 5
+    """ + fourSpaces);
+  }
+
+  @Test
   public void testCase() throws Exception {
     parseTest("""
     type Msg

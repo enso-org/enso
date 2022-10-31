@@ -169,7 +169,7 @@ trait InterpreterRunner {
   )(implicit interpreterContext: InterpreterContext): MainMethod = {
     interpreterContext.output.reset()
     val module = InterpreterException.rethrowPolyglot(
-      interpreterContext.executionContext.evalModule(code, "Test")
+      interpreterContext.executionContext.evalModule(code.trim(), "Test")
     )
     val assocCons    = module.getAssociatedType
     val mainFunction = module.getMethod(assocCons, "main").get
