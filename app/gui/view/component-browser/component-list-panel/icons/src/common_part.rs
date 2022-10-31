@@ -57,7 +57,7 @@ pub fn arc(outer_radius: f32, stroke_width: f32, start_angle: f32, end_angle: f3
     (circle * angle).into()
 }
 
-/// TODO docs
+/// An 2d-array of squares of size `cell_size`.
 pub fn table(columns: i32, rows: i32, cell_size: f32) -> AnyShape {
     const GAP: f32 = 1.0;
 

@@ -175,8 +175,8 @@ impl Default for Theme {
 define_themes! { [light:0, dark:1]
     application {
         // Original RGB values (for reference after fixing color-conversion issues)
-        // light: rgb(249,250,251), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        // light: rgb(231,235,238), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
+        background = Rgb::from_base_255(231.0, 235.0, 238.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -187,7 +187,7 @@ define_themes! { [light:0, dark:1]
                 width = 400.0, 400.0;
             }
             component_list_panel {
-                background_color = Rgba(1.0, 1.0, 1.0, 0.64),Rgba(1.0, 1.0, 1.0, 0.64);
+                background_color = Rgb::from_base_255(238.0, 238.0, 241.0),Rgb::from_base_255(238.0, 238.0, 241.0);
                 corners_radius = 16.0, 16.0;
                 grid {
                     width = 414.0, 414.0;

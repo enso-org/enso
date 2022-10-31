@@ -3930,7 +3930,6 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
- "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-selector",
  "ensogl-shadow",

@@ -59,9 +59,9 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
+use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
-use ensogl_list_view as list_view;
 use ensogl_shadow as shadow;
 
 
@@ -178,7 +178,7 @@ mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        below = [grid::entry::background, list_view::overlay];
+        below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
