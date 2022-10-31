@@ -345,7 +345,7 @@ public class Builtins {
             .map(
                 line -> {
                   String[] builtinMeta = line.split(":");
-                  if (builtinMeta.length < 2 || builtinMeta.length > 4) {
+                  if (builtinMeta.length != 4) {
                     throw new CompilerError("Invalid builtin metadata in: " + line);
                   }
                   String[] builtinName = builtinMeta[0].split("\\.");
