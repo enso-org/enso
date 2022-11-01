@@ -28,6 +28,7 @@ use web::JsCast;
 use web::JsValue;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -203,13 +204,15 @@ pub struct Callbacks {
 // === Scene Instance ===
 // ======================
 
-static mut SCENE: Option<Scene> = None;
+thread_local! {
+    /// Global scene reference. See the [`scene`] function to learn more.
+    pub static SCENE: RefCell<Option<Scene>> = RefCell::new(None);
+}
 
 /// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
 /// and should be instantiated before any callback is run.
-#[allow(unsafe_code)]
-pub fn scene() -> &'static Scene {
-    unsafe { SCENE.as_ref().unwrap() }
+pub fn scene() -> Scene {
+    SCENE.with_borrow(|t| t.clone().unwrap())
 }
 
 
@@ -253,10 +256,7 @@ impl WorldData {
             log_render_stats(*stats)
         }));
 
-        #[allow(unsafe_code)]
-        unsafe {
-            SCENE = Some(default_scene.clone_ref());
-        }
+        SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
 
         Self {
             frp,

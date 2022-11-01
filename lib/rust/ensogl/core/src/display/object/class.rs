@@ -304,8 +304,13 @@ impl<Host> Model<Host> {
             parent_layers_changed
         };
 
-        let new_layer_opt =
-            layer_changed.as_some_from(|| ite!(has_assigned_layer, assigned_layer, parent_layer));
+        let new_layer_opt = layer_changed.as_some_from(|| {
+            if has_assigned_layer {
+                assigned_layer
+            } else {
+                parent_layer
+            }
+        });
         if let Some(new_layer) = new_layer_opt {
             debug_span!("Scene layer changed.").in_scope(|| {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());

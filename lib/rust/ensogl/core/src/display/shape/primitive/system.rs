@@ -317,9 +317,9 @@ impl ShapeSystemModel {
         self.reload_shape();
     }
 
-    // TODO: We should handle these attributes in a nicer way. Currently, they are hardcoded here,
-    //       and we use magic to access them in shader builders. Defines a default material of
-    //       this system.
+    // TODO[WD]: We should handle these attributes in a nicer way. Currently, they are hardcoded
+    //     here, and we use magic to access them in shader builders.
+    /// Defines a default material of this system.
     fn default_material() -> Material {
         let mut material = Material::new();
         material.add_input("pixel_ratio", 1.0);

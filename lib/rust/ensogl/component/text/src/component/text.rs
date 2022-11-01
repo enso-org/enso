@@ -667,9 +667,10 @@ impl Text {
 impl Text {
     /// Add the text area to a specific scene layer.
     // TODO https://github.com/enso-org/ide/issues/1576
-    //     This function should not be needed - normal `layer.add(this)` should be enough. However,
-    //     we are using layer to compute the screen to object space position (see the
-    //     [`screen_to_object_space`] function). This should be done in a more generic way.
+    //     You should use this function to add text to a layer instead of just `layer.add` because
+    //     currently the text needs to store reference to the layer to perform screen to object
+    //     space position conversion (it needs to know the camera transformation). This should be
+    //     improved in the future and normal `layer.add` should be enough.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.layer.set(layer.clone_ref());
         layer.add(self);
@@ -823,6 +824,8 @@ impl TextModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
+            // We are adding half of the gap here, so if someone clicks between the lines, the line
+            // closer to the mouse pointer will be selected.
             let height = line.baseline() + line.metrics().descender + line.metrics().gap / 2.0;
             if height < object_space.y {
                 break;
@@ -1203,7 +1206,8 @@ impl TextModel {
             let end_location = Location(selection_end_line, buffer_selection.end.offset);
             let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
             let width = end_pos.x - start_pos.x;
-            // FIXME: This does not work nicely for multi-line selection.
+            // FIXME[WD]: This does not work nicely for multi-line selection.
+            //     See: https://www.pivotaltracker.com/story/show/183691214.
             let metrics = self.lines.borrow()[selection_start_line].metrics();
             let prev_selection = self.selection_map.borrow_mut().id_map.remove(&id);
             let reused_selection = prev_selection.is_some();

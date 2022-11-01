@@ -164,6 +164,9 @@ pub fn main() {
 
 // TODO: pub fn extend do define_endpoints_2
 // TODO: rename examples - like compelxshapesystem -> shape system
+// TODO: better docs in shape system
+// TODO: clean this code
+// TODO: change gloval DEBUG -> WARN
 
 fn init(app: Application) {
     let area = app.new_view::<Text>();

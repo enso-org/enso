@@ -111,7 +111,7 @@ impl<S: Shape> ShapeViewModel<S> {
     pub fn new_with_data(data: S::ShapeData) -> Self {
         let scene = scene();
         // FIXME: "something"
-        let (shape, something) = scene.layers.root.instantiate(scene, &data);
+        let (shape, something) = scene.layers.root.instantiate(&scene, &data);
         let events = PointerTarget::new();
         let pointer_targets = RefCell::new(vec![something.global_instance_id]);
         let data = RefCell::new(data);
@@ -145,7 +145,6 @@ impl<S: Shape> ShapeViewModel<S> {
                 layer.remove_shape_system(shape_system_id);
             }
         }
-        // self.shape.drop_all_instances();
         self.unregister_existing_mouse_targets();
     }
 }

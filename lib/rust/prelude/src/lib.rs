@@ -119,16 +119,6 @@ mod anyhow_macros {
 }
 pub use anyhow_macros::*;
 
-#[macro_export]
-macro_rules! ite {
-    ($cond:expr, $if_true:expr, $if_false:expr) => {
-        if $cond {
-            $if_true
-        } else {
-            $if_false
-        }
-    };
-}
 
 /// Module designed to be used in an explicit way. After importing `prelude::*` you can use it for
 /// example as `std_ext::range::merge_overlapping_ranges(...)`.

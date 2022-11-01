@@ -1,12 +1,19 @@
 //! FRP bindings for browser `setTimeout` timer.
 
 use crate::prelude::*;
-pub use enso_web::traits::*;
 
 use crate as frp;
 
 use enso_web::window;
 use enso_web::Closure;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use enso_web::traits::*;
+
 
 
 // ================

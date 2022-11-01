@@ -9,6 +9,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -100,8 +101,10 @@ struct RegistryModel<F: ?Sized> {
     is_running:               Cell<bool>,
     #[derivative(Debug = "ignore")]
     callback_list:            RefCell<Vec<(Guard, Box<F>)>>,
-    /// Callback list used to register new callbacks when this registry is running. During run,
-    /// the [`callback_list`] is borrowed and thus can't be mutated.
+    /// Temporary buffer to store new callbacks that are registered while the registry is running.
+    /// During a run, the [`callback_list`] is borrowed and thus new callbacks cannot be added
+    /// because it cannot be mutated. The buffer is processed and emptied after the registry
+    /// has finished processing the existing callbacks.
     #[derivative(Debug = "ignore")]
     callback_list_during_run: RefCell<Vec<(Guard, Box<F>)>>,
 }
@@ -193,7 +196,6 @@ impl<F: ?Sized> RegistryModel<F> {
 ///   [`T2`] will be passed as copies.
 /// - The [`Ref1`] registry accepts callbacks in a form of [`FnMut(&T1)`].
 /// - The [`NoArgs`] registry is a registry for [`FnMut()`] functions.
-/// - The [`NoArgs`] registry is a registry for [`FnMut()`] functions.
 ///
 /// It is possible to define a registry which uses an unwrapped closure or a callback whose
 /// arguments are a mix of references and copy-able values. However, such types need to be defined
@@ -244,8 +246,7 @@ mod callback_types {
 // ======================
 
 /// Generator of traits allowing the usage of a [`run_all`] function. It is an alias for the
-/// [`Registry::run_impl`] where arguments are passed in a convenient way, instead than in
-/// a tuple.
+/// [`Registry::run_impl`] where values are not passed as a tuple but as separate arguments.
 macro_rules! gen_runner_traits {
     ($name:ident, $ref_name:ident, ($($arg:ident),*)) => {
         #[allow(non_snake_case)]
@@ -432,7 +433,9 @@ impl DynEventDispatcher {
 /// # Conclusion
 /// For small amount of elems (< 10), all implementations seem to provide so similar times that
 /// there is no difference between them. For large amount of elems (~ 1M), the HashMap
-/// implementation is significantly slower.
+/// implementation is significantly slower. The HashMap implementation can be provided with a custom
+/// hasher function, which might improve it for a bigger collection. However, for small collections,
+/// vec should always be fastest.
 
 #[cfg(test)]
 mod tests {

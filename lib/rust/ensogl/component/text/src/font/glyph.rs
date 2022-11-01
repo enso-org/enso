@@ -81,10 +81,10 @@ impl SystemData {
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
         material.add_input("sdf_weight", 0.0);
-        // FIXME We need to use this output, as we need to declare the same amount of shader
-        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
-        // FIXME intelligent. For example, we could allow defining output shader fragments,
-        // FIXME which will be enabled only if pass of given attachment type was enabled.
+        // TODO[WD]: We need to use this output, as we need to declare the same amount of shader
+        //     outputs as the number of attachments to framebuffer. We should manage this more
+        //     intelligent. For example, we could allow defining output shader fragments,
+        //     which will be enabled only if pass of given attachment type was enabled.
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
 
         let code = CodeTemplate::new(FUNCTIONS, MAIN, "");
