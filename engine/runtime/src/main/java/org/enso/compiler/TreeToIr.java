@@ -516,6 +516,18 @@ final class TreeToIr {
     return switch (tree) {
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
+        if (op == null) {
+          var at = getIdentifiedLocation(app);
+          var arr = app.getOpr().getLeft().getOperators();
+          if (arr.size() > 0 && arr.get(0).codeRepr().equals("=")) {
+              var errLoc = arr.size() > 1 ? getIdentifiedLocation(arr.get(1)) : at;
+              var err = new IR$Error$Syntax(errLoc.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+              var name = buildName(app.getLhs());
+              yield new IR$Expression$Binding(name, err, at, meta(), diag());
+          } else {
+              yield new IR$Error$Syntax(at.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+          }
+        }
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);

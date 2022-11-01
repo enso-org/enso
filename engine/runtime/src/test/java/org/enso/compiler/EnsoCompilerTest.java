@@ -511,6 +511,16 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testEmptyGroup2AndAtSymbol() throws Exception {
+    parseTest("""
+    main =
+        x = ()
+        x = 5
+        y = @
+    """);
+  }
+
+  @Test
   public void testTestGroupSimple() throws Exception {
     parseTest("""
     group1 : Text -> Any -> (Text | Nothing) -> Nothing
