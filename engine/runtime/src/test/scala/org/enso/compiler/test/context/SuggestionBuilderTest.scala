@@ -21,11 +21,16 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     .asHostObject[Context]()
 
   implicit private class PreprocessModule(code: String) {
-    def preprocessModule: IR.Module = {
-      val module = new runtime.Module(Module, null, code)
+
+    def preprocessModule(name: QualifiedName): IR.Module = {
+      val module = new runtime.Module(name, null, code)
       langCtx.getCompiler.run(module)
       module.getIr
     }
+
+    def preprocessModule: IR.Module =
+      preprocessModule(Module)
+
   }
 
   private val Module = QualifiedName(List("Unnamed"), "Test")
@@ -373,6 +378,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "MyType",
               params        = Seq(),
               returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -434,6 +440,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.MyAtom",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -480,6 +487,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "MyAtom",
               params        = Seq(),
               returnType    = "Unnamed.Test.MyAtom",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -529,6 +537,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "My_Atom",
               params        = Seq(),
               returnType    = "Unnamed.Test.My_Atom",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -562,6 +571,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Other_Atom",
               params        = Seq(),
               returnType    = "Unnamed.Test.Other_Atom",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -656,6 +666,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "A",
               params        = Seq(),
               returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -712,6 +723,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -777,6 +789,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "MyMaybe",
               params        = Seq(),
               returnType    = "Unnamed.Test.MyMaybe",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -829,6 +842,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "New",
               params        = Seq(),
               returnType    = "Unnamed.Test.New",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1056,6 +1070,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "A",
               params        = Seq(),
               returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1266,6 +1281,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "A",
               params        = Seq(),
               returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1318,6 +1334,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "MyType",
               params        = Seq(),
               returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1395,6 +1412,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Mtp",
               params        = Seq(),
               returnType    = "Unnamed.Test.Mtp",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = Some(" My sweet type")
             ),
             Vector()
@@ -1469,6 +1487,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Maybe",
               params        = Seq(),
               returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1541,6 +1560,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Maybe",
               params        = Seq(),
               returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = Some(" When in doubt")
             ),
             Vector()
@@ -1614,6 +1634,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "List",
               params        = Seq(),
               returnType    = "Unnamed.Test.List",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1681,6 +1702,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Maybe",
               params        = Seq(),
               returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1748,6 +1770,70 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build Integer type" in {
+
+      val code = "type Integer"
+      val moduleName =
+        QualifiedName.fromString("Standard.Base.Data.Numbers")
+      val module = code.preprocessModule(moduleName)
+
+      build(code, module, moduleName) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Module(
+              module        = moduleName.toString,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = moduleName.toString,
+              name          = "Integer",
+              params        = Seq(),
+              returnType    = moduleName.createChild("Integer").toString,
+              parentType    = Some(moduleName.createChild("Number").toString),
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build Number type" in {
+
+      val code = "type Number"
+      val moduleName =
+        QualifiedName.fromString("Standard.Base.Data.Numbers")
+      val module = code.preprocessModule(moduleName)
+
+      build(code, module, moduleName) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Module(
+              module        = moduleName.toString,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = moduleName.toString,
+              name          = "Number",
+              params        = Seq(),
+              returnType    = moduleName.createChild("Number").toString,
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build module with simple atom" in {
       val code =
         """type MyType
@@ -1766,6 +1852,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "MyType",
               params        = Seq(),
               returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1853,6 +1940,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "Test",
               params        = Seq(),
               returnType    = "Unnamed.Test.Test",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -1929,6 +2017,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name          = "A",
               params        = List(),
               returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
@@ -2200,6 +2289,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     }
   }
 
-  private def build(source: String, ir: IR.Module): Tree.Root[Suggestion] =
-    SuggestionBuilder(source).build(Module, ir)
+  private def build(
+    source: String,
+    ir: IR.Module,
+    module: QualifiedName = Module
+  ): Tree.Root[Suggestion] =
+    SuggestionBuilder(source).build(module, ir)
 }
