@@ -1252,10 +1252,14 @@ final class TreeToIr {
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
-    return Option.apply(ast).map(ast_ -> {
-      int begin = Math.toIntExact(ast_.getStartCode());
-      int end = Math.toIntExact(ast_.getEndCode());
-      return new IdentifiedLocation(new Location(begin, end), Option.empty());
+    return Option.apply(switch (ast) {
+        case null -> null;
+        default -> {
+            var begin = Math.toIntExact(ast.getStartCode());
+            var end = Math.toIntExact(ast.getEndCode());
+            var someId = Option.apply(ast.uuid());
+            yield new IdentifiedLocation(new Location(begin, end), someId);
+        }
     });
   }
 

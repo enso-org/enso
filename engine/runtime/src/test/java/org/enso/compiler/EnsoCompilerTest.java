@@ -981,42 +981,49 @@ public class EnsoCompilerTest {
     """);
   }
 
-  static String simplifyIR(IR i) {
-    var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-    for (;;) {
-      final String pref = "IdentifiedLocation(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = at + pref.length();
-      int depth = 1;
-      while (depth > 0) {
-        switch (txt.charAt(to)) {
-          case '(' -> depth++;
-          case ')' -> depth--;
+  static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
+    var txt = i.pretty();
+    if (noIds) {
+      txt = txt.replaceAll("id = [0-9a-f\\-]*", "id = _");
+    }
+    if (noLocations) {
+        for (;;) {
+          final String pref = "IdentifiedLocation(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = at + pref.length();
+          int depth = 1;
+          while (depth > 0) {
+            switch (txt.charAt(to)) {
+              case '(' -> depth++;
+              case ')' -> depth--;
+            }
+            to++;
+          }
+          txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
         }
-        to++;
-      }
-      txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
     }
-    for (;;) {
-      final String pref = "IR.Comment.Documentation(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = txt.indexOf("location =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
-    }
-    for (;;) {
-      final String pref = "IR.Case.Pattern.Doc(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = txt.indexOf("location =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+    if (lessDocs) {
+        for (;;) {
+          final String pref = "IR.Comment.Documentation(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+        }
+        for (;;) {
+          final String pref = "IR.Case.Pattern.Doc(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+        }
     }
     for (;;) {
       final String pref = "IR.Error.Syntax(";
@@ -1030,8 +1037,12 @@ public class EnsoCompilerTest {
     return txt;
   }
 
+  private static void parseTest(String code) throws IOException {
+      parseTest(code, true, true, true);
+  }
+
   @SuppressWarnings("unchecked")
-  static void parseTest(String code) throws IOException {
+  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
@@ -1039,7 +1050,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
+    Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);
