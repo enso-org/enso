@@ -81,7 +81,6 @@ use ide_ci::cache::Cache;
 use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::global;
-use ide_ci::log::setup_logging;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git::clean;
@@ -749,14 +748,21 @@ impl WatchResolvable for Gui {
     }
 }
 
-#[tracing::instrument(err)]
-pub async fn main_internal(config: enso_build::config::Config) -> Result {
-    setup_logging()?;
+#[tracing::instrument(err, skip(config))]
+pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result {
+    trace!("Starting the build process.");
+    let config = config.unwrap_or_else(|| {
+        warn!("No config provided, using default config.");
+        enso_build::config::Config::default()
+    });
 
+    trace!("Creating the build context.");
     // Setup that affects Cli parser construction.
     if let Some(wasm_size_limit) = config.wasm_size_limit {
         crate::arg::wasm::initialize_default_wasm_size_limit(wasm_size_limit)?;
     }
+
+    debug!("Initial configuration for the CLI driver: {config:#?}");
 
     let cli = Cli::parse();
 
@@ -882,8 +888,10 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
     Ok(())
 }
 
-pub fn lib_main(config: enso_build::config::Config) -> Result {
+pub fn lib_main(config: Option<enso_build::config::Config>) -> Result {
+    trace!("Starting the tokio runtime.");
     let rt = tokio::runtime::Runtime::new()?;
+    trace!("Entering main.");
     rt.block_on(async { main_internal(config).await })?;
     rt.shutdown_timeout(Duration::from_secs(60 * 30));
     info!("Successfully ending.");

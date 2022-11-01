@@ -74,7 +74,7 @@ pub mod prelude {
     pub use crate::extensions::path::PathExt as _;
     pub use crate::extensions::pathbuf::PathBufExt as _;
     pub use crate::extensions::result::ResultExt as _;
-    pub use crate::extensions::str::StrLikeExt;
+    pub use crate::extensions::str::StrLikeExt as _;
 
     pub use anyhow::anyhow;
     pub use anyhow::bail;

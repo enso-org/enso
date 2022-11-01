@@ -18,6 +18,7 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_DATA_DIRECTORY;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
@@ -408,13 +409,17 @@ impl RunContext {
             enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
         }
 
-        // if build_native_runner {
-        //     Command::new("./runner")
-        //         .current_dir(&self.repo_root)
-        //         .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
-        //         .run_ok()
-        //         .await?;
-        // }
+        if build_native_runner {
+            Command::new("./runner")
+                .current_dir(&self.repo_root)
+                .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
+                .env(
+                    ENSO_DATA_DIRECTORY,
+                    &self.paths.repo_root.built_distribution.enso_engine_triple,
+                )
+                .run_ok()
+                .await?;
+        }
 
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?

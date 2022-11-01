@@ -16,6 +16,10 @@ ide_ci::define_env_var! {
     /// Directory where JUnit-format test run results are stored.
     /// These are generated as part of the standard library test suite run.
     ENSO_TEST_JUNIT_DIR, PathBuf;
+
+    /// Used to overwrite the default location of data directory. See:
+    /// <https://enso.org/docs/developer/enso/distribution/distribution.html#installed-enso-distribution-layout>.
+    ENSO_DATA_DIRECTORY, PathBuf;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
@@ -264,18 +268,21 @@ pub fn root_to_changelog(root: impl AsRef<Path>) -> PathBuf {
 
 /// The default value of `ENSO_DATA_DIRECTORY`.
 /// See: <https://enso.org/docs/developer/enso/distribution/distribution.html#installed-enso-distribution-layout>
+///
+/// We use it as a fallback when the environment variable is not set.
 pub fn default_data_directory() -> PathBuf {
     let project_path = match TARGET_OS {
         OS::MacOS => "org.enso",
         _ => "enso",
     };
     // We can unwrap, because all systems we target define data local directory.
+    // This is enforced by the unit test below.
     dirs::data_local_dir().unwrap().join(project_path)
 }
 
 /// Get the `ENSO_DATA_DIRECTORY` path.
 pub fn data_directory() -> PathBuf {
-    std::env::var_os("ENSO_DATA_DIRECTORY").map_or_else(default_data_directory, PathBuf::from)
+    ENSO_DATA_DIRECTORY.get().unwrap_or_else(|_| default_data_directory())
 }
 
 /// Get the place where global IR caches are stored.
@@ -300,5 +307,16 @@ pub fn parent_cargo_toml(initial_path: impl AsRef<Path>) -> Result<PathBuf> {
         }
         path.pop();
         ensure!(path.pop(), "No Cargo.toml found for {}", initial_path.as_ref().display());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_data_directory_is_present() {
+        // We just check that the function does not panic, as it has unwrap.
+        default_data_directory();
     }
 }

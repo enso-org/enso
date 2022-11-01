@@ -297,8 +297,6 @@ impl IdeDesktop {
         // When watching we expect our artifacts to be served through server, not appear in any
         // specific location on the disk.
         let output_path = TempDir::new()?;
-        // let span = tracing::
-        // let wasm = wasm.inspect()
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         Span::current().record("wasm", watch_environment.wasm.as_str());
