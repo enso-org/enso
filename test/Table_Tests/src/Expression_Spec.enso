@@ -1,0 +1,67 @@
+from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Error
+
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+
+import Standard.Visualization
+
+from Standard.Test import Test, Test_Suite, Problems
+
+import project.Common_Table_Spec
+from project.Util import all
+
+spec =
+    # Create Test Table
+    column_a = ["A", [1,2,3,4,5]]
+    column_b = ["B", [1.0,1.5,2.5,4,6]]
+    column_odd = ["Bad] Name", [True, False, True, False, True]]
+    test_table = Table.new [column_a, column_b, column_odd]
+
+    specify_test specify expression value =
+        Test.specify (specify + ": " + expression) <|
+            new_table = test_table.set "NEW_COL" expression
+            new_table.column_count . should_equal (test_table.column_count + 1)
+            new_column = new_table.at -1
+            new_column.name . should_equal "NEW_COL"
+            expected = case value of
+                _ : Vector.Vector -> value
+                _ -> Vector.new test_table.row_count _->value
+            new_column.to_vector . should_equal expected
+
+    Test.group "Expression Integer literals" <|
+        expression_test = specify_test "should be able to add an integer column"
+        expression_test "1" 1
+        expression_test "-3" -3
+        expression_test "1_000" 1000
+
+    Test.group "Expression Decimal literals" <|
+        expression_test = specify_test "should be able to add an decimal column"
+        expression_test "1.23" 1.23
+        expression_test "-3.1415" -3.1415
+        expression_test "1_000.456" 1000.456
+
+    Test.group "Expression Boolean literals" <|
+        expression_test = specify_test "should be able to add a boolean column"
+        expression_test "True" True
+        expression_test "true" True
+        expression_test "TRUE" True
+        expression_test "False" False
+        expression_test "false" False
+        expression_test "FALSE" False
+
+    Test.group "Expression Nothing literals" <|
+        expression_test = specify_test "should be able to add a nothing column"
+        expression_test "null" Nothing
+        expression_test "Nothing" Nothing
+
+    Test.group "Expression Arithmetic" <|
+        expression_test = specify_test "should be able to do basic arithmetic"
+        expression_test "1+1" 2
+        expression_test "23-15" 8
+        expression_test "2.5*4.2" 10.5
+        expression_test "1_000.456/2" 500.228
+        expression_test "2^4" 16
+        expression_test "11%3" 2
+
+
+main = Test_Suite.run_main spec

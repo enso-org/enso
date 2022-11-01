@@ -551,18 +551,17 @@ type Column
         fallback a b = a.if_nothing b
         run_vectorized_many_op self "coalesce" fallback values
 
-    ## Returns a column of minimum non-Nothing value on each row of `self` and
-       `values` list.
+    ## Returns a column of minimum on each row of `self` and `values` list.
 
        Arguments:
        - values: list of columns or values to minimum with `self`.
 
        > Example
-         Get the first minimum value in two columns.
+         Get the minimum value in two columns.
 
              import Standard.Examples
 
-             example_coalesce = Examples.decimal_column.min Examples.integer_column
+             example_min = Examples.decimal_column.min Examples.integer_column
     min : (Any | Vector Any) -> Column
     min self values =
         fallback a b = if a.is_nothing then b else
@@ -570,18 +569,17 @@ type Column
                 if b < a then b else a
         run_vectorized_many_op self "minimum" fallback values
 
-    ## Returns a column of maximum non-Nothing value on each row of `self` and
-       `values` list.
+    ## Returns a column of maximum on each row of `self` and `values` list.
 
        Arguments:
        - values: list of columns or values to maximum with `self`.
 
        > Example
-         Get the first minimum value in two columns.
+         Get the maximum value in two columns.
 
              import Standard.Examples
 
-             example_coalesce = Examples.decimal_column.max Examples.integer_column
+             example_max = Examples.decimal_column.max Examples.integer_column
     max : (Any | Vector Any) -> Column
     max self values =
         fallback a b = if a.is_nothing then b else
@@ -1282,7 +1280,7 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
             folded = operands.fold column.java_column.getStorage current->operand->
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
-                    _ -> current.bimap name fallback_fn operand False
+                    _ -> current.bimap name fallback_fn operand skip_nulls
             Column.Column_Data (Java_Column.new new_name column.java_column.getIndex folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name

@@ -495,7 +495,46 @@ type Column
         _ : Vector.Vector ->
             if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
                 self.make_op "COALESCE" values new_type=self.sql_type
+        _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
+
+    ## Returns a column of minimum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to minimum with `self`.
+
+       > Example
+         Get the minimum value in two columns.
+
+             import Standard.Examples
+
+             example_min = Examples.decimal_column.min Examples.integer_column
+    min : (Any | Vector Any) -> Column
+    min self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "ROW_MIN" values new_type=self.sql_type
+        _ : Array -> self.min (Vector.from_polyglot_array values)
+        _ -> self.min [values]
+
+    ## Returns a column of maximum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to maximum with `self`.
+
+       > Example
+         Get the maximum value in two columns.
+
+             import Standard.Examples
+
+             example_max = Examples.decimal_column.max Examples.integer_column
+    max : (Any | Vector Any) -> Column
+    max self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "ROW_MAX" values new_type=self.sql_type
+        _ : Array -> self.max (Vector.from_polyglot_array values)
+        _ -> self.max [values]
 
     ## UNSTABLE
 

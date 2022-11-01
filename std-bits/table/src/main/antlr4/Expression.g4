@@ -15,8 +15,8 @@ expr:   expr op=POWER expr                                # Power
     |   IF expr THEN expr ELSE expr END?                  # If
     |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function
     |   '(' expr ')'                                      # Paren
-    |   MINUS expr                                        # UnaryMinus
     |   COLUMN_NAME                                       # Column
+    |   MINUS expr                                        # UnaryMinus
     |   value                                             # Literal
     ;
 
@@ -108,7 +108,7 @@ TIME : HOUR TIME_PART TIME_PART? ;
 DATE_TIME : YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART TIME_PART? UTCOFFSET? TIMEZONE? ;
 
 fragment INTEGER : '0' | [1-9] (DIGIT | '_')* ;
-NUMBER : '-'? INTEGER ('.' INTEGER)? ;
+NUMBER : INTEGER ('.' INTEGER)? ;
 
 value
     :   (NULL | NOTHING)       # nullOrNothing

@@ -105,6 +105,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value wrapAsColumn(Value value) {
+    if (value.isNull()) {
+      return  makeConstantColumn.apply(value);
+    }
+
     var metaObject = value.getMetaObject();
     return metaObject != null && metaObject.asHostObject() instanceof Class<?>
         ? makeConstantColumn.apply(value)
@@ -121,7 +125,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     if (this.variableArgumentFunctions.contains(name)) {
       objects = new Object[2];
       objects[0] = args[0];
-      objects[1] = Arrays.copyOfRange(args, 1, args.length - 1, Object[].class);
+      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
     } else {
       objects = Arrays.copyOf(args, args.length, Object[].class);
     }
