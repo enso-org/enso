@@ -77,7 +77,7 @@ spec = Test.group "Dataflow Warnings" <|
         mtp.should_equal (My_Type.Value 1 2 3)
         Warning.get_all mtp . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
 
-    Test.specify "should thread warnings through method calls"
+    Test.specify "should thread warnings through method calls" <|
         mtp = My_Type.Value 1 2 3
         warned = Warning.attach "omgggg" mtp
         r = warned.my_method

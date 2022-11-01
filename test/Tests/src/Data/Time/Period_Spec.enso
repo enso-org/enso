@@ -1,0 +1,43 @@
+from Standard.Base import all
+from Standard.Test import Test, Test_Suite
+from Standard.Base.Data.Time import Period
+
+spec =
+    Test.group "Period" <|
+        Test.specify "should create period years" <|
+            period = (Period.years 5)
+            period.years . should_equal 5
+            period.days . should_equal 0
+
+        Test.specify "should add two Periods" <|
+            ((Period.years 1) + (Period.years 2)).years . should_equal 3
+            ((Period.days 1) + (Period.months 2)).days . should_equal 1
+            ((Period.days 1) + (Period.months 2)).months . should_equal 2
+            ((Period.months 2) + (Period.days 1)).days . should_equal 1
+            ((Period.months 2) + (Period.days 1)).months . should_equal 2
+
+        Test.specify "should subtract two Periods" <|
+            ((Period.years 2) - (Period.years 1)).years . should_equal 1
+            ((Period.years 1) - (Period.months 2)).months . should_equal (-2)
+            ((Period.years 1) - (Period.months 2)).years . should_equal 1
+
+        Test.specify "should get Period between two dates" <|
+            (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.years 50)
+            (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=(-50))
+            (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.days 13)
+
+        Test.specify "should not compare between two periods" <|
+            ((Period.days 10) > (Period.days 1)) . should_fail_with Incomparable_Values_Error
+            ((Period.years 10) > (Period.days 1)) . should_fail_with Incomparable_Values_Error
+            ((Period.new years=10 months=3) > (Period.months 5)) . should_fail_with Incomparable_Values_Error
+
+        Test.specify "two Periods are equal iff their fields are equal" <|
+            ((Period.days 1) == (Period.days 1)) . should_be_true
+            ((Period.months 12) == (Period.years 1)) . should_be_false
+            ((Period.months 3) == (Period.months 3)) . should_be_true
+            ((Period.days (-5)) == (Period.days (-5))) . should_be_true
+            ((Period.new years=1 days=10) == (Period.new years=1 days=10)) . should_be_true
+            ((Period.days 1) != (Period.months 1)) . should_be_true
+
+
+main = Test_Suite.run_main spec

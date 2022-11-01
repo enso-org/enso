@@ -1476,3 +1476,11 @@ spec prefix table_builder test_selection pending=Nothing =
             table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column_Error_Data
+
+        Test.specify "should visualize nicely" <|
+            table.rows . to_default_visualization_data . should_equal <|
+                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+
+            # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
+            t2 = table_builder [["X", 0.up_to 200 . to_vector]]
+            t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data

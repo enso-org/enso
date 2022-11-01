@@ -15,6 +15,18 @@ polyglot java import org.opencv.core.Scalar
 type Image
     ## UNSTABLE
 
+       The image data type.
+
+       Arguments:
+       - opencv_mat: The underlying matrix that stores the image data.
+
+       The image is represented with a matrix of rows x columns. Each
+       pixel is represented with a vector of 1 to 4 values (channels).
+       Pixel values are normalized in a range [0.0 .. 1.0].
+    Value opencv_mat
+
+    ## UNSTABLE
+
        Create an image from the array of values.
 
        Arguments:
@@ -101,18 +113,6 @@ type Image
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
         Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
             Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
-
-    ## UNSTABLE
-
-       The image data type.
-
-       Arguments:
-       - opencv_mat: The underlying matrix that stores the image data.
-
-       The image is represented with a matrix of rows x columns. Each
-       pixel is represented with a vector of 1 to 4 values (channels).
-       Pixel values are normalized in a range [0.0 .. 1.0].
-    Value opencv_mat
 
     ## UNSTABLE
 

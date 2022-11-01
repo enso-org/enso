@@ -139,15 +139,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
-  public void testIsDigitWithoutSpaces() throws Exception {
-    parseTest("""
-    compare =
-        is_digit=character -> 42
-    """);
-  }
-
-  @Test
   public void testComments() throws Exception {
     parseTest("""
     # a b c
@@ -405,7 +396,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // wrong order of exported symbols
   public void testExportFromTen() throws Exception {
     parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
   }
@@ -426,6 +416,27 @@ public class EnsoCompilerTest {
   public void testTextLiteralWithEscape() throws Exception {
     parseTest("""
     wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testRawBlockLiteral() throws Exception {
+    // mimics TextTest
+    parseTest("""
+    x = \"\"\"
+        Foo
+        Bar
+          Baz
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testVariousKindsOfUnicodeWhitespace() throws Exception {
+    // mimics Text_Spec.enso:1049
+    parseTest("""
+    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
     """);
   }
 
@@ -625,7 +636,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testExtensionOperator() throws Exception {
     parseTest("""
     Text.* : Integer -> Text
@@ -806,6 +816,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNameAsMethodApp() throws Exception {
+    parseTest("""
+    f = foo x=A.B
+    """);
+  }
+
+  @Test
   public void testIsMethodWithSpaces() throws Exception {
     parseTest("""
     f = 0.up_to . all f
@@ -850,6 +867,77 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testConstructorMultipleNamedArgs1() throws Exception {
+    parseTest("""
+    x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
+  public void testConstructorMultipleNamedArgs2() throws Exception {
+    parseTest("""
+    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  public void testDocAtEndOfBlock() throws Exception {
+    parseTest("""
+    x =
+      23
+      ## end of block
+    """);
+  }
+
+  @Test
+  public void testMethodSections() throws Exception {
+    parseTest("""
+    x = .from self=Foo
+    """);
+  }
+
+  static String simplifyIR(IR i) {
+    var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
+    for (;;) {
+      final String pref = "IdentifiedLocation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = at + pref.length();
+      int depth = 1;
+      while (depth > 0) {
+        switch (txt.charAt(to)) {
+          case '(' -> depth++;
+          case ')' -> depth--;
+        }
+        to++;
+      }
+      txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Comment.Documentation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Case.Pattern.Doc(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+    }
+    return txt;
+  }
+
   @SuppressWarnings("unchecked")
   static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
@@ -859,27 +947,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = (i) -> {
-      var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-      for (;;) {
-        final String pref = "IdentifiedLocation(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-      }
-      return txt;
-    };
+    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);

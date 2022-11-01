@@ -5,6 +5,8 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Object to generate (deterministic) random value for testing
 type Faker
+    Value generator
+
     upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
 
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
@@ -19,8 +21,6 @@ type Faker
     new (seed = 0) =
         generator = if seed == 0 then Random.new else Random.new seed
         Faker.Value generator
-
-    Value generator
 
     ## Creates a random Text based on a template of character sets.
 

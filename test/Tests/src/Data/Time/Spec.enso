@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Test import Test_Suite
 
 import project.Data.Time.Duration_Spec
+import project.Data.Time.Period_Spec
 import project.Data.Time.Time_Of_Day_Spec
 import project.Data.Time.Date_Spec
 import project.Data.Time.Date_Time_Spec
@@ -12,6 +13,7 @@ import project.Data.Time.Day_Of_Week_Spec
 spec =
     Date_Spec.spec
     Duration_Spec.spec
+    Period_Spec.spec
     Time_Of_Day_Spec.spec
     Date_Time_Spec.spec
     Time_Zone_Spec.spec
