@@ -17,6 +17,7 @@ import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
+import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Foreign$Definition;
@@ -553,6 +554,13 @@ final class TreeToIr {
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
+            if ("@".equals(op.codeRepr()) && lhs.value() instanceof IR$Application$Prefix fn) {
+                final Option<IdentifiedLocation> where = getIdentifiedLocation(op);
+                var err = new IR$Error$Syntax(where.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+                var errArg = new IR$CallArgument$Specified(Option.empty(), err, where, meta(), diag());
+                var args = cons(rhs, cons(errArg, fn.arguments()));
+                yield new IR$Application$Prefix(fn.function(), args.reverse(), false, getIdentifiedLocation(app), meta(), diag());
+            }
             var name = new IR$Name$Literal(
               op.codeRepr(), true, getIdentifiedLocation(app), meta(), diag()
             );
@@ -678,7 +686,8 @@ final class TreeToIr {
       case Tree.Group group -> {
           var in = translateExpression(group.getBody(), false);
           if (in == null) {
-              yield new IR$Error$Syntax(group, IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
+              var at = getIdentifiedLocation(group);
+              yield new IR$Error$Syntax(at.get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
           }
           yield in;
       }
