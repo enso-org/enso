@@ -414,7 +414,7 @@ impl RunContext {
                 .current_dir(&self.repo_root)
                 .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
                 .env(
-                    ENSO_DATA_DIRECTORY,
+                    ENSO_DATA_DIRECTORY.name(),
                     &self.paths.repo_root.built_distribution.enso_engine_triple,
                 )
                 .run_ok()
