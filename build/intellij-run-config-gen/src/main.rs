@@ -196,8 +196,8 @@ fn discover_paths_internal(map: &mut HashMap<String, Crate>, root_path: &Path, p
     let md = fs::metadata(path);
     let md = md.unwrap_or_else(|_| panic!("Could get metadata of {}", path.display()));
     if md.is_dir() {
-        let file_name = path.file_name().map(|t| t.to_string_lossy().to_string());
-        if file_name.map(|t| DIR_BLACK_LIST.contains(&t.as_ref())).unwrap_or(false) {
+        let dir_name = path.file_name().map(|t| t.to_string_lossy().to_string());
+        if dir_name.map(|t| DIR_BLACK_LIST.contains(&t.as_ref())).unwrap_or(false) {
             return;
         }
         let sub_paths = fs::read_dir(path).unwrap();

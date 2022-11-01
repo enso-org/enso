@@ -126,7 +126,7 @@ where
     R: Clone + RangeOverlap + RangeOps,
     <R as RangeOps>::Item: Clone + Ord, {
     crate::gen_iter!({
-        ranges.sort_unstable_by(|a, b| a.start().partial_cmp(b.start()).unwrap());
+        ranges.sort_unstable_by(|a, b| a.start().cmp(b.start()));
         let mut iter = ranges.into_iter();
         let opt_current = iter.next();
         if let Some(mut current) = opt_current {

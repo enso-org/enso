@@ -815,6 +815,7 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             try_join(git_clean, clean_cache).await?;
         }
         Target::Lint => {
+            println!("LINTING!!!");
             Cargo
                 .cmd()?
                 .current_dir(&ctx.repo_root)
