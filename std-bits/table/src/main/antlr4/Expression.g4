@@ -102,13 +102,15 @@ fragment HOUR : DIGIT DIGIT;
 fragment TIME_PART : ':' DIGIT DIGIT;
 fragment UTCOFFSET : ('Z' | ('+'|'-') HOUR TIME_PART?);
 fragment TIMEZONE : '[' (~']')+ ']';
+fragment INTEGER : '0' | [1-9] (DIGIT | '_')* ;
+fragment DECIMAL : '.' (DIGIT | '_')+;
 
 DATE : YEAR DATE_PART DATE_PART ;
-TIME : HOUR TIME_PART TIME_PART? ;
-DATE_TIME : YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART TIME_PART? UTCOFFSET? TIMEZONE? ;
+TIME : HOUR TIME_PART (TIME_PART DECIMAL?)? ;
+DATE_TIME : YEAR DATE_PART DATE_PART ('T' | ' ') HOUR TIME_PART (TIME_PART DECIMAL?)? UTCOFFSET? TIMEZONE? ;
 
-fragment INTEGER : '0' | [1-9] (DIGIT | '_')* ;
-NUMBER : INTEGER ('.' INTEGER)? ;
+
+NUMBER : INTEGER DECIMAL? ;
 
 value
     :   (NULL | NOTHING)       # nullOrNothing
