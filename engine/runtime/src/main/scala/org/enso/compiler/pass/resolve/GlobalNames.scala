@@ -113,6 +113,20 @@ case object GlobalNames extends IRPass {
         method.mapExpressions(
           processExpression(_, bindings, freshNameSupply, resolution)
         )
+      case tp: IR.Module.Scope.Definition.Type =>
+        tp.copy(members =
+          tp.members.map(
+            _.mapExpressions(
+              processExpression(
+                _,
+                bindings,
+                freshNameSupply,
+                bindings.resolveName(tp.name.name).toOption.map(Resolution)
+              )
+            )
+          )
+        )
+
       case a =>
         a.mapExpressions(processExpression(_, bindings, freshNameSupply, None))
     }
@@ -127,7 +141,6 @@ case object GlobalNames extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case selfTp: IR.Name.SelfType =>
-        println(s"Trying this, res is ${selfTypeResolution}")
         selfTypeResolution
           .map(res => selfTp.updateMetadata(this -->> res))
           .getOrElse(
@@ -137,9 +150,6 @@ case object GlobalNames extends IRPass {
             )
           )
       case lit: IR.Name.Literal =>
-        if (lit.name == "Self") {
-          println("WTF????")
-        }
         if (!lit.isMethod && !isLocalVar(lit)) {
           val resolution = bindings.resolveName(lit.name)
           resolution match {
@@ -199,7 +209,13 @@ case object GlobalNames extends IRPass {
                 freshNameSupply,
                 selfTypeResolution
               )
-            else resolveLocalApplication(app, bindings, freshNameSupply, selfTypeResolution)
+            else
+              resolveLocalApplication(
+                app,
+                bindings,
+                freshNameSupply,
+                selfTypeResolution
+              )
           case _ =>
             app.mapExpressions(
               processExpression(
