@@ -59,6 +59,8 @@ const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
 const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
 /// Maximum scroll overshoot in pixels.
 const SCROLL_OVERSHOOT_LIMIT: f32 = 60.0;
+/// Minimum scroll movement in pixels per frame required to show the scrollbar.
+const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 
 
 // ===========
@@ -185,8 +187,12 @@ impl Frp {
             // We start a delayed animation whenever the bar is scrolled to a new place (it is
             // active). This will instantly reveal the scrollbar and hide it after the delay has
             // passed.
-            activity_cool_off.frp.reset <+ thumb_position.animating.on_true();
-            activity_cool_off.frp.start <+ thumb_position.animating.on_true();
+            thumb_position_previous <- thumb_position.value.previous();
+            thumb_position_changed  <- thumb_position.value.map2(&thumb_position_previous,
+                |t1, t2| (t1 - t2).abs() > ERROR_MARGIN_FOR_ACTIVITY_DETECTION);
+            thumb_position_changed <- thumb_position_changed.on_true().constant(());
+            activity_cool_off.frp.reset <+ thumb_position_changed;
+            activity_cool_off.frp.start <+ thumb_position_changed;
 
             recently_active <- bool(&activity_cool_off.frp.on_end,&activity_cool_off.frp.on_reset);
 
