@@ -5,7 +5,7 @@
     name="test/ide-view-component-list-panel [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/component-browser/searcher-list-panel"
+    folderName="🚥 GUI            view/component-browser/component-list-panel"
   >
     <option name="command" value="test --all-targets  --target-dir dist/intellij_native --package ide-view-component-list-panel" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

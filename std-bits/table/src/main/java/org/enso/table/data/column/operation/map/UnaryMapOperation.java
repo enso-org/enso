@@ -7,20 +7,20 @@ import org.enso.table.data.column.storage.Storage;
  *
  * @param <I> the supported storage type
  */
-public abstract class UnaryMapOperation<I extends Storage> extends MapOperation<I> {
+public abstract class UnaryMapOperation<T, I extends Storage<T>> extends MapOperation<T, I> {
   public UnaryMapOperation(String name) {
     super(name);
   }
 
-  protected abstract Storage run(I storage);
+  protected abstract Storage<?> run(I storage);
 
   @Override
-  public Storage runMap(I storage, Object arg) {
+  public Storage<?> runMap(I storage, Object arg) {
     return run(storage);
   }
 
   @Override
-  public Storage runZip(I storage, Storage arg) {
+  public Storage<?> runZip(I storage, Storage<?> arg) {
     return run(storage);
   }
 }

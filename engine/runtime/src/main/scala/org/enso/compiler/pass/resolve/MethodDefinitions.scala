@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -84,7 +85,38 @@ case object MethodDefinitions extends IRPass {
       case other => other
     }
 
-    ir.copy(bindings = newDefs)
+    val withStaticAliases = newDefs.flatMap {
+      case method: IR.Module.Scope.Definition.Method.Explicit
+          if !method.isStatic =>
+        method.methodReference.typePointer.flatMap(
+          _.getMetadata(this)
+        ) match {
+          case Some(Resolution(ResolvedType(_, tp))) if tp.members.nonEmpty =>
+            val dup = method.duplicate()
+            val static = dup.copy(body =
+              IR.Function.Lambda(
+                List(
+                  IR.DefinitionArgument
+                    .Specified(
+                      IR.Name.Self(None, true),
+                      None,
+                      None,
+                      false,
+                      None
+                    )
+                ),
+                dup.body,
+                None
+              )
+            )
+            List(method, static)
+          case _ => List(method)
+        }
+
+      case other => List(other)
+    }
+
+    ir.copy(bindings = withStaticAliases)
   }
 
   private def resolveType(

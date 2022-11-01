@@ -1,6 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.base.Polyglot_Utils;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
@@ -11,14 +16,8 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 /** An abstract representation of a data column. */
-public abstract class Storage {
+public abstract class Storage<T> {
   /** @return the number of elements in this column (including NAs) */
   public abstract int size();
 
@@ -42,7 +41,7 @@ public abstract class Storage {
    * @param idx the index to look up
    * @return the item at position {@code idx}
    */
-  public abstract Object getItemBoxed(int idx);
+  public abstract T getItemBoxed(int idx);
 
   /**
    * Enumerating possible storage types.
@@ -78,9 +77,13 @@ public abstract class Storage {
     public static final String AND = "&&";
     public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
+    public static final String IS_NAN = "is_nan";
+    public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String CONTAINS = "contains";
+    public static final String LIKE = "like";
+    public static final String IS_IN = "is_in";
   }
 
   public static final class Aggregators {
@@ -91,11 +94,14 @@ public abstract class Storage {
     public static final String COUNT = "count";
   }
 
-  protected abstract boolean isOpVectorized(String name);
+  /**
+   * Specifies if the given operation has a vectorized implementation available for this storage.
+   */
+  public abstract boolean isOpVectorized(String name);
 
-  protected abstract Storage runVectorizedMap(String name, Object argument);
+  protected abstract Storage<?> runVectorizedMap(String name, Object argument);
 
-  protected abstract Storage runVectorizedZip(String name, Storage argument);
+  protected abstract Storage<?> runVectorizedZip(String name, Storage<?> argument);
 
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
@@ -104,17 +110,23 @@ public abstract class Storage {
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
    * @param argument the argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   *     without passing them through the function, this is useful if the function does not support
+   *     the null-values, but it needs to be set to false if the function should handle them.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage bimap(
-      String name, BiFunction<Object, Object, Object> function, Object argument) {
+  public final Storage<?> bimap(
+      String name,
+      BiFunction<Object, Object, Object> function,
+      Object argument,
+      boolean skipNulls) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, argument);
     }
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
-      if (it == null) {
+      if (skipNulls && it == null) {
         builder.appendNoGrow(null);
       } else {
         Object result = function.apply(it, argument);
@@ -161,17 +173,19 @@ public abstract class Storage {
    * @param name a name of potential vectorized variant of the function that should be used if
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
+   * @param onMissing the value to place for missing cells, usually just null
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage map(String name, Function<Object, Value> function) {
+  public final Storage<?> map(String name, Function<Object, Value> function, Value onMissing) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
+    Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(null);
+        builder.appendNoGrow(missingValue);
       } else {
         Value result = function.apply(it);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
@@ -190,8 +204,8 @@ public abstract class Storage {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage zip(
-      String name, BiFunction<Object, Object, Object> function, Storage arg, boolean skipNa) {
+  public final Storage<?> zip(
+      String name, BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedZip(name, arg);
     }
@@ -216,7 +230,7 @@ public abstract class Storage {
    * @param arg the value to use for missing elements
    * @return a new storage, with all missing elements replaced by arg
    */
-  public Storage fillMissing(Value arg) {
+  public Storage<?> fillMissing(Value arg) {
     return fillMissingHelper(arg, new ObjectBuilder(size()));
   }
 
@@ -226,7 +240,7 @@ public abstract class Storage {
    * @param other the source of default values
    * @return a new storage with missing values filled
    */
-  public Storage fillMissingFrom(Storage other) {
+  public Storage<?> fillMissingFrom(Storage<?> other) {
     var builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isNa(i)) {
@@ -238,7 +252,7 @@ public abstract class Storage {
     return builder.seal();
   }
 
-  protected final Storage fillMissingHelper(Value arg, Builder builder) {
+  protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
@@ -258,14 +272,14 @@ public abstract class Storage {
    * @param cardinality the number of true values in mask
    * @return a new storage, masked with the given mask
    */
-  public abstract Storage mask(BitSet mask, int cardinality);
+  public abstract Storage<T> mask(BitSet mask, int cardinality);
 
   /**
    * Returns a new storage, ordered according to the rules specified in a mask.
    *
    * @param mask@return a storage resulting from applying the reordering rules
    */
-  public abstract Storage applyMask(OrderMask mask);
+  public abstract Storage<T> applyMask(OrderMask mask);
 
   /**
    * Returns a new storage, resulting from applying the rules specified in a mask. The resulting
@@ -278,13 +292,13 @@ public abstract class Storage {
    *     storage
    * @return the storage masked according to the specified rules
    */
-  public abstract Storage countMask(int[] counts, int total);
+  public abstract Storage<T> countMask(int[] counts, int total);
 
   /** @return a copy of the storage containing a slice of the original data */
-  public abstract Storage slice(int offset, int limit);
+  public abstract Storage<T> slice(int offset, int limit);
 
   /** @return a copy of the storage consisting of slices of the original data */
-  public abstract Storage slice(List<SliceRange> ranges);
+  public abstract Storage<T> slice(List<SliceRange> ranges);
 
   public List<Object> toList() {
     return new StorageListView(this);
@@ -295,7 +309,7 @@ public abstract class Storage {
    *
    * @return a storage counting the number of times each value in this one has been seen before.
    */
-  public Storage duplicateCount() {
+  public Storage<?> duplicateCount() {
     long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     for (int i = 0; i < size(); i++) {

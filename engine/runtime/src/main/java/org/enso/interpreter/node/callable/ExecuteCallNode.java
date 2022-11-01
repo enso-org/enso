@@ -10,7 +10,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node is responsible for optimising function calls.
@@ -47,16 +46,15 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(guards = "function.getCallTarget() == cachedTarget")
-  protected Stateful callDirect(
+  protected Object callDirect(
       Function function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("create(cachedTarget)") DirectCallNode callNode) {
-    return (Stateful)
-        callNode.call(
-            Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
+    return callNode.call(
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
   }
 
   /**
@@ -73,16 +71,15 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(replaces = "callDirect")
-  protected Stateful callIndirect(
+  protected Object callIndirect(
       Function function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
       @Cached IndirectCallNode callNode) {
-    return (Stateful)
-        callNode.call(
-            function.getCallTarget(),
-            Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
+    return callNode.call(
+        function.getCallTarget(),
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
   }
 
   /**
@@ -94,6 +91,6 @@ public abstract class ExecuteCallNode extends Node {
    * @param arguments the arguments to be passed to {@code function}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  public abstract Stateful executeCall(
+  public abstract Object executeCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments);
 }

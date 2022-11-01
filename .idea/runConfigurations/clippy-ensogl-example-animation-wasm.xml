@@ -7,7 +7,7 @@
     factoryName="Cargo Command"
     folderName="🧸 Example    animation"
   >
-    <option name="command" value="clippy --all-targets -Zmultitarget --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package ensogl-example-animation" />
+    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package ensogl-example-animation" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

@@ -19,5 +19,5 @@ public abstract class StorageBuilder {
    *
    * @return the storage resulting from this builder's operation.
    */
-  public abstract Storage seal();
+  public abstract Storage<?> seal();
 }

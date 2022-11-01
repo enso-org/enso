@@ -1,9 +1,11 @@
 from Standard.Base import all
 
-import Standard.Image.Codecs
-import Standard.Image.Data.Histogram
-import Standard.Image.Data.Image
+import project.Read_Flag.Read_Flag
+import project.Write_Flag.Write_Flag
+import project.Data.Image.Image
+import project.Data.Matrix.Matrix
 
-from Standard.Image.Codecs export read, write
-from Standard.Image.Data.Histogram export all
-from Standard.Image.Data.Image export all
+export project.Read_Flag.Read_Flag
+export project.Write_Flag.Write_Flag
+export project.Data.Image.Image
+export project.Data.Matrix.Matrix

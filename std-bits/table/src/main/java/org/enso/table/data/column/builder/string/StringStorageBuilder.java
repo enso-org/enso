@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder.string;
 
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 
 /** A column builder appending all the values passed to it in an unchanged form. */
@@ -44,7 +45,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public StringStorage seal() {
+  public Storage<String> seal() {
     return new StringStorage(data, size);
   }
 }

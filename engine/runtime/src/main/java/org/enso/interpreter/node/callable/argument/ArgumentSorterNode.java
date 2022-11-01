@@ -9,7 +9,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.util.concurrent.locks.Lock;
 
@@ -66,7 +66,7 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   @ExplodeLoop
-  private Object executeArguments(Object[] arguments, Object state) {
+  private void executeArguments(Object[] arguments, State state) {
     if (executors == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       Lock lock = getLock();
@@ -81,12 +81,9 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        Stateful result = executors[i].executeThunk(arguments[i], state, TailStatus.NOT_TAIL);
-        arguments[i] = result.getValue();
-        state = result.getState();
+        arguments[i] = executors[i].executeThunk(arguments[i], state, TailStatus.NOT_TAIL);
       }
     }
-    return state;
   }
 
   /**
@@ -97,16 +94,16 @@ public class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public MappedArguments execute(Function function, Object state, Object[] arguments) {
+  public MappedArguments execute(Function function, State state, Object[] arguments) {
     if (argumentsExecutionMode.shouldExecute()) {
-      state = executeArguments(arguments, state);
+      executeArguments(arguments, state);
     }
     Object[] mappedAppliedArguments = prepareArguments(function, arguments);
     Object[] oversaturatedArguments = null;
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedArguments = generateOversaturatedArguments(function, arguments);
     }
-    return new MappedArguments(state, mappedAppliedArguments, oversaturatedArguments);
+    return new MappedArguments(mappedAppliedArguments, oversaturatedArguments);
   }
 
   private Object[] prepareArguments(Function function, Object[] arguments) {
@@ -149,25 +146,13 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   public static class MappedArguments {
-    private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] sortedArguments;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[]
         oversaturatedArguments;
 
-    public MappedArguments(
-        Object state, Object[] sortedArguments, Object[] oversaturatedArguments) {
-      this.state = state;
+    public MappedArguments(Object[] sortedArguments, Object[] oversaturatedArguments) {
       this.sortedArguments = sortedArguments;
       this.oversaturatedArguments = oversaturatedArguments;
-    }
-
-    /**
-     * Gets the monadic state resulting from computing the arguments.
-     *
-     * @return the current monadic state.
-     */
-    public Object getState() {
-      return state;
     }
 
     /**

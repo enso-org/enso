@@ -6,6 +6,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -21,9 +22,7 @@
 // === Export ===
 // ==============
 
-pub use debug_scene_component_group as component_group;
-pub use debug_scene_component_list_panel_view as component_list_panel_view;
+pub use debug_scene_component_list_panel_view as new_component_list_panel_view;
 pub use debug_scene_icons as icons;
 pub use debug_scene_interface as interface;
-pub use debug_scene_new_component_list_panel_view as new_component_list_panel_view;
 pub use debug_scene_visualization as visualization;

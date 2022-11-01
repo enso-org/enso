@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "Bound" <|
@@ -101,4 +101,4 @@ spec =
             Interval.inclusive 0 0 . not_empty . should_be_true
             Interval.inclusive 10 0 . not_empty . should_be_false
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

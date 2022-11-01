@@ -5,9 +5,9 @@
     name="clippy/build-scripts [wasm]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚧 Build          rust-scripts"
+    folderName="🚧 Build          deprecated/rust-scripts"
   >
-    <option name="command" value="clippy --all-targets -Zmultitarget --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package build-scripts" />
+    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target-dir dist/intellij_wasm --package build-scripts" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

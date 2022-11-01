@@ -5,6 +5,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -37,7 +38,7 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
-use parser::Parser;
+use parser_scala::Parser;
 use uuid::Uuid;
 
 
@@ -319,6 +320,7 @@ pub fn expression_mock_string(label: &str) -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
@@ -335,6 +337,7 @@ pub fn expression_mock() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
@@ -344,7 +347,7 @@ pub fn expression_mock2() -> Expression {
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];
     let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };
     let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
-    let code = "make_maps size (distribution normal)".into();
+    let code = "make_maps size (distribution normal)".to_string();
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::builder::TreeBuilder::new(36)
         .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
@@ -375,6 +378,7 @@ pub fn expression_mock2() -> Expression {
         .add_empty_child(36, span_tree::node::InsertionPointType::Append)
         .build();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
@@ -406,5 +410,6 @@ pub fn expression_mock3() -> Expression {
     let output_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap(); //span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }

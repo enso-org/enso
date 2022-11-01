@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Environment
 
 spec = Test.group "Environment" <|
@@ -31,4 +31,4 @@ spec = Test.group "Environment" <|
             x
         result_3 . should_equal ["2", "3", "4"]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

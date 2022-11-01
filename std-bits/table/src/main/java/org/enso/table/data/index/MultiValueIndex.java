@@ -30,7 +30,7 @@ public class MultiValueIndex {
     boolean isOrdered = ordering != null;
     this.locs = isOrdered ? new TreeMap<>() : new HashMap<>();
 
-    Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    Storage<?>[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<MultiValueKeyBase> keyFactory =
         isOrdered
             ? i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator)

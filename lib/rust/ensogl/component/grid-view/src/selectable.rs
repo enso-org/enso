@@ -297,15 +297,15 @@ mod tests {
         entry::Contour { size: Vector2(15.0, 15.0), corners_radius: 3.0 },
     ];
 
-    const COLOR_VARIANTS: [color::Rgba; 2] =
-        [color::Rgba(1.0, 0.0, 0.0, 1.0), color::Rgba(0.0, 1.0, 0.0, 1.0)];
+    const COLOR_VARIANTS: [color::Lcha; 2] =
+        [color::Lcha(1.0, 0.0, 0.0, 1.0), color::Lcha(0.0, 1.0, 0.0, 1.0)];
 
     #[derive(Clone, Debug, Default)]
     struct TestEntryModel {
         selected: Cell<bool>,
         hovered:  Cell<bool>,
         contour:  entry::Contour,
-        color:    color::Rgba,
+        color:    color::Lcha,
     }
 
     impl TestEntryModel {

@@ -91,7 +91,7 @@ pub trait AttrSetter {
     fn set_position(shape: &View, position: Vector2, viewport: Viewport);
     fn set_size(shape: &View, size: Vector2);
     fn set_corners_radius(shape: &View, radius: f32);
-    fn set_color(shape: &View, color: color::Rgba);
+    fn set_color(shape: &View, color: color::Lcha);
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport);
     fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport);
 }
@@ -119,8 +119,8 @@ impl AttrSetter for kind::Hover {
         shape.corners_radii.set(attr);
     }
 
-    fn set_color(shape: &View, color: color::Rgba) {
-        shape.hover_color.set(color.into())
+    fn set_color(shape: &View, color: color::Lcha) {
+        shape.hover_color.set(color::Rgba::from(color).into())
     }
 
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport) {
@@ -159,8 +159,8 @@ impl AttrSetter for kind::Selection {
         shape.corners_radii.set(attr);
     }
 
-    fn set_color(shape: &View, color: color::Rgba) {
-        shape.selection_color.set(color.into())
+    fn set_color(shape: &View, color: color::Lcha) {
+        shape.selection_color.set(color::Rgba::from(color).into())
     }
 
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport) {

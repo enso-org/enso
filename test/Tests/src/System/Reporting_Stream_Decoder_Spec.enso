@@ -2,8 +2,7 @@ from Standard.Base import all
 
 polyglot java import java.nio.CharBuffer
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec =
     windows_file = enso_project.data / "windows.txt"
@@ -133,4 +132,4 @@ read_characters decoder n =
         transfer_codepoints Nothing
         v.to_vector
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

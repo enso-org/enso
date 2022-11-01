@@ -2,7 +2,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use parser::DocParser;
+use parser_scala::DocParser;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 

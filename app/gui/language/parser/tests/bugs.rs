@@ -16,7 +16,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 fn no_doc_found() {
     let input = String::from("type Foo\n  type Bar");
     let program = std::env::args().nth(1).unwrap_or(input);
-    let parser = parser::DocParser::new_or_panic();
+    let parser = parser_scala::DocParser::new_or_panic();
     let gen_code = parser.generate_html_docs(program).unwrap();
     // gen_code should be empty.
     assert_eq!(gen_code.len(), 22, "Generated length differs from the expected\"{}\"", gen_code);
@@ -24,7 +24,7 @@ fn no_doc_found() {
 
 #[wasm_bindgen_test]
 fn extension_operator_methods() {
-    let ast = parser::Parser::new_or_panic().parse_line_ast("Int.+").unwrap();
+    let ast = parser_scala::Parser::new_or_panic().parse_line_ast("Int.+").unwrap();
 
     use ast::*;
     if let Shape::Infix(Infix { larg: _larg, loff: _loff, opr, roff: _roff, rarg }, ..) =

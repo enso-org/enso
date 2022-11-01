@@ -21,21 +21,20 @@ pub trait KeyboardEventCallback = FnMut(&enso_web::KeyboardEvent) + 'static;
 pub trait EventCallback = FnMut(&enso_web::Event) + 'static;
 
 /// Keyboard event listener which calls the callback function as long it lives.
-#[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+#[derive(Debug)]
 pub struct Listener {
-    handle:  web::EventListenerHandle,
-    element: web::Window,
+    // The event listener will be removed when handle is dropped.
+    _handle: web::EventListenerHandle,
 }
 
 impl Listener {
     /// Constructor.
     pub fn new<T: 'static>(event_type: impl Str, callback: Closure<dyn FnMut(T)>) -> Self {
-        let element = web::window.clone();
+        let window = &web::window;
         let event_type = event_type.as_ref();
         let options = event_listener_options();
-        let handle = web::add_event_listener_with_options(&element, event_type, callback, &options);
-        Self { handle, element }
+        let handle = web::add_event_listener_with_options(window, event_type, callback, &options);
+        Self { _handle: handle }
     }
 }
 

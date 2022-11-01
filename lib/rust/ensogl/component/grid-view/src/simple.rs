@@ -26,29 +26,29 @@ use ensogl_text as text;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryParams {
-    pub bg_color:            color::Rgba,
+    pub bg_color:            color::Lcha,
     pub bg_margin:           f32,
-    pub hover_color:         color::Rgba,
-    pub selection_color:     color::Rgba,
+    pub hover_color:         color::Lcha,
+    pub selection_color:     color::Lcha,
     pub font:                ImString,
     pub text_offset:         f32,
     pub text_size:           text::Size,
-    pub text_color:          color::Rgba,
-    pub disabled_text_color: color::Rgba,
+    pub text_color:          color::Lcha,
+    pub disabled_text_color: color::Lcha,
 }
 
 impl Default for EntryParams {
     fn default() -> Self {
         Self {
-            bg_color:            color::Rgba::transparent(),
+            bg_color:            color::Lcha::transparent(),
             bg_margin:           0.0,
-            hover_color:         color::Rgba(0.9, 0.9, 0.9, 1.0),
-            selection_color:     color::Rgba(0.8, 0.8, 0.8, 1.0),
+            hover_color:         color::Lcha::from(color::Rgba(0.9, 0.9, 0.9, 1.0)),
+            selection_color:     color::Lcha::from(color::Rgba(0.8, 0.8, 0.8, 1.0)),
             font:                text::font::DEFAULT_FONT.into(),
             text_offset:         7.0,
             text_size:           text::Size(14.0),
-            text_color:          color::Rgba(0.0, 0.0, 0.0, 1.0),
-            disabled_text_color: color::Rgba(0.7, 0.7, 0.7, 1.0),
+            text_color:          color::Lcha::from(color::Rgba(0.0, 0.0, 0.0, 1.0)),
+            disabled_text_color: color::Lcha::from(color::Rgba(0.7, 0.7, 0.7, 1.0)),
         }
     }
 }

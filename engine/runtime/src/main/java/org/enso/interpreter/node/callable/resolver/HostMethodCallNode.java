@@ -1,7 +1,15 @@
 package org.enso.interpreter.node.callable.resolver;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -59,6 +67,11 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
+     * Standard.Base.Data.Time.Duration} and dispatching natively.
+     */
+    CONVERT_TO_DURATION,
+    /**
+     * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Time_Of_Day} and dispatching natively.
      */
     CONVERT_TO_TIME_OF_DAY,
@@ -83,6 +96,7 @@ public abstract class HostMethodCallNode extends Node {
           && this != CONVERT_TO_TEXT
           && this != CONVERT_TO_DATE
           && this != CONVERT_TO_DATE_TIME
+          && this != CONVERT_TO_DURATION
           && this != CONVERT_TO_ZONED_DATE_TIME
           && this != CONVERT_TO_TIME_OF_DAY
           && this != CONVERT_TO_TIME_ZONE;
@@ -98,13 +112,13 @@ public abstract class HostMethodCallNode extends Node {
    * used.
    *
    * @param self the method call target
-   * @param methodName the method name
+   * @param symbol symbol representing method to be resolved
    * @param library an instance of interop library to use for interacting with the target
    * @return a {@link PolyglotCallType} to use for this target and method
    */
   public static PolyglotCallType getPolyglotCallType(
-      Object self, String methodName, InteropLibrary library) {
-    return getPolyglotCallType(self, methodName, library, null);
+      Object self, UnresolvedSymbol symbol, InteropLibrary library) {
+    return getPolyglotCallType(self, symbol, library, null);
   }
 
   /**
@@ -112,14 +126,14 @@ public abstract class HostMethodCallNode extends Node {
    * used.
    *
    * @param self the method call target
-   * @param methodName the method name
+   * @param symbol symbol representing method to be resolved
    * @param library an instance of interop library to use for interacting with the target
    * @param methodResolverNode {@code null} or real instances of the node to resolve methods
    * @return a {@link PolyglotCallType} to use for this target and method
    */
   public static PolyglotCallType getPolyglotCallType(
       Object self,
-      String methodName,
+      UnresolvedSymbol symbol,
       InteropLibrary library,
       MethodResolverNode methodResolverNode) {
     if (library.isDate(self)) {
@@ -134,6 +148,8 @@ public abstract class HostMethodCallNode extends Node {
       }
     } else if (library.isTime(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_OF_DAY;
+    } else if (library.isDuration(self)) {
+      return PolyglotCallType.CONVERT_TO_DURATION;
     } else if (library.isTimeZone(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_ZONE;
     } else if (library.isString(self)) {
@@ -142,16 +158,14 @@ public abstract class HostMethodCallNode extends Node {
       if (methodResolverNode != null) {
         var ctx = Context.get(library);
         var arrayType = ctx.getBuiltins().array();
-        var symbol = UnresolvedSymbol.build(methodName, ctx.getBuiltins().getScope());
         var fn = methodResolverNode.execute(arrayType, symbol);
         if (fn != null) {
           return PolyglotCallType.CONVERT_TO_ARRAY;
         }
-      } else {
-        return PolyglotCallType.CONVERT_TO_ARRAY;
       }
     }
 
+    String methodName = symbol.getName();
     if (library.isMemberInvocable(self, methodName)) {
       return PolyglotCallType.CALL_METHOD;
     } else if (library.isMemberReadable(self, methodName)) {
@@ -199,7 +213,7 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this)
               .getBuiltins()
               .error()
-              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
     }
   }
@@ -251,7 +265,7 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this)
               .getBuiltins()
               .error()
-              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
     }
   }

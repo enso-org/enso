@@ -16,7 +16,7 @@ use crate::model::module::API;
 use ast::IdMap;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
-use double_representation::module::ImportId;
+use double_representation::import;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
@@ -24,8 +24,8 @@ use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 
 
 
@@ -95,6 +95,14 @@ impl ParsedContentSummary {
     /// Get fragment of string with metadata.
     pub fn metadata_slice(&self) -> text::Rope {
         self.slice(&self.metadata)
+    }
+
+    pub fn id_map_engine_range(&self) -> Range<Location<enso_text::Utf16CodeUnit>> {
+        self.id_map.map(|l| self.source.utf16_code_unit_location_of_location(l))
+    }
+
+    pub fn metadata_engine_range(&self) -> Range<Location<enso_text::Utf16CodeUnit>> {
+        self.metadata.map(|l| self.source.utf16_code_unit_location_of_location(l))
     }
 
     fn slice(&self, range: &Range<Location<Byte>>) -> text::Rope {
@@ -247,17 +255,17 @@ impl API for Module {
 
     fn with_import_metadata(
         &self,
-        id: ImportId,
+        id: import::Id,
         fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
     ) -> FallibleResult {
         self.model.with_import_metadata(id, fun)
     }
 
-    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+    fn all_import_metadata(&self) -> Vec<(import::Id, ImportMetadata)> {
         self.model.all_import_metadata()
     }
 
-    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+    fn remove_import_metadata(&self, id: import::Id) -> FallibleResult<ImportMetadata> {
         self.model.remove_import_metadata(id)
     }
 
@@ -342,8 +350,6 @@ impl Module {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
         debug!("Handling notification: {content:?}.");
-        let code = enso_text::Rope::from(self.model.serialized_content()?.content);
-        let to_engine_location = |l: Location<Byte>| code.utf16_code_unit_location_of_location(l);
         match content {
             LanguageServerContent::Desynchronized(summary) =>
                 profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
@@ -351,12 +357,14 @@ impl Module {
                 NotificationKind::Invalidate =>
                     profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
                 NotificationKind::CodeChanged { change, replaced_location } => {
+                    let to_engine_location =
+                        |l: Location<Byte>| summary.source.utf16_code_unit_location_of_location(l);
                     let code_change = TextEdit {
                         range: replaced_location.map(to_engine_location).into(),
                         text:  change.text,
                     };
                     let id_map_change = TextEdit {
-                        range: summary.id_map.map(to_engine_location).into(),
+                        range: summary.id_map_engine_range().into(),
                         text:  new_file.id_map_slice().to_string(),
                     };
                     //id_map goes first, because code change may alter its position.
@@ -366,7 +374,7 @@ impl Module {
                 }
                 NotificationKind::MetadataChanged => {
                     let edits = vec![TextEdit {
-                        range: summary.metadata.map(to_engine_location).into(),
+                        range: summary.metadata_engine_range().into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);

@@ -11,8 +11,7 @@ import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.State;
 
 @NodeInfo(
     shortName = "sortComparator",
@@ -35,9 +34,8 @@ public class ComparatorNode extends Node {
     return Context.get(this).getBuiltins().ordering();
   }
 
-  public int execute(VirtualFrame frame, Object comparator, Object l, Object r) {
-    Stateful result = invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
-    Object atom = result.getValue();
+  public int execute(VirtualFrame frame, Object comparator, State state, Object l, Object r) {
+    var atom = invokeNode.execute(comparator, frame, state, new Object[] {l, r});
     if (atom == getOrdering().less()) {
       return -1;
     } else if (atom == getOrdering().equal()) {

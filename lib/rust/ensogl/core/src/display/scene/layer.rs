@@ -968,12 +968,26 @@ impl AsRef<Layer> for Masked {
 }
 
 impl Masked {
-    /// Constructor. The passed [`camera`] is used to render created layers.
-    pub fn new(camera: &Camera2d) -> Self {
+    /// Constructor.
+    pub fn new() -> Self {
+        let masked_layer = Layer::new("MaskedLayer");
+        let mask_layer = Layer::new("MaskLayer");
+        masked_layer.set_mask(&mask_layer);
+        Self { masked_layer, mask_layer }
+    }
+
+    /// Constructor.
+    pub fn new_with_cam(camera: &Camera2d) -> Self {
         let masked_layer = Layer::new_with_cam("MaskedLayer", camera);
         let mask_layer = Layer::new_with_cam("MaskLayer", camera);
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
+    }
+}
+
+impl Default for Masked {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

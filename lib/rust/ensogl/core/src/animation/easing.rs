@@ -409,7 +409,8 @@ impl WeakAnimationLoop {
 pub type AnimationStep = animation::Loop;
 
 /// Callback for an animation step.
-pub type Step<T, F, OnStep, OnEnd> = impl Fn(animation::TimeInfo);
+pub type Step<T: Value, F: AnyFnEasing, OnStep: Callback<T>, OnEnd: Callback<EndStatus>> =
+    impl Fn(animation::TimeInfo);
 
 fn step<T: Value, F, OnStep, OnEnd>(
     easing: &Animator<T, F, OnStep, OnEnd>,

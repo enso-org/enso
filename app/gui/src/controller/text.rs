@@ -78,7 +78,7 @@ impl Handle {
     /// Get clone of file path handled by this controller.
     pub fn file_path(&self) -> &FilePath {
         match &self.file {
-            FileHandle::PlainText { path, .. } => &*path,
+            FileHandle::PlainText { path, .. } => path,
             FileHandle::Module { controller } => controller.model.path().file_path(),
         }
     }
@@ -177,7 +177,7 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use enso_text::index::*;
-    use parser::Parser;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
@@ -233,7 +233,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let code = "2 + 2".to_string();
             let undo = default();

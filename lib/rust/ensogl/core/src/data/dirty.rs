@@ -524,7 +524,7 @@ impl<'t, Item: SetItem> IntoIterator for &'t SetData<Item> {
     type Item = &'t Item;
     type IntoIter = <&'t FxHashSet<Item> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.set).iter()
+        (self.set).iter()
     }
 }
 
@@ -587,7 +587,7 @@ impl<'t, Item> IntoIterator for &'t VectorData<Item> {
     type Item = &'t Item;
     type IntoIter = <&'t Vec<Item> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.vec).iter()
+        (self.vec).iter()
     }
 }
 

@@ -76,7 +76,7 @@ pub struct Group {
 impl Deref for Group {
     type Target = Data;
     fn deref(&self) -> &Self::Target {
-        &*self.data
+        &self.data
     }
 }
 
@@ -206,7 +206,7 @@ impl Group {
     fn sort_by_match(&self) {
         let mut entries = self.entries.borrow_mut();
         entries.sort_by(|a, b| {
-            Self::entry_match_ordering(&*a.match_info.borrow(), &*b.match_info.borrow())
+            Self::entry_match_ordering(&a.match_info.borrow(), &b.match_info.borrow())
         });
     }
 

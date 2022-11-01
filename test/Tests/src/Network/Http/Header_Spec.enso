@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Network.Http.Header
 
-import Standard.Test
+from Standard.Test import Test
 
 spec =
     Test.group "Header" <|

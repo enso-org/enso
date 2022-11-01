@@ -18,7 +18,7 @@ import java.util.Arrays;
  * in EPB because EPB is a dependency of runtime.
  */
 @ExportLibrary(InteropLibrary.class)
-public class ReadOnlyArray implements TruffleObject {
+public final class ReadOnlyArray implements TruffleObject {
 
   private final Object[] items;
 

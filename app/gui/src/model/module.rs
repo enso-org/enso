@@ -8,13 +8,13 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::identifier::ReferentName;
-use double_representation::module::ImportId;
+use double_representation::import;
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser::api::ParsedSourceFile;
-use parser::api::SourceFile;
-use parser::Parser;
+use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::SourceFile;
+use parser_scala::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -44,7 +44,7 @@ pub struct NodeMetadataNotFound(pub ast::Id);
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Fail)]
 #[fail(display = "Import with ID {} was not found in metadata.", _0)]
-pub struct ImportMetadataNotFound(pub ImportId);
+pub struct ImportMetadataNotFound(pub import::Id);
 
 /// Failed attempt to tread a file path as a module path.
 #[derive(Clone, Debug, Fail)]
@@ -182,7 +182,7 @@ impl Path {
 
     /// Get the file path.
     pub fn file_path(&self) -> &FilePath {
-        &*self.file_path
+        &self.file_path
     }
 
     /// Gives the file name for the given module name.
@@ -342,7 +342,7 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
-impl parser::api::Metadata for Metadata {}
+impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
@@ -356,7 +356,7 @@ impl Default for Metadata {
 }
 
 /// Project-level metadata. It is stored as part of the project's main module's metadata.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProjectMetadata {
     /// The execution context of the displayed graph editor.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
@@ -370,7 +370,7 @@ pub struct IdeMetadata {
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
     node:    HashMap<ast::Id, NodeMetadata>,
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
-    import:  HashMap<ImportId, ImportMetadata>,
+    import:  HashMap<import::Id, ImportMetadata>,
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
@@ -610,15 +610,15 @@ pub trait API: Debug + model::undo_redo::Aware {
     /// Modify metadata of given import.
     fn with_import_metadata(
         &self,
-        id: ImportId,
+        id: import::Id,
         fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
     ) -> FallibleResult;
 
     /// Returns the import metadata fof the module.
-    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)>;
+    fn all_import_metadata(&self) -> Vec<(import::Id, ImportMetadata)>;
 
     /// Removes the import metadata of the import.
-    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata>;
+    fn remove_import_metadata(&self, id: import::Id) -> FallibleResult<ImportMetadata>;
 
     /// This method exists as a monomorphication for [`with_project_metadata`]. Users are encouraged
     /// to use it rather then this method.
@@ -746,7 +746,8 @@ pub mod test {
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }.plain(&parser::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }
+            .plain(&parser_scala::Parser::new_or_panic(), urm)
     }
 
     #[test]

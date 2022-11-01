@@ -103,8 +103,8 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         /// Override column's width. If multiple entries from the same column emit this event,
         /// only the last one is applied. See [`crate::GridView`] documentation for more details.
         override_column_width(f32),
-        selection_highlight_color(color::Rgba),
-        hover_highlight_color(color::Rgba)
+        selection_highlight_color(color::Lcha),
+        hover_highlight_color(color::Lcha)
     }
 }
 

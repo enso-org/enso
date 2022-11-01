@@ -60,6 +60,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
 use inflector::*;
@@ -79,6 +80,8 @@ use std::fs;
 /// - `CARGO_MANIFEST_DIR` or `OUT_DIR` env variable is missing.
 /// - The provided config file is not in the YAML format.
 pub fn generate_config_module_from_yaml(config_path: impl AsRef<std::path::Path>) {
+    use std::fmt::Write;
+
     let f = std::fs::File::open(config_path.as_ref()).unwrap();
     let value: Value = serde_yaml::from_reader(f).unwrap();
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
@@ -93,12 +96,14 @@ pub fn generate_config_module_from_yaml(config_path: impl AsRef<std::path::Path>
             for (key, value) in mapping {
                 let key = key.as_str().unwrap().to_snake_case();
                 let value = value.as_str().unwrap();
-                def.push_str(&format!("{}pub {}: &'static str,\n", indent, key));
-                inst.push_str(&format!("{}{}: \"{}\",\n", indent, key, value));
-                vars.push_str(&format!(
-                    "#[allow(non_upper_case_globals)]\npub const {}: &str = \"{}\";\n",
+                writeln!(def, "{}pub {}: &'static str,", indent, key).unwrap();
+                writeln!(inst, "{}{}: \"{}\",", indent, key, value).unwrap();
+                writeln!(
+                    vars,
+                    "#[allow(non_upper_case_globals)]\npub const {}: &str = \"{}\";",
                     key, value
-                ));
+                )
+                .unwrap();
             },
         _ => panic!("Unexpected config format."),
     }

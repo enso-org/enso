@@ -5,7 +5,7 @@
     name="test/enso-build-utilities [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚧 Build          build-utils"
+    folderName="🚧 Build          deprecated/build-utils"
   >
     <option name="command" value="test --all-targets  --target-dir dist/intellij_native --package enso-build-utilities" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

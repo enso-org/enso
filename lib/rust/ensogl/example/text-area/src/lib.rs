@@ -11,6 +11,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -162,6 +163,7 @@ pub fn main() {
 }
 
 // TODO: pub fn extend do define_endpoints_2
+// TODO: rename examples - like compelxshapesystem -> shape system
 
 fn init(app: Application) {
     let area = app.new_view::<Text>();

@@ -6,9 +6,11 @@
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(type_alias_impl_trait)]
+#![feature(iter_next_chunk)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
@@ -42,6 +44,7 @@ pub mod connection;
 pub mod definition;
 pub mod graph;
 pub mod identifier;
+pub mod import;
 pub mod module;
 pub mod node;
 pub mod project;
@@ -205,7 +208,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use parser::Parser;
+    use parser_scala::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.
@@ -230,7 +233,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn parse_single_line_comment() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
 
         // Typical single line case.
         let code = r#"
@@ -267,7 +270,7 @@ main =
 
     #[wasm_bindgen_test]
     fn parse_multi_line_comment() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let code = r#"
 main =
     ## First line

@@ -5,7 +5,7 @@
     name="test/build-scripts [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚧 Build          rust-scripts"
+    folderName="🚧 Build          deprecated/rust-scripts"
   >
     <option name="command" value="test --all-targets  --target-dir dist/intellij_native --package build-scripts" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

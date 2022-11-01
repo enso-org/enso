@@ -7,6 +7,7 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -233,7 +234,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &*self.model.display_object
+        &self.model.display_object
     }
 }
 
@@ -242,9 +243,8 @@ impl ScrollArea {
     #[profile(Detail)]
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
-        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new();
-        let masked_layer = layer::Masked::new(&camera);
+        let masked_layer = layer::Masked::new();
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content_layer = display_object.layer.masked_layer.create_sublayer("content_layer");

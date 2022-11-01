@@ -5,9 +5,9 @@
     name="clippy/ide-view-component-list-panel [wasm, macos]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🚥 GUI            view/component-browser/searcher-list-panel"
+    folderName="🚥 GUI            view/component-browser/component-list-panel"
   >
-    <option name="command" value="clippy --all-targets -Zmultitarget --target wasm32-unknown-unknown --target aarch64-apple-darwin --target-dir dist/intellij_wasm_macos --package ide-view-component-list-panel" />
+    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target aarch64-apple-darwin --target-dir dist/intellij_wasm_macos --package ide-view-component-list-panel" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />

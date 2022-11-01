@@ -1,10 +1,12 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 
 import java.time.ZonedDateTime;
 
-public class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
+public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
@@ -13,10 +15,14 @@ public class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     super(data, size, ops);
   }
 
-  private static final MapOpStorage<SpecializedStorage<ZonedDateTime>> ops = buildOps();
+  private static final MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> ops =
+      buildOps();
 
-  private static MapOpStorage<SpecializedStorage<ZonedDateTime>> buildOps() {
-    return ObjectStorage.buildObjectOps();
+  private static MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
+    MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
+        ObjectStorage.buildObjectOps();
+    t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
+    return t;
   }
 
   @Override

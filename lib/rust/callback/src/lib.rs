@@ -405,7 +405,7 @@ impl DynEventDispatcher {
         let callback = Box::new(move |event: &DynEvent| {
             event.any.downcast_ref::<T>().iter().for_each(|t| f(t))
         });
-        let type_id = (&PhantomData::<T>).type_id();
+        let type_id = PhantomData::<T>.type_id();
         let handle = Handle::default();
         let guard = handle.guard();
         let listeners = self.listener_map.entry(type_id).or_insert_with(default);

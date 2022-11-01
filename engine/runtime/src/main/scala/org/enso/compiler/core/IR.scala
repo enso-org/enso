@@ -736,6 +736,9 @@ object IR {
             s"""
             |IR.Module.Scope.Import.Module(
             |name = $name,
+            |rename = $rename,
+            |onlyNames = $onlyNames,
+            |hiddenNames = $hiddenNames,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -1453,6 +1456,21 @@ object IR {
                 }
               case _ =>
                 true // if it's not a function, it has no arguments, therefore no `self`
+            }
+
+            def isStaticWrapperForInstanceMethod: Boolean = body match {
+              case function: Function.Lambda =>
+                function.arguments.map(_.name) match {
+                  case IR.Name.Self(_, true, _, _) :: IR.Name.Self(
+                        _,
+                        false,
+                        _,
+                        _
+                      ) :: _ =>
+                    true
+                  case _ => false
+                }
+              case _ => false
             }
 
           }

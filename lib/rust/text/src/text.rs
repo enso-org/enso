@@ -511,7 +511,7 @@ impl Rope {
         location: Location<Byte, Line>,
     ) -> Result<Byte, LocationError<Byte>> {
         let line_offset = self.line_offset(location.line)?;
-        Ok(line_offset + location.offset)
+        self.validate_byte_offset(line_offset + location.offset).map_err(LocationError::from)
     }
 
     /// Byte offset of the given location. Snapped to the closest valid value.
@@ -749,6 +749,7 @@ impl Rope {
     ) -> Location<Utf16CodeUnit> {
         let line_start = self.line_offset_snapped(location.line);
         let position = self.location_offset_snapped(location);
+        println!("{line_start} {position}");
         let line_fragment_before = self.rope.slice(line_start.value..position.value);
         let line = location.line;
         let offset = Utf16CodeUnit::from(line_fragment_before.measure::<Utf16CodeUnitsMetric>());
@@ -936,6 +937,24 @@ impl From<&&str> for Rope {
 impl From<Rope> for String {
     fn from(t: Rope) -> Self {
         t.rope.into()
+    }
+}
+
+impl From<Rope> for ImString {
+    fn from(t: Rope) -> Self {
+        ImString::new(t)
+    }
+}
+
+impl From<&Rope> for ImString {
+    fn from(t: &Rope) -> Self {
+        t.clone().into()
+    }
+}
+
+impl From<&&Rope> for ImString {
+    fn from(t: &&Rope) -> Self {
+        (*t).into()
     }
 }
 
@@ -1324,5 +1343,32 @@ where T: FromInContextSnapped<&'t Rope, S>
         let start = T::from_in_context_snapped(rope, range.start);
         let end = T::from_in_context_snapped(rope, range.end);
         Range::new(start, end)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn getting_utf16_code_unit_location_from_end_of_the_text() {
+        let rope = Rope::from("first_line\n🧑🏾second_line");
+        let from = Location { line: Line(1), offset: Byte(19) };
+        let expected = Location { line: Line(1), offset: Utf16CodeUnit(15) };
+        assert_eq!(rope.utf16_code_unit_location_of_location(from), expected);
+    }
+
+    #[test]
+    fn getting_utf16_code_unit_location_from_out_of_bounds_location() {
+        let rope = Rope::from("first_line\n🧑🏾second_line");
+        let from = Location { line: Line(1), offset: Byte(20) };
+        let expected = Location { line: Line(1), offset: Utf16CodeUnit(15) };
+        assert_eq!(rope.utf16_code_unit_location_of_location(from), expected);
     }
 }

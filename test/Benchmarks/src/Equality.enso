@@ -1,7 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Duration
+from Standard.Base.Data.Time import Duration, Period
 
-import Standard.Test.Bench
+from Standard.Test import Bench
 
 polyglot java import java.util.Random
 polyglot java import org.graalvm.collections.Pair as Graal_Pair
@@ -62,10 +62,10 @@ main =
 
     first_day = Date.new 1971
     date_vec = integer_vec.map x->
-        first_day + x.days
+        first_day + (Period.new days=x)
     first_dt = Date_Time.new 1971
     datetime_vec = integer_vec.map x->
-        first_dt + x.minutes
+        first_dt + (Duration.new minutes=x)
 
     Bench.measure (count_entries integer_vec 4567) "Integer Equality" iter_size num_iterations
     Bench.measure (count_entries boolean_vec True expected_count=(n . div 5)) "Boolean Equality" iter_size num_iterations

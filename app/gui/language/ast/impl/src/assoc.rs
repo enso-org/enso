@@ -12,7 +12,7 @@ use regex::Regex;
 
 /// Operator associativity.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Assoc {
     Left,
     Right,

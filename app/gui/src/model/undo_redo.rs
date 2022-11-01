@@ -275,7 +275,10 @@ impl Repository {
 
     /// Get currently opened transaction. If there is none, open a new one.
     pub fn transaction(self: &Rc<Self>, name: impl Into<String>) -> Rc<Transaction> {
-        self.open_transaction(name).into_ok_or_err()
+        match self.open_transaction(name) {
+            Ok(transaction) => transaction,
+            Err(transaction) => transaction,
+        }
     }
 
     /// Borrow given stack.

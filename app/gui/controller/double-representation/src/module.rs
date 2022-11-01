@@ -10,6 +10,7 @@ use crate::identifier;
 use crate::identifier::Identifier;
 use crate::identifier::LocatedName;
 use crate::identifier::ReferentName;
+use crate::import;
 use crate::project;
 use crate::tp;
 
@@ -31,12 +32,12 @@ use serde::Serialize;
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Import `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
-pub struct ImportNotFound(pub ImportInfo);
+pub struct ImportNotFound(pub import::Info);
 
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Import with ID `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
-pub struct ImportIdNotFound(pub ImportId);
+pub struct ImportIdNotFound(pub import::Id);
 
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Line index is out of bounds.")]
@@ -406,83 +407,6 @@ impl PartialEq<tp::QualifiedName> for QualifiedName {
 
 
 
-// ==================
-// === ImportInfo ===
-// ==================
-
-/// Id for an import.
-pub type ImportId = u64;
-
-/// Representation of a single import declaration.
-// TODO [mwu]
-// Currently only supports the unqualified imports like `import Foo.Bar`. Qualified, restricted and
-// and hiding imports are not supported by the parser yet. In future when parser and engine
-// supports them, this structure should be adjusted as well.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, Hash)]
-pub struct ImportInfo {
-    /// The segments of the qualified name of the imported target.
-    ///
-    /// This field is not Qualified name to cover semantically illegal imports that are possible to
-    /// be typed in and are representable in the text.
-    /// This includes targets with too few segments or segments not being valid referent names.
-    pub target: Vec<String>,
-}
-
-impl ImportInfo {
-    /// Construct from a string describing an import target, like `"Foo.Bar"`.
-    pub fn from_target_str(name: impl AsRef<str>) -> Self {
-        let name = name.as_ref().trim();
-        let target = if name.is_empty() {
-            Vec::new()
-        } else {
-            name.split(ast::opr::predefined::ACCESS).map(Into::into).collect()
-        };
-        ImportInfo { target }
-    }
-
-    /// Construct from a module qualified name like `"Foo.Bar"` that describes imported target.
-    pub fn from_qualified_name(name: &QualifiedName) -> Self {
-        let target = name.segments().map(|segment| segment.to_string()).collect();
-        Self { target }
-    }
-
-    /// Obtain the qualified name of the imported module.
-    pub fn qualified_name(&self) -> FallibleResult<QualifiedName> {
-        QualifiedName::from_all_segments(&self.target)
-    }
-
-    /// Construct from an AST. Fails if the Ast is not an import declaration.
-    pub fn from_ast(ast: &Ast) -> Option<Self> {
-        let macro_match = known::Match::try_from(ast).ok()?;
-        Self::from_match(macro_match)
-    }
-
-    /// Construct from a macro match AST. Fails if the Ast is not an import declaration.
-    pub fn from_match(ast: known::Match) -> Option<Self> {
-        ast::macros::is_match_import(&ast)
-            .then(|| ImportInfo::from_target_str(ast.segs.head.body.repr().trim()))
-    }
-
-    /// Return the ID of the import.
-    ///
-    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI
-    /// internal and not known in the engine.
-    pub fn id(&self) -> ImportId {
-        let mut hasher = DefaultHasher::new();
-        self.hash(&mut hasher);
-        hasher.finish()
-    }
-}
-
-impl Display for ImportInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let target = self.target.join(ast::opr::predefined::ACCESS);
-        write!(f, "{} {}", ast::macros::QUALIFIED_IMPORT_KEYWORD, target)
-    }
-}
-
-
-
 // ============
 // === Info ===
 // ============
@@ -514,15 +438,15 @@ impl Info {
     }
 
     /// Iterate over all lines in module that contain an import declaration.
-    pub fn enumerate_imports(&self) -> impl Iterator<Item = (ModuleCrumb, ImportInfo)> + '_ {
+    pub fn enumerate_imports(&self) -> impl Iterator<Item = (ModuleCrumb, import::Info)> + '_ {
         let children = self.ast.shape().enumerate();
-        children.filter_map(|(crumb, ast)| Some((crumb, ImportInfo::from_ast(ast)?)))
+        children.filter_map(|(crumb, ast)| Some((crumb, import::Info::from_ast(ast)?)))
     }
 
     /// Iterate over all import declarations in the module.
     ///
     /// If the caller wants to know *where* the declarations are, use `enumerate_imports`.
-    pub fn iter_imports(&self) -> impl Iterator<Item = ImportInfo> + '_ {
+    pub fn iter_imports(&self) -> impl Iterator<Item = import::Info> + '_ {
         self.enumerate_imports().map(|(_, import)| import)
     }
 
@@ -548,7 +472,7 @@ impl Info {
     ///
     /// If there is more than one line matching, only the first one will be removed.
     /// Fails if there is no import matching given argument.
-    pub fn remove_import(&mut self, to_remove: &ImportInfo) -> FallibleResult {
+    pub fn remove_import(&mut self, to_remove: &import::Info) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_, import)| import == to_remove);
         let (crumb, _) = lookup_result.ok_or_else(|| ImportNotFound(to_remove.clone()))?;
         self.remove_line(crumb.line_index)?;
@@ -559,7 +483,7 @@ impl Info {
     ///
     /// If there is more than one line matching, only the first one will be removed.
     /// Fails if there is no import matching given argument.
-    pub fn remove_import_by_id(&mut self, to_remove: ImportId) -> FallibleResult {
+    pub fn remove_import_by_id(&mut self, to_remove: import::Id) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_, import)| import.id() == to_remove);
         let (crumb, _) = lookup_result.ok_or(ImportIdNotFound(to_remove))?;
         self.remove_line(crumb.line_index)?;
@@ -573,10 +497,10 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &parser::Parser, to_add: ImportInfo) -> usize {
+    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: import::Info) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
-            self.enumerate_imports().take_while(|(_, import)| to_add.target > import.target).last();
+            self.enumerate_imports().take_while(|(_, import)| &to_add > import).last();
 
         let index_to_place_at = previous_import.map_or(0, |(crumb, _)| crumb.line_index + 1);
         let import_ast = parser.parse_line_ast(to_add.to_string()).unwrap();
@@ -588,11 +512,11 @@ impl Info {
     pub fn add_module_import(
         &mut self,
         here: &QualifiedName,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
         to_add: &QualifiedName,
     ) {
         let is_here = to_add == here;
-        let import = ImportInfo::from_qualified_name(to_add);
+        let import = import::Info::new_qualified(to_add);
         let already_imported = self.iter_imports().any(|imp| imp == import);
         if !is_here && !already_imported {
             self.add_import(parser, import);
@@ -648,7 +572,7 @@ impl Info {
         &mut self,
         method: definition::ToAdd,
         location: Placement,
-        parser: &parser::Parser,
+        parser: &parser_scala::Parser,
     ) -> FallibleResult {
         let no_indent = 0;
         let definition_ast = method.ast(no_indent, parser)?;
@@ -687,7 +611,7 @@ impl From<known::Module> for Info {
 // =================
 
 /// Structure describing where to place something being added to the module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the beginning of the module.
     Begin,
@@ -878,14 +802,14 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_listing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
             let ast = parser.parse_module(code, default()).unwrap();
             let info = Info { ast };
             let imports = info.iter_imports().collect_vec();
             assert_eq!(imports.len(), expected.len());
             for (import, expected_segments) in imports.iter().zip(expected) {
-                itertools::assert_equal(import.target.iter(), expected_segments.iter());
+                itertools::assert_equal(import.module.iter(), expected_segments.iter());
             }
         };
 
@@ -901,13 +825,13 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_adding_and_removing() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let code = "import Foo.Bar.Baz";
         let ast = parser.parse_module(code, default()).unwrap();
         let mut info = Info { ast };
         let import = |code| {
             let ast = parser.parse_line_ast(code).unwrap();
-            ImportInfo::from_ast(&ast).unwrap()
+            import::Info::from_ast(&ast).unwrap()
         };
 
         info.add_import(&parser, import("import Bar.Gar"));
@@ -915,13 +839,13 @@ mod tests {
         info.add_import(&parser, import("import Gar.Bar"));
         info.expect_code("import Bar.Gar\nimport Foo.Bar.Baz\nimport Gar.Bar");
 
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap_err();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap_err();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Gar.Bar")).unwrap();
+        info.remove_import(&import("import Gar.Bar")).unwrap();
         info.expect_code("import Bar.Gar");
-        info.remove_import(&ImportInfo::from_target_str("Bar.Gar")).unwrap();
+        info.remove_import(&import("import Bar.Gar")).unwrap();
         info.expect_code("");
 
         info.add_import(&parser, import("import Bar.Gar"));
@@ -930,7 +854,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn implicit_method_resolution() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module_name =
             QualifiedName::from_all_segments(&["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
@@ -1002,7 +926,7 @@ other def =
 
 last def = inline expression";
 
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = parser.parse_module(code, default()).unwrap();
         let module = Info { ast: module };
 
@@ -1014,14 +938,14 @@ last def = inline expression";
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("inline expression"));
 
-        let id = definition::Id::new_plain_names(&["other", "nested"]);
+        let id = definition::Id::new_plain_names(["other", "nested"]);
         let span = definition_span(&module.ast, &id).unwrap();
         assert!(code[span].ends_with("nested body"));
     }
 
     #[wasm_bindgen_test]
     fn add_method() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let module = r#"Main.method1 arg = body
 
 main = Main.method1 10"#;

@@ -10,8 +10,7 @@ import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Data.Table import combine_names, fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 import project.Database.Helpers.Fake_Test_Connection
 
@@ -98,6 +97,29 @@ spec =
             c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
+        Test.specify "should generate a single BETWEEN expression" <|
+            t2 = t1.filter "A" (Filter_Condition.Between 10 20)
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
+
+            t3 = t1.filter "A" (Filter_Condition.Between (t1.at "B") (t1.at "C"))
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND "T1"."C")', []]
+
+            t4 = t1.filter "A" (Filter_Condition.Between (t1.at "B") 33)
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN "T1"."B" AND ?)', [[33, int]]]
+
+        Test.specify "should generate an IN expression" <|
+            t2 = t1.filter "A" (Filter_Condition.Is_In [1, 2, 'foo'])
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?, ?, ?), FALSE)', [[1, int], [2, int], ["foo", int]]]
+
+            t3 = t1.filter "A" (Filter_Condition.Is_In [1])
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE COALESCE("T1"."A" IN (?), FALSE)', [[1, int]]]
+
+            t4 = t1.filter "A" (Filter_Condition.Is_In [])
+            t4.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (FALSE)', []]
+
+            t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
+            t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
+
     Test.group "[Codegen] Joining Tables" <|
         t2 = test_connection.query (SQL_Query.Table_Name "T2")
         t3 = test_connection.query (SQL_Query.Table_Name "T3")
@@ -140,9 +162,12 @@ spec =
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
 
-        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
-            t2 = t1.drop_missing_rows
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
+        Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
+            t2 = t1.filter_blank_rows when_any=True
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) OR (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) OR ("T1"."C" IS NULL)))', []]
+
+            t3 = t1.filter_blank_rows when_any=False
+            t3.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ((("T1"."A" IS NULL) AND (("T1"."B" IS NULL) OR ("T1"."B" = \'\'))) AND ("T1"."C" IS NULL)))', []]
 
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
@@ -190,4 +215,4 @@ spec =
             code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
             code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

@@ -318,7 +318,7 @@ impl TargetConfig {
             "".into()
         } else {
             let opts = targets.into_iter().map(|t| format!("--target {t}"));
-            format!("-Zmultitarget {}", opts.collect::<Vec<String>>().join(" "))
+            opts.collect::<Vec<String>>().join(" ")
         }
     }
 }

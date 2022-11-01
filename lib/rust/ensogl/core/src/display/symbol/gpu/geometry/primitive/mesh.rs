@@ -50,7 +50,7 @@ pub struct Scopes {
 }
 
 /// A singleton for each of scope types.
-#[derive(Copy, Clone, Debug, Display, IntoPrimitive, PartialEq)]
+#[derive(Copy, Clone, Debug, Display, IntoPrimitive, PartialEq, Eq)]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum ScopeType {

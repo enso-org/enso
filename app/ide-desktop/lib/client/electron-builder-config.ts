@@ -159,7 +159,7 @@ const config: Configuration = {
 
     afterSign: async context => {
         // Notarization for macOS.
-        if (args.platform === Platform.MAC) {
+        if (args.platform === Platform.MAC && process.env['CSC_LINK']) {
             const { packager, appOutDir } = context
             const appName = packager.appInfo.productFilename
 
