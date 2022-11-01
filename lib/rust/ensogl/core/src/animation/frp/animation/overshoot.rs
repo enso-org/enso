@@ -60,8 +60,6 @@ crate::define_endpoints! {
         value (f32),
         /// Current target value of the animation.
         target (f32),
-        /// Indicates whether the value is currently being animated.
-        animating (bool),
     }
 }
 
@@ -123,7 +121,6 @@ impl OvershootAnimation {
 
             out.value <+ animation.value;
             out.target <+ animation.target;
-            out.animating <+ bool(&animation.on_end, &animation.value).on_change();
         }
 
         frp.set_min_bound(0.0);
