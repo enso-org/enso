@@ -1,9 +1,6 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -19,6 +16,7 @@ import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.state.IOPermissions;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.service.ExecutionService;
@@ -27,10 +25,13 @@ import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 
 import java.util.Optional;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.graalvm.options.OptionKey;
+import org.graalvm.options.OptionType;
 
 /**
  * The root of the Enso implementation.
@@ -169,10 +170,22 @@ public final class Language extends TruffleLanguage<Context> {
     return Truffle.getRuntime().createCallTarget(root);
   }
 
+  @Option(
+      name = "IOEnvironment",
+      category = OptionCategory.USER,
+      help = "The IO environment for program execution.")
+  public static final OptionKey<IOPermissions> IO_ENVIRONMENT =
+      new OptionKey<>(
+          IOPermissions.PRODUCTION, new OptionType<>("IOEnvironment", IOPermissions::forName));
+
+  private static final OptionDescriptors OPTIONS =
+      OptionDescriptors.createUnion(
+          new LanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
+
   /** {@inheritDoc} */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
-    return RuntimeOptions.OPTION_DESCRIPTORS;
+    return OPTIONS;
   }
 
   /**

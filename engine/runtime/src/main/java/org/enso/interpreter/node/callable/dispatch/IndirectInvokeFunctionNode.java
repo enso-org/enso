@@ -14,7 +14,7 @@ import org.enso.interpreter.node.callable.argument.IndirectArgumentSorterNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Executes a function with given arguments.
@@ -38,7 +38,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
-  public abstract Stateful execute(
+  public abstract Object execute(
       Function callable,
       MaterializedFrame callerFrame,
       Object state,
@@ -49,10 +49,10 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       BaseNode.TailStatus isTail);
 
   @Specialization
-  Stateful invokeUncached(
+  Object invokeUncached(
       Function function,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -83,7 +83,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         callerFrame == null ? null : callerFrame.materialize(),
         function,
         callerInfo,
-        mappedArguments.getState(),
+        state,
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),

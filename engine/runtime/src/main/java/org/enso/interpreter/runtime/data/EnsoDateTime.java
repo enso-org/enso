@@ -34,6 +34,11 @@ public final class EnsoDateTime implements TruffleObject {
     this.dateTime = dateTime;
   }
 
+  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch")
+  public static EnsoDateTime epochStart() {
+    return epochStart;
+  }
+
   @Builtin.Method(description = "Return current DateTime")
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
@@ -162,18 +167,6 @@ public final class EnsoDateTime implements TruffleObject {
     return new EnsoDateTime(dateTime.minus(interop.asDuration(durationObject)));
   }
 
-  @Builtin.Method(description = "Return the number of seconds from the Unix epoch.")
-  @CompilerDirectives.TruffleBoundary
-  public long toEpochSeconds() {
-    return dateTime.toEpochSecond();
-  }
-
-  @Builtin.Method(description = "Return the number of milliseconds from the Unix epoch.")
-  @CompilerDirectives.TruffleBoundary
-  public long toEpochMilliseconds() {
-    return dateTime.toInstant().toEpochMilli();
-  }
-
   @Builtin.Method(
       name = "to_localtime_builtin",
       description = "Return the localtime of this date time value.")
@@ -263,6 +256,11 @@ public final class EnsoDateTime implements TruffleObject {
   public final Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
   }
+
+  // 15. October 1582
+  /** 15. October 1582 in UTC timezone. Note that Java considers an epoch start 1.1.1970 UTC. */
+  private static final EnsoDateTime epochStart =
+      EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
 
   private static final DateTimeFormatter TIME_FORMAT =
       new DateTimeFormatterBuilder()

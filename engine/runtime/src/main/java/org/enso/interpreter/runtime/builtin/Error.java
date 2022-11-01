@@ -37,6 +37,7 @@ public class Error {
   private final NoSuchFieldError noSuchFieldError;
   private final Panic panic;
   private final CaughtPanic caughtPanic;
+  private final ForbiddenOperation forbiddenOperation;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -68,6 +69,7 @@ public class Error {
     noSuchFieldError = builtins.getBuiltinType(NoSuchFieldError.class);
     panic = builtins.getBuiltinType(Panic.class);
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
+    forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -217,5 +219,9 @@ public class Error {
    */
   public Atom makeNotInvokableError(Object target) {
     return notInvokableError.newInstance(target);
+  }
+
+  public ForbiddenOperation getForbiddenOperation() {
+    return forbiddenOperation;
   }
 }

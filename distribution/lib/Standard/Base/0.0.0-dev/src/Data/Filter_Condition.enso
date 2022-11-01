@@ -28,23 +28,26 @@ type Filter_Condition
 
     ## Does the value start with a prefix (Text only)?
 
-       It accepts a Text value to check if the value starts with it. In case of
-       Table operations, it can accept another column - then the corresponding
-       values from the source column and the provided column are checked.
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
     Starts_With (prefix:Text)
 
     ## Does the value end with a suffix (Text only)?
 
-       It accepts a Text value to check if the value ends with it. In case of
-       Table operations, it can accept another column - then the corresponding
-       values from the source column and the provided column are checked.
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
     Ends_With (suffix:Text)
 
     ## Does the value contain the needle (Text only)?
 
-       It accepts a Text value to check if the value contains it. In case of
-       Table operations, it can accept another column - then the corresponding
-       values from the source column and the provided column are checked.
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
     Contains (substring:Text)
 
     ## Is equal to Nothing?
@@ -67,14 +70,15 @@ type Filter_Condition
 
     ## Does the value match the SQL pattern (Text only)?
 
-       It accepts a Text value representing the matching pattern. In case of
-       Table operations, it can accept another column - then the corresponding
-       values from the source column and the provided column are checked.
-
        The pattern is interpreted according to the standard SQL convention:
        - the `%` character matches any sequence of characters,
        - the `_` character matches any single character,
        - any other character is matched literally.
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
 
        ! Known Bugs
          There is a known bug in Java Regex where escape characters are not
@@ -87,14 +91,15 @@ type Filter_Condition
 
     ## Does the value not match the SQL pattern (Text only)?
 
-       It accepts a Text value representing the matching pattern. In case of
-       Table operations, it can accept another column - then the corresponding
-       values from the source column and the provided column are checked.
-
        The pattern is interpreted according to the standard SQL convention:
        - the `%` character matches any sequence of characters,
        - the `_` character matches any single character,
        - any other character is matched literally.
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
 
        ! Known Bugs
          There is a known bug in Java Regex where escape characters are not
@@ -106,9 +111,31 @@ type Filter_Condition
     Not_Like pattern:Text
 
     ## Is the value contained in `values`?
+
+       ? Table Operations
+         It accepts a `Vector` of values. In case of Table operations, it can
+         also accept another column - then it acts as if `column.to_vector` was
+         passed - i.e. every element of the original table's column is checked
+         if it is contained in the provided column. The columns can have
+         different lengths.
+
+         Using Columns can be particularly useful for Database operations, as
+         uploading a temporary table and using its column for an `Is_In` check
+         will likely be faster than using the vector directly.
     Is_In values:Vector
 
     ## Is the value not contained in `values`?
+
+       ? Table Operations
+         It accepts a `Vector` of values. In case of Table operations, it can
+         also accept another column - then it acts as if `column.to_vector` was
+         passed - i.e. every element of the original table's column is checked
+         if it is contained in the provided column. The columns can have
+         different lengths.
+
+         Using Columns can be particularly useful for Database operations, as
+         uploading a temporary table and using its column for an `Not_In` check
+         will likely be faster than using the vector directly.
     Not_In values:Vector
 
     ## Converts a `Filter_Condition` condition into a predicate taking an

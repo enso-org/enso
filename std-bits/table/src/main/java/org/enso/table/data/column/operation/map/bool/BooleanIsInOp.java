@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -27,9 +26,9 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
   }
 
   public BoolStorage runMap(BoolStorage storage, List<?> arg) {
+    boolean hadNull = false;
     boolean hadTrue = false;
     boolean hadFalse = false;
-    boolean hadNull = false;
 
     for (Object o : arg) {
       switch (o) {
@@ -42,18 +41,30 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
       }
     }
 
+    return run(storage, hadNull, hadTrue, hadFalse);
+  }
+
+  @Override
+  public Storage<?> runZip(BoolStorage storage, Storage<?> arg) {
+    // We could try BitSets for BoolStorage, but it is unclear if they will improve performance due
+    // to need for additional allocations. It does not seem worth optimizing this rare usecase
+    // currently.
+    return runMap(storage, arg.toList());
+  }
+
+  private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
     BitSet newVals;
     boolean negated = false;
 
     if (hadNull && hadTrue && hadFalse) {
-      // We use empty newVals which has everything set to false and negate it to make all of that set to true with zero cost.
+      // We use empty newVals which has everything set to false and negate it to make all of that
+      // set to true with zero cost.
       newVals = new BitSet();
       negated = true;
     } else if (!hadNull && !hadTrue && !hadFalse) {
       // No values are present, so the result is to be false everywhere.
       newVals = new BitSet();
-    }
-    else if (hadNull && !hadTrue && !hadFalse) {
+    } else if (hadNull && !hadTrue && !hadFalse) {
       // Only missing values are in the set, so we just return the missing indicator.
       newVals = storage.getIsMissing();
     } else if (hadTrue && hadFalse) { // && !hadNull
@@ -80,10 +91,5 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
     }
 
     return new BoolStorage(newVals, new BitSet(), storage.size(), negated);
-  }
-
-  @Override
-  public Storage<?> runZip(BoolStorage storage, Storage<?> arg) {
-    throw new IllegalStateException("Zip mode is not supported for this operation.");
   }
 }

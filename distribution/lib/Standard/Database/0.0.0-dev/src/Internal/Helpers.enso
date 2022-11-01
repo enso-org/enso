@@ -18,9 +18,19 @@ polyglot java import java.util.regex.Pattern
    the combination would be ill-formed.
 check_integrity : (Table | Column) -> (Table | Column) -> Boolean
 check_integrity entity1 entity2 =
-    con = entity1.connection == entity2.connection
     ctx = entity1.context == entity2.context
-    con && ctx
+    ctx && (check_connection entity1 entity2)
+
+## PRIVATE
+
+   Checks if the two tables or columns use the same connection.
+
+   Arguments:
+   - entity1: The entity to check against the second.
+   - entity2: The entity to check against the first.
+check_connection : (Table | Column) -> (Table | Column) -> Boolean
+check_connection entity1 entity2 =
+    entity1.connection == entity2.connection
 
 ## PRIVATE
 

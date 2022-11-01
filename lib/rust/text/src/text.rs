@@ -940,6 +940,24 @@ impl From<Rope> for String {
     }
 }
 
+impl From<Rope> for ImString {
+    fn from(t: Rope) -> Self {
+        ImString::new(t)
+    }
+}
+
+impl From<&Rope> for ImString {
+    fn from(t: &Rope) -> Self {
+        t.clone().into()
+    }
+}
+
+impl From<&&Rope> for ImString {
+    fn from(t: &&Rope) -> Self {
+        (*t).into()
+    }
+}
+
 impl From<&Rope> for String {
     fn from(t: &Rope) -> Self {
         t.clone().into()

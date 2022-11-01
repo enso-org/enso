@@ -5,8 +5,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @NodeInfo(
     shortName = "get_cons",
@@ -31,12 +29,11 @@ public class QualifiedAccessorNode extends RootNode {
    * @param frame current execution frame
    * @return the constant constructor
    */
-  public Stateful execute(VirtualFrame frame) {
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
+  public Object execute(VirtualFrame frame) {
     if (atomConstructor.getArity() == 0) {
-      return new Stateful(state, atomConstructor.newInstance());
+      return atomConstructor.newInstance();
     } else {
-      return new Stateful(state, atomConstructor);
+      return atomConstructor;
     }
   }
 }

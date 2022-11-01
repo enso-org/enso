@@ -57,6 +57,7 @@ object SuggestionRandom {
       arguments         = Seq(),
       selfType          = nextString(),
       returnType        = nextString(),
+      isStatic          = Random.nextBoolean(),
       documentation     = optional(nextString()),
       documentationHtml = optional(nextString())
     )

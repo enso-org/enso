@@ -143,7 +143,7 @@ impl Model {
 
     /// Node expression was edited in the view. Should be called whenever the user changes the
     /// contents of a node during editing.
-    fn node_expression_set(&self, id: ViewNodeId, expression: String) {
+    fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
         self.state.update_from_view().set_node_expression(id, expression);
     }
 
@@ -555,7 +555,7 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
-            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone()));
+            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
 
 
             // === Dropping Files ===

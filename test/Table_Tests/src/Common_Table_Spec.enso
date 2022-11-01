@@ -1217,15 +1217,25 @@ spec prefix table_builder test_selection pending=Nothing =
             t2.at "ix" . to_vector . should_equal [2, 4]
             t2.at "X" . to_vector . should_equal [1, 4]
 
-        Test.specify "by an Is_In check in a Vector" <|
+        Test.specify "by an Is_In check" <|
             t = table_builder [["ix", [1, 2, 3, Nothing, 5, 6]], ["X", ["a", "b", "ccc", "X", "f", "2"]]]
-            t.filter "X" (Filter_Condition.Is_In ["X", "a", "c"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
-            t.filter "X" (Filter_Condition.Not_In ["X", "a", "c"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t1 = table_builder [["txt", ["X", "a", "c", Nothing]], ["int", [Nothing, 2, 5, 4]], ["bool", [True, Nothing, Nothing, True]]]
+
+            t.filter "X" (Filter_Condition.Is_In (t1.at "txt")) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
+            t.filter "X" (Filter_Condition.Is_In (t1.at "txt" . to_vector)) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "X"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt")) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
+            t.filter "X" (Filter_Condition.Not_In (t1.at "txt" . to_vector)) on_problems=Report_Error . at "X" . to_vector . should_equal ["b", "ccc", "f", "2"]
             t.filter "X" (Filter_Condition.Is_In ["ccc"]) on_problems=Report_Error . at "X" . to_vector . should_equal ["ccc"]
             t.filter "X" (Filter_Condition.Is_In []) on_problems=Report_Error . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Not_In []) on_problems=Report_Error . at "X" . to_vector . should_equal ["a", "b", "ccc", "X", "f", "2"]
 
-            t.filter "ix" (Filter_Condition.Is_In [Nothing, 2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
+            if test_selection.allows_mixed_type_comparisons then
+                mixed = t.filter "X" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "X" . to_vector
+                # Some backends (e.g. SQLite) allow to coerce integer and text types when doing mixed type comparisons.
+                ((mixed == []) || (mixed == ["2"])).should_be_true
+
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int")) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
+            t.filter "ix" (Filter_Condition.Is_In (t1.at "int" . to_vector)) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, Nothing, 5]
             t.filter "ix" (Filter_Condition.Is_In [2, 5, 4]) on_problems=Report_Error . at "ix" . to_vector . should_equal [2, 5]
             t.filter "ix" (Filter_Condition.Is_In [Nothing]) on_problems=Report_Error . at "ix" . to_vector . should_equal [Nothing]
             t.filter "ix" (Filter_Condition.Not_In [Nothing]) on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 2, 3, 5, 6]
@@ -1241,7 +1251,8 @@ spec prefix table_builder test_selection pending=Nothing =
                 False -> v2.should_fail_with SQL_Error_Data
 
             t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
-            t2.filter "A" (Filter_Condition.Is_In [True, Nothing]) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]
+            t2.filter "A" (Filter_Condition.Is_In (t1.at "bool" . to_vector)) . at "A" . to_vector . should_equal [True, True]
             t2.filter "B" (Filter_Condition.Is_In [True, Nothing]) . at "B" . to_vector . should_equal []
             t2.filter "C" (Filter_Condition.Is_In [True, Nothing]) . at "C" . to_vector . should_equal [True, Nothing]
             t2.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
@@ -1431,3 +1442,45 @@ spec prefix table_builder test_selection pending=Nothing =
             no_cols.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []
             no_rows.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["X"]
             no_rows.remove_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []
+
+    Test.group prefix+"Table.rows" pending=pending <|
+        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
+        Test.specify "should allow to get a Vector of Table rows" <|
+            rows = table.rows
+            rows.length . should_equal 4
+
+            first_row = rows.first
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
+
+            last_row = rows.at -1
+            last_row . length . should_equal 3
+            last_row.at 0 . should_equal 4
+            last_row.at 1 . should_equal 8
+            last_row.at 2 . should_equal "D"
+            last_row.at -1 . should_equal "D"
+
+            rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
+
+        Test.specify "should fetch rows up to the specified limit" <|
+            table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
+
+        Test.specify "should correctly handle errors" <|
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            err = table.rows.at -6
+            err.should_fail_with Index_Out_Of_Bounds_Error_Data
+            err.catch . should_equal (Index_Out_Of_Bounds_Error_Data -6 4)
+
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column_Error_Data
+
+        Test.specify "should visualize nicely" <|
+            table.rows . to_default_visualization_data . should_equal <|
+                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+
+            # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
+            t2 = table_builder [["X", 0.up_to 200 . to_vector]]
+            t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data

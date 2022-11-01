@@ -245,9 +245,8 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new();
-        let masked_layer = layer::Masked::new(&logger, &camera);
+        let masked_layer = layer::Masked::new(&logger);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content_layer = display_object.layer.masked_layer.create_sublayer();
