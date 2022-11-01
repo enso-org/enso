@@ -7405,6 +7405,7 @@ object IR {
       override val location: Option[IdentifiedLocation] =
         at match {
           case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
+          case loc: IdentifiedLocation => Some(loc)
           case _        => None
         }
 

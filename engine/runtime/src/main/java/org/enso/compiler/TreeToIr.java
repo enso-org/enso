@@ -13,10 +13,10 @@ import org.enso.compiler.core.IR$Case$Expr;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidBaseInDecimalLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Foreign$Definition;
@@ -675,7 +675,13 @@ final class TreeToIr {
         }
       }
       case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
-      case Tree.Group group -> translateExpression(group.getBody(), false);
+      case Tree.Group group -> {
+          var in = translateExpression(group.getBody(), false);
+          if (in == null) {
+              yield new IR$Error$Syntax(group, IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
+          }
+          yield in;
+      }
       case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
         var expr = translateExpression(cas.getExpression(), false);

@@ -500,6 +500,17 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testEmptyGroup() throws Exception {
+    parseTest("""
+    main =
+        x = Panic.catch_primitive () .convert_to_dataflow_error
+        x.catch_primitive err->
+            case err of
+                Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
+    """);
+  }
+
+  @Test
   public void testTestGroupSimple() throws Exception {
     parseTest("""
     group1 : Text -> Any -> (Text | Nothing) -> Nothing
@@ -987,6 +998,15 @@ public class EnsoCompilerTest {
       }
       int to = txt.indexOf("location =", at + pref.length());
       txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Error.Syntax(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("reason =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
     }
     return txt;
   }
