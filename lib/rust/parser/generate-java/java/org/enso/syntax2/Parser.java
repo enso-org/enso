@@ -27,7 +27,7 @@ public final class Parser implements AutoCloseable {
     } catch (URISyntaxException | LinkageError e) {
       System.err.println("Cannot load " + parser);
       File root = new File(".").getAbsoluteFile();
-      for (;;) {
+      for (; ; ) {
         var dir = new File(new File(new File(root, "target"), "rust"), "debug");
         parser = new File(dir, name);
         try {
@@ -42,7 +42,6 @@ public final class Parser implements AutoCloseable {
         }
       }
     }
-
   }
 
   private long state;
