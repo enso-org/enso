@@ -12,17 +12,26 @@ import org.graalvm.polyglot.Value;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
-  private static final DateTimeFormatter DATE_TIME_FORMATTER =
-      DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneId.systemDefault());
+  private static final DateTimeFormatter datetimeFormatter = new DateTimeFormatterBuilder()
+      .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+      .optionalStart().appendOffsetId().optionalEnd()
+      .optionalStart()
+      .parseCaseSensitive()
+      .appendLiteral('[').appendZoneRegionId().appendLiteral(']')
+      .optionalEnd()
+      .toFormatter().withZone(java.time.ZoneId.systemDefault());
 
   private static class ThrowOnErrorListener extends BaseErrorListener {
     public static final ThrowOnErrorListener INSTANCE = new ThrowOnErrorListener();
@@ -259,17 +268,39 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDate(ExpressionParser.DateContext ctx) {
-    return Value.asValue(LocalDate.parse(ctx.text.getText()));
+    var text = ctx.text.getText();
+    try {
+      return Value.asValue(LocalDate.parse(ctx.text.getText()));
+    } catch (DateTimeParseException e) {
+      throw new SyntaxErrorException("Invalid Date format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+    }
   }
 
   @Override
   public Value visitTime(ExpressionParser.TimeContext ctx) {
-    return Value.asValue(LocalTime.parse(ctx.text.getText()));
+    var text = ctx.text.getText();
+    try {
+      return Value.asValue(LocalTime.parse(ctx.text.getText()));
+    } catch (DateTimeParseException e) {
+      throw new SyntaxErrorException("Invalid Time format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+    }
   }
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    return Value.asValue(ZonedDateTime.parse(ctx.text.getText(), DATE_TIME_FORMATTER));
+    var text = ctx.text.getText().replace(' ', 'T');
+    try {
+      var zonedDateTime = ZonedDateTime.parse(text, datetimeFormatter);
+      return Value.asValue(zonedDateTime);
+    } catch (DateTimeParseException ignored) {
+    }
+
+    try {
+      var localDateTime = LocalDateTime.parse(text);
+      return Value.asValue(localDateTime.atZone(ZoneId.systemDefault()));
+    } catch (DateTimeParseException e) {
+      throw new SyntaxErrorException("Invalid Date_Time format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+    }
   }
 
   @Override
