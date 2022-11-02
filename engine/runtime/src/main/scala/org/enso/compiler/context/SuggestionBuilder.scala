@@ -317,7 +317,7 @@ final class SuggestionBuilder[A: IndexedSource](
     doc: Option[String]
   ): Suggestion.Type = {
     val qualifiedName = module.createChild(tp).toString
-    val parentType   = typeGraph.getDirectParents(qualifiedName).headOption
+    val parentType    = typeGraph.getDirectParents(qualifiedName).headOption
     Suggestion.Type(
       externalId    = None,
       module        = module.toString,
