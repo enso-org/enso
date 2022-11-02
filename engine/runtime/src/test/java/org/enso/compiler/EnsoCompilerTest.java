@@ -38,6 +38,30 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testLocationsSimpleArithmeticExpression() throws Exception {
+    parseTest("""
+    main = 2 + 45 * 20
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsApplicationsAndMethodCalls() throws Exception {
+    parseTest("""
+    main = (2-2 == 0).if_then_else (Cons 5 6) 0
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsCorrectAssignmentOfVariableReads() throws Exception {
+    parseTest("""
+    main =
+        x = 2 + 2 * 2
+        y = x * x
+        IO.println y
+    """, true, false, true);
+  }
+
+  @Test
   @Ignore
   public void testSpacesAtTheEndOfFile() throws Exception {
     var fourSpaces = "    ";

@@ -165,7 +165,7 @@ final class TreeToIr {
           methodRef,
           args,
           body,
-          getIdentifiedLocation(inputAst),
+          getIdentifiedLocation(inputAst, 0, 1),
           meta(), diag()
         );
         yield cons(binding, appendTo);
@@ -203,15 +203,17 @@ final class TreeToIr {
         if (body == null) {
             throw new NullPointerException();
         }
+        var aLoc = getIdentifiedLocation(a.getExpr());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           reference,
           nil(),
-          body,
+          body.setLocation(aLoc),
           getIdentifiedLocation(a),
           meta(), diag()
         );
         yield cons(binding, appendTo);
       }
+
       case Tree.TypeSignature sig -> {
         var methodReference = translateMethodReference(sig.getVariable(), true);
         var signature = translateType(sig.getType(), false);
@@ -574,7 +576,7 @@ final class TreeToIr {
                 yield new IR$Application$Prefix(fn.function(), args.reverse(), false, getIdentifiedLocation(app), meta(), diag());
             }
             var name = new IR$Name$Literal(
-              op.codeRepr(), true, getIdentifiedLocation(app), meta(), diag()
+              op.codeRepr(), true, getIdentifiedLocation(op), meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
             if (lhs == null && rhs == null) {
@@ -651,7 +653,13 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        yield new IR$Expression$Block(list, last, getIdentifiedLocation(body), false, meta(), diag());
+        var loc = getIdentifiedLocation(body, 0, 1);
+        if (last != null && last.location().isDefined() && last.location().get().end() != loc.get().end()) {
+            var patched = new Location(last.location().get().start(), loc.get().end() - 1);
+            var id = new IdentifiedLocation(patched, loc.get().id());
+            last = last.setLocation(Option.apply(id));
+        }
+        yield new IR$Expression$Block(list, last, loc, false, meta(), diag());
       }
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
@@ -696,12 +704,11 @@ final class TreeToIr {
       }
       case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
       case Tree.Group group -> {
-          var in = translateExpression(group.getBody(), false);
-          if (in == null) {
-              var at = getIdentifiedLocation(group);
-              yield new IR$Error$Syntax(at.get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
-          }
-          yield in;
+          yield switch (translateExpression(group.getBody(), false)) {
+              case null -> new IR$Error$Syntax(getIdentifiedLocation(group).get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
+              case IR$Application$Prefix pref -> pref.setLocation(getIdentifiedLocation(group, 1, -1));
+              case IR.Expression in -> in;
+          };
       }
       case Tree.TextLiteral txt -> translateLiteral(txt);
       case Tree.CaseOf cas -> {
@@ -782,10 +789,11 @@ final class TreeToIr {
       case Tree.Documented docu -> translateExpression(docu.getExpression());
       case Tree.App app -> {
           var fn = translateExpression(app.getFunc(), isMethod);
+          var loc = getIdentifiedLocation(app);
           if (app.getArg() instanceof Tree.AutoScope) {
-              yield new IR$Application$Prefix(fn, nil(), true, getIdentifiedLocation(app), meta(), diag());
+              yield new IR$Application$Prefix(fn, nil(), true, loc, meta(), diag());
           } else {
-              yield fn;
+              yield fn.setLocation(loc);
           }
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
@@ -1252,11 +1260,14 @@ final class TreeToIr {
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
+      return getIdentifiedLocation(ast, 0, 0);
+  }
+  private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e) {
     return Option.apply(switch (ast) {
         case null -> null;
         default -> {
-            var begin = Math.toIntExact(ast.getStartCode());
-            var end = Math.toIntExact(ast.getEndCode());
+            var begin = Math.toIntExact(ast.getStartCode()) + b;
+            var end = Math.toIntExact(ast.getEndCode()) + e;
             var someId = Option.apply(ast.uuid());
             yield new IdentifiedLocation(new Location(begin, end), someId);
         }
