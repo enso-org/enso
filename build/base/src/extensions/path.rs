@@ -80,7 +80,7 @@ pub trait PathExt: AsRef<Path> {
     fn as_str(&self) -> &str {
         self.as_ref()
             .to_str()
-            .unwrap_or_else(|_| panic!("Path is not valid UTF-8: {:?}", self.as_ref()))
+            .unwrap_or_else(|| panic!("Path is not valid UTF-8: {:?}", self.as_ref()))
     }
 
     /// Split path to components and collect them into a new PathBuf.
