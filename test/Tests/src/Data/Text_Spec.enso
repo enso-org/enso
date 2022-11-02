@@ -1312,6 +1312,9 @@ spec =
     Test.group "Text.is_match" <|
         Test.specify "should default to regex" <|
             "My Text: Goes Here".is_match "^My Text: (.+)$" . should_be_true
+            "555-801-1923".is_match "^\\d{3}-\\d{3}-\\d{4}$" . should_be_true
+            "Hello".is_match "^[a-z]+$" . should_be_false
+            "Hello".is_match "^[a-z]+$" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
 
         Test.specify "should allow Text_Matcher too" <|
             "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
