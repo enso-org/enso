@@ -42,12 +42,28 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Type(tpName, _, List(), _, _, _) =>
-            val cons =
-              buildAtomConstructor(module, tpName.name, tpName.name, Seq(), doc)
-            go(tree ++= Vector(Tree.Node(cons, Vector())), scope)
+          case IR.Module.Scope.Definition.Type(
+                tpName,
+                params,
+                List(),
+                _,
+                _,
+                _
+              ) =>
+            val tpe =
+              buildAtomType(module, tpName.name, tpName.name, params, doc)
+            go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case IR.Module.Scope.Definition.Type(tpName, _, members, _, _, _) =>
+          case IR.Module.Scope.Definition.Type(
+                tpName,
+                params,
+                members,
+                _,
+                _,
+                _
+              ) =>
+            val tpe =
+              buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.map {
               case data @ IR.Module.Scope.Definition.Data(
                     name,
@@ -70,7 +86,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               .distinct
               .map(buildGetter(module, tpName.name, _))
 
-            val tpSuggestions = conses ++ getters
+            val tpSuggestions = tpe +: conses ++: getters
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
@@ -287,6 +303,23 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       documentation = doc
     )
 
+  /** Build a type suggestion. */
+  private def buildAtomType(
+    module: QualifiedName,
+    tp: String,
+    name: String,
+    params: Seq[IR.DefinitionArgument],
+    doc: Option[String]
+  ): Suggestion.Type =
+    Suggestion.Type(
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      params        = params.map(buildArgument),
+      returnType    = module.createChild(tp).toString,
+      documentation = doc
+    )
+
   /** Build an atom constructor. */
   private def buildAtomConstructor(
     module: QualifiedName,
@@ -294,8 +327,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
-  ): Suggestion.Atom =
-    Suggestion.Atom(
+  ): Suggestion.Constructor =
+    Suggestion.Constructor(
       externalId    = None,
       module        = module.toString,
       name          = name,

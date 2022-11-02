@@ -49,7 +49,7 @@ object ExportedSymbol {
   case class Atom(module: String, name: String) extends ExportedSymbol {
 
     override def kind: Suggestion.Kind =
-      Suggestion.Kind.Atom
+      Suggestion.Kind.Constructor
   }
 
   /** The method symbol.

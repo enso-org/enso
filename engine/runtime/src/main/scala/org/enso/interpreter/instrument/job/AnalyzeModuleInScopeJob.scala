@@ -9,9 +9,9 @@ import org.enso.compiler.context.{
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.{ModuleExports, Suggestion}
 
 import java.util.logging.Level
 
@@ -85,12 +85,13 @@ final class AnalyzeModuleInScopeJob(
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
     suggestion match {
-      case _: Suggestion.Module     => true
-      case _: Suggestion.Atom       => true
-      case _: Suggestion.Method     => true
-      case _: Suggestion.Conversion => true
-      case _: Suggestion.Function   => false
-      case _: Suggestion.Local      => false
+      case _: Suggestion.Module      => true
+      case _: Suggestion.Type        => true
+      case _: Suggestion.Constructor => true
+      case _: Suggestion.Method      => true
+      case _: Suggestion.Conversion  => true
+      case _: Suggestion.Function    => false
+      case _: Suggestion.Local       => false
     }
 
   private def rootName(name: QualifiedName): String =
