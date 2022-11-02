@@ -35,6 +35,7 @@ import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
@@ -53,7 +54,6 @@ import org.scalatest.OptionValues
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -91,6 +91,7 @@ class BaseServerTest
     Config(
       testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
+      VcsManagerConfig(timeout  = 5.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
@@ -161,6 +162,14 @@ class BaseServerTest
         config.fileManager,
         contentRootManagerWrapper,
         new FileSystem,
+        zioExec
+      )
+    )
+    val vcsManager = system.actorOf(
+      VcsManager.props(
+        config.vcsManager,
+        new Git,
+        contentRootManagerWrapper,
         zioExec
       )
     )
@@ -295,6 +304,7 @@ class BaseServerTest
       bufferRegistry         = bufferRegistry,
       capabilityRouter       = capabilityRouter,
       fileManager            = fileManager,
+      vcsManager             = vcsManager,
       contentRootManager     = contentRootManagerActor,
       contextRegistry        = contextRegistry,
       suggestionsHandler     = suggestionsHandler,

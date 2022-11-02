@@ -1,0 +1,79 @@
+package org.enso.languageserver.requesthandler.vcs
+
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
+import org.enso.jsonrpc.{
+  Errors,
+  Id,
+  Request,
+  ResponseError,
+  ResponseResult,
+  Unused
+}
+import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.session.JsonSession
+import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.vcsmanager.VcsManagerApi.InitVcs
+import org.enso.languageserver.vcsmanager.{VcsFailureMapper, VcsProtocol}
+
+import scala.annotation.unused
+import scala.concurrent.duration.FiniteDuration
+
+class InitVcsHandler(
+  requestTimeout: FiniteDuration,
+  vcsManager: ActorRef,
+  rpcSession: JsonSession
+) extends Actor
+    with LazyLogging
+    with UnhandledLogging {
+
+  import context.dispatcher
+
+  override def receive: Receive = requestStage
+
+  private def requestStage: Receive = {
+    case Request(InitVcs, id, params: InitVcs.Params) =>
+      vcsManager ! VcsProtocol.InitRepo(params.root)
+      val cancellable = context.system.scheduler
+        .scheduleOnce(requestTimeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable, params.root))
+  }
+
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable,
+    @unused root: Path
+  ): Receive = {
+    // TOOD: create Main.enso
+    case RequestTimeout =>
+      logger.error(
+        "Initialize project request [{}] for [{}] timed out.",
+        id,
+        rpcSession.clientId
+      )
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      context.stop(self)
+
+    case VcsProtocol.InitRepoResult(Right(_)) =>
+      replyTo ! ResponseResult(InitVcs, id, Unused)
+      cancellable.cancel()
+      context.stop(self)
+
+    case VcsProtocol.InitRepoResult(Left(failure)) =>
+      replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
+      cancellable.cancel()
+      context.stop(self)
+  }
+}
+
+object InitVcsHandler {
+
+  def props(
+    timeout: FiniteDuration,
+    vcsManager: ActorRef,
+    rpcSession: JsonSession
+  ): Props =
+    Props(new InitVcsHandler(timeout, vcsManager, rpcSession))
+}

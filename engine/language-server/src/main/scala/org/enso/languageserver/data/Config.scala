@@ -54,6 +54,24 @@ object FileManagerConfig {
     )
 }
 
+/** Configuration of the VCS manager.
+  *
+  * @param timeout vcs operation timeout
+  */
+case class VcsManagerConfig(timeout: FiniteDuration)
+
+object VcsManagerConfig {
+
+  /** Default VCS manager config.
+    *
+    * @param timeout VCS operation timeout
+    */
+  def apply(timeout: FiniteDuration): VcsManagerConfig =
+    VcsManagerConfig(
+      timeout = timeout
+    )
+}
+
 /** Configuration of the execution context.
   *
   * @param requestTimeout timeout of requests to the engine
@@ -129,6 +147,7 @@ object ProjectDirectoriesConfig {
 case class Config(
   projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
+  vcsManager: VcsManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig,
@@ -146,6 +165,7 @@ case class Config(
     s"Config(" +
     s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
+    s"vcsManager=$vcsManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +
