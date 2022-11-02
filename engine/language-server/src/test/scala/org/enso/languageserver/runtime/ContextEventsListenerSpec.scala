@@ -63,7 +63,7 @@ class ContextEventsListenerSpec
         val (_, suggestionIds) = Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
@@ -193,7 +193,7 @@ class ContextEventsListenerSpec
         Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
