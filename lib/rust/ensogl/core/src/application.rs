@@ -55,17 +55,10 @@ crate::define_endpoints_2! {
 
 /// A top level structure for an application. It combines a view, keyboard shortcut manager, and is
 /// intended to also manage layout of visible panes.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Application {
     inner: Rc<ApplicationData>,
-}
-
-impl Deref for Application {
-    type Target = ApplicationData;
-    fn deref(&self) -> &ApplicationData {
-        &self.inner
-    }
 }
 
 #[derive(Debug)]
