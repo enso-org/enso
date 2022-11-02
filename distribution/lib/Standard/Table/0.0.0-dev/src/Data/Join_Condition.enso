@@ -1,0 +1,25 @@
+type Join_Condition
+    ## Specifies a join condition that correlates two columns from the left and
+       right tables that satisfy the condition `<left> <op> <right>`.
+    Compare (left : Column_Selector) (op : Join_Comparator) (right : Column_Selector)
+
+    ## Specifies a join condition that is satisfied if either of the provided
+       sub-conditions is satisfied.
+    Or (left : Join_Condition) (right : Join_Condition)
+
+    ## Specifies a join condition that is satisfied if both of the provided
+       sub-conditions is satisfied.
+
+       Most of the time instead of using this operator, one can just specify
+       multiple join conditions, as their conjunction is used anyway. It may be
+       needed however if some `Or` clause needs to consist of more complex
+       conditions built with `And`.
+    And (left : Join_Condition) (right : Join_Condition)
+
+type Join_Comparator
+    Equal
+    Not_Equal
+    Greater
+    Equal_Or_Greater
+    Less
+    Equal_Or_Less
