@@ -57,10 +57,9 @@ const HIDE_DELAY: f32 = 1000.0;
 const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
 /// Time interval between scrolls while holding down a mouse button, in milliseconds.
 const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
-/// Maximum scroll overshoot in pixels.
-const SCROLL_OVERSHOOT_LIMIT: f32 = 60.0;
 /// Minimum scroll movement in pixels per frame required to show the scrollbar.
 const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
+
 
 
 // ===========
@@ -105,7 +104,6 @@ impl Frp {
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let thumb_position = OvershootAnimation::new(network);
-        thumb_position.set_overshoot_limit(SCROLL_OVERSHOOT_LIMIT);
         let thumb_color = color::Animation::new(network);
         let background_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
@@ -127,6 +125,7 @@ impl Frp {
         model.show_right_overflow(false);
         model.set_padding(PADDING);
 
+        let overshoot_limit = style.get_number(theme::component::slider::overshoot_limit);
         let default_color = style.get_color(theme::component::slider::track::color);
         let hover_color = style.get_color(theme::component::slider::track::hover_color);
         let bg_default_color = style.get_color(theme::component::slider::background::color);
@@ -140,11 +139,14 @@ impl Frp {
 
         frp::extend! { network
 
+            init_theme <- any_mut::<()>();
+
             // Overshoot control
             bar_not_filled <- all_with(&frp.set_thumb_size, &frp.set_max, |&size, &max| size < max);
             overshoot_enabled <- frp.set_overshoot_enabled && bar_not_filled;
 
             // Scrolling and Jumping
+            thumb_position.set_overshoot_limit <+ all(&overshoot_limit, &init_theme)._0();
             thumb_position.soft_change_by <+ frp.scroll_by.gate(&overshoot_enabled);
             thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
             thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
@@ -169,18 +171,16 @@ impl Frp {
 
             // === Color ===
 
-            init_color    <- any_mut::<()>();
-            default_color <- all(&default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            hover_color   <- all(&hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            bg_default_color <- all(&bg_default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            bg_hover_color   <- all(&bg_hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
+            default_color <- all(&default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            hover_color   <- all(&hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            bg_default_color <- all(&bg_default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            bg_hover_color   <- all(&bg_hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
 
             engaged                  <- base_frp.track_hover || base_frp.is_dragging_track;
             thumb_color.target_color <+ engaged.switch(&default_color,&hover_color).map(|c| c.opaque);
             background_color.target_color <+ engaged.switch(&bg_default_color,&bg_hover_color).map(|c| c.opaque);;
             eval thumb_color.value((c) model.set_track_color(color::Rgba::from(*c)));
             eval background_color.value((c) model.set_background_color(color::Rgba::from(*c)));
-
 
             // === Hiding ===
 
@@ -216,6 +216,8 @@ impl Frp {
             thumb_color.target_alpha <+ target_alpha.map2(&default_color, |target_alpha,base_color| target_alpha*base_color.alpha);
             background_color.target_alpha <+ target_alpha.map2(&bg_default_color, |target_alpha,base_color| target_alpha*base_color.alpha);;
 
+        }
+        frp::extend! { network
 
             // === Position on Screen ===
 
@@ -305,7 +307,7 @@ impl Frp {
         frp.set_thumb_size(0.2);
         frp.set_max(1.0);
         init_mouse_position.emit(Vector2(f32::NAN, f32::NAN));
-        init_color.emit(());
+        init_theme.emit(());
     }
 
     fn compute_target_alpha(
