@@ -1,7 +1,7 @@
 package org.enso.syntax2;
 
-import org.enso.syntax2.Message;
 import java.io.File;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -9,26 +9,50 @@ import java.nio.charset.StandardCharsets;
 public final class Parser implements AutoCloseable {
   static {
     String os = System.getProperty("os.name");
-    File dir = new File(".").getAbsoluteFile();
-    for (; ; ) {
-      File parser;
-      if (os.startsWith("Mac")) {
-        parser = new File(dir, "target/rust/debug/libenso_parser.dylib");
-      } else if (os.startsWith("Windows")) {
-        parser = new File(dir, "target/rust/debug/enso_parser.dll");
-      } else {
-        parser = new File(dir, "target/rust/debug/libenso_parser.so");
+    String name;
+    if (os.startsWith("Mac")) {
+      name = "libenso_parser.dylib";
+    } else if (os.startsWith("Windows")) {
+      name = "enso_parser.dll";
+    } else {
+      name = "libenso_parser.so";
+    }
+
+    File parser = null;
+    try {
+      var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
+      File dir = new File(whereAmI.toURI()).getParentFile();
+      parser = new File(dir, name);
+      System.load(parser.getAbsolutePath());
+    } catch (URISyntaxException | LinkageError e) {
+      System.err.println("Cannot load " + parser);
+      File root = new File(".").getAbsoluteFile();
+      if (!searchFromDirToTop(e, root, "target", "rust", "x86_64-apple-darwin", "debug", name)
+          && !searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+        throw new IllegalStateException("Cannot load parser from " + parser, e);
+      }
+    }
+  }
+
+  private static boolean searchFromDirToTop(Throwable chain, File root, String... names) {
+    while (root != null) {
+      var parser = root;
+      for (var e : names) {
+        parser = new File(parser, e);
       }
       try {
         System.load(parser.getAbsolutePath());
-        break;
-      } catch (LinkageError e) {
-        dir = dir.getParentFile();
-        if (dir == null) {
-          throw e;
+        System.err.println("Succeeded loading " + parser.getAbsolutePath());
+        return true;
+      } catch (LinkageError err) {
+        while (chain.getCause() != null) {
+          chain = chain.getCause();
         }
+        chain.initCause(err);
+        root = root.getParentFile();
       }
     }
+    return false;
   }
 
   private long state;
