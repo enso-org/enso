@@ -58,6 +58,12 @@ impl BuiltEnso {
         Ok(command)
     }
 
+    pub fn repl(&self) -> Result<Command> {
+        let mut command = self.cmd()?;
+        command.arg("--repl");
+        Ok(command)
+    }
+
     pub fn compile_lib(&self, target: impl AsRef<Path>) -> Result<Command> {
         ide_ci::fs::require_exist(&target)?;
         let mut command = self.cmd()?;

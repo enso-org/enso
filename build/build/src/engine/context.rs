@@ -410,15 +410,21 @@ impl RunContext {
         }
 
         if build_native_runner {
-            Command::new("./runner")
-                .current_dir(&self.repo_root)
-                .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
-                .env(
-                    ENSO_DATA_DIRECTORY.name(),
-                    &self.paths.repo_root.built_distribution.enso_engine_triple,
-                )
-                .run_ok()
+            let factorial_input = "6";
+            let factorial_expected_output = "720";
+            let output = Command::new(&self.repo_root.runner)
+                .args([
+                    "--run",
+                    self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
+                    factorial_input,
+                ])
+                .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
+                .run_stdout()
                 .await?;
+            ensure!(
+                output.contains(factorial_expected_output),
+                "Native runner output does not contain expected result."
+            );
         }
 
         // Verify License Packages in Distributions

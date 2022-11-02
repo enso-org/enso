@@ -46,6 +46,11 @@
     editions/:
       <edition>.yaml:
   engine/:
+    runner-native/:
+      src/:
+        test/:
+          resources/:
+            Factorial.enso:
     runtime/:
       target/:
       bench-report.xml:
@@ -64,6 +69,7 @@
     simple-library-server/:
   build.sbt:
   run:
+  runner: # The runner native image (Linux only).
   CHANGELOG.md:
 
 project-manager/:
