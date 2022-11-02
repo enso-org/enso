@@ -173,7 +173,6 @@ impl Navigator {
         display_object.add_child(&bottom_buttons);
         let tooltip = Tooltip::new(app);
         app.display.default_scene.add_child(&tooltip);
-        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
@@ -257,7 +256,6 @@ impl Navigator {
         self.bottom_buttons.set_viewport(bottom_buttons_viewport);
         let buttons_params = entry::Params::from(style.navigator.clone());
         self.bottom_buttons.set_entries_params(buttons_params.clone());
-        // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
         let disabled_params = entry::Params {
             hover_color:              color::Lcha::transparent(),
             selection_color:          color::Lcha::transparent(),

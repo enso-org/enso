@@ -196,12 +196,12 @@ define_themes! { [light:0, dark:1]
                     column_gap = 3.0, 3.0;
                     entry_height = 30.0, 30.0;
 
-                    // `color` values provided here support both color types (like `color::Rgba`)
+                    // The `color` values support color types (like `color::Rgba`)
                     // and floating-point numbers. This is possible due to a custom stylesheet
                     // accessor defined for
                     // [`ide_view_component_list_panel_grid::entry::style::Color`] type.
                     // Floating-point numbers mean the mixing coefficient between the application
-                    // background and "main" component group color.
+                    // background and the "main" component group color.
                     entry {
                         background.color = 0.08, 0.08;
                         dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);

@@ -39,10 +39,10 @@ impl Color {
     }
 
     /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
-    /// macro. In the stylesheet the color can be defined as either a `color::Rgba` or a `float`
-    /// value for mixing coefficient. This accessor produces the corresponding variants of [`Color`]
-    /// or returns a default value ([`Color::MainColorIntensity(0.0)`]) if there is no such property
-    /// in the stylesheet.
+    /// macro. In the stylesheet, the color can be defined as either a `color::Rgba` or a `float`
+    /// value for the mixing coefficient. This accessor produces the corresponding variants of
+    /// [`Color`] or returns a default value ([`Color::MainColorIntensity(0.0)`]) if there is no
+    /// such property in the stylesheet.
     fn accessor<P: Into<ensogl_core::display::style::Path>>(
         network: &frp::Network,
         style: &StyleWatchFrp,
@@ -76,8 +76,9 @@ impl Color {
 
 // === Style Colors ===
 
-/// The colors of various parts of Component Entry view. The actual color can be computed by mixing
-/// the main groups color with the application background - see [`Color`] for more information.
+/// The colors of various parts of the Component Entry view. The actual color can be computed by
+/// mixing the "main" group's color with the application background - see [`Color`] for more
+/// information.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct StyleColors {
@@ -102,7 +103,7 @@ pub struct StyleColors {
     pub dimmed:          color::Rgba,
 }
 
-/// The colors of various parts of selected Component Entry view. A subset of
+/// The colors of various parts of selected the Component Entry view. A subset of
 /// [`StyleColors`], but `FromTheme` derive takes different style's paths, plus unrelated
 /// entries are omitted.
 #[allow(missing_docs)]

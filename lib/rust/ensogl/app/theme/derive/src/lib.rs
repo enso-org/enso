@@ -7,7 +7,7 @@
 //! appended to `base_path` to get the full path to the value in the theme. It can be overridden
 //! using the `theme_path` attribute on the field.
 //!
-//! A custom accessor function can be provided for each using the `accessor` attribute. This
+//! A custom accessor function can be provided for each field using the `accessor` attribute. This
 //! function should have a following signature:
 //!
 //! ```ignore

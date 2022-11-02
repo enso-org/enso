@@ -10,7 +10,6 @@ use crate::prelude::*;
 pub use ide_view_component_list_panel_icons::Any;
 pub use ide_view_component_list_panel_icons::SIZE;
 
-use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_grid_view as grid_view;
@@ -36,15 +35,15 @@ define_icons! {
 
                 // === Rectangle ===
 
-                let rect =
-                    Rect((11.0.px(),12.0.px())).corners_radius(2.0.px()).translate_x(2.5.px());
+                let rect = Rect((11.0.px(),12.0.px())).corners_radius(2.0.px());
+                let rect = rect.translate_x(2.5.px());
                 let rect = rect.fill(weak_color);
 
 
                 // === Arrow ===
 
-                let arrow =
-                    arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians()).translate_x(4.0.px());
+                let arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
+                let arrow = arrow.translate_x(4.0.px());
                 let arrow = arrow.fill(strong_color);
 
 
@@ -65,7 +64,8 @@ define_icons! {
 
                 // === Rect ===
 
-                let rect = Rect((10.0.px(),12.0.px())).corners_radius(2.0.px()).translate_x(-3.0.px());
+                let rect = Rect((10.0.px(),12.0.px())).corners_radius(2.0.px());
+                let rect = rect.translate_x(-3.0.px());
                 let rect = rect.fill(weak_color);
 
 
@@ -145,8 +145,8 @@ define_icons! {
                 // The number "5" consists of a short horizontal bar at the top, a vertical bar
                 // connected to it on the left and a big arc below, connected to the vertical bar.
                 let top  = Rect((3.0.px(),1.0.px()));
-                let left =
-                    Rect((1.0.px(),3.0.px())).translate_x((-1.0).px()).translate_y((-1.0).px());
+                let left = Rect((1.0.px(),3.0.px()));
+                let left = left.translate_x((-1.0).px()).translate_y((-1.0).px());
 
 
                 // == Number 5 Arc ==
@@ -222,8 +222,8 @@ define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let table_color = weak_color;
-                let table =
-                    table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(table_color.clone());
+                let table = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
+                let table = table.fill(table_color.clone());
 
                 let eraser_x = 3.5;
                 let eraser_y = -2.0;
@@ -256,9 +256,10 @@ define_icons! {
                 let old_color = weak_color;
                 let new_color = strong_color;
 
-                let old_column = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(old_color);
-                let new_column =
-                    table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px())).fill(new_color.clone());
+                let old_column = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
+                let old_column = old_column.fill(old_color);
+                let new_column = table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px()));
+                let new_column = new_column.fill(new_color.clone());
                 let plus = plus(6.0,2.0).fill(new_color).translate_x(5.0.px());
 
                 let shape = old_column + new_column + plus;
@@ -334,9 +335,10 @@ define_icons! {
                 let weak_color   = weak_color;
                 let strong_color = strong_color;
 
-                let weak_column   = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px())).fill(weak_color);
-                let strong_column =
-                    table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px())).fill(strong_color.clone());
+                let weak_column   = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
+                let weak_column = weak_column.fill(weak_color);
+                let strong_column = table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px()));
+                let strong_column = strong_column.fill(strong_color.clone());
                 let lightning = lightning_bolt().translate_x(5.25.px()).fill(strong_color);
 
                 let shape = weak_column + strong_column + lightning;
@@ -375,12 +377,13 @@ define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let column_color = weak_color.clone();
-                let plus_color   = weak_color;
+                let plus_color = weak_color;
 
-                let left_column  =
-                    table(1,3, 3.0).translate(((-8.0).px(),(-5.5).px())).fill(column_color.clone());
-                let right_column = table(1,3, 3.0).translate((5.0.px(),(-5.5).px())).fill(column_color);
-                let plus         = plus(6.0,1.0).fill(plus_color);
+                let left_column = table(1,3, 3.0).translate(((-8.0).px(),(-5.5).px()));
+                let left_column = left_column.fill(column_color.clone());
+                let right_column = table(1,3, 3.0).translate((5.0.px(),(-5.5).px()));
+                let right_column = right_column.fill(column_color);
+                let plus = plus(6.0,1.0).fill(plus_color);
 
                 let shape = left_column + right_column + plus;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -398,8 +401,10 @@ define_icons! {
                 let row_color  = weak_color.clone();
                 let plus_color = weak_color;
 
-                let top_row = table(3,1, 3.0).translate(((-5.5).px(),5.0.px())).fill(row_color.clone());
-                let bottom_row = table(3,1, 3.0).translate(((-5.5).px(),(-8.0).px())).fill(row_color);
+                let top_row = table(3,1, 3.0).translate(((-5.5).px(),5.0.px()));
+                let top_row = top_row.fill(row_color.clone());
+                let bottom_row = table(3,1, 3.0).translate(((-5.5).px(),(-8.0).px()));
+                let bottom_row = bottom_row.fill(row_color);
                 let plus = plus(6.0,1.0).fill(plus_color);
 
                 let shape = top_row + bottom_row + plus;
@@ -510,14 +515,13 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let circle = Circle(1.0.px())
-                    .fill(strong_color.clone());
-                let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(strong_color.clone());
-                let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(strong_color);
-                let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(weak_color);
+                let circle = Circle(1.0.px()).fill(strong_color.clone());
+                let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px());
+                let arc1= arc1.fill(strong_color.clone());
+                let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px());
+                let arc2 = arc2.fill(strong_color);
+                let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px());
+                let arc3 = arc3.fill(weak_color);
 
                 let shape = circle + arc1 + arc2 + arc3;
                 let shape = shape.translate_y((-5.5).px());
