@@ -1023,6 +1023,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testSugaredFunctionDefinition() throws Exception {
+    parseTest("""
+    main =
+        f a b = a - b
+        f 10 20
+    """);
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {

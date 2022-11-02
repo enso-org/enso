@@ -236,14 +236,13 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in sugared function definitions" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
-          |main =
-          |    f a b = a - b
-          |    f 10 20
-          |""".stripMargin
+        """|main =
+           |    f a b = a - b
+           |    f 10 20
+           |""".stripMargin
 
-      instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(20, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(11, 1, 13, 0, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(19, 1, 5, 0, classOf[ApplicationNode])
       eval(code)
     }
 
