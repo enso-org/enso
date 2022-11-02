@@ -679,6 +679,33 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testSelfTypeKeyword() throws Exception {
+    parseTest("""
+    type My_Type
+        Cons_A x
+        Cons_B y=(Self.Cons_A 10)
+    
+        static = 123
+    
+        static_use = Self.static + (Self.Cons_A 5).x
+        instance_use self = Self.static + self.x + (Self.Cons_A 5).x
+
+        static_match x = case x of
+            Self -> "it matched"
+            _ -> "it didn't match"
+                  
+        matching_method self = case self of
+            Self.Cons_A y -> y + 2
+      
+        match_by_type x = case x of
+            _ : Self -> "it's a Self"
+            _ -> "it's a something else"
+    """);
+  }
+
+
+
+  @Test
   public void testCaseOnTextLiteral() throws Exception {
     parseTest("""
     choose ch = case ch of
