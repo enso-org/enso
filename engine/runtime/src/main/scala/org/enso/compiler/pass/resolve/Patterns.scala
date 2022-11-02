@@ -39,7 +39,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    ir.mapExpressions(doExpression(_, bindings))
+    ir.copy(bindings = ir.bindings.map(doDefinition(_, bindings)))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -59,7 +59,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    doExpression(ir, bindings)
+    doExpression(ir, bindings, None)
   }
 
   /** @inheritdoc */
@@ -68,9 +68,27 @@ object Patterns extends IRPass {
     copyOfIr: T
   ): T = copyOfIr
 
+  private def doDefinition(
+    ir: IR.Module.Scope.Definition,
+    bindings: BindingsMap
+  ): IR.Module.Scope.Definition = {
+    ir match {
+      case method: IR.Module.Scope.Definition.Method.Explicit =>
+        val resolution = method.methodReference.typePointer
+          .flatMap(
+            _.getMetadata(MethodDefinitions)
+          )
+          .map(_.target)
+        val newBody = doExpression(method.body, bindings, resolution)
+        method.copy(body = newBody)
+      case _ => ir.mapExpressions(doExpression(_, bindings, None))
+    }
+  }
+
   private def doExpression(
     expr: IR.Expression,
-    bindings: BindingsMap
+    bindings: BindingsMap,
+    selfTypeResolution: Option[BindingsMap.ResolvedName]
   ): IR.Expression = {
     expr.transformExpressions { case caseExpr: IR.Case.Expr =>
       val newBranches = caseExpr.branches.map { branch =>
@@ -79,12 +97,25 @@ object Patterns extends IRPass {
             val consName = consPat.constructor
             val resolution = consName match {
               case qual: IR.Name.Qualified =>
-                val parts = qual.parts.map(_.name)
-                Some(
-                  bindings.resolveQualifiedName(parts)
-                )
+                qual.parts match {
+                  case (_: IR.Name.SelfType) :: (others :+ item) =>
+                    selfTypeResolution.map(
+                      bindings.resolveQualifiedNameIn(
+                        _,
+                        others.map(_.name),
+                        item.name
+                      )
+                    )
+                  case _ =>
+                    val parts = qual.parts.map(_.name)
+                    Some(
+                      bindings.resolveQualifiedName(parts)
+                    )
+                }
               case lit: IR.Name.Literal =>
                 Some(bindings.resolveName(lit.name))
+              case _: IR.Name.SelfType =>
+                selfTypeResolution.map(Right(_))
               case _ => None
             }
             val resolvedName = resolution
@@ -159,6 +190,8 @@ object Patterns extends IRPass {
                 )
               case lit: IR.Name.Literal =>
                 Some(bindings.resolveName(lit.name))
+              case _: IR.Name.SelfType =>
+                selfTypeResolution.map(Right(_))
               case _ => None
             }
             val resolvedTpeName = resolution
@@ -203,8 +236,9 @@ object Patterns extends IRPass {
           case other => other
         }
         branch.copy(
-          pattern    = resolvedPattern,
-          expression = doExpression(branch.expression, bindings)
+          pattern = resolvedPattern,
+          expression =
+            doExpression(branch.expression, bindings, selfTypeResolution)
         )
       }
       caseExpr.copy(branches = newBranches)
