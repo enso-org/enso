@@ -415,6 +415,8 @@
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
+- [Add the `Self` keyword referring to current type][3844]
+- [Split Atom suggestion entry to Type and Constructor][3835]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -473,6 +475,8 @@
 [3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
+[3844]: https://github.com/enso-org/enso/pull/3844
+[3835]: https://github.com/enso-org/enso/pull/3835
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
