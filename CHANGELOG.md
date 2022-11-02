@@ -417,6 +417,7 @@
 - [Initialize Builtins at Native Image build time][3821]
 - [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Add parent type field to suggestion][3846]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -477,6 +478,7 @@
 [3821]: https://github.com/enso-org/enso/pull/3821
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3846]: https://github.com/enso-org/enso/pull/3846
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
