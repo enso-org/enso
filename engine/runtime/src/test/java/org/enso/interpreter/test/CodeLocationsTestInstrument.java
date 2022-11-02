@@ -126,7 +126,8 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
       if (section == null || !section.hasCharIndex()) {
         return;
       }
-      if (Math.abs(section.getCharIndex() - start) <= diff && section.getCharLength() == length) {
+      if (Math.abs(section.getCharIndex() - start) <= diff
+          && Math.abs(section.getCharLength() - length) <= lengthDiff) {
         successful = true;
       } else {
         close.add(section);

@@ -410,9 +410,10 @@ final class TreeToIr {
     );
   }
 
-  private IR.Expression translateCall(Tree tree) {
+  private IR.Expression translateCall(Tree ast) {
     var args = new java.util.ArrayList<IR.CallArgument>();
     var hasDefaultsSuspended = false;
+    var tree = ast;
     for (;;) {
       switch (tree) {
         case Tree.App app when app.getArg() instanceof Tree.AutoScope -> {
@@ -463,7 +464,7 @@ final class TreeToIr {
           return new IR$Application$Prefix(
                   func, argsList,
                   hasDefaultsSuspended,
-                  getIdentifiedLocation(tree),
+                  getIdentifiedLocation(ast),
                   meta(),
                   diag()
           );
