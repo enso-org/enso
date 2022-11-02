@@ -190,7 +190,7 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for negated literals" in
     withLocationsInstrumenter { instrumenter =>
       val code = "main = (-1)"
-      instrumenter.assertNodeExists(8, 2, classOf[LiteralNode])
+      instrumenter.assertNodeExists(7, 1, 4, 2, classOf[LiteralNode])
       eval(code)
     }
 
