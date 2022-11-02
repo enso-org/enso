@@ -256,8 +256,8 @@ impl Navigator {
         let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
         self.top_buttons.set_viewport(top_buttons_viewport);
         self.bottom_buttons.set_viewport(bottom_buttons_viewport);
-        let buttons_params = entry::Params::from(style.navigator.clone());
-        self.bottom_buttons.set_entries_params(buttons_params.clone());
+        let buttons_params = entry::Params::from(style.navigator);
+        self.bottom_buttons.set_entries_params(buttons_params);
         let disabled_params = entry::Params {
             hover_color:              color::Lcha::transparent(),
             selection_color:          color::Lcha::transparent(),

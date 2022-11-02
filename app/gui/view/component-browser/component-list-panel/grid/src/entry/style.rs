@@ -58,7 +58,13 @@ impl Color {
                     let color = color::Lcha::from(color);
                     Color::Arbitrary(color)
                 }).unwrap_or_else(|| {
-                    let intensity = data.number().unwrap_or(0.0);
+                    let intensity = match data.number() {
+                        Some(number) => number,
+                        None => {
+                            error!("Neither color nor intensity defined ({path}).");
+                            0.0
+                        }
+                    };
                     Color::MainColorIntensity(intensity)
                 })
             });
@@ -202,7 +208,7 @@ impl Colors {
     ) -> Self {
         let app_bg = style_watch.get_color(ensogl_hardcoded_theme::application::background);
         let style_colors = style_colors.clone_ref();
-        let color_anim = color::Animation::new(&network);
+        let color_anim = color::Animation::new(network);
 
         frp::extend! { network
             init <- source_();

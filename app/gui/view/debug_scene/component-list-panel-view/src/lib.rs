@@ -157,7 +157,7 @@ pub fn main() {
 
         let world = &app.display;
         let scene = &world.default_scene;
-        let navigator = Navigator::new(&scene, &scene.layers.node_searcher.camera());
+        let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = app.new_view::<ide_view_component_list_panel::View>();
         scene.layers.node_searcher.add_exclusive(&panel);
         panel.model().set_navigator(Some(navigator.clone_ref()));

@@ -65,7 +65,7 @@ define_icons! {
                 // === Rect ===
 
                 let rect = Rect((10.0.px(),12.0.px())).corners_radius(2.0.px());
-                let rect = rect.translate_x(-3.0.px());
+                let rect = rect.translate_x((-3.0).px());
                 let rect = rect.fill(weak_color);
 
 
@@ -223,7 +223,7 @@ define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let table_color = weak_color;
                 let table = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
-                let table = table.fill(table_color.clone());
+                let table = table.fill(table_color);
 
                 let eraser_x = 3.5;
                 let eraser_y = -2.0;

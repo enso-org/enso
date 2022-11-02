@@ -149,8 +149,8 @@ impl grid::entry::Entry for View {
         let input = &frp.private().input;
         let out = &frp.private().output;
 
-        let strong_color_anim = color::Animation::new(&network);
-        let weak_color_anim = color::Animation::new(&network);
+        let strong_color_anim = color::Animation::new(network);
+        let weak_color_anim = color::Animation::new(network);
 
         frp::extend! { network
             init <- source_();
