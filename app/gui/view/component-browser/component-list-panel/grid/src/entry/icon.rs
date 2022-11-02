@@ -10,6 +10,7 @@ use crate::prelude::*;
 pub use ide_view_component_list_panel_icons::Any;
 pub use ide_view_component_list_panel_icons::SIZE;
 
+use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_grid_view as grid_view;
@@ -624,19 +625,20 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                // FIXME outline colors
-                let left_circle = Circle(5.0.px()).translate_x((-2.5).px());
-                let right_circle = Circle(5.0.px()).translate_x(2.5.px());
+                let left_circle = Circle(4.5.px()).translate_x((-2.5).px());
+                let right_circle = Circle(4.5.px()).translate_x(2.5.px());
                 let intersection = &left_circle * &right_circle;
                 let left_outline = left_circle.grow(1.0.px()) - &left_circle;
+                let left_outline = left_outline.fill(strong_color.clone());
                 let right_outline = right_circle.grow(1.0.px()) - &right_circle;
+                let right_outline = right_outline.fill(strong_color.clone());
 
                 let left_circle = left_circle.fill(weak_color.clone());
-                let right_circle = right_circle.fill(weak_color);
-                let intersection = intersection.fill(strong_color.clone());
+                let right_circle = right_circle.fill(weak_color.clone());
+                let intersection = intersection.fill(weak_color);
 
                 let shape =
-                    left_circle + right_circle + intersection - left_outline - right_outline;
+                    left_circle + right_circle + intersection + left_outline + right_outline;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
