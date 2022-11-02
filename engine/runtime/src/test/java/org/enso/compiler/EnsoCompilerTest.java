@@ -1032,6 +1032,21 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  @Ignore
+  public void testInThePresenceOfComments() throws Exception {
+    parseTest("""
+    # this is a comment
+    #this too
+    ## But this is a doc.
+    main = # define main
+        y = 1 # assign one to `y`
+        x = 2 # assign two to #x
+        # perform the addition
+        x + y # the addition is performed here
+    """);
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
