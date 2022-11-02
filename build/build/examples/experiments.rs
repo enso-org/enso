@@ -10,7 +10,7 @@ use octocrab::models::ReleaseId;
 async fn main() -> Result {
     let octo = setup_octocrab().await?;
     let repo = Repo::from_str("enso-org/enso-staging")?;
-    let handler = repo.repos(&octo);
+    let handler = repo.handle(&octo).repos();
     let releases = handler.releases();
 
     let release = releases.get_by_id(ReleaseId(59585385)).await?;

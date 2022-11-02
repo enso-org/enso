@@ -78,7 +78,9 @@ pub trait PathExt: AsRef<Path> {
     /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
     /// something that we want to spend time on supporting right now.
     fn as_str(&self) -> &str {
-        self.as_ref().to_str().expect(&format!("Path is not valid UTF-8: {:?}", self.as_ref()))
+        self.as_ref()
+            .to_str()
+            .unwrap_or_else(|_| panic!("Path is not valid UTF-8: {:?}", self.as_ref()))
     }
 
     /// Split path to components and collect them into a new PathBuf.
