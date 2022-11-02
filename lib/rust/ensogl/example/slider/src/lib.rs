@@ -30,6 +30,7 @@ use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
+use ensogl_slider as slider;
 use ensogl_selector::Bounds;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -48,6 +49,13 @@ pub fn main() {
         init(&app);
         mem::forget(app);
     });
+}
+
+fn make_slider(app: &Application) -> Leak<slider::Slider> {
+    let slider = app.new_view::<slider::Slider>();
+    slider.frp.resize(Vector2(200.0, 50.0));
+    app.display.add_child(&slider);
+    Leak::new(slider)
 }
 
 fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
@@ -75,8 +83,8 @@ fn init(app: &Application) {
     theme::builtin::light::register(app);
     theme::builtin::light::enable(app);
 
-    let slider1 = make_number_picker(app);
-    slider1.inner().frp.allow_click_selection(true);
+    let slider1 = make_slider(app);
+    //slider1.inner().frp.allow_click_selection(true);
 
     let slider2 = make_number_picker(app);
     slider2.inner().frp.resize(Vector2(400.0, 50.0));
