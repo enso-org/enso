@@ -27,21 +27,32 @@ public final class Parser implements AutoCloseable {
     } catch (URISyntaxException | LinkageError e) {
       System.err.println("Cannot load " + parser);
       File root = new File(".").getAbsoluteFile();
-      for (; ; ) {
-        var dir = new File(new File(new File(root, "target"), "rust"), "debug");
-        parser = new File(dir, name);
-        try {
-          System.load(parser.getAbsolutePath());
-          System.err.println("Succeeded loading " + parser.getAbsolutePath());
-          break;
-        } catch (LinkageError err) {
-          root = root.getParentFile();
-          if (root == null) {
-            throw err;
-          }
-        }
+      if (!searchFromDirToTop(e, root, "target", "rust", "x86_64-apple-darwin", "debug", name)
+          && !searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+        throw new IllegalStateException("Cannot load parser from " + parser, e);
       }
     }
+  }
+
+  private static boolean searchFromDirToTop(Throwable chain, File root, String... names) {
+    while (root != null) {
+      var parser = root;
+      for (var e : names) {
+        parser = new File(parser, e);
+      }
+      try {
+        System.load(parser.getAbsolutePath());
+        System.err.println("Succeeded loading " + parser.getAbsolutePath());
+        return true;
+      } catch (LinkageError err) {
+        while (chain.getCause() != null) {
+          chain = chain.getCause();
+        }
+        chain.initCause(err);
+        root = root.getParentFile();
+      }
+    }
+    return false;
   }
 
   private long state;
