@@ -162,12 +162,6 @@ pub fn main() {
     });
 }
 
-// TODO: pub fn extend do define_endpoints_2
-// TODO: rename examples - like compelxshapesystem -> shape system
-// TODO: better docs in shape system
-// TODO: clean this code
-// TODO: change gloval DEBUG -> WARN
-
 fn init(app: Application) {
     let area = app.new_view::<Text>();
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
@@ -175,13 +169,8 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
     area.set_property_default(color::Rgba::red());
-    area.set_content("abcdefgdasdsadasdsssadsd");
-    area.set_long_text_truncation_mode(true);
-    area.set_view_width(60.0);
-    // area.set_content("abcdefg");
-    // area.set_font("mplus1p");
     area.focus();
     area.hover();
 

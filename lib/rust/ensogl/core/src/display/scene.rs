@@ -496,6 +496,7 @@ impl Renderer {
 /// should be abstracted away in the future.
 #[derive(Clone, CloneRef, Debug)]
 pub struct HardcodedLayers {
+    pub DETACHED:           Layer,
     pub root:               Layer,
     pub viz:                Layer,
     pub below_main:         Layer,
@@ -527,6 +528,7 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new() -> Self {
+        let DETACHED = Layer::new("DETACHED");
         let root = Layer::new("root");
         let main = Layer::new("main");
         let main_cam = &main.camera();
@@ -568,6 +570,7 @@ impl HardcodedLayers {
             &cursor,
         ]);
         Self {
+            DETACHED,
             root,
             viz,
             below_main,

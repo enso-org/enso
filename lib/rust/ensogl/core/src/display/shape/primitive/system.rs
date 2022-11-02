@@ -1,5 +1,64 @@
-//! This module defines a "shape system". It is a wrapper over a "sprite system" and it defines
-//! the required default material parameters.
+//! This module defines a shape system abstraction and a [`shape!`] macro allowing the definition of
+//! custom shape systems.
+//!
+//! # High-level description
+//! In the simplest form, a shape system just a [`SpriteSystem`] that has a special material applied
+//! and that keeps references to its attributes and exposes a nice API to the user. For example,
+//! the following code defines a shape system that renders a circle:
+//!
+//! ```text
+//! mod shape {
+//!     use super::*;
+//!     ensogl::shape! {
+//!         (style: Style, radius: f32) {
+//!             let shape = Circle(radius.px());
+//!             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));
+//!             shape.into()
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! The [`style: Style`] parameter is always required. It is a reference to a style sheet that if
+//! updated, will cause the shape system's shader to be recompiled (if the change affects the shape
+//! system). All other parameters are optional and can be used to define attributes. In the above
+//! example, the [`radius: f32`] parameter defines an attribute that will be passed to the material
+//! of the underlying [`SpriteSystem`].
+//!
+//! The [`shape!`] macro generates a struct [`View`] that is the main entity that can be placed on
+//! the stage. For example, to create the above circle, you can do as follows:
+//!
+//! ```text
+//! fn main(world: &World) {
+//!     let view = shape::View::new();
+//!     // Setting the sprite canvas size.
+//!     view.size.set(Vector2::new(300.0, 300.0));
+//!     view.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+//!     world.add_child(&view);
+//!     // Forgetting the reference. In real world code you should not do this.
+//!     mem::forget(view);
+//! }
+//! ```
+//!
+//! # Shape system life cycle
+//! The shape's view is a [`Sprite`] with associated attributes and helper functions. Sprites are
+//! associated with sprite systems, which are always associated with a given scene, because they
+//! contain references to GPU buffers. Thus, creating a new view (e.g. by writing
+//! `shape::View::new()`) has to create a new sprite in the correct sprite system instance. Every
+//! layer on the scene has its own shape system registry, which basically associates shape system
+//! definition type with a shape system instance (containing a sprite system instance). In case the
+//! shape system is not present in the registry, it is created on demand. Then, the shape instance
+//! (containing the sprite) is created.
+//!
+//! The shape's view is not a zero-cost abstraction, however, the cost is very low. It allows
+//! replacing the shape instance in-place. For example, after moving the view from one layer to
+//! another, the underlying shape system can change, and thus, a new sprite should be created and
+//! should be used instead of the current one.
+//!
+//! A new shape system instance will be created in the [`scene::HardcodedLayers::DETACHED`] layer.
+//! It contains shapes that were not added to any layer and that will not be rendered. In case a
+//! shape system will be detached from the parent display object (and not attached to another one),
+//! it will also be moved to the `DETACHED` layer.
 
 use crate::prelude::*;
 use crate::system::gpu::types::*;

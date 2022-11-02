@@ -215,14 +215,14 @@ impl Layer {
         &self,
         scene: &Scene,
         data: &S::ShapeData,
-    ) -> (ShapeInstance<S>, LayerDynamicShapeInstance)
+    ) -> (ShapeInstance<S>, LayerShapeBinding)
     where
         S: Shape,
     {
         let (shape_system_info, symbol_id, shape_instance, global_instance_id) =
             self.shape_system_registry.instantiate(scene, data);
         self.add_shape(shape_system_info, symbol_id);
-        (shape_instance, LayerDynamicShapeInstance::new(self, global_instance_id))
+        (shape_instance, LayerShapeBinding::new(self, global_instance_id))
     }
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
@@ -829,19 +829,19 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 
 
 
-// =================================
-// === LayerDynamicShapeInstance ===
-// =================================
+// =========================
+// === LayerShapeBinding ===
+// =========================
 
-/// Information about an instance of a dynamic shape bound to a particular layer.
+/// Information about an instance of a shape bound to a particular layer.
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct LayerDynamicShapeInstance {
+pub struct LayerShapeBinding {
     pub layer:              WeakLayer,
     pub global_instance_id: symbol::GlobalInstanceId,
 }
 
-impl LayerDynamicShapeInstance {
+impl LayerShapeBinding {
     /// Constructor.
     pub fn new(layer: &Layer, global_instance_id: symbol::GlobalInstanceId) -> Self {
         let layer = layer.downgrade();

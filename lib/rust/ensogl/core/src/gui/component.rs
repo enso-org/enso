@@ -110,12 +110,10 @@ impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
         let scene = scene();
-        // FIXME: "something"
-        let (shape, something) = scene.layers.root.instantiate(&scene, &data);
+        let (shape, _) = scene.layers.DETACHED.instantiate(&scene, &data);
         let events = PointerTarget::new();
-        let pointer_targets = RefCell::new(vec![something.global_instance_id]);
+        let pointer_targets = default();
         let data = RefCell::new(data);
-        scene.pointer_target_registry.insert(something.global_instance_id, events.clone_ref());
         ShapeViewModel { shape, data, events, pointer_targets }
     }
 
@@ -133,6 +131,9 @@ impl<S: Shape> ShapeViewModel<S> {
             if let Some(layer) = new_layer.upgrade() {
                 self.add_to_scene_layer(scene, &layer)
             }
+        } else {
+            let (shape, _) = scene.layers.DETACHED.instantiate(scene, &*self.data.borrow());
+            self.shape.swap(&shape);
         }
     }
 
