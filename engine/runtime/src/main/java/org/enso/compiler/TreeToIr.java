@@ -203,12 +203,12 @@ final class TreeToIr {
         if (body == null) {
             throw new NullPointerException();
         }
-        var aLoc = getIdentifiedLocation(a.getExpr());
+        var aLoc = expandToContain(getIdentifiedLocation(a.getExpr()), body.location());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           reference,
           nil(),
           body.setLocation(aLoc),
-          getIdentifiedLocation(a),
+          expandToContain(getIdentifiedLocation(a), aLoc),
           meta(), diag()
         );
         yield cons(binding, appendTo);
@@ -563,7 +563,11 @@ final class TreeToIr {
                 Option.empty(), true, meta(), diag()
               );
             }
-            yield new IR$Function$Lambda(args, body, getIdentifiedLocation(tree), true, meta(), diag());
+            var at = expandToContain(switch (body) {
+              case IR$Expression$Block __ -> getIdentifiedLocation(tree, 0, 1);
+              default -> getIdentifiedLocation(tree);
+            }, body.location());
+            yield new IR$Function$Lambda(args, body, at, true, meta(), diag());
           }
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());
@@ -1258,9 +1262,26 @@ final class TreeToIr {
       default -> id;
     };
   }
+  
+  private Option<IdentifiedLocation> expandToContain(Option<IdentifiedLocation> encapsulating, Option<IdentifiedLocation> inner) {
+    if (encapsulating.isEmpty() || inner.isEmpty()) {
+      return encapsulating;
+    }
+    var en = encapsulating.get();
+    var in = inner.get();
+    if (en.start() > in.start() || en.end() < in.end()) {
+      var loc = new Location(
+        Math.min(en.start(), in.start()),
+        Math.max(en.end(), in.end())
+      );
+      return Option.apply(new IdentifiedLocation(loc, en.id()));
+    } else {
+      return encapsulating;
+    }
+  }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
-      return getIdentifiedLocation(ast, 0, 0);
+    return getIdentifiedLocation(ast, 0, 0);
   }
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e) {
     return Option.apply(switch (ast) {

@@ -62,6 +62,24 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testLocationsDeeplyNestedFunctions() throws Exception {
+    parseTest("""
+        foo = a -> b ->
+            IO.println a
+        """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsDeeplyNestedFunctionsNoBlock() throws Exception {
+    parseTest("""
+    Nothing.method =
+        add = a -> b -> a + b
+
+    main = Nothing.method
+    """, true, false, true);
+  }
+
+  @Test
   @Ignore
   public void testSpacesAtTheEndOfFile() throws Exception {
     var fourSpaces = "    ";
