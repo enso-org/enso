@@ -135,7 +135,6 @@ mod tests {
         let target_foo = target.join("foo");
         crate::fs::tokio::write(&target_foo, "foo in target").await?;
 
-        let git = git::Context::new(&dir).await?;
         clean_except_for(&dir, vec!["target/foo"], false).await?;
 
 

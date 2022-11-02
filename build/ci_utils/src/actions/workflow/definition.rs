@@ -566,7 +566,7 @@ impl Step {
             );
             *entry.get_mut() = value;
         } else {
-            entry.or_insert(value.into());
+            entry.or_insert(value);
         }
         self
     }

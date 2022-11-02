@@ -183,7 +183,7 @@ pub mod new {
 
     impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
         fn as_ref(&self) -> &str {
-            &self.name
+            self.name
         }
     }
 
@@ -207,7 +207,7 @@ pub mod new {
 
     impl<Value, Borrowed: ?Sized> const RawVariable for SimpleVariable<Value, Borrowed> {
         fn name(&self) -> &str {
-            &self.name
+            self.name
         }
     }
 

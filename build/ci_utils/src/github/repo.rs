@@ -43,7 +43,7 @@ impl std::str::FromStr for Repo {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        RepoRef::from_str(s).map(|repo| repo.into())
+        RepoRef::try_from(s).map(Into::into)
     }
 }
 
@@ -88,12 +88,18 @@ impl<'a> RepoRef<'a> {
         T2: ~const AsRef<str> + ?Sized, {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
+}
 
-    pub fn from_str(s: &'a (impl AsRef<str> + ?Sized)) -> Result<Self> {
-        let s = s.as_ref();
-        match s.split('/').collect_vec().as_slice() {
+/// Note that we chose to implemend `TryFrom` rather than `FromStr` for `RepoRef` because
+/// `FromStr` requires the parsed value to be owned (or at least lifetime-independent from input),
+/// which is not the case for `RepoRef`.
+impl<'a> TryFrom<&'a str> for RepoRef<'a> {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &'a str) -> std::result::Result<Self, Self::Error> {
+        match value.split('/').collect_vec().as_slice() {
             [owner, name] => Ok(Self { owner, name }),
-            slice => bail!("Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}", s, slice.len()),
+            slice => bail!("Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}", value, slice.len()),
         }
     }
 }

@@ -26,7 +26,7 @@ pub trait PathExt: AsRef<Path> {
     /// Does nothing when given extension string is empty.
     ///
     /// ```
-    /// use ide_ci::extensions::path::PathExt;
+    /// use enso_build_base::extensions::path::PathExt;
     /// use std::path::PathBuf;
     ///
     /// let path = PathBuf::from("foo.tar").with_appended_extension("gz");
@@ -75,6 +75,7 @@ pub trait PathExt: AsRef<Path> {
 
     /// Get the path as `str`.
     ///
+    /// # Safety
     /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
     /// something that we want to spend time on supporting right now.
     fn as_str(&self) -> &str {

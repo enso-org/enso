@@ -27,7 +27,7 @@ impl Git {
     /// Create a new, empty git repository in the given directory.
     pub fn init(&self, path: impl AsRef<Path>) -> Result<GitCommand> {
         let mut cmd = self.cmd()?;
-        cmd.arg(&Command::Init);
+        cmd.arg(Command::Init);
         cmd.current_dir(path);
         Ok(cmd)
     }

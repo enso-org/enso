@@ -85,6 +85,9 @@ pub mod env {
         /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
         /// appropriate identity from your keychain will be automatically used.
         CSC_IDENTITY_AUTO_DISCOVERY, bool;
+
+        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
+        PYTHON_PATH, PathBuf;
     }
 }
 
@@ -369,12 +372,25 @@ impl IdeDesktop {
         let (icons, _content) = try_join(icons_build, content_build).await?;
 
 
+        let python_path = if TARGET_OS == OS::MacOS {
+            // On macOS electron-builder will fail during DMG creation if there is no python2
+            // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
+            // MacOS versions.
+            // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
+            // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
+            // runners.
+            Some(ide_ci::program::lookup("python2")?)
+        } else {
+            None
+        };
+
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
+            .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist", EMPTY_ARGS)
