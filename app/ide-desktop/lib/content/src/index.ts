@@ -27,6 +27,10 @@ import { SemVer, Comparator } from 'semver'
 
 import * as https from 'https'
 
+import { Auth } from "aws-amplify";
+import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
+import { amplifyConfig } from "../amplify";
+
 const authInfo = 'auth-info'
 
 // ==================
@@ -378,7 +382,7 @@ function setupCrashDetection() {
     // (https://v8.dev/docs/stack-trace-api#compatibility)
     Error.stackTraceLimit = 100
 
-    window.addEventListener('error', function (event) {
+    window.addEventListener('error', function(event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
         if (ok(event.error) && ok(event.error.stack)) {
             handleCrash(event.error.stack)
@@ -386,7 +390,7 @@ function setupCrashDetection() {
             handleCrash(event.message)
         }
     })
-    window.addEventListener('unhandledrejection', function (event) {
+    window.addEventListener('unhandledrejection', function(event) {
         // As above, we prefer stack traces.
         // But here, `event.reason` is not even guaranteed to be an `Error`.
         handleCrash(event.reason.stack || event.reason.message || 'Unhandled rejection')
@@ -555,7 +559,7 @@ async function checkMinSupportedVersion(config: Config) {
 // === Authentication ===
 // ======================
 
-class FirebaseAuthentication {
+class Authentication {
     protected readonly config: any
     public readonly firebaseui: any
     public readonly ui: any
@@ -563,10 +567,8 @@ class FirebaseAuthentication {
     public authCallback: any
 
     constructor(authCallback: any) {
-        this.firebaseui = require('firebaseui')
-        this.config = firebase_config
-        // initialize Firebase
-        firebase.initializeApp(this.config)
+        Auth.configure(amplifyConfig);
+
         // create HTML markup
         this.createHtml()
         // initialize Firebase UI
@@ -638,15 +640,60 @@ class FirebaseAuthentication {
         }
     }
 
-    protected handleSignedOutUser() {
-        document.getElementById('auth-container').style.display = 'block'
-        this.ui.start('#firebaseui-container', this.getUiConfig())
+    protected async handleSignedOutUser() {
+        console.log('handleSignedOutUser')
+        const jwt = await this.getAccessToken();
+        console.log('jwt', jwt);
+
+        if (!jwt) {
+            console.log('fetaratedSignIn');
+            Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google });
+        }
+        console.log('END handleSignedOutUser')
+        // document.getElementById('auth-container').style.display = 'block'
+        // this.ui.start('#firebaseui-container', this.getUiConfig())
     }
 
     protected handleSignedInUser(user: any) {
-        document.getElementById('auth-container').style.display = 'none'
-        this.authCallback(user)
+        console.log('handleSignedInUser', user)
+        this.handleSignedOutUser()
+        //document.getElementById('auth-container').style.display = 'none'
+        //this.authCallback(user)
     }
+
+    protected async getAccessToken() {
+        try {
+            const session = await Auth.currentSession();
+            return session.getAccessToken().getJwtToken();
+        } catch (error) { }
+    };
+
+    protected async getOrganization(accessToken: string | undefined) {
+        let organizationId;
+        let userName;
+        let error;
+
+        if (accessToken) {
+            const result = await getOrganization(accessToken);
+            if (result) {
+                if (!result.error && result.myOrganization) {
+                    organizationId = result.myOrganization.id;
+                    userName = result.myOrganization.name ?? undefined;
+                } else if (result.error !== "Not found") {
+                    error = 'Unexpected auth error'
+                }
+            } else {
+                error = 'Unexpected auth error'
+            }
+        }
+
+        return {
+            id: organizationId,
+            name: userName,
+            error,
+        }
+    };
+
 
     /// Create the HTML markup.
     ///
@@ -904,7 +951,7 @@ function createVersionCheckHtml() {
     root.appendChild(versionCheckDiv)
 }
 
-API.main = async function (inputConfig: any) {
+API.main = async function(inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
@@ -913,9 +960,11 @@ API.main = async function (inputConfig: any) {
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
+    console.log(config)
+
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !config.entry) {
-            new FirebaseAuthentication(function (user: any) {
+            new Authentication(function(user: any) {
                 config.email = user.email
                 runEntryPoint(config)
             })
