@@ -1275,37 +1275,7 @@ class IrToTruffle(
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
             val resolution = global.get.target
-            resolution match {
-              case tp: BindingsMap.ResolvedType =>
-                ConstantObjectNode.build(
-                  tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
-                )
-              case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-                val c = definitionType
-                  .unsafeToRuntimeType()
-                  .getConstructors
-                  .get(cons.name)
-                if (c == null) {
-                  throw new CompilerError(s"Constructor for $cons is null")
-                }
-                ConstructorNode.build(c)
-              case BindingsMap.ResolvedModule(module) =>
-                ConstantObjectNode.build(
-                  module.unsafeAsModule().getScope.getAssociatedType
-                )
-              case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
-                ConstantObjectNode.build(
-                  module
-                    .unsafeAsModule()
-                    .getScope
-                    .getPolyglotSymbols
-                    .get(symbol.name)
-                )
-              case BindingsMap.ResolvedMethod(_, method) =>
-                throw new CompilerError(
-                  s"Impossible here, ${method.name} should be caught when translating application"
-                )
-            }
+            nodeForResolution(resolution)
           } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
@@ -1321,6 +1291,13 @@ class IrToTruffle(
               location,
               passData
             )
+          )
+        case n: IR.Name.SelfType =>
+          nodeForResolution(
+            n.unsafeGetMetadata(
+              GlobalNames,
+              "a Self occurence must be resolved"
+            ).target
           )
         case IR.Name.Special(name, _, _, _) =>
           val fun = name match {
@@ -1353,6 +1330,42 @@ class IrToTruffle(
       }
 
       setLocation(nameExpr, name.location)
+    }
+
+    private def nodeForResolution(
+      resolution: BindingsMap.ResolvedName
+    ): RuntimeExpression = {
+      resolution match {
+        case tp: BindingsMap.ResolvedType =>
+          ConstantObjectNode.build(
+            tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
+          )
+        case BindingsMap.ResolvedConstructor(definitionType, cons) =>
+          val c = definitionType
+            .unsafeToRuntimeType()
+            .getConstructors
+            .get(cons.name)
+          if (c == null) {
+            throw new CompilerError(s"Constructor for $cons is null")
+          }
+          ConstructorNode.build(c)
+        case BindingsMap.ResolvedModule(module) =>
+          ConstantObjectNode.build(
+            module.unsafeAsModule().getScope.getAssociatedType
+          )
+        case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
+          ConstantObjectNode.build(
+            module
+              .unsafeAsModule()
+              .getScope
+              .getPolyglotSymbols
+              .get(symbol.name)
+          )
+        case BindingsMap.ResolvedMethod(_, method) =>
+          throw new CompilerError(
+            s"Impossible here, ${method.name} should be caught when translating application"
+          )
+      }
     }
 
     /** Generates code for an Enso literal.

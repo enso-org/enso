@@ -39,6 +39,7 @@ import org.enso.compiler.core.IR$Name$Annotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$Self;
+import org.enso.compiler.core.IR$Name$SelfType;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR$Pattern$Constructor;
@@ -975,7 +976,7 @@ final class TreeToIr {
     return switch (lhs) {
       case Tree.Ident id when id.getToken().isTypeOrConstructor() || !fields.isEmpty() -> {
         yield new IR$Pattern$Constructor(
-                buildName(id), fields,
+                sanitizeName(buildName(id)), fields,
                 getIdentifiedLocation(id), meta(), diag()
         );
       }
@@ -1047,7 +1048,7 @@ final class TreeToIr {
   }
   private IR.Name qualifiedNameSegment(Tree tree) {
     return switch (tree) {
-      case Tree.Ident id -> buildName(id);
+      case Tree.Ident id -> sanitizeName(buildName(id));
       case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
       default -> throw new UnhandledEntity(tree, "qualifiedNameSegment");
     };
@@ -1183,6 +1184,7 @@ final class TreeToIr {
   private IR.Name sanitizeName(IR$Name$Literal id) {
     return switch (id.name()) {
       case "self" -> new IR$Name$Self(id.location(), false, id.passData(), id.diagnostics());
+      case "Self" -> new IR$Name$SelfType(id.location(), id.passData(), id.diagnostics());
       default -> id;
     };
   }

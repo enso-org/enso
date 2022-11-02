@@ -250,7 +250,7 @@ class SuggestionsHandlerSpec
             ),
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -310,7 +310,7 @@ class SuggestionsHandlerSpec
           Vector(
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Modify(
                   arguments = Some(
                     Seq(
@@ -416,7 +416,7 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         val moduleName = "Test.Foo"
-        val fooAtom = Suggestion.Atom(
+        val fooAtom = Suggestion.Constructor(
           externalId            = None,
           module                = moduleName,
           name                  = "Foo",
@@ -490,7 +490,7 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         val suggestions = Seq(
-          Suggestions.atom,
+          Suggestions.constructor,
           Suggestions.method,
           Suggestions.function,
           Suggestions.local
@@ -500,7 +500,7 @@ class SuggestionsHandlerSpec
           Vector(
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -560,7 +560,9 @@ class SuggestionsHandlerSpec
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           "Foo.Main",
           contentsVersion("1"),
-          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
+          Vector(
+            Api.SuggestionsDatabaseAction.Clean(Suggestions.constructor.module)
+          ),
           Vector(),
           Tree.Root(Vector())
         )
@@ -605,7 +607,7 @@ class SuggestionsHandlerSpec
             ),
             Tree.Node(
               Api.SuggestionUpdate(
-                Suggestions.atom,
+                Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
               Vector()
@@ -670,8 +672,8 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                  Suggestions.atom.module,
-                  Suggestions.atom.name
+                  Suggestions.constructor.module,
+                  Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
@@ -715,8 +717,8 @@ class SuggestionsHandlerSpec
                   Suggestions.module.module
                 ),
                 ExportedSymbol.Atom(
-                  Suggestions.atom.module,
-                  Suggestions.atom.name
+                  Suggestions.constructor.module,
+                  Suggestions.constructor.name
                 ),
                 ExportedSymbol.Method(
                   Suggestions.method.module,
@@ -761,7 +763,7 @@ class SuggestionsHandlerSpec
 
     "get suggestions database version" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(1))
@@ -776,20 +778,20 @@ class SuggestionsHandlerSpec
 
     "get suggestions database" taggedAs Retry in withDb {
       (_, repo, _, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
           SearchProtocol.GetSuggestionsDatabaseResult(
             1,
-            Seq(SuggestionDatabaseEntry(1L, Suggestions.atom))
+            Seq(SuggestionDatabaseEntry(1L, Suggestions.constructor))
           )
         )
     }
 
     "invalidate suggestions database" taggedAs Retry in withDb {
       (_, repo, _, connector, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         handler ! SearchProtocol.InvalidateSuggestionsDatabase
 
         connector.expectMsgClass(classOf[Api.Request]) match {
@@ -804,7 +806,7 @@ class SuggestionsHandlerSpec
 
     "rename module when renaming project" taggedAs Retry in withDb {
       (_, repo, router, _, handler) =>
-        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        Await.ready(repo.insert(Suggestions.constructor), Timeout)
         val clientId      = UUID.randomUUID()
         val newModuleName = "Vest"
 
@@ -903,10 +905,11 @@ class SuggestionsHandlerSpec
             Seq(
               inserted(0).get,
               inserted(1).get,
-              inserted(5).get,
+              inserted(2).get,
               inserted(6).get,
               inserted(7).get,
-              inserted(2).get
+              inserted(8).get,
+              inserted(3).get
             )
           )
         )
@@ -914,7 +917,7 @@ class SuggestionsHandlerSpec
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, methodId, _, _, methodOnAnyId, _, _)) =
+        val (_, Seq(_, _, _, methodId, _, _, methodOnAnyId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -936,7 +939,7 @@ class SuggestionsHandlerSpec
       (config, repo, _, _, handler) =>
         val (
           _,
-          Seq(_, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
+          Seq(_, _, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
         ) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
@@ -958,7 +961,7 @@ class SuggestionsHandlerSpec
 
     "search entries for any" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, _, anyMethodId, _, _)) =
+        val (_, Seq(_, _, _, _, _, _, anyMethodId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
         handler ! SearchProtocol.Completion(
@@ -979,7 +982,7 @@ class SuggestionsHandlerSpec
 
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, functionId, _, _, _, _)) =
+        val (_, Seq(_, _, _, _, functionId, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -999,7 +1002,7 @@ class SuggestionsHandlerSpec
 
     "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, localId, _, _, _)) =
+        val (_, Seq(_, _, _, _, _, localId, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -1228,8 +1231,8 @@ class SuggestionsHandlerSpec
     val docSectionsBuilder: DocSectionsBuilder =
       DocSectionsBuilder()
 
-    val atom: Suggestion.Atom =
-      Suggestion.Atom(
+    val atom: Suggestion.Constructor =
+      Suggestion.Constructor(
         externalId = None,
         module     = "Test.Pair",
         name       = "Pair",
