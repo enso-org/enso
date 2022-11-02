@@ -331,6 +331,22 @@ impl QualifiedName {
             })
         })
     }
+
+    /// Add a segment to this qualified name.
+    ///
+    /// ```
+    /// # use double_representation::identifier::ReferentName;
+    /// # use double_representation::module::QualifiedName;
+    ///
+    /// let mut name = QualifiedName::from_text("ns.Proj.Foo").unwrap();
+    /// let bar_segment = ReferentName::new("Bar").unwrap();
+    ///
+    /// name.push_segment(bar_segment);
+    /// assert_eq!(name.to_string(), "ns.Proj.Foo.Bar");
+    /// ```
+    pub fn push_segment(&mut self, name: ReferentName) {
+        self.id.segments.push(name);
+    }
 }
 
 impl TryFrom<&str> for QualifiedName {

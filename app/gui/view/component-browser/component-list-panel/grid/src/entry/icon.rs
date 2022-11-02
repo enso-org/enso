@@ -989,9 +989,24 @@ crate::define_icons! {
     }
 
     /// Outline of a circle. A placeholder icon for
-    /// [`enso_gui::model::suggestion_database::entry::Kind::Atom`] components. Planned to be
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Type`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
-    pub mod atom(Atom) {
+    pub mod r#type(Type) {
+        ensogl_core::define_shape_system! {
+           above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let circle = Circle(5.5.px()) - Circle(4.0.px());
+                let shape = circle.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+        /// Outline of a circle. A placeholder icon for
+        /// [`enso_gui::model::suggestion_database::entry::Kind::Constructor`] components. Planned to be
+        /// replaced by a carefully designed icon in the future.
+    pub mod constructor(Constructor) {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, list_view::selection, crate::entry::background];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
