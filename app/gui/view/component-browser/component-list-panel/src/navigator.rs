@@ -23,6 +23,8 @@ use grid::Row;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
 
+
+
 mod entry;
 mod icon;
 

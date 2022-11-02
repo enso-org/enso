@@ -1,10 +1,12 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+use ide_view_component_list_panel_icons::common_part::*;
 
 use ensogl_grid_view as grid_view;
-use ide_view_component_list_panel_icons::common_part::*;
 use ide_view_component_list_panel_icons::define_icons;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
+
+
 
 define_icons! {
     /// A five-pointed star.

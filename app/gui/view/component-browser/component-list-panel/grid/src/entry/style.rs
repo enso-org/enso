@@ -12,6 +12,7 @@ use entry_theme::highlight::selection as selection_theme;
 use grid_theme::entry as entry_theme;
 
 
+
 /// Color of the different parts of the entry.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {

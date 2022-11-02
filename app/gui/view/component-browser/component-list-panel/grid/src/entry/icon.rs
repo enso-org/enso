@@ -1,23 +1,23 @@
 //! All icons that are used in the Component Browser.
 
-
-// ==============
-// === Export ===
-// ==============
-
 use crate::prelude::*;
-
-pub use ide_view_component_list_panel_icons::Any;
-pub use ide_view_component_list_panel_icons::SIZE;
+use ide_view_component_list_panel_icons::common_part::*;
 
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_grid_view as grid_view;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
-use ide_view_component_list_panel_icons::common_part::*;
 use ide_view_component_list_panel_icons::define_icons;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
 use std::f32::consts::PI;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ide_view_component_list_panel_icons::Any;
+pub use ide_view_component_list_panel_icons::SIZE;
 
 
 
