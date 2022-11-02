@@ -23,7 +23,7 @@ use enso_frp as frp;
 
 /// Determines how much of out-of-bounds portion of value change is actually applied to the
 /// animation target value. Larger values will make the overshoot more noticeable.
-const OUT_OF_BOUNDS_SENSITIVITY: f32 = 0.3;
+const OUT_OF_BOUNDS_SENSITIVITY: f32 = 0.2;
 
 
 // ===========
@@ -70,7 +70,29 @@ crate::define_endpoints! {
 // ==========================
 
 /// An [`Animation`] wrapper that allows the value to be smoothly manipulated within set bounds,
-/// overshoot set bounds and bounce back.
+/// overshoot set bounds and bounce back. This is accomplished by modulating and limiting the target
+/// value passed to the internal Animation once its out of bounds.
+///
+/// ## Input controls
+/// - The bounds are set using `set_min_bound` and `set_max_bound` endpoints. Set bounds will be
+///   applied next time a target value change is attempted.
+/// - The target value can be manipulated by relative change using `*_change_by` endpoints or set to
+///   absolute value using `*_change_to` endpoints. Using `soft_*` endpoints will limit the target
+///   value smoothly over time, while using `hard_*` endpoints will immediately apply the bounds to
+///   the target value, not allowing any overshoot.
+/// - The maximum allowed out-of-bounds amplitude can be set with `set_overshoot_limit` endpoint.
+/// - When an event is emitted to the `skip` endpoint, the animated value will immediately be set
+///   the current target value, within the set bounds. Any overshoot is removed.
+/// - The delay between when the target value is set and when the bounce back animation starts is
+///   controlled with `set_bounce_delay` endpoint.
+///
+/// ## Overshoot behavior
+/// When the target value is set out of bounds using `*_soft` endpoint, the out-of-bounds
+/// portion of the value is modulated with `OUT_OF_BOUNDS_SENSITIVITY` constant factor, and
+/// potentially limited by value set through `set_overshoot_limit` endpoint. Many target value
+/// changes can be applied in quick succession. After a `set_bounce_delay` amount of time passes
+/// since last target change, the bounce-back animation is applied by snapping the target value to
+/// the closest bound.
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct OvershootAnimation {
     /// Public FRP api.
@@ -82,7 +104,6 @@ impl OvershootAnimation {
     /// need to be persisted, all created FRP nodes will be managed by the passed-in network.
     pub fn new(network: &frp::Network) -> Self {
         let frp = Frp::extend(network);
-        // let out = &frp.private().output; // version for `define_endpoints_2`
         let out = &frp.source;
 
         let animation = Animation::<f32>::new(network);
@@ -92,8 +113,9 @@ impl OvershootAnimation {
         soft_bounce_cool_off.frp.set_duration(0.0);
 
         frp::extend! { network
-            frp.soft_change_to <+ frp.soft_change_by.map2(&animation.value,|delta,val| *val+*delta);
-            frp.hard_change_to <+ frp.hard_change_by.map2(&animation.value,|delta,val| *val+*delta);
+
+            frp.soft_change_to <+ frp.soft_change_by.map2(&animation.target,|delta,val| *val+*delta);
+            frp.hard_change_to <+ frp.hard_change_by.map2(&animation.target,|delta,val| *val+*delta);
 
             // Hard changes are bounded on input.
             input_bounded <- frp.hard_change_to.map3(&frp.set_min_bound, &frp.set_max_bound,
