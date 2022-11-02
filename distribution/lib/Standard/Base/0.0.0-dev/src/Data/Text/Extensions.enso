@@ -129,7 +129,7 @@ Text.characters self =
 ## ALIAS Match Text
 
    Matches the text in `self` against the provided regex `pattern`, returning
-   the match(es) if present or `Nothing` if there are no matches.
+   the first or last match if present or `Nothing` if there are no matches.
 
    Arguments:
    - pattern: The pattern to match `self` against. We recommend using _raw text_
@@ -158,6 +158,28 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matche
     _ : Regex_Matcher ->
         compiled_pattern = matcher.compile term
         compiled_pattern.find self mode
+
+## ALIAS Match All Text
+
+   Matches all occurrences text in `self` against the provided regex `pattern`,
+   returning a vector of matches.
+
+   Arguments:
+   - pattern: The pattern to match `self` against. We recommend using _raw text_
+     to write your patterns.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
+
+   > Example
+     Find the first term matching the regex.
+
+         example_match =
+             regex = "a[ab]c"
+             "aabbbbccccaabcaaaa".match regex == "abc"
+Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
+Text.match_all self term="" matcher=Text_Matcher.Case_Sensitive =
+    Error.throw "TODO"
 
 ## ALIAS Check Matches
 
