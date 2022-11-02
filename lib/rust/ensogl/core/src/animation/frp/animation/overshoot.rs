@@ -23,7 +23,8 @@ use enso_frp as frp;
 
 /// Determines how much of out-of-bounds portion of value change is actually applied to the
 /// animation target value. Larger values will make the overshoot more noticeable.
-const OUT_OF_BOUNDS_SENSITIVITY: f32 = 0.2;
+const OUT_OF_BOUNDS_SENSITIVITY: f32 = 0.24;
+
 
 
 // ===========
@@ -87,12 +88,11 @@ crate::define_endpoints! {
 ///   controlled with `set_bounce_delay` endpoint.
 ///
 /// ## Overshoot behavior
-/// When the target value is set out of bounds using `*_soft` endpoint, the out-of-bounds
-/// portion of the value is modulated with `OUT_OF_BOUNDS_SENSITIVITY` constant factor, and
-/// potentially limited by value set through `set_overshoot_limit` endpoint. Many target value
-/// changes can be applied in quick succession. After a `set_bounce_delay` amount of time passes
-/// since last target change, the bounce-back animation is applied by snapping the target value to
-/// the closest bound.
+/// When the target value is set out of bounds using `*_soft` endpoint, the out-of-bounds portion of
+/// the value is modulated with `OUT_OF_BOUNDS_SENSITIVITY` constant factor, and potentially limited
+/// by value set through `set_overshoot_limit` endpoint. Many target value changes can be applied in
+/// quick succession. After a `set_bounce_delay` amount of time passes since last target change, the
+/// bounce-back animation is applied by snapping the target value to the closest bound.
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct OvershootAnimation {
     /// Public FRP api.
