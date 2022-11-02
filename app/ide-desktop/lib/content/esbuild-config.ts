@@ -64,6 +64,11 @@ function git(command: string): string {
  */
 const always_copied_files = [
     path.resolve(thisPath, 'src', 'index.html'),
+    path.resolve(thisPath, 'src', 'login.html'),
+    path.resolve(thisPath, 'src', 'registration.html'),
+    path.resolve(thisPath, 'src', 'confirmation.html'),
+    path.resolve(thisPath, 'src', 'forgot_password.html'),
+    path.resolve(thisPath, 'src', 'reset_password.html'),
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
@@ -88,7 +93,15 @@ async function* files_to_copy_provider() {
 
 const config: esbuild.BuildOptions = {
     bundle: true,
-    entryPoints: ['src/index.ts', 'src/wasm_imports.js'],
+    entryPoints: [
+        'src/index.ts',
+        'src/login.ts',
+        'src/registration.ts',
+        'src/confirmation.ts',
+        'src/forgot_password.ts',
+        'src/reset_password.ts',
+        'src/wasm_imports.js'
+    ],
     outdir: output_path,
     outbase: 'src',
     plugins: [

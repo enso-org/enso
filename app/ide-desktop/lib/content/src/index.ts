@@ -27,6 +27,10 @@ import { SemVer, Comparator } from 'semver'
 
 import * as https from 'https'
 
+import { Auth } from "aws-amplify";
+import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
+import { amplifyConfig } from "./amplify";
+
 const authInfo = 'auth-info'
 
 // ==================
@@ -366,7 +370,7 @@ function setupCrashDetection() {
     // (https://v8.dev/docs/stack-trace-api#compatibility)
     Error.stackTraceLimit = 100
 
-    window.addEventListener('error', function (event) {
+    window.addEventListener('error', function(event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
         if (ok(event.error) && ok(event.error.stack)) {
             handleCrash(event.error.stack)
@@ -374,7 +378,7 @@ function setupCrashDetection() {
             handleCrash(event.message)
         }
     })
-    window.addEventListener('unhandledrejection', function (event) {
+    window.addEventListener('unhandledrejection', function(event) {
         // As above, we prefer stack traces.
         // But here, `event.reason` is not even guaranteed to be an `Error`.
         handleCrash(event.reason.stack || event.reason.message || 'Unhandled rejection')
@@ -894,7 +898,7 @@ function createVersionCheckHtml() {
     root.appendChild(versionCheckDiv)
 }
 
-API.main = async function (inputConfig: any) {
+API.main = async function(inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
@@ -903,17 +907,5 @@ API.main = async function (inputConfig: any) {
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
-    if (await checkMinSupportedVersion(config)) {
-        if (config.authentication_enabled && !config.entry) {
-            new FirebaseAuthentication(function (user: any) {
-                config.email = user.email
-                runEntryPoint(config)
-            })
-        } else {
-            await runEntryPoint(config)
-        }
-    } else {
-        // Display a message asking to update the application.
-        createVersionCheckHtml()
-    }
+    runEntryPoint(config)
 }

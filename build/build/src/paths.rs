@@ -81,11 +81,13 @@ impl TargetTriple {
     /// there.
     pub fn engine(&self) -> Self {
         let mut ret = self.clone();
-        ret.arch = if self.arch == Arch::AArch64 && self.os == OS::MacOS {
-            Arch::X86_64
-        } else {
-            self.arch
-        };
+        // FIXME [NP]: uncomment this
+        //ret.arch = if self.arch == Arch::AArch64 && self.os == OS::MacOS {
+        //    Arch::X86_64
+        //} else {
+        //    self.arch
+        //};
+        ret.arch = self.arch;
         ret
     }
 

@@ -70,9 +70,19 @@ const config: Configuration = {
     },
     copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
+    // Define a new protocol to enable redirects back to the IDE from external sources. This allows
+    // us to send the user to the browser to authenticate, and then redirect back to the IDE. This
+    // also allows us to intercept users clicking on signup verification links in their emails, also
+    // redirecting them back to the IDE.
+    protocols: [
+        { name: 'Enso URL', schemes: ['enso'], role: 'Editor' }
+    ],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: (args.target as MacOsTargetName) ?? 'dmg',
+        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, for
+        //   faster development. Revert this once the PR is undrafted.
+        //target: (args.target as MacOsTargetName) ?? 'dmg',
+        target: 'dir',
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -95,7 +105,10 @@ const config: Configuration = {
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: args.target ?? 'AppImage',
+        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, for
+        //   faster development. Revert this once the PR is undrafted.
+        //target: args.target ?? 'AppImage',
+        target: 'dir',
         icon: `${args.iconsDist}/png`,
         category: 'Development',
     },

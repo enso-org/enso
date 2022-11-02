@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- FIXME https://github.com/validator/validator/issues/917 -->
+    <!-- FIXME Security Vulnerabilities: https://github.com/enso-org/ide/issues/226 -->
+    <!-- NOTE `frame-src` section of `http-equiv` required only for authorization -->
+    <!-- The sha-256 hash for `script-src` below is for the code injected by the live-server.
+         In case of bumping the server, it might need to be updated.
+         Fortunately, the error message gives an updated hash. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+            default-src 'self';
+            frame-src   'self' data: https://accounts.google.com https://enso-org.firebaseapp.com;
+            script-src  'self' 'unsafe-eval' data: https://* 'sha256-iN7wpJdxHlpujRppkOA8N0+Mzp0ZqZr3lCtxM00Y63c=';
+            style-src   'self' 'unsafe-inline' data: https://*;
+            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://*;
+            worker-src  'self' blob:;
+            img-src     'self' blob: data: https://*;
+            font-src    'self' data: https://*"
+    />
+    <meta
+      name="viewport"
+      content="
+            width=device-width,
+            initial-scale = 1.0,
+            maximum-scale = 1.0,
+            user-scalable = no"
+    />
+    <title>Enso</title>
+    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="stylesheet" href="/assets/docsStyle.css" />
+    <script type="module" src="/assets/confirmation.js"></script>
+    <!-- TODO [NP]: https://www.pivotaltracker.com/story/show/184314879 -->
+    <!--   Replace with proper TailwindCSS generation -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root">
+    </div>
+    <noscript>
+      This page requires JavaScript to run. Please enable it in your browser.
+    </noscript>
+  </body>
+</html>

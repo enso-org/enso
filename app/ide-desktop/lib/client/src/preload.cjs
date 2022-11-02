@@ -51,3 +51,9 @@ contextBridge.exposeInMainWorld('enso_console', {
     // Print an error message with `console.error`.
     error: data => ipcRenderer.send('error', data),
 })
+
+// Open URLs in external browser
+contextBridge.exposeInMainWorld('loginAPI', {
+    open: url => ipcRenderer.send('login-api-open', url),
+    authenticatedRedirect: () => ipcRenderer.send('login-api-authenticated-redirect'),
+})

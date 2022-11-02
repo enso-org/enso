@@ -101,7 +101,8 @@ impl GraalVM {
         let arch_name = match *arch {
             Arch::X86_64 => "amd64",
             // No Graal packages for Apple Silicon.
-            Arch::AArch64 if TARGET_OS == OS::MacOS => "amd64",
+            // FIXME [NP]: uncomment this
+            //Arch::AArch64 if TARGET_OS == OS::MacOS => "amd64",
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };

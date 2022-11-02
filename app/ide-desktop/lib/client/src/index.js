@@ -4,6 +4,7 @@ import { defaultLogServerHost } from '../../../config.js'
 import assert from 'node:assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
+import { dialog } from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'node:path'
 import * as Server from './server.js'
@@ -17,6 +18,10 @@ import { project_manager_bundle } from '../paths.js'
 import child_process from 'child_process'
 import fss from 'node:fs'
 import fsp from 'node:fs/promises'
+
+import opener from 'opener'
+
+
 
 // =============
 // === Paths ===
@@ -468,6 +473,39 @@ async function backendVersion() {
     }
 }
 
+
+
+// ======================
+// === Authentication ===
+// ======================
+
+// Handles an event to open a custom URL by parsing the query out of that URL and loading it in the
+// main window, with the base of the custom URL (e.g. `enso://localhost`) being replaced by the
+// actual origin of the main window (e.g. `http://localhost:8080`).
+function handleOpenCustomUrlEvent(event, url) {
+    // TODO [NP]: https://www.pivotaltracker.com/story/show/184314879
+    //   Add a success notification to inform the user that login is being completed.
+    console.log('Welcome Back', `You arrived from: ${url}`)
+    let target;
+    try {
+        let parsedUrl = new URL(url)
+        target = new URL(origin)
+        target.search = parsedUrl.search
+    } catch {}
+
+    console.log(`${event} target`, target.href)
+
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore()
+        mainWindow.focus()
+        if (target) {
+            mainWindow.loadURL(target.href)
+        }
+    }
+}
+
+
+
 // ============
 // === Main ===
 // ============
@@ -481,19 +519,45 @@ let origin = null
 async function main(args) {
     // Note [Main error handling]
     try {
-        runBackend()
+        // FIXME [NP]: uncomment this once ready for review since it's annoying during development
+        //runBackend()
+
+        if (process.defaultApp) {
+            if (process.argv.length >= 2) {
+                Electron.app.setAsDefaultProtocolClient('enso', process.execPath, [path.resolve(process.argv[1])])
+            }
+        } else {
+            Electron.app.setAsDefaultProtocolClient('enso')
+        }
+
+        const gotTheLock = Electron.app.requestSingleInstanceLock()
+
+        if (!gotTheLock) {
+            Electron.app.quit()
+        } else {
+            // 'second-instance' event is emitted on Windows and Linux when opening
+            // custom urls. For macOS 'open-url' event is emitted
+            Electron.app.on('second-instance', (event, commandLine, workingDirectory) => {
+                // Someone tried to run a second instance, we should focus our window.
+                console.log('second-instance', commandLine, workingDirectory)
+                let url = commandLine[commandLine.length - 1]
+                handleOpenCustomUrlEvent('second-instance', url)
+            })
+        }
 
         console.log('Starting the IDE service.')
         if (args.server !== false) {
             let serverCfg = Object.assign({}, args)
             serverCfg.dir = root
-            serverCfg.fallback = '/assets/index.html'
+            serverCfg.fallback = '/assets/login.html'
+            console.log('Server.create', serverCfg)
             server = await Server.create(serverCfg)
             origin = `http://localhost:${server.port}`
         }
         if (args.window !== false) {
             console.log('Starting the IDE client.')
             mainWindow = createWindow()
+            console.log('Window created.')
             mainWindow.on('close', evt => {
                 if (hideInsteadOfQuit) {
                     evt.preventDefault()
@@ -501,6 +565,7 @@ async function main(args) {
                 }
             })
         }
+
     } catch (err) {
         // Note [Main error handling]
         console.error('Failed to setup IDE. Error:', err)
@@ -619,12 +684,26 @@ function createWindow() {
         Electron.app.quit()
     })
 
+    registerLoginHooks()
+
     let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`
 
     console.log(`Loading the window address ${address}`)
     window.loadURL(address)
     return window
+}
+
+function registerLoginHooks() {
+    Electron.ipcMain.on('login-api-open', (event, url) => {
+        console.log('ipcMain.on login-api-open', url)
+        opener(url)
+    })
+    Electron.ipcMain.on('login-api-authenticated-redirect', () => {
+        console.log('ipcMain.on login-api-authenticated-redirect')
+        server.fallback = '/assets/index.html'
+        mainWindow.loadURL(origin)
+    })
 }
 
 /// By default, Electron will automatically approve all permission requests unless the developer has
@@ -693,6 +772,20 @@ if (process.platform === 'darwin') {
         hideInsteadOfQuit = false
     })
 }
+
+// 'open-url' event is macOS way to handle URL opening. For Windows and Linux
+// 'second-instance' event is emitted.
+Electron.app.on('open-url', (event, url) => {
+    console.log('open-url', event, url)
+    handleOpenCustomUrlEvent('open-url', url)
+})
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+Electron.app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') Electron.app.quit()
+})
 
 // =================
 // === Shortcuts ===
