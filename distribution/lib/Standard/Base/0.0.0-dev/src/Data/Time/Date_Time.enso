@@ -1,13 +1,12 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Date_Period
-import Standard.Base.Data.Time.Time_Period
+from Standard.Base.Data.Time import Duration, Period, Date_Period, Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
+polyglot java import java.time.ZonedDateTime
 polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
@@ -442,18 +441,24 @@ type Date_Time
     ## Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant.
+       - amount: The amount of time to add to this instant, either `Duration` for
+         adding time (hours, minutes, etc.), or `Period` for adding date (days,
+         months, years).
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
 
              from Standard.Base import Date_Time
-             import Standard.Base.Data.Time.Duration
+             from Standard.Base.Data.Time import Duration, Period
 
-             example_plus = Date_Time.new 2020 + 15.years + (Duration.new hours=3)
-    + : Duration -> Date_Time ! Time_Error
+             example_plus = Date_Time.new 2020 + (Period.years 15) + (Duration.hours 3)
+    + : (Duration | Period) -> Date_Time ! Time_Error
     + self amount =
-        Panic.catch ArithmeticException (self.plus_builtin amount) (err -> Error.throw (Time_Error_Data err.getMessage))
+        case amount of
+            duration : Duration.Duration ->
+                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+            period : Period.Period ->
+                Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
 
     ## Shift the date by the specified amount of business days.
 
@@ -502,18 +507,24 @@ type Date_Time
        Produces a warning if the resulting date time is before an Enso epoch.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to subtract from this instant. Can be either
+         `Duration` for subtracting time (hours, minutes, etc.), or `Period`
+         for subtracting days, months and years.
 
        > Example
-         Subtract 1 year and 9 months from a zoned date time.
+         Subtract 1 year, 9 months and 12 hours from a zoned date time.
 
              from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
-             example_minus = Date_Time.new 2020 - 1.year - 9.months
-    - : Duration -> Date_Time ! Time_Error
+             example_minus = Date_Time.new 2020 - (Period.years 1) - (Period.months 9) - (Duration.hours 5)
+    - : (Duration | Period) -> Date_Time ! Time_Error
     - self amount =
-        result = Panic.catch ArithmeticException (self.minus_builtin amount) (err -> Error.throw (Time_Error_Data err.getMessage))
+        result = case amount of
+            duration : Duration.Duration ->
+                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+            period : Period.Period ->
+                Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
 
     ## Convert this time to text using the default formatter.

@@ -119,9 +119,13 @@ impl FromMeta {
             if *hide {
                 field.hide_in_tostring();
             } else {
-                let mut getter_name = meta::FieldName::from_snake_case("get");
-                getter_name.append(name.clone());
-                let getter_name = getter_name.to_camel_case().unwrap();
+                let getter_name = if name.as_identifier().to_snake_case().starts_with("is_") {
+                    name.to_camel_case().unwrap()
+                } else {
+                    let mut getter = meta::FieldName::from_snake_case("get");
+                    getter.append(name.clone());
+                    getter.to_camel_case().unwrap()
+                };
                 methods.push(Method::Dynamic(Dynamic::GetterNamed(field.id(), getter_name)));
             }
             fields.push(field);
