@@ -191,12 +191,31 @@ case class BindingsMap(
     )
   }
 
+  def resolveQualifiedNameIn(
+    scope: ResolvedName,
+    submoduleNames: List[String],
+    finalItem: String
+  ): Either[ResolutionError, ResolvedName] = scope match {
+    case scoped: ImportTarget =>
+      var currentScope = scoped
+      for (modName <- submoduleNames) {
+        val resolution = currentScope.resolveExportedSymbol(modName)
+        resolution match {
+          case Left(err) => return Left(err)
+          case Right(t: ImportTarget) =>
+            currentScope = t
+          case _ => return Left(ResolutionNotFound)
+        }
+      }
+      currentScope.resolveExportedSymbol(finalItem)
+    case _ => Left(ResolutionNotFound)
+  }
+
   /** Resolves a qualified name to a symbol in the context of this module.
     *
     * @param name the name to resolve
     * @return a resolution for `name`
     */
-
   def resolveQualifiedName(
     name: List[String]
   ): Either[ResolutionError, ResolvedName] =
@@ -206,21 +225,10 @@ case class BindingsMap(
       case firstModuleName :: rest =>
         val consName = rest.last
         val modNames = rest.init
-        resolveName(firstModuleName).flatMap {
-          case scoped: ImportTarget =>
-            var currentScope = scoped
-            for (modName <- modNames) {
-              val resolution = currentScope.resolveExportedSymbol(modName)
-              resolution match {
-                case Left(err) => return Left(err)
-                case Right(t: ImportTarget) =>
-                  currentScope = t
-                case _ => return Left(ResolutionNotFound)
-              }
-            }
-            currentScope.resolveExportedSymbol(consName)
-          case _ => Left(ResolutionNotFound)
-        }
+        resolveName(firstModuleName).flatMap(
+          resolveQualifiedNameIn(_, modNames, consName)
+        )
+
     }
 
   private def findExportedSymbolsFor(

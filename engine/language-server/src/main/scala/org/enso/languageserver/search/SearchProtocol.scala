@@ -5,6 +5,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{DocSection, Suggestion}
 import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
@@ -16,6 +17,24 @@ object SearchProtocol {
   private object CodecField {
 
     val Type = "type"
+
+    val ExternalId = "externalId"
+
+    val Module = "module"
+
+    val Name = "name"
+
+    val Params = "params"
+
+    val ReturnType = "returnType"
+
+    val Documentation = "documentation"
+
+    val DocumentationHtml = "documentationHtml"
+
+    val DocumentationSections = "documentationSections"
+
+    val Reexport = "reexport"
   }
 
   private object CodecType {
@@ -31,7 +50,9 @@ object SearchProtocol {
 
     val Module = "module"
 
-    val Atom = "atom"
+    val Type = "type"
+
+    val Constructor = "constructor"
 
     val Method = "method"
 
@@ -127,10 +148,24 @@ object SearchProtocol {
         Encoder[Suggestion.Module]
           .apply(module)
           .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Module.asJson))
-      case atom: Suggestion.Atom =>
-        Encoder[Suggestion.Atom]
-          .apply(atom)
-          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Atom.asJson))
+
+      case tpe: Suggestion.Type =>
+        Encoder[Suggestion.Type]
+          .apply(tpe)
+          .deepMerge(
+            Json.obj(
+              CodecField.Type       -> SuggestionType.Type.asJson,
+              CodecField.ReturnType -> Json.Null
+            )
+          )
+          .dropNullValues
+
+      case constructor: Suggestion.Constructor =>
+        Encoder[Suggestion.Constructor]
+          .apply(constructor)
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Constructor.asJson)
+          )
           .dropNullValues
 
       case method: Suggestion.Method =>
@@ -189,14 +224,55 @@ object SearchProtocol {
     )
   }
 
+  private val suggestionTypeDecoder: Decoder[Suggestion.Type] =
+    Decoder.instance { cursor =>
+      for {
+        externalId <- cursor
+          .downField(CodecField.ExternalId)
+          .as[Option[Suggestion.ExternalId]]
+        module <- cursor.downField(CodecField.Module).as[String]
+        name   <- cursor.downField(CodecField.Name).as[String]
+        params <- cursor
+          .downField(CodecField.Params)
+          .as[Seq[Suggestion.Argument]]
+        documentation <- cursor
+          .downField(CodecField.Documentation)
+          .as[Option[String]]
+        documentationHtml <- cursor
+          .downField(CodecField.DocumentationHtml)
+          .as[Option[String]]
+        documentationSections <- cursor
+          .downField(CodecField.DocumentationSections)
+          .as[Option[List[DocSection]]]
+        reexport <- cursor.downField(CodecField.Reexport).as[Option[String]]
+      } yield {
+        val returnType =
+          QualifiedName.fromString(module).createChild(name).toString
+        Suggestion.Type(
+          externalId,
+          module,
+          name,
+          params,
+          returnType,
+          documentation,
+          documentationHtml,
+          documentationSections,
+          reexport
+        )
+      }
+    }
+
   implicit val suggestionDecoder: Decoder[Suggestion] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Type).as[String].flatMap {
         case SuggestionType.Module =>
           Decoder[Suggestion.Module].tryDecode(cursor)
 
-        case SuggestionType.Atom =>
-          Decoder[Suggestion.Atom].tryDecode(cursor)
+        case SuggestionType.Type =>
+          suggestionTypeDecoder.tryDecode(cursor)
+
+        case SuggestionType.Constructor =>
+          Decoder[Suggestion.Constructor].tryDecode(cursor)
 
         case SuggestionType.Method =>
           Decoder[Suggestion.Method].tryDecode(cursor)
@@ -388,8 +464,11 @@ object SearchProtocol {
     /** A module suggestion. */
     case object Module extends SuggestionKind
 
-    /** An atom suggestion. */
-    case object Atom extends SuggestionKind
+    /** An type suggestion. */
+    case object Type extends SuggestionKind
+
+    /** An type constructor suggestion. */
+    case object Constructor extends SuggestionKind
 
     /** A method suggestion. */
     case object Method extends SuggestionKind
@@ -412,12 +491,13 @@ object SearchProtocol {
       */
     def apply(kind: Suggestion.Kind): SuggestionKind =
       kind match {
-        case Suggestion.Kind.Module     => Module
-        case Suggestion.Kind.Atom       => Atom
-        case Suggestion.Kind.Method     => Method
-        case Suggestion.Kind.Conversion => Conversion
-        case Suggestion.Kind.Function   => Function
-        case Suggestion.Kind.Local      => Local
+        case Suggestion.Kind.Module      => Module
+        case Suggestion.Kind.Type        => Type
+        case Suggestion.Kind.Constructor => Constructor
+        case Suggestion.Kind.Method      => Method
+        case Suggestion.Kind.Conversion  => Conversion
+        case Suggestion.Kind.Function    => Function
+        case Suggestion.Kind.Local       => Local
       }
 
     /** Convert from API kind to [[Suggestion.Kind]]
@@ -427,12 +507,13 @@ object SearchProtocol {
       */
     def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
       kind match {
-        case Module     => Suggestion.Kind.Module
-        case Atom       => Suggestion.Kind.Atom
-        case Method     => Suggestion.Kind.Method
-        case Conversion => Suggestion.Kind.Conversion
-        case Function   => Suggestion.Kind.Function
-        case Local      => Suggestion.Kind.Local
+        case Module      => Suggestion.Kind.Module
+        case Type        => Suggestion.Kind.Type
+        case Constructor => Suggestion.Kind.Constructor
+        case Method      => Suggestion.Kind.Method
+        case Conversion  => Suggestion.Kind.Conversion
+        case Function    => Suggestion.Kind.Function
+        case Local       => Suggestion.Kind.Local
       }
   }
 

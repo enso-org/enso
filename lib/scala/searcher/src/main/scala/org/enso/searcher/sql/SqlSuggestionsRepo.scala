@@ -998,7 +998,36 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport         = reexport
         )
         row -> Seq()
-      case Suggestion.Atom(
+      case Suggestion.Type(
+            expr,
+            module,
+            name,
+            params,
+            returnType,
+            doc,
+            _,
+            _,
+            reexport
+          ) =>
+        val row = SuggestionRow(
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.TYPE,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
+        )
+        row -> params
+      case Suggestion.Constructor(
             expr,
             module,
             name,
@@ -1013,7 +1042,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
-          kind             = SuggestionKind.ATOM,
+          kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
           selfType         = SelfTypeColumn.EMPTY,
@@ -1179,8 +1208,21 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           documentationSections = None,
           reexport              = suggestion.reexport
         )
-      case SuggestionKind.ATOM =>
-        Suggestion.Atom(
+      case SuggestionKind.TYPE =>
+        Suggestion.Type(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          params                = arguments.sortBy(_.index).map(toArgument),
+          returnType            = suggestion.returnType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
+        )
+      case SuggestionKind.CONSTRUCTOR =>
+        Suggestion.Constructor(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module                = suggestion.module,

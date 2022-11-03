@@ -6,6 +6,7 @@ use crate::model::module::MethodId;
 
 use convert_case::Case;
 use convert_case::Casing;
+use double_representation::identifier::ReferentName;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -195,7 +196,8 @@ impl IconName {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]
 #[allow(missing_docs)]
 pub enum Kind {
-    Atom,
+    Type,
+    Constructor,
     Function,
     Local,
     Method,
@@ -419,7 +421,33 @@ impl Entry {
         use language_server::types::SuggestionEntry::*;
         let this = match entry {
             #[allow(unused)]
-            Atom {
+            Type {
+                name,
+                module,
+                params,
+                documentation,
+                documentation_html,
+                documentation_sections,
+                ..
+            } => {
+                let referent_name = ReferentName::new(name.clone())?;
+                let mut module_name: module::QualifiedName = module.clone().try_into()?;
+                module_name.push_segment(referent_name);
+                let return_type = module_name.to_string();
+                Self {
+                    name,
+                    arguments: params,
+                    return_type,
+                    documentation_html: Self::make_html_docs(documentation, documentation_html),
+                    module: module.try_into()?,
+                    self_type: None,
+                    kind: Kind::Type,
+                    scope: Scope::Everywhere,
+                    icon_name: find_icon_name_in_doc_sections(&documentation_sections),
+                }
+            }
+            #[allow(unused)]
+            Constructor {
                 name,
                 module,
                 arguments,
@@ -435,7 +463,7 @@ impl Entry {
                 documentation_html: Self::make_html_docs(documentation, documentation_html),
                 module: module.try_into()?,
                 self_type: None,
-                kind: Kind::Atom,
+                kind: Kind::Constructor,
                 scope: Scope::Everywhere,
                 icon_name: find_icon_name_in_doc_sections(&documentation_sections),
             },
@@ -761,9 +789,9 @@ mod test {
         let main_module = module::QualifiedName::from_text("local.Project.Main").unwrap();
         let another_module =
             module::QualifiedName::from_text("local.Project.Another_Module").unwrap();
-        let atom = Entry {
-            name:               "Atom".to_owned(),
-            kind:               Kind::Atom,
+        let tpe = Entry {
+            name:               "Type".to_owned(),
+            kind:               Kind::Type,
             module:             main_module.clone(),
             arguments:          vec![],
             return_type:        "Number".to_owned(),
@@ -772,11 +800,13 @@ mod test {
             scope:              Scope::Everywhere,
             icon_name:          None,
         };
+        let constructor =
+            Entry { name: "Constructor".to_owned(), kind: Kind::Constructor, ..tpe.clone() };
         let method = Entry {
             name: "method".to_string(),
             kind: Kind::Method,
             self_type: Some("std.Base.Main.Number".to_string().try_into().unwrap()),
-            ..atom.clone()
+            ..constructor.clone()
         };
         let module_method = Entry {
             name: "module_method".to_owned(),
@@ -793,23 +823,32 @@ mod test {
             name: "module_extension".to_string(),
             ..module_method.clone()
         };
-        let atom_module = atom.module.clone();
-        let atom_type = tp::QualifiedName::new_module_member(atom_module, atom.name.clone());
-        let atom_extension = Entry {
+        let type_module = tpe.module.clone();
+        let type_type = tp::QualifiedName::new_module_member(type_module, tpe.name.clone());
+        let type_extension = Entry {
             module: another_module.clone(),
-            name: "atom_extension".to_string(),
-            self_type: Some(atom_type),
+            name: "type_extension".to_string(),
+            self_type: Some(type_type),
             ..module_method.clone()
         };
 
-        expect(&atom, None, true, "Atom", &[&main_module]);
-        expect(&atom, None, false, "Atom", &[&main_module]);
-        expect(&atom, Some(&main_module), true, "Atom", &[]);
-        expect(&atom, Some(&main_module), false, "Atom", &[]);
-        expect(&atom, Some(&another_module), true, "Atom", &[&main_module]);
-        expect(&atom, Some(&another_module), false, "Atom", &[&main_module]);
-        expect(&atom, Some(&another_module), true, "Atom", &[&main_module]);
-        expect(&atom, Some(&another_module), false, "Atom", &[&main_module]);
+        expect(&tpe, None, true, "Type", &[&main_module]);
+        expect(&tpe, None, false, "Type", &[&main_module]);
+        expect(&tpe, Some(&main_module), true, "Type", &[]);
+        expect(&tpe, Some(&main_module), false, "Type", &[]);
+        expect(&tpe, Some(&another_module), true, "Type", &[&main_module]);
+        expect(&tpe, Some(&another_module), false, "Type", &[&main_module]);
+        expect(&tpe, Some(&another_module), true, "Type", &[&main_module]);
+        expect(&tpe, Some(&another_module), false, "Type", &[&main_module]);
+
+        expect(&constructor, None, true, "Constructor", &[&main_module]);
+        expect(&constructor, None, false, "Constructor", &[&main_module]);
+        expect(&constructor, Some(&main_module), true, "Constructor", &[]);
+        expect(&constructor, Some(&main_module), false, "Constructor", &[]);
+        expect(&constructor, Some(&another_module), true, "Constructor", &[&main_module]);
+        expect(&constructor, Some(&another_module), false, "Constructor", &[&main_module]);
+        expect(&constructor, Some(&another_module), true, "Constructor", &[&main_module]);
+        expect(&constructor, Some(&another_module), false, "Constructor", &[&main_module]);
 
         expect(&method, None, true, "method", &[&main_module]);
         expect(&method, None, false, "method", &[&main_module]);
@@ -860,12 +899,12 @@ mod test {
         expect(&module_extension, Some(&another_module), true, "module_extension", &[]);
         expect(&module_extension, Some(&another_module), false, "module_extension", &[]);
 
-        expect(&atom_extension, None, true, "atom_extension", &[&another_module]);
-        expect(&atom_extension, None, false, "atom_extension", &[&another_module]);
-        expect(&atom_extension, Some(&main_module), true, "atom_extension", &[&another_module]);
-        expect(&atom_extension, Some(&main_module), false, "atom_extension", &[&another_module]);
-        expect(&atom_extension, Some(&another_module), true, "atom_extension", &[]);
-        expect(&atom_extension, Some(&another_module), false, "atom_extension", &[]);
+        expect(&type_extension, None, true, "type_extension", &[&another_module]);
+        expect(&type_extension, None, false, "type_extension", &[&another_module]);
+        expect(&type_extension, Some(&main_module), true, "type_extension", &[&another_module]);
+        expect(&type_extension, Some(&main_module), false, "type_extension", &[&another_module]);
+        expect(&type_extension, Some(&another_module), true, "type_extension", &[]);
+        expect(&type_extension, Some(&another_module), false, "type_extension", &[]);
     }
 
     #[test]
@@ -907,17 +946,27 @@ mod test {
             let expected_qualified_name = qualified_name.split('.').collect();
             assert_eq!(entry_qualified_name, expected_qualified_name);
         }
-        let atom = language_server::SuggestionEntry::Atom {
-            name:                   "TextAtom".to_string(),
+        let tpe = language_server::SuggestionEntry::Type {
+            name:                   "TextType".to_string(),
             module:                 "TestProject.TestModule".to_string(),
-            arguments:              vec![],
-            return_type:            "TestAtom".to_string(),
+            params:                 vec![],
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
         };
-        expect(atom, "TestProject.TestModule.TextAtom");
+        expect(tpe, "TestProject.TestModule.TextType");
+        let constructor = language_server::SuggestionEntry::Constructor {
+            name:                   "TextConstructor".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestConstructor".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
+        };
+        expect(constructor, "TestProject.TestModule.TextConstructor");
         let method = language_server::SuggestionEntry::Method {
             name:                   "create_process".to_string(),
             module:                 "Standard.Builtins.Main".to_string(),

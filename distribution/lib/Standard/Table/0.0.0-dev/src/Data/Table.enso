@@ -877,20 +877,44 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       > Example
+         Take first 10 rows of the table.
+
+             table.take (First 10)
+
+       > Example
+         Take rows from the top of the table as long as their values sum to 10.
+
+             table.take (While row-> row.to_vector.sum == 10)
     take : (Index_Sub_Range | Range) -> Table
     take self range=(First 1) =
-        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
-        Index_Sub_Range.take_helper self.row_count at self.slice (slice_ranges self) range
+        Index_Sub_Range.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
 
        Arguments:
        - range: The selection of rows from the table to remove.
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       > Example
+         Drop first 10 rows of the table.
+
+             table.drop (First 10)
+
+       > Example
+         Drop rows from the top of the table as long as their values sum to 10.
+
+             table.drop (While row-> row.to_vector.sum == 10)
     drop : (Index_Sub_Range | Range) -> Table
     drop self range=(First 1) =
-        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
-        Index_Sub_Range.drop_helper self.row_count at self.slice (slice_ranges self) range
+        Index_Sub_Range.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 

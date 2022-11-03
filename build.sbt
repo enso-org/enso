@@ -678,7 +678,12 @@ val generateRustParserLib =
     allLibs.isEmpty ||
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
-    Seq("cargo", "build", "-p", "enso-parser-jni") !
+    val os = System.getProperty("os.name")
+    if (os.startsWith("Mac")) {
+        Seq("cargo", "build", "-p", "enso-parser-jni", "--target", "x86_64-apple-darwin") !
+    } else {
+        Seq("cargo", "build", "-p", "enso-parser-jni") !
+    }
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
