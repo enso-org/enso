@@ -712,7 +712,10 @@ final class TreeToIr {
       case Tree.Group group -> {
           yield switch (translateExpression(group.getBody(), false)) {
               case null -> new IR$Error$Syntax(getIdentifiedLocation(group).get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
-              case IR$Application$Prefix pref -> pref.setLocation(getIdentifiedLocation(group, 1, -1));
+              case IR$Application$Prefix pref -> {
+                  final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1);
+                  yield pref.setLocation(groupWithoutParenthesis);
+              }
               case IR.Expression in -> in;
           };
       }
