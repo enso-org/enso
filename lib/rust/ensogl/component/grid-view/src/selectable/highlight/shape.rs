@@ -30,7 +30,7 @@ use ensogl_scroll_area::Viewport;
 // === Shape Definition ===
 // ========================
 
-ensogl_core::define_shape_system! {
+ensogl_core::shape! {
     pointer_events = false;
     (
         style: Style,

@@ -813,10 +813,6 @@ extern "C" {
     pub fn set_stack_trace_limit();
 }
 
-/// Increases the JavaScript stack trace limit to make errors more understandable.
-#[cfg(not(target_arch = "wasm32"))]
-pub fn set_stack_trace_limit() {}
-
 
 
 // ============
@@ -903,10 +899,6 @@ pub fn simulate_sleep(duration: f64) {
 pub fn forward_panic_hook_to_console() {
     std::panic::set_hook(Box::new(report_panic))
 }
-
-/// Enables forwarding panic messages to `console.error`.
-#[cfg(not(target_arch = "wasm32"))]
-pub fn forward_panic_hook_to_console() {}
 
 #[cfg(target_arch = "wasm32")]
 fn report_panic(info: &std::panic::PanicInfo) {

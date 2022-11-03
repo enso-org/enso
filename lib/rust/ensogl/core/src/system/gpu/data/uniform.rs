@@ -38,17 +38,15 @@ pub trait UniformValue = Sized where Uniform<Self>: Into<AnyUniform>;
 shared! { UniformScope
 
 /// A scope containing set of uniform values.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UniformScopeData {
-    map     : HashMap<String,AnyUniform>,
-    logger  : Logger,
+    map: HashMap<String, AnyUniform>,
 }
 
 impl {
     /// Constructor.
-    pub fn new(logger:Logger) -> Self {
-        let map = default();
-        Self {map,logger}
+    pub fn new() -> Self {
+        default()
     }
 
     /// Look up uniform by name.
@@ -62,17 +60,37 @@ impl {
     }
 
     /// Add a new uniform with a given name and initial value. Returns `None` if the name is in use.
-    pub fn add<Name:Str, Value:UniformValue>
-    (&mut self, name:Name, value:Value) -> Option<Uniform<Value>> {
-        self.add_or_else(name,value,Some,|_,_,_|None)
+    pub fn add<Name, Value, Input>(&mut self, name:Name, input:Input) -> Option<Uniform<Value>>
+    where
+        Name: Str,
+        Input: Into<Uniform<Value>>,
+        Value: UniformValue {
+        self.add_or_else(name, input, Some, |_,_,_| None)
     }
 
     /// Add a new uniform with a given name and initial value. Panics if the name is in use.
-    pub fn add_or_panic<Name:Str, Value:UniformValue>
-    (&mut self, name:Name, value:Value) -> Uniform<Value> {
-        self.add_or_else(name,value,|t|{t},|name,_,_| {
+    pub fn add_or_panic<Name, Value, Input>(&mut self, name:Name, input:Input) -> Uniform<Value>
+    where
+        Name:Str,
+        Input: Into<Uniform<Value>>,
+        Value:UniformValue {
+        self.add_or_else(name,input,|t|{t},|name,_,_| {
             panic!("Trying to override uniform '{}'.", name.as_ref())
         })
+    }
+
+    pub fn add_uniform<Name, Value>(&mut self, name: Name, uniform: &Uniform<Value>)
+    where
+        Name: Str,
+        Value: UniformValue {
+        self.add::<Name, Value, _>(name, uniform);
+    }
+
+    pub fn add_uniform_or_panic<Name, Value>(&mut self, name:Name, uniform:&Uniform<Value>)
+    where
+        Name:Str,
+        Value:UniformValue {
+        self.add_or_panic::<Name, Value, _>(name, uniform);
     }
 }}
 
@@ -80,21 +98,24 @@ impl UniformScopeData {
     /// Adds a new uniform with a given name and initial value. In case the name was already in use,
     /// it fires the `on_exist` function. Otherwise, it fires the `on_fresh` function on the newly
     /// created uniform.
-    pub fn add_or_else<Name: Str, Value: UniformValue, OnFresh, OnExist, T>(
+    pub fn add_or_else<Name, Value, OnFresh, OnExist, Input, T>(
         &mut self,
         name: Name,
-        value: Value,
+        input: Input,
         on_fresh: OnFresh,
         on_exist: OnExist,
     ) -> T
     where
+        Name: Str,
+        Input: Into<Uniform<Value>>,
+        Value: UniformValue,
         OnFresh: FnOnce(Uniform<Value>) -> T,
-        OnExist: FnOnce(Name, Value, &AnyUniform) -> T,
+        OnExist: FnOnce(Name, Input, &AnyUniform) -> T,
     {
         match self.map.get(name.as_ref()) {
-            Some(v) => on_exist(name, value, v),
+            Some(v) => on_exist(name, input, v),
             None => {
-                let uniform = Uniform::new(value);
+                let uniform = input.into();
                 let any_uniform = uniform.clone().into();
                 self.map.insert(name.into(), any_uniform);
                 on_fresh(uniform)
@@ -104,14 +125,11 @@ impl UniformScopeData {
 
     /// Gets an existing uniform or adds a new one in case it was missing. Returns `None` if the
     /// uniform exists but its type does not match the requested one.
-    pub fn get_or_add<Name: Str, Value: UniformValue>(
-        &mut self,
-        name: Name,
-        value: Value,
-    ) -> Option<Uniform<Value>>
+    pub fn set<Name, Value>(&mut self, name: Name, value: Value) -> Option<Uniform<Value>>
     where
-        for<'t> &'t Uniform<Value>: TryFrom<&'t AnyUniform>,
-    {
+        Name: Str,
+        Value: UniformValue,
+        for<'t> &'t Uniform<Value>: TryFrom<&'t AnyUniform>, {
         self.add_or_else(name, value, Some, move |_, value, uniform| {
             let out: Option<&Uniform<Value>> = uniform.try_into().ok();
             let out = out.cloned();
@@ -126,15 +144,12 @@ impl UniformScopeData {
 impl UniformScope {
     /// Gets an existing uniform or adds a new one in case it was missing. Returns `None` if the
     /// uniform exists but its type does not match the requested one.
-    pub fn get_or_add<Name: Str, Value: UniformValue>(
-        &self,
-        name: Name,
-        value: Value,
-    ) -> Option<Uniform<Value>>
+    pub fn set<Name, Value>(&self, name: Name, value: Value) -> Option<Uniform<Value>>
     where
-        for<'t> &'t Uniform<Value>: TryFrom<&'t AnyUniform>,
-    {
-        self.rc.borrow_mut().get_or_add(name, value)
+        Name: Str,
+        Value: UniformValue,
+        for<'t> &'t Uniform<Value>: TryFrom<&'t AnyUniform>, {
+        self.rc.borrow_mut().set(name, value)
     }
 }
 
@@ -208,6 +223,13 @@ impl<Value> Uniform<Value> {
 impl<Value> UniformData<Value> {
     pub fn swap(&mut self, that: &mut Self) {
         mem::swap(self, that)
+    }
+}
+
+
+impl<T> From<T> for Uniform<T> {
+    fn from(t: T) -> Self {
+        Self::new(t)
     }
 }
 
@@ -372,12 +394,12 @@ macro_rules! define_get_or_add_gpu_texture_dyn {
             let provider = provider.into();
             match (internal_format,item_type) {
                 $((AnyInternalFormat::$internal_format, AnyItemType::$item_type) => {
-                    let mut texture = Texture::<GpuOnly,$internal_format,$item_type>
-                                ::new(&context,provider);
+                    let mut texture =
+                        Texture::<GpuOnly,$internal_format,$item_type>::new(&context,provider);
                     if let Some(parameters) = parameters {
                         texture.set_parameters(parameters);
                     }
-                    let uniform = scope.get_or_add(name,texture).unwrap();
+                    let uniform = scope.set(name,texture).unwrap();
                     uniform.into()
                 })*
                 _ => panic!("Invalid internal format and item type combination ({:?},{:?}).",

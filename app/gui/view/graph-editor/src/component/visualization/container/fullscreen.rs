@@ -27,7 +27,7 @@ use ensogl_hardcoded_theme as theme;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,selected:f32,radius:f32,roundness:f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

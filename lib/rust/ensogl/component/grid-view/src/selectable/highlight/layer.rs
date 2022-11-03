@@ -52,21 +52,18 @@ impl<InnerGridView> Handler<InnerGridView> {
         InnerGridView: AsRef<crate::GridView<E>> + display::Object,
     {
         let shape = shape::View::new();
-        let entries = parent_layer.create_sublayer();
-        let text = parent_layer.create_sublayer();
+        let entries = parent_layer.create_sublayer("entries");
+        let text = parent_layer.create_sublayer("text");
         let header = default();
         let header_text = default();
-        let mask = Layer::new_with_cam(
-            Logger::new("grid_view::HighlightLayers::mask"),
-            &parent_layer.camera(),
-        );
+        let mask = Layer::new_with_cam("mask", &parent_layer.camera());
         entries.set_mask(&mask);
         text.set_mask(&mask);
-        entries.add_exclusive(&grid);
+        entries.add(&grid);
         let grid_frp = grid.as_ref().frp();
         let base_grid_frp = base_grid.as_ref().frp();
         grid_frp.set_text_layer(Some(text.downgrade()));
-        mask.add_exclusive(&shape);
+        mask.add(&shape);
         base_grid.add_child(&grid);
         grid.add_child(&shape);
 
@@ -129,8 +126,8 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
         frp::extend! { network
             header_frp.section_info <+ base_header_frp.section_info;
         }
-        let header = parent_layer.create_sublayer();
-        let header_text = parent_layer.create_sublayer();
+        let header = parent_layer.create_sublayer("header");
+        let header_text = parent_layer.create_sublayer("header_text");
         header_frp.set_layers(header::WeakLayers::new(&header, Some(&header_text)));
         header.set_mask(&this.mask);
         header_text.set_mask(&this.mask);

@@ -138,7 +138,7 @@ macro_rules! define_property {
 
         /// A property name without values.
         #[allow(missing_docs)]
-        #[derive(Clone, Copy, Debug, From)]
+        #[derive(Clone, Copy, Debug, From, PartialEq, Eq)]
         pub enum PropertyTag {
             $([<$field:camel>]),*
         }
@@ -421,8 +421,10 @@ impl<T: Copy + Debug> Spanned<T> {
 
     /// Convert the property to a vector of spans.
     pub fn to_vector(&self) -> Vec<RangedValue<Byte, T>> {
-        let spans_iter = self.spans.to_vector().into_iter();
-        spans_iter.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
+        let spans = self.spans.to_vector().into_iter();
+        // Sometimes the spans we get from the rope are empty, so we need to filter them out.
+        let non_empty_spans = spans.filter(|t| !t.range.is_empty());
+        non_empty_spans.map(|t| t.map_value(|v| v.unwrap_or(self.default))).collect_vec()
     }
 
     /// Modify the values in the given range, first resolving them. If a value was not set, the
@@ -462,6 +464,13 @@ macro_rules! define_property_diffs {
         #[derive(Clone, Copy, Debug, From)]
         pub enum PropertyDiff {
             $($field([<$field Diff>])),*
+        }
+
+        impl PropertyDiff {
+            /// The property tag accessor.
+            pub fn tag(self) -> PropertyTag {
+                self.into()
+            }
         }
 
         impl From<PropertyDiff> for PropertyTag {

@@ -884,7 +884,7 @@ pub struct Sheet {
 }
 
 /// Type of callback registry used in `Sheet`.
-pub type CallbackRegistry = callback::registry::RefMut1<Option<Data>>;
+pub type CallbackRegistry = callback::registry::Ref1<Option<Data>>;
 
 impl Sheet {
     /// Constructor.

@@ -294,11 +294,11 @@ pub fn has_tokens(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 ///   `HasTokens`. The `self` can be used in th expressions.
 ///
 /// For example, for invocation:
-/// ```ignore
+/// ```text
 /// has_tokens!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
 /// ```
 /// the following output is produced:
-///    ```ignore
+///    ```text
 ///    impl<T: HasTokens> HasTokens for SegmentExpr<T> {
 ///        fn feed_to(&self, consumer:&mut impl TokenConsumer) {
 ///            EXPR_QUOTE.feed(consumer);

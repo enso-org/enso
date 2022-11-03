@@ -4,7 +4,7 @@
 
 
 /// Defines singleton types. For the following input:
-/// ```compile_fail
+/// ```text
 /// define_singletons!{
 ///     /// A Foo!
 ///     Foo,
@@ -54,7 +54,7 @@ macro_rules! define_singletons {
 /// Defines an associated enum type for predefined singletons.
 ///
 /// For the following input:
-/// ```compile_fail
+/// ```text
 /// define_singleton_enum!{
 ///     MyEnum {
 ///         /// A Foo!
@@ -67,7 +67,7 @@ macro_rules! define_singletons {
 ///
 /// It expands to:
 ///
-/// ```compile_fail
+/// ```text
 /// #[allow(missing_docs)]
 /// #[derive(Copy, Clone, Debug)]
 /// pub enum MyEnum {

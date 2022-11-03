@@ -31,14 +31,6 @@ generated/
 
 .metals/
 
-#############
-## Haskell ##
-#############
-
-dist
-cabal-dev
-.stack-work/
-
 ############
 ## NodeJS ##
 ############
@@ -130,7 +122,7 @@ build-cache/
 ######################
 ## Enso-Development ##
 ######################
-
+/dist
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
