@@ -1180,9 +1180,9 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    > Example
      Finding location of a substring.
 
-         "Hello World!".location_of "J" == Nothing
-         "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
-         "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
+         "Hello World!".locate "J" == Nothing
+         "Hello World!".locate "o" == Span (Range 4 5) "Hello World!"
+         "Hello World!".locate "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
 
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
@@ -1202,7 +1202,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
+         match = text . locate term matcher=(Text_Matcher Case_Insensitive)
          term.length == 6
          match.length == 7
 
@@ -1223,11 +1223,11 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
-         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate term_1 matcher=(Text_Matcher Case_Insensitive)
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate term_2 matcher=(Text_Matcher Case_Insensitive)
          term_2.length == 6
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
@@ -1243,13 +1243,13 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    > Example
      Comparing Matching in Last Mode in Regex and Text mode
 
-         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
-         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
+         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
+         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
 
-         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
-         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
+         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
+         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
+Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_span = case mode of
             Matching_Mode.First -> Text_Utils.span_of self term
@@ -1305,8 +1305,8 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
    > Example
      Finding locations of all occurrences of a substring.
 
-         "Hello World!".location_of_all "J" == []
-         "Hello World!".location_of_all "o" . map .start == [4, 7]
+         "Hello World!".locate_all "J" == []
+         "Hello World!".locate_all "o" . map .start == [4, 7]
 
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
@@ -1326,7 +1326,7 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
-         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
+         match = text . locate_all term matcher=(Text_Matcher Case_Insensitive)
          term.length == 7
          match . map .length == [7, 6]
 
@@ -1346,12 +1346,12 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
 
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
-         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate_all "IFF" matcher=(Text_Matcher Case_Insensitive)
          match_1 . map .length == [2, 3]
-         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
-Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
+Text.locate_all : Text -> Matcher -> [Span]
+Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
