@@ -185,9 +185,25 @@ impl Versions {
 
     pub async fn publish(&self) -> Result {
         let edition = self.edition_name();
-        ide_ci::actions::workflow::set_output(ENSO_VERSION.name(), &self.version).await?;
-        ide_ci::actions::workflow::set_output(ENSO_EDITION.name(), edition.as_str()).await?;
-        ide_ci::actions::workflow::set_output(ENSO_RELEASE_MODE.name(), &self.release_mode).await?;
+        // Some components (like SBT) consume version information through these environment
+        // variables.
+        ENSO_VERSION.set(&self.version)?;
+        ENSO_EDITION.set(&edition)?;
+        ENSO_RELEASE_MODE.set(&self.release_mode)?;
+
+        // This is actually used only in some workflows (primarily the release one, where release
+        // creation and the asset compilation happen in separate jobs). Still, no harm in doing this
+        // always.
+        //
+        // Note that our output names are the same as the environment variable names.
+        ide_ci::actions::workflow::set_output(ENSO_VERSION.name, &ENSO_VERSION.get_raw()?).await?;
+        ide_ci::actions::workflow::set_output(ENSO_EDITION.name, &ENSO_EDITION.get_raw()?).await?;
+        ide_ci::actions::workflow::set_output(
+            ENSO_RELEASE_MODE.name,
+            &ENSO_RELEASE_MODE.get_raw()?,
+        )
+        .await?;
+
         Ok(())
     }
 }
