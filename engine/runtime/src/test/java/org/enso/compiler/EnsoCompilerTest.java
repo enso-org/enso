@@ -367,12 +367,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
-    main = 4
+    main =
+        foo = 42
+
+
     #### METADATA ####
-    [[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]
+    [[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
+    []
     """);
   }
 
