@@ -348,6 +348,10 @@ public class Table {
     return new Table(newColumns, newIndex);
   }
 
+  Table cross_join(Table right) {
+    throw new RuntimeException("TODO");
+  }
+
   /**
    * Applies an order mask to all columns and indexes of this array.
    *

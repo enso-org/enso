@@ -387,3 +387,31 @@ type Invalid_Value_Type
     to_display_text : Text
     to_display_text self =
         "Expected " + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+
+type Cross_Join_Row_Limit_Exceeded
+    Error (limit : Integer) (existing_rows : Integer)
+
+    to_display_text : Text
+    to_display_text self =
+        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `Nothing`."
+
+type Row_Count_Mismatch
+    Error (left_rows : Integer) (right_rows : Integer)
+
+    to_display_text : Text
+    to_display_text self =
+        "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."
+
+type Column_Type_Mismatch
+    Error (column_name : Text) (expected_type : Text) (got_type : Text)
+
+    to_display_text : Text
+    to_display_text self =
+        "The column ["+self.column_name+"] expects type "+self.expected_type+" but one of the provided tables had type "+self.got_type+" which is not compatible with it."
+
+type No_Common_Type
+    Error (column_name : Text)
+
+    to_display_text : Text
+    to_display_text self =
+        "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."

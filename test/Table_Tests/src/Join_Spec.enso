@@ -1,0 +1,26 @@
+from Standard.Base import all
+from Standard.Table import Table
+
+main =
+    a = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+    b = Table.new [["Y", [2, 3, 'c']], ["X", [7, 20, 40]]]
+    c = Table.new [["A", [3, 2, 2]], ["B", [100, 200, 300]]]
+
+    IO.println "a:"
+    a.print
+    IO.println "b:"
+    b.print
+    IO.println "c:"
+    c.print
+
+    IO.println "a.concat b:"
+    (a.concat b).print
+
+    IO.println "a.join c (on first column):"
+    (a.join c).print
+
+    IO.println "a.cross_join c:"
+    (a.cross_join c).print
+
+    IO.println "a.zip c:"
+    (a.zip c).print

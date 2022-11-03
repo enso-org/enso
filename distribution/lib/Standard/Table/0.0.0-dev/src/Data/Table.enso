@@ -1220,7 +1220,24 @@ type Table
              table.join other on=[Join_Condition.On "A" Join_Comparator.Equal_Tos "A", Join_Condition.On "B" Join_Comparator.Equal_To "B"]
     join2 : Table -> Join_Kind -> Join_Condition | Vector Join_Condition | Vector Text -> Text -> Problem_Behavior -> Table
     join2 self right join_kind=Join_Kind.Inner on=[Join_Condition.On 0 Join_Comparator.Equal_To 0] right_prefix="Right_" on_problems=Report_Warning =
-        ???
+        # Very inefficient, just for prototype
+        crossed = self.cross_join right
+        if join_kind != Join_Kind.Inner then Panic.throw (Illegal_Argument_Error_Data "Only inner joins are supported for now")
+        # TODO not implementing the logic for Vector Text, assuming all are JC
+        unified = case on of
+            _ : Vector.Vector -> on
+            single -> [single]
+        case unified.is_empty of
+            True -> Error.throw (Illegal_Argument_Error_Data "At least one join condition must be provided. If you want to perform a cross-join, use `Table.cross_join` instead.")
+            False ->
+                build_filter cond = case cond of
+                    Join_Condition.On left_col op right_col -> case op of
+                        Join_Comparator.Equal -> crossed.at left_col == crossed.at right_col
+                        _ -> unimplemented "Other comparators are not implemented yet"
+                    Join_Condition.And left right -> (build_filter left) && (build_filter right)
+                    Join_Condition.Or left right -> (build_filter left) || (build_filter right)
+                filter_column = build_filter (unified.tail.fold unified.first Join_Condition.And)
+                crossed.filter filter_column
 
     ## Joins tables by pairing every row of the left table with every row of the
        right table.
@@ -1244,9 +1261,28 @@ type Table
 
        ? Column Renaming
 
-         <Same comment as for Table.join>
+         If a column name is unique across the joined tables, it is kept as is.
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that there will
+         still be name collisions after adding the prefix - for example if both
+         tables have a column named `A` but one of the tables also _already_ has
+         a column `Right_A`. In that case the name collisions are resolved using
+         the regular renaming strategy - by adding subsequent `_1`, `_2` etc.
+         suffixes to the column names - the original columns have precedence in
+         their name being preserved without change and the columns that were
+         being renamed due to inter-table collisions are renamed in the order of
+         their appearance in the right table.
     cross_join : Table -> Integer -> Table
     cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+        right_row_count = right.row_count
+        if right_row_count > right_row_limit then Error.throw (Cross_Join_Row_Limit_Exceeded.Error right_row_limit right_row_count) else
+            column_names = (self.columns + right.columns).map .name
+            case column_names.distinct.length == column_names.length of
+                False -> unimplemented "Renaming clashing column names is not implemented as part of this prototype."
+                True ->
+                    new_java_table = self.java_table.cross_join right.java_table
+                    Table.Table_Data new_java_table
 
     ## ALIAS Join By Row Position
        Joins two tables by zipping rows from both tables table together - the
@@ -1290,7 +1326,10 @@ type Table
          order of columns is undefined and the operation may fail, reporting an
          `Undefined_Column_Order` problem.
     zip : Table -> Boolean -> Text -> Problem_Behavior -> Table
-    zip right keep_unmatched=Nothing right_prefix="Right_" on_problems=Report_Warning = ...
+    zip right keep_unmatched=Nothing right_prefix="Right_" on_problems=Report_Warning =
+        # TODO renaming is wrong here and not sure about length checking, very prototype-y
+        new_java_table = self.java_table.hconcat right.java_table "_Left" "_"+right_prefix
+        Table.Table_Data new_java_table
 
     ## ALIAS append, union
        Appends records from other table(s) to this table.
@@ -1356,17 +1395,17 @@ type Table
          retyped to the `Mixed` type to indicate that intention.
     concat : (Table | Vector Table) -> Match_Columns -> Problem_Behavior -> Table
     concat tables match_columns=Match_Columns.By_Name allow_type_widening=True on_problems=Report_Warning = case match_columns of
-        Match_Columns.By_Name -> unimplemented "By_Name concat is not implemented in the prototype"
-        Match_Columns.By_Position ->
+        Match_Columns.By_Position -> unimplemented "By_Position concat is not implemented in the prototype"
+        Match_Columns.By_Name ->
             tables_prim = case tables of
                 _ : Vector.Vector -> tables
                 table : Table -> [table]
-            case tables_prim.find t-> t.columns.length != self.columns.length of
+            case tables_prim.find t-> t.columns.sort != self.columns.sort of
                 Nothing ->
                     # TODO type handling is not done in the prototype
                     to_concat = [self]+tables_prim . map .java_table
                     Java_Table.concat to_concat
-                bad_table -> Error.throw (Column_Count_Mismatch_Data self.columns.length bad_table.columns.length)
+                bad_table -> unimplemented "Handling unmatched columns in concat is not implemented in the prototype"
 
     ## Returns the number of rows in this table.
 
