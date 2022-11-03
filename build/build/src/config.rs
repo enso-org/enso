@@ -168,7 +168,7 @@ required-versions:
 "#;
         let config = serde_yaml::from_str::<ConfigRaw>(config)?;
         dbg!(&config);
-        dbg!(Config::try_from(config))?.check_programs().await?;
+        dbg!(Config::try_from(config))?;
         Ok(())
     }
 }
