@@ -147,17 +147,10 @@ Text.characters self =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
 Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Text | Nothing
-Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
-    _ : Text_Matcher ->
-        span = case matcher of
-            Text_Matcher.Case_Sensitive -> Text_Utils.span_of self term
-            Text_Matcher.Case_Insensitive locale ->
-                search_for_last = False
-                Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last
-        Text_Utils.substring self span.codeunit_start span.codeunit_end
-    _ : Regex_Matcher ->
-        compiled_pattern = matcher.compile term
-        compiled_pattern.find self mode
+Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
+    case self.locate term mode matcher of
+        Nothing -> Nothing
+        span -> span.get_text
 
 ## ALIAS Match All Text
 
@@ -179,7 +172,7 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matche
              "aabbbbccccaabcaaaa".match regex == "abc"
 Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.match_all self term="" matcher=Text_Matcher.Case_Sensitive =
-    Error.throw "TODO"
+    self.locate_all term matcher . map .get_text
 
 ## ALIAS Check Matches
 
