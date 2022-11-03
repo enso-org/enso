@@ -1593,7 +1593,7 @@ dependencies = [
  "ensogl-text-msdf",
  "ide-view",
  "js-sys",
- "nalgebra 0.26.2",
+ "nalgebra",
  "serde_json",
  "wasm-bindgen",
  "web-sys",

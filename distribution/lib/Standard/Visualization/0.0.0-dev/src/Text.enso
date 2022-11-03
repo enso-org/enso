@@ -1,0 +1,51 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Extensions import slice_text
+
+## Return a sub-window of a string. The window is defined by line/chunk coordinates. The siz of
+   a chunk is defined by `chunk_width`. The output is formatted as a message that can be sent to
+   the IDE's lazy text visualisation.
+get_lazy_visualisation_text_window text pos size chunk_width =
+    get_text_chunk = get_item_from text chunk_width
+    pos_x = Math.max (pos.at 0) 0
+    pos_y = Math.max (pos.at 1) 0
+    size_x = size.at 0
+    size_y = size.at 1
+    x_range = pos_x.up_to (pos_x + size_x)
+    y_range = pos_y.up_to (pos_y + size_y)
+    coordinates = x_range.map (x -> y_range.map (y -> [x,y])) . flatten
+    chunks = coordinates.map (ix -> format_chunk ix (get_text_chunk ix))
+    data_string = format_chunks chunks
+    lines = text.lines.length
+    active_lines = y_range.map (line_ix -> text.lines.at line_ix)
+    max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> Math.max l r)
+    make_grid_visualisation_response data_string lines max_line_length
+
+## Format a chunk of text and meta information for the lazy visualisation.
+make_grid_visualisation_response chunks lines max_line_length =
+    (Json.from_pairs [["chunks", chunks], ["lines", lines], ["max_line_length", max_line_length]]).to_text
+
+## Return a chunk of text from a string. The chunk is defined by a its size and a line/chunk index
+   coordinate.
+get_item_from text chunk_size index =
+    line_ix = index.at 1
+    if line_ix > text.lines.length then "" else
+        chunk_ix = index.at 0
+        line = text.lines.at line_ix
+        get_chunk_from_line line chunk_size chunk_ix
+
+## Return a chunk of text from a line. The chunk is defined by a its size and a chunk index.
+get_chunk_from_line text chunk_size ix =
+    upper_bound = text.length
+    start = Math.min (ix * chunk_size) upper_bound
+    end = Math.min (start + chunk_size) upper_bound
+    range = start.up_to end
+    slice_text text [range]
+
+## Format a chunk and its index as a JSON string.
+format_chunk ix chunk =
+    "[" + ix.to_text + ", " + chunk.to_json.to_text + "]"
+
+## Format a list of chunks as a JSON string.
+format_chunks chunks =
+    "[" + (chunks.join ", ") + "]"

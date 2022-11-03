@@ -17,7 +17,7 @@
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::text_grid::TextGrid;
+use crate::lazy_text_visualization::TextGrid;
 
 use ensogl::animation;
 use ensogl::application::Application;
@@ -26,7 +26,8 @@ use ensogl::system::web;
 use ensogl::system::web::traits::DocumentOps;
 use ensogl::system::web::traits::ElementOps;
 use ensogl_text_msdf::run_once_initialized;
-use ide_view::graph_editor::builtin::visualization::native::text_grid;
+use ide_view::graph_editor::builtin::visualization::native::lazy_text_visualization;
+use ide_view::graph_editor::builtin::visualization::native::lazy_text_visualization::text_provider;
 
 
 
@@ -36,7 +37,10 @@ fn sample_text() -> String {
         match n {
             0 => {
                 text.push_str("No more bottles of beer on the wall, no more bottles of beer.");
-                text.push_str("Go to the store and buy some more, 99 bottles of beer on the wall.");
+                text.push_str(
+                    "Go to the store and buy some more, 99 bottles of beer on the
+wall.",
+                );
             }
             1 => {
                 text.push_str("1 bottle of beer on the wall, 1 bottle of beer.");
@@ -94,7 +98,7 @@ fn init(app: &Application) {
         let camera = scene.camera();
         let navigator = Navigator::new(scene, &camera);
 
-        let text_source = sample_text();
+        let text_source = text_provider::StringTextProvider::new(sample_text(), 15);
 
         let grid = TextGrid::new(app.clone_ref());
         grid.set_text_provider(text_source);
