@@ -224,8 +224,8 @@ class CodeLocationsTest extends InterpreterTest {
       method.value.invokeMember(
         MethodNames.Function.GET_SOURCE_LENGTH
       ) should (
-        equal (24) or
-        equal (25)
+        equal(24) or
+        equal(25)
       )
 
       instrumenter.assertNodeExists(16, 9, classOf[ApplicationNode])
