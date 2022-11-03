@@ -24,14 +24,7 @@ wasm-pack.log
 generated/
 /target
 /build/rust/target/
-
-#############
-## Haskell ##
-#############
-
 dist
-cabal-dev
-.stack-work/
 
 ############
 ## NodeJS ##
@@ -59,7 +52,9 @@ package-lock.json
 ## Tooling Specific ##
 ######################
 
-.idea/
+!.idea
+.idea/*
+!.idea/runConfigurations/
 .vscode/
 .metals/
 *.swp

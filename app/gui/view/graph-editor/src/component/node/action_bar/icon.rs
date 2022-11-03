@@ -12,8 +12,8 @@ use ensogl_component::toggle_button::ColorableShape;
 pub mod visibility {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
 
             let width        = Var::<Pixels>::from("input_size.x");
@@ -31,13 +31,13 @@ pub mod visibility {
             let eye_outer    = outer_circle + right_edge + left_edge;
             let eye          = (eye_outer - inner_circle) + pupil;
             let eye_colored  = eye.fill(fill_color);
-            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
 
             (eye_colored+hover_area).into()
         }
     }
 
-    impl ColorableShape for DynamicShape {
+    impl ColorableShape for Shape {
         fn set_color(&self, color: color::Rgba) {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }
@@ -49,8 +49,8 @@ pub mod visibility {
 pub mod visibility2 {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
             let height       = Var::<Pixels>::from("input_size.y");
@@ -64,14 +64,14 @@ pub mod visibility2 {
             let gap2         = &gap.rotate(right_angle);
             let gap3         = &gap.rotate(right_angle * 2.5);
             let icon         = ring - &gap -gap2 - gap3;
-            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             let icon         = icon.fill(fill_color);
 
             (icon+hover_area).into()
         }
     }
 
-    impl ColorableShape for DynamicShape {
+    impl ColorableShape for Shape {
         fn set_color(&self, color: color::Rgba) {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }
@@ -92,8 +92,8 @@ fn make_ring<T: Into<Var<Pixels>>, U: Into<Var<Pixels>>>(
 pub mod freeze {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
             let width            = Var::<Pixels>::from("input_size.x");
             let height           = Var::<Pixels>::from("input_size.y");
@@ -112,14 +112,13 @@ pub mod freeze {
             let right_bar        = vertical_bar.translate_x(-&lock_top_radius+&lock_top_width/2.0);
             let icon             = lock_body + lock_top + left_bar + right_bar;
             let icon             = icon.translate_y(unit);
-            let hover_area       = Rect((width,height)).fill(HOVER_COLOR);
+            let hover_area       = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             let icon             = icon.fill(fill_color);
-
-            (icon+hover_area).pixel_snap().into()
+            (icon + hover_area).pixel_snap().into()
         }
     }
 
-    impl ColorableShape for DynamicShape {
+    impl ColorableShape for Shape {
         fn set_color(&self, color: color::Rgba) {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }
@@ -130,8 +129,8 @@ pub mod freeze {
 pub mod skip {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
             let height       = Var::<Pixels>::from("input_size.y");
@@ -149,14 +148,13 @@ pub mod skip {
             let skip         = line_top + line_bottom;
             let skip         = skip.translate_x(&unit * 0.5);
             let icon         = circle - skip;
-            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
             let icon         = icon.fill(fill_color);
-
-            (icon+hover_area).into()
+            (icon + hover_area).into()
         }
     }
 
-    impl ColorableShape for DynamicShape {
+    impl ColorableShape for Shape {
         fn set_color(&self, color: color::Rgba) {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }

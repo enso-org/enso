@@ -27,7 +27,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
@@ -58,7 +57,7 @@ pub fn main() {
 
 mod content {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let circle = Circle(50.px())
                 .translate(((-50.0).px(), 350.0.px()))
@@ -78,7 +77,7 @@ mod content {
 
 mod background {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let size = (200.px(), 200.px());
             let color = color::Rgb::new(0.9, 0.9, 0.9);
@@ -121,7 +120,7 @@ fn init(app: &Application) {
 
     let background = background::View::new();
     scroll_area.add_child(&background);
-    scene.layers.below_main.add_exclusive(&background);
+    scene.layers.below_main.add(&background);
     background.size.set(Vector2::new(200.0, 200.0));
     background.set_position_x(100.0);
     background.set_position_y(-100.0);

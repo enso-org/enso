@@ -188,8 +188,8 @@ struct Camera2dData {
     clipping:               Clipping,
     matrix:                 Matrix,
     dirty:                  Dirty,
-    zoom_update_registry:   callback::registry::CopyMut1<f32>,
-    screen_update_registry: callback::registry::CopyMut1<Vector2<f32>>,
+    zoom_update_registry:   callback::registry::Copy1<f32>,
+    screen_update_registry: callback::registry::Copy1<Vector2<f32>>,
     frp:                    Frp,
 }
 

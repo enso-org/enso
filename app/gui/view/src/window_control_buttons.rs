@@ -6,10 +6,9 @@ use ensogl::prelude::*;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
-use ensogl::data::color;
-use ensogl::define_shape_system;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
+use ensogl::shape;
 use ensogl_hardcoded_theme::application::window_control_buttons as theme;
 
 
@@ -28,12 +27,9 @@ pub mod fullscreen;
 
 mod shape {
     use super::*;
-
-    define_shape_system! {
-        () {
-            // Almost transparent - to not be visible but still catch mouse events.
-            let faux_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
-            Plane().fill(faux_color).into()
+    shape! {
+        (style: Style) {
+            Plane().fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 }

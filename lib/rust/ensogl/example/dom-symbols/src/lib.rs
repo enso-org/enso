@@ -43,7 +43,7 @@ pub fn main() {
     let camera = scene.camera();
     let screen = camera.screen();
     let navigator = Navigator::new(scene, &camera);
-    let sprite_system = SpriteSystem::new(&world);
+    let sprite_system = SpriteSystem::new();
     world.add_child(&sprite_system);
 
     let dom_front_layer = &scene.dom.layers.front;
