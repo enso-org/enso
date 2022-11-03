@@ -45,6 +45,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     Vector()
   )
 
+  @annotation.nowarn
+  def endOfLine(line: Int, character: Int): Suggestion.Position =
+    Suggestion.Position(line + 1, 0)
+
   "SuggestionBuilder" should {
 
     "build method without explicit arguments" in {
@@ -886,7 +890,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       val code =
         """main =
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -916,7 +921,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(2, 10)
+                    endOfLine(2, 10)
                   )
                 ),
                 Vector()
@@ -934,7 +939,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |    foo a =
           |        b = a + 1
           |        b
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -964,7 +970,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(4, 10)
+                    endOfLine(4, 10)
                   )
                 ),
                 Vector(
@@ -976,7 +982,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                       returnType = SuggestionBuilder.Any,
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 11),
-                        Suggestion.Position(3, 9)
+                        endOfLine(3, 9)
                       )
                     ),
                     Vector()
@@ -995,7 +1001,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         """main =
           |    foo : Number -> Number
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1024,7 +1031,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Number",
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(3, 10)
+                    endOfLine(3, 10)
                   )
                 ),
                 Vector()
@@ -1043,7 +1050,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |main =
           |    foo : A -> A
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1091,7 +1099,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Unnamed.Test.A",
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
-                    Suggestion.Position(5, 10)
+                    endOfLine(5, 10)
                   )
                 ),
                 Vector()
@@ -1107,7 +1115,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       val code =
         """main =
           |    foo = 42
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1133,7 +1142,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(2, 7)
+                    endOfLine(2, 7)
                   )
                 ),
                 Vector()
@@ -1151,7 +1160,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |    foo =
           |        b = 42
           |        b
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1177,7 +1187,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(4, 7)
+                    endOfLine(4, 7)
                   )
                 ),
                 Vector(
@@ -1189,7 +1199,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                       returnType = SuggestionBuilder.Any,
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 9),
-                        Suggestion.Position(3, 9)
+                        endOfLine(3, 9)
                       )
                     ),
                     Vector()
@@ -1208,7 +1218,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         """main =
           |    foo : Number
           |    foo = 42
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1234,7 +1245,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Number",
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    Suggestion.Position(3, 7)
+                    endOfLine(3, 7)
                   )
                 ),
                 Vector()
@@ -1253,7 +1264,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |main =
           |    foo : A
           |    foo = A
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1290,7 +1302,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Unnamed.Test.A",
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
-                    Suggestion.Position(5, 7)
+                    endOfLine(5, 7)
                   )
                 ),
                 Vector()
