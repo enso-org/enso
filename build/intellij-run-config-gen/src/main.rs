@@ -124,8 +124,9 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
 
     println!("Generating run configurations.");
     let base_command_configs = vec![
-        ("clippy", TargetConfig::default_clippy_set(), false),
-        ("test", TargetConfig::default_test_set(), false),
+        ("clippy", "clippy", TargetConfig::default_clippy_set(), None),
+        ("test", "test", TargetConfig::default_test_set(), None),
+        ("doc-test", "test", TargetConfig::default_test_set(), Some(ConfigType::DocTest)),
     ];
 
     let run_config_path = Path::new(OUTPUT_DIR);
@@ -133,15 +134,26 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
         let mut command_configs = base_command_configs.clone();
         if let Some(crate_def) = crate_def {
             if crate_def.is_bin {
-                command_configs.push(("run", TargetConfig::default_run_set(), true));
+                command_configs.push((
+                    "run",
+                    "run",
+                    TargetConfig::default_run_set(),
+                    Some(ConfigType::Binary),
+                ));
             };
         }
-        for (command, configs, is_bin) in &command_configs {
+        for (command_name, command, configs, cfg_type) in &command_configs {
             for config in configs {
                 let file_name_suffix = config.to_file_name_suffix();
-                let file_name = format!("{command}-{name}{file_name_suffix}.xml");
+                let file_name = format!("{command_name}-{name}{file_name_suffix}.xml");
                 let path = run_config_path.join(&file_name);
-                let xml = generate_run_config_xml(command, crate_def.as_ref(), config, *is_bin);
+                let xml = generate_run_config_xml(
+                    command_name,
+                    command,
+                    crate_def.as_ref(),
+                    config,
+                    *cfg_type,
+                );
                 fs::write(&path, xml).expect("Unable to write the run configuration to {path:?}.");
             }
         }
@@ -330,25 +342,33 @@ impl TargetConfig {
 // === Run Config XML Generation ===
 // =================================
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ConfigType {
+    Binary,
+    DocTest,
+}
+
 fn generate_run_config_xml(
+    command_name: &str,
     command: &str,
     crate_target: Option<&Crate>,
     target_config: &TargetConfig,
-    binary: bool,
+    cfg_type: Option<ConfigType>,
 ) -> String {
-    let package_name = crate_target.map(|t| t.name.clone()).unwrap_or_default();
-    let name = format!("{command}/{package_name}{}", target_config.name_suffix());
+    let package_name = crate_target.map(|t| format!("/{}", t.name)).unwrap_or_default();
+    let name = format!("{command_name}{package_name}{}", target_config.name_suffix());
     let folder = crate_target.map(|t| t.folder_name()).unwrap_or_else(|| "🌎 World".into());
     let target_dir = target_config.target_dir();
     let targets = target_config.targets();
-    let flags = if binary { "" } else { "--all-targets" };
+    let flags = match cfg_type {
+        None => "--all-targets",
+        Some(ConfigType::Binary) => "",
+        Some(ConfigType::DocTest) => "--doc",
+    };
     let package = crate_target
-        .map(|t| {
-            if binary {
-                format!("--package {} --bin {}", t.name, t.name)
-            } else {
-                format!("--package {}", t.name)
-            }
+        .map(|t| match cfg_type {
+            Some(ConfigType::Binary) => format!("--package {} --bin {}", t.name, t.name),
+            _ => format!("--package {}", t.name),
         })
         .unwrap_or_default();
     format!(

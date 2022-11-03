@@ -2,7 +2,7 @@
 <component name="#ProjectRunConfigurationManager">
   <configuration 
     default="false" 
-    name="test/ [native]"
+    name="test [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
     folderName="🌎 World"

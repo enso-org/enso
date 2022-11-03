@@ -5,7 +5,7 @@
 //!
 //! # Usage
 //!
-//! ```ignore
+//! ```text
 //! // The prelude will import all structures from this crate and EnsoGL core which are needed
 //! // for defining custom button.
 //! use crate::prelude::*;

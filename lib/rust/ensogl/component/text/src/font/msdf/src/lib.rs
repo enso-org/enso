@@ -326,7 +326,7 @@ mod tests {
         // given
         let font_base = Embedded::init_and_load_embedded_fonts();
         let font_name = "DejaVuSansMono-Bold.ttf";
-        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = MsdfParameters {
             width: 32,
             height: 32,
@@ -354,7 +354,7 @@ mod tests {
         // given
         let font_base = Embedded::init_and_load_embedded_fonts();
         let font_name = "DejaVuSansMono-Bold.ttf";
-        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = MsdfParameters {
             width: 32,
             height: 32,

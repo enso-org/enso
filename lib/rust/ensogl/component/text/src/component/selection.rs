@@ -48,7 +48,7 @@ const BLINK_PERIOD: f32 =
 /// 0, blinking is enabled. It is used to disable blinking after each cursor operation, which makes
 /// cursor visible during typing and after position change.
 ///
-/// ```compile_fail
+/// ```text
 /// |
 /// |    on         off
 /// | <------>   <------->

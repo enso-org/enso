@@ -1,13 +1,6 @@
-
-<component name="#ProjectRunConfigurationManager">
-  <configuration 
-    default="false" 
-    name="clippy/ [wasm, windows]"
-    type="CargoCommandRunConfiguration" 
-    factoryName="Cargo Command"
-    folderName="🌎 World"
-  >
-    <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target x86_64-pc-windows-msvc --target-dir dist/intellij_wasm_windows " />
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="doc-test/enso-gui [native]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" folderName="🚥 GUI">
+    <option name="command" value="test --doc  --target-dir dist/intellij_native --package enso-gui" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
@@ -24,4 +17,3 @@
     </method>
   </configuration>
 </component>
-    

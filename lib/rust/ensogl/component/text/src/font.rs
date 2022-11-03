@@ -781,7 +781,7 @@ impl {
                     let context = self.scene.context.borrow().as_ref().unwrap().clone_ref();
                     let texture = gpu::Texture::new(&context, (0, 0));
                     let atlas   = gpu::Uniform::new(texture);
-                    let font    = FontWithAtlas {font,atlas};
+                    let font    = FontWithAtlas {font, atlas};
                     entry.insert(font.clone_ref());
                     font
                 })

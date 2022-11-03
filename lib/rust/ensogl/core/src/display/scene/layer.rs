@@ -1202,7 +1202,7 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// Shape ordering utility. Currently, this macro supports ordering of shapes for a given stage.
 /// For example, the following usage:
 ///
-/// ```ignore
+/// ```text
 /// shapes_order_dependencies! {
 ///     scene => {
 ///         output::port::single_port -> shape;
@@ -1215,11 +1215,13 @@ impl<T> ShapeSystemInfoTemplate<T> {
 ///
 /// Will expand to:
 ///
-/// ```ignore
+/// ```text
 /// scene.layers.add_shapes_order_dependency::<output::port::single_port::Shape, shape::Shape>();
 /// scene.layers.add_shapes_order_dependency::<output::port::multi_port::Shape, shape::Shape>();
 /// scene.layers.add_shapes_order_dependency::<shape::Shape, input::port::hover::Shape>();
-/// scene.layers.add_shapes_order_dependency::<input::port::hover::Shape, input::port::viz::Shape>();
+/// scene
+///     .layers
+///     .add_shapes_order_dependency::<input::port::hover::Shape, input::port::viz::Shape>();
 /// ```
 ///
 /// A shape listed on the left side of an arrow (`->`) will be ordered below the shape listed on

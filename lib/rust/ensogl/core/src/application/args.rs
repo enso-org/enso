@@ -89,7 +89,7 @@ impl ArgReader for semver::Version {
 /// force argument read, use the `init` function).
 ///
 /// For example, given the following definition:
-/// ```ignore
+/// ```text
 /// read_args! {
 ///     js::global.config {
 ///         entry      : String,
@@ -101,16 +101,16 @@ impl ArgReader for semver::Version {
 ///
 /// The following structs will be generated (some functions omitted for clarity):
 ///
-/// ```ignore
-/// #[derive(Clone,Debug,Default)]
+/// ```text
+/// #[derive(Clone, Debug, Default)]
 /// pub struct Args {
-///     pub entry      : Option<String>,
-///     pub project    : Option<String>,
-///     pub dark_theme : Option<bool>,
+///     pub entry:      Option<String>,
+///     pub project:    Option<String>,
+///     pub dark_theme: Option<bool>,
 /// }
 ///
 /// lazy_static! {
-///     pub static ref ARGS : Args = Args::new();
+///     pub static ref ARGS: Args = Args::new();
 /// }
 /// ```
 ///
