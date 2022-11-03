@@ -1041,8 +1041,12 @@ object AstToIr {
         }
       case AST.Ident.Annotation(name) =>
         Name.Annotation(name, getIdentifiedLocation(identifier))
-      case AST.Ident.Cons(_) =>
-        buildName(identifier)
+      case AST.Ident.Cons(name) =>
+        if (name == Constants.Names.SELF_TYPE_ARGUMENT) {
+          Name.SelfType(getIdentifiedLocation(identifier))
+        } else {
+          buildName(identifier)
+        }
       case AST.Ident.Blank(_) =>
         Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>

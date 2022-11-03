@@ -170,13 +170,13 @@ type Table_Column_Helper
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+            counts = result.rows.first
 
             ## The `reorder` argument has no meaning for Blank_Columns selector
                - either way all blank columns are selected in the order that
                they are in the Table.
             self.internal_columns.filter_with_index i-> _->
-                ## TODO once we have the Row type it would be nice to use it here
-                case result.at i . first of
+                case counts.at i of
                     ## Nothing is returned if there were no rows, in that case
                        we treat the column as blank by convention, regardless of
                        `when_any`.

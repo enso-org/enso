@@ -37,7 +37,18 @@ object Suggestions {
     documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
-  val atom: Suggestion.Atom = Suggestion.Atom(
+  val tpe: Suggestion.Type = Suggestion.Type(
+    externalId            = None,
+    module                = "local.Test.Main",
+    name                  = "Newtype",
+    params                = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "Newtype",
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
+  )
+
+  val constructor: Suggestion.Constructor = Suggestion.Constructor(
     externalId            = None,
     module                = "local.Test.Main",
     name                  = "MyType",
@@ -135,7 +146,8 @@ object Suggestions {
 
   val all = Seq(
     module,
-    atom,
+    tpe,
+    constructor,
     method,
     function,
     local,

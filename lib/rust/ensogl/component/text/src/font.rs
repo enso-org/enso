@@ -32,10 +32,6 @@ pub use ttf::Tag;
 pub use ttf::Weight;
 pub use ttf::Width;
 
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::web;
-
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
 
@@ -741,7 +737,7 @@ pub struct FontWithAtlas {
 // ================
 
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, Copy, CloneRef, Debug, Default)]
 /// Mocked version of WebGL context.
 pub struct Context;
 

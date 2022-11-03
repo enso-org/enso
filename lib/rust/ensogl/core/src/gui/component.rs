@@ -132,6 +132,8 @@ impl<S: Shape> ShapeViewModel<S> {
                 self.add_to_scene_layer(scene, &layer)
             }
         } else {
+            // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
+            #[allow(clippy::explicit_auto_deref)]
             let (shape, _) = scene.layers.DETACHED.instantiate(scene, &*self.data.borrow());
             self.shape.swap(&shape);
         }
