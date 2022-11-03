@@ -21,7 +21,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |Nothing.add_ten = b -> Nothing.a + b
           |
           |main = Nothing.add_ten (b = 10)
-      """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 20
     }
@@ -33,7 +33,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |Nothing.subtract = a -> b -> a - b
           |
           |main = Nothing.subtract (b = 10) (a = 5)
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual -5
     }
@@ -46,7 +46,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |    addTen = num -> num + a
           |    res = addTen (num = a)
           |    res
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 20
     }
@@ -58,7 +58,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
           |main = Nothing.add_num 5
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 15
     }
@@ -96,7 +96,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |Nothing.add_together = (a = 5) -> (b = 6) -> a + b
           |
           |main = Nothing.add_together
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 11
     }
@@ -108,7 +108,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
           |main = Nothing.add_num 1 (num = 1)
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 2
     }
@@ -136,7 +136,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |  res
           |
           |main = Nothing.summer 100
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 5050
     }
@@ -206,7 +206,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |        Nil2 -> 0
           |
           |    sum (gen_list 10)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 55
     }
@@ -226,7 +226,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |        Nil2 -> 0
           |
           |    sum (gen_list 5)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 15
     }
@@ -257,7 +257,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |  Nil2 -> 0
           |
           |main = Nothing.sum_list (C2.Cons2 10)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 10
     }
