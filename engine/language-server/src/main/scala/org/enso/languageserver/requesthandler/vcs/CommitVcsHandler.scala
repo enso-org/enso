@@ -10,14 +10,12 @@ import org.enso.jsonrpc.{
   ResponseResult,
   Unused
 }
-import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.vcsmanager.VcsManagerApi.CommitVcs
 import org.enso.languageserver.vcsmanager.{VcsFailureMapper, VcsProtocol}
 
-import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 class CommitVcsHandler(
@@ -38,16 +36,14 @@ class CommitVcsHandler(
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
       context.become(
-        responseStage(id, sender(), cancellable, params.root, params.name)
+        responseStage(id, sender(), cancellable)
       )
   }
 
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable,
-    @unused root: Path,
-    @unused name: String
+    cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
       logger.error(

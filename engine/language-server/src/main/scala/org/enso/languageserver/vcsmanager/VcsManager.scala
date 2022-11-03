@@ -67,25 +67,35 @@ class VcsManager(
         .execTimed(config.timeout, result)
         .map(VcsProtocol.CommitRepoResult)
         .pipeTo(sender())
-    case VcsProtocol.RestoreRepo(repoRoot) =>
+    case VcsProtocol.RestoreRepo(repoRoot, optRevName) =>
       val result =
         for {
           root <- resolvePath(repoRoot)
-          _    <- vcs.restore(root.toPath)
+          _    <- vcs.restore(root.toPath, optRevName)
         } yield ()
       exec
         .execTimed(config.timeout, result)
         .map(VcsProtocol.RestoreRepoResult)
         .pipeTo(sender())
-    case VcsProtocol.ModifiedRepo(repoRoot) =>
+    case VcsProtocol.StatusRepo(repoRoot) =>
       val result =
         for {
           root   <- resolvePath(repoRoot)
-          status <- vcs.modified(root.toPath)
+          status <- vcs.status(root.toPath)
         } yield status
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.ModifiedRepoResult)
+        .map(r =>
+          VcsProtocol.StatusRepoResult(
+            r.map(status =>
+              (
+                status.isDirty,
+                status.changed.map(f => Path(repoRoot.rootId, f)).toList,
+                status.lastCommit
+              )
+            )
+          )
+        )
         .pipeTo(sender())
     case VcsProtocol.ListRepo(repoRoot) =>
       val result =
@@ -98,6 +108,7 @@ class VcsManager(
         .map(VcsProtocol.ListRepoResult)
         .pipeTo(sender())
   }
+
 }
 
 object VcsManager {

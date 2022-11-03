@@ -469,7 +469,7 @@ class JsonConnectionController(
         .props(requestTimeout, vcsManager, rpcSession),
       CommitVcs -> vcs.CommitVcsHandler
         .props(requestTimeout, vcsManager, rpcSession),
-      ModifiedVcs -> vcs.ModifiedVcsHandler
+      StatusVcs -> vcs.StatusVcsHandler
         .props(requestTimeout, vcsManager, rpcSession),
       ExecutionContextCreate -> executioncontext.CreateHandler
         .props(requestTimeout, contextRegistry, rpcSession),

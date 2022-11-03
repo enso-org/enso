@@ -3,17 +3,15 @@ package org.enso.languageserver.requesthandler.vcs
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
-import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.vcsmanager.VcsManagerApi.ModifiedVcs
+import org.enso.languageserver.vcsmanager.VcsManagerApi.StatusVcs
 import org.enso.languageserver.vcsmanager.{VcsFailureMapper, VcsProtocol}
 
-import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
-class ModifiedVcsHandler(
+class StatusVcsHandler(
   requestTimeout: FiniteDuration,
   vcsManager: ActorRef,
   rpcSession: JsonSession
@@ -26,18 +24,17 @@ class ModifiedVcsHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ModifiedVcs, id, params: ModifiedVcs.Params) =>
-      vcsManager ! VcsProtocol.ModifiedRepo(params.root)
+    case Request(StatusVcs, id, params: StatusVcs.Params) =>
+      vcsManager ! VcsProtocol.StatusRepo(params.root)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable, params.root))
+      context.become(responseStage(id, sender(), cancellable))
   }
 
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable,
-    @unused root: Path
+    cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
       logger.error(
@@ -48,24 +45,28 @@ class ModifiedVcsHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.ModifiedRepoResult(Right(isModified)) =>
-      replyTo ! ResponseResult(ModifiedVcs, id, ModifiedVcs.Result(isModified))
+    case VcsProtocol.StatusRepoResult(Right((isModified, changed, last))) =>
+      replyTo ! ResponseResult(
+        StatusVcs,
+        id,
+        StatusVcs.Result(isModified, changed, last)
+      )
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.ModifiedRepoResult(Left(failure)) =>
+    case VcsProtocol.StatusRepoResult(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)
   }
 }
 
-object ModifiedVcsHandler {
+object StatusVcsHandler {
 
   def props(
     timeout: FiniteDuration,
     vcsManager: ActorRef,
     rpcSession: JsonSession
   ): Props =
-    Props(new ModifiedVcsHandler(timeout, vcsManager, rpcSession))
+    Props(new StatusVcsHandler(timeout, vcsManager, rpcSession))
 }

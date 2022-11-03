@@ -8,17 +8,19 @@ object VcsProtocol {
 
   case class InitRepoResult(result: Either[VcsFailure, Unit])
 
-  case class CommitRepo(root: Path, name: String)
+  case class CommitRepo(root: Path, name: Option[String])
 
   case class CommitRepoResult(result: Either[VcsFailure, Unit])
 
-  case class RestoreRepo(root: Path)
+  case class RestoreRepo(root: Path, revName: Option[String])
 
   case class RestoreRepoResult(result: Either[VcsFailure, Unit])
 
-  case class ModifiedRepo(root: Path)
+  case class StatusRepo(root: Path)
 
-  case class ModifiedRepoResult(result: Either[VcsFailure, Boolean])
+  case class StatusRepoResult(
+    result: Either[VcsFailure, (Boolean, List[Path], String)]
+  )
 
   case class ListRepo(root: Path)
 
