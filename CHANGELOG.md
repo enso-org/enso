@@ -85,6 +85,10 @@
   those visible, and re-use created entries during scrolling thus achieving
   great performance. There are variants of grid view with selection and
   highlight, scrollbars, and both.
+- [Massive improvements of text rendering performance][3776]. Different text
+  instances are now reusing the shape shaders and the same sprite system under
+  the hood. This drastically reduces the amount of required draw calls for
+  scenes with a lot of text.
 
 #### Enso Standard Library
 
@@ -362,6 +366,7 @@
 [3824]: https://github.com/enso-org/enso/pull/3824
 [3804]: https://github.com/enso-org/enso/pull/3804
 [3818]: https://github.com/enso-org/enso/pull/3818
+[3776]: https://github.com/enso-org/enso/pull/3776
 [3836]: https://github.com/enso-org/enso/pull/3836
 
 #### Enso Compiler

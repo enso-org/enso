@@ -29,11 +29,10 @@ use wasm_bindgen::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
-use ensogl_core::define_shape_system;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::shape;
 use ensogl_text_msdf::run_once_initialized;
 
 
@@ -45,8 +44,8 @@ use ensogl_text_msdf::run_once_initialized;
 mod shape {
     use super::*;
 
-    define_shape_system! {
-        () {
+    shape! {
+        (style: Style) {
             Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
         }
     }

@@ -34,13 +34,25 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 
 /// Registry for all the created symbols. The `z_zoom_1` value describes the z-axis distance at
 /// which the `zoom` value is `1.0`.
+///
+/// # Implementation Details
+/// The `Symbol` references owned by the `SymbolRegistry` don't need to be fully-weak references,
+/// but it's conceptually simpler than introducing a special-purpose type.
+///
+/// A weak reference type differs from a strong reference in two properties:
+/// 1. If there are no non-weak references to an object, the object will be dropped.
+/// 2. A cycle in the reference graph will only prevent an object from being dropped if all
+///    references in the cycle are non-weak.
+///
+/// In this case, property 1 is sufficient. The way `Symbol` is implemented (with multiple
+/// shared-reference fields, i.e. the `CloneRef` pattern), it would be marginally simpler to
+/// implement a semi-weak type that satisfies property 1, but not property 2; however, a
+/// general-purpose weak reference is used here because it's a well-known abstraction.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    // Note: WeakSymbol in the Registry
     symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     symbol_dirty:       SymbolDirty,
-    logger:             Logger,
     view_projection:    Uniform<Matrix4<f32>>,
     z_zoom_1:           Uniform<f32>,
     variables:          UniformScope,
@@ -49,30 +61,13 @@ pub struct SymbolRegistry {
     next_id:            Rc<Cell<u32>>,
 }
 
-// Note: WeakSymbol in the Registry
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// The `Symbol` references owned by the `SymbolRegistry` don't need to be fully-weak references,
-// but it's conceptually simpler than introducing a special-purpose type.
-//
-// A weak reference type differs from a strong reference in two properties:
-// 1. If there are no non-weak references to an object, the object will be dropped.
-// 2. A cycle in the reference graph will only prevent an object from being dropped if all
-//    references in the cycle are non-weak.
-//
-// In this case, property 1 is sufficient. The way `Symbol` is implemented (with multiple
-// shared-reference fields, i.e. the `CloneRef` pattern), it would be marginally simpler to
-// implement a semi-weak type that satisfies property 1, but not property 2; however, a
-// general-purpose weak reference is used here because it's a well-known abstraction.
-
 impl SymbolRegistry {
     /// Constructor.
-    pub fn mk<OnMut: Fn() + 'static, Log: AnyLogger>(
+    pub fn mk<OnMut: Fn() + 'static>(
         variables: &UniformScope,
         stats: &Stats,
-        logger: &Log,
         on_mut: OnMut,
     ) -> Self {
-        let logger = Logger::new_sub(logger, "symbol_registry");
         debug!("Initializing.");
         let symbol_dirty = SymbolDirty::new(Box::new(on_mut));
         let symbols = default();
@@ -87,7 +82,6 @@ impl SymbolRegistry {
             symbols,
             global_id_provider,
             symbol_dirty,
-            logger,
             view_projection,
             z_zoom_1,
             variables,

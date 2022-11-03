@@ -20,7 +20,6 @@ ensogl-example-mouse-events = { path = "mouse-events" }
 ensogl-example-profiling-run-graph = { path = "profiling-run-graph" }
 ensogl-example-render-profile-flamegraph = { path = "render-profile-flamegraph" }
 ensogl-example-scroll-area = { path = "scroll-area" }
-ensogl-example-shape-system = { path = "shape-system" }
 ensogl-example-slider = { path = "slider" }
 ensogl-example-sprite-system = { path = "sprite-system" }
 ensogl-example-sprite-system-benchmark = { path = "sprite-system-benchmark" }

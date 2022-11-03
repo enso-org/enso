@@ -1,3 +1,7 @@
+use std::ops::RangeInclusive;
+
+
+
 pub mod traits {
     pub use super::RangeIntersect;
     // pub use super::RangeLen;
@@ -65,25 +69,56 @@ impl<T: Clone> RangeOps for std::ops::RangeInclusive<T> {
 // === RangeOverlap ===
 // ====================
 
+/// Functions for checking if two ranges overlap.
 pub trait RangeOverlap<T = Self> {
+    /// Check if the given range overlaps with this range. The argument range has to start after
+    /// this range start.
+    fn overlaps_sorted(&self, other: &T) -> bool;
+    /// Check if the given range overlaps or touches this range. The argument range has to start
+    /// after this range start.
+    fn overlaps_or_touches_sorted(&self, other: &T) -> bool;
+    /// Check if the given range overlaps with this range.
     fn overlaps(&self, other: &T) -> bool;
+    /// Check if the given range overlaps or touches this range.
+    fn overlaps_or_touches(&self, other: &T) -> bool;
 }
 
 impl<T: PartialOrd> RangeOverlap<std::ops::Range<T>> for std::ops::Range<T> {
+    fn overlaps_sorted(&self, other: &Self) -> bool {
+        other.start >= self.start && other.start < self.end
+    }
+
+    fn overlaps_or_touches_sorted(&self, other: &Self) -> bool {
+        other.start >= self.start && other.start <= self.end
+    }
+
     fn overlaps(&self, other: &Self) -> bool {
-        let overlap1 = || self.start >= other.start && self.start < other.end;
-        let overlap2 = || other.start >= self.start && other.start < self.end;
-        overlap1() || overlap2()
+        self.overlaps_sorted(other) || other.overlaps_sorted(self)
+    }
+
+    fn overlaps_or_touches(&self, other: &Self) -> bool {
+        self.overlaps_or_touches_sorted(other) || other.overlaps_or_touches_sorted(self)
     }
 }
 
 impl<T: PartialOrd> RangeOverlap<std::ops::RangeInclusive<T>> for std::ops::RangeInclusive<T> {
+    fn overlaps_sorted(&self, other: &RangeInclusive<T>) -> bool {
+        other.start() >= self.start() && other.start() <= self.end()
+    }
+
+    fn overlaps_or_touches_sorted(&self, other: &RangeInclusive<T>) -> bool {
+        other.start() >= self.start() && other.start() <= self.end()
+    }
+
     fn overlaps(&self, other: &Self) -> bool {
-        let overlap1 = || self.start() >= other.start() && self.start() <= other.end();
-        let overlap2 = || other.start() >= self.start() && other.start() <= self.end();
-        overlap1() || overlap2()
+        self.overlaps_sorted(other) || other.overlaps_sorted(self)
+    }
+
+    fn overlaps_or_touches(&self, other: &Self) -> bool {
+        self.overlaps_or_touches_sorted(other) || other.overlaps_or_touches_sorted(self)
     }
 }
+
 
 
 // ======================
@@ -121,20 +156,21 @@ where T: PartialOrd + Clone
 // === merge_overlapping_ranges ===
 // ================================
 
-pub fn merge_overlapping_ranges<R>(ranges: &[R]) -> impl Iterator<Item = R>
+pub fn merge_overlapping_ranges<R>(mut ranges: Vec<R>) -> impl Iterator<Item = R>
 where
     R: Clone + RangeOverlap + RangeOps,
-    <R as RangeOps>::Item: Clone + PartialOrd, {
-    let mut ranges = ranges.to_vec();
+    <R as RangeOps>::Item: Clone + Ord, {
     crate::gen_iter!({
-        ranges.sort_unstable_by(|a, b| a.start().partial_cmp(b.start()).unwrap());
+        ranges.sort_unstable_by(|a, b| a.start().cmp(b.start()));
         let mut iter = ranges.into_iter();
         let opt_current = iter.next();
         if let Some(mut current) = opt_current {
             let mut opt_next = iter.next();
             while let Some(next) = opt_next {
-                if current.overlaps(&next) {
-                    current = current.with_end(next.end().clone());
+                if current.overlaps_or_touches_sorted(&next) {
+                    if next.end() > current.end() {
+                        current = current.with_end(next.end().clone());
+                    }
                 } else {
                     yield current;
                     current = next;
@@ -155,7 +191,7 @@ mod test {
         ([$($ts:tt)*], [$($ts2:tt)*]) => {
             let ranges = vec![$($ts)*];
             let expected = vec![$($ts2)*];
-            let merged = merge_overlapping_ranges(&ranges).collect::<Vec<_>>();
+            let merged = merge_overlapping_ranges(ranges).collect::<Vec<_>>();
             assert_eq!(merged, expected);
         };
     }
@@ -163,13 +199,13 @@ mod test {
     #[test]
     fn test_merge_overlapping_ranges_empty() {
         let empty: Vec<std::ops::Range<usize>> = vec![];
-        assert_eq!(merge_overlapping_ranges(&empty).collect::<Vec<_>>(), empty);
+        assert_eq!(merge_overlapping_ranges(empty.clone()).collect::<Vec<_>>(), empty);
     }
 
     #[test]
     fn test_merge_overlapping_ranges() {
-        test_merged!([0..1, 1..2], [0..1, 1..2]);
-        test_merged!([0..1, 1..2, 2..3], [0..1, 1..2, 2..3]);
+        test_merged!([0..1, 1..2], [0..2]);
+        test_merged!([0..1, 1..2, 2..3], [0..3]);
         test_merged!([0..2, 3..5, 1..4], [0..5]);
         test_merged!([0..10, 5..15], [0..15]);
 
@@ -177,5 +213,12 @@ mod test {
         test_merged!([0..=1, 1..=2, 2..=3], [0..=3]);
         test_merged!([0..=2, 3..=5, 1..=4], [0..=5]);
         test_merged!([0..=10, 5..=15], [0..=15]);
+
+        test_merged!([0..2, 0..1], [0..2]);
+        test_merged!([0..10, 4..5, 8..11], [0..11]);
+
+        test_merged!([0..10, 20..30, 40..50], [0..10, 20..30, 40..50]);
+        test_merged!([0..10, 5..20, 21..30, 25..40], [0..20, 21..40]);
+        test_merged!([0..10, 10..20], [0..20]);
     }
 }

@@ -7,6 +7,7 @@ members = [
   "app/gui/enso-profiler-enso-data",
   "build/cli",
   "build/enso-formatter",
+  "build/intellij-run-config-gen",
   "build/deprecated/rust-scripts",
   "lib/rust/*",
   "lib/rust/parser/src/syntax/tree/visitor",

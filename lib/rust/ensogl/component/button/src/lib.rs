@@ -5,7 +5,7 @@
 //!
 //! # Usage
 //!
-//! ```ignore
+//! ```text
 //! // The prelude will import all structures from this crate and EnsoGL core which are needed
 //! // for defining custom button.
 //! use crate::prelude::*;
@@ -16,7 +16,7 @@
 //! pub mod shape {
 //!     use super::*;
 //!
-//!     ensogl_core::define_shape_system! {
+//!     ensogl_core::shape! {
 //!         (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
 //!             let size       = Var::canvas_size();
 //!             let radius     = Min::min(size.x(),size.y()) / 2.0;
@@ -92,6 +92,8 @@ use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::shape::system::Shape;
+use ensogl_core::display::shape::system::ShapeWithDefaultableData;
 use ensogl_core::gui::component::ShapeView;
 
 
@@ -148,8 +150,7 @@ impl Default for State {
 }
 
 /// Trait to be defined on a specific button's shape.
-pub trait ButtonShape:
-    CloneRef + display::object::class::Object + DynamicShapeInternals + 'static {
+pub trait ButtonShape: ShapeWithDefaultableData + 'static {
     /// The human-readable name of the button, for debug purposes.
     fn debug_name() -> &'static str;
 
@@ -160,10 +161,10 @@ pub trait ButtonShape:
     fn icon_color_path(state: State) -> StaticPath;
 
     /// Access the shader parameter for the background color.
-    fn background_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>>;
+    fn background_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>>;
 
     /// Access the shader parameter for the icon color.
-    fn icon_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>>;
+    fn icon_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>>;
 }
 
 
@@ -198,14 +199,14 @@ pub mod shape {
 // =============
 
 /// An internal model of the button component.
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "Shape:CloneRef")]
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
-pub struct Model<Shape> {
+pub struct Model<S: Shape> {
     app:            Application,
     logger:         Logger,
     display_object: display::object::Instance,
-    shape:          ShapeView<Shape>,
+    shape:          ShapeView<S>,
 }
 
 impl<Shape: ButtonShape> Model<Shape> {
@@ -263,12 +264,13 @@ ensogl_core::define_endpoints! {
 /// the primary mouse button pressed without interrupting the click.
 ///
 /// The button is fully theme-aware and dynamically sized.
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "Shape:CloneRef")]
+#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
-pub struct View<Shape> {
+pub struct View<S: Shape> {
+    #[deref]
     frp:   Frp,
-    model: Model<Shape>,
+    model: Model<S>,
     style: StyleWatchFrp,
 }
 
@@ -313,7 +315,7 @@ impl<Shape: ButtonShape> View<Shape> {
         let events = &model.shape.events;
 
         frp::extend! { network
-            eval frp.set_size ((&size) model.shape.size().set(size));
+            eval frp.set_size ((&size) model.shape.size.set(size));
             frp.source.size <+ frp.set_size;
 
             // Mouse
@@ -368,20 +370,13 @@ impl<Shape: ButtonShape> View<Shape> {
     }
 }
 
-impl<Shape> display::Object for View<Shape> {
+impl<S: Shape> display::Object for View<S> {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
     }
 }
 
-impl<Shape> Deref for View<Shape> {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl<Shape> FrpNetworkProvider for View<Shape> {
+impl<S: Shape> FrpNetworkProvider for View<S> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }
