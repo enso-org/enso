@@ -36,13 +36,13 @@ const HOVER_EXTENSION_X: f32 = 15.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (corner_radius:f32) {
+    ensogl::shape! {
+        (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));
             let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(HOVER_COLOR);
+            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
             rect_filled.into()
         }
     }
@@ -80,9 +80,9 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 struct Icons {
     display_object: display::object::Instance,
-    freeze:         ToggleButton<icon::freeze::DynamicShape>,
-    visibility:     ToggleButton<icon::visibility::DynamicShape>,
-    skip:           ToggleButton<icon::skip::DynamicShape>,
+    freeze:         ToggleButton<icon::freeze::Shape>,
+    visibility:     ToggleButton<icon::visibility::Shape>,
+    skip:           ToggleButton<icon::skip::Shape>,
 }
 
 impl Icons {

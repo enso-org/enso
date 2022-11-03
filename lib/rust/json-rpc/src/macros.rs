@@ -5,7 +5,7 @@
 // TODO[dg]: Make it possible to create an API which accepts pass both references and ownership.
 /// This macro reads a `trait API` item and generates asynchronous methods for RPCs. Each method
 /// should be signed with `MethodInput`, `rpc_name`, `result` and `set_result` attributes. e.g.:
-/// ```rust,compile_fail
+/// ```text
 /// make_rpc_method!{
 ///     trait API {
 ///         #[MethodInput=CallMePleaseInput,camelCase=callMePlease,result=call_me_please_result,
@@ -18,7 +18,7 @@
 /// This macro generates an `API` trait and creates two structs implementing `API`
 /// called `Client`, with the actual RPC methods, and `MockClient`, with mocked methods with
 /// return types setup by:
-/// ```rust,compile_fail
+/// ```text
 ///     fn expect_call_me_please
 ///     (&mut self, my_number_is:String,result:json_rpc::api::Result<()>) { /* impl */ }
 /// ```
@@ -152,7 +152,7 @@ macro_rules! make_rpc_methods {
             ///
             /// You may specify expected calls and their return values by setting appropriate call
             /// handler as in the following example:
-            /// ```rust,compile_fail
+            /// ```text
             ///     let mock = MockClient::default();
             ///     mock.expect.some_method(|param1, param2| result);
             /// ```
@@ -240,7 +240,7 @@ macro_rules! make_rpc_methods {
 
 /// A shortcut for creating call's handlers for client mocks; when you want to just check if call's
 /// parameters are equal to some expected values and then return specific value, you can call:
-/// ```rust,compile_fail
+/// ```text
 /// expect_call!(client.method(param1=value1,param2=value2) => Ok(result));
 /// ```
 #[macro_export]

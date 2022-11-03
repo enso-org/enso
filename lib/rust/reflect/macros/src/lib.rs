@@ -48,13 +48,13 @@
 //!
 //! #### Example:
 //! This input code:
-//! ```ignore
+//! ```text
 //! #[derive(Reflect)]
 //! struct Outer {
 //!     first: u32,
 //!     #[reflect(flatten, hide)]
 //!     inner: Inner,
-//!     last: u32,
+//!     last:  u32,
 //! }
 //!
 //! #[derive(Reflect)]
@@ -65,15 +65,15 @@
 //! ```
 //!
 //! Will be represented the same as this input:
-//! ```ignore
+//! ```text
 //! #[derive(Reflect)]
 //! struct Outer {
-//!     first: u32,
+//!     first:        u32,
 //!     #[reflect(hide)]
 //!     inner_value0: u32,
 //!     #[reflect(hide)]
 //!     inner_value1: u32,
-//!     last: u32,
+//!     last:         u32,
 //! }
 //! ```
 //!

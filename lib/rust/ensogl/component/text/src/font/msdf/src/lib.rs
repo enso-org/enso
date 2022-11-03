@@ -1,5 +1,10 @@
 //! MSDF-gen libraries bindings and utilities.
 
+// === Features ===
+#![allow(incomplete_features)]
+#![feature(specialization)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -23,6 +28,7 @@ use binding::*;
 
 use emscripten_data::ArrayMemoryView;
 use enso_web as web;
+use enso_web::prelude::JsValueOps;
 use enso_web::Closure;
 use enso_web::JsValue;
 use js_sys::Uint8Array;
@@ -129,15 +135,15 @@ impl OwnedFace {
     ///
     /// Loads font from any format which freetype library can handle. See
     /// [https://www.freetype.org/freetype2/docs/index.html] for reference.
-    pub fn load_from_memory(data: &[u8]) -> Self {
+    pub fn load_from_memory(data: &[u8]) -> anyhow::Result<Self> {
         if cfg!(target_arch = "wasm32") {
             Self::load_from_memory_wasm(data)
         } else {
-            Self::mock_font()
+            Ok(Self::mock_font())
         }
     }
 
-    fn load_from_memory_wasm(data: &[u8]) -> Self {
+    fn load_from_memory_wasm(data: &[u8]) -> anyhow::Result<Self> {
         let array_type_js = JsValue::from_str(ccall_types::ARRAY);
         let number_type_js = JsValue::from_str(ccall_types::NUMBER);
         let data_js_array = Uint8Array::from(data);
@@ -150,7 +156,8 @@ impl OwnedFace {
         let params = web::Array::of2(&data_js, &data_size_js);
 
         let handle = emscripten_call_function(function_name, return_type, param_types, params);
-        OwnedFace { handle }
+        let handle = handle.map_err(|e| anyhow::Error::msg(e.print_to_string()));
+        handle.map(|handle| OwnedFace { handle })
     }
 
     /// Set font's variation axis.
@@ -319,7 +326,7 @@ mod tests {
         // given
         let font_base = Embedded::init_and_load_embedded_fonts();
         let font_name = "DejaVuSansMono-Bold.ttf";
-        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = MsdfParameters {
             width: 32,
             height: 32,
@@ -347,7 +354,7 @@ mod tests {
         // given
         let font_base = Embedded::init_and_load_embedded_fonts();
         let font_name = "DejaVuSansMono-Bold.ttf";
-        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap()).unwrap();
         let params = MsdfParameters {
             width: 32,
             height: 32,

@@ -125,7 +125,7 @@ impl Model {
         list.focus();
         let documentation = documentation::View::new(scene);
         let doc_provider = default();
-        scene.layers.node_searcher.add_exclusive(&list);
+        scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 

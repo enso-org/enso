@@ -129,13 +129,12 @@ pub struct DomSceneData {
     pub dom:                 HtmlDivElement,
     /// The child div of the `dom` element with view-projection Css 3D transformations applied.
     pub view_projection_dom: HtmlDivElement,
-    logger:                  Logger,
 }
 
 impl DomSceneData {
     /// Constructor.
-    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement, logger: Logger) -> Self {
-        Self { dom, view_projection_dom, logger }
+    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement) -> Self {
+        Self { dom, view_projection_dom }
     }
 }
 
@@ -164,8 +163,7 @@ pub struct DomScene {
 
 impl DomScene {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "DomScene");
+    pub fn new() -> Self {
         let dom = web::document.create_div_or_panic();
         let view_projection_dom = web::document.create_div_or_panic();
 
@@ -188,7 +186,7 @@ impl DomScene {
 
         dom.append_or_warn(&view_projection_dom);
 
-        let data = DomSceneData::new(dom, view_projection_dom, logger);
+        let data = DomSceneData::new(dom, view_projection_dom);
         let data = Rc::new(data);
         Self { data }
     }
@@ -246,5 +244,11 @@ impl DomScene {
                 setup_camera_orthographic(&self.data.view_projection_dom, &trans_cam);
             }
         }
+    }
+}
+
+impl Default for DomScene {
+    fn default() -> Self {
+        Self::new()
     }
 }
