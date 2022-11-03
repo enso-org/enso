@@ -6,6 +6,8 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::system::gpu;
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::gpu::texture;
 use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
@@ -31,9 +33,6 @@ pub use ttf::Style;
 pub use ttf::Tag;
 pub use ttf::Weight;
 pub use ttf::Width;
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::gpu::texture;
 
 
 
