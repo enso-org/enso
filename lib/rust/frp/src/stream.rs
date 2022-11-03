@@ -669,6 +669,7 @@ where Def: HasOutputStatic + InputBehaviors
 
 // The label transformation logic is a separate non-generic function, so that it can be compiled
 // only once for all node types. This has a noticeable impact on compilation time.
+// For more details see https://github.com/enso-org/enso/pull/3848
 #[inline(never)]
 fn type_name_to_output_label(typename: &'static str) -> Label {
     let label = typename.split('<').next().unwrap_or(typename);
