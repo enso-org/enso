@@ -496,6 +496,9 @@ impl Renderer {
 /// should be abstracted away in the future.
 #[derive(Clone, CloneRef, Debug)]
 pub struct HardcodedLayers {
+    /// A special layer used to store shapes not attached to any layer. This layer will not be
+    /// rendered. You should not need to use it directly.
+    #[allow(non_snake_case)]
     pub DETACHED:           Layer,
     pub root:               Layer,
     pub viz:                Layer,
@@ -528,6 +531,7 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new() -> Self {
+        #[allow(non_snake_case)]
         let DETACHED = Layer::new("DETACHED");
         let root = Layer::new("root");
         let main = Layer::new("main");

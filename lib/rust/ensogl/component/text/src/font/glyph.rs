@@ -20,7 +20,6 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-use ensogl_core::display::world::Context;
 use ensogl_core::frp;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
@@ -469,6 +468,25 @@ impl WeakGlyph {
 // === System ===
 // ==============
 
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, CloneRef, Debug, Default)]
+/// Mocked version of WebGL context.
+pub struct Context;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_context(_scene: &Scene) -> Context {
+    Context
+}
+
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::display::world::Context;
+
+#[cfg(target_arch = "wasm32")]
+fn get_context(scene: &Scene) -> Context {
+    scene.context.borrow().as_ref().unwrap().clone_ref()
+}
+
+
 /// A system for displaying glyphs.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
@@ -484,7 +502,7 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let context = scene.context.borrow().as_ref().unwrap().clone_ref();
+        let context = get_context(scene);
         Self { context, font }
     }
 

@@ -6,7 +6,6 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::system::gpu;
-use ensogl_core::system::gpu::texture;
 use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
@@ -32,6 +31,13 @@ pub use ttf::Style;
 pub use ttf::Tag;
 pub use ttf::Weight;
 pub use ttf::Width;
+
+
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::web;
+
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::gpu::texture;
 
 
 
@@ -713,7 +719,11 @@ impl<F: Family> FontTemplate<F> {
 // === FontWithAtlas ===
 // =====================
 
+#[cfg(target_arch = "wasm32")]
 type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
+
+#[cfg(not(target_arch = "wasm32"))]
+type AtlasTexture = f32;
 
 /// A font with an associated GPU-stored glyph atlas.
 #[allow(missing_docs)]
@@ -729,6 +739,35 @@ pub struct FontWithAtlas {
 // ================
 // === Registry ===
 // ================
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, CloneRef, Debug, Default)]
+/// Mocked version of WebGL context.
+pub struct Context;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_context(_scene: &scene::Scene) -> Context {
+    Context
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_texture(_context: &Context) -> AtlasTexture {
+    0.0
+}
+
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::display::world::Context;
+
+#[cfg(target_arch = "wasm32")]
+fn get_context(scene: &scene::Scene) -> Context {
+    scene.context.borrow().as_ref().unwrap().clone_ref()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn get_texture(context: &Context) -> AtlasTexture {
+    gpu::Texture::new(context, (0, 0))
+}
+
 
 shared! { Registry
 /// Structure keeping all fonts loaded from different sources.
@@ -778,8 +817,8 @@ impl {
                             VariableFont::new(name, family).into()
                         }
                     };
-                    let context = self.scene.context.borrow().as_ref().unwrap().clone_ref();
-                    let texture = gpu::Texture::new(&context, (0, 0));
+                    let context = get_context(&self.scene);
+                    let texture = get_texture(&context);
                     let atlas   = gpu::Uniform::new(texture);
                     let font    = FontWithAtlas {font, atlas};
                     entry.insert(font.clone_ref());

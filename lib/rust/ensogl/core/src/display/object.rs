@@ -90,7 +90,6 @@ mod tests {
 
     #[test]
     fn test_that_sublayers_are_dropped() {
-        let app = Application::new("root");
         let display_object = Instance::new();
         let layer = layer::Masked::new();
         let display_object = InstanceWithLayer::new(display_object, layer);

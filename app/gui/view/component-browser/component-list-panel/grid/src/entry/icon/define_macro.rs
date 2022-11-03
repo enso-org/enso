@@ -16,6 +16,7 @@
 /// ```
 /// use ensogl_core::prelude::*;
 /// use ensogl_core::display::shape::*;
+/// use ensogl_core::data::color;
 /// use ide_view_component_list_panel_grid::entry::icon;
 /// use ide_view_component_list_panel_grid::define_icons;
 ///
@@ -34,7 +35,7 @@
 ///     }
 ///
 ///     pub mod icon2(Icon2) {
-///         ensogl::shape! {
+///         ensogl_core::shape! {
 ///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
 ///                 Plane().fill(vivid_color).into()
 ///             }
