@@ -126,13 +126,13 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## ALIAS Match Text
+## ALIAS find
 
-   Matches the text in `self` against the provided regex `pattern`, returning
-   the first or last match if present or `Nothing` if there are no matches.
+   Matches the text in `self` against the provided `term`, returning the first
+   or last match if present or `Nothing` if there are no matches.
 
    Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
+   - term: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies whether the first or last match should be
      returned.
@@ -141,7 +141,7 @@ Text.characters self =
      regular expression and matched using the associated options.
 
    > Example
-     Find the first term matching the regex.
+     Find the first substring matching the regex.
 
          example_match =
              regex = "a[ab]c"
@@ -150,34 +150,33 @@ Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Te
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
     case self.locate term mode matcher of
         Nothing -> Nothing
-        span -> span.get_text
+        span -> span.text
 
-## ALIAS Match All Text
+## ALIAS find_all
 
-   Matches all occurrences text in `self` against the provided regex `pattern`,
-   returning a vector of matches.
+   Matches all occurrences text in `self` against the provided `term`, returning
+   a vector of matches.
 
    Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
+   - term: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
      rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
      regular expression and matched using the associated options.
 
    > Example
-     Find the first term matching the regex.
+     Find all substrings matching the regex.
 
          example_match =
              regex = "a[ab]c"
-             "aabbbbccccaabcaaaa".match regex == "abc"
+             "aabcbbccaacaa".match regex == ["abc", "aac"]
 Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.match_all self term="" matcher=Text_Matcher.Case_Sensitive =
-    self.locate_all term matcher . map .get_text
+Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
+    self.locate_all term matcher . map .text
 
 ## ALIAS Check Matches
 
-   Matches the text in `self` against the provided regex `pattern`, returning
-   `True` if the text matches at least once, and `False` otherwise.
+   Checks if the whole text in `self` matches a provided `pattern`.
 
    Arguments:
    - pattern: The pattern to match `self` against. We recommend using _raw text_
@@ -1149,7 +1148,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 
-## ALIAS find, index_of, position_of, span_of
+## ALIAS index_of, position_of, span_of
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1278,7 +1277,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
                 Nothing -> Nothing
                 matches -> matches.last.span 0 . to_grapheme_span
 
-## ALIAS find_all, index_of_all, position_of_all, span_of_all
+## ALIAS index_of_all, position_of_all, span_of_all
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
