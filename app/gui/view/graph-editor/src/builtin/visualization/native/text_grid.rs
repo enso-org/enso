@@ -14,7 +14,6 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::CanvasRenderingContext2d;
 use ensogl_component::grid_view;
-use ensogl_component::grid_view::entry::EntryFrp;
 use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
@@ -34,9 +33,15 @@ const CHARS_PER_CELL: f32 = 15.0;
 // =============
 
 mod entry {
+    use super::*;
 
+    use crate::display;
     use crate::display::DomSymbol;
+    use crate::web;
+    use crate::Application;
     use ensogl::prelude::*;
+    use ensogl_component::grid_view;
+    use ensogl_component::grid_view::entry::EntryFrp;
 
     /// Model that contains the data that is required to populate the data in an `Entry`.
     #[derive(Clone, Debug, Default)]
@@ -55,82 +60,83 @@ mod entry {
         /// Font size in pixels.
         pub font_size: f32,
     }
-}
 
-/// Entry for use in GridView. Contains a dom element with a text, the Entry frp, and a dummy
-/// display object for compatibility with `GridView`. The `dummy_root` is not used for displaying
-/// anything, all that is visible is the `text` element, which is updates through the FRP.
-#[derive(Clone, CloneRef, Debug)]
-pub struct Entry {
-    dummy_root: display::object::Instance,
-    text:       Rc<DomSymbol>,
-    frp:        Rc<EntryFrp<Self>>,
-}
-
-impl Entry {
-    fn set_model(&self, model: &entry::Model) {
-        self.text.set_inner_text(&model.text);
+    /// Entry for use in GridView. Contains a dom element with a text, the Entry frp, and a dummy
+    /// display object for compatibility with `GridView`. The `dummy_root` is not used for
+    /// displaying anything, all that is visible is the `text` element, which is updates through
+    /// the FRP.
+    #[derive(Clone, CloneRef, Debug)]
+    pub struct Entry {
+        text: Rc<DomSymbol>,
+        frp:  Rc<EntryFrp<Self>>,
     }
 
-    fn set_params(&self, params: &entry::Params) {
-        if let Some(parent) = &params.parent {
-            parent.append_or_warn(self.text.dom());
+    impl Entry {
+        fn set_model(&self, model: &Model) {
+            self.text.set_inner_text(&model.text);
         }
-        self.text.set_style_or_warn("font-family", params.font_name.clone());
-        self.text.set_style_or_warn("font-size", format!("{}px", params.font_size as u32));
-    }
 
-    fn set_position_and_size(&self, pos: &Vector2, size: &Vector2) {
-        self.text.set_position_xy(*pos);
-
-        self.text.set_style_or_warn("left", format!("{}px", pos.x - size.x / 2.0));
-        self.text.set_style_or_warn("top", format!("{}px", -pos.y - size.y / 2.0));
-
-        self.text.set_style_or_warn("width", format!("{}px", size.x as u32));
-        self.text.set_style_or_warn("height", format!("{}px", size.y as u32));
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.dummy_root
-    }
-}
-
-impl grid_view::Entry for Entry {
-    type Model = entry::Model;
-    type Params = entry::Params;
-
-    fn new(app: &Application, _text_layer: Option<&display::scene::Layer>) -> Self {
-        let scene = &app.display.default_scene;
-        let root = display::object::Instance::new();
-        let text_div = web::document.create_div_or_panic();
-        let text = DomSymbol::new(&text_div);
-        scene.dom.layers.back.manage(&text);
-        text.set_style_or_warn("white-space", "nowrap");
-        text.set_style_or_warn("pointer-events", "auto");
-        text.set_style_or_warn("white-space", "pre");
-
-        let new_entry = Self { text: Rc::new(text), frp: default(), dummy_root: root };
-
-        let input = &new_entry.frp.private().input;
-        let network = new_entry.frp.network();
-        enso_frp::extend! { network
-            init <- source_();
-            eval input.set_model((model) new_entry.set_model(model));
-            eval input.set_params((params) new_entry.set_params(params));
-
-            pos_size <- all(&input.set_position, &input.set_size);
-            eval pos_size (((pos, size)) new_entry.set_position_and_size(pos, size));
+        fn set_params(&self, params: &Params) {
+            if let Some(parent) = &params.parent {
+                parent.append_or_warn(self.text.dom());
+            }
+            self.text.set_style_or_warn("font-family", params.font_name.clone());
+            self.text.set_style_or_warn("font-size", format!("{}px", params.font_size as u32));
         }
-        init.emit(());
-        new_entry
+
+        fn set_position_and_size(&self, pos: &Vector2, size: &Vector2) {
+            self.text.set_position_xy(*pos);
+
+            self.text.set_style_or_warn("left", format!("{}px", pos.x - size.x / 2.0));
+            self.text.set_style_or_warn("top", format!("{}px", -pos.y - size.y / 2.0));
+
+            self.text.set_style_or_warn("width", format!("{}px", size.x as u32));
+            self.text.set_style_or_warn("height", format!("{}px", size.y as u32));
+        }
     }
 
-    fn frp(&self) -> &EntryFrp<Self> {
-        &self.frp
+    impl display::Object for Entry {
+        fn display_object(&self) -> &display::object::Instance {
+            self.text.display_object()
+        }
+    }
+
+    impl grid_view::Entry for Entry {
+        type Model = Model;
+        type Params = Params;
+
+        fn new(app: &Application, _text_layer: Option<&display::scene::Layer>) -> Self {
+            let scene = &app.display.default_scene;
+            let text_div = web::document.create_div_or_panic();
+            let text = DomSymbol::new(&text_div);
+            scene.dom.layers.back.manage(&text);
+            text.set_style_or_warn("white-space", "nowrap");
+            text.set_style_or_warn("pointer-events", "auto");
+            text.set_style_or_warn("white-space", "pre");
+
+            let new_entry = Self { text: Rc::new(text), frp: default() };
+
+            let input = &new_entry.frp.private().input;
+            let network = new_entry.frp.network();
+            enso_frp::extend! { network
+                init <- source_();
+                eval input.set_model((model) new_entry.set_model(model));
+                eval input.set_params((params) new_entry.set_params(params));
+
+                pos_size <- all(&input.position_set, &input.set_size);
+                eval pos_size (((pos, size)) new_entry.set_position_and_size(pos, size));
+            }
+            init.emit(());
+            new_entry
+        }
+
+        fn frp(&self) -> &EntryFrp<Self> {
+            &self.frp
+        }
     }
 }
+
+pub use entry::Entry;
 
 
 
@@ -144,6 +150,10 @@ pub struct Model<T> {
     app:                   Application,
     size:                  Rc<Cell<Vector2>>,
     root:                  display::object::Instance,
+    // Note that we are using a simple `GridView` and our own scrollbar, instead of the
+    // `scrollable::GridView` to avoid adding `ScrollAreas` to the scene, as the clipping they
+    // provide though the `mask::View` is not free in terms of performance (they add a draw call
+    // cost) and we don't need it here because we need to clip DOM elements anyway.
     text_grid:             GridView<Entry>,
     dom_entry_root:        DomSymbol,
     clipping_div:          DomSymbol,
@@ -205,6 +215,7 @@ impl<T: TextProvider> Model<T> {
     }
 
     fn receive_data(&self, _data: &visualization::Data) -> Result<(), visualization::DataError> {
+        // TODO[MM]: Will be implemented as part of https://www.pivotaltracker.com/story/show/183453466
         Ok(())
     }
 
@@ -316,7 +327,7 @@ impl<T: 'static + TextProvider> TextGrid<T> {
                 dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
                 grid_view::Viewport {top,bottom,left,right}
             }));
-            eval viewport ((viewport) text_grid.set_viewport(*viewport));
+            text_grid.set_viewport <+ viewport;
 
         }
 
@@ -327,14 +338,12 @@ impl<T: 'static + TextProvider> TextGrid<T> {
             init <- source::<()>();
 
             theme_update <- all(init, font_name, font_size);
-            eval theme_update([dom_entry_root, text_grid]((_, font_name, font_size)) {
+            text_grid.set_entries_params <+  theme_update.map(f!([dom_entry_root]((_, font_name, font_size)) {
                 let parent = Some(dom_entry_root.clone_ref());
                 let font_name = font_name.clone();
                 let font_size = *font_size;
-                let params = entry::Params { parent, font_name, font_size};
-                text_grid.set_entries_params(params);
-                text_grid.request_model_for_visible_entries();
-            });
+                entry::Params { parent, font_name, font_size}
+            }));
 
             item_width_update <- all(init, font_name, font_size);
             item_width <- item_width_update.map(f!([]((_, font_name, font_size)) {
@@ -343,10 +352,9 @@ impl<T: 'static + TextProvider> TextGrid<T> {
                 CHARS_PER_CELL * char_width
             })).on_change();
             item_update <- all(init, item_width, font_size);
-            eval item_update([text_grid]((_, item_width, item_height)) {
-                text_grid.set_entries_size(Vector2(*item_width, *item_height));
-                text_grid.request_model_for_visible_entries();
-            });
+            text_grid.set_entries_size <+ item_update.map(f!([]((_, item_width, item_height)) {
+                Vector2::new(*item_width, *item_height)
+            }));
 
         }
 
@@ -418,7 +426,7 @@ impl TextProvider for String {
 // Return the width of a character in the default monospaced font defined in `FONT_NAME`.
 fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
     // We expect the font to be monospaced, so we can measure the width of any character.
-    let sample_text = "g";
+    let sample_text = "█";
 
     let canvas = web::document.create_canvas_or_panic();
     let context = canvas.get_context("2d").unwrap().unwrap();

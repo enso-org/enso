@@ -379,9 +379,9 @@ impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     }
 }
 
-impl<T: ?Sized> Drop for Closure<T> {
-    fn drop(&mut self) {}
-}
+// impl<T: ?Sized> Drop for Closure<T> {
+//     fn drop(&mut self) {}
+// }
 
 
 

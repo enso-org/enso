@@ -586,7 +586,6 @@ where
     /// given location.
     pub fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
     where Entry: CloneRef {
-        tracing::debug!("WDGET {:?}", self.widget.model().free_entries);
         let entries = self.widget.model().visible_entries.borrow();
         let entry = entries.get(&(row, column));
         entry.map(|e| e.entry.clone_ref())

@@ -174,7 +174,7 @@ pub fn set_position<E: Entry>(
 ) {
     let pos = position(row, col, entry_size, column_widths);
     entry.set_position_xy(pos);
-    entry.frp().set_position(pos);
+    entry.frp().position_set(pos);
 }
 
 /// Get size of entry at given row and column.
