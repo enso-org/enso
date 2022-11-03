@@ -58,7 +58,7 @@ compute_table_update table table_cell_position text_window_position text_window_
 
     start_column = table_cell_position.get 0
     last_column = find_end_column table start_column text_window_width chunk_size
-    column_ix_iter = start_column.up_to last_column+2
+    column_ix_iter = start_column.up_to last_column+1
 
     start_row = table_cell_position.get 1
     end_row = find_end_row table start_row text_window_height

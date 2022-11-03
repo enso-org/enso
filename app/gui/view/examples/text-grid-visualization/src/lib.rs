@@ -16,8 +16,6 @@
 
 use ensogl::prelude::*;
 
-use crate::text_visualization::TextGrid;
-
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
@@ -25,9 +23,11 @@ use ensogl::system::web;
 use ensogl::system::web::traits::DocumentOps;
 use ensogl::system::web::traits::ElementOps;
 use ensogl_text_msdf::run_once_initialized;
-use ide_view::graph_editor::builtin::visualization::native::text_visualization;
-use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider;
-
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider::DebugGridTextProvider;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider::StringTextProvider;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::DebugTableGridVisualisation;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::DebugTextGridVisualisation;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::CHARS_PER_CHUNK;
 
 
 fn sample_text() -> String {
@@ -68,6 +68,23 @@ pub fn main() {
     });
 }
 
+
+fn init_table_vis(app: &Application) -> DebugTableGridVisualisation {
+    let sample_text_data = DebugGridTextProvider::new(200, 200);
+    let grid = DebugTableGridVisualisation::new(app.clone_ref());
+    grid.set_text_provider(sample_text_data);
+    grid.frp.set_size.emit(Vector2::new(200.0, 200.0));
+    grid
+}
+
+fn init_text_vis(app: &Application) -> DebugTextGridVisualisation {
+    let sample_text_data = StringTextProvider::new(sample_text(), CHARS_PER_CHUNK);
+    let grid = DebugTextGridVisualisation::new(app.clone_ref());
+    grid.set_text_provider(sample_text_data);
+    grid.frp.set_size.emit(Vector2::new(200.0, 200.0));
+    grid
+}
+
 fn init(app: &Application) {
     let app = app.clone_ref();
 
@@ -89,24 +106,25 @@ fn init(app: &Application) {
         let camera = scene.camera();
         let navigator = Navigator::new(scene, &camera);
 
-        let sample_text_data = sample_text();
-        let text_source = text_provider::StringTextProvider::new(sample_text_data);
-
-        let grid = TextGrid::new(app.clone_ref());
-        grid.set_text_provider(text_source);
-        grid.frp.set_size.emit(Vector2::new(200.0, 200.0));
+        let text_vis = init_text_vis(&app);
+        let table_vis = init_table_vis(&app);
 
         let mut was_rendered = false;
         let mut loader_hidden = false;
 
-        scene.add_child(&grid);
+        scene.add_child(&text_vis);
+        scene.add_child(&table_vis);
+
+        text_vis.set_y(-150.0);
+        table_vis.set_y(150.0);
 
         world
             .on
             .before_frame
             .add(move |_time_info: animation::TimeInfo| {
                 let _keep_alive = &navigator;
-                let _keep_alive = &grid;
+                let _keep_alive = &text_vis;
+                let _keep_alive = &table_vis;
                 if was_rendered && !loader_hidden {
                     web::document
                         .get_element_by_id("loader")

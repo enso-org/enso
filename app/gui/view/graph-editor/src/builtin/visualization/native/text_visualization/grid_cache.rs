@@ -56,7 +56,7 @@ pub struct GridCache<T> {
     #[derivative(Debug = "ignore")]
     data:             HashMap<GridPosition, T>,
     /// Number of row/columns that should be fetched, which are not visible.
-    cache_padding:    i32,
+    cache_padding:    u32,
     #[derivative(Debug = "ignore")]
     /// A callback that is called when the cache requires an update.
     request_fn:       Box<dyn Fn(GridWindow)>,
@@ -75,22 +75,30 @@ impl<T: Clone> GridCache<T> {
             cached_grid_pos: starting_pos,
             cached_grid_size: starting_size,
             data,
-            cache_padding: cache_padding as i32,
+            cache_padding,
             request_fn,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        let x_start = self.cached_grid_pos.x - self.cache_padding;
-        let x_end = self.cached_grid_pos.x + self.cached_grid_size.x + self.cache_padding;
+        let x_start = self.cached_grid_pos.x - self.cache_padding as i32;
+        let x_end =
+            self.cached_grid_pos.x + self.cached_grid_size.x as i32 + self.cache_padding as i32;
 
-        let y_start = self.cached_grid_pos.y - self.cache_padding;
-        let y_end = self.cached_grid_pos.y + self.cached_grid_size.y + self.cache_padding;
+        let y_start = self.cached_grid_pos.y - self.cache_padding as i32;
+        let y_end =
+            self.cached_grid_pos.y + self.cached_grid_size.y as i32 + self.cache_padding as i32;
+
+        debug_assert!(x_start < x_end);
+        debug_assert!(y_start < y_end);
+
+        let size_x = (x_end - x_start).unsigned_abs();
+        let size_y = (y_end - y_start).unsigned_abs();
 
         (self.request_fn)(GridWindow {
             position: Vector2::new(x_start, y_start),
-            size:     Vector2::new(x_end - x_start, y_end - y_start),
+            size:     Vector2::new(size_x, size_y),
         });
         self
     }
@@ -119,8 +127,10 @@ impl<T: Clone> GridCache<T> {
                 self.cached_grid_pos,
                 self.cached_grid_size
             );
-            let is_large_offset =
-                offset.iter().zip(self.cached_grid_size.iter()).any(|(a, b)| a.abs() > b / 4);
+            let is_large_offset = offset
+                .iter()
+                .zip(self.cached_grid_size.iter())
+                .any(|(a, b)| a.unsigned_abs() > b / 4);
             if is_large_offset {
                 let old_grid_pos: HashSet<_> = self.iter_full_grid().collect();
                 self.cached_grid_pos += offset;
@@ -139,20 +149,23 @@ impl<T: Clone> GridCache<T> {
     }
 
     fn padded_grid_window(&self) -> GridWindow {
-        let delta = GridVector::new(self.cache_padding, self.cache_padding);
-        let position = self.cached_grid_pos - delta / 2;
-        let size = self.cached_grid_size + delta;
-
+        let offset = GridVector::new(self.cache_padding as i32, self.cache_padding as i32) / 2;
+        let position = self.cached_grid_pos - offset;
+        let size = self.cached_grid_size + GridSize::new(self.cache_padding, self.cache_padding);
         GridWindow { position, size }
     }
 
     /// Iterate the full grid including the cached padding.
     fn iter_full_grid(&self) -> impl Iterator<Item = GridPosition> {
-        let x_start = self.cached_grid_pos.x - self.cache_padding;
-        let x_end = self.cached_grid_pos.x + self.cached_grid_size.x + self.cache_padding;
+        let cached_grid_pos = self.cached_grid_pos;
+        let cached_grid_size = self.cached_grid_size;
+        let cache_padding = self.cache_padding;
 
-        let y_start = self.cached_grid_pos.y - self.cache_padding;
-        let y_end = self.cached_grid_pos.y + self.cached_grid_size.y + self.cache_padding;
+        let x_start = cached_grid_pos.x - cache_padding as i32;
+        let x_end = cached_grid_pos.x + cached_grid_size.x as i32 + cache_padding as i32;
+
+        let y_start = cached_grid_pos.y - cache_padding as i32;
+        let y_end = cached_grid_pos.y + cached_grid_size.y as i32 + cache_padding as i32;
 
         (x_start..x_end).cartesian_product(y_start..y_end).map(|(x, y)| GridPosition::new(x, y))
     }
@@ -160,15 +173,15 @@ impl<T: Clone> GridCache<T> {
     /// Get the distance of the given index from the displayed grid. If the index is in the
     /// displayed grid, `None` is returned.
     fn distance_from_displayed_grid(&self, index: GridPosition) -> Option<GridVector> {
-        let bottom_right = self.cached_grid_pos + self.cached_grid_size;
+        let bottom_right = self.cached_grid_pos + self.cached_grid_size.map(|value| value as i32);
 
         if index >= self.cached_grid_pos && index <= bottom_right {
             None
         } else {
             let cached_grid_pos = self.cached_grid_pos;
             let cached_grid_size = self.cached_grid_size;
-            let dx = distance_from_segment(cached_grid_pos.x, cached_grid_size.x, index.x);
-            let dy = distance_from_segment(cached_grid_pos.y, cached_grid_size.y, index.y);
+            let dx = distance_from_segment(cached_grid_pos.x, cached_grid_size.x as i32, index.x);
+            let dy = distance_from_segment(cached_grid_pos.y, cached_grid_size.y as i32, index.y);
             debug_assert!(
                 dx != 0 || dy != 0,
                 "The index {} should not be in the displayed grid with pos {} and size {}.",

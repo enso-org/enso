@@ -25,6 +25,11 @@ pub mod text_provider;
 use crate::prelude::*;
 use ensogl::system::web::traits::*;
 
+use crate::builtin::visualization::native::text_visualization::text_provider::BackendTableProvider;
+use crate::builtin::visualization::native::text_visualization::text_provider::DebugGridTextProvider;
+use crate::builtin::visualization::native::text_visualization::text_provider::StringTextProvider;
+use crate::builtin::visualization::native::text_visualization::text_provider::TableContentItem;
+use crate::builtin::visualization::native::text_visualization::text_provider::TableSpecification;
 use crate::component::visualization;
 use crate::StyleWatchFrp;
 use enso_frp as frp;
@@ -32,6 +37,7 @@ use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
+use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::prelude::FrpNetworkProvider;
@@ -42,6 +48,8 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
+use text_provider::BackendTextProvider;
+use text_provider::TextProvider;
 
 
 
@@ -56,13 +64,14 @@ use ensogl_hardcoded_theme as theme;
 /// not needed, as it will be cropped. For example, a value of 100, would mean that the
 /// visualisation would request 100 characters per chunk, even if it can only show 10 characters at
 /// once in the available viewport.
-const CHARS_PER_CHUNK: usize = 20;
+pub const CHARS_PER_CHUNK: usize = 20;
 /// Extra chunks to load around the visible grid to ensure smooth scrolling. Extra chunks are
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
 const CACHE_PADDING: u32 = 15;
 const PADDING_TEXT: f32 = 5.0;
 
+const TEXT_PADDING: f32 = 1.5;
 
 
 // =============================
@@ -70,19 +79,59 @@ const PADDING_TEXT: f32 = 5.0;
 // =============================
 
 type GridPosition = Vector2<i32>;
-type GridSize = Vector2<i32>;
+type ChunkCoordinate = Vector2<i32>;
+type GridSize = Vector2<u32>;
 type GridVector = Vector2<i32>;
 
-/// Position and size of a sub-grid within a karger grid.
+
+/// Position of a chunk in a table. Addressed by table cell first, then by chunk index/line within
+/// the cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TablePosition {
+    /// Position of the cell in the table in columns and rows.
+    pub cell:  GridPosition,
+    /// Position of the chunk in the cell in chunk index and lines.
+    pub chunk: GridPosition,
+}
+
+impl TablePosition {
+    /// Create a new table position.
+    pub fn new(cell: GridPosition, chunk: GridPosition) -> Self {
+        Self { cell, chunk }
+    }
+}
+
+/// Position and size of a sub-grid within a grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct GridWindow {
     position: GridPosition,
     size:     GridSize,
 }
 
-use text_provider::BackendTextProvider;
-use text_provider::TextProvider;
+impl GridWindow {
+    /// Convert a grid window to a table window.
+    pub fn to_table_window(&self, table_layout: &TableSpecification) -> TableWindow {
+        let position = table_layout.grid_content_position_to_table_position(self.position);
+        TableWindow { position, size: self.size }
+    }
+}
 
+/// Position and size of a sub-grid within a grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TableWindow {
+    position: TablePosition,
+    size:     GridSize,
+}
+
+
+impl TableWindow {
+    /// Convert a table window to a grid window.
+    pub fn to_grid_window(&self, table_layout: &TableSpecification) -> GridWindow {
+        let start = self.position;
+        let position = table_layout.backend_table_position_to_grid_content_position(start);
+        GridWindow { position, size: self.size }
+    }
+}
 
 
 // =============
@@ -188,12 +237,85 @@ impl<T: 'static> Model<T> {
 }
 
 impl<T: TextProvider> Model<T> {
-    fn get_string_for_cell(&self, row: usize, column: usize) -> String {
+    fn get_model_for_cell(
+        &self,
+        row: usize,
+        column: usize,
+        table_spec: &Option<TableSpecification>,
+    ) -> grid_view_entry::Model {
+        if let Some(table_spec) = table_spec {
+            self.get_model_for_table_cell(row, column, table_spec)
+        } else {
+            self.get_model_for_plain_cell(row, column)
+        }
+    }
+
+    fn get_model_for_table_cell(
+        &self,
+        grid_row: usize,
+        grid_column: usize,
+        table_spec: &TableSpecification,
+    ) -> grid_view_entry::Model {
+        let content = table_spec.grid_view_position_to_table_item(GridPosition::new(
+            grid_column as i32,
+            grid_row as i32,
+        ));
+        let content = match content {
+            Some(content) => match content {
+                TableContentItem::Content { content_index } => self
+                    .text_provider
+                    .borrow()
+                    .as_ref()
+                    .and_then(|text_provider| {
+                        text_provider.get_slice(content_index.y as usize, content_index.x as usize)
+                    })
+                    .unwrap_or_default()
+                    .into(),
+                TableContentItem::Divider { bottom, top, left, right } =>
+                    grid_view_entry::Content::Divider { top, bottom, left, right },
+                TableContentItem::ColumnHeading { column_index, .. } => table_spec
+                    .column_names
+                    .get(column_index)
+                    .cloned()
+                    .flatten()
+                    .unwrap_or_default()
+                    .into(),
+                TableContentItem::RowHeading { row_index, .. } => table_spec
+                    .row_names
+                    .get(row_index)
+                    .cloned()
+                    .flatten()
+                    .unwrap_or_default()
+                    .into(),
+                TableContentItem::Empty => "".to_string().into(),
+            },
+            None => {
+                warn!(
+                    "No content for grid position: {:?}",
+                    GridPosition::new(grid_column as i32, grid_row as i32)
+                );
+                "".to_owned().into()
+            }
+        };
+
+        let bg_color = match table_spec.get_content_row_index(grid_row) {
+            Some(content_row_index) if content_row_index % 2 == 0 =>
+                color::Lcha::new(0.95, 0.0, 0.0, 1.0),
+            _ => color::Lcha::new(1.0, 0.0, 0.0, 0.0),
+        }
+        .into();
+
+
+        grid_view_entry::Model { content, bg_color }
+    }
+
+    fn get_model_for_plain_cell(&self, row: usize, column: usize) -> grid_view_entry::Model {
         self.text_provider
             .borrow()
             .as_ref()
             .and_then(|text_provider| text_provider.get_slice(row, column))
             .unwrap_or_default()
+            .into()
     }
 }
 
@@ -237,8 +359,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             eval frp.set_size  ((size) model.set_size(*size));
         }
 
-        self.init_text_grid_api(&init, &on_data_update);
-
+        self.init_text_grid_api(&init, &on_data_update, text_provider);
+        self.init_table_layout(&init, text_provider);
         self.init_scrolling(&init, text_provider, &on_data_update);
         self.init_style(&init);
 
@@ -264,12 +386,14 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             theme_update <- all(init, font_name, font_size);
             text_grid.set_entries_params <+  theme_update.map(
                 f!([dom_entry_root]((_, font_name, font_size)) {
+                    let font_name = font_name.clone();
+                    let font_size = *font_size;
+                    let parent = Some(dom_entry_root.clone_ref());
 
                     dom_entry_root.set_style_or_warn("font-family", font_name.clone());
-                    dom_entry_root.set_style_or_warn("font-size", format!("{}px", *font_size as u32));
+                    dom_entry_root.set_style_or_warn("font-size", format!("{}px", font_size as u32));
 
-                    let parent = Some(dom_entry_root.clone_ref());
-                    grid_view_entry::Params { parent }
+                    grid_view_entry::Params { parent, font_name, font_size }
                 })
             );
 
@@ -280,13 +404,45 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                 CHARS_PER_CHUNK as f32 * char_width
             })).on_change();
             item_update <- all(init, item_width, font_size);
-            text_grid.set_entries_size <+ item_update.map(f!([]((_, item_width, item_height)) {
-                Vector2::new(*item_width, *item_height)
+            text_grid.set_entries_size <+ item_update.map(f!([]((_, _, item_height)) {
+                Vector2::new(0.0, TEXT_PADDING*item_height)
             }));
         }
     }
 
-    fn init_text_grid_api(&self, init: &frp::Source, on_data_update: &frp::Stream) {
+
+    fn init_table_layout(&self, init: &frp::Source, text_provider: &text_provider::Frp) {
+        let network = &self.network;
+        let text_grid = &self.text_grid;
+        let init = init.clone_ref();
+        let scene = &self.model.app.display.default_scene;
+        let style_watch = StyleWatchFrp::new(&scene.style_sheet);
+        use theme::graph_editor::visualization::text_grid as text_grid_style;
+        let font_name = style_watch.get_text(text_grid_style::font);
+        let font_size = style_watch.get_number(text_grid_style::font_size);
+
+        frp::extend! { network
+            table_specification_change <-
+            all(&init,&text_provider.table_specification)._1().unwrap();
+
+            column_size_update <=
+            all3(&table_specification_change,&font_name,&font_size).map(
+                f!([]((table_specification,font_name,font_size)) {
+                    let char_width = measure_character_width(font_name, *font_size);
+                    let column_sizes = table_specification.iter_column_items()
+                        .map(|item| item.size() as f32 * char_width).enumerate().collect_vec();
+                    column_sizes
+                }));
+            text_grid.set_column_width <+ column_size_update;
+        }
+    }
+
+    fn init_text_grid_api(
+        &self,
+        init: &frp::Source,
+        on_data_update: &frp::Stream,
+        text_provider: &text_provider::Frp,
+    ) {
         let network = &self.network;
         let text_grid = &self.text_grid;
         let model = &self.model;
@@ -295,13 +451,11 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
         frp::extend! { network
             text_grid.request_model_for_visible_entries <+ any(on_data_update,init);
-
-
-            requested_entry <- text_grid.model_for_entry_needed.map2(&text_grid.grid_size,
-                 f!([model]((row, col), _grid_size) {
-                    let text = model.get_string_for_cell(*row,*col);
-                    let model = grid_view_entry::Model{text};
-                    (*row, *col, model)
+            requested_entry <- text_grid.model_for_entry_needed.map2(
+                &text_provider.table_specification,
+                f!([model]((row, col), table_specification) {
+                    let entry_model = model.get_model_for_cell(*row,*col, table_specification);
+                    (*row, *col, entry_model)
                 })
             );
             text_grid.model_for_entry <+ requested_entry;
@@ -327,7 +481,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
-            longest_line_with_init <- all(&init, &text_provider.longest_line)._1();
+            longest_line_with_init <- all(&init, &text_provider.chars_in_longest_line)._1();
             lines_with_init        <- all(&init, &text_provider.line_count)._1();
 
             longest_line <- longest_line_with_init.on_change();
@@ -335,9 +489,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             content_size <- all(on_data_update, longest_line, line_count).map(
                 |(_, width,height)| {
-                let columns = (*width as usize / CHARS_PER_CHUNK) + 1;
-                let rows = *height as usize;
-                ( rows.max(1), columns.max(1) )
+                ((*width).max(1) as usize, (*height).max(1) as usize)
             }).on_change();
 
             text_grid.resize_grid <+ content_size;
@@ -397,11 +549,9 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     let bottom = top - vis_size.y;
                     let left = scroll_x * content_size.x;
                     let right = left +  vis_size.x;
-
                     // Set DOM element size.
                     dom_entry_root.set_style_or_warn("top", format!("{}px", top + PADDING_TEXT));
                     dom_entry_root.set_style_or_warn("left", format!("{}px", -left + PADDING_TEXT));
-
                     // Output viewport.
                     let viewport = grid_view::Viewport {top, bottom, left, right};
                     viewport
@@ -409,6 +559,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             );
             text_grid.set_viewport <+ viewport;
         }
+
+        init.emit(());
     }
 
     /// Set the text provider.
@@ -498,9 +650,14 @@ impl FontLoadedNotifier {
 
 /// A text grid backed by a `String`. Used for testing and backend agnostic development and demos.
 /// Should not be used in production as it is not optimized for performance.
-pub type DebugTextGridVisualisation = TextGrid<String>;
+pub type DebugTextGridVisualisation = TextGrid<StringTextProvider>;
+/// A table visualisation backed by an auto generated grid where each cell contains its coordinates.
+pub type DebugTableGridVisualisation = TextGrid<DebugGridTextProvider>;
 /// A text grid backed by a the engine. Requests data from the engine on demand and renders it.
 pub type TextVisualisation = TextGrid<BackendTextProvider>;
+/// A table visualisation backed by the engine. Requests data from the engine on demand and renders
+/// it.
+pub type TableVisualisation = TextGrid<BackendTableProvider>;
 
 /// Return definition of a lazy text visualisation.
 pub fn text_visualisation() -> visualization::Definition {
@@ -510,6 +667,27 @@ pub fn text_visualisation() -> visualization::Definition {
         |app| {
             let grid = TextVisualisation::new(app.clone_ref());
             grid.set_text_provider(BackendTextProvider::new(
+                grid.frp.inputs.send_data.clone_ref(),
+                grid.frp.preprocessor_change.clone_ref(),
+            ));
+            Ok(grid.into())
+        },
+    )
+}
+
+
+/// Return definition of a lazy text visualisation.
+pub fn lazy_table_visualisation() -> visualization::Definition {
+    let path = visualization::Path::builtin("Table");
+    visualization::Definition::new(
+        visualization::Signature::new(
+            path,
+            "Standard.Table.Data.Table.Table",
+            visualization::Format::Json,
+        ),
+        |app| {
+            let grid = TableVisualisation::new(app.clone_ref());
+            grid.set_text_provider(BackendTableProvider::new(
                 grid.frp.inputs.send_data.clone_ref(),
                 grid.frp.preprocessor_change.clone_ref(),
             ));

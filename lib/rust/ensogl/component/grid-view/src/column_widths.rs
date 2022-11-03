@@ -58,7 +58,7 @@ impl ColumnWidths {
         if column < width_diffs.len() {
             width_diffs.set(column, width_diff);
         } else {
-            error!("Index out of bounds when setting column width");
+            error!("Index out of bounds when setting column width: {column}.");
         }
     }
 

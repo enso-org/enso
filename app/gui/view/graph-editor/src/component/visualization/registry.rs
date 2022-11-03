@@ -109,6 +109,7 @@ impl Registry {
         // prioritised as default (as long as they have a matching type to the value they will
         // represent.
         self.add(builtin::visualization::native::text_visualization::text_visualisation());
+        self.add(builtin::visualization::native::text_visualization::lazy_table_visualisation());
         self.try_add_java_script(builtin::visualization::java_script::table_visualization());
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());

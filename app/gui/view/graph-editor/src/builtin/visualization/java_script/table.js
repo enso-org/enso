@@ -17,7 +17,7 @@ class TableVisualization extends Visualization {
     // https://github.com/enso-org/enso/issues/5195 is implemented.
     static inputType =
         'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
-    static label = 'Table'
+    static label = 'Table (legacy)'
 
     constructor(data) {
         super(data)

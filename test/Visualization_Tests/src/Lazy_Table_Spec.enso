@@ -49,13 +49,13 @@ spec = Test.group "Lazy Table Visualization" <|
         update.chunks.contains [[[2, 0], [0, 0]], "7"] . should_be_true
         update.chunks.contains [[[2, 1], [0, 0]], "8"] . should_be_true
 
-
     Test.specify "Find end column helper should return correct column index" <|
         (Table_Visualisation.find_end_column sample_table 0 0 1).should_equal 0
         (Table_Visualisation.find_end_column sample_table 0 2 1).should_equal 0
         (Table_Visualisation.find_end_column sample_table 0 3 5).should_equal 2
         (Table_Visualisation.find_end_column sample_table 1 4 5).should_equal 5
         (Table_Visualisation.find_end_column sample_table 0 9999 5).should_equal 6
+        (Table_Visualisation.find_end_column sample_table 0 9999 30).should_equal 6
 
     Test.specify "Find end row helper should return correct row index" <|
         (Table_Visualisation.find_end_row sample_table 1 4).should_equal 2
@@ -92,3 +92,6 @@ spec = Test.group "Lazy Table Visualization" <|
     Test.specify "compute_vertical_indices helper should return correct result" <|
         (Table_Visualisation.compute_vertical_indices sample_table 0 2 0 2).should_equal [[0, 0], [1, 0]]
         (Table_Visualisation.compute_vertical_indices sample_table 0 2 1 2).should_equal [[1, 0], [2, 0]]
+
+    Test.specify "should handle valid sample request" <|
+        (Preprocessor.lazy_preprocessor sample_table [0,0] [0,0] [9,1] 20 ).should_equal [[0, 0], [1, 0]]
