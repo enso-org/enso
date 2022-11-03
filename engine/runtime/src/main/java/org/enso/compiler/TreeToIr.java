@@ -659,13 +659,13 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var loc = getIdentifiedLocation(body, 0, 1);
-        if (last != null && last.location().isDefined() && last.location().get().end() != loc.get().end()) {
-            var patched = new Location(last.location().get().start(), loc.get().end() - 1);
-            var id = new IdentifiedLocation(patched, loc.get().id());
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 1);
+        if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
+            var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
+            var id = new IdentifiedLocation(patched, locationWithANewLine.get().id());
             last = last.setLocation(Option.apply(id));
         }
-        yield new IR$Expression$Block(list, last, loc, false, meta(), diag());
+        yield new IR$Expression$Block(list, last, locationWithANewLine, false, meta(), diag());
       }
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
