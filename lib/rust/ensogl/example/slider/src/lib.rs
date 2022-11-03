@@ -84,6 +84,7 @@ fn init(app: &Application) {
     theme::builtin::light::enable(app);
 
     let slider1 = make_slider(app);
+    slider1.inner().frp.resize(Vector2(400.0, 50.0));
     //slider1.inner().frp.allow_click_selection(true);
 
     let slider2 = make_number_picker(app);

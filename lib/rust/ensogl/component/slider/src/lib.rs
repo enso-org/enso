@@ -82,7 +82,7 @@ ensogl_core::define_endpoints_2! {
         resize(Vector2),
     }
     Output {
-        value(f64),
+        value(f32),
     }
 }
 
@@ -93,12 +93,54 @@ impl Slider {
         let output = &self.frp.private.output;
         let model = &self.model;
 
+        let scene = &self.app.display.default_scene;
+        let mouse = &scene.mouse.frp;
+
+        //mouse.
+
         frp::extend! { network
 
             eval input.resize (
                 (v) {
                     model.set_size(*v);
                 }
+            );
+
+            
+            // User input
+
+            background_click        <- model.background.events.mouse_down.constant(());
+            background_release      <- model.background.events.mouse_release.constant(());
+            background_drag         <- bool(&background_release, &background_click);
+
+            track_click             <- model.track.events.mouse_down.constant(());
+            track_release           <- model.track.events.mouse_release.constant(());
+            track_drag              <- bool(&track_release, &track_click);
+
+            component_click         <- any2(&background_click, &track_click);
+            component_drag          <- any2(&background_drag, &track_drag);
+            component_release       <- any2(&background_release, &track_release);
+
+            drag_pos_start          <- mouse.position.sample(&component_click);
+            drag_pos_end            <- mouse.position.gate(&component_drag);
+            drag_pos_end            <- any2(&drag_pos_end, &drag_pos_start); // FIXME: Does not set to start position on click!
+            
+            //drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
+            drag_pos_prev           <- drag_pos_end.previous();
+            drag_delta              <- all2(&drag_pos_end, &drag_pos_prev).map(|(end, start)| end - start);
+
+            eval drag_delta (
+                (v) {
+                    model.drag(*v);
+                }
+            );
+
+            eval_ component_click (
+                model.set_active();
+            );
+
+            eval_ component_release (
+                model.set_inactive();
             );
 
         }
