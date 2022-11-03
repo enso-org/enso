@@ -84,7 +84,7 @@ impl Display for DisabledCallStack {
 /// Label of the output type of this FRP node. Used mainly for debugging purposes.
 pub trait HasOutputTypeLabel {
     /// Output type label of this object.
-    fn output_type_label(&self) -> String;
+    fn output_type_label(&self) -> Label;
 }
 
 
@@ -659,22 +659,23 @@ where Def: InputBehaviors
     }
 }
 
-// FIXME code quality below:
 impl<Def> HasOutputTypeLabel for Node<Def>
 where Def: HasOutputStatic + InputBehaviors
 {
-    fn output_type_label(&self) -> String {
-        let label = type_name::<Def>().to_string();
-        let label = label.split(|c| c == '<').collect::<Vec<_>>()[0];
-        let mut label = label.split(|c| c == ':').collect::<Vec<_>>();
-        label.reverse();
-        let mut label = label[0];
-        let sfx = "Data";
-        if label.ends_with(sfx) {
-            label = &label[0..label.len() - sfx.len()];
-        }
-        label.into()
+    fn output_type_label(&self) -> Label {
+        type_name_to_output_label(type_name::<Def>())
     }
+}
+
+// The label transformation logic is a separate non-generic function, so that it can be compiled
+// only once for all node types. This has a noticeable impact on compilation time.
+// For more details see https://github.com/enso-org/enso/pull/3848
+#[inline(never)]
+fn type_name_to_output_label(typename: &'static str) -> Label {
+    let label = typename.split('<').next().unwrap_or(typename);
+    let label = label.rsplit(':').next().unwrap_or(label);
+    let label = label.strip_suffix("Data").unwrap_or(label);
+    label
 }
 
 
