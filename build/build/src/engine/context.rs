@@ -143,7 +143,7 @@ impl RunContext {
             Flatc.lookup()?;
         }
 
-        let _ = self.paths.emit_env_to_actions(); // Ignore error: we might not be run on CI.
+        self.paths.emit_env_to_actions().await?; // Ignore error: we might not be run on CI.
         debug!("Build configuration: {:#?}", self.config);
 
         // Setup Tests on Windows

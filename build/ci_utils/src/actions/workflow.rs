@@ -22,9 +22,9 @@ pub fn is_in_env() -> bool {
 ///
 /// See: <https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#setting-an-output-parameter>
 pub async fn set_output(name: &str, value: &(impl ToString + ?Sized)) -> Result {
-    let value = value.to_string();
-    debug!("Setting GitHub Actions step output {name} to {value}");
     if is_in_env() {
+        let value = value.to_string();
+        debug!("Setting GitHub Actions step output {name} to {value}.");
         env_file::GITHUB_OUTPUT.append_key_value(name, &value).await?;
     }
     Ok(())
@@ -50,9 +50,9 @@ pub fn set_env(name: impl AsRef<str>, value: &impl ToString) -> BoxFuture<'stati
     let name = name.as_ref().to_string();
     let value_string = value.to_string();
     async move {
-        debug!("Setting GitHub Actions environment variable {name} to {value_string}");
         std::env::set_var(&name, &value_string);
         if is_in_env() {
+            debug!("Setting GitHub Actions environment variable {name} to {value_string}");
             env_file::GITHUB_ENV.append_key_value(name, value_string).await?;
         }
         Ok(())
