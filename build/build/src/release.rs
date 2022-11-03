@@ -51,7 +51,7 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
         .send()
         .await?;
 
-    ide_ci::actions::workflow::set_output(&crate::env::ENSO_RELEASE_ID, &release.id);
+    ide_ci::actions::workflow::set_output(&crate::env::ENSO_RELEASE_ID, &release.id).await?;
     Ok(release)
 }
 

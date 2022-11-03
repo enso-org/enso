@@ -109,3 +109,18 @@ pub async fn write_iter(
     })?;
     Ok(())
 }
+
+/// Append contents to the file.
+///
+/// If the file does not exist, it will be created.
+pub async fn append(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
+    tokio::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&path)
+        .await
+        .with_context(|| format!("Failed to open file {} for appending.", path.as_ref().display()))?
+        .write_all(contents.as_ref())
+        .await
+        .with_context(|| format!("Failed to write to file {}.", path.as_ref().display()))
+}

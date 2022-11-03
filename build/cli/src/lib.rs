@@ -130,7 +130,7 @@ impl Processor {
         .await?;
         let mut triple = TargetTriple::new(versions);
         triple.os = cli.target_os;
-        triple.versions.publish()?;
+        triple.versions.publish().await?;
         let context = BuildContext {
             inner: project::Context {
                 cache: Cache::new(&cli.cache_path).await?,
@@ -769,7 +769,11 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
     debug!("Parsed CLI arguments: {cli:#?}");
 
     if !cli.skip_version_check {
-        config.check_programs().await?;
+        // Let's be helpful!
+        let error_message = "Program requirements were not fulfilled. Please do one of the \
+        following:\n * Install the tools in the required versions.\n * Update the requirements in \
+        `build-config.yaml`.\n * Run the build with `--skip-version-check` flag.";
+        config.check_programs().await.context(error_message)?;
     }
 
     // TRANSITION: Previous Engine CI job used to clone these both repositories side-by-side.

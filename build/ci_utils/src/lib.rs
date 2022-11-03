@@ -91,7 +91,6 @@ pub mod prelude {
 
     pub use crate::EMPTY_REQUEST_BODY;
 
-    pub use crate::env::Variable as EnvironmentVariable;
     pub use crate::extensions::output::OutputExt as _;
     pub use crate::github::release::IsRelease;
     pub use crate::github::repo::IsRepo;

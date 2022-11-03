@@ -100,14 +100,14 @@ pub async fn check_program(program: &RecognizedProgram, version_req: &VersionReq
     let found = program.version().await?;
     if !version_req.matches(&found) {
         bail!(
-            "Found program {} in version {} that does not fulfill requirement {}.",
+            "Found program `{}` in version `{}` that does not fulfill requirement `{}`.",
             program,
             found,
             version_req
         );
     } else {
         info!(
-            "Found program {} in supported version {} (required {}).",
+            "Found program `{}` in supported version `{}` (required `{}`).",
             program, found, version_req
         );
     }

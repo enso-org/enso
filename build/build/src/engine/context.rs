@@ -122,7 +122,8 @@ impl RunContext {
         // TODO: After flatc version is bumped, it should be possible to get it without `conda`.
         //       See: https://www.pivotaltracker.com/story/show/180303547
         if let Err(e) = Flatc.require_present_at(&FLATC_VERSION).await {
-            debug!("Cannot find expected flatc: {}", e);
+            warn!("Cannot find expected flatc: {}", e);
+            warn!("Will try to install it using conda. In case of issues, please install flatc manually, to avoid dependency on conda.");
             // GitHub-hosted runner has `conda` on PATH but not things installed by it.
             // It provides `CONDA` variable pointing to the relevant location.
             if let Some(conda_path) = std::env::var_os("CONDA").map(PathBuf::from) {

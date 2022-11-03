@@ -183,11 +183,11 @@ impl Versions {
         self.version.to_string()
     }
 
-    pub fn publish(&self) -> Result {
+    pub async fn publish(&self) -> Result {
         let edition = self.edition_name();
-        ENSO_VERSION.emit_to_workflow(&self.version)?;
-        ENSO_EDITION.emit_to_workflow(edition.as_str())?;
-        ENSO_RELEASE_MODE.emit_to_workflow(&self.release_mode)?;
+        ide_ci::actions::workflow::set_output(ENSO_VERSION.name(), &self.version).await?;
+        ide_ci::actions::workflow::set_output(ENSO_EDITION.name(), edition.as_str()).await?;
+        ide_ci::actions::workflow::set_output(ENSO_RELEASE_MODE.name(), &self.release_mode).await?;
         Ok(())
     }
 }

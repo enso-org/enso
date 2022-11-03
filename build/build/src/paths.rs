@@ -63,7 +63,7 @@ impl ComponentPaths {
         Self { name, root, dir, artifact_archive }
     }
 
-    pub fn emit_to_actions(&self, prefix: &str) -> Result {
+    pub async fn emit_to_actions(&self, prefix: &str) -> Result {
         let paths = [
             ("NAME", &self.name),
             ("ROOT", &self.root),
@@ -74,7 +74,8 @@ impl ComponentPaths {
             ide_ci::actions::workflow::set_env(
                 &iformat!("{prefix}_DIST_{what}"),
                 &path.to_string_lossy(),
-            )?;
+            )
+            .await?;
         }
         Ok(())
     }
@@ -186,7 +187,7 @@ impl Paths {
 
     /// Sets the environment variables in the current process and in GitHub Actions Runner (if being
     /// run in its environment), so future steps of the job also have access to them.
-    pub fn emit_env_to_actions(&self) -> Result {
+    pub async fn emit_env_to_actions(&self) -> Result {
         let components = [
             ("ENGINE", &self.engine),
             ("LAUNCHER", &self.launcher),
@@ -194,11 +195,11 @@ impl Paths {
         ];
 
         for (prefix, paths) in components {
-            paths.emit_to_actions(prefix)?;
+            paths.emit_to_actions(prefix).await?;
         }
 
-        ide_ci::actions::workflow::set_env("TARGET_DIR", &self.target.to_string_lossy())?;
-        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.test_results.as_path())?;
+        ide_ci::actions::workflow::set_env("TARGET_DIR", &self.target.to_string_lossy()).await?;
+        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.test_results.as_path()).await?;
         Ok(())
     }
 

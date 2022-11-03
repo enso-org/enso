@@ -67,6 +67,5 @@ impl BuildContext {
 
     pub fn remote_repo_handle(&self) -> github::repo::Handle<github::Repo> {
         github::repo::Handle::new(&self.octocrab, self.remote_repo.clone())
-        // ReleaseHandle::new(&self.octocrab, self.remote_repo.clone(), self.release_id)
     }
 }

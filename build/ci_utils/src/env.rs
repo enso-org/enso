@@ -118,16 +118,15 @@ pub mod new {
             Ok(())
         }
 
-        fn set_workflow_output(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            crate::actions::workflow::set_output(self.name(), &self.generate(value.borrow())?);
-            Ok(())
-        }
-        fn set_workflow_env(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            crate::actions::workflow::set_env(self.name(), &self.generate(value.borrow())?)
-        }
-        fn emit_to_workflow(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            self.set_workflow_output(value.borrow())?;
-            self.set_workflow_env(value.borrow())
+        fn set_workflow_env(
+            &self,
+            value: impl Borrow<Self::Borrowed>,
+        ) -> BoxFuture<'static, Result> {
+            let name = self.name().to_string();
+            let value = self.generate(value.borrow());
+            value
+                .and_then_async(move |value| crate::actions::workflow::set_env(name, &value))
+                .boxed()
         }
     }
 
@@ -277,74 +276,6 @@ pub mod new {
         fn generate(&self, value: &Self::Borrowed) -> Result<String> {
             Ok(value.join(self.separator))
         }
-    }
-}
-
-pub trait Variable {
-    const NAME: &'static str;
-    type Value: FromString = String;
-
-    fn format(&self, value: &Self::Value) -> String
-    where Self::Value: ToString {
-        value.to_string()
-    }
-
-    fn name(&self) -> &str {
-        Self::NAME
-    }
-
-    fn fetch(&self) -> Result<Self::Value> {
-        self.fetch_as()
-    }
-
-    fn fetch_as<T: FromString>(&self) -> Result<T> {
-        self.fetch_string()?.parse2()
-    }
-
-    fn fetch_string(&self) -> Result<String> {
-        expect_var(self.name())
-    }
-
-    fn fetch_os_string(&self) -> Result<OsString> {
-        expect_var_os(self.name())
-    }
-
-    fn set(&self, value: &Self::Value)
-    where Self::Value: ToString {
-        debug!("Setting env {}={}", self.name(), self.format(value));
-        std::env::set_var(self.name(), self.format(value))
-    }
-
-    fn set_os(&self, value: &Self::Value)
-    where Self::Value: AsRef<OsStr> {
-        std::env::set_var(self.name(), value)
-    }
-
-    fn set_path<P>(&self, value: &P)
-    where
-        Self::Value: AsRef<Path>,
-        P: AsRef<Path>, {
-        std::env::set_var(self.name(), value.as_ref())
-    }
-
-    fn emit_env(&self, value: &Self::Value) -> Result
-    where Self::Value: ToString {
-        crate::actions::workflow::set_env(self.name(), value)
-    }
-
-    fn emit(&self, value: &Self::Value) -> Result
-    where Self::Value: ToString {
-        self.emit_env(value)?;
-        crate::actions::workflow::set_output(self.name(), value);
-        Ok(())
-    }
-
-    fn is_set(&self) -> bool {
-        self.fetch_os_string().is_ok()
-    }
-
-    fn remove(&self) {
-        std::env::remove_var(self.name())
     }
 }
 
