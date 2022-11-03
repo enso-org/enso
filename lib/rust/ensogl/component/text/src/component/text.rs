@@ -56,6 +56,9 @@ pub use crate::buffer::RangeLike;
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
 pub const CLIPBOARD_RECORD_SEPARATOR: &str = "\x1E";
 
+/// The default ratio of ascender / descender. Used when creating a new line without glyphs.
+pub const DEFAULT_ASCENDER_TO_DESCENDER_RATIO: f32 = 0.1;
+
 
 
 // ====================
@@ -662,35 +665,15 @@ impl Text {
 // ========================
 
 impl Text {
-    /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
-    /// this view regardless the previous views this component could be added to.
+    /// Add the text area to a specific scene layer.
     // TODO https://github.com/enso-org/ide/issues/1576
-    //     This function needs to be updated. However, it requires a few steps:
-    //     1. The new `ShapeView` and `DynamicShape` are implemented and they use display objects to
-    //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
-    //        is a very non-standard implementation, and thus has to handle the new display object
-    //        callbacks in a special way as well.
-    //     2. The `self.data.layer` currently needs to be stored for two main purposes:
-    //        - so that the [`set_font`] function can add newly created Glyphs to a layer to make
-    //          them visible;
-    //        - to provide a way to convert the screen to object space (see the
-    //          [`screen_to_object_space`] function).
-    //        This is a very temporary solution, as any object can be assigned to more than one
-    //        scene layer. Screen / object space location of events should thus become much more
-    //        primitive information / mechanisms. Please note, that this function handles the
-    //        selection management correctly, as it uses the new shape system definition, and thus,
-    //        inherits the scene layer settings from this display object.
+    //     You should use this function to add text to a layer instead of just `layer.add` because
+    //     currently the text needs to store reference to the layer to perform screen to object
+    //     space position conversion (it needs to know the camera transformation). This should be
+    //     improved in the future and normal `layer.add` should be enough.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.layer.set(layer.clone_ref());
-        self.data.add_symbols_to_scene_layer();
-        layer.add_exclusive(self);
-    }
-
-    /// Remove this component from view.
-    // TODO see TODO in add_to_scene_layer method.
-    #[allow(non_snake_case)]
-    pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        self.data.remove_symbols_from_scene_layer(layer);
+        layer.add(self);
     }
 }
 
@@ -733,11 +716,8 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new();
-        let fonts = scene.extension::<font::Registry>();
-        let font = fonts.load(font::DEFAULT_FONT_MONO);
         let glyph_system = {
-            let glyph_system = font::glyph::System::new(scene, font);
-            display_object.add_child(&glyph_system);
+            let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
             RefCell::new(glyph_system)
         };
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
@@ -750,14 +730,6 @@ impl TextModel {
         let width_dirty = default();
         let height_dirty = default();
         let shaped_lines = default();
-
-        let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let symbol = &shape_system.shape_system.sprite_system.symbol;
-
-        // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
-        // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
-        scene.layers.main.remove_symbol(symbol);
-        scene.layers.label.add_exclusive(symbol);
 
         let frp = frp.downgrade();
         let data = TextModelData {
@@ -796,10 +768,9 @@ impl TextModel {
         display_object: &display::object::Instance,
         default_size: f32,
     ) -> line::View {
-        let default_ascender_to_descender_ratio = 0.1;
         let line = line::View::new(frame_time);
         let ascender = default_size;
-        let descender = ascender * default_ascender_to_descender_ratio;
+        let descender = ascender * DEFAULT_ASCENDER_TO_DESCENDER_RATIO;
         let gap = 0.0;
         let metrics = line::Metrics { ascender, descender, gap };
         line.set_metrics(metrics);
@@ -853,7 +824,10 @@ impl TextModel {
         let mut view_line = ViewLine(0);
         let lines = self.lines.borrow();
         for line in &*lines {
-            if line.baseline() + line.metrics().descender < object_space.y {
+            // We are adding half of the gap here, so if someone clicks between the lines, the line
+            // closer to the mouse pointer will be selected.
+            let height = line.baseline() + line.metrics().descender + line.metrics().gap / 2.0;
+            if height < object_space.y {
                 break;
             }
             view_line += ViewLine(1);
@@ -1206,7 +1180,7 @@ impl TextModel {
                     })
                     .collect_vec();
 
-                let lines_to_redraw = std_ext::range::merge_overlapping_ranges(&lines_to_redraw);
+                let lines_to_redraw = std_ext::range::merge_overlapping_ranges(lines_to_redraw);
                 self.redraw_sorted_line_ranges(lines_to_redraw);
             }
         })
@@ -1232,6 +1206,8 @@ impl TextModel {
             let end_location = Location(selection_end_line, buffer_selection.end.offset);
             let (start_pos, end_pos) = self.lines.coordinates(start_location, end_location);
             let width = end_pos.x - start_pos.x;
+            // FIXME[WD]: This does not work nicely for multi-line selection.
+            //     See: https://www.pivotaltracker.com/story/show/183691214.
             let metrics = self.lines.borrow()[selection_start_line].metrics();
             let prev_selection = self.selection_map.borrow_mut().id_map.remove(&id);
             let reused_selection = prev_selection.is_some();
@@ -1308,11 +1284,10 @@ impl TextModel {
     ) {
         self.resize_lines();
         self.width_dirty.set(true);
-        let sorted_line_ranges = sorted_line_ranges.map(|range| {
+        let sorted_line_ranges = sorted_line_ranges.inspect(|range| {
             for line in range.clone() {
                 self.redraw_line(line);
             }
-            range
         });
         self.position_sorted_line_ranges(sorted_line_ranges);
     }
@@ -1390,7 +1365,7 @@ impl TextModel {
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);
                             glyph.set_glyph_id(shaped_glyph.id());
                             glyph.x_advance.set(x_advance);
-                            glyph.sprite.set_position_xy(glyph_render_offset);
+                            glyph.view.set_position_xy(glyph_render_offset);
                             glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
                             glyph_offset_x += x_advance;
@@ -1421,11 +1396,12 @@ impl TextModel {
         });
 
         if truncated {
-            let divs = divs[0..divs.len() - to_be_truncated].to_vec();
+            let divs = (divs[0..divs.len() - to_be_truncated]).to_vec();
             let divs = NonEmptyVec::try_from(divs).unwrap_or_else(|_| default_divs());
             line.set_divs(divs);
             line.glyphs.truncate(column.value - to_be_truncated);
             line.set_truncated(Some(default_size));
+            line.update_truncation_color();
         } else {
             line.set_divs(divs);
             line.glyphs.truncate(column.value);
@@ -1567,7 +1543,10 @@ impl TextModel {
         property: formatting::Property,
     ) {
         let property = self.buffer.resolve_property(property);
-        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.set_property(property));
+        let color_change = property.tag() == formatting::PropertyTag::Color;
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, color_change, |g| {
+            g.set_property(property)
+        });
     }
 
     /// Modify the property of selected glyphs. No redraw will be performed.
@@ -1576,17 +1555,21 @@ impl TextModel {
         ranges: &Vec<buffer::Range<Byte>>,
         property: formatting::PropertyDiff,
     ) {
-        self.modify_glyphs_in_ranges_without_line_redraw(ranges, |g| g.mod_property(property));
+        let color_change = property.tag() == formatting::PropertyTag::Color;
+        self.modify_glyphs_in_ranges_without_line_redraw(ranges, color_change, |g| {
+            g.mod_property(property)
+        });
     }
 
     /// Modify the selected glyphs. No redraw will be performed.
     fn modify_glyphs_in_ranges_without_line_redraw(
         &self,
         ranges: &Vec<buffer::Range<Byte>>,
+        color_change: bool,
         f: impl Fn(&Glyph),
     ) {
         for &range in ranges {
-            self.modify_glyphs_in_range_without_line_redraw(range, &f);
+            self.modify_glyphs_in_range_without_line_redraw(range, color_change, &f);
         }
     }
 
@@ -1594,18 +1577,23 @@ impl TextModel {
     fn modify_glyphs_in_range_without_line_redraw(
         &self,
         range: buffer::Range<Byte>,
+        color_change: bool,
         f: impl Fn(&Glyph),
     ) {
         let range = buffer::Range::<ViewLocation<Byte>>::from_in_context_snapped(self, range);
         let lines = self.lines.borrow();
         if range.start.line == range.end.line {
-            for glyph in &lines[range.start.line] {
+            let line = &lines[range.start.line];
+            for glyph in line {
                 if glyph.line_byte_offset.get() >= range.end.offset {
                     break;
                 }
                 if glyph.line_byte_offset.get() >= range.start.offset {
                     f(glyph)
                 }
+            }
+            if color_change {
+                line.update_truncation_color();
             }
         } else {
             let first_line = range.start.line;
@@ -1715,15 +1703,10 @@ impl TextModel {
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
-        let fonts = scene.extension::<font::Registry>();
-        let font = fonts.load(font_name);
-        let glyph_system = font::glyph::System::new(scene, font);
-        self.display_object.add_child(&glyph_system);
-        let old_glyph_system = self.glyph_system.replace(glyph_system);
-        self.display_object.remove_child(&old_glyph_system);
+        let glyph_system = font::glyph::System::new(scene, font_name);
+        self.glyph_system.replace(glyph_system);
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.take_lines();
-        self.add_symbols_to_scene_layer();
         self.redraw();
     }
 }
@@ -1902,36 +1885,6 @@ impl TextModel {
 
 
 
-// ========================
-// === Layer Management ===
-// ========================
-
-impl TextModel {
-    fn add_symbols_to_scene_layer(&self) {
-        let layer = &self.layer.get();
-        for symbol in self.symbols() {
-            layer.add_exclusive(&symbol);
-        }
-    }
-
-    fn remove_symbols_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.remove_symbol(&symbol);
-        }
-    }
-
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
-        let shapes = &self.app.display.default_scene.shapes;
-        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
-        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol /* selection_symbol */])
-    }
-}
-
-
-
 // ==============
 // === Traits ===
 // ==============
@@ -1983,7 +1936,7 @@ impl application::View for Text {
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        [
+        ([
             (PressAndRepeat, "left", "cursor_move_left"),
             (PressAndRepeat, "right", "cursor_move_right"),
             (PressAndRepeat, "up", "cursor_move_up"),
@@ -2030,7 +1983,7 @@ impl application::View for Text {
             (Press, "cmd v", "paste"),
             (Press, "cmd z", "undo"),
             (Press, "escape", "keep_oldest_cursor_only"),
-        ]
+        ])
         .iter()
         .map(|(action, rule, command)| {
             let only_hovered = *action != Release && rule.contains("left-mouse-button");

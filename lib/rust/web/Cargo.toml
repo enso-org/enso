@@ -18,7 +18,7 @@ js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 derivative = "2.2.0"
-tracing = "0.1"
+tracing = { version = "0.1.37" }
 enso-shapely = { path = "../shapely" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

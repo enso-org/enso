@@ -50,7 +50,7 @@ const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::Star, ico
 pub mod navigator_shadow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [crate::background];
         below = [list_view::overlay, list_view::selection];
         pointer_events = false;

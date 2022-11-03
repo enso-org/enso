@@ -52,7 +52,7 @@ impl VarBinding {
 // === Shader ===
 // ==============
 
-pub type Dirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type Dirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
 shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.
@@ -64,7 +64,6 @@ pub struct ShaderData {
     program             : Rc<RefCell<Option<shader::Program>>>,
     shader_compiler_job : Option<shader_compiler::JobHandler>,
     dirty               : Dirty,
-    logger              : Logger,
     stats               : Stats,
     profiler            : Option<profiler::Debug>,
 }
@@ -104,7 +103,7 @@ impl {
     }
 
     /// Creates new shader with attached callback.
-    pub fn new<OnMut:callback::NoArgs>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    pub fn new<OnMut:callback::NoArgs>(stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_shader_count();
         let context = default();
         let geometry_material = default();
@@ -116,7 +115,7 @@ impl {
         let profiler = None;
         Self {
             context, geometry_material, surface_material, program, shader_compiler_job, dirty,
-            logger, stats, profiler
+            stats, profiler
         }
     }
 
@@ -137,8 +136,8 @@ impl {
                         let tp   = &binding.decl.tp;
                         match binding.scope {
                             None => {
-                                warning!(self.logger,"[TODO] Default shader values are not \
-                                    implemented. This will cause visual glitches.");
+                                warn!("Default shader values are not implemented yet. \
+                                       This will cause visual glitches.");
                                 shader_cfg.add_uniform(name,tp);
                             },
                             Some(scope_type) => match scope_type {
@@ -166,9 +165,9 @@ impl {
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
                     let profiler = self.profiler.take().unwrap_or_else(new_profiler);
-                    let handler = context.shader_compiler.submit(code, profiler, move |p| {
-                        on_ready(&bindings,&p);
-                        *program.borrow_mut() = Some(p);
+                    let handler = context.shader_compiler.submit(code, profiler, move |prog| {
+                        on_ready(&bindings, &prog);
+                        *program.borrow_mut() = Some(prog);
                     });
                     self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
                     self.dirty.unset_all();

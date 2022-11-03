@@ -96,7 +96,7 @@ pub mod selection {
     /// The corner radius in pixels.
     pub const CORNER_RADIUS_PX: f32 = 12.0;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
@@ -121,7 +121,7 @@ pub mod background {
     /// The corner radius in pixels.
     pub const CORNER_RADIUS_PX: f32 = selection::CORNER_RADIUS_PX;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [selection];
         (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
@@ -145,14 +145,14 @@ pub mod background {
 pub mod overlay {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [background];
         below = [selection];
         (style: Style, corners_radius_px: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let (width, height) = background_size(sprite_width, sprite_height);
-            Rect((&width,&height)).corners_radius(corners_radius_px).fill(HOVER_COLOR).into()
+            Rect((&width,&height)).corners_radius(corners_radius_px).fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 }
