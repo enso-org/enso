@@ -100,8 +100,8 @@ pub fn main() {
     mask.size.set(Vector2::new(300.0, 300.0));
     mask.mod_position(|t| *t = Vector3::new(-50.0, 0.0, 0.0));
 
-    // FIXME: scissor box should not be computed from the left screen border. It should be affected
-    //     by the camera position.
+    // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
+    //     affected by the camera position.
     let scissor_box =
         scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
     scene.layers.main.set_scissor_box(Some(&scissor_box));

@@ -101,7 +101,7 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
         ..default()
     };
     view.set_entries_params(params);
-    view.reset_entries(100, 100);
+    view.reset_entries(1000, 1000);
     view.frp().focus();
     network
 }
@@ -182,47 +182,47 @@ fn init(app: &Application) {
     let selection_layer = main_layer.create_sublayer("selection");
 
     let plain_grid_view = setup_plain_grid_view(app);
-    // let grid_views_with_headers =
-    //     std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
-    // let with_hover_mask = [&grid_views_with_headers[2]];
-    // let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
+    let grid_views_with_headers =
+        std::iter::repeat_with(|| setup_grid_view_with_headers(app)).take(3).collect_vec();
+    let with_hover_mask = [&grid_views_with_headers[2]];
+    let with_selection_mask = [&grid_views_with_headers[1], &grid_views_with_headers[2]];
     let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vec2);
 
     grids_layer.add(&plain_grid_view);
     plain_grid_view.set_position_xy(positions.next().unwrap());
-    // for (view, position) in grid_views_with_headers.iter().zip(positions) {
-    //     grids_layer.add(view);
-    //     view.set_position_xy(position);
-    // }
+    for (view, position) in grid_views_with_headers.iter().zip(positions) {
+        grids_layer.add(view);
+        view.set_position_xy(position);
+    }
 
-    // let view = &grid_views_with_headers[0];
-    // for i in (0..3).step_by(2) {
-    //     view.set_column_width((i, 60.0));
-    // }
+    let view = &grid_views_with_headers[0];
+    for i in (0..1000).step_by(2) {
+        view.set_column_width((i, 60.0));
+    }
 
-    // for view in with_hover_mask {
-    //     view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
-    //     let params = grid_view::simple::EntryParams {
-    //         bg_color: color::Lcha::from(color::Rgba(0.7, 0.7, 0.9, 1.0)),
-    //         bg_margin: 0.0,
-    //         text_offset: 8.0,
-    //         text_color: color::Lcha::from(color::Rgba(0.9, 0.9, 0.9, 1.0)),
-    //         ..default()
-    //     };
-    //     view.hover_highlight_frp().set_entries_params(params);
-    // }
-    //
-    // for view in with_selection_mask {
-    //     view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
-    //     let params = grid_view::simple::EntryParams {
-    //         bg_color: color::Lcha::from(color::Rgba(0.5, 0.5, 0.5, 1.0)),
-    //         bg_margin: 0.0,
-    //         text_color: color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 1.0)),
-    //         text_offset: 8.0,
-    //         ..default()
-    //     };
-    //     view.selection_highlight_frp().set_entries_params(params);
-    // }
+    for view in with_hover_mask {
+        view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
+        let params = grid_view::simple::EntryParams {
+            bg_color: color::Lcha::from(color::Rgba(0.7, 0.7, 0.9, 1.0)),
+            bg_margin: 0.0,
+            text_offset: 8.0,
+            text_color: color::Lcha::from(color::Rgba(0.9, 0.9, 0.9, 1.0)),
+            ..default()
+        };
+        view.hover_highlight_frp().set_entries_params(params);
+    }
+
+    for view in with_selection_mask {
+        view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
+        let params = grid_view::simple::EntryParams {
+            bg_color: color::Lcha::from(color::Rgba(0.5, 0.5, 0.5, 1.0)),
+            bg_margin: 0.0,
+            text_color: color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 1.0)),
+            text_offset: 8.0,
+            ..default()
+        };
+        view.selection_highlight_frp().set_entries_params(params);
+    }
 
     let navigator = Navigator::new(
         &app.display.default_scene,
@@ -231,7 +231,7 @@ fn init(app: &Application) {
     navigator.disable_wheel_panning();
 
     std::mem::forget(plain_grid_view);
-    // std::mem::forget(grid_views_with_headers);
+    std::mem::forget(grid_views_with_headers);
     std::mem::forget(grids_layer);
     std::mem::forget(hover_layer);
     std::mem::forget(selection_layer);
