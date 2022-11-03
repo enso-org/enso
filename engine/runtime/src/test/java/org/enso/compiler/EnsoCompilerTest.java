@@ -62,6 +62,26 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testLocationsMethodWithComplexBody() throws Exception {
+    parseTest("""
+    foo a b =
+        x : Number
+        x = a + 1
+        y = b - 2
+        x * y
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsBuildFunctionSimple() throws Exception {
+    parseTest("""
+    main =
+        foo a = a + 1
+        foo 42
+    """, true, false, true);
+  }
+
+  @Test
   public void testLocationsDeeplyNestedFunctions() throws Exception {
     parseTest("""
         foo = a -> b ->

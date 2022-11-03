@@ -777,7 +777,7 @@ final class TreeToIr {
         var methodReference = new IR$CallArgument$Specified(
                 Option.empty(),
                 methodName,
-                getIdentifiedLocation(sig),
+                methodName.location(),
                 meta(), diag()
         );
         var opName = buildName(Option.empty(), sig.getOperator(), true);
