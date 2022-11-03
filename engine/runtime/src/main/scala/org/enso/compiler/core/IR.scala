@@ -6451,9 +6451,9 @@ object IR {
 
       /** @inheritdoc */
       override def toString: String =
-        //|doc = $doc,
         s"""
            |IR.Case.Pattern.Doc(
+           |doc = $doc,
            |location = $location,
            |passData = ${this.showPassData},
            |diagnostics = $diagnostics,
@@ -6554,6 +6554,11 @@ object IR {
       override def toString: String =
         s"""
         |IR.Comment.Documentation(
+        |doc = $doc,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
         |)
         |""".toSingleLine
 

@@ -72,7 +72,7 @@ case object DocumentationComments extends IRPass {
     * @param ir the IR node to resolve comments in
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
-  private def resolveExpression(ir: IR.Expression): IR.Expression = try {
+  private def resolveExpression(ir: IR.Expression): IR.Expression =
     ir.transformExpressions({
       case block: IR.Expression.Block =>
         val newLines       = resolveList(block.expressions :+ block.returnValue)
@@ -84,13 +84,6 @@ case object DocumentationComments extends IRPass {
         val newBranches  = resolveBranches(caseExpr.branches)
         caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
     })
-  } catch {
-    case npe: NullPointerException => {
-      System.out.println("Problems with:\n" + ir);
-      npe.printStackTrace()
-      ir
-    }
-  }
 
   /** Resolves documentation comments in an arbitrary list of IRs.
     *
