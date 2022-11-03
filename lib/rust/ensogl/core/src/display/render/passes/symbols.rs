@@ -6,7 +6,6 @@ use crate::system::gpu::*;
 use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
-use crate::display::scene::Scene;
 use crate::display::scene::UpdateStatus;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
@@ -37,7 +36,6 @@ pub struct SymbolsRenderPass {
     symbol_registry: SymbolRegistry,
     layers:          scene::HardcodedLayers,
     framebuffers:    Option<Framebuffers>,
-    scene:           Scene,
     mask_composer:   MaskComposer,
 }
 
@@ -45,7 +43,6 @@ impl SymbolsRenderPass {
     /// Constructor.
     pub fn new(
         logger: impl AnyLogger,
-        scene: &Scene,
         symbol_registry: &SymbolRegistry,
         layers: &scene::HardcodedLayers,
     ) -> Self {
@@ -53,10 +50,9 @@ impl SymbolsRenderPass {
         let symbol_registry = symbol_registry.clone_ref();
         let layers = layers.clone_ref();
         let framebuffers = default();
-        let scene = scene.clone_ref();
         let mask_composer =
-            MaskComposer::new(&scene, "pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { logger, symbol_registry, layers, framebuffers, scene, mask_composer }
+            MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
+        Self { logger, symbol_registry, layers, framebuffers, mask_composer }
     }
 }
 

@@ -53,7 +53,7 @@ pub async fn entry_point_render_profile_flamegraph() {
     builder.add_profile(&profile);
     let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), app);
     scene.add_child(&flame_graph);
-    scene.layers.main.add_exclusive(&flame_graph);
+    scene.layers.main.add(&flame_graph);
     world.keep_alive_forever();
     let tooltip = ensogl_tooltip::Tooltip::new(app);
     scene.add_child(&tooltip);

@@ -44,11 +44,11 @@ impl list_view::Entry for Entry {
         let icon_id = default();
         let network = frp::Network::new("searcher_list_panel::navigator::Icon");
         frp::extend! { network
-            eval params.strong_color((&c)
-                icon.borrow().as_ref().map(|icon| icon.strong_color.set(c.into()))
+            eval params.vivid_color((&c)
+                icon.borrow().as_ref().map(|icon| icon.set_vivid_color(c.into()))
             );
-            eval params.weak_color((&c)
-                icon.borrow().as_ref().map(|icon| icon.weak_color.set(c.into()))
+            eval params.dull_color((&c)
+                icon.borrow().as_ref().map(|icon| icon.set_dull_color(c.into()))
             );
         }
 
@@ -59,8 +59,8 @@ impl list_view::Entry for Entry {
         if !self.icon_id.get().contains(model) {
             let size = Vector2(icon::SIZE, icon::SIZE);
             let icon = model.create_shape(size);
-            icon.strong_color.set(self.params.strong_color.value().into());
-            icon.weak_color.set(self.params.weak_color.value().into());
+            icon.set_vivid_color(self.params.vivid_color.value().into());
+            icon.set_dull_color(self.params.dull_color.value().into());
             self.display_object.add_child(&icon);
             *self.icon.borrow_mut() = Some(icon);
             self.icon_id.set(Some(*model));
@@ -78,9 +78,9 @@ impl list_view::Entry for Entry {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
     /// Strong (darker, or more contrasting) color parameter.
-    pub strong_color: frp::Sampler<color::Rgba>,
+    pub vivid_color: frp::Sampler<color::Rgba>,
     /// Weak (lighter, or less contrasting) color parameter.
-    pub weak_color:   frp::Sampler<color::Rgba>,
+    pub dull_color:  frp::Sampler<color::Rgba>,
 }
 
 impl Default for Params {
@@ -89,6 +89,6 @@ impl Default for Params {
         frp::extend! { network
             default_color <- source::<color::Rgba>().sampler();
         }
-        Self { strong_color: default_color.clone_ref(), weak_color: default_color.clone_ref() }
+        Self { vivid_color: default_color.clone_ref(), dull_color: default_color.clone_ref() }
     }
 }
