@@ -84,8 +84,6 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::application::Application;
     use crate::display::scene::layer;
 
     #[test]
