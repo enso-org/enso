@@ -9,6 +9,7 @@ use crate::actions::env;
 use crate::env::new::PathBufVariable;
 
 
+
 /// Environment file that can be used to set environment variables for the subsequent steps of the
 /// current job. See: <https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-environment-variable>
 pub static GITHUB_ENV: EnvironmentFile = EnvironmentFile::new(env::GITHUB_ENV);
