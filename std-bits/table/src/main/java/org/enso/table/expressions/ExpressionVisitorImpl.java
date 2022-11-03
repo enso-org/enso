@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -24,15 +23,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
-  private static final DateTimeFormatter datetimeFormatter = new DateTimeFormatterBuilder()
-      .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-      .optionalStart().appendOffsetId().optionalEnd()
-      .optionalStart()
-      .parseCaseSensitive()
-      .appendLiteral('[').appendZoneRegionId().appendLiteral(']')
-      .optionalEnd()
-      .toFormatter().withZone(java.time.ZoneId.systemDefault());
-
   private static class ThrowOnErrorListener extends BaseErrorListener {
     public static final ThrowOnErrorListener INSTANCE = new ThrowOnErrorListener();
 
@@ -289,15 +279,20 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
     var text = ctx.text.getText().replace(' ', 'T');
+    var timezone = text.contains("[") ? text.substring(text.indexOf('[')) : "";
+    text = text.substring(0, text.length() - timezone.length());
+
+    var zoneId = timezone.equals("") ? ZoneId.systemDefault() : ZoneId.of(timezone.substring(1, timezone.length() - 1));
+
     try {
-      var zonedDateTime = ZonedDateTime.parse(text, datetimeFormatter);
+      var zonedDateTime = ZonedDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(zoneId));
       return Value.asValue(zonedDateTime);
     } catch (DateTimeParseException ignored) {
     }
 
     try {
       var localDateTime = LocalDateTime.parse(text);
-      return Value.asValue(localDateTime.atZone(ZoneId.systemDefault()));
+      return Value.asValue(localDateTime.atZone(zoneId));
     } catch (DateTimeParseException e) {
       throw new SyntaxErrorException("Invalid Date_Time format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
     }
