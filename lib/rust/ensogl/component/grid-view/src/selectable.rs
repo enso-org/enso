@@ -112,7 +112,7 @@ pub struct GridViewTemplate<InnerGridView, Entry, EntryParams: frp::node::Data> 
 /// **Basic**: By default, the highlight is displayed as `highlight::shape::View` instance. The
 /// shapes used by entries should specify if they need to be above or below highlight (for example
 /// by adding `above = [ensogl_grid_view::selectable::highlight::shape]` clause to
-/// [`define_shape_system!`] macro.
+/// [`shape!`] macro.
 ///
 /// **Masked Layer**: The basic highlight, however does not work correctly with case where we want
 /// selected entries having different style (e.g. different text color) when highlighted. Because
@@ -228,7 +228,7 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, He
                 highlight::shape::set_viewport(&header_highlights, vp);
             });
             eval header_frp.set_layers([header_highlights](layers) if let Some(layer) = layers.upgrade_header() {
-                layer.add_exclusive(&header_highlights);
+                layer.add(&header_highlights);
             });
         }
         this.header_highlights = Immutable(Some(header_highlights));
@@ -435,7 +435,7 @@ mod tests {
         let app = Application::new("root");
         let network = frp::Network::new("selecting_header");
         let grid_view = GridViewWithHeaders::<TestEntry, TestEntry>::new(&app);
-        let headers_layer = app.display.default_scene.layers.main.create_sublayer();
+        let headers_layer = app.display.default_scene.layers.main.create_sublayer("headers");
         grid_view.header_frp().set_layers(WeakLayers::new(&headers_layer, None));
         let entries = (0..3).map(|i| Rc::new(TestEntryModel::new(i, 0))).collect_vec();
         let models = entries.clone();

@@ -53,7 +53,7 @@ impl OpenDialog {
 
         display_object.add_child(&project_list);
         display_object.add_child(&file_browser);
-        app.display.default_scene.layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add(&display_object);
 
         use theme::application as theme_app;
         let project_list_width = style_watch.get_number(theme_app::project_list::width);

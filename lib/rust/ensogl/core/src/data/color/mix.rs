@@ -21,8 +21,10 @@ pub use crate::data::mix::mix;
 
 /// Defines a set of impls, in the form of:
 ///
-/// ```ignore
-/// impl Mixable for Lch { type Repr = Vector3; }
+/// ```text
+/// impl Mixable for Lch {
+///     type Repr = Vector3;
+/// }
 /// impl From<Lch> for mix::Space<Lch> {
 ///     fn from(value: Lch) -> mix::Space<Lch> {
 ///         mix::Space::new(<Lab>::from(value).into())

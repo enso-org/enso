@@ -377,6 +377,7 @@ pub async fn process_path(path: impl AsRef<Path>, action: Action) -> Result {
         let hash = process_file(&sub_path.path, action, sub_path.is_main).await?;
         hash_map.insert((&sub_path.path).into(), hash);
     }
+
     if action == Action::Format || action == Action::FormatAndCheck {
         ide_ci::programs::cargo::fmt::format(&path).await?;
     }

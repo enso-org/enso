@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use ensogl_core::data::color;
+use ensogl_core::display::shape::system::Shape;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 
@@ -55,7 +55,7 @@ impl Background {
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style,corner_left:f32,corner_right:f32,color:Vector4,show_shadow:f32) {
             let background = Background::new(&corner_left,&corner_right,style);
             let shadow     = shadow::from_shape_with_alpha(background.shape.clone(),
@@ -76,13 +76,13 @@ pub mod background {
 pub mod io_rect {
     use super::*;
 
-    ensogl_core::define_shape_system! {
-        () {
+    ensogl_core::shape! {
+        (style: Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
 
             let rect  = Rect((&sprite_width,&sprite_height));
-            let shape = rect.fill(HOVER_COLOR);
+            let shape = rect.fill(INVISIBLE_HOVER_COLOR);
 
             shape.into()
         }
@@ -102,7 +102,7 @@ pub mod io_rect {
 pub mod track {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [background];
         below = [left_overflow, right_overflow, io_rect];
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
@@ -111,7 +111,6 @@ pub mod track {
             let width         = background.width;
             let height        = background.height;
             let corner_radius = corner_inner * &height/2.0;
-
 
             let track_width = (&right - &left) * &width;
             let track_start = left * &width;
@@ -157,7 +156,7 @@ impl OverflowShape {
         let shape = shape.fill(overflow_color);
 
         let hover_area = Circle(&height);
-        let hover_area = hover_area.fill(HOVER_COLOR);
+        let hover_area = hover_area.fill(INVISIBLE_HOVER_COLOR);
 
         let shape = (shape + hover_area).into();
         OverflowShape { width, height, shape }
@@ -169,7 +168,7 @@ impl OverflowShape {
 pub mod left_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate((-90.0_f32).to_radians().radians());
@@ -183,7 +182,7 @@ pub mod left_overflow {
 pub mod right_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate(90.0_f32.to_radians().radians());
@@ -205,7 +204,6 @@ use ensogl_core::gui::component::ShapeView;
 
 pub use super::frp::*;
 pub use super::model::*;
-use ensogl_core::display;
 use ensogl_core::display::Scene;
 
 /// Return whether a dragging action has been started from the shape passed to this function. A
@@ -228,7 +226,7 @@ pub fn shape_is_dragged(
 
 /// Returns the position of a mouse down on a shape. The position is given in the shape's local
 /// coordinate system
-pub fn relative_shape_down_position<T: 'static + display::Object + CloneRef>(
+pub fn relative_shape_down_position<T: 'static + Shape>(
     network: &Network,
     scene: &Scene,
     shape: &ShapeView<T>,

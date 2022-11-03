@@ -100,13 +100,13 @@ pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 /// implementation.
 ///
 /// For the given input
-/// ```ignore
+/// ```text
 /// #[derive(NoCloneBecauseOfCustomDrop)]
 /// struct Test {}
 /// ```
 ///
 /// The following output will be generated:
-/// ```ignore
+/// ```text
 /// struct Test {}
 /// impl !Clone for Test {}
 //  impl ImplementsDrop for Test {}

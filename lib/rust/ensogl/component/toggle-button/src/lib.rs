@@ -23,7 +23,8 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::system::DynamicShapeInternals;
+use ensogl_core::display::shape::system::Shape;
+use ensogl_core::display::shape::system::ShapeWithDefaultableData;
 use ensogl_core::gui::component::ShapeView;
 
 
@@ -35,9 +36,9 @@ use ensogl_core::gui::component::ShapeView;
 /// A shape that can have a single color.
 ///
 /// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this
-/// is automatically used by the [`define_shape_system!`] macro, and it's not exposed to the
+/// is automatically used by the [`shape!`] macro, and it's not exposed to the
 /// developer.
-pub trait ColorableShape: DynamicShapeInternals {
+pub trait ColorableShape: ShapeWithDefaultableData {
     /// Set the color of the shape.
     fn set_color(&self, color: color::Rgba);
 }
@@ -73,9 +74,9 @@ ensogl_core::define_endpoints! {
 // =============
 
 #[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "Shape:CloneRef")]
-struct Model<Shape> {
-    icon: ShapeView<Shape>,
+#[clone_ref(bound = "S: CloneRef")]
+struct Model<S: Shape> {
+    icon: ShapeView<S>,
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
@@ -192,19 +193,13 @@ impl ColorScheme {
 
 /// A UI component that acts as a toggle which can be toggled on and of. Has a visible shape
 /// that acts as button and changes color depending on the toggle state.
-#[derive(CloneRef, Debug, Derivative)]
+#[derive(CloneRef, Debug, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
-pub struct ToggleButton<Shape> {
+pub struct ToggleButton<S: Shape> {
+    #[deref]
     pub frp: Frp,
-    model:   Rc<Model<Shape>>,
-}
-
-impl<Shape> Deref for ToggleButton<Shape> {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
+    model:   Rc<Model<S>>,
 }
 
 impl<Shape: ColorableShape + 'static> Default for ToggleButton<Shape> {
@@ -232,7 +227,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) model.icon.size().set(*size));
+            eval frp.set_size ((size) model.icon.size.set(*size));
 
 
             // === State ===
@@ -279,7 +274,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     }
 }
 
-impl<T: display::Object> display::Object for ToggleButton<T> {
+impl<S: Shape> display::Object for ToggleButton<S> {
     fn display_object(&self) -> &display::object::Instance {
         self.model.icon.display_object()
     }
