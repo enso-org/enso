@@ -202,7 +202,7 @@ impl ProfilingLabel {
         let label = text::Text::new(app);
         root.add_child(&label);
         label.set_position_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.label);
 
         let frp = Frp::new();

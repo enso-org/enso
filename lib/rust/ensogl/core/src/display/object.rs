@@ -64,10 +64,10 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     /// `instance` is attached to.
     pub fn new(instance: Instance, layer: L) -> Self {
         instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
-            for src_layer in source {
+            if let Some(src_layer) = source {
                 src_layer.remove_sublayer(layer.as_ref());
             }
-            for dst_layer in destination {
+            if let Some(dst_layer) = destination {
                 dst_layer.add_sublayer(layer.as_ref());
             }
         }));
@@ -84,16 +84,12 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::application::Application;
     use crate::display::scene::layer;
 
     #[test]
     fn test_that_sublayers_are_dropped() {
-        let app = Application::new("root");
-        let logger = &app.logger;
         let display_object = Instance::new();
-        let layer = layer::Masked::new(logger);
+        let layer = layer::Masked::new();
         let display_object = InstanceWithLayer::new(display_object, layer);
         let content_layer = display_object.layer.masked_layer.downgrade();
         assert!(content_layer.upgrade().is_some());

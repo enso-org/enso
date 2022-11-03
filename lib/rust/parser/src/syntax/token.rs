@@ -263,14 +263,14 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         },
         AutoScope,
         Ident {
-            pub is_free:     bool,
-            pub lift_level:  usize,
+            pub is_free:               bool,
+            pub lift_level:            usize,
+            #[reflect(rename = "is_type_or_constructor")]
+            pub is_type:               bool,
+            pub is_operator_lexically: bool,
             #[serde(skip)]
             #[reflect(skip)]
-            pub is_type:     bool,
-            #[serde(skip)]
-            #[reflect(skip)]
-            pub is_default:  bool,
+            pub is_default:            bool,
         },
         Operator {
             #[serde(skip)]
@@ -526,6 +526,11 @@ impl Precedence {
     /// Return the precedence of application.
     pub fn application() -> Self {
         Precedence { value: 80 }
+    }
+
+    /// Return the precedence of unary minus.
+    pub fn unary_minus() -> Self {
+        Precedence { value: 79 }
     }
 }
 

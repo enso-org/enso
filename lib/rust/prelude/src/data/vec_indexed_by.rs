@@ -12,30 +12,16 @@ use std::ops::Bound;
 
 macro_rules! ranged_fn {
     ($name:ident $([$($parm:tt)*])? ($($arg:ident : $arg_tp:ty),* ) -> $out:ty ) => {
-        pub fn $name $(<$($parm)*>)? (&mut self, range: impl RangeBounds<I>  $(,$arg:$arg_tp)* ) -> $out
-        where I: Copy + From<usize> {
-            let start = range.start_bound();
-            let end = range.end_bound();
-            match start {
-                Bound::Included(t) => match end {
-                    Bound::Included(u) => self.vec.$name((*t).into()..=(*u).into() $(,$arg)* ),
-                    Bound::Excluded(u) => self.vec.$name((*t).into()..(*u).into() $(,$arg)*),
-                    Bound::Unbounded => self.vec.$name((*t).into().. $(,$arg)*),
-                },
-                Bound::Excluded(t) => {
-                    let t: usize = (*t).into();
-                    match end {
-                        Bound::Included(u) => self.vec.$name(t + 1..=(*u).into() $(,$arg)*),
-                        Bound::Excluded(u) => self.vec.$name(t + 1..(*u).into() $(,$arg)*),
-                        Bound::Unbounded => self.vec.$name(t + 1.. $(,$arg)*),
-                    }
-                }
-                Bound::Unbounded => match end {
-                    Bound::Included(u) => self.vec.$name(..=(*u).into() $(,$arg)*),
-                    Bound::Excluded(u) => self.vec.$name(..(*u).into() $(,$arg)*),
-                    Bound::Unbounded => self.vec.$name(.. $(,$arg)*),
-                },
-            }
+        pub fn $name $(<$($parm)*>)?
+        (&mut self, range: impl RangeBounds<I>  $(,$arg:$arg_tp)* ) -> $out {
+            let map_bound = |bound| match bound {
+                Bound::<&I>::Included(t) => Bound::Included((*t).into()),
+                Bound::<&I>::Excluded(t) => Bound::Excluded((*t).into()),
+                Bound::<&I>::Unbounded => Bound::Unbounded,
+            };
+            let start = map_bound(range.start_bound());
+            let end = map_bound(range.end_bound());
+            self.vec.$name((start, end) $(,$arg)*)
         }
     };
 }
@@ -50,6 +36,12 @@ pub trait Index = Copy + From<usize> + Into<usize>;
 
 #[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
 #[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
+#[derive(Derivative, Deref, DerefMut, From, Into)]
+#[derivative(Clone(bound = "T: Clone, A: Allocator + Clone"))]
+#[derivative(Debug(bound = "T: Debug, A: Allocator"))]
+#[derivative(Default(bound = "A: Allocator, Vec<T, A>: Default"))]
+#[derivative(PartialEq(bound = "Vec<T, A>: PartialEq"))]
+#[derivative(Eq(bound = "Vec<T, A>: PartialEq"))]
 pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
     #[cfg_attr(
         feature = "serde",
@@ -58,6 +50,8 @@ pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
             deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
         ))
     )]
+    #[deref]
+    #[deref_mut]
     vec: Vec<T, A>,
     key: PhantomData<I>,
 }
@@ -71,11 +65,6 @@ impl<T, I> VecIndexedBy<T, I> {
 impl<T, I, A> VecIndexedBy<T, I, A>
 where A: Allocator
 {
-    /// Length of the vector.
-    pub fn len(&self) -> usize {
-        self.vec.len()
-    }
-
     /// Return the last valid index, if any.
     pub fn last_valid_index(&self) -> Option<I>
     where I: From<usize> {
@@ -84,86 +73,6 @@ where A: Allocator
         } else {
             Some((self.len() - 1).into())
         }
-    }
-
-    /// Check if the vector is empty.
-    pub fn is_empty(&self) -> bool {
-        self.vec.is_empty()
-    }
-
-    /// Returns the number of elements the vector can hold without reallocating.
-    pub fn capacity(&self) -> usize {
-        self.vec.capacity()
-    }
-
-    /// Push a new element to the vector.
-    pub fn push(&mut self, value: T) {
-        self.vec.push(value)
-    }
-
-    /// Extend the vector with new elements.
-    pub fn extend<Iter: IntoIterator<Item = T>>(&mut self, iter: Iter) {
-        self.vec.extend(iter)
-    }
-
-    /// Reserves capacity for at least additional more elements to be inserted in the given vector.
-    pub fn reserve(&mut self, additional: usize) {
-        self.vec.reserve(additional)
-    }
-
-    /// Shrinks the capacity of the vector as much as possible.
-    pub fn shrink_to_fit(&mut self) {
-        self.vec.shrink_to_fit()
-    }
-
-    /// Removes the last element from a vector and returns it, or [`None`] if it is empty.
-    pub fn pop(&mut self) -> Option<T> {
-        self.vec.pop()
-    }
-
-    /// Returns the first element of the slice, or [`None`] if it is empty.
-    pub fn first(&self) -> Option<&T> {
-        self.vec.first()
-    }
-
-    /// Returns the last element of the slice, or [`None`] if it is empty.
-    pub fn last(&self) -> Option<&T> {
-        self.vec.last()
-    }
-
-    /// Returns a mutable pointer to the first element of the slice, or [`None`] if it is empty.
-    pub fn first_mut(&mut self) -> Option<&mut T> {
-        self.vec.first_mut()
-    }
-
-    /// Returns a mutable pointer to the last element of the slice, or [`None`] if it is empty.
-    pub fn last_mut(&mut self) -> Option<&mut T> {
-        self.vec.last_mut()
-    }
-
-    /// Returns an iterator over the slice.
-    pub fn iter(&self) -> slice::Iter<'_, T> {
-        self.vec.iter()
-    }
-
-    /// Returns a mutable iterator over the slice.
-    pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
-        self.vec.iter_mut()
-    }
-
-    /// Resizes the Vec in-place so that len is equal to new_len.
-    pub fn resize_with(&mut self, new_len: usize, f: impl FnMut() -> T) {
-        self.vec.resize_with(new_len, f)
-    }
-
-    /// Shortens the vector, keeping the first len elements and dropping the rest.
-    pub fn truncate(&mut self, len: usize) {
-        self.vec.truncate(len)
-    }
-
-    /// Extracts a slice containing the entire vector.
-    pub fn as_slice(&self) -> &[T] {
-        self.vec.as_slice()
     }
 }
 
@@ -194,46 +103,6 @@ where
 
     ranged_fn! {drain() -> std::vec::Drain<'_, T, A>}
     ranged_fn! {splice[Iter: IntoIterator<Item = T>](replace_with: Iter) -> std::vec::Splice<'_, Iter::IntoIter, A>}
-}
-
-impl<T, I, A> Clone for VecIndexedBy<T, I, A>
-where
-    T: Clone,
-    A: Allocator + Clone,
-{
-    fn clone(&self) -> Self {
-        self.vec.clone().into()
-    }
-}
-
-impl<T, I, A> Debug for VecIndexedBy<T, I, A>
-where
-    T: Debug,
-    A: Allocator,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.vec, f)
-    }
-}
-
-impl<T, I, A> Default for VecIndexedBy<T, I, A>
-where
-    A: Allocator,
-    Vec<T, A>: Default,
-{
-    fn default() -> Self {
-        let vec = default();
-        Self { vec, key: PhantomData }
-    }
-}
-
-impl<T, I, A: Allocator> Eq for VecIndexedBy<T, I, A> where Vec<T, A>: Eq {}
-impl<T, I, A: Allocator> PartialEq for VecIndexedBy<T, I, A>
-where Vec<T, A>: PartialEq
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.vec.eq(&other.vec)
-    }
 }
 
 impl<T, I, A> From<Vec<T, A>> for VecIndexedBy<T, I, A>
@@ -414,12 +283,5 @@ impl<T, I> FromIterator<T> for VecIndexedBy<T, I> {
     fn from_iter<Iter: IntoIterator<Item = T>>(iter: Iter) -> VecIndexedBy<T, I> {
         let vec = Vec::from_iter(iter);
         Self { vec, key: default() }
-    }
-}
-
-impl<T, I> Deref for VecIndexedBy<T, I> {
-    type Target = [T];
-    fn deref(&self) -> &Self::Target {
-        &self.vec
     }
 }

@@ -914,7 +914,18 @@ pub enum SuggestionEntryType {
 #[serde(rename_all = "camelCase")]
 pub enum SuggestionEntry {
     #[serde(rename_all = "camelCase")]
-    Atom {
+    Type {
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        params:                 Vec<SuggestionEntryArgument>,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Constructor {
         external_id:            Option<Uuid>,
         name:                   String,
         module:                 String,
@@ -970,7 +981,8 @@ impl SuggestionEntry {
     /// Get name of the suggested entity.
     pub fn name(&self) -> &String {
         match self {
-            Self::Atom { name, .. } => name,
+            Self::Type { name, .. } => name,
+            Self::Constructor { name, .. } => name,
             Self::Function { name, .. } => name,
             Self::Local { name, .. } => name,
             Self::Method { name, .. } => name,

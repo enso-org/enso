@@ -83,6 +83,10 @@
   those visible, and re-use created entries during scrolling thus achieving
   great performance. There are variants of grid view with selection and
   highlight, scrollbars, and both.
+- [Massive improvements of text rendering performance][3776]. Different text
+  instances are now reusing the shape shaders and the same sprite system under
+  the hood. This drastically reduces the amount of required draw calls for
+  scenes with a lot of text.
 
 #### Enso Standard Library
 
@@ -223,6 +227,7 @@
   selector variant.][3812]
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
+- [Implemented `Period` type][3818]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -358,6 +363,8 @@
 [3827]: https://github.com/enso-org/enso/pull/3827
 [3824]: https://github.com/enso-org/enso/pull/3824
 [3804]: https://github.com/enso-org/enso/pull/3804
+[3818]: https://github.com/enso-org/enso/pull/3818
+[3776]: https://github.com/enso-org/enso/pull/3776
 
 #### Enso Compiler
 
@@ -413,6 +420,8 @@
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
+- [Add the `Self` keyword referring to current type][3844]
+- [Split Atom suggestion entry to Type and Constructor][3835]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -471,6 +480,8 @@
 [3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
+[3844]: https://github.com/enso-org/enso/pull/3844
+[3835]: https://github.com/enso-org/enso/pull/3835
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

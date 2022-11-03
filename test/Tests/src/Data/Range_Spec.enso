@@ -128,7 +128,7 @@ spec = Test.group "Range" <|
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
 
-    Test.specify "should allow checking if a value is in the range"
+    Test.specify "should allow checking if a value is in the range" <|
         0.up_to 10 . contains 5 . should_be_true
         0.up_to 10 . contains 0 . should_be_true
         0.up_to 10 . contains 9 . should_be_true

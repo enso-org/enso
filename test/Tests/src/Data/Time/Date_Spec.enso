@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Time.Date_Period
 import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Period
 from Standard.Base.Error.Common import Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -92,35 +93,35 @@ spec_with name create_new_date parse_date =
             date.to_json.should_equal <|
                 Json.from_pairs [["type", "Date"], ["day", date.day], ["month", date.month], ["year", date.year]]
 
-        Test.specify "should add date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            date = create_new_date 1970 + 1.day
+        Test.specify "should add date-based interval" <|
+            date = create_new_date 1970 + (Period.days 1)
             date . year . should_equal 1970
             date . month . should_equal 1
             date . day . should_equal 2
 
-        Test.specify "should subtract date-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            date = create_new_date 1970 - 1.year
+        Test.specify "should subtract date-based interval" <|
+            date = create_new_date 1970 - (Period.years 1)
             date . year . should_equal 1969
             date . month . should_equal 1
             date . day . should_equal 1
 
-        Test.specify "should support mixed interval operators" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            date = create_new_date 1970 + 1.month - 1.year
+        Test.specify "should support mixed interval operators" <|
+            date = create_new_date 1970 + (Period.months 1) - (Period.years 1)
             date . year . should_equal 1969
             date . month . should_equal 2
             date . day . should_equal 1
 
-        Test.specify "should throw error when adding time-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
+        Test.specify "should throw error when adding time-based Duration" <|
+            case (create_new_date 1970 + (Duration.hours 1)) . catch of
                 Time_Error_Data message ->
-                    message . should_equal "Date does not support time intervals"
+                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
-        Test.specify "should throw error when subtracting time-based interval" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
-            case (create_new_date 1970 - (1.day - (Duration.new minutes=1))) . catch of
+        Test.specify "should throw error when subtracting time-based Duration" <|
+            case (create_new_date 1970 - (Duration.minutes 1)) . catch of
                 Time_Error_Data message ->
-                    message . should_equal "Date does not support time intervals"
+                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
@@ -228,7 +229,7 @@ spec_with name create_new_date parse_date =
             (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
             (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
-        Test.specify "should allow to compute the number of working days until a later date" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to compute the number of working days until a later date" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) . should_equal 0
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 2) . should_equal 1
@@ -279,7 +280,7 @@ spec_with name create_new_date parse_date =
         # We duplicate the holiday entries to check that the functions are resilient to such input data.
         duplicated_holiday_november year =
             holiday_november year + holiday_november year + holiday_november year
-        Test.specify "should allow to compute the number of working days until a date, skipping custom set holidays" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to compute the number of working days until a date, skipping custom set holidays" <|
             holiday_february = Vector.new 29 (i -> create_new_date 2000 2 i+1)
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 3 1) holiday_february . should_equal 0
             create_new_date 2000 2 10 . work_days_until (create_new_date 2000 2 12) holiday_february . should_equal 0
@@ -294,7 +295,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 11 1 . work_days_until (create_new_date 2000 12 1) (duplicated_holiday_november 2020) . should_equal 22
             create_new_date 1999 11 1 . work_days_until (create_new_date 1999 12 1) (duplicated_holiday_november 1999) . should_equal 19
 
-        Test.specify "should allow to compute the number of working days including the end, in a manner consistent with NETWORKDAYS" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to compute the number of working days including the end, in a manner consistent with NETWORKDAYS" <|
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) include_end_date=True . should_equal 1
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 2) include_end_date=True . should_equal 2
             create_new_date 2000 2 3 . work_days_until (create_new_date 2000 2 16) include_end_date=True . should_equal 10
@@ -311,7 +312,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 8) include_end_date=True . should_equal 2
             create_new_date 2000 2 6 . work_days_until (create_new_date 2000 2 5) include_end_date=True . should_equal 0
 
-        Test.specify "should allow to shift the date by N working days" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by N working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days 0 . should_equal (Date.new 2000 2 1)
             create_new_date 2000 2 1 . add_work_days . should_equal (Date.new 2000 2 2)
@@ -343,7 +344,7 @@ spec_with name create_new_date parse_date =
             create_new_date 2022 3 27 . add_work_days 0 . should_equal (Date.new 2022 3 28)
             create_new_date 2022 3 27 . add_work_days 1 . should_equal (Date.new 2022 3 29)
 
-        Test.specify "should allow to shift the date by negative amount of working days" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by negative amount of working days" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . add_work_days -1 . should_equal (Date.new 2000 1 31)
             create_new_date 2000 2 1 . add_work_days -2 . should_equal (Date.new 2000 1 28)
@@ -372,10 +373,10 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 6 . add_work_days -5 . should_equal (Date.new 2000 1 31)
             create_new_date 2000 2 6 . add_work_days -6 . should_equal (Date.new 2000 1 28)
 
-        Test.specify "should allow to shift the date by N working days, skipping custom holidays" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = create_new_date year 1 1
-                Vector.new first_day.length_of_year (n -> first_day + n.days)
+                Vector.new first_day.length_of_year (n -> first_day + (Period.days n))
 
             two_years_vacation = all_year_holiday 1999 + all_year_holiday 2000
 
@@ -393,10 +394,10 @@ spec_with name create_new_date parse_date =
             create_new_date 1999 10 30 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 3)
             create_new_date 1999 10 30 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date.new 1999 11 4)
 
-        Test.specify "add_work_days and work_days_until should be consistent with each other" pending="Wait until Period type is implemented (https://www.pivotaltracker.com/story/show/183336003)" <|
+        Test.specify "add_work_days and work_days_until should be consistent with each other"  <|
             first_day = create_new_date 2020 1 1
-            dates = Vector.new 100 (n -> first_day + n.days)
-            holidays = [1, 2, 10, 11, 12, 13, 14, 15, 30, 40, 41, 42, 50, 60].map (n -> first_day + n.days)
+            dates = Vector.new 100 (n -> first_day + (Period.new days=n))
+            holidays = [1, 2, 10, 11, 12, 13, 14, 15, 30, 40, 41, 42, 50, 60].map (n -> first_day + (Period.new days=n))
             shifts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 90, 100]
             dates.each date->
                 date.work_days_until (date.add_work_days 0) . should_equal 0
