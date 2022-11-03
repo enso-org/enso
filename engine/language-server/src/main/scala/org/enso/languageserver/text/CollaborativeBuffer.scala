@@ -604,6 +604,8 @@ object CollaborativeBuffer {
     clientVersion: ContentVersion
   )
 
+  case class EnsureSaved(clientId: ClientId)
+
   /** Creates a configuration object used to create a [[CollaborativeBuffer]]
     *
     * @param bufferPath a path to a file

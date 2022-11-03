@@ -15,14 +15,15 @@ object VcsManagerApi {
     }
   }
 
-  case object CommitVcs extends Method("vcs/commit") {
+  case object SaveVcs extends Method("vcs/save") {
     case class Params(root: Path, name: Option[String])
+    case class Result(name: String, sha: String)
 
     implicit val hasParams = new HasParams[this.type] {
-      type Params = CommitVcs.Params
+      type Params = SaveVcs.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
+      type Result = SaveVcs.Result
     }
   }
 
@@ -49,9 +50,9 @@ object VcsManagerApi {
     }
   }
 
-  case object ListVcs extends Method("vcs/listTags") {
+  case object ListVcs extends Method("vcs/list") {
     case class Params(root: Path)
-    case class Result(tags: List[String])
+    case class Result(saves: List[String])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ListVcs.Params
@@ -73,9 +74,8 @@ object VcsManagerApi {
   case object RepoNotFound
       extends Error(1003, "Project is not under version control")
 
-  case object NamedSaveNotFound
-    extends Error(1004, "Requested save not found")
+  case object NamedSaveNotFound extends Error(1004, "Requested save not found")
   case object NamedSaveAlreadyExists
-    extends Error(1005, "Requested save already exists")
+      extends Error(1005, "Requested save already exists")
 
 }

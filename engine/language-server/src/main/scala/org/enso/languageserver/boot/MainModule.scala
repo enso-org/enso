@@ -205,6 +205,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     system.actorOf(
       BufferRegistry.props(
         fileManager,
+        vcsManager,
         runtimeConnector,
         TimingsConfig.default().withAutoSave(6.seconds)
       ),

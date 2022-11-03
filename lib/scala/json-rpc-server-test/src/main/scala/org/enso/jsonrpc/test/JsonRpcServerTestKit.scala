@@ -10,6 +10,7 @@ import akka.testkit._
 import io.circe.{ACursor, Decoder, DecodingFailure, HCursor, Json}
 import io.circe.parser.parse
 import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
+import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach, Inside}
@@ -24,6 +25,7 @@ abstract class JsonRpcServerTestKit
     with ImplicitSender
     with AnyWordSpecLike
     with Matchers
+    with FuzzyJsonMatchers
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with Inside {
@@ -124,6 +126,42 @@ abstract class JsonRpcServerTestKit
       inside(parsed) { case Right(json) => json }
     }
 
+    def fuzzyExpectJson(
+      json: Json,
+      timeout: FiniteDuration = 5.seconds.dilated
+    ): Assertion = {
+      val parsed = parse(expectMessage(timeout))
+
+      parsed should fuzzyMatchJson(json)
+    }
+
     def expectNoMessage(): Unit = outActor.expectNoMessage()
   }
+}
+
+trait FuzzyJsonMatchers { self: Matchers =>
+  class JsonEquals(expected: Json)
+      extends Matcher[Either[io.circe.ParsingFailure, Json]] {
+    val patch = inferPatch(expected)
+
+    def apply(left: Either[io.circe.ParsingFailure, Json]) = {
+      val leftFormatted     = patch[scala.util.Try](left.getOrElse(Json.Null))
+      val expectedFormatted = patch[scala.util.Try](expected)
+      MatchResult(
+        leftFormatted == expectedFormatted,
+        s"""Json $left did not equal "$expected"""",
+        s"""Json $left is the same as "$expected""""
+      )
+    }
+
+    def inferPatch(schema: Json): diffson.jsonpatch.JsonPatch[io.circe.Json] = {
+      import diffson._
+      import diffson.circe._
+      import diffson.jsonpatch.simplediff._
+      val schemaDiff = schema.toString().replaceAll("\\*", "\\?")
+      diff(schema, parse(schemaDiff).getOrElse(Json.Null))
+    }
+  }
+
+  def fuzzyMatchJson(expected: Json) = new JsonEquals(expected)
 }

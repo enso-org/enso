@@ -47,7 +47,7 @@ class VcsManager(
       .mapError(toVcsError)
 
   override def receive: Receive = {
-    case VcsProtocol.InitRepo(repoRoot) =>
+    case VcsProtocol.InitRepo(_, repoRoot) =>
       val result =
         for {
           root <- resolvePath(repoRoot)
@@ -57,17 +57,17 @@ class VcsManager(
         .execTimed(config.timeout, result)
         .map(VcsProtocol.InitRepoResult)
         .pipeTo(sender())
-    case VcsProtocol.CommitRepo(repoRoot, name) =>
+    case VcsProtocol.SaveRepo(_, repoRoot, name) =>
       val result =
         for {
-          root <- resolvePath(repoRoot)
-          _    <- vcs.commit(root.toPath, name)
-        } yield ()
+          root      <- resolvePath(repoRoot)
+          revCommit <- vcs.commit(root.toPath, name)
+        } yield revCommit
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.CommitRepoResult)
+        .map(VcsProtocol.SaveRepoResult)
         .pipeTo(sender())
-    case VcsProtocol.RestoreRepo(repoRoot, optRevName) =>
+    case VcsProtocol.RestoreRepo(_, repoRoot, optRevName) =>
       val result =
         for {
           root <- resolvePath(repoRoot)
@@ -77,7 +77,7 @@ class VcsManager(
         .execTimed(config.timeout, result)
         .map(VcsProtocol.RestoreRepoResult)
         .pipeTo(sender())
-    case VcsProtocol.StatusRepo(repoRoot) =>
+    case VcsProtocol.StatusRepo(_, repoRoot) =>
       val result =
         for {
           root   <- resolvePath(repoRoot)
@@ -97,7 +97,7 @@ class VcsManager(
           )
         )
         .pipeTo(sender())
-    case VcsProtocol.ListRepo(repoRoot) =>
+    case VcsProtocol.ListRepo(_, repoRoot) =>
       val result =
         for {
           root <- resolvePath(repoRoot)

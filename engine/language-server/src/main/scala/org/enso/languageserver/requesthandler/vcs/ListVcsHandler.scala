@@ -1,26 +1,19 @@
 package org.enso.languageserver.requesthandler.vcs
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.{
-  Errors,
-  Id,
-  Request,
-  ResponseError,
-  ResponseResult,
-  Unused
-}
+import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.vcsmanager.VcsManagerApi.InitVcs
+import org.enso.languageserver.vcsmanager.VcsManagerApi.{ListVcs}
 import org.enso.languageserver.vcsmanager.{VcsFailureMapper, VcsProtocol}
 
 import scala.concurrent.duration.FiniteDuration
 
-class InitVcsHandler(
+class ListVcsHandler(
   requestTimeout: FiniteDuration,
-  bufferRegistry: ActorRef,
+  vcsManager: ActorRef,
   rpcSession: JsonSession
 ) extends Actor
     with LazyLogging
@@ -31,8 +24,8 @@ class InitVcsHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(InitVcs, id, params: InitVcs.Params) =>
-      bufferRegistry ! VcsProtocol.InitRepo(rpcSession.clientId, params.root)
+    case Request(ListVcs, id, params: ListVcs.Params) =>
+      vcsManager ! VcsProtocol.ListRepo(rpcSession.clientId, params.root)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -52,24 +45,18 @@ class InitVcsHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.InitRepoResult(Right(_)) =>
-      replyTo ! ResponseResult(InitVcs, id, Unused)
+    case VcsProtocol.ListRepoResult(Right(saves)) =>
+      replyTo ! ResponseResult(
+        ListVcs,
+        id,
+        ListVcs.Result(saves)
+      )
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.InitRepoResult(Left(failure)) =>
+    case VcsProtocol.ListRepoResult(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)
   }
-}
-
-object InitVcsHandler {
-
-  def props(
-    timeout: FiniteDuration,
-    bufferRegistry: ActorRef,
-    rpcSession: JsonSession
-  ): Props =
-    Props(new InitVcsHandler(timeout, bufferRegistry, rpcSession))
 }

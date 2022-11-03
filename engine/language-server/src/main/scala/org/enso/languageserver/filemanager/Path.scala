@@ -28,6 +28,12 @@ case class Path(rootId: UUID, segments: Vector[String]) {
     val parentDir = toFile(rootPath)
     new File(parentDir, fileName)
   }
+
+  def startsWith(path: Path): Boolean = {
+    (rootId == path.rootId) && (segments.length >= path.segments.length) && segments
+      .zip(path.segments)
+      .forall({ case (s1, s2) => s1 == s2 })
+  }
 }
 
 object Path {

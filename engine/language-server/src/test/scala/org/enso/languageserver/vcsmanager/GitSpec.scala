@@ -17,14 +17,11 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "VCS initialization" should {
     "create a new repository" in new TestCtx {
-
       val targetRepo = repoPath.resolve(".git")
       targetRepo.toFile shouldNot exist
-      val path   = repoPath
-      val result = vcs.init(path).unsafeRunSync()
-      result shouldBe Right(())
+      val result = vcs.init(repoPath).unsafeRunSync()
+      result.isRight shouldBe true
       targetRepo.toFile should exist
-
     }
 
     "fail to create a repo for non-existent project" in new TestCtx {
@@ -35,6 +32,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
       val targetRepo = path.resolve(".git")
       targetRepo.toFile shouldNot exist
+    }
+
+    "fail to create a repo for a project that is already under vcs" in new TestCtx
+      with InitialRepoSetup {
+      val targetRepo = repoPath.resolve(".git")
+      targetRepo.toFile should exist
+      val result = vcs.init(repoPath).unsafeRunSync()
+      result.isLeft shouldBe true
+      result.swap.getOrElse(null) shouldBe an[GenericVcsFailure]
+      targetRepo.toFile should exist
     }
   }
 
@@ -105,7 +112,8 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
   }
 
   "VCS status" should {
-    "report dirty status when untracked files are added" in new TestCtx with InitialRepoSetup {
+    "report dirty status when untracked files are added" in new TestCtx
+      with InitialRepoSetup {
       val modifiedResult1 = vcs.status(repoPath).unsafeRunSync()
       modifiedResult1.isRight shouldBe true
       modifiedResult1.getOrElse(null) should equal(
@@ -119,7 +127,8 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       modifiedResult2.map(_.isDirty).getOrElse(null) shouldBe true
     }
 
-    "not report dirty status when untracked files were committed" in new TestCtx with InitialRepoSetup {
+    "not report dirty status when untracked files were committed" in new TestCtx
+      with InitialRepoSetup {
       val modifiedResult1 = vcs.status(repoPath).unsafeRunSync()
       modifiedResult1.isRight shouldBe true
       modifiedResult1.getOrElse(null) should equal(
@@ -137,7 +146,8 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         .getOrElse(null) shouldBe RepoStatus(false, Set(), "New files")
     }
 
-    "report dirty status when tracked files were modified" in new TestCtx with InitialRepoSetup {
+    "report dirty status when tracked files were modified" in new TestCtx
+      with InitialRepoSetup {
       val fooFile = repoPath.resolve("Foo.enso")
       createStubFile(fooFile) should equal(true)
       val commitResult = vcs.commit(repoPath, "New files").unsafeRunSync()
@@ -155,6 +165,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         Set(fooFile.getFileName),
         "New files"
       )
+
     }
   }
 
@@ -208,28 +219,38 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val fileText1 = Files.readAllLines(fooFile)
       fileText1.get(0) should equal("different contents")
 
-      val restoreResult = vcs.restore(repoPath, Some("New files")).unsafeRunSync()
+      val restoreResult =
+        vcs.restore(repoPath, Some("New files")).unsafeRunSync()
       restoreResult.isRight shouldBe true
 
       val fileText2 = Files.readAllLines(fooFile)
       fileText2.get(0) should equal("file contents")
     }
 
-    "report problem when named save does not exist" in new TestCtx with InitialRepoSetup {
-      val restoreResult = vcs.restore(repoPath, Some("New files")).unsafeRunSync()
+    "report problem when named save does not exist" in new TestCtx
+      with InitialRepoSetup {
+      val restoreResult =
+        vcs.restore(repoPath, Some("New files")).unsafeRunSync()
       restoreResult.isLeft shouldBe true
       restoreResult.swap.getOrElse(null) shouldBe an[SaveNotFound.type]
+    }
+
+    "report failure when requesting restore on non-existent repo" in new TestCtx {
+      val listResult = vcs.restore(repoPath, None).unsafeRunSync()
+      listResult.isLeft shouldBe true
+      listResult.swap.getOrElse(null) shouldBe an[RepoNotFound]
     }
 
   }
 
   "VCS list" should {
 
-    "return all commits to the repo" in new TestCtx with InitialRepoSetup {
+    "return all saves to the repo" in new TestCtx with InitialRepoSetup {
       val files = List("Foo", "Bar", "Baz")
       files.foreach { file =>
         createStubFile(repoPath.resolve(s"$file.enso")) should equal(true)
-        val commitResult1 = vcs.commit(repoPath, s"$file commit").unsafeRunSync()
+        val commitResult1 =
+          vcs.commit(repoPath, s"$file commit").unsafeRunSync()
         commitResult1.isRight shouldBe true
       }
 
@@ -239,6 +260,12 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       listResult.getOrElse(Nil) should equal(
         files.reverse.map(f => s"$f commit") ::: List("Initial commit")
       )
+    }
+
+    "report failure when requesting saves on non-existent repo" in new TestCtx {
+      val listResult = vcs.list(repoPath).unsafeRunSync()
+      listResult.isLeft shouldBe true
+      listResult.swap.getOrElse(null) shouldBe an[RepoNotFound]
     }
 
   }
@@ -282,6 +309,23 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
   }
 
   trait InitialRepoSetup { self: TestCtx =>
-    vcs.init(repoPath).unsafeRunSync() shouldBe Right(())
+
+    setup()
+
+    def setup(): Unit = {
+      val jgit = JGit
+        .init()
+        .setDirectory(repoPath.toFile)
+        .setBare(false)
+        .call()
+
+      jgit
+        .commit()
+        .setAllowEmpty(true)
+        .setAll(true)
+        .setMessage("Initial commit")
+        .setAuthor("Enso VCS", "vcs@enso.io")
+        .call()
+    }
   }
 }

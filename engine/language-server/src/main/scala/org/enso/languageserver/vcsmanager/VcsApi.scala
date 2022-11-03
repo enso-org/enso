@@ -6,9 +6,9 @@ abstract class VcsApi[F[_, _]] {
 
   def init(root: Path): F[VcsFailure, Unit]
 
-  def commit(root: Path, name: Option[String]): F[VcsFailure, Unit]
+  def commit(root: Path, name: Option[String]): F[VcsFailure, (String, String)]
 
-  def commit(root: Path, name: String): F[VcsFailure, Unit] =
+  def commit(root: Path, name: String): F[VcsFailure, (String, String)] =
     commit(root, Some(name))
 
   def restore(root: Path, name: Option[String]): F[VcsFailure, Unit]

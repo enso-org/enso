@@ -157,6 +157,7 @@ class BaseServerTest
   override def clientControllerFactory: ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
+
     val fileManager = system.actorOf(
       FileManager.props(
         config.fileManager,
@@ -177,6 +178,7 @@ class BaseServerTest
       system.actorOf(
         BufferRegistry.props(
           fileManager,
+          vcsManager,
           runtimeConnectorProbe.ref,
           timingsConfig
         )(

@@ -9,10 +9,11 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityReleaseBadRequest,
   ReleaseCapability
 }
-import org.enso.languageserver.data.{CanEdit, CapabilityRegistration}
+import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.languageserver.text.CollaborativeBuffer.EnsureSaved
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEdit,
@@ -23,6 +24,7 @@ import org.enso.languageserver.text.TextProtocol.{
   OpenFile,
   SaveFile
 }
+import org.enso.languageserver.vcsmanager.VcsProtocol.{InitRepo, SaveRepo}
 import org.enso.text.ContentBasedVersioning
 
 /** An actor that routes request regarding text editing to the right buffer.
@@ -63,6 +65,7 @@ import org.enso.text.ContentBasedVersioning
   */
 class BufferRegistry(
   fileManager: ActorRef,
+  vcsManager: ActorRef,
   runtimeConnector: ActorRef,
   timingsConfig: TimingsConfig
 )(implicit
@@ -174,6 +177,27 @@ class BufferRegistry(
       } else {
         sender() ! FileNotOpened
       }
+
+    case msg @ InitRepo(clientId, path) =>
+      ensureUpToDateState(clientId, registry, path)
+      vcsManager.forward(msg)
+
+    case msg @ SaveRepo(clientId, path, _) =>
+      ensureUpToDateState(clientId, registry, path)
+      vcsManager.forward(msg)
+  }
+
+  private def ensureUpToDateState(
+    clientId: ClientId,
+    registry: Map[Path, ActorRef],
+    root: Path
+  ): Unit = {
+    registry.foreach { case (path, actorRef) =>
+      if (path.startsWith(root)) {
+        // TODO: make it sync for confirmation
+        actorRef ! EnsureSaved(clientId)
+      }
+    }
   }
 
 }
@@ -190,11 +214,19 @@ object BufferRegistry {
     */
   def props(
     fileManager: ActorRef,
+    vcsManager: ActorRef,
     runtimeConnector: ActorRef,
     timingsConfig: TimingsConfig
   )(implicit
     versionCalculator: ContentBasedVersioning
   ): Props =
-    Props(new BufferRegistry(fileManager, runtimeConnector, timingsConfig))
+    Props(
+      new BufferRegistry(
+        fileManager,
+        vcsManager,
+        runtimeConnector,
+        timingsConfig
+      )
+    )
 
 }

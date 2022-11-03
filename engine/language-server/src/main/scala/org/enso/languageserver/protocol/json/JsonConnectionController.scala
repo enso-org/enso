@@ -466,9 +466,9 @@ class JsonConnectionController(
       ChecksumFile -> file.ChecksumFileHandler
         .props(requestTimeout, fileManager),
       InitVcs -> vcs.InitVcsHandler
-        .props(requestTimeout, vcsManager, rpcSession),
-      CommitVcs -> vcs.CommitVcsHandler
-        .props(requestTimeout, vcsManager, rpcSession),
+        .props(requestTimeout, bufferRegistry, rpcSession),
+      SaveVcs -> vcs.SaveVcsHandler
+        .props(requestTimeout, bufferRegistry, rpcSession),
       StatusVcs -> vcs.StatusVcsHandler
         .props(requestTimeout, vcsManager, rpcSession),
       ExecutionContextCreate -> executioncontext.CreateHandler

@@ -60,18 +60,6 @@ object FileManagerConfig {
   */
 case class VcsManagerConfig(timeout: FiniteDuration)
 
-object VcsManagerConfig {
-
-  /** Default VCS manager config.
-    *
-    * @param timeout VCS operation timeout
-    */
-  def apply(timeout: FiniteDuration): VcsManagerConfig =
-    VcsManagerConfig(
-      timeout = timeout
-    )
-}
-
 /** Configuration of the execution context.
   *
   * @param requestTimeout timeout of requests to the engine
