@@ -1,25 +1,44 @@
 type Join_Condition
     ## Specifies a join condition that correlates two columns from the left and
-       right tables that satisfy the condition `<left> <op> <right>`.
-    Compare (left : Column_Selector) (op : Join_Comparator) (right : Column_Selector)
+       right tables that satisfy the comparison.
+
+       Arguments:
+        - left: A name or index of a column in the left table. Alternatively,
+          a column reference may be given which allows using a transformed
+          column. It still must be a transformation of a column coming from the
+          left table.
+        - op: The comparator to use.
+        - right: A name or index of a column in the right table. Alternatively,
+          a column reference may be given which allows using a transformed
+          column. It still must be a transformation of a column coming from the
+          right table.
+    On (left : Text | Integer | Column) (op : Join_Comparator) (right : Text | Integer | Column)
 
     ## Specifies a join condition that is satisfied if either of the provided
        sub-conditions is satisfied.
     Or (left : Join_Condition) (right : Join_Condition)
 
     ## Specifies a join condition that is satisfied if both of the provided
-       sub-conditions is satisfied.
+       sub-conditions are satisfied.
 
-       Most of the time instead of using this operator, one can just specify
+       Most of the time instead of using this operator, you can just specify
        multiple join conditions, as their conjunction is used anyway. It may be
        needed however if some `Or` clause needs to consist of more complex
        conditions built with `And`.
     And (left : Join_Condition) (right : Join_Condition)
 
+    ## A shorthand for connecting two join conditions with `And`.
+    && : Join_Condition -> Join_Condition
+    && self other = Self.And self other
+
+    ## A shorthand for connecting two join conditions with `Or`.
+    || : Join_Condition -> Join_Condition
+    || self other = Self.Or self other
+
 type Join_Comparator
-    Equal
-    Not_Equal
-    Greater
-    Equal_Or_Greater
-    Less
-    Equal_Or_Less
+    Equal_To
+    Not_Equal_To
+    Greater_Than
+    Equal_Or_Greater_Than
+    Less_Than
+    Equal_Or_Less_Than

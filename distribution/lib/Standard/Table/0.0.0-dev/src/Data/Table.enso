@@ -1159,11 +1159,12 @@ type Table
        - right: The table to join with.
        - join_kind: Specifies the kind of join that is being performed - in
          which way are rows of the two tables correlated. See `Join_Kind`.
-       - on: A single condition or a list of conditions on which to correlate
-         rows from the two tables. If multiple conditions are provided, all of
-         them must be satisfied for the two rows to be correlated (so
-         effectively a conjunction of all conditions is used). Each condition
-         can either be a `Join_Condition` or an `Expression`.
+       - on: A single condition, a list of conditions or a list of column names
+         on which to correlate rows from the two tables. If multiple conditions
+         are provided, all of them must be satisfied for the two rows to be
+         correlated (so effectively a conjunction of all conditions is used).
+         If a list of column names is provided, these columns should be present
+         in both tables and an equality condition is added for each of them.
        - right_prefix: The prefix added to right table column names in case of
          name conflict. See "Column Renaming" below for more information.
        - on_problems: Specifies how to handle problems if they occur, reporting
@@ -1176,9 +1177,6 @@ type Table
          - If a join condition correlates columns whose types are not compatible
            (for example comparing numeric types with text), a
            `Invalid_Value_Type` is reported.
-         - If an expression does not start with a `left` or `right` qualifier,
-           but refers to a column which exists in both the left and right table,
-           an `Ambiguous_Column_Reference` is reported.
 
          In any of the above cases, if a problem occurs, the resulting table
          will have the desired structure, but it will be empty to indicate that
@@ -1199,21 +1197,176 @@ type Table
          being renamed due to inter-table collisions are renamed in the order of
          their appearance in the right table.
 
-       ? Expression Syntax
+       ? Joining on equality of columns with the same name
 
-         The expressions provided for the join conditions may use a special
-         syntax `[left.A]` and `[right.A]` to refer to columns from each table
-         that have the same names (the column references from before
-         consolidating column names are used). If a column name `[B]` without
-         the prefix is used, it must be unambiguous (i.e. it must be present in
-         exactly one of the tables) - in any other case, an error will be
-         reported.
-    join2 : Table -> Join_Kind -> Expression | Join_Condition | Vector (Expression | Join_Condition) -> Text -> Problem_Behavior -> Table
-    join2 self right join_kind=Join_Kind.Inner on=[Join_Condition.Compare (Column_Selector.By_Index 0) Join_Comparator.Equal (Column_Selector.By_Index 0)] right_prefix="Right_" on_problems=Report_Warning =
-        case on.length == 1 of
-            False -> Error.throw (Illegal_Argument_Error_Data "on.length != 1 is not supported in the prototype")
-            True ->
-                Error.throw "TODO: first I want to figure out if we even want to use Column_Selector here"
+         If the join is performed on equality of columns with the same name, the
+         two columns (one coming from the left table and another from the right
+         one) are completely redundant - they have the same contents and the
+         same name. Thus, instead of renaming the right one, only the left one
+         is kept to avoid unnecessary duplication.
+
+         However, this logic only applies for `Join_Condition.On` instances with
+         the same name and equality comparison that are passed directly to the
+         `on` argument. More complex conditions built using `Join_Condition.And`
+         and `Join_Condition.Or` will not be optimized in this way.
+
+       ? Same-name column join shorthand
+
+         It is possible to provide just a list of columns instead of regular
+         join conditions. In that case it is assumed that columns with these
+         names are present in both tables and the tables are joined on equality
+         conditions for these columns. So `table.join other on=["A", "B"]` will
+         work like:
+             table.join other on=[Join_Condition.On "A" Join_Comparator.Equal_Tos "A", Join_Condition.On "B" Join_Comparator.Equal_To "B"]
+    join2 : Table -> Join_Kind -> Join_Condition | Vector Join_Condition | Vector Text -> Text -> Problem_Behavior -> Table
+    join2 self right join_kind=Join_Kind.Inner on=[Join_Condition.On 0 Join_Comparator.Equal_To 0] right_prefix="Right_" on_problems=Report_Warning =
+        ???
+
+    ## Joins tables by pairing every row of the left table with every row of the
+       right table.
+
+       Arguments:
+       - right: The table to join with.
+       - right_row_limit: The limit of rows in the right table above which to
+         issue a warning. If the limit is exceeded, with default `on_problems`
+         settings, the join will still proceed but a warning will be issued. If
+         `Report_Error` is set, the join will fail with an error. The limit can
+         be set to `Nothing` to disable the check. The check exists to avoid
+         exploding the number of rows too much by accident.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the `right` table has more rows than the `right_row_limit` allows,
+           a `Cross_Join_Row_Limit_Exceeded` is reported. In warning/ignore
+           mode, the join is still executed.
+
+       ? Column Renaming
+
+         <Same comment as for Table.join>
+    cross_join : Table -> Integer -> Table
+    cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+
+    ## ALIAS Join By Row Position
+       Joins two tables by zipping rows from both tables table together - the
+       first row of the left table is correlated with the first one of the right
+       one etc.
+
+       Arguments:
+       - right: The table to join with.
+       - keep_unmatched: If set to `True`, the result will include as many rows
+         as the larger of the two tables - the last rows of the larger table
+         will have nulls for columns of the smaller one. If set to `False`, the
+         result will have as many rows as the smaller of the two tables - the
+         additional rows of the larger table will be discarded. The default
+         value is `Nothing` which means that the user expects that two tables
+         should have the same amount of rows; if they do not, the behaviour is
+         the same as if it was set to `True` - i.e. the unmatched rows are kept
+         with nulls for the other table, but because this was not expected, a
+         `Row_Count_Mismatch` problem is reported.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the tables have different number of rows and `keep_unmatched` is
+           set to `Nothing` (indicating that no unmatched rows were expected),
+           the join will report `Row_Count_Mismatch`.
+
+       ? Column Renaming
+
+         <Same comment as for Table.join>
+
+       ? Row Ordering
+
+         This operation requires a well-defined order of rows in the input
+         tables. In-memory tables rely on the ordering stemming directly from
+         their layout in memory. Database tables may not impose a deterministic
+         ordering. If the table defines a primary key, it is used to by default
+         to ensure deterministic ordering. That can be overridden by specifying
+         a different ordering using `Table.order_by`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation may fail, reporting an
+         `Undefined_Column_Order` problem.
+    zip : Table -> Boolean -> Text -> Problem_Behavior -> Table
+    zip right keep_unmatched=Nothing right_prefix="Right_" on_problems=Report_Warning = ...
+
+    ## ALIAS append, union
+       Appends records from other table(s) to this table.
+
+       Arguments:
+       - tables: A single table or a vector of tables to append to this one. The
+         tables are concatenated in the order they are specified, with `self`
+         being the first one.
+       - match_columns: Specifies how to match columns against the first table.
+         The first table is taken as a reference and columns from the other
+         tables are matched against it.
+         If `Match_Columns.By_Name` - the columns are mapped by name. The
+         resulting order of columns is determined by the first table. If there
+         is a mismatch, then a `Column_Name_Mismatch` is reported. It will list
+         missing/extra columns from all provided tables.
+         If `Match_Columns.By_Position` - the columns are mapped by position. If
+         there is a mismatch, then a `Column_Count_Mismatch` is reported. It
+         will contain the number of columns of the first mismatched table.
+       - allow_type_widening: Specifies if the resulting column type should be
+         adapted to fit columns from all arguments; defaults to `True`. If set
+         to `True` a common type will be chosen for each column, as described in
+         the section "Unifying Column Types" below. If set to `False` the
+         resulting column type will be the same as in the first table. If types
+         of corresponding columns from other tables will be incompatible with
+         it, a `Column_Type_Mismatch` is reported.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If matching columns by name and there is a mismatch, then a
+           `Column_Name_Mismatch` is reported.
+         - If matching by position and there is a mismatch, then a
+           `Column_Count_Mismatch` is reported.
+         - If type widening is disabled and one of corresponding columns has a
+           type that is incompatible with the type coming from the first table,
+           a `Column_Type_Mismatch` is reported.
+         - If a common type coercion for a set of matched columns from
+           concatenated tables cannot be found, a `No_Common_Type` is reported.
+           In warning or ignore mode, the problematic column will not be present
+           in the resulting table.
+
+         If any of the above issues occurs, an empty table with the structure of
+         the original table is returned.
+
+       ? Unifying Column Types
+
+         If `allow_type_widening` is set to `True`, then the following rules are
+         used to find a common type that will fit values from all merged tables.
+
+         Numeric columns are unified by finding the most general type that can
+         fit all of the columns. The biggest integer type will be chosen and if
+         integers and decimals are mixed, the decimal type will be chosen.
+         If boolean columns are mixed with numeric columns, they will be coerced
+         to the numeric type (and converted to 0 and 1).
+
+         Text types will also be coerced according to the common rules - if
+         constant-length texts of different lengths are mixed, they will be
+         coerced to a varying-length type.
+
+         If one of the matched columns has `Mixed` type, that type will be used
+         regardless of types of other columns. Mixing any other types will
+         result in a `No_Common_Type` problem. If columns of incompatible types
+         are meant to be mixed, at least one of them should be explicitly
+         retyped to the `Mixed` type to indicate that intention.
+    concat : (Table | Vector Table) -> Match_Columns -> Problem_Behavior -> Table
+    concat tables match_columns=Match_Columns.By_Name allow_type_widening=True on_problems=Report_Warning = case match_columns of
+        Match_Columns.By_Name -> unimplemented "By_Name concat is not implemented in the prototype"
+        Match_Columns.By_Position ->
+            tables_prim = case tables of
+                _ : Vector.Vector -> tables
+                table : Table -> [table]
+            case tables_prim.find t-> t.columns.length != self.columns.length of
+                Nothing ->
+                    # TODO type handling is not done in the prototype
+                    to_concat = [self]+tables_prim . map .java_table
+                    Java_Table.concat to_concat
+                bad_table -> Error.throw (Column_Count_Mismatch_Data self.columns.length bad_table.columns.length)
 
     ## Returns the number of rows in this table.
 
