@@ -3,6 +3,8 @@ package org.enso.interpreter.test;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -37,12 +39,13 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    * An event listener implementing the behavior of verifying whether the currently executed node is
    * the one expected by the user.
    */
-  public static class IdEventListener implements ExecutionEventListener {
+  public static class IdEventListener implements ExecutionEventNodeFactory {
     private boolean successful = false;
     private final UUID expectedId;
     private final String expectedResult;
+    private final Set<IdEventNode> nodes = new LinkedHashSet<>();
 
-    public IdEventListener(UUID expectedId, String expectedResult) {
+    IdEventListener(UUID expectedId, String expectedResult) {
       this.expectedId = expectedId;
       this.expectedResult = expectedResult;
     }
@@ -65,52 +68,87 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
       return expectedResult;
     }
 
-    @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {}
-
-    /**
-     * Checks if the node to be executed is the node this listener was created to observe.
-     *
-     * @param context current execution context
-     * @param frame current execution frame
-     * @param result the result of executing the node
-     */
-    @Override
-    public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-      if (successful) {
-        return;
+    public String dumpNodes() {
+      var sb = new StringBuilder();
+      for (var n : nodes) {
+        sb.append("\n").append(n.toString());
       }
-      Node node = context.getInstrumentedNode();
-      if (!(node instanceof ExpressionNode)) {
-        return;
-      }
-      UUID id = ((ExpressionNode) node).getId();
-      if (!id.equals(expectedId)) {
-        return;
-      }
-      if (expectedResult != null && expectedResult.equals(result.toString())) {
-        successful = true;
-      }
+      return sb.toString();
     }
 
-    /**
-     * Checks if the specified was called, if its execution triggered TCO.
-     *
-     * @param context current execution context.
-     * @param frame current execution frame.
-     * @param exception the exception thrown from this node's execution.
-     */
     @Override
-    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-      if (!(exception instanceof TailCallException)) {
-        return;
+    public ExecutionEventNode create(EventContext context) {
+      var node = new IdEventNode(context);
+      nodes.add(node);
+      return node;
+    }
+
+    private final class IdEventNode extends ExecutionEventNode {
+      private final EventContext context;
+
+      IdEventNode(EventContext context) {
+        this.context = context;
       }
-      if (!(context.getInstrumentedNode() instanceof ExpressionNode)) {
-        return;
+
+      @Override
+      public void onEnter(VirtualFrame frame) {}
+
+      /**
+       * Checks if the node to be executed is the node this listener was created to observe.
+       *
+       * @param context current execution context
+       * @param frame current execution frame
+       * @param result the result of executing the node
+       */
+      @Override
+      public void onReturnValue(VirtualFrame frame, Object result) {
+        if (successful) {
+          return;
+        }
+        Node node = context.getInstrumentedNode();
+        if (!(node instanceof ExpressionNode)) {
+          return;
+        }
+        UUID id = ((ExpressionNode) node).getId();
+        if (!id.equals(expectedId)) {
+          return;
+        }
+        if (expectedResult != null && expectedResult.equals(result.toString())) {
+          successful = true;
+        }
       }
-      UUID id = ((ExpressionNode) context.getInstrumentedNode()).getId();
-      if (expectedResult == null) {
-        successful = true;
+
+      /**
+       * Checks if the specified was called, if its execution triggered TCO.
+       *
+       * @param context current execution context.
+       * @param frame current execution frame.
+       * @param exception the exception thrown from this node's execution.
+       */
+      @Override
+      public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
+        if (!(exception instanceof TailCallException)) {
+          return;
+        }
+        if (!(context.getInstrumentedNode() instanceof ExpressionNode)) {
+          return;
+        }
+        UUID id = ((ExpressionNode) context.getInstrumentedNode()).getId();
+        if (expectedResult == null) {
+          successful = true;
+        }
+      }
+
+      @Override
+      public String toString() {
+        var sb = new StringBuilder();
+        sb.append(context.getInstrumentedNode().getClass().getSimpleName());
+        if (context.getInstrumentedNode() instanceof ExpressionNode expr) {
+            sb.append("@").append(expr.getId());
+        }
+        sb.append(" ");
+        sb.append(context.getInstrumentedSourceSection());
+        return sb.toString();
       }
     }
   }
@@ -125,13 +163,13 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    */
   public EventBinding<IdEventListener> bindTo(UUID id, String expectedResult) {
     var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
-    return env.getInstrumenter()
-        .attachExecutionEventListener(
-            SourceSectionFilter.newBuilder()
-                .sourceFilter(testSource)
-                .tagIs(IdentifiedTag.class)
-                .build(),
-            new IdEventListener(id, expectedResult));
+    var eventFilter =
+        SourceSectionFilter.newBuilder()
+            .sourceFilter(testSource)
+            .tagIs(IdentifiedTag.class)
+            .build();
+    var factory = new IdEventListener(id, expectedResult);
+    return env.getInstrumenter().attachExecutionEventFactory(eventFilter, factory);
   }
 
   /**
