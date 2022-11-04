@@ -47,6 +47,13 @@ impl Add<&LineDiff> for &ViewLine {
     }
 }
 
+impl From<u8> for ViewLine {
+    fn from(value: u8) -> Self {
+        ViewLine(value as usize)
+    }
+}
+
+
 
 // ====================
 // === ViewLocation ===

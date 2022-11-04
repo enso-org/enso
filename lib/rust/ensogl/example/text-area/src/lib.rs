@@ -60,8 +60,8 @@ const GREEN: Vector4 = Vector4::new(0.2, 0.85, 0.2, 1.0);
 
 mod h_line {
     use super::*;
-    ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl_core::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let height = Var::<Pixels>::from("input_size.y");
             let shape = Rect((BORDER_WIDTH.px(), height));
@@ -73,8 +73,8 @@ mod h_line {
 
 mod v_line {
     use super::*;
-    ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl_core::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let shape = Rect((width, BORDER_WIDTH.px()));
@@ -162,7 +162,6 @@ pub fn main() {
     });
 }
 
-
 fn init(app: Application) {
     let area = app.new_view::<Text>();
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
@@ -170,21 +169,13 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcdefg");
-    // area.set_font("default");
+    area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_property_default(color::Rgba::red());
     area.focus();
     area.hover();
 
     let borders = Borders::default();
     borders.show(&app, &area);
-
-    // FIXME: fix forward_panic_hook_to_console
-    // FIXME: fix test in monitor
-
-    // TODO: Task na unit testyy do textow
-    // TODO: next PR - > Text area to gui component.
-
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());

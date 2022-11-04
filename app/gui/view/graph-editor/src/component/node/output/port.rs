@@ -172,14 +172,14 @@ pub mod single_port {
     use super::*;
     use ensogl::display::shape::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, size_multiplier:f32, opacity:f32, color_rgb:Vector3<f32>) {
             let overall_width  = Var::<Pixels>::from("input_size.x");
             let overall_height = Var::<Pixels>::from("input_size.y");
             let ports          = AllPortsShape::new(&overall_width,&overall_height,&size_multiplier);
             let color          = Var::<color::Rgba>::from("srgba(input_color_rgb,input_opacity)");
             let shape          = ports.shape.fill(color);
-            let hover          = ports.hover.fill(HOVER_COLOR);
+            let hover          = ports.hover.fill(INVISIBLE_HOVER_COLOR);
             (shape + hover).into()
         }
     }
@@ -298,7 +298,7 @@ pub mod multi_port {
         crop_shape.into()
     }
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         ( style           : Style
         , size_multiplier : f32
         , index           : f32
@@ -323,7 +323,7 @@ pub mod multi_port {
 
             let hover_area = ports.hover.difference(&left_shape_crop);
             let hover_area = hover_area.intersection(&right_shape_crop);
-            let hover_area = hover_area.fill(HOVER_COLOR);
+            let hover_area = hover_area.fill(INVISIBLE_HOVER_COLOR);
 
             let padding_left  = Var::<Pixels>::from(padding_left);
             let padding_right = Var::<Pixels>::from(padding_right);

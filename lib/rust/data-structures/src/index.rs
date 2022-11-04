@@ -13,7 +13,7 @@ use crate::prelude::*;
 ///
 /// Useful to introduce type safety when using indexes of several indexable containers, for example:
 ///
-/// ```no_run
+/// ```text
 /// # use enso_data_structures::index::Index;
 /// # struct Edge {}
 /// # struct Vertex {}

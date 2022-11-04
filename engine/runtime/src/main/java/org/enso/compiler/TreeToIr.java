@@ -660,13 +660,13 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var loc = getIdentifiedLocation(body, 0, 1, null);
-        if (last != null && last.location().isDefined() && last.location().get().end() != loc.get().end()) {
-            var patched = new Location(last.location().get().start(), loc.get().end() - 1);
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 1, null);
+        if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
+            var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
             var id = new IdentifiedLocation(patched, last.location().get().id());
             last = last.setLocation(Option.apply(id));
         }
-        yield new IR$Expression$Block(list, last, loc, false, meta(), diag());
+        yield new IR$Expression$Block(list, last, locationWithANewLine, false, meta(), diag());
       }
       case Tree.Assignment assign -> {
         var name = buildNameOrQualifiedName(assign.getPattern());
@@ -713,7 +713,10 @@ final class TreeToIr {
       case Tree.Group group -> {
           yield switch (translateExpression(group.getBody(), false)) {
               case null -> new IR$Error$Syntax(getIdentifiedLocation(group).get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
-              case IR$Application$Prefix pref -> pref.setLocation(getIdentifiedLocation(group, 1, -1, pref.getExternalId()));
+              case IR$Application$Prefix pref -> {
+                  final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1, pref.getExternalId());
+                  yield pref.setLocation(groupWithoutParenthesis);
+              }
               case IR.Expression in -> in;
           };
       }

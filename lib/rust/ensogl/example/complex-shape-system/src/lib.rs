@@ -25,7 +25,7 @@ use ensogl_core::display::style::theme;
 
 mod shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
@@ -41,7 +41,7 @@ mod shape {
 
 mod mask {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let shape = Circle(60.px());
             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));
@@ -64,8 +64,6 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let logger = Logger::new("ShapeView");
-
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
     let theme1 = theme::Theme::new();
@@ -95,15 +93,17 @@ pub fn main() {
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    let mask_layer = scene::layer::Layer::new(logger.sub("MaskLayer"));
+    let mask_layer = scene::layer::Layer::new("MaskLayer");
     scene.layers.node_searcher.set_mask(&mask_layer);
 
     let mask = mask::View::new();
     mask.size.set(Vector2::new(300.0, 300.0));
     mask.mod_position(|t| *t = Vector3::new(-50.0, 0.0, 0.0));
 
+    // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
+    //     affected by the camera position.
     let scissor_box =
-        scene::layer::ScissorBox::new_with_position_and_size(default(), Vector2(600, 600));
+        scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
     scene.layers.main.set_scissor_box(Some(&scissor_box));
 
     let view2 = shape::View::new();
@@ -155,9 +155,9 @@ pub fn main() {
                 // DEBUG!("{scene.layers.node_searcher_mask:#?}");
                 // DEBUG!("{scene.layers.viz:#?}");
 
-                scene.layers.node_searcher.add_exclusive(&view1);
-                scene.layers.node_searcher.add_exclusive(&view2);
-                mask_layer.add_exclusive(&mask);
+                scene.layers.node_searcher.add(&view1);
+                scene.layers.node_searcher.add(&view2);
+                mask_layer.add(&mask);
             }
             if frame == 200 {
                 DEBUG!("Changing the theme.");

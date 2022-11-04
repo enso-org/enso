@@ -53,7 +53,7 @@ pub fn derive(
                 #(#attrs)*
                 #[wasm_bindgen]
                 pub #fn_sig {
-                    init_wasm();
+                    init_global();
                     #block
                 }
             };

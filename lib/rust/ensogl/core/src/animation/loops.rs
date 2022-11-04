@@ -204,7 +204,7 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
 pub struct LoopRegistry {
     #[deref]
     frp:            Frp,
-    callbacks:      callback::registry::MutNoArgs,
+    callbacks:      callback::registry::NoArgs,
     animation_loop: JsLoop<OnFrameClosure>,
 }
 
@@ -242,7 +242,7 @@ fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut() {
 
 /// Callback for an animation frame.
 pub type OnFrameClosure = impl FnMut(Duration);
-fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::MutNoArgs) -> OnFrameClosure {
+fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::NoArgs) -> OnFrameClosure {
     let on_frame_start = frp.private.output.on_frame_start.clone_ref();
     let frame_end = frp.private.output.frame_end.clone_ref();
     let on_before_animations = frp.private.output.on_before_animations.clone_ref();
