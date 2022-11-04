@@ -439,15 +439,19 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = module.getSource
-    val now  = System.currentTimeMillis()
-    val tree = ensoCompiler.parse(src)
+    val src = module.getSource
+    def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
+      val tree = parse(src)
+      generateIR(tree)
+    }
+    def newParser() = {
+      val tree = ensoCompiler.parse(src)
+      ensoCompiler.generateIR(tree)
+    }
     val size = src.getCharacters().length()
-    val expr = ensoCompiler.generateIR(tree)
-    val took = System.currentTimeMillis() - now
-    System.err.println(
-      "Parsed " + src.getURI() + " in " + took + " ms, size " + size
-    )
+    // change the condition to use old or new parser
+    val expr = if (size < 0) oldParser() else newParser()
 
     val exprWithModuleExports =
       if (module.isSynthetic)
