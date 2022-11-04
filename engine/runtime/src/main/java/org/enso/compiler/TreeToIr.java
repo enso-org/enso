@@ -326,7 +326,7 @@ final class TreeToIr {
         args = cons(translateTypeCallArgument(tApp.getArg()), args);
         t = tApp.getFunc();
       }
-      var fullQualifiedNames = qualifiedNameSegments(t).reverse();
+      var fullQualifiedNames = qualifiedNameSegments(t, false).reverse();
       var segments = fullQualifiedNames.length();
       var type = switch (segments) {
         case 1 -> fullQualifiedNames.head();
@@ -536,7 +536,7 @@ final class TreeToIr {
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
-            yield buildQualifiedName(app, loc, true);
+            yield buildQualifiedName(app, loc, false);
           }
 
           case "->" -> {
@@ -820,7 +820,7 @@ final class TreeToIr {
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
-            yield buildQualifiedName(app, loc, true);
+            yield buildQualifiedName(app, loc, false);
           }
           case "->" -> {
             var literal = translateType(app.getLhs(), insideTypeAscription);
@@ -862,7 +862,7 @@ final class TreeToIr {
                 getIdentifiedLocation(arr), meta(), diag()
         );
       }
-      case Tree.Ident id when insideTypeAscription -> buildQualifiedName(id, getIdentifiedLocation(id), true);
+      case Tree.Ident id when insideTypeAscription -> buildQualifiedName(id, getIdentifiedLocation(id), false);
       case Tree.Ident id -> buildName(getIdentifiedLocation(id), id.getToken(), false);
       case Tree.Group group -> translateType(group.getBody(), insideTypeAscription);
       case Tree.UnaryOprApp un -> translateType(un.getRhs(), insideTypeAscription);
@@ -1090,13 +1090,13 @@ final class TreeToIr {
   }
 
   private IR$Name$Qualified buildQualifiedName(Tree t) {
-    return buildQualifiedName(t, Option.empty(), true);
+    return buildQualifiedName(t, Option.empty(), false);
   }
-  private IR$Name$Qualified buildQualifiedName(Tree t, Option<IdentifiedLocation> loc, boolean fail) {
-    return new IR$Name$Qualified(qualifiedNameSegments(t), loc, meta(), diag());
+  private IR$Name$Qualified buildQualifiedName(Tree t, Option<IdentifiedLocation> loc, boolean generateId) {
+    return new IR$Name$Qualified(qualifiedNameSegments(t, generateId), loc, meta(), diag());
   }
   private IR.Name buildNameOrQualifiedName(Tree t) {
-    var segments = qualifiedNameSegments(t);
+    var segments = qualifiedNameSegments(t, false);
     if (segments.length() == 1) {
       return segments.head();
     } else {
@@ -1127,21 +1127,21 @@ final class TreeToIr {
     java.util.Collections.reverse(elems);
     return elems;
   }
-  private IR.Name qualifiedNameSegment(Tree tree) {
+  private IR.Name qualifiedNameSegment(Tree tree, boolean generateId) {
     return switch (tree) {
-      case Tree.Ident id -> sanitizeName(buildName(id));
-      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken()), meta(), diag());
+      case Tree.Ident id -> sanitizeName(buildName(id, generateId));
+      case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild.getToken(), generateId), meta(), diag());
       default -> throw new UnhandledEntity(tree, "qualifiedNameSegment");
     };
   }
-  private List<IR.Name> qualifiedNameSegments(Tree t) {
+  private List<IR.Name> qualifiedNameSegments(Tree t, boolean generateId) {
     java.util.stream.Stream<IR.Name> segments =
-            unrollOprRhs(t, ".").stream().map(segment -> qualifiedNameSegment(segment));
+            unrollOprRhs(t, ".").stream().map(segment -> qualifiedNameSegment(segment, generateId));
     return CollectionConverters.asScala(segments.iterator()).toList();
   }
   private List<IR$Name$Literal> buildNameSequence(Tree t) {
     java.util.stream.Stream<IR$Name$Literal> segments =
-            unrollOprRhs(t, ",").stream().map(segment -> buildName(segment));
+            unrollOprRhs(t, ",").stream().map(segment -> buildName(segment, true));
     return CollectionConverters.asScala(segments.iterator()).toList();
   }
 
@@ -1158,7 +1158,7 @@ final class TreeToIr {
       if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
         throw new UnhandledEntity(imp, "translateImport");
       }
-      List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody());
+      List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody(), true);
       StringBuilder pkg = new StringBuilder();
       String cls = extractPackageAndName(qualifiedName, pkg);
       return new IR$Module$Scope$Import$Polyglot(
@@ -1171,7 +1171,7 @@ final class TreeToIr {
     IR$Name$Qualified qualifiedName;
     Option<List<IR$Name$Literal>> onlyNames = Option.empty();
     if (imp.getFrom() != null) {
-      qualifiedName = buildQualifiedName(imp.getFrom().getBody());
+      qualifiedName = buildQualifiedName(imp.getFrom().getBody(), Option.empty(), true);
       if (!isAll) {
         onlyNames = Option.apply(buildNameSequence(imp.getImport().getBody()));
       }
@@ -1247,8 +1247,11 @@ final class TreeToIr {
     return buildName(getIdentifiedLocation(name), name, false);
   }
   private IR$Name$Literal buildName(Tree ident) {
+    return buildName(ident, false);
+  }
+  private IR$Name$Literal buildName(Tree ident, boolean generateId) {
     return switch (ident) {
-      case Tree.Ident id -> buildName(getIdentifiedLocation(ident), id.getToken(), false);
+      case Tree.Ident id -> buildName(getIdentifiedLocation(ident, generateId), id.getToken(), false);
       default -> throw new UnhandledEntity(ident, "buildName");
     };
   }
@@ -1289,6 +1292,10 @@ final class TreeToIr {
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
     var someId = Option.apply(ast.uuid());
+    return getIdentifiedLocation(ast, 0, 0, someId);
+  }
+  private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, boolean generateId) {
+    var someId = Option.apply(ast.uuid() == null && generateId ? UUID.randomUUID() : ast.uuid());
     return getIdentifiedLocation(ast, 0, 0, someId);
   }
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e, Option<UUID> someId) {
@@ -1339,10 +1346,17 @@ final class TreeToIr {
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Token ast) {
-    return Option.apply(ast).map(ast_ -> {
-      int begin = Math.toIntExact(ast_.getStartCode());
-      int end = Math.toIntExact(ast_.getEndCode());
-      return new IdentifiedLocation(new Location(begin, end), Option.empty());
+    return getIdentifiedLocation(ast, false);
+  }
+  private Option<IdentifiedLocation> getIdentifiedLocation(Token ast, boolean generateId) {
+    return Option.apply(switch (ast) {
+      case null -> null;
+      default -> {
+        int begin = Math.toIntExact(ast.getStartCode());
+        int end = Math.toIntExact(ast.getEndCode());
+        var id = Option.apply(generateId ? UUID.randomUUID() : null);
+        yield new IdentifiedLocation(new Location(begin, end), id);
+      }
     });
   }
   private MetadataStorage meta() {
