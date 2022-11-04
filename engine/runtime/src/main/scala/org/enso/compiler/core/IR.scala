@@ -739,6 +739,7 @@ object IR {
             |rename = $rename,
             |onlyNames = $onlyNames,
             |hiddenNames = $hiddenNames,
+            |isAll = $isAll,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -7482,8 +7483,9 @@ object IR {
       @annotation.nowarn
       override val location: Option[IdentifiedLocation] =
         at match {
-          case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
-          case _        => None
+          case ast: AST                => ast.location.map(IdentifiedLocation(_, ast.id))
+          case loc: IdentifiedLocation => Some(loc)
+          case _                       => None
         }
 
       /** @inheritdoc */
