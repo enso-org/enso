@@ -151,7 +151,7 @@ sort_and_merge_ranges ranges =
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
-    _ : Integer -> single_slice 0 (Math.min length index_sub_range)
+    count : Integer -> take_helper length at single_slice slice_ranges (First count)
     Range_Data _ _ _ -> take_helper length at single_slice slice_ranges (By_Index index_sub_range)
     First count -> single_slice 0 (Math.min length count)
     Last count -> single_slice length-count length
