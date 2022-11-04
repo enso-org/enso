@@ -22,7 +22,7 @@ class ConstructorsTest extends InterpreterTest {
           |    case x of
           |        Cons h t -> h
           |        Nil -> 0
-      """.stripMargin
+          |""".stripMargin
       eval(patternMatchingCode) shouldEqual 1
     }
 
@@ -37,7 +37,7 @@ class ConstructorsTest extends InterpreterTest {
           |        Nil -> 0
           |
           |    sumList (genList 10)
-      """.stripMargin
+          |""".stripMargin
       eval(testCode) shouldEqual 55
     }
 
@@ -53,7 +53,7 @@ class ConstructorsTest extends InterpreterTest {
           |        Cons x y -> add x y
           |
           |    result + 1
-      """.stripMargin
+          |""".stripMargin
       eval(testCode) shouldEqual 4
     }
 
@@ -66,7 +66,7 @@ class ConstructorsTest extends InterpreterTest {
           |    case nil of
           |        Cons _ _ -> 0
           |        _ -> 1
-      """.stripMargin
+          |""".stripMargin
       eval(testCode) shouldEqual 1
     }
 
@@ -78,7 +78,7 @@ class ConstructorsTest extends InterpreterTest {
           |    nil = Nil
           |    case nil of
           |        Cons h t -> 0
-      """.stripMargin
+          |""".stripMargin
       the[InterpreterException] thrownBy eval(testCode)
         .call() should have message "Inexhaustive pattern match: no branch matches Nil."
     }
@@ -100,7 +100,7 @@ class ConstructorsTest extends InterpreterTest {
           |  Nil2 -> 0
           |
           |main = Nothing.sumList (Nothing.genList 10)
-      """.stripMargin
+          |""".stripMargin
       eval(testCode) shouldEqual 55
     }
   }
