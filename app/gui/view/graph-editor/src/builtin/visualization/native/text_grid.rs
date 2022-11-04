@@ -436,5 +436,5 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
     let text_metrics = context.measure_text(sample_text).unwrap();
     let width = text_metrics.actual_bounding_box_right() + text_metrics.actual_bounding_box_left();
 
-    width as f32 / sample_text.len() as f32
+    2.4 * width as f32 / sample_text.len() as f32
 }
