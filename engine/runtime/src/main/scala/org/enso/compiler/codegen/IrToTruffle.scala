@@ -230,23 +230,23 @@ class IrToTruffle(
           val argumentExpressions =
             new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
 
-        for (idx <- atomDefn.arguments.indices) {
-          val unprocessedArg = atomDefn.arguments(idx)
-          val arg            = argFactory.run(unprocessedArg, idx)
-          val occInfo = unprocessedArg
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No occurrence on an argument definition."
-            )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
-          val slotIdx = localScope.createVarSlotIdx(occInfo.id)
-          argDefs(idx) = arg
-          val readArg =
-            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
-          val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-          argumentExpressions.append((assignmentArg, argRead))
-        }
+          for (idx <- atomDefn.arguments.indices) {
+            val unprocessedArg = atomDefn.arguments(idx)
+            val arg            = argFactory.run(unprocessedArg, idx)
+            val occInfo = unprocessedArg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No occurrence on an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
+            val slotIdx = localScope.createVarSlotIdx(occInfo.id)
+            argDefs(idx) = arg
+            val readArg =
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+            val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+            val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            argumentExpressions.append((assignmentArg, argRead))
+          }
 
           val (assignments, reads) = argumentExpressions.unzip
           if (!atomCons.isInitialized) {
