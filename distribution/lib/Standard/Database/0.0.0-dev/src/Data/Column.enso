@@ -322,8 +322,9 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
+        ## TODO: Revisit this as part of the column value type work.
         op = case other of
-            _ : Column -> if self.sql_type.is_definitely_numeric.not && other.sql_type.is_definitely_integer.not then 'ADD_TEXT' else 'ADD_NUMBER'
+            _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_integer then 'ADD_NUMBER' else 'ADD_TEXT'
             _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
         self.make_binary_op op other
 
@@ -392,7 +393,7 @@ type Column
     % : Column | Any -> Column
     % self other = self.make_binary_op "%" other
 
-    ## ALIAS Power Columns
+    ## ALIAS Power
 
        Element-wise raising to the power.
 
@@ -784,6 +785,7 @@ type Column
     var_args_functions = ['coalesce', 'min', 'max']
 
 ## PRIVATE
+   TODO: Revisit this as part of the column value type work.
 get_approximate_type value default = case value of
     _ : Column -> value.sql_type
     Nothing -> default

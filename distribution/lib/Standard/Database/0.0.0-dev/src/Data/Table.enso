@@ -510,12 +510,12 @@ type Table
     ## PRIVATE
     evaluate : Text -> Column
     evaluate self expression =
-        getColumn name = self.at name
-        makeConstant value =
+        get_column name = self.at name
+        make_constant value =
             new_type = SQL_Type.approximate_type value
             other = Expression.Constant new_type value
-            Column.Value (UUID.randomUUID.to_text) self.connection new_type other self.context
-        Derived_Expression.For_Column expression . evaluate getColumn makeConstant "Standard.Database.Data.Column" "Column" Column.var_args_functions
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
+        Derived_Expression.For_Column expression . evaluate get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
 
     ## UNSTABLE
 

@@ -1176,7 +1176,7 @@ type Column
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Column
-    slice self start=0 end=(self.length-1) =
+    slice self start end =
         length = self.length
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
@@ -1247,7 +1247,7 @@ type Column
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Vector
-    var_args_functions = ['coalesce', 'min', 'max', 'sum', 'mean']
+    var_args_functions = ['coalesce', 'min', 'max']
 
 ## UNSTABLE
 
@@ -1273,11 +1273,11 @@ type Empty_Error
      `False`, the null values are passed as any other value and can have custom
      handling logic.
    - new_name: The name of the column created as the result of this operation.
-run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Boolean -> Text -> Column
+run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
 run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
     case operands of
         _ : Vector.Vector ->
-            folded = operands.fold column.java_column.getStorage current->operand->
+            folded = operands.fold column.java_column.getStorage current-> operand->
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
                     _ -> current.bimap name fallback_fn operand skip_nulls
