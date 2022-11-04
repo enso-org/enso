@@ -890,7 +890,7 @@ type Table
          Take rows from the top of the table as long as their values sum to 10.
 
              table.take (While row-> row.to_vector.sum == 10)
-    take : (Index_Sub_Range | Range) -> Table
+    take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         Index_Sub_Range.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
@@ -912,7 +912,7 @@ type Table
          Drop rows from the top of the table as long as their values sum to 10.
 
              table.drop (While row-> row.to_vector.sum == 10)
-    drop : (Index_Sub_Range | Range) -> Table
+    drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         Index_Sub_Range.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 

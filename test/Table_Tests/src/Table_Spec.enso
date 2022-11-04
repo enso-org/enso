@@ -622,6 +622,7 @@ spec =
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
             t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take (First 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
@@ -629,7 +630,14 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
+            t_3 = t_1.take 2
+            t_3.index.to_vector . should_equal (t_1.index.to_vector . take 2)
+            t_3.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
+            t_3.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take 2)
+            t_3.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take 2)
+
             t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]

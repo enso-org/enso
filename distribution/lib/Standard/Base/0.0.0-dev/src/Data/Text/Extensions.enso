@@ -1086,7 +1086,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
-Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds_Error
 Text.take self range=(First 1) =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
     case ranges of

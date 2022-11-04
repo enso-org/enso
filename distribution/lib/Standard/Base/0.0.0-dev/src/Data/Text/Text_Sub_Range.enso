@@ -44,7 +44,7 @@ type Text_Sub_Range
    While the input ranges may have varying steps, they are processed and split
    in such a way that the ranges returned by this method always have a step
    equal to 1.
-find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range) -> (Range_Data | Codepoint_Ranges)
+find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range_Data | Codepoint_Ranges)
 find_codepoint_ranges text subrange =
     case subrange of
         Before delimiter ->
@@ -103,6 +103,8 @@ find_codepoint_ranges text subrange =
                     find_codepoint_ranges text (By_Index range)
         Range_Data _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
+        _ : Integer ->
+            find_codepoint_ranges text (First subrange)
 
 # TODO Dubious constructor export
 from project.Data.Text.Text_Sub_Range.Codepoint_Ranges import all
