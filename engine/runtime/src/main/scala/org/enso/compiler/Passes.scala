@@ -82,6 +82,7 @@ class Passes(
       TailCall,
       Patterns,
       AliasAnalysis,
+      FrameIndexAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings
@@ -104,7 +105,8 @@ class Passes(
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    FrameIndexAnalysis    -->> FrameIndexAnalysis.Configuration()
   )
 
   /** The pass manager for running compiler passes. */
