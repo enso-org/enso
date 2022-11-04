@@ -75,7 +75,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
-    var visitor = new ExpressionVisitorImpl(getColumn, makeConstantColumn, moduleName, typeName, variableArgumentFunctions);
+    var visitor =
+        new ExpressionVisitorImpl(
+            getColumn, makeConstantColumn, moduleName, typeName, variableArgumentFunctions);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -105,7 +107,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private Value wrapAsColumn(Value value) {
     if (value.isNull()) {
-      return  makeConstantColumn.apply(value);
+      return makeConstantColumn.apply(value);
     }
 
     var metaObject = value.getMetaObject();
@@ -262,7 +264,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     try {
       return Value.asValue(LocalDate.parse(ctx.text.getText()));
     } catch (DateTimeParseException e) {
-      throw new SyntaxErrorException("Invalid Date format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+      throw new SyntaxErrorException(
+          "Invalid Date format: " + text,
+          ctx.getStart().getLine(),
+          ctx.getStart().getCharPositionInLine());
     }
   }
 
@@ -272,7 +277,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     try {
       return Value.asValue(LocalTime.parse(ctx.text.getText()));
     } catch (DateTimeParseException e) {
-      throw new SyntaxErrorException("Invalid Time format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+      throw new SyntaxErrorException(
+          "Invalid Time format: " + text,
+          ctx.getStart().getLine(),
+          ctx.getStart().getCharPositionInLine());
     }
   }
 
@@ -282,10 +290,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var timezone = text.contains("[") ? text.substring(text.indexOf('[')) : "";
     text = text.substring(0, text.length() - timezone.length());
 
-    var zoneId = timezone.equals("") ? ZoneId.systemDefault() : ZoneId.of(timezone.substring(1, timezone.length() - 1));
+    var zoneId =
+        timezone.equals("")
+            ? ZoneId.systemDefault()
+            : ZoneId.of(timezone.substring(1, timezone.length() - 1));
 
     try {
-      var zonedDateTime = ZonedDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(zoneId));
+      var zonedDateTime =
+          ZonedDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(zoneId));
       return Value.asValue(zonedDateTime);
     } catch (DateTimeParseException ignored) {
     }
@@ -294,7 +306,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       var localDateTime = LocalDateTime.parse(text);
       return Value.asValue(localDateTime.atZone(zoneId));
     } catch (DateTimeParseException e) {
-      throw new SyntaxErrorException("Invalid Date_Time format: " + text, ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+      throw new SyntaxErrorException(
+          "Invalid Date_Time format: " + text,
+          ctx.getStart().getLine(),
+          ctx.getStart().getCharPositionInLine());
     }
   }
 
