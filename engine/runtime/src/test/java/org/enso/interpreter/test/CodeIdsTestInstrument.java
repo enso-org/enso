@@ -124,9 +124,13 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    * @return a reference to attached event listener
    */
   public EventBinding<IdEventListener> bindTo(UUID id, String expectedResult) {
+    var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
     return env.getInstrumenter()
         .attachExecutionEventListener(
-            SourceSectionFilter.newBuilder().tagIs(IdentifiedTag.class).build(),
+            SourceSectionFilter.newBuilder()
+                .sourceFilter(testSource)
+                .tagIs(IdentifiedTag.class)
+                .build(),
             new IdEventListener(id, expectedResult));
   }
 
