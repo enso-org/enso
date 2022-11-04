@@ -13,7 +13,7 @@ expr:   expr op=POWER expr                                # Power
     |   expr op=AND expr                                  # And
     |   expr op=OR expr                                   # Or
     |   IF expr THEN expr ELSE expr END?                  # If
-    |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function
+    |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function  // This allows for functions of 0 or more arguments within brackets (e.g. PI(), SIN(1), MOD(3,4) etc.)
     |   '(' expr ')'                                      # Paren
     |   COLUMN_NAME                                       # Column
     |   MINUS expr                                        # UnaryMinus

@@ -515,7 +515,7 @@ type Table
             new_type = SQL_Type.approximate_type value
             other = Expression.Constant new_type value
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
-        Derived_Expression.For_Column expression . evaluate get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
+        Derived_Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
 
     ## UNSTABLE
 
