@@ -1,5 +1,6 @@
 package org.enso.compiler;
 
+import java.util.UUID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
@@ -166,7 +167,7 @@ final class TreeToIr {
           methodRef,
           args,
           body,
-          getIdentifiedLocation(inputAst, 0, 1),
+          getIdentifiedLocation(inputAst, 0, 1, null),
           meta(), diag()
         );
         yield cons(binding, appendTo);
@@ -566,7 +567,7 @@ final class TreeToIr {
               );
             }
             var at = expandToContain(switch (body) {
-              case IR$Expression$Block __ -> getIdentifiedLocation(tree, 0, 1);
+              case IR$Expression$Block __ -> getIdentifiedLocation(tree, 0, 1, null);
               default -> getIdentifiedLocation(tree);
             }, body.location());
             yield new IR$Function$Lambda(args, body, at, true, meta(), diag());
@@ -659,7 +660,7 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var loc = getIdentifiedLocation(body, 0, 1);
+        var loc = getIdentifiedLocation(body, 0, 1, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != loc.get().end()) {
             var patched = new Location(last.location().get().start(), loc.get().end() - 1);
             var id = new IdentifiedLocation(patched, loc.get().id());
@@ -712,7 +713,7 @@ final class TreeToIr {
       case Tree.Group group -> {
           yield switch (translateExpression(group.getBody(), false)) {
               case null -> new IR$Error$Syntax(getIdentifiedLocation(group).get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
-              case IR$Application$Prefix pref -> pref.setLocation(getIdentifiedLocation(group, 1, -1));
+              case IR$Application$Prefix pref -> pref.setLocation(getIdentifiedLocation(group, 1, -1, pref.getExternalId()));
               case IR.Expression in -> in;
           };
       }
@@ -1284,17 +1285,20 @@ final class TreeToIr {
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
-    return getIdentifiedLocation(ast, 0, 0);
+    var someId = Option.apply(ast.uuid());
+    return getIdentifiedLocation(ast, 0, 0, someId);
   }
-  private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e) {
+  private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e, Option<UUID> someId) {
+    if (someId == null) {
+      someId = Option.apply(ast.uuid());
+    }
     return Option.apply(switch (ast) {
-        case null -> null;
-        default -> {
-            var begin = Math.toIntExact(ast.getStartCode()) + b;
-            var end = Math.toIntExact(ast.getEndCode()) + e;
-            var someId = Option.apply(ast.uuid());
-            yield new IdentifiedLocation(new Location(begin, end), someId);
-        }
+      case null -> null;
+      default -> {
+        var begin = Math.toIntExact(ast.getStartCode()) + b;
+        var end = Math.toIntExact(ast.getEndCode()) + e;
+        yield new IdentifiedLocation(new Location(begin, end), someId);
+      }
     });
   }
 
