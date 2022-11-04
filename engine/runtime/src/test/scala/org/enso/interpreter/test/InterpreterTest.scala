@@ -77,7 +77,8 @@ case class IdsInstrumenter(instrument: CodeIdsTestInstrument) {
       if (!listener.isSuccessful) {
         Assertions.fail(
           s"Node with id ${listener.getId} does not exist or did not return the" +
-          s" correct value (expected ${listener.getExpectedResult}."
+          s" correct value (expected ${listener.getExpectedResult}.\n" +
+          s"${listener.dumpNodes()}"
         )
       }
     }
