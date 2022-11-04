@@ -1042,13 +1042,17 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should allow sampling rows" <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"
-            three.take (First 2) . to_vector . should_equal ["a", "a"]
-            three.take First . to_vector . should_equal  ["a"]
-            three.take (First 0) . to_vector . should_equal []
+            two = table_builder [["X", ["a", "a"]]] . at "X"
+            one = table_builder [["X", ["a"]]] . at "X"
+            empty = table_builder [["X", []]] . at "X"
 
-            three.take 2 . to_vector . should_equal ["a", "a"]
-            three.take . to_vector . should_equal  ["a"]
-            three.take 0 . to_vector . should_equal []
+            three.take (First 2) . should_equal two
+            three.take First . should_equal one
+            three.take (First 0) . should_equal empty
+
+            three.take 2 . should_equal two
+            three.take . should_equal one
+            three.take 0 . should_equal empty
 
             three.take (Sample 0) . should_equal empty
             empty.take (Sample 0) . should_equal empty
