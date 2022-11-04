@@ -319,11 +319,24 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private IR$Application$Prefix translateTypeApplication(Tree.App app) {
+  private IR.Application translateTypeApplication(Tree.App app) {
       List<IR.CallArgument> args = nil();
       Tree t = app;
+      IR$Name$Literal in = null;
       while (t instanceof Tree.App tApp) {
-        args = cons(translateTypeCallArgument(tApp.getArg()), args);
+        var typeArg = translateTypeCallArgument(tApp.getArg());
+        if (typeArg.value() instanceof IR$Name$Literal l && "in".equals(l.name())) {
+            in = l.copy(
+              l.copy$default$1(),
+              true,
+              l.copy$default$3(),
+              l.copy$default$4(),
+              l.copy$default$5(),
+              l.copy$default$6()
+            );
+        } else {
+            args = cons(typeArg, args);
+        }
         t = tApp.getFunc();
       }
       var fullQualifiedNames = qualifiedNameSegments(t, false).reverse();
@@ -347,7 +360,12 @@ final class TreeToIr {
           yield name;
         }
       };
-      return new IR$Application$Prefix(type, args, false, getIdentifiedLocation(app), meta(), diag());
+      if (in == null) {
+        return new IR$Application$Prefix(type, args, false, getIdentifiedLocation(app), meta(), diag());
+      } else {
+        var fn = new IR$CallArgument$Specified(Option.empty(), type, getIdentifiedLocation(app), meta(), diag());
+        return new IR$Application$Operator$Binary(fn, in, args.head(), getIdentifiedLocation(app), meta(), diag());
+      }
     }
     private IR.Expression translateFunction(Tree fun, IR.Name name, java.util.List<ArgumentDefinition> arguments, final Tree treeBody) {
         var args = translateArgumentsDefinition(arguments);
@@ -1272,7 +1290,7 @@ final class TreeToIr {
       default -> id;
     };
   }
-  
+
   private Option<IdentifiedLocation> expandToContain(Option<IdentifiedLocation> encapsulating, Option<IdentifiedLocation> inner) {
     if (encapsulating.isEmpty() || inner.isEmpty()) {
       return encapsulating;

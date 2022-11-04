@@ -1084,7 +1084,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testResolveExecutionContext() throws Exception {
     parseTest("""
     foo : A -> B -> C in Input
