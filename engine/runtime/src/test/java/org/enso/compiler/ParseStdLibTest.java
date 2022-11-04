@@ -118,7 +118,7 @@ public final class ParseStdLibTest extends TestCase {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>) (Object) oldAst);
 
-    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
+    Function<IR, String> filter = (f) -> EnsoCompilerTest.simplifyIR(f, true, true, true);
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);

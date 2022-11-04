@@ -38,6 +38,57 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testLocationsSimpleArithmeticExpression() throws Exception {
+    parseTest("""
+    main = 2 + 45 * 20
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsApplicationsAndMethodCalls() throws Exception {
+    parseTest("""
+    main = (2-2 == 0).if_then_else (Cons 5 6) 0
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsCorrectAssignmentOfVariableReads() throws Exception {
+    parseTest("""
+    main =
+        x = 2 + 2 * 2
+        y = x * x
+        IO.println y
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsDeeplyNestedFunctions() throws Exception {
+    parseTest("""
+        foo = a -> b ->
+            IO.println a
+        """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsDeeplyNestedFunctionsNoBlock() throws Exception {
+    parseTest("""
+    Nothing.method =
+        add = a -> b -> a + b
+
+    main = Nothing.method
+    """, true, false, true);
+  }
+
+  @Test
+  @Ignore
+  public void testSpacesAtTheEndOfFile() throws Exception {
+    var fourSpaces = "    ";
+    parseTest("""
+    main = add_ten 5
+    """ + fourSpaces);
+  }
+
+  @Test
   public void testCase() throws Exception {
     parseTest("""
     type Msg
@@ -83,6 +134,13 @@ public class EnsoCompilerTest {
     ## TODO Dubious constructor export
     from project.Network.Http.Version.Version import all
     from project.Network.Http.Version.Version export all
+    """);
+  }
+
+  @Test
+  public void testImportTrue() throws Exception {
+    parseTest("""
+    from Standard.Base import True
     """);
   }
 
@@ -484,12 +542,42 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testEmptyGroup() throws Exception {
+    parseTest("""
+    main =
+        x = Panic.catch_primitive () .convert_to_dataflow_error
+        x.catch_primitive err->
+            case err of
+                Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
+    """);
+  }
+
+  @Test
+  public void testEmptyGroup2AndAtSymbol() throws Exception {
+    parseTest("""
+    main =
+        x = ()
+        x = 5
+        y = @
+    """);
+  }
+
+  @Test
   public void testTestGroupSimple() throws Exception {
     parseTest("""
     group1 : Text -> Any -> (Text | Nothing) -> Nothing
 
     type Test
         group2 : Text -> Any -> (Text | Nothing) -> Nothing
+    """);
+  }
+
+  @Test
+  public void testNotAnOperator() throws Exception {
+    parseTest("""
+    main =
+        x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
+        x.to_text
     """);
   }
 
@@ -789,6 +877,21 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAutoScope2() throws Exception {
+    parseTest("""
+    fn1 = fn ...
+    fn2 = fn 1 ...
+    """);
+  }
+
+  @Test
+  public void testForcedTerms() throws Exception {
+    parseTest("""
+    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
+    """);
+  }
+
+  @Test
   public void testTextArrayType() throws Exception {
     parseTest("""
     type Connection
@@ -895,6 +998,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testSidesPlus() throws Exception {
+    parseTest("""
+    result = reduce (+)
+    """);
+  }
+
+  @Test
   public void testConstructorMultipleNamedArgs1() throws Exception {
     parseTest("""
     x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
@@ -925,48 +1035,107 @@ public class EnsoCompilerTest {
     """);
   }
 
-  static String simplifyIR(IR i) {
-    var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-    for (;;) {
-      final String pref = "IdentifiedLocation(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = at + pref.length();
-      int depth = 1;
-      while (depth > 0) {
-        switch (txt.charAt(to)) {
-          case '(' -> depth++;
-          case ')' -> depth--;
+  @Test
+  public void testGroupArgument() throws Exception {
+    parseTest("""
+    foo = x -> (y = bar x) -> x + y
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testResolveExecutionContext() throws Exception {
+    parseTest("""
+    foo : A -> B -> C in Input
+    """);
+  }
+
+  @Test
+  public void testSugaredFunctionDefinition() throws Exception {
+    parseTest("""
+    main =
+        f a b = a - b
+        f 10 20
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testInThePresenceOfComments() throws Exception {
+    parseTest("""
+    # this is a comment
+    #this too
+    ## But this is a doc.
+    main = # define main
+        y = 1 # assign one to `y`
+        x = 2 # assign two to #x
+        # perform the addition
+        x + y # the addition is performed here
+    """);
+  }
+
+  static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
+    var txt = i.pretty();
+    if (noIds) {
+      txt = txt.replaceAll("id = [0-9a-f\\-]*", "id = _");
+    }
+    if (noLocations) {
+        for (;;) {
+          final String pref = "IdentifiedLocation(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = at + pref.length();
+          int depth = 1;
+          while (depth > 0) {
+            switch (txt.charAt(to)) {
+              case '(' -> depth++;
+              case ')' -> depth--;
+            }
+            to++;
+          }
+          txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
         }
-        to++;
-      }
-      txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+    }
+    if (lessDocs) {
+        for (;;) {
+          final String pref = "IR.Comment.Documentation(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+        }
+        for (;;) {
+          final String pref = "IR.Case.Pattern.Doc(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+        }
     }
     for (;;) {
-      final String pref = "IR.Comment.Documentation(";
+      final String pref = "IR.Error.Syntax(";
       int at = txt.indexOf(pref);
       if (at == -1) {
         break;
       }
-      int to = txt.indexOf("location =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
-    }
-    for (;;) {
-      final String pref = "IR.Case.Pattern.Doc(";
-      int at = txt.indexOf(pref);
-      if (at == -1) {
-        break;
-      }
-      int to = txt.indexOf("location =", at + pref.length());
-      txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+      int to = txt.indexOf("reason =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
     }
     return txt;
   }
 
+  private static void parseTest(String code) throws IOException {
+      parseTest(code, true, true, true);
+  }
+
   @SuppressWarnings("unchecked")
-  static void parseTest(String code) throws IOException {
+  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
@@ -974,7 +1143,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
+    Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);
