@@ -1213,7 +1213,7 @@ type Table
             case column_names.distinct.length == column_names.length of
                 False -> unimplemented "Renaming clashing column names is not implemented as part of this prototype."
                 True ->
-                    new_java_table = self.java_table.cross_join right.java_table
+                    new_java_table = self.java_table.crossJoin right.java_table
                     Table.Table_Data new_java_table
 
     ## ALIAS Join By Row Position
@@ -1258,7 +1258,7 @@ type Table
          order of columns is undefined and the operation may fail, reporting an
          `Undefined_Column_Order` problem.
     zip : Table -> Boolean -> Text -> Problem_Behavior -> Table
-    zip right keep_unmatched=Nothing right_prefix="Right_" on_problems=Report_Warning =
+    zip self right keep_unmatched=Nothing right_prefix="Right_" on_problems=Report_Warning =
         # TODO renaming is wrong here and not sure about length checking, very prototype-y
         new_java_table = self.java_table.hconcat right.java_table "_Left" "_"+right_prefix
         Table.Table_Data new_java_table
@@ -1326,7 +1326,7 @@ type Table
          are meant to be mixed, at least one of them should be explicitly
          retyped to the `Mixed` type to indicate that intention.
     concat : (Table | Vector Table) -> Match_Columns -> Problem_Behavior -> Table
-    concat tables match_columns=Match_Columns.By_Name allow_type_widening=True on_problems=Report_Warning = case match_columns of
+    concat self tables match_columns=Match_Columns.By_Name allow_type_widening=True on_problems=Report_Warning = case match_columns of
         Match_Columns.By_Position -> unimplemented "By_Position concat is not implemented in the prototype"
         Match_Columns.By_Name ->
             tables_prim = case tables of

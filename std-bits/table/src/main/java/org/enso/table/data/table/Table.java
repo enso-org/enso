@@ -348,7 +348,7 @@ public class Table {
     return new Table(newColumns, newIndex);
   }
 
-  Table cross_join(Table right) {
+  public Table crossJoin(Table right) {
     throw new RuntimeException("TODO");
   }
 
@@ -475,7 +475,7 @@ public class Table {
     }
   }
 
-  private Table hconcat(Table other, String lsuffix, String rsuffix) {
+  public Table hconcat(Table other, String lsuffix, String rsuffix) {
     Column[] newColumns = new Column[this.columns.length + other.columns.length];
     Set<String> lnames =
         Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());

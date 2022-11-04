@@ -14,13 +14,13 @@ main =
     c.print
 
     IO.println "a.concat b:"
-    (a.concat b).print
-
-    IO.println "a.join c (on first column):"
-    (a.join c).print
-
-    IO.println "a.cross_join c:"
-    (a.cross_join c).print
+    (a.concat b).print.catch IO.println
 
     IO.println "a.zip c:"
     (a.zip c).print
+
+    IO.println "a.join c (on first column):"
+    (a.join2 c).print
+
+    IO.println "a.cross_join c:"
+    (a.cross_join c).print
