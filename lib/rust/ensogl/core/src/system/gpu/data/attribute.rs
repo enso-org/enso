@@ -28,10 +28,10 @@ newtype_prim! {
 }
 
 /// Dirty flag collecting information which buffers were mutated.
-pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn Fn()>>;
+pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn FnMut()>>;
 
 /// Dirty flag indicating that the shape of the attribute (all buffers) was changed.
-pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type ShapeDirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
 
 
@@ -92,7 +92,6 @@ pub struct AttributeScopeData {
     buffer_dirty    : BufferDirty,
     shape_dirty     : ShapeDirty,
     buffer_name_map : HashMap<String,BufferIndex>,
-    logger          : Logger,
     free_ids        : BTreeSet<InstanceIndex>,
     size            : usize,
     context         : Option<Context>,
@@ -102,34 +101,31 @@ pub struct AttributeScopeData {
 impl {
     /// Create a new scope with the provided dirty callback.
     pub fn new<OnMut:callback::NoArgs+Clone>
-    (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    (stats:&Stats, on_mut:OnMut) -> Self {
         debug_span!("Initializing.").in_scope(|| {
-            let logger          = lgr.clone();
-            let stats           = stats.clone_ref();
-            let buffer_dirty    = BufferDirty::new(Box::new(on_mut.clone()));
-            let shape_dirty     = ShapeDirty::new(Box::new(on_mut));
-            let buffers         = default();
+            let stats = stats.clone_ref();
+            let buffer_dirty = BufferDirty::new(Box::new(on_mut.clone()));
+            let shape_dirty = ShapeDirty::new(Box::new(on_mut));
+            let buffers = default();
             let buffer_name_map = default();
-            let free_ids        = default();
-            let size            = default();
-            let context         = default();
-            Self {buffers,buffer_dirty,shape_dirty,buffer_name_map,logger,free_ids,size,context
-                 ,stats}
+            let free_ids = default();
+            let size = default();
+            let context = default();
+            Self {buffers,buffer_dirty,shape_dirty,buffer_name_map,free_ids,size,context,stats}
         })
     }
 
     /// Add a new named buffer to the scope.
     pub fn add_buffer<Name:Str, T:Storable>(&mut self, name:Name) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
-        let name         = name.as_ref().to_string();
+        let name = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
-        let shape_dirty  = self.shape_dirty.clone();
-        let ix           = self.buffers.reserve_index();
+        let shape_dirty = self.shape_dirty.clone();
+        let ix = self.buffers.reserve_index();
         debug_span!("Adding buffer '{name}' at index {ix}.").in_scope(|| {
-            let on_set     = Box::new(move || { buffer_dirty.set(ix) });
-            let on_resize  = Box::new(move || { shape_dirty.set() });
-            let logger     = Logger::new_sub(&self.logger,&name);
-            let buffer     = Buffer::new(logger,&self.stats,on_set,on_resize);
+            let on_set = Box::new(move || { buffer_dirty.set(ix) });
+            let on_resize = Box::new(move || { shape_dirty.set() });
+            let buffer = Buffer::new(&self.stats, on_set, on_resize);
             buffer.set_context(self.context.as_ref());
             let buffer_ref = buffer.clone();
             self.buffers.set(ix,AnyBuffer::from(buffer));

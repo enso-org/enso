@@ -70,7 +70,7 @@ impl From<ScopeType> for usize {
 // === Types ===
 
 /// Dirty flag remembering which scopes were mutated.
-pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn Fn()>>;
+pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn FnMut()>>;
 
 
 // === Implementation ===
@@ -112,29 +112,27 @@ shared2! { Mesh
 pub struct MeshData {
     scopes       : Scopes,
     scopes_dirty : ScopesDirty,
-    logger       : Logger,
     stats        : Stats,
 }
 
 impl {
     /// Creates new mesh with attached dirty callback.
     pub fn new<OnMut:callback::NoArgs>
-    (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    (stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
         let scopes_dirty  = ScopesDirty::new(Box::new(on_mut));
         let scopes        = debug_span!("Initializing.").in_scope(|| {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
-                let sub_logger = Logger::new_sub(&logger,stringify!($name));
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
                 let callback   = move || {scs_dirty.set(status_mod)};
-                let $name      = AttributeScope::new(sub_logger,&stats,callback);
+                let $name      = AttributeScope::new(&stats, callback);
             )*}}
             new_scope! ({point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
             Scopes {point,vertex,primitive,instance}
         });
-        Self {scopes,scopes_dirty,logger,stats}
+        Self {scopes, scopes_dirty, stats}
     }
 
     /// Point scope accessor.

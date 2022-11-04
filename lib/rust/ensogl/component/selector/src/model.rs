@@ -107,13 +107,13 @@ impl Model {
         root.add_child(&track);
         root.add_child(&right_overflow);
 
-        label_left.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label_left);
         label_left.add_to_scene_layer(&scene.layers.label);
-        label_right.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label_right);
         label_right.add_to_scene_layer(&scene.layers.label);
-        caption_left.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&caption_left);
         caption_left.add_to_scene_layer(&scene.layers.label);
-        caption_center.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&caption_center);
         caption_center.add_to_scene_layer(&scene.layers.label);
 
         Self {
@@ -300,7 +300,7 @@ impl Model {
             self.track.corner_left.set(left_corner_roundness);
         } else {
             self.show_shadow(false);
-            self.background.color.set(HOVER_COLOR.into());
+            self.background.color.set(INVISIBLE_HOVER_COLOR.into());
             self.track.corner_right.set(0.0);
             self.track.corner_left.set(0.0);
         }

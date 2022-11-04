@@ -60,7 +60,7 @@ struct Model {
 impl Model {
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let selection_menu = drop_down_menu::DropDownMenu::new(app);
-        app.display.default_scene.layers.below_main.add_exclusive(&selection_menu);
+        app.display.default_scene.layers.below_main.add(&selection_menu);
         Self { selection_menu, registry }
     }
 

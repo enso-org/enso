@@ -15,9 +15,6 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
-use crate::display::shape::system::ShapeSystemOf;
-use crate::display::shape::system::StaticShapeSystemInstance;
-use crate::display::shape::ShapeSystemInstance;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -60,68 +57,41 @@ pub use pointer_target::PointerTargetId;
 // === ShapeRegistry ===
 // =====================
 
-shared! { ShapeRegistry
+shared! { PointerTargetRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
-    //            after proper implementation of text depth sorting, which is the only component
-    //            using the obsolete fields now.
-    scene            : Option<Scene>,
-    shape_system_map : HashMap<TypeId,Box<dyn Any>>,
     mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
 }
 
 impl {
     fn new(background: &PointerTarget) -> Self {
-        let scene = default();
-        let shape_system_map = default();
         let mouse_target_map = default();
-        Self {scene, shape_system_map, mouse_target_map} . init(background)
+        Self {mouse_target_map} . init(background)
     }
 
-    fn get<T:ShapeSystemInstance>(&self) -> Option<T> {
-        let id = TypeId::of::<T>();
-        self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<T>()).map(|t| t.clone_ref())
-    }
-
-    fn register<T:ShapeSystemInstance>(&mut self) -> T {
-        let id     = TypeId::of::<T>();
-        let system = <T as ShapeSystemInstance>::new(self.scene.as_ref().unwrap());
-        let any    = Box::new(system.clone_ref());
-        self.shape_system_map.insert(id,any);
-        system
-    }
-
-    fn get_or_register<T:ShapeSystemInstance>(&mut self) -> T {
-        self.get().unwrap_or_else(|| self.register())
-    }
-
-    pub fn shape_system<T:display::shape::system::Shape>
-    (&mut self, _phantom:PhantomData<T>) -> ShapeSystemOf<T> {
-        self.get_or_register::<ShapeSystemOf<T>>()
-    }
-
-    pub fn new_instance<T:display::shape::system::Shape>(&mut self) -> T {
-        let system = self.get_or_register::<ShapeSystemOf<T>>();
-        system.new_instance()
-    }
-
-    pub fn insert_mouse_target
+    pub fn insert
     (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
         self.mouse_target_map.insert(id.into(),target.into());
     }
 
-    pub fn remove_mouse_target
+    pub fn remove
     (&mut self, id:impl Into<PointerTargetId>) {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
+    pub fn get(&self, target:PointerTargetId) -> Option<PointerTarget> {
         self.mouse_target_map.get(&target).cloned()
     }
 }}
 
-impl ShapeRegistry {
+impl ShapeRegistryData {
+    fn init(mut self, background: &PointerTarget) -> Self {
+        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+        self
+    }
+}
+
+impl PointerTargetRegistry {
     /// Runs the provided function on the [`PointerTarget`] associated with the provided
     /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
     /// evaluation of the provided function this registry might be changed, which would result in
@@ -131,20 +101,13 @@ impl ShapeRegistry {
         target: PointerTargetId,
         f: impl FnOnce(&PointerTarget) -> T,
     ) -> Option<T> {
-        match self.get_mouse_target(target) {
+        match self.get(target) {
             Some(target) => Some(f(&target)),
             None => {
                 WARNING!("Internal error. Symbol ID {target:?} is not registered.");
                 None
             }
         }
-    }
-}
-
-impl ShapeRegistryData {
-    fn init(mut self, background: &PointerTarget) -> Self {
-        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
-        self
     }
 }
 
@@ -164,7 +127,6 @@ pub struct Mouse {
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
-    pub logger:        Logger,
 }
 
 impl Mouse {
@@ -173,7 +135,6 @@ impl Mouse {
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
         current_js_event: &CurrentJsEvent,
-        logger: Logger,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
@@ -214,17 +175,7 @@ impl Mouse {
             .on_wheel
             .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
         let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
-        Self {
-            mouse_manager,
-            last_position,
-            position,
-            hover_rgba,
-            target,
-            handles,
-            frp,
-            scene_frp,
-            logger,
-        }
+        Self { mouse_manager, last_position, position, hover_rgba, target, handles, frp, scene_frp }
     }
 
     /// Re-emits FRP mouse changed position event with the last mouse position value.
@@ -292,9 +243,9 @@ pub struct Dom {
 
 impl Dom {
     /// Constructor.
-    pub fn new(logger: &Logger) -> Self {
+    pub fn new() -> Self {
         let root = web::document.create_div_or_panic();
-        let layers = DomLayers::new(logger, &root);
+        let layers = DomLayers::new(&root);
         root.set_class_name("scene");
         root.set_style_or_warn("height", "100vh");
         root.set_style_or_warn("width", "100vw");
@@ -309,6 +260,12 @@ impl Dom {
 
     pub fn recompute_shape_with_reflow(&self) {
         self.root.recompute_shape_with_reflow();
+    }
+}
+
+impl Default for Dom {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -349,18 +306,18 @@ pub struct DomLayers {
 
 impl DomLayers {
     /// Constructor.
-    pub fn new(logger: &Logger, dom: &web::HtmlDivElement) -> Self {
-        let welcome_screen = DomScene::new(logger);
+    pub fn new(dom: &web::HtmlDivElement) -> Self {
+        let welcome_screen = DomScene::new();
         welcome_screen.dom.set_class_name("welcome_screen");
         welcome_screen.dom.set_style_or_warn("z-index", "0");
         dom.append_or_warn(&welcome_screen.dom);
 
-        let back = DomScene::new(logger);
+        let back = DomScene::new();
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("z-index", "1");
         dom.append_or_warn(&back.dom);
 
-        let fullscreen_vis = DomScene::new(logger);
+        let fullscreen_vis = DomScene::new();
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
         fullscreen_vis.dom.set_style_or_warn("z-index", "2");
         dom.append_or_warn(&fullscreen_vis.dom);
@@ -376,12 +333,12 @@ impl DomLayers {
         canvas.set_style_or_warn("pointer-events", "none");
         dom.append_or_warn(&canvas);
 
-        let node_searcher = DomScene::new(logger);
+        let node_searcher = DomScene::new();
         node_searcher.dom.set_class_name("node-searcher");
         node_searcher.dom.set_style_or_warn("z-index", "4");
         dom.append_or_warn(&node_searcher.dom);
 
-        let front = DomScene::new(logger);
+        let front = DomScene::new();
         front.dom.set_class_name("front");
         front.dom.set_style_or_warn("z-index", "5");
         dom.append_or_warn(&front.dom);
@@ -448,7 +405,6 @@ impl Dirty {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
-    pub logger:   Logger,
     dom:          Dom,
     variables:    UniformScope,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
@@ -456,13 +412,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    fn new(logger: impl AnyLogger, dom: &Dom, variables: &UniformScope) -> Self {
-        let logger = Logger::new_sub(logger, "renderer");
+    fn new(dom: &Dom, variables: &UniformScope) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
         let composer = default();
-        Self { logger, dom, variables, pipeline, composer }
+        Self { dom, variables, pipeline, composer }
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
@@ -540,7 +495,11 @@ impl Renderer {
 /// existence of several layers, which are needed for the GUI to display shapes properly. This
 /// should be abstracted away in the future.
 #[derive(Clone, CloneRef, Debug)]
+#[allow(non_snake_case)]
 pub struct HardcodedLayers {
+    /// A special layer used to store shapes not attached to any layer. This layer will not be
+    /// rendered. You should not need to use it directly.
+    pub DETACHED:           Layer,
     pub root:               Layer,
     pub viz:                Layer,
     pub below_main:         Layer,
@@ -571,31 +530,31 @@ impl Deref for HardcodedLayers {
 }
 
 impl HardcodedLayers {
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let root = Layer::new(logger.sub("root"));
-        let main = Layer::new(logger.sub("main"));
+    pub fn new() -> Self {
+        #[allow(non_snake_case)]
+        let DETACHED = Layer::new("DETACHED");
+        let root = Layer::new("root");
+        let main = Layer::new("main");
         let main_cam = &main.camera();
-        let viz = Layer::new_with_cam(logger.sub("viz"), main_cam);
-        let below_main = Layer::new_with_cam(logger.sub("below_main"), main_cam);
-        let port_selection = Layer::new(logger.sub("port_selection"));
-        let label = Layer::new_with_cam(logger.sub("label"), main_cam);
-        let above_nodes = Layer::new_with_cam(logger.sub("above_nodes"), main_cam);
-        let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"), main_cam);
-        let panel = Layer::new(logger.sub("panel"));
-        let panel_text = Layer::new(logger.sub("panel_text"));
-        let node_searcher = Layer::new(logger.sub("node_searcher"));
+        let viz = Layer::new_with_cam("viz", main_cam);
+        let below_main = Layer::new_with_cam("below_main", main_cam);
+        let port_selection = Layer::new("port_selection");
+        let label = Layer::new_with_cam("label", main_cam);
+        let above_nodes = Layer::new_with_cam("above_nodes", main_cam);
+        let above_nodes_text = Layer::new_with_cam("above_nodes_text", main_cam);
+        let panel = Layer::new("panel");
+        let panel_text = Layer::new("panel_text");
+        let node_searcher = Layer::new("node_searcher");
         let node_searcher_cam = node_searcher.camera();
-        let searcher_text_logger = logger.sub("node_searcher_text");
-        let node_searcher_text = Layer::new_with_cam(searcher_text_logger, &node_searcher_cam);
-        let edited_node = Layer::new(logger.sub("edited_node"));
+        let node_searcher_text = Layer::new_with_cam("node_searcher_text", &node_searcher_cam);
+        let edited_node = Layer::new("edited_node");
         let edited_node_cam = edited_node.camera();
-        let edited_node_text_logger = logger.sub("edited_node_text");
-        let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
-        let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
-        let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
-        let cursor = Layer::new(logger.sub("cursor"));
+        let edited_node_text = Layer::new_with_cam("edited_node_text", &edited_node_cam);
+        let tooltip = Layer::new_with_cam("tooltip", main_cam);
+        let tooltip_text = Layer::new_with_cam("tooltip_text", main_cam);
+        let cursor = Layer::new("cursor");
 
-        let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
+        let mask = Layer::new_with_cam("mask", main_cam);
         root.set_sublayers(&[
             &viz,
             &below_main,
@@ -615,6 +574,7 @@ impl HardcodedLayers {
             &cursor,
         ]);
         Self {
+            DETACHED,
             root,
             viz,
             below_main,
@@ -634,6 +594,12 @@ impl HardcodedLayers {
             cursor,
             mask,
         }
+    }
+}
+
+impl Default for HardcodedLayers {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -733,10 +699,9 @@ pub struct SceneData {
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
     pub background: PointerTarget,
-    pub shapes: ShapeRegistry,
+    pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
-    pub logger: Logger,
     pub renderer: Renderer,
     pub layers: HardcodedLayers,
     pub style_sheet: style::Sheet,
@@ -751,31 +716,25 @@ pub struct SceneData {
 
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: Logger,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
         debug!("Initializing.");
-        let dom = Dom::new(&logger);
+        let dom = Dom::new();
         let display_object = display::object::Instance::new();
         display_object.force_set_visibility(true);
-        let var_logger = Logger::new_sub(&logger, "global_variables");
-        let variables = UniformScope::new(var_logger);
+        let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
-        let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
-        let layers = HardcodedLayers::new(&logger);
+        let symbols = SymbolRegistry::mk(&variables, stats, f!(symbols_dirty.set()));
+        let layers = HardcodedLayers::new();
         let stats = stats.clone();
         let background = PointerTarget::new();
-        let shapes = ShapeRegistry::new(&background);
+        let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
-        let renderer = Renderer::new(&logger, &dom, &variables);
+        let renderer = Renderer::new(&dom, &variables);
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse_logger = Logger::new_sub(&logger, "mouse");
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, mouse_logger);
+        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
@@ -788,7 +747,7 @@ impl SceneData {
             })
         }));
 
-        layers.main.add_exclusive(&display_object);
+        layers.main.add(&display_object);
         frp::extend! { network
             eval_ frp.shape (dirty.shape.set());
         }
@@ -809,11 +768,10 @@ impl SceneData {
             mouse,
             keyboard,
             uniforms,
-            shapes,
+            pointer_target_registry,
             background,
             stats,
             dirty,
-            logger,
             renderer,
             layers,
             style_sheet,
@@ -969,7 +927,7 @@ impl SceneData {
         screen_pos: Vector2,
     ) -> Vector2 {
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
-        let layer = object.display_layers().first().and_then(|t| t.upgrade());
+        let layer = object.display_layer().and_then(|t| t.upgrade());
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
@@ -992,24 +950,30 @@ impl SceneData {
     /// mouse release events. To learn more see the documentation of [`PointerTarget`].
     fn init_mouse_down_and_up_events(&self) {
         let network = &self.frp.network;
-        let shapes = &self.shapes;
+        let pointer_target_registry = &self.pointer_target_registry;
         let target = &self.mouse.target;
         let pointer_position_changed = &self.pointer_position_changed;
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
-            eval self.mouse.frp.down ([shapes,target,pressed](button) {
+            eval self.mouse.frp.down ([pointer_target_registry, target, pressed](button) {
                 let current_target = target.get();
                 pressed.borrow_mut().insert(*button,current_target);
-                shapes.with_mouse_target(current_target, |t| t.emit_mouse_down(*button));
+                pointer_target_registry.with_mouse_target(current_target, |t|
+                    t.emit_mouse_down(*button)
+                );
             });
 
-            eval self.mouse.frp.up ([shapes,target,pressed](button) {
+            eval self.mouse.frp.up ([pointer_target_registry, target, pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    shapes.with_mouse_target(last_target, |t| t.emit_mouse_release(*button));
+                    pointer_target_registry.with_mouse_target(last_target, |t|
+                        t.emit_mouse_release(*button)
+                    );
                 }
-                shapes.with_mouse_target(current_target, |t| t.emit_mouse_up(*button));
+                pointer_target_registry.with_mouse_target(current_target, |t|
+                    t.emit_mouse_up(*button)
+                );
             });
 
             eval_ self.mouse.frp.position (pointer_position_changed.set(true));
@@ -1026,8 +990,9 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.shapes.with_mouse_target(current_target, |t| t.mouse_out.emit(()));
-            self.shapes.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
+            self.pointer_target_registry
+                .with_mouse_target(current_target, |t| t.mouse_out.emit(()));
+            self.pointer_target_registry.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }
@@ -1052,17 +1017,9 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: impl AnyLogger,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
-        let logger = Logger::new_sub(logger, "scene");
-        let no_mut_access = SceneData::new(logger, stats, on_mut);
+    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
+        let no_mut_access = SceneData::new(stats, on_mut);
         let this = Self { no_mut_access };
-
-        // FIXME MEMORY LEAK:
-        this.no_mut_access.shapes.rc.borrow_mut().scene = Some(this.clone_ref());
         this
     }
 
