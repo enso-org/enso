@@ -102,7 +102,7 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(126, 109)
+      val id1  = meta.addItem(126, 109, "1111")
       val id2  = meta.addItem(172, 7)
       val id3  = meta.addItem(192, 9)
       val id4  = meta.addItem(229, 5)

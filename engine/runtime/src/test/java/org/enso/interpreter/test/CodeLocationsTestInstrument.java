@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.SourceFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.Node;
@@ -153,9 +154,13 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
    */
   public EventBinding<LocationsEventListener> bindTo(
       int sourceStart, int diff, int length, int lengthDiff, Class<?> type) {
+    var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
     return env.getInstrumenter()
         .attachExecutionEventListener(
-            SourceSectionFilter.newBuilder().indexIn(sourceStart, length).build(),
+            SourceSectionFilter.newBuilder()
+                .sourceFilter(testSource)
+                .indexIn(sourceStart, length)
+                .build(),
             new LocationsEventListener(sourceStart, diff, length, lengthDiff, type));
   }
 }
