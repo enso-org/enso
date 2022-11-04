@@ -325,6 +325,8 @@ spec =
             txt = kshi + facepalm + accent_1 + accent_2
             txt.take (First 2) . should_equal (kshi + facepalm)
             txt.drop (First 2) . should_equal (accent_1 + accent_2)
+            txt.take 2 . should_equal (kshi + facepalm)
+            txt.drop 2 . should_equal (accent_1 + accent_2)
             txt.take (Last 2) . should_equal (accent_1 + accent_2)
             txt.drop (Last 2) . should_equal (kshi + facepalm)
             txt.take (Range_Data 0 2) . should_equal (kshi + facepalm)
@@ -353,6 +355,10 @@ spec =
             "Hello World!".take (First 5) . should_equal "Hello"
             "Hello World!".take (First 100) . should_equal "Hello World!"
             "Hello World!".take (First 0) . should_equal ""
+            "Hello World!".take . should_equal "H"
+            "Hello World!".take 5 . should_equal "Hello"
+            "Hello World!".take 100 . should_equal "Hello World!"
+            "Hello World!".take 0 . should_equal ""
             "Hello World!".take Last . should_equal "!"
             "Hello World!".take (Last 6) . should_equal "World!"
             "Hello World!".take (Last 0) . should_equal ""
@@ -386,6 +392,7 @@ spec =
             txt.take (Range_Data txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error_Data txt.length txt.length)
             txt.take (Range_Data txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (First 100) . should_equal txt
+            txt.take 100 . should_equal txt
             txt.take (Last 100) . should_equal txt
             txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error_Data
@@ -413,6 +420,8 @@ spec =
             txt_1.take (Every 2) . should_equal 'Hlo\u0308Wrd'
             txt_1.take (First 2) . should_equal 'He\u{302}'
             txt_1.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            txt_1.take 2 . should_equal 'He\u{302}'
+            txt_1.take 5 . should_equal 'He\u{302}llo\u{308}'
             txt_1.take (Last 6) . should_equal 'Wo\u{301}rld!'
             txt_1.take (Last 5) . should_equal 'o\u{301}rld!'
             txt_1.take (Before 'e\u{302}') . should_equal 'H'
@@ -437,6 +446,8 @@ spec =
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
+            '✨🚀🚧😍😃😎😙😉☺'.take . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take 2 . should_equal '✨🚀'
             '✨🚀🚧😍😃😎😙😉☺'.take Last . should_equal '☺'
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
@@ -489,6 +500,10 @@ spec =
             "Hello World!".drop (First 5) . should_equal " World!"
             "Hello World!".drop (First 100) . should_equal ""
             "Hello World!".drop (First 0) . should_equal "Hello World!"
+            "Hello World!".drop . should_equal "ello World!"
+            "Hello World!".drop 5 . should_equal " World!"
+            "Hello World!".drop 100 . should_equal ""
+            "Hello World!".drop 0 . should_equal "Hello World!"
             "Hello World!".drop Last . should_equal "Hello World"
             "Hello World!".drop (Last 6) . should_equal "Hello "
             "Hello World!".drop (Last 100) . should_equal ""
@@ -516,6 +531,7 @@ spec =
             txt = "Hello World!"
             txt.drop (Range_Data 0 14) . should_equal ""
             txt.drop (First 100) . should_equal ""
+            txt.drop 100 . should_equal ""
             txt.drop (Last 100) . should_equal ""
             txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 12)
@@ -539,6 +555,8 @@ spec =
             txt_1.drop (Every 2) . should_equal 'e\u0302l o\u0301l!'
             txt_1.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
             txt_1.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            txt_1.drop 2 . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.drop 5 . should_equal ' Wo\u{301}rld!'
             txt_1.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
             txt_1.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
             txt_1.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
@@ -563,6 +581,8 @@ spec =
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop 2 . should_equal '🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop Last . should_equal '✨🚀🚧😍😃😎😙😉'
             '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'

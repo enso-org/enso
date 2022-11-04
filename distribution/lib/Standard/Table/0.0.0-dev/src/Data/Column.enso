@@ -1143,7 +1143,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to return.
-    take : (Index_Sub_Range | Range) -> Column
+    take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
         Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
 
@@ -1152,7 +1152,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    drop : (Index_Sub_Range | Range) -> Column
+    drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
         Index_Sub_Range.drop_helper self.length self.at self.slice (slice_ranges self) range
 
