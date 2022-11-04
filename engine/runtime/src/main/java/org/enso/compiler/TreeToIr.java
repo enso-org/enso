@@ -663,7 +663,7 @@ final class TreeToIr {
         var loc = getIdentifiedLocation(body, 0, 1, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != loc.get().end()) {
             var patched = new Location(last.location().get().start(), loc.get().end() - 1);
-            var id = new IdentifiedLocation(patched, loc.get().id());
+            var id = new IdentifiedLocation(patched, last.location().get().id());
             last = last.setLocation(Option.apply(id));
         }
         yield new IR$Expression$Block(list, last, loc, false, meta(), diag());
