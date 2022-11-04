@@ -3,11 +3,10 @@ package org.enso.interpreter.test;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
 import java.util.UUID;
 
@@ -43,7 +42,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
     private boolean successful = false;
     private final UUID expectedId;
     private final String expectedResult;
-    private final Set<IdEventNode> nodes = new LinkedHashSet<>();
+    private final Map<IdEventNode, Object> nodes = new LinkedHashMap<>();
 
     IdEventListener(UUID expectedId, String expectedResult) {
       this.expectedId = expectedId;
@@ -70,8 +69,8 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
 
     public String dumpNodes() {
       var sb = new StringBuilder();
-      for (var n : nodes) {
-        sb.append("\n").append(n.toString());
+      for (var n : nodes.entrySet()) {
+        sb.append("\nvalue ").append(n.getValue()).append("  for " ).append(n.getKey().toString());
       }
       return sb.toString();
     }
@@ -79,7 +78,7 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
     @Override
     public ExecutionEventNode create(EventContext context) {
       var node = new IdEventNode(context);
-      nodes.add(node);
+      nodes.put(node, null);
       return node;
     }
 
@@ -109,8 +108,9 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         if (!(node instanceof ExpressionNode)) {
           return;
         }
+        nodes.put(this, result);
         UUID id = ((ExpressionNode) node).getId();
-        if (!id.equals(expectedId)) {
+        if (id == null || !id.equals(expectedId)) {
           return;
         }
         if (expectedResult != null && expectedResult.equals(result.toString())) {
@@ -166,7 +166,6 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
     var eventFilter =
         SourceSectionFilter.newBuilder()
             .sourceFilter(testSource)
-            .tagIs(IdentifiedTag.class)
             .build();
     var factory = new IdEventListener(id, expectedResult);
     return env.getInstrumenter().attachExecutionEventFactory(eventFilter, factory);
