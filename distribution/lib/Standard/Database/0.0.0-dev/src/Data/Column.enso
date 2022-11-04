@@ -573,7 +573,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to return.
-    take : (Index_Sub_Range | Range) -> Column
+    take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
         _ = range
         msg = "`Column.take` is not yet implemented."
@@ -585,7 +585,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    drop : (Index_Sub_Range | Range) -> Column
+    drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
         _ = range
         msg = "`Column.drop` is not yet implemented."

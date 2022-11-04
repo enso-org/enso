@@ -413,7 +413,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
-    take : (Index_Sub_Range | Range) -> Table
+    take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
@@ -426,7 +426,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    drop : (Index_Sub_Range | Range) -> Table
+    drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
