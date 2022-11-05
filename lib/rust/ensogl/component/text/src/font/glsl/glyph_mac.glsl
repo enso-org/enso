@@ -51,7 +51,8 @@ highp vec4 color_from_msdf() {
     highp vec4 color = input_color;
     color.a *= get_alpha(input_uv);
     color.rgb *= color.a; // premultiply
+
     return color;
-    vec4 color2 = vec4(input_uv * input_size / 10.0, 0.0, 1.0);
-    return (color * 0.7 + color2 * 0.3);
+    // vec4 color2 = vec4(input_uv * input_size / 10.0, 0.0, 1.0);
+    // return (color * 0.7 + color2 * 0.3);
 }

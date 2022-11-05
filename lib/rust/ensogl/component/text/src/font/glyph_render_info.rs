@@ -50,7 +50,7 @@ pub struct GlyphRenderInfo {
 
 impl GlyphRenderInfo {
     /// See `MSDF_PARAMS` docs.
-    pub const MAX_MSDF_SHRINK_FACTOR: f64 = 3.0;
+    pub const MAX_MSDF_SHRINK_FACTOR: f64 = 4.0;
 
     /// See `MSDF_PARAMS` docs.
     pub const MAX_MSDF_GLYPH_SCALE: f64 = 2.0;
