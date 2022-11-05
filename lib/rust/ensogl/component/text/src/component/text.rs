@@ -1321,6 +1321,7 @@ impl TextModel {
                         if truncated {
                             break;
                         }
+                        // FIXME[WD]: IN THIS PR: Talk with Adam why it's needed.
                         let magic_scale = 2048.0 / shaped_glyph_set.units_per_em as f32;
                         for shaped_glyph in &shaped_glyph_set.glyphs {
                             let glyph_byte_start = shaped_glyph.start_byte();

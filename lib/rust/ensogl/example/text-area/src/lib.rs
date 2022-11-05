@@ -171,9 +171,12 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
+    let content = "abcdefghijk";
+    // This is a testing string left here for convenience.
     // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcdefghijk");
-    area.set_font("mplus1p");
+    area.set_content(content);
+    // area.set_font("mplus1p");
+    area.set_font("dejavu");
     area.set_property_default(color::Rgba::black());
     area.focus();
     area.hover();
@@ -187,8 +190,6 @@ fn init(app: Application) {
 
     let area = Rc::new(RefCell::new(Some(area)));
 
-
-
     let style = web::document.create_element_or_panic("style");
     let css = web::document.create_text_node("@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap');");
     style.append_child(&css);
@@ -197,21 +198,24 @@ fn init(app: Application) {
     let div = web::document.create_div_or_panic();
     div.set_style_or_warn("width", "100px");
     div.set_style_or_warn("height", "100px");
-    // div.set_style_or_warn("background", "red");
     div.set_style_or_warn("position", "absolute");
     div.set_style_or_warn("z-index", "100");
-    div.set_style_or_warn("left", "536.5px");
-    div.set_style_or_warn("top", "118.5px");
     div.set_style_or_warn("font-family", "'M PLUS 1p'");
     div.set_style_or_warn("font-size", "12px");
     div.set_style_or_warn("display", "none");
-    div.set_inner_text("abcdefghijk");
+    div.set_inner_text(content);
     web::document.body().unwrap().append_child(&div);
 
     init_debug_hotkeys(&app.display.default_scene, &area, &div);
 
+    let scene = scene.clone_ref();
+    let handler = app.display.on.before_frame.add(move |_time| {
+        let shape = scene.dom.shape();
+        div.set_style_or_warn("left", &format!("{}px", shape.width / 2.0));
+        div.set_style_or_warn("top", &format!("{}px", shape.height / 2.0 - 0.5));
+    });
 
-    mem::forget(div);
+    mem::forget(handler);
     mem::forget(style);
     mem::forget(css);
     mem::forget(navigator);
@@ -223,7 +227,8 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
     let scene = scene.clone_ref();
     let area = area.clone_ref();
     let div = div.clone();
-    let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
+    let mut fonts_cycle = ["dejavusans", "dejavusansmono", "mplus1p"].iter().cycle();
+    let closure: Closure<dyn FnMut(JsValue)> = Closure::new(move |val: JsValue| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {
             let key = event.code();
@@ -233,6 +238,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
             }
         }
         if let Some(area) = &*area.borrow() {
+            div.set_inner_text(&area.content.value().to_string());
             if event.ctrl_key() {
                 let key = event.code();
                 warn!("{:?}", key);
@@ -302,6 +308,8 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     } else {
                         area.set_property(buffer::RangeLike::Selections, formatting::Style::Italic);
                     }
+                } else if key == "KeyF" {
+                    area.set_font(fonts_cycle.next().unwrap());
                 } else if key == "Equal" {
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));
