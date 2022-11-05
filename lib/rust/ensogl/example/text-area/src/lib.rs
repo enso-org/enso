@@ -29,6 +29,9 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::Scene;
+use ensogl_core::frp::io::timer::DocumentOps;
+use ensogl_core::frp::io::timer::HtmlElementOps;
 use ensogl_core::system::web;
 use ensogl_core::system::web::Closure;
 use ensogl_core::system::web::JsCast;
@@ -38,7 +41,6 @@ use ensogl_text::formatting;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
 use wasm_bindgen::prelude::wasm_bindgen;
-
 
 
 // ==============
@@ -169,8 +171,10 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
-    area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_property_default(color::Rgba::red());
+    // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
+    area.set_content("abcdefghijk");
+    area.set_font("mplus1p");
+    area.set_property_default(color::Rgba::black());
     area.focus();
     area.hover();
 
@@ -182,14 +186,43 @@ fn init(app: Application) {
     app.display.default_scene.add_child(&area);
 
     let area = Rc::new(RefCell::new(Some(area)));
-    init_debug_hotkeys(&area);
 
+
+
+    let style = web::document.create_element_or_panic("style");
+    let css = web::document.create_text_node("@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap');");
+    style.append_child(&css);
+    web::document.head().unwrap().append_child(&style);
+
+    let div = web::document.create_div_or_panic();
+    div.set_style_or_warn("width", "100px");
+    div.set_style_or_warn("height", "100px");
+    // div.set_style_or_warn("background", "red");
+    div.set_style_or_warn("position", "absolute");
+    div.set_style_or_warn("z-index", "100");
+    div.set_style_or_warn("left", "536.5px");
+    div.set_style_or_warn("top", "118.5px");
+    div.set_style_or_warn("font-family", "'M PLUS 1p'");
+    div.set_style_or_warn("font-size", "12px");
+    div.set_style_or_warn("display", "none");
+    div.set_inner_text("abcdefghijk");
+    web::document.body().unwrap().append_child(&div);
+
+    init_debug_hotkeys(&app.display.default_scene, &area, &div);
+
+
+    mem::forget(div);
+    mem::forget(style);
+    mem::forget(css);
     mem::forget(navigator);
     mem::forget(app);
 }
 
-fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
+fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web::HtmlDivElement) {
+    let mut html_version = Rc::new(Cell::new(false));
+    let scene = scene.clone_ref();
     let area = area.clone_ref();
+    let div = div.clone();
     let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {
@@ -203,7 +236,18 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
             if event.ctrl_key() {
                 let key = event.code();
                 warn!("{:?}", key);
-                if key == "Digit1" {
+                if key == "KeyH" {
+                    html_version.set(!html_version.get());
+                    if html_version.get() {
+                        warn!("Showing the HTML version.");
+                        area.unset_parent();
+                        div.set_style_or_warn("display", "block");
+                    } else {
+                        warn!("Showing the WebGL version.");
+                        scene.add_child(&area);
+                        div.set_style_or_warn("display", "none");
+                    }
+                } else if key == "Digit1" {
                     if event.shift_key() {
                         area.set_property_default(color::Rgba::black());
                     } else {

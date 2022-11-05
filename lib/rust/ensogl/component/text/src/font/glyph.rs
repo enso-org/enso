@@ -21,6 +21,7 @@ use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
+use ensogl_core::frp::io::keyboard::Key;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
@@ -59,11 +60,11 @@ ensogl_core::define_endpoints_2! {
 #[allow(missing_docs)]
 pub struct SystemData {}
 
-#[cfg(target_os = "macos")]
+// #[cfg(target_os = "macos")]
 const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
 
-#[cfg(not(target_os = "macos"))]
-const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
+// #[cfg(not(target_os = "macos"))]
+// const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
 
 const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
 
@@ -80,6 +81,9 @@ impl SystemData {
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
         material.add_input("sdf_weight", 0.0);
+        // === Debug ===
+        material.add_input("opacity_increase", 0.0);
+        material.add_input("opacity_exponent", 1.0);
         // TODO[WD]: We need to use this output, as we need to declare the same amount of shader
         //     outputs as the number of attachments to framebuffer. We should manage this more
         //     intelligent. For example, we could allow defining output shader fragments,
@@ -118,7 +122,7 @@ mod glyph_shape {
     ensogl_core::shape! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
-        (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
+        (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32, opacity_increase: f32, opacity_exponent: f32) {
             // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
         }
@@ -527,12 +531,62 @@ impl System {
         view.atlas_index.set(0.0);
         display_object.add_child(&view);
 
+        view.opacity_increase.set(0.4);
+        view.opacity_exponent.set(4.0);
+
         let network = frp.network();
-        frp::extend! {network
+        let scene = scene();
+        let keyboard = &scene.keyboard.frp;
+        frp::extend! { network
             frp.private.output.target_color <+ frp.set_color;
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
             eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
+
+            debug_mode <- all_with(&keyboard.is_control_down, &keyboard.is_alt_down, |a, b| *a && *b);
+            plus <- keyboard.down.map(|t| t == &Key::Character("=".into()));
+            minus <- keyboard.down.map(|t| t == &Key::Character("-".into()));
+
+            key_e_down <- keyboard.down.map(|t| t == &Key::Character("e".into())).on_true();
+            key_e_up <- keyboard.up.map(|t| t == &Key::Character("e".into())).on_true();
+            key_e <- bool(&key_e_up, &key_e_down);
+
+            key_o_down <- keyboard.down.map(|t| t == &Key::Character("o".into())).on_true();
+            key_o_up <- keyboard.up.map(|t| t == &Key::Character("o".into())).on_true();
+            key_o <- bool(&key_o_up, &key_o_down);
+
+            plus2 <- all_with(&plus, &debug_mode, |a, b| *a && *b);
+            minus2 <- all_with(&minus, &debug_mode, |a, b| *a && *b);
+
+            plus_e <- keyboard.down.gate(&plus2).gate(&key_e);
+            minus_e <- keyboard.down.gate(&minus2).gate(&key_e);
+
+            plus_o <- keyboard.down.gate(&plus2).gate(&key_o);
+            minus_o <- keyboard.down.gate(&minus2).gate(&key_o);
+
+            eval_ plus_o (view.opacity_increase.modify(|t| {
+                let opacity_increase = t + 0.01;
+                warn!("opacity_increase: {opacity_increase}");
+                opacity_increase
+            }));
+
+            eval_ minus_o (view.opacity_increase.modify(|t| {
+                let opacity_increase = t - 0.01;
+                warn!("opacity_increase: {opacity_increase}");
+                opacity_increase
+            }));
+
+            eval_ plus_e (view.opacity_exponent.modify(|t| {
+                let opacity_exponent = t + 0.1;
+                warn!("opacity_exponent: {opacity_exponent}");
+                opacity_exponent
+            }));
+
+            eval_ minus_e (view.opacity_exponent.modify(|t| {
+                let opacity_exponent = t - 0.1;
+                warn!("opacity_exponent: {opacity_exponent}");
+                opacity_exponent
+            }));
         }
 
         Glyph {
