@@ -24,6 +24,7 @@ wasm-pack.log
 generated/
 /target
 /build/rust/target/
+/rust-analyzer-target
 
 ###########
 ## Scala ##

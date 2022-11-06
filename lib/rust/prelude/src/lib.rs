@@ -12,6 +12,7 @@
 #![feature(allocator_api)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
+#![feature(pattern)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -108,6 +109,7 @@ pub use std::ops::AddAssign;
 pub use std::ops::SubAssign;
 
 use std::cell::UnsafeCell;
+use std::str::pattern;
 
 
 mod anyhow_macros {
@@ -556,3 +558,37 @@ impl<T: ?Sized> WeakRef for Weak<T> {
 /// [`NoCloneBecauseOfCustomDrop`] macro.
 #[allow(drop_bounds)]
 pub trait ImplementsDrop: Drop {}
+
+
+
+// ==================
+// === SplitTwice ===
+// ==================
+
+pub trait SplitTwice {
+    /// Splits `self` twice. Once at the first occurrence of `start_marker` and once at the first
+    /// occurence of `end_marker`. Returns a triple containing the split `self` as a prefix, middle,
+    /// and suffix. If `self` could not be split twice, returns [`None`].
+    ///
+    /// [`None`]: ::std::option::Option::None
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a Self, &'a Self, &'a Self)>
+    where P: pattern::Pattern<'a>;
+}
+
+impl SplitTwice for str {
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a str, &'a str, &'a str)>
+    where P: pattern::Pattern<'a>
+    {
+        let (prefix, rest) = self.split_once(start_marker)?;
+        let (mid, suffix) = rest.split_once(end_marker)?;
+        Some((prefix, mid, suffix))
+    }
+}
