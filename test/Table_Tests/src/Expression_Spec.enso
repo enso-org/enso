@@ -11,8 +11,8 @@ import project.Common_Table_Spec
 from project.Util import all
 
 ## ToDos:
+   - Boolean conditions LIKE, NOT LIKE, AND, OR, NOT
    - Function test
-   - Boolean conditions LIKE, NOT LIKE, IS NULL, IS NOT NULL, IS EMPTY, IS NOT EMPTY, AND, OR, NOT
    - Text concatenation
    - Long Storage test
 
@@ -20,8 +20,9 @@ spec detailed=False =
     # Create Test Table
     column_a = ["A", [1, 2, 3, 4, 5]]
     column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
+    column_c = ["C", ["A", "B", "C", "", Nothing]]
     column_odd = ["Bad] Name", [True, False, True, False, True]]
-    test_table = Table.new [column_a, column_b, column_odd]
+    test_table = Table.new [column_a, column_b, column_c, column_odd]
 
     epsilon=0.0000000001
 
@@ -196,5 +197,24 @@ spec detailed=False =
             expression_test "[A] NOT IN (2, 4, 6)" [True, False, True, False, True]
             expression_test "[A] IN (3)" [False, False, True, False, False]
             expression_test "[A] NOT IN (3)" [True, True, False, True, True]
+
+        specify_test "should be able to check null" expression_test->
+            expression_test "1 IS NULL" False
+            expression_test "1 IS NoTHing" False
+            expression_test "Nothing IS NULL" True
+            expression_test "1 IS NOT NULL" True
+            expression_test "Nothing IS NOT NULL" False
+            expression_test "[A] IS NULL" [False, False, False, False, False]
+            expression_test "[C] IS NULL" [False, False, False, False, True]
+            expression_test "[A] IS NOT NULL" [True, True, True, True, True]
+            expression_test "[C] IS NOT NULL" [True, True, True, True, False]
+
+        specify_test "should be able to check empty" expression_test->
+            expression_test "'Hello World' IS EMPTY" False
+            expression_test "'' IS EMPTY" True
+            expression_test "Nothing IS EMPTY" True
+            expression_test "'Hello World' IS NOT EMPTY" True
+            expression_test "'' IS NOT EMPTY" False
+            expression_test "Nothing IS NOT EMPTY" False
 
 main = Test_Suite.run_main (spec True)
