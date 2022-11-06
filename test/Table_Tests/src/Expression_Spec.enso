@@ -10,6 +10,12 @@ from Standard.Test import Test, Test_Suite, Problems
 import project.Common_Table_Spec
 from project.Util import all
 
+## ToDos:
+   - Function test
+   - Boolean conditions
+   - Text concatenation
+   - Long Storage test
+
 spec detailed=False =
     # Create Test Table
     column_a = ["A", [1, 2, 3, 4, 5]]
@@ -34,18 +40,17 @@ spec detailed=False =
             match = case e of
                 _ : Number -> e.equals v epsilon
                 _ -> e == v
-            if match then Nothing else
-                values.should_equal expected
+            if match.not then values.should_equal expected
 
-    specify_test specify action =
+    specify_test label action =
         case detailed of
             True ->
                 specify_tester expression value =
-                    Test.specify (specify + ": " + expression) <|
+                    Test.specify (label + ": " + expression) <|
                         tester expression value
                 action specify_tester
             False ->
-                Test.specify specify (action tester)
+                Test.specify label (action tester)
 
     Test.group "Expression Integer literals" <|
         specify_test "should be able to add an integer column" expression_test->
@@ -64,9 +69,11 @@ spec detailed=False =
             expression_test "True" True
             expression_test "true" True
             expression_test "TRUE" True
+            expression_test "tRuE" True
             expression_test "False" False
             expression_test "false" False
             expression_test "FALSE" False
+            expression_test "FaLsE" False
 
     Test.group "Expression Text literals" <|
         specify_test "should be able to add a text column" expression_test->
@@ -83,7 +90,9 @@ spec detailed=False =
     Test.group "Expression Nothing literals" <|
         specify_test "should be able to add an nothing column" expression_test->
             expression_test "null" Nothing
+            expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
+            expression_test "NOTHING" Nothing
 
     Test.group "Expression Date and Time literals" <|
         specify_test "should be able to add a date or time column" expression_test->
@@ -152,5 +161,35 @@ spec detailed=False =
             expression_test "[A] % [B] + 2" [2, 2.5, 2.5, 2, 7]
             expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
             expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
+
+    Test.group "Comparison Operators" <|
+        specify_test "should be able to compare equality" expression_test->
+            expression_test "2 = 1 + 1" True
+            expression_test "2 == 1 + 1" True
+            expression_test "[A] = 2" [False, True, False, False, False]
+            expression_test "[A] == 2" [False, True, False, False, False]
+            expression_test "3 != 1 + 1" True
+            expression_test "3 <> 1 + 1" True
+            expression_test "[A] != 2" [True, False, True, True, True]
+            expression_test "[A] <> 2" [True, False, True, True, True]
+
+        specify_test "should be able to compare ordering" expression_test->
+            expression_test "1 > 2" False
+            expression_test "1 < 2" True
+            expression_test "[A] > 2" [False, False, True, True, True]
+            expression_test "[A] >= 2" [False, True, True, True, True]
+            expression_test "[A] < 2" [True, False, False, False, False]
+            expression_test "[A] <= 2" [True, True, False, False, False]
+
+        specify_test "should be able to use between" expression_test->
+            expression_test "1 + 1 BETWEEN 1 AND 3" True
+            expression_test "1 + 1 between 2 AND 3" True
+            expression_test "1 + 1 bETWEEN 1 AND 2" True
+            expression_test "[A] between 2 AND 3" [False, True, True, False, False]
+            expression_test "1 + 1 NOT BETWEEN 1 AND 3" False
+            expression_test "[A] not between 2 AND 3" [True, False, False, True, True]
+
+        specify_test "should be able to use in" expression_test->
+            expression_test "1 + 1 IN (2, 4, 6)" True
 
 main = Test_Suite.run_main (spec True)

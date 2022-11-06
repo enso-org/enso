@@ -189,7 +189,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitIsNull(ExpressionParser.IsNullContext ctx) {
-    var op = ctx.IS_NULL() != null | ctx.IS_NOT_NULL() != null ? "is_missing" : "is_empty";
+    var op = ctx.IS_NULL() != null || ctx.IS_NOT_NULL() != null ? "is_missing" : "is_empty";
     var condition = executeMethod(op, visit(ctx.expr()));
     return ctx.IS_NOT_NULL() != null || ctx.IS_NOT_EMPTY() != null
         ? executeMethod("not", condition)
@@ -329,8 +329,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitIn(ExpressionParser.InContext ctx) {
-    var args = Value.asValue(ctx.expr().stream().skip(1).map(this::visit).toArray(Value[]::new));
-    return executeMethod("is_in", visit(ctx.expr(0)), args);
+    var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
+    return executeMethod("is_in", args);
   }
 
   @Override

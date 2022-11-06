@@ -731,6 +731,7 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector = case vector of
+        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         _ : Vector.Vector ->
             ## This is slightly hacky - we don't provide operand types as we want to
                allow any type to get through and currently we do not have a mapping
@@ -782,7 +783,7 @@ type Column
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Array
-    var_args_functions = ['coalesce', 'min', 'max']
+    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
 ## PRIVATE
    TODO: Revisit this as part of the column value type work.

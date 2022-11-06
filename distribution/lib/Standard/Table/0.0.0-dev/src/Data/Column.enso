@@ -794,7 +794,10 @@ type Column
             True ->
                 fallback_fn _ _ =
                     Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
-                run_vectorized_binary_op self op_name fallback_fn vector skip_nulls=False new_name=result_name
+                true_vector = case vector of
+                    _ : Array -> Vector.from_polyglot_array vector
+                    _ : Vector.Vector -> vector
+                run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
                 ## We have custom code for the non-vectorized case, because
                    usually a vectorized binary op will apply the fallback
@@ -803,6 +806,7 @@ type Column
                    against the whole other column, instead of just the
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
+                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector.Vector -> vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
@@ -1247,7 +1251,7 @@ type Column
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Vector
-    var_args_functions = ['coalesce', 'min', 'max']
+    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
 ## UNSTABLE
 
