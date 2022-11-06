@@ -330,7 +330,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitIn(ExpressionParser.InContext ctx) {
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return executeMethod("is_in", args);
+    var condition = executeMethod("is_in", args);
+    return  ctx.NOT_IN() != null ? executeMethod("not", condition) : condition;
   }
 
   @Override

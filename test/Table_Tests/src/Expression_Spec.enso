@@ -12,7 +12,7 @@ from project.Util import all
 
 ## ToDos:
    - Function test
-   - Boolean conditions
+   - Boolean conditions LIKE, NOT LIKE, IS NULL, IS NOT NULL, IS EMPTY, IS NOT EMPTY, AND, OR, NOT
    - Text concatenation
    - Long Storage test
 
@@ -191,5 +191,10 @@ spec detailed=False =
 
         specify_test "should be able to use in" expression_test->
             expression_test "1 + 1 IN (2, 4, 6)" True
+            expression_test "[A] IN (2, 4, 6)" [False, True, False, True, False]
+            expression_test "1 + 1 NOT IN (2, 4, 6)" False
+            expression_test "[A] NOT IN (2, 4, 6)" [True, False, True, False, True]
+            expression_test "[A] IN (3)" [False, False, True, False, False]
+            expression_test "[A] NOT IN (3)" [True, True, False, True, True]
 
 main = Test_Suite.run_main (spec True)

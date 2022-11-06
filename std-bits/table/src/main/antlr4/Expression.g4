@@ -7,7 +7,7 @@ expr:   expr op=POWER expr                                # Power
     |   expr op=(EQUALS|NOT_EQUALS|LESS_THAN_OR_EQUAL|GREATER_THAN_OR_EQUAL|LESS_THAN|GREATER_THAN) expr  # Compare
     |   expr (IS_NULL|IS_EMPTY|IS_NOT_EMPTY|IS_NOT_NULL)  # IsNull
     |   expr (LIKE|NOT_LIKE) expr                         # Like
-    |   expr IN '(' expr (',' expr)* ')'                  # In
+    |   expr (IN|NOT_IN) '(' expr (',' expr)* ')'         # In
     |   expr (NOT_BETWEEN | BETWEEN) expr AND expr        # Between
     |   UNARY_NOT expr                                    # UnaryNot
     |   expr op=AND expr                                  # And
@@ -78,6 +78,7 @@ IS_NOT_EMPTY : IS ' ' N O T  ' ' EMPTY;
 LIKE : L I K E;
 NOT_LIKE : N O T  ' ' LIKE;
 IN : I N;
+NOT_IN : N O T  ' ' IN;
 BETWEEN : B E T W E E N;
 NOT_BETWEEN : N O T  ' ' BETWEEN;
 TRUE : T R U E;
