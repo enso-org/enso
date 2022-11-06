@@ -410,23 +410,24 @@ impl RunContext {
             enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
         }
 
-        if build_native_runner {
-            let factorial_input = "6";
-            let factorial_expected_output = "720";
-            let output = Command::new(&self.repo_root.runner)
-                .args([
-                    "--run",
-                    self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-                    factorial_input,
-                ])
-                .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
-                .run_stdout()
-                .await?;
-            ensure!(
-                output.contains(factorial_expected_output),
-                "Native runner output does not contain expected result."
-            );
-        }
+        // if build_native_runner {
+        //     let factorial_input = "6";
+        //     let factorial_expected_output = "720";
+        //     let output = Command::new(&self.repo_root.runner)
+        //         .args([
+        //             "--run",
+        //             
+        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
+        //             factorial_input,
+        //         ])
+        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
+        //         .run_stdout()
+        //         .await?;
+        //     ensure!(
+        //         output.contains(factorial_expected_output),
+        //         "Native runner output does not contain expected result."
+        //     );
+        // }
 
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
