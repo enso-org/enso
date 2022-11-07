@@ -131,15 +131,17 @@ impl Slider {
             // FIXME: also update on set_width, set_height
             component_width         <- input.resize.map(|v| v.x );
             component_height        <- input.resize.map(|v| v.y );
+            output.width            <+ any2(&component_width, &input.set_width);
+            output.height           <+ any2(&component_height, &input.set_height);
 
             // distance dragged
             drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
             // horizontal drag as fraction of element width
-            drag_x_fract            <- all2(&drag_delta, &component_width).map(
+            drag_x_fract            <- all2(&drag_delta, &output.width).map(
                 |(delta, width)| delta.x / width
             );
             // vertical drag as fraction of element height
-            drag_y_fract            <- all2(&drag_delta, &component_height).map(
+            drag_y_fract            <- all2(&drag_delta, &output.height).map(
                 |(delta, height)| delta.y / height
             );
 
@@ -189,6 +191,16 @@ impl Slider {
             eval input.resize (
                 (v) {
                     model.set_size(*v);
+                }
+            );
+            eval input.set_width (
+                (v) {
+                    model.set_width(*v);
+                }
+            );
+            eval input.set_height (
+                (v) {
+                    model.set_height(*v);
                 }
             );
         }

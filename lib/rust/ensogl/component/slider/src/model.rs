@@ -21,6 +21,9 @@ pub struct Model {
     pub value:      text::Text,
     pub root:       display::object::Instance,
 
+    width:  Cell<f32>,
+    height: Cell<f32>,
+
     pub app: Application,
 }
 
@@ -52,10 +55,39 @@ impl Model {
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.label);
 
-        Self { background, track, label, value, root, app }
+        Self {
+            background,
+            track,
+            label,
+            value,
+            root,
+            app,
+            height: Cell::new(200.0),
+            width: Cell::new(200.0),
+        }
     }
 
     pub fn set_size(&self, size: Vector2) {
+        self.width.set(size.x);
+        self.height.set(size.y);
+        self.background.size.set(size);
+        self.track.size.set(size);
+    }
+
+    pub fn set_width(&self, width: f32) {
+        self.width.set(width);
+
+        let size = Vector2::new(width, self.height.get());
+
+        self.background.size.set(size);
+        self.track.size.set(size);
+    }
+
+    pub fn set_height(&self, height: f32) {
+        self.height.set(height);
+
+        let size = Vector2::new(self.width.get(), height);
+
         self.background.size.set(size);
         self.track.size.set(size);
     }

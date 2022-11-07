@@ -67,5 +67,6 @@ fn init(app: &Application) {
     theme::builtin::light::enable(app);
 
     let slider1 = make_slider(app);
-    slider1.inner().frp.resize(Vector2(400.0, 50.0));
+    slider1.inner().frp.set_width(400.0);
+    slider1.inner().frp.set_height(50.0);
 }
