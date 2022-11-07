@@ -189,6 +189,7 @@ define_themes! { [light:0, dark:1]
             component_list_panel {
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
+                weak_icon_alpha = 0.5;
                 grid {
                     width = 414.0, 414.0;
                     height = 414.0, 414.0;

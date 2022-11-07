@@ -70,11 +70,10 @@ pub struct UnknownIcon {
 pub struct Any {
     /// The underlying icon shape.
     #[derivative(Debug = "ignore")]
-    pub view:         Box<dyn display::Object>,
-    /// Strong (darker, or more contrasting) color parameter.
-    pub strong_color: DynamicParam<Attribute<Vector4>>,
-    /// Weak (lighter, or less contrasting) color parameter.
-    pub weak_color:   DynamicParam<Attribute<Vector4>>,
+    pub view:  Box<dyn display::Object>,
+    /// The primary color of the icon. Secondary colors are calculated by applying transparency to
+    /// the primary color.
+    pub color: DynamicParam<Attribute<Vector4>>,
 }
 
 impl display::Object for Any {

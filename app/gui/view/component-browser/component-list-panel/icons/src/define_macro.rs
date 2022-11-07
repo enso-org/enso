@@ -85,10 +85,9 @@ macro_rules! define_icons {
                     Self::$variant => {
                         let view = $name::View::new();
                         view.size.set(size);
-                        let strong_color = view.strong_color.clone_ref();
-                        let weak_color = view.weak_color.clone_ref();
+                        let color = view.color.clone_ref();
                         let view = Box::new(view);
-                        $crate::Any {view, strong_color, weak_color}
+                        $crate::Any {view, color}
                     }
                 )*}
             }

@@ -240,7 +240,7 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                shape.strong_color.set(color::Rgba::from(self.strong_color).into());
+                shape.color.set(color::Rgba::from(self.strong_color).into());
                 shape.weak_color.set(color::Rgba::from(self.weak_color).into());
                 self.display_object.add_child(&shape);
                 self.shape = Some(shape);
@@ -253,7 +253,7 @@ impl CurrentIcon {
     fn set_strong_color(&mut self, color: color::Lcha) {
         self.strong_color = color;
         if let Some(shape) = &self.shape {
-            shape.strong_color.set(color::Rgba::from(color).into());
+            shape.color.set(color::Rgba::from(color).into());
         }
     }
 

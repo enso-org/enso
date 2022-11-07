@@ -82,7 +82,7 @@ pub fn entry_point_searcher_icons() {
     let mut x = -300.0;
     icon::Id::for_each(|id| {
         let shape = id.create_shape(Vector2(SIZE, SIZE));
-        shape.strong_color.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
+        shape.color.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.weak_color.set(color::Rgba(0.655, 0.788, 0.624, 1.0).into());
         shape.set_position_x(x);
         x += 20.0;
