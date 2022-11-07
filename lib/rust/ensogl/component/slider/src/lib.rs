@@ -174,11 +174,6 @@ impl Slider {
 
             // model update
 
-            eval value_clamped (
-                (v) {
-                    model.update_value(*v);
-                }
-            );
             eval track_pos (
                 (v) {
                     model.update_track(*v);
@@ -205,6 +200,25 @@ impl Slider {
                     model.set_height(*v);
                 }
             );
+
+
+            // text alignment
+
+            model.value.set_content <+ value_clamped.map(
+                |value| format!("{:.2}", value).to_im_string()
+            );
+
+            eval model.value.width (
+                (w) {
+                    model.text_align_width(*w);
+                }
+            );
+            eval model.value.height (
+                (h) {
+                    model.text_align_height(*h);
+                }
+            );
+
 
         }
 

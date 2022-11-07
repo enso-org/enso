@@ -35,13 +35,6 @@ impl Model {
         let background = background::View::new();
         let track = track::View::new();
 
-        background.size.set(Vector2::new(200.0, 200.0));
-        background.color.set(color::Rgba(0.8, 0.8, 0.8, 1.0).into());
-
-        track.size.set(Vector2::new(200.0, 200.0));
-        track.color.set(color::Rgba(0.4, 0.4, 0.6, 1.0).into());
-        track.value.set(0.0.into());
-
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
 
@@ -55,7 +48,7 @@ impl Model {
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.label);
 
-        Self {
+        let model = Self {
             background,
             track,
             label,
@@ -64,7 +57,13 @@ impl Model {
             app,
             height: Cell::new(200.0),
             width: Cell::new(200.0),
-        }
+        };
+
+        model.set_size(Vector2::new(200.0, 50.0));
+        model.set_background_color(color::Rgba(0.8, 0.8, 0.8, 1.0));
+        model.set_inactive();
+
+        model
     }
 
     pub fn set_size(&self, size: Vector2) {
@@ -92,12 +91,18 @@ impl Model {
         self.track.size.set(size);
     }
 
-    pub fn set_color(&self, color: color::Rgba) {
+    pub fn set_track_color(&self, color: color::Rgba) {
         self.track.color.set(color.into());
     }
+    pub fn set_background_color(&self, color: color::Rgba) {
+        self.background.color.set(color.into());
+    }
 
-    pub fn update_value(&self, value: f32) {
-        self.value.frp.set_content.emit(format!("{:.2}", value))
+    pub fn text_align_width(&self, width: f32) {
+        self.value.set_position_x(-width / 2.0);
+    }
+    pub fn text_align_height(&self, height: f32) {
+        self.value.set_position_y(height / 2.0);
     }
 
     pub fn update_track(&self, value: f32) {
@@ -105,11 +110,11 @@ impl Model {
     }
 
     pub fn set_active(&self) {
-        self.set_color(color::Rgba(0.4, 0.4, 0.8, 1.0));
+        self.set_track_color(color::Rgba(0.4, 0.4, 0.8, 1.0));
     }
 
     pub fn set_inactive(&self) {
-        self.set_color(color::Rgba(0.4, 0.4, 0.6, 1.0));
+        self.set_track_color(color::Rgba(0.4, 0.4, 0.6, 1.0));
     }
 }
 
