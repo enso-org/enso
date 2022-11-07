@@ -87,8 +87,6 @@ ensogl_core::define_endpoints_2! {
 
         set_tooltip(Option<String>),
         set_label(Option<String>),
-
-        resize(Vector2), // remove in favor of set_width/height?
     }
     Output {
         width(f32),
@@ -130,10 +128,8 @@ impl Slider {
 
             // Componenet size
 
-            component_width         <- input.resize.map(|v| v.x );
-            component_height        <- input.resize.map(|v| v.y );
-            output.width            <+ any2(&component_width, &input.set_width);
-            output.height           <+ any2(&component_height, &input.set_height);
+            output.width            <+ input.set_width;
+            output.height           <+ input.set_height;
 
             // distance dragged
             drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
@@ -184,11 +180,6 @@ impl Slider {
             );
             eval_ component_release (
                 model.set_inactive();
-            );
-            eval input.resize (
-                (v) {
-                    model.set_size(*v);
-                }
             );
             eval input.set_width (
                 (v) {

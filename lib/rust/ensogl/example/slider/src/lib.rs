@@ -50,7 +50,8 @@ pub fn main() {
 
 fn make_slider(app: &Application) -> Leak<slider::Slider> {
     let slider = app.new_view::<slider::Slider>();
-    slider.frp.resize(Vector2(200.0, 50.0));
+    slider.frp.set_width(200.0);
+    slider.frp.set_height(50.0);
     app.display.add_child(&slider);
     Leak::new(slider)
 }
