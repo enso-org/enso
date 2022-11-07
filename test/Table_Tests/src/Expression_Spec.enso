@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+import Standard.Table.Data.Expression.Expression_Error
 
 import Standard.Visualization
 
@@ -37,15 +38,15 @@ spec detailed=False =
                 _ -> e == v
             if match.not then values.should_equal expected
 
-    specify_test label action =
+    specify_test label action expression_test=tester =
         case detailed of
             True ->
                 specify_tester expression value =
                     Test.specify (label + ": " + expression) <|
-                        tester expression value
+                        expression_test expression value
                 action specify_tester
             False ->
-                Test.specify label (action tester)
+                Test.specify label (action expression_test)
 
     Test.group "Expression Integer literals" <|
         specify_test "should be able to add an integer column" expression_test->
@@ -255,5 +256,35 @@ spec detailed=False =
             expression_test "IF True THEN 1 ELSE 0" 1
             expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
             expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
+
+    Test.group "Function invocation" <|
+        specify_test "should be able to call a function with arguments" expression_test->
+            expression_test "Not(True)" False
+            expression_test "not(False)" True
+            expression_test "iif(True, 1, 3)" 1
+            expression_test "iif([Bad]] Name], 2, 3)" [2, 3, 2, 3, 2]
+
+        specify_test "should be able to call a variable args function" expression_test->
+            expression_test "min(10, 3, 8)" 3
+            expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
+
+    Test.group "Errors should be handled" <|
+        error_tester expression fail_type =
+            test_table.set "NEW_COL" expression on_problems=Problem_Behavior.Report_Error . should_fail_with fail_type
+            test_table.set "NEW_COL" expression . column_count . should_equal test_table.column_count
+
+        specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
+            expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
+            expression_test "A + B" Expression_Error.Syntax_Error
+            expression_test "#2022-31-21#" Expression_Error.Syntax_Error
+
+        specify_test "should fail with Unsupported_Operation if not sufficient arguments" expression_test=error_tester expression_test->
+            expression_test "unknown([C])" Expression_Error.Unsupported_Operation
+
+        specify_test "should fail with Argument_Mismatch if not sufficient arguments" expression_test=error_tester expression_test->
+            expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
+
+        specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
+            expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
 
 main = Test_Suite.run_main (spec True)

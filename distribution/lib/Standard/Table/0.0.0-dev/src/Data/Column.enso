@@ -797,6 +797,7 @@ type Column
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector.Vector -> vector
+                    column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
                 ## We have custom code for the non-vectorized case, because

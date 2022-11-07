@@ -12,8 +12,6 @@ from Standard.Test import Test, Problems
 import project.Database.Helpers.Name_Generator
 
 spec prefix connection pending=Nothing =
-    eps=0.000001
-
     tables_to_clean = Vector.new_builder
     upload prefix data =
         name = Name_Generator.random_name prefix
