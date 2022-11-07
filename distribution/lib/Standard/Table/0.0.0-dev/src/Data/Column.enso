@@ -1265,7 +1265,8 @@ type Empty_Error
 
 ## PRIVATE
 
-   Executes a vectorized operation over the provided column and values.
+   Folds the vectorized operation over the provided column and values. When more
+   than one value to is provided, the result is folded with subsequent values.
 
    Arguments:
    - column: The column to execute the operation over.

@@ -82,6 +82,8 @@ spec detailed=False =
             expression_test "'Hello \'World\''" "Hello 'World'"
             expression_test '"Hello World"' 'Hello World'
             expression_test '"Hello ""World"""' 'Hello "World"'
+            expression_test '"Hello \\""World"""' 'Hello \\"World"'
+            expression_test "'Alpha\r\n\gBeta'" 'Alpha\r\n\\gBeta'
 
     Test.group "Expression Text literals" <|
         specify_test "should be able to get a Column" expression_test->
