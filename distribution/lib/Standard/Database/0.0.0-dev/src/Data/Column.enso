@@ -324,7 +324,7 @@ type Column
     + self other =
         ## TODO: Revisit this as part of the column value type work.
         op = case other of
-            _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_integer then 'ADD_NUMBER' else 'ADD_TEXT'
+            _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
             _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
         self.make_binary_op op other
 

@@ -93,8 +93,8 @@ IDENTIFIER : LETTER (LETTER|DIGIT|'_')*;
 
 EXCEL_STRING : '"' ('""'|~'"')* '"';
 
-PYTHON_STRING : '\'' (ESC|~[\\\r\n\f'])* '\'';
-fragment ESC : '\\' . | '\\u' HEX HEX HEX HEX;
+PYTHON_STRING : '\'' (ESC|~['])* '\'';
+fragment ESC : '\\' [abtnfrv"'\\] | '\\u' HEX HEX HEX HEX | '\\U' HEX HEX HEX HEX HEX HEX HEX HEX | '\\x' HEX HEX;
 
 fragment YEAR : DIGIT DIGIT DIGIT DIGIT;
 fragment DATE_PART : '-' DIGIT DIGIT;

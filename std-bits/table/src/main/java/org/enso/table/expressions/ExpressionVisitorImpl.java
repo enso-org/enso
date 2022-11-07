@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static class ThrowOnErrorListener extends BaseErrorListener {
@@ -252,10 +253,39 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     return Value.asValue(text.substring(1, text.length() - 1).replace("\"\"", "\""));
   }
 
+  private static final Pattern pythonRegex = Pattern.compile("(\\\\[abtnfrv\"'\\\\])|(\\\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{4}))|\\\\|([^\\\\]+)");
+
+  private static String unescapePython(String text) {
+    var matcher = pythonRegex.matcher(text);
+    var builder = new StringBuilder(text.length());
+    while (matcher.find()) {
+      if (matcher.group(1) != null) {
+        builder.append(switch (matcher.group(1).charAt(1)) {
+          case 'a' -> (char) 0x07;
+          case 'f' -> (char) 0x0c;
+          case 'b' -> '\b';
+          case 't' -> '\t';
+          case 'r' -> '\r';
+          case 'n' -> '\n';
+          case 'v' -> (char) 0x0b;
+          case '\\' -> '\\';
+          case '\'' -> '\'';
+          case '"' -> '"';
+          default -> throw new IllegalArgumentException("Unknown Python escape sequence.");
+        });
+      } else if (matcher.group(2) != null) {
+        builder.append((char) Integer.parseInt(matcher.group(2).substring(2), 16));
+      } else {
+        builder.append(matcher.group(0));
+      }
+    }
+    return builder.toString();
+  }
+
   @Override
   public Value visitPythonString(ExpressionParser.PythonStringContext ctx) {
     var text = ctx.getText();
-    return Value.asValue(text.substring(1, text.length() - 1).replaceAll("\\\\(.)", "$1"));
+    return Value.asValue(unescapePython(text.substring(1, text.length() - 1)));
   }
 
   @Override

@@ -935,8 +935,7 @@ type Table
        - column: The new value for the column either a `Column` or `Text` of an
          expression.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
-         warning by default. The specific issues depend on the `File_Format`
-         argument.
+         warning by default.
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
@@ -951,6 +950,7 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
+                 table.set "total_stock_expr" "2 * [total_stock]"
     set : Text -> Column | Vector.Vector | Text -> Problem_Behavior -> Table
     set self name column on_problems=Report_Warning = case column of
         _ : Text ->
@@ -958,7 +958,7 @@ type Table
             if expression.is_error.not then self.set name expression on_problems else
                 on_problems.handle_errors expression fallback=self
         _ : Vector.Vector -> self.set name (Column.from_vector name column)
-        Column.Column_Data _ ->
+        _ : Column ->
             Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## PRIVATE
