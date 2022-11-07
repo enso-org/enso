@@ -69,8 +69,11 @@ mod content {
                 .rotate(1.0.radians())
                 .translate((100.0.px(), (-350.0).px()))
                 .fill(color::Rgb::new(0.95,0.8,0.0));
-            (circle + triangle + star).into()
-
+            let capsule = UnevenCapsule(20.0.px(), 50.0.px(), 150.0.px())
+                .rotate(2.2.radians())
+                .translate(((-105.0).px(), (-395.0).px()))
+                .fill(color::Rgb::new(0.8,0.8,0.8));
+            (circle + triangle + star + capsule).into()
         }
     }
 }
