@@ -28,6 +28,7 @@ Copyright notices related to this dependency can be found in the directory `comm
 
 'antlr4-runtime', licensed under the The BSD License, is distributed with the Table.
 The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.antlr.antlr4-runtime-4.10.1`.
 
 
 'commons-collections4', licensed under the Apache License, Version 2.0, is distributed with the Table.
