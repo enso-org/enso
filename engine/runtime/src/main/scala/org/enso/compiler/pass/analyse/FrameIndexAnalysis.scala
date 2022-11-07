@@ -56,7 +56,8 @@ object FrameIndexAnalysis extends IRPass {
   object FrameInfo {
     /**
      * Holds an index to a Truffle [[com.oracle.truffle.api.frame.FrameDescriptor]].
-     * The value is between [[Configuration.initialFrameIndexGap]] and [[Integer.MAX_VALUE]].
+     * Indexing always starts at 0, if there is a need to insert a gap at the beginning, so static
+     * frame slots can be inserted, it has to be handled outside this class.
      * Attached to function arguments ([[IR.DefinitionArgument]]) and bindings ([[IR.Expression.Binding]])
      * @param index The index to Truffle frame.
      */
@@ -104,9 +105,17 @@ object FrameIndexAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
+    val config = moduleContext
+      .passConfiguration
+      .flatMap(cfg => cfg.get(this))
+      .getOrElse(
+        throw new CompilerError(
+          "Frame index analysis execution missing configuration"
+        )
+      )
     ir.copy(
       bindings = ir.bindings.map(moduleDef => {
-        analyseModuleDefinition(moduleDef)
+        analyseModuleDefinition(moduleDef, config)
       })
     )
   }
@@ -124,11 +133,20 @@ object FrameIndexAnalysis extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    analyseExpression(ir, FrameInfo.LocalVariables.createRoot())
+    val config = inlineContext
+      .passConfiguration
+      .flatMap(cfg => cfg.get(this))
+      .getOrElse(
+        throw new CompilerError(
+          "Frame index analysis execution missing configuration"
+        )
+      )
+    analyseExpression(ir, FrameInfo.LocalVariables.createRoot(), config)
   }
 
   private def analyseModuleDefinition(
-    ir: IR.Module.Scope.Definition
+    ir: IR.Module.Scope.Definition,
+    config: Configuration
   ): IR.Module.Scope.Definition = {
     ir match {
       case method: IR.Module.Scope.Definition.Method.Explicit =>
@@ -137,7 +155,8 @@ object FrameIndexAnalysis extends IRPass {
             method.copy(
               body = analyseFunction(
                 function,
-                FrameInfo.LocalVariables.createRoot()
+                FrameInfo.LocalVariables.createRoot(),
+                config
               )
             )
           case _ =>
@@ -151,7 +170,8 @@ object FrameIndexAnalysis extends IRPass {
             method.copy(
               body = analyseFunction(
                 function,
-                FrameInfo.LocalVariables.createRoot()
+                FrameInfo.LocalVariables.createRoot(),
+                config
               )
             )
           case _ =>
@@ -172,25 +192,32 @@ object FrameIndexAnalysis extends IRPass {
         )
       case _ =>
         val localVars = FrameInfo.LocalVariables.createRoot()
-        ir.mapExpressions(expr => analyseExpression(expr, localVars))
+        ir.mapExpressions(
+          expr => analyseExpression(expr, localVars, config)
+        )
     }
   }
 
   private def analyseFunction(
     function: IR.Function,
-    parentLocalVars: FrameInfo.LocalVariables
+    parentLocalVars: FrameInfo.LocalVariables,
+    config: Configuration
   ): IR.Function = {
     val currentLocalVars = parentLocalVars.createChild()
     function match {
       case lambda @ IR.Function.Lambda(arguments, body, _, _, _, _) =>
-        lambda
+        val newLambda = lambda
           .copy(
             arguments = analyseArgumentDefs(arguments, currentLocalVars),
-            body      = analyseExpression(body, currentLocalVars)
+            body      = analyseExpression(body, currentLocalVars, config)
           )
-          .updateMetadata(
+        if (config.attachLocalVarMetadata) {
+          newLambda.updateMetadata(
             this -->> currentLocalVars
           )
+        } else {
+          newLambda
+        }
       case _: IR.Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during frame index analysis."
@@ -212,25 +239,27 @@ object FrameIndexAnalysis extends IRPass {
 
   private def analyseExpression(
     expr: IR.Expression,
-    localVars: FrameInfo.LocalVariables
+    localVars: FrameInfo.LocalVariables,
+    config: Configuration
   ): IR.Expression = {
     expr match {
       case binding: IR.Expression.Binding =>
         val frameIndex = localVars.addLocalVar(binding.getId)
         binding
           .copy(
-            expression = analyseExpression(binding.expression, localVars)
+            expression = analyseExpression(binding.expression, localVars, config)
           )
           .updateMetadata(
           this -->> new FrameInfo.FrameIndex(frameIndex)
           )
       case function: IR.Function =>
-        analyseFunction(function, localVars)
+        analyseFunction(function, localVars, config)
       case _ =>
         expr.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
             expression,
-            localVars
+            localVars,
+            config
           )
         )
     }
@@ -246,7 +275,6 @@ object FrameIndexAnalysis extends IRPass {
 
   sealed case class Configuration(
     override var shouldWriteToContext: Boolean = false,
-    initialFrameIndexGap: Int              = 0,
     attachLocalVarMetadata: Boolean        = true
   ) extends IRPass.Configuration
 }

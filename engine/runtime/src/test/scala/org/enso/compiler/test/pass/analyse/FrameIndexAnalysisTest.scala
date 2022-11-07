@@ -20,7 +20,7 @@ class FrameIndexAnalysisTest extends CompilerTest {
   val passConfig: PassConfiguration = PassConfiguration(
     FrameIndexAnalysis -->> FrameIndexAnalysis.Configuration(
       shouldWriteToContext = false,
-      initialFrameIndexGap = 0
+      attachLocalVarMetadata = true
     )
   )
 
@@ -28,12 +28,10 @@ class FrameIndexAnalysisTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   implicit class AnalyseModule(ir: IR.Module) {
-    def analyseFrameIndexes: IR.Module = {
+    def analyseFrameIndexes(implicit moduleContext: ModuleContext): IR.Module = {
       FrameIndexAnalysis.runModule(
         ir,
-        buildModuleContext(
-          passConfiguration = Some(passConfig)
-        )
+        moduleContext
       )
     }
   }
@@ -109,7 +107,38 @@ class FrameIndexAnalysisTest extends CompilerTest {
   }
 
   "Pass configuration" should {
-    // TODO: Test FrameIndexAnalysis pass configuration
+    val passConfig = PassConfiguration(
+      FrameIndexAnalysis -->> FrameIndexAnalysis.Configuration(
+        attachLocalVarMetadata = false
+      )
+    )
+    implicit val passManager: PassManager = new PassManager(
+      List(precursorPasses),
+      passConfig
+    )
+    implicit val moduleContext: ModuleContext =
+      buildModuleContext(
+        passConfiguration = Some(passConfig),
+        freshNameSupply = Some(new FreshNameSupply())
+      )
+    val module =
+      """
+        |my_func x = x
+        |""".stripMargin.preprocessModule.analyseFrameIndexes
+
+    "No local variables pass config does not attach LocalVariables metadata" in {
+      val myFunc = findMethod(module, "my_func")
+        .body
+        .asInstanceOf[IR.Function]
+      val metadata = myFunc.getMetadata(FrameIndexAnalysis)
+      metadata shouldBe empty
+    }
+
+    "No local variables pass config still attaches FrameIndex metadata" in {
+      val xArg = findBinding(module, "x")
+      val metadata = xArg.getMetadata(FrameIndexAnalysis)
+      metadata shouldBe defined
+    }
   }
 
   "Frame index analysis for simple scopes" should {
