@@ -232,4 +232,28 @@ spec detailed=False =
             expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
             expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
 
+    Test.group "Boolean Operators" <|
+        specify_test "should be able to AND booleans" expression_test->
+            expression_test "True && TRUE" True
+            expression_test "True AND False" False
+            expression_test "True && [Bad]] Name]" [True, False, True, False, True]
+            expression_test "False AND [Bad]] Name]" False
+
+        specify_test "should be able to OR booleans" expression_test->
+            expression_test "True || TRUE" True
+            expression_test "True OR False" True
+            expression_test "False OR False" False
+            expression_test "True OR [Bad]] Name]" True
+            expression_test "False || [Bad]] Name]" [True, False, True, False, True]
+
+        specify_test "should be able to NOT booleans" expression_test->
+            expression_test "!TRUE" False
+            expression_test "Not False" True
+            expression_test "NOT [Bad]] Name]" [False, True, False, True, False]
+
+        specify_test "should be able to use IF" expression_test->
+            expression_test "IF True THEN 1 ELSE 0" 1
+            expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
+            expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
+
 main = Test_Suite.run_main (spec True)

@@ -10,8 +10,8 @@ expr:   expr op=POWER expr                                # Power
     |   expr (IN|NOT_IN) '(' expr (',' expr)* ')'         # In
     |   expr (NOT_BETWEEN | BETWEEN) expr AND expr        # Between
     |   UNARY_NOT expr                                    # UnaryNot
-    |   expr op=AND expr                                  # And
-    |   expr op=OR expr                                   # Or
+    |   expr op=(AND | '&&') expr                         # And
+    |   expr op=(OR | '||') expr                          # Or
     |   IF expr THEN expr ELSE expr END?                  # If
     |   IDENTIFIER '(' (expr (',' expr)*)? ')'            # Function  // This allows for functions of 0 or more arguments within brackets (e.g. PI(), SIN(1), MOD(3,4) etc.)
     |   '(' expr ')'                                      # Paren
