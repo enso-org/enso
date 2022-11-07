@@ -969,6 +969,7 @@ class RuntimeSuggestionUpdatesTest
                     "MyType",
                     List(),
                     "Enso_Test.Test.A.MyType",
+                    Some(ConstantsGen.ANY),
                     None,
                     None,
                     None

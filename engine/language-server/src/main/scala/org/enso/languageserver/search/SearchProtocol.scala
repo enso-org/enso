@@ -28,6 +28,8 @@ object SearchProtocol {
 
     val ReturnType = "returnType"
 
+    val ParentType = "parentType"
+
     val Documentation = "documentation"
 
     val DocumentationHtml = "documentationHtml"
@@ -235,6 +237,7 @@ object SearchProtocol {
         params <- cursor
           .downField(CodecField.Params)
           .as[Seq[Suggestion.Argument]]
+        parentType <- cursor.downField(CodecField.ParentType).as[Option[String]]
         documentation <- cursor
           .downField(CodecField.Documentation)
           .as[Option[String]]
@@ -254,6 +257,7 @@ object SearchProtocol {
           name,
           params,
           returnType,
+          parentType,
           documentation,
           documentationHtml,
           documentationSections,
