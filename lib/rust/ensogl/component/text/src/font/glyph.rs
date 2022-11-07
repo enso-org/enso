@@ -2,7 +2,6 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
-use ensogl_core::display::world::*;
 
 use crate::buffer::formatting::PropertyDiffApply;
 use crate::font;
@@ -12,7 +11,6 @@ use crate::ResolvedProperty;
 use crate::SdfWeight;
 use crate::Size;
 
-use enso_frp::stream::ValueProvider;
 use enso_text::Byte;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::data::color;
@@ -22,13 +20,11 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::display::world;
 use ensogl_core::frp;
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use font::Font;
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::system::gpu::Texture;
+use font::FontWithAtlas;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
@@ -46,6 +42,112 @@ ensogl_core::define_endpoints_2! {
         set_color(color::Lcha),
         skip_color_animation(),
     }
+
+    Output {
+        target_color(color::Lcha),
+    }
+}
+
+
+
+// ==================
+// === SystemData ===
+// ==================
+
+/// Shape system data. Manages custom GLSL shader code for the glyph shape system.
+#[derive(Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub struct SystemData {}
+
+#[cfg(target_os = "macos")]
+const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
+
+#[cfg(not(target_os = "macos"))]
+const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
+
+const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
+
+impl SystemData {
+    /// Defines a default material of this system.
+    fn material() -> Material {
+        let mut material = Material::new();
+        material.add_input_def::<texture::FloatSampler>("atlas");
+        material.add_input_def::<Vector2<f32>>("msdf_size");
+        material.add_input_def::<f32>("atlas_index");
+        material.add_input("pixel_ratio", 1.0);
+        material.add_input("z_zoom_1", 1.0);
+        material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        material.add_input("font_size", 10.0);
+        material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
+        material.add_input("sdf_weight", 0.0);
+        // TODO[WD]: We need to use this output, as we need to declare the same amount of shader
+        //     outputs as the number of attachments to framebuffer. We should manage this more
+        //     intelligent. For example, we could allow defining output shader fragments,
+        //     which will be enabled only if pass of given attachment type was enabled.
+        material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
+
+        let code = CodeTemplate::new(FUNCTIONS, MAIN, "");
+        material.set_code(code);
+        material
+    }
+}
+
+
+
+// =================
+// === ShapeData ===
+// =================
+
+/// Shape data. Allows passing font information to the [`SystemData`].
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct ShapeData {
+    pub font: FontWithAtlas,
+}
+
+impl display::shape::system::ShapeSystemFlavorProvider for ShapeData {
+    fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
+        let mut hasher = DefaultHasher::new();
+        std::hash::Hash::hash(&self.font.name(), &mut hasher);
+        display::shape::system::ShapeSystemFlavor { flavor: hasher.finish() }
+    }
+}
+
+mod glyph_shape {
+    use super::*;
+    ensogl_core::shape! {
+        type SystemData = SystemData;
+        type ShapeData = ShapeData;
+        (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
+            // The shape does not matter. The [`SystemData`] defines custom GLSL code.
+            Plane().into()
+        }
+    }
+}
+
+impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
+    fn new(
+        scene: &Scene,
+        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
+        shape_data: &ShapeData,
+    ) -> Self {
+        let font = &shape_data.font;
+
+        let size = font::msdf::Texture::size();
+        let sprite_system = &data.model.sprite_system;
+        let symbol = sprite_system.symbol();
+
+        *data.model.material.borrow_mut() = Self::material();
+        data.model.do_not_use_shape_definition.set(true);
+
+        sprite_system.set_alignment(Alignment::bottom_left());
+        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        scene.variables.add("msdf_size", size);
+
+        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
+
+        SystemData {}
+    }
 }
 
 
@@ -53,40 +155,6 @@ ensogl_core::define_endpoints_2! {
 // =============
 // === Glyph ===
 // =============
-
-/// Glyph texture. Contains all letters encoded in MSDF format.
-#[cfg(target_arch = "wasm32")]
-type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
-
-#[cfg(target_arch = "wasm32")]
-fn new_texture(context: &Context, param: (i32, i32)) -> Texture {
-    Texture::new(context, param)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-type Texture = u32;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn new_texture(_context: &Context, _param: (i32, i32)) -> Texture {
-    0
-}
-
-
-#[cfg(target_arch = "wasm32")]
-type Context = world::Context;
-#[cfg(not(target_arch = "wasm32"))]
-type Context = ();
-
-#[cfg(target_arch = "wasm32")]
-fn get_context(scene: &Scene) -> Context {
-    // FIXME: The following line is unsafe. It can fail if the context was lost before
-    // calling this function. Also, the texture will not be restored
-    // after context restoration.
-    scene.context.borrow().as_ref().unwrap().clone_ref()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &Scene) -> Context {}
 
 /// A glyph rendered on screen.
 #[derive(Clone, CloneRef, Debug, Deref)]
@@ -102,19 +170,13 @@ pub struct GlyphData {
     // cloned in the FRP definition and thus will not cause any mem leak.
     #[deref]
     pub frp:                Frp,
+    pub view:               glyph_shape::View,
     pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
     pub display_object:     display::object::Instance,
-    pub sprite:             Sprite,
     pub context:            Context,
-    pub font:               Font,
     pub properties:         Cell<font::family::NonVariableFaceHeader>,
     pub variations:         RefCell<VariationAxes>,
-    pub size:               Attribute<f32>,
-    pub color:              Attribute<Vector4<f32>>,
-    pub sdf_weight:         Attribute<f32>,
-    pub atlas_index:        Attribute<f32>,
-    pub atlas:              Uniform<Texture>,
     pub color_animation:    color::Animation,
     pub x_advance:          Rc<Cell<f32>>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
@@ -278,36 +340,36 @@ crate::with_formatting_property_diffs!(define_formatting_property_diffs);
 impl Glyph {
     /// Color getter.
     pub fn color(&self) -> color::Lcha {
-        self.set_color.value()
+        self.target_color.value()
     }
 
     /// SDF-based glyph thickness getter.
     pub fn sdf_weight(&self) -> SdfWeight {
-        SdfWeight(self.sdf_weight.get())
+        SdfWeight(self.view.sdf_weight.get())
     }
 
     /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
     /// values lower than 0 makes it thinner.
     pub fn set_sdf_weight(&self, value: impl Into<SdfWeight>) {
-        self.sdf_weight.set(value.into().value);
+        self.view.sdf_weight.set(value.into().value);
     }
 
     /// Size getter.
     pub fn size(&self) -> Size {
-        Size(self.size.get())
+        Size(self.view.font_size.get())
     }
 
     /// Size setter.
     pub fn set_size(&self, size: Size) {
         let size = size.value;
-        self.size.set(size);
-        let opt_glyph_info = self.font.glyph_info(
+        self.view.font_size.set(size);
+        let opt_glyph_info = self.view.data.borrow().font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
         );
         if let Some(glyph_info) = opt_glyph_info {
-            self.sprite.size.set(glyph_info.scale.scale(size))
+            self.view.size.set(glyph_info.scale.scale(size))
         } else {
             error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
@@ -322,11 +384,12 @@ impl Glyph {
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
         let variations = self.variations.borrow();
-        let opt_glyph_info = self.font.glyph_info(self.properties.get(), &variations, glyph_id);
+        let opt_glyph_info =
+            self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
-            self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+            self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            self.sprite.size.set(glyph_info.scale.scale(self.size().value));
+            self.view.size.set(glyph_info.scale.scale(self.size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
             warn!("Cannot find glyph render info for glyph id: {:?}.", glyph_id);
@@ -350,14 +413,19 @@ impl Glyph {
     fn update_atlas(&self) {}
     #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
-        let cpu_tex_height = self.font.msdf_texture_rows() as i32;
-        let gpu_tex_height = self.atlas.with_content(|texture| texture.storage().height);
+        let cpu_tex_height = self.view.data.borrow().font.msdf_texture_rows() as i32;
+        let gpu_tex_height =
+            self.view.data.borrow().font.atlas.with_content(|texture| texture.storage().height);
         let texture_changed = cpu_tex_height != gpu_tex_height;
         if texture_changed {
             let cpu_tex_width = font::msdf::Texture::WIDTH as i32;
             let texture = Texture::new(&self.context, (cpu_tex_width, cpu_tex_height));
-            self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            self.atlas.set(texture);
+            self.view
+                .data
+                .borrow()
+                .font
+                .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+            self.view.data.borrow().font.atlas.set(texture);
         }
     }
 }
@@ -400,67 +468,53 @@ impl WeakGlyph {
 // === System ===
 // ==============
 
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, CloneRef, Debug, Default)]
+/// Mocked version of WebGL context.
+pub struct Context;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_context(_scene: &Scene) -> Context {
+    Context
+}
+
+#[cfg(target_arch = "wasm32")]
+use ensogl_core::display::world::Context;
+
+#[cfg(target_arch = "wasm32")]
+fn get_context(scene: &Scene) -> Context {
+    scene.context.borrow().as_ref().unwrap().clone_ref()
+}
+
+
 /// A system for displaying glyphs.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct System {
-    logger:        Logger,
-    context:       Context,
-    sprite_system: SpriteSystem,
-    pub font:      Font,
-    size:          Buffer<f32>,
-    color:         Buffer<Vector4<f32>>,
-    sdf_weight:    Buffer<f32>,
-    atlas_index:   Buffer<f32>,
-    atlas:         Uniform<Texture>,
+    context:  Context,
+    pub font: FontWithAtlas,
 }
 
 impl System {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(scene: impl AsRef<Scene>, font: Font) -> Self {
-        let logger = Logger::new("glyph_system");
-        let size = font::msdf::Texture::size();
+    pub fn new(scene: impl AsRef<Scene>, font_name: impl Into<font::Name>) -> Self {
         let scene = scene.as_ref();
-        let sprite_system = SpriteSystem::new(scene);
-        let symbol = sprite_system.symbol();
-        #[allow(clippy::let_unit_value)]
+        let fonts = scene.extension::<font::Registry>();
+        let font = fonts.load(font_name);
         let context = get_context(scene);
-        let texture = new_texture(&context, (0, 0));
-        let mesh = symbol.surface();
-
-        sprite_system.set_material(Self::material());
-        sprite_system.set_alignment(Alignment::bottom_left());
-        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        scene.variables.add("msdf_size", size);
-        Self {
-            logger,
-            context,
-            sprite_system,
-            font,
-            atlas: symbol.variables().add_or_panic("atlas", texture),
-            size: mesh.instance_scope().add_buffer("font_size"),
-            color: mesh.instance_scope().add_buffer("color"),
-            sdf_weight: mesh.instance_scope().add_buffer("sdf_weight"),
-            atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
-        }
+        Self { context, font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     pub fn new_glyph(&self) -> Glyph {
         let frp = Frp::new();
-        #[allow(clippy::clone_on_copy, clippy::let_unit_value, clippy::unit_arg)]
+        #[allow(clippy::clone_on_copy)]
+        #[allow(clippy::unit_arg)]
         let context = self.context.clone();
         let display_object = display::object::Instance::new();
-        let sprite = self.sprite_system.new_instance();
-        let instance_id = sprite.instance_id;
-        let size = self.size.at(instance_id);
-        let color = self.color.at(instance_id);
-        let sdf_weight = self.sdf_weight.at(instance_id);
-        let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
-        let atlas = self.atlas.clone();
         let glyph_id = default();
         let line_byte_offset = default();
         let properties = default();
@@ -468,29 +522,25 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
-        display_object.add_child(&sprite);
-        color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
-        atlas_index.set(0.0);
+        let view = glyph_shape::View::new_with_data(ShapeData { font });
+        view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
+        view.atlas_index.set(0.0);
+        display_object.add_child(&view);
 
         let network = frp.network();
         frp::extend! {network
+            frp.private.output.target_color <+ frp.set_color;
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
-            eval color_animation.value ((c) color.set(Rgba::from(c).into()));
+            eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
         }
 
         Glyph {
             data: Rc::new(GlyphData {
                 frp,
+                view,
                 display_object,
-                sprite,
                 context,
-                font,
-                size,
-                color,
-                sdf_weight,
-                atlas_index,
-                atlas,
                 glyph_id,
                 line_byte_offset,
                 properties,
@@ -500,51 +550,5 @@ impl System {
                 attached_to_cursor,
             }),
         }
-    }
-
-    /// Get underlying sprite system.
-    pub fn sprite_system(&self) -> &SpriteSystem {
-        &self.sprite_system
-    }
-}
-
-impl display::Object for System {
-    fn display_object(&self) -> &display::object::Instance {
-        self.sprite_system.display_object()
-    }
-}
-
-
-// === Material ===
-
-#[cfg(target_os = "macos")]
-const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
-#[cfg(not(target_os = "macos"))]
-const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
-
-const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
-
-impl System {
-    /// Defines a default material of this system.
-    fn material() -> Material {
-        let mut material = Material::new();
-        material.add_input_def::<texture::FloatSampler>("atlas");
-        material.add_input_def::<Vector2<f32>>("msdf_size");
-        material.add_input_def::<f32>("atlas_index");
-        material.add_input("pixel_ratio", 1.0);
-        material.add_input("z_zoom_1", 1.0);
-        material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        material.add_input("font_size", 10.0);
-        material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
-        material.add_input("sdf_weight", 0.0);
-        // FIXME We need to use this output, as we need to declare the same amount of shader
-        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
-        // FIXME intelligent. For example, we could allow defining output shader fragments,
-        // FIXME which will be enabled only if pass of given attachment type was enabled.
-        material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
-
-        let code = CodeTemplate::new(FUNCTIONS, MAIN, "");
-        material.set_code(code);
-        material
     }
 }

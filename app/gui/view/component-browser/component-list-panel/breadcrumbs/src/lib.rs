@@ -44,7 +44,6 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
@@ -103,7 +102,7 @@ pub type BreadcrumbId = usize;
 mod mask {
     use super::*;
     use ensogl_core::display::shape::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style: Style, corners_radius: f32) {
             let width = Var::<Pixels>::from("input_size.x");
@@ -130,10 +129,9 @@ struct Layers {
 impl Layers {
     /// Constructor.
     pub fn new(base_layer: &Layer) -> Self {
-        let logger = Logger::new("BreadcrumbsMask");
-        let mask = Layer::new_with_cam(logger, &base_layer.camera());
-        let main = base_layer.create_sublayer();
-        let text = main.create_sublayer();
+        let mask = Layer::new_with_cam("mask", &base_layer.camera());
+        let main = base_layer.create_sublayer("main");
+        let text = main.create_sublayer("text");
         main.set_mask(&mask);
         Layers { main, text, mask }
     }
@@ -230,9 +228,9 @@ impl Model {
 
 
     fn set_layers(&self, layers: Layers) {
-        layers.mask.add_exclusive(&self.mask);
-        layers.main.add_exclusive(&self.display_object);
-        layers.main.add_exclusive(&self.grid);
+        layers.mask.add(&self.mask);
+        layers.main.add(&self.display_object);
+        layers.main.add(&self.grid);
         self.grid.set_text_layer(Some(layers.text.downgrade()));
         self.network.store(&layers);
     }

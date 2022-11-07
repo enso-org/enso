@@ -149,8 +149,9 @@ sort_and_merge_ranges ranges =
      the method wants to work only with normalized ranges, it must perform
      normalization on its own.
    - range: The `Index_Sub_Range` to take from the collection.
-take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
+take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+    count : Integer -> take_helper length at single_slice slice_ranges (First count)
     Range_Data _ _ _ -> take_helper length at single_slice slice_ranges (By_Index index_sub_range)
     First count -> single_slice 0 (Math.min length count)
     Last count -> single_slice length-count length
@@ -198,8 +199,9 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
      in the provided order. The function may assume that the ranges have been
      normalized.
    - range: The `Index_Sub_Range` to drop from the collection.
-drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> Index_Sub_Range -> Any
+drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+    _ : Integer -> single_slice index_sub_range length
     Range_Data _ _ _ -> drop_helper length at single_slice slice_ranges (By_Index index_sub_range)
     First count -> single_slice count length
     Last count -> single_slice 0 length-count

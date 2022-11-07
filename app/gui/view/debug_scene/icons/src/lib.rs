@@ -28,7 +28,7 @@ use ide_view_component_list_panel_icons::SIZE;
 mod frame {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let inner = Rect((SIZE.px(), SIZE.px()));
             let outer = inner.grow(0.2.px());

@@ -5,16 +5,16 @@
 //! canceled before the delay has passed, nothing happens, and the delay resets.
 //!
 //! This can be used to hide state changes that are only happening for a short duration. For example
-//! consider a UI element that is shown when hovering ofer an icon. When only moving the mouse
+//! consider a UI element that is shown when hovering over an icon. When only moving the mouse
 //! cursor past the icon we want to avoid the pop-up appearing and disappearing right away. The
 //! `HystereticAnimation` allows this by setting a `start_delay_duration` long enough to avoid
 //! triggering during the time it takes to move past the icon. Thus, when the cursor moves past the
-//! icon nothing is visible to the user, but if the mosque cursor stays on the icon longer than
+//! icon nothing is visible to the user, but if the mouse cursor stays on the icon longer than
 //! `start_delay_duration`, the animation starts, and the pop-up becomes visible. In reverse, when
 //! moving the cursor between multiple icons, the pop-up should not permanently start and disappear
 //! and re-appear. Thus setting a `end_delay_duration` will avoid the pop-up from disappearing, if
 //! the time the cursor is between icons is less than the `end_delay_duration`. Instead, the hiding
-//! will only start iof the cursos has left any icon triggering the pop-up for longer than the
+//! will only start if the cursor has left any icon triggering the pop-up for longer than the
 //! `end_delay_duration`.
 
 use crate::prelude::*;

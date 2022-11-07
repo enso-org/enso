@@ -177,7 +177,7 @@ impl AllStyles {
 mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
@@ -291,7 +291,7 @@ impl Model {
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.size().get();
+        let size = self.background.size.get();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }

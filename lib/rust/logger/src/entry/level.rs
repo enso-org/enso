@@ -22,29 +22,29 @@ use crate::processor::formatter;
 /// For example, for the given input `define_levels!(Trace,Debug,Info,Warning,Error);`, the
 /// following output will be generated:
 ///
-/// ```ignore
-///     #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
+/// ```text
+/// #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// pub struct Trace;
+/// #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// pub struct Debug;
+/// #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// pub struct Info;
+/// #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// pub struct Warning;
+/// #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// pub struct Error;
+/// pub mod filter_from {
+///     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 ///     pub struct Trace;
-///     #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
+///     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 ///     pub struct Debug;
-///     #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
+///     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 ///     pub struct Info;
-///     #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
+///     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 ///     pub struct Warning;
-///     #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
+///     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 ///     pub struct Error;
-///     pub mod filter_from {
-///         #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
-///         pub struct Trace;
-///         #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
-///         pub struct Debug;
-///         #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
-///         pub struct Info;
-///         #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
-///         pub struct Warning;
-///         #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Hash)]
-///         pub struct Error;
-///     }
+/// }
 /// ```
 #[macro_export]
 macro_rules! define_levels {
@@ -75,28 +75,56 @@ macro_rules! define_levels {
 /// For example, for `define_levels_group!(DefaultLevels {Trace,Debug,Info,Warning,Error});`, the
 /// following code will be generated:
 ///
-/// ```ignore
-/// #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
-/// pub enum DefaultLevels { Trace,Debug,Info,Warning,Error }
-/// impl From<Trace>   for DefaultLevels { fn from(_: Trace)   -> Self { Self::Trace } }
-/// impl From<Debug>   for DefaultLevels { fn from(_: Debug)   -> Self { Self::Debug } }
-/// impl From<Info>    for DefaultLevels { fn from(_: Info)    -> Self { Self::Info } }
-/// impl From<Warning> for DefaultLevels { fn from(_: Warning) -> Self { Self::Warning } }
-/// impl From<Error>   for DefaultLevels { fn from(_: Error)   -> Self { Self::Error } }
+/// ```text
+/// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// pub enum DefaultLevels {
+///     Trace,
+///     Debug,
+///     Info,
+///     Warning,
+///     Error,
+/// }
+/// impl From<Trace> for DefaultLevels {
+///     fn from(_: Trace) -> Self {
+///         Self::Trace
+///     }
+/// }
+/// impl From<Debug> for DefaultLevels {
+///     fn from(_: Debug) -> Self {
+///         Self::Debug
+///     }
+/// }
+/// impl From<Info> for DefaultLevels {
+///     fn from(_: Info) -> Self {
+///         Self::Info
+///     }
+/// }
+/// impl From<Warning> for DefaultLevels {
+///     fn from(_: Warning) -> Self {
+///         Self::Warning
+///     }
+/// }
+/// impl From<Error> for DefaultLevels {
+///     fn from(_: Error) -> Self {
+///         Self::Error
+///     }
+/// }
 ///
 /// impl<T> formatter::GenericDefinition<DefaultLevels> for T
-///     where T : formatter::Definition<level::Trace>,
-///           T : formatter::Definition<level::Debug>,
-///           T : formatter::Definition<level::Info>,
-///           T : formatter::Definition<level::Warning>,
-///           T : formatter::Definition<level::Error> {
-///     fn generic_format(entry:&Entry<DefaultLevels>) -> Option<Self::Output> {
+/// where
+///     T: formatter::Definition<level::Trace>,
+///     T: formatter::Definition<level::Debug>,
+///     T: formatter::Definition<level::Info>,
+///     T: formatter::Definition<level::Warning>,
+///     T: formatter::Definition<level::Error>,
+/// {
+///     fn generic_format(entry: &Entry<DefaultLevels>) -> Option<Self::Output> {
 ///         match entry.level {
-///             DefaultLevels::Trace   => formatter::format::<T, level::Trace>(&entry.gen_entry),
-///             DefaultLevels::Debug   => formatter::format::<T, level::Debug>(&entry.gen_entry),
-///             DefaultLevels::Info    => formatter::format::<T, level::Info>(&entry.gen_entry),
+///             DefaultLevels::Trace => formatter::format::<T, level::Trace>(&entry.gen_entry),
+///             DefaultLevels::Debug => formatter::format::<T, level::Debug>(&entry.gen_entry),
+///             DefaultLevels::Info => formatter::format::<T, level::Info>(&entry.gen_entry),
 ///             DefaultLevels::Warning => formatter::format::<T, level::Warning>(&entry.gen_entry),
-///             DefaultLevels::Error   => formatter::format::<T, level::Error>(&entry.gen_entry)
+///             DefaultLevels::Error => formatter::format::<T, level::Error>(&entry.gen_entry),
 ///         }
 ///     }
 /// }

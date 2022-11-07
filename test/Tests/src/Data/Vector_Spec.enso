@@ -335,6 +335,16 @@ spec = Test.group "Vectors" <|
         vec.drop (First -1) . should_equal vec
         vec.drop (First 100) . should_equal []
 
+        vec.take 4 . should_equal first_four
+        vec.take 0 . should_equal []
+        vec.take -1 . should_equal []
+        vec.take 100 . should_equal vec
+
+        vec.drop 2 . should_equal last_four
+        vec.drop 0 . should_equal vec
+        vec.drop -1 . should_equal vec
+        vec.drop 100 . should_equal []
+
         vec.take (Last 4) . should_equal last_four
         vec.take (Last 0) . should_equal []
         vec.take (Last -1) . should_equal []

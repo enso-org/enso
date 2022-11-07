@@ -127,7 +127,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let base_grid = inner_grid.as_ref();
         area.content().add_child(&inner_grid);
         let base_network = base_grid.network();
-        let text_layer = area.content_layer().create_sublayer();
+        let text_layer = area.content_layer().create_sublayer("text_layer");
         let header_layer = default();
         let header_text_layer = default();
         base_grid.set_text_layer(Some(text_layer.downgrade()));
@@ -207,8 +207,8 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let mut this = Self::new_wrapping(app, inner_grid);
         let header_grid: &header::GridViewTemplate<_, _, _, _, _> = this.inner_grid.as_ref();
         let header_frp = header_grid.header_frp();
-        let header_layer = this.area.content_layer().create_sublayer();
-        let header_text_layer = this.area.content_layer().create_sublayer();
+        let header_layer = this.area.content_layer().create_sublayer("header_layer");
+        let header_text_layer = this.area.content_layer().create_sublayer("header_text_layer");
         header_frp.set_layers(WeakLayers::new(&header_layer, Some(&header_text_layer)));
         this.header_layer = Immutable(Some(header_layer));
         this.header_text_layer = Immutable(Some(header_text_layer));

@@ -203,7 +203,7 @@ impl<T> Display for KnownAst<T> {
 // ===============
 
 /// For input like `[Unrecognized] [Prefix Ast]` generates aliases like:
-/// ```compile_fail
+/// ```text
 /// pub type Unrecognized = KnownAst<crate::Unrecognized>;
 /// pub type Prefix = KnownAst<crate::Prefix<Ast>>;
 /// // etc ...

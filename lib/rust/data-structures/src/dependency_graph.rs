@@ -238,11 +238,11 @@ impl<T: Ord> Extend<(T, Node<T>)> for DependencyGraph<T> {
 /// dependency_graph!(1->2, 2->3);
 /// ```
 /// will produce:
-/// ```ignore
+/// ```text
 /// {
 ///     let mut graph = DependencyGraph::new();
-///     graph.insert_dependency(1,2);
-///     graph.insert_dependency(2,3);
+///     graph.insert_dependency(1, 2);
+///     graph.insert_dependency(2, 3);
 ///     graph
 /// }
 /// ```

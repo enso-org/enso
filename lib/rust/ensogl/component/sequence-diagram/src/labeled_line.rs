@@ -43,7 +43,6 @@ impl Default for Cap {
 // === FRP ===
 // ===========
 
-
 ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
@@ -67,10 +66,8 @@ impl component::Frp<Model> for Frp {
             eval api.input.set_size((size) model.set_size(*size));
             eval api.input.set_color((color) model.set_color(*color));
             eval api.input.set_cap((direction) model.set_cap(*direction));
-
             tooltip_update <- api.input.set_content.sample(&line.mouse_over).map(|content| tooltip::Style::set_label(content.clone()));
-            app.frp.set_tooltip  <+ tooltip_update;
-
+            app.frp.set_tooltip <+ tooltip_update;
             app.frp.set_tooltip <+ line.mouse_out.constant(tooltip::Style::unset_label());
         }
     }

@@ -19,8 +19,8 @@ pub use ensogl_hardcoded_theme::application::window_control_buttons::close as th
 pub mod shape {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, background_color: Vector4<f32>, icon_color: Vector4<f32>) {
             let size       = Var::canvas_size();
             let radius     = Min::min(size.x(),size.y()) / 2.0;
             let angle      = Radians::from(45.0.degrees());
@@ -34,7 +34,7 @@ pub mod shape {
     }
 }
 
-impl ButtonShape for shape::DynamicShape {
+impl ButtonShape for shape::Shape {
     fn debug_name() -> &'static str {
         "CloseButton"
     }
@@ -55,11 +55,11 @@ impl ButtonShape for shape::DynamicShape {
         }
     }
 
-    fn background_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn background_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.background_color
     }
 
-    fn icon_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn icon_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.icon_color
     }
 }
@@ -75,4 +75,4 @@ impl ButtonShape for shape::DynamicShape {
 /// The button styled after macOS, i.e. consists of an icon shape placed on top of a circle.
 /// The icon is visible when button or its neighborhood (as provided by `mouse_nearby` input) is
 /// hovered.
-pub type View = ensogl_component::button::View<shape::DynamicShape>;
+pub type View = ensogl_component::button::View<shape::Shape>;

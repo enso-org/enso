@@ -8,9 +8,10 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
+import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
@@ -19,9 +20,13 @@ import scala.collection.mutable
 /** Module that extracts [[Suggestion]] entries from the [[IR]].
   *
   * @param source the text source
+  * @param typeGraph the type hierarchy
   * @tparam A the type of the text source
   */
-final class SuggestionBuilder[A: IndexedSource](val source: A) {
+final class SuggestionBuilder[A: IndexedSource](
+  val source: A,
+  val typeGraph: TypeGraph
+) {
 
   import SuggestionBuilder._
 
@@ -42,12 +47,28 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Type(tpName, _, List(), _, _, _) =>
-            val cons =
-              buildAtomConstructor(module, tpName.name, tpName.name, Seq(), doc)
-            go(tree ++= Vector(Tree.Node(cons, Vector())), scope)
+          case IR.Module.Scope.Definition.Type(
+                tpName,
+                params,
+                List(),
+                _,
+                _,
+                _
+              ) =>
+            val tpe =
+              buildAtomType(module, tpName.name, tpName.name, params, doc)
+            go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case IR.Module.Scope.Definition.Type(tpName, _, members, _, _, _) =>
+          case IR.Module.Scope.Definition.Type(
+                tpName,
+                params,
+                members,
+                _,
+                _,
+                _
+              ) =>
+            val tpe =
+              buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.map {
               case data @ IR.Module.Scope.Definition.Data(
                     name,
@@ -70,7 +91,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               .distinct
               .map(buildGetter(module, tpName.name, _))
 
-            val tpSuggestions = conses ++ getters
+            val tpSuggestions = tpe +: conses ++: getters
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
@@ -287,6 +308,27 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       documentation = doc
     )
 
+  /** Build a type suggestion. */
+  private def buildAtomType(
+    module: QualifiedName,
+    tp: String,
+    name: String,
+    params: Seq[IR.DefinitionArgument],
+    doc: Option[String]
+  ): Suggestion.Type = {
+    val qualifiedName = module.createChild(tp).toString
+    val parentType    = typeGraph.getDirectParents(qualifiedName).headOption
+    Suggestion.Type(
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      params        = params.map(buildArgument),
+      returnType    = qualifiedName,
+      parentType    = parentType,
+      documentation = doc
+    )
+  }
+
   /** Build an atom constructor. */
   private def buildAtomConstructor(
     module: QualifiedName,
@@ -294,8 +336,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
-  ): Suggestion.Atom =
-    Suggestion.Atom(
+  ): Suggestion.Constructor =
+    Suggestion.Constructor(
       externalId    = None,
       module        = module.toString,
       name          = name,
@@ -344,7 +386,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   /** Build type signature from the ir metadata.
     *
     * @param typeSignature the type signature metadata
-    * @param bindings the binding analysis metadata
     * @return the list of type arguments
     */
   private def buildTypeSignatureFromMetadata(
@@ -359,7 +400,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   /** Build type signature from the type expression.
     *
-    * @param bindings the binding analysis metadata
     * @param typeExpr the type signature expression
     * @return the list of type arguments
     */
@@ -600,10 +640,22 @@ object SuggestionBuilder {
   /** Create the suggestion builder.
     *
     * @param source the text source
+    * @param typeGraph the type hierarchy
+    * @tparam A the type of the text source
+    */
+  def apply[A: IndexedSource](
+    source: A,
+    typeGraph: TypeGraph
+  ): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, typeGraph)
+
+  /** Create the suggestion builder.
+    *
+    * @param source the text source
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source)
+    new SuggestionBuilder[A](source, Types.getTypeHierarchy)
 
   /** A single level of an `IR`.
     *

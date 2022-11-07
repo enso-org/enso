@@ -4,10 +4,13 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.SourceFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * A debug instrument used to test code locations.
@@ -40,12 +43,17 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
   public static class LocationsEventListener implements ExecutionEventListener {
     private boolean successful = false;
     private final int start;
+    private final int diff;
     private final int length;
+    private final int lengthDiff;
     private final Class<?> type;
+    private final Set<SourceSection> close = new LinkedHashSet<>();
 
-    private LocationsEventListener(int start, int length, Class<?> type) {
+    private LocationsEventListener(int start, int diff, int length, int lengthDiff, Class<?> type) {
       this.start = start;
+      this.diff = diff;
       this.length = length;
+      this.lengthDiff = lengthDiff;
       this.type = type;
     }
 
@@ -87,6 +95,20 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
     }
 
     /**
+     * List collected {@link SourceSection} instances that were close to searched for location, but
+     * not fully right.
+     *
+     * @return textual dump of those sections
+     */
+    public String dumpCloseSections() {
+      var sb = new StringBuilder();
+      for (var s : close) {
+        sb.append("\n").append(s.toString());
+      }
+      return sb.toString();
+    }
+
+    /**
      * Checks if the node to be executed is the node this listener was created to observe.
      *
      * @param context current execution context
@@ -105,8 +127,11 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
       if (section == null || !section.hasCharIndex()) {
         return;
       }
-      if (section.getCharIndex() == start && section.getCharLength() == length) {
+      if (Math.abs(section.getCharIndex() - start) <= diff
+          && Math.abs(section.getCharLength() - length) <= lengthDiff) {
         successful = true;
+      } else {
+        close.add(section);
       }
     }
 
@@ -122,14 +147,20 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
    * Attach a new listener to observe nodes with given parameters.
    *
    * @param sourceStart the source start location of the expected node
+   * @param diff acceptable diff
    * @param length the source length of the expected node
    * @param type the type of the expected node
    * @return a reference to attached event listener
    */
-  public EventBinding<LocationsEventListener> bindTo(int sourceStart, int length, Class<?> type) {
+  public EventBinding<LocationsEventListener> bindTo(
+      int sourceStart, int diff, int length, int lengthDiff, Class<?> type) {
+    var testSource = SourceFilter.newBuilder().sourceIs((t) -> t.getName().equals("Test")).build();
     return env.getInstrumenter()
         .attachExecutionEventListener(
-            SourceSectionFilter.newBuilder().indexIn(sourceStart, length).build(),
-            new LocationsEventListener(sourceStart, length, type));
+            SourceSectionFilter.newBuilder()
+                .sourceFilter(testSource)
+                .indexIn(sourceStart, length)
+                .build(),
+            new LocationsEventListener(sourceStart, diff, length, lengthDiff, type));
   }
 }

@@ -57,6 +57,7 @@ pub use crate::bool::*;
 #[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
+pub use anyhow;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
@@ -113,6 +114,12 @@ pub use std::ops::SubAssign;
 use std::cell::UnsafeCell;
 
 
+mod anyhow_macros {
+    pub use anyhow::anyhow;
+}
+pub use anyhow_macros::*;
+
+
 /// Module designed to be used in an explicit way. After importing `prelude::*` you can use it for
 /// example as `std_ext::range::merge_overlapping_ranges(...)`.
 #[allow(missing_docs)]
@@ -142,7 +149,7 @@ pub mod tracing {
     pub use tracing::*;
     pub use tracing_subscriber::*;
 }
-// pub use ::tracing::event;
+
 pub use ::tracing::debug;
 pub use ::tracing::debug_span;
 pub use ::tracing::error;
@@ -153,16 +160,6 @@ pub use ::tracing::trace;
 pub use ::tracing::trace_span;
 pub use ::tracing::warn;
 pub use ::tracing::warn_span;
-// pub use ::tracing::span as log_span;
-//
-// #[macro_export]
-// macro_rules! span {
-//     ($($ts:tt)*) => {
-//         $crate::log_span!{$($ts)*}
-//     };
-// }
-
-
 
 pub const ERROR: tracing::Level = tracing::Level::ERROR;
 pub const WARN: tracing::Level = tracing::Level::WARN;
@@ -197,11 +194,19 @@ pub fn init_tracing(level: tracing::Level) {
     });
 }
 
-pub fn init_wasm() {
+pub fn init_global() {
     init_tracing(WARN);
+    init_global_internal();
+}
+
+#[cfg(target_arch = "wasm32")]
+fn init_global_internal() {
     enso_web::forward_panic_hook_to_console();
     enso_web::set_stack_trace_limit();
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+fn init_global_internal() {}
 
 
 

@@ -22,12 +22,12 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::animation::delayed::DelayedAnimation;
+use ensogl_core::animation::overshoot::OvershootAnimation;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_selector as selector;
 use ensogl_selector::model::Model;
@@ -57,7 +57,7 @@ const HIDE_DELAY: f32 = 1000.0;
 const CLICK_AND_HOLD_DELAY_MS: i32 = 500;
 /// Time interval between scrolls while holding down a mouse button, in milliseconds.
 const CLICK_AND_HOLD_INTERVAL_MS: i32 = 200;
-
+/// Minimum scroll movement in pixels per frame required to show the scrollbar.
 const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 
 
@@ -69,20 +69,24 @@ const ERROR_MARGIN_FOR_ACTIVITY_DETECTION: f32 = 0.1;
 ensogl_core::define_endpoints! {
     Input {
         /// Sets the length of the scrollbar as display object in px.
-        set_length      (f32),
+        set_length            (f32),
         /// Sets the number of scroll units on the scroll bar. Should usually be the size of the
         /// scrolled area in px.
-        set_max         (f32),
+        set_max               (f32),
         /// Sets the thumb size in scroll units.
-        set_thumb_size  (f32),
-
-        /// Scroll smoothly by the given amount in scroll units.
-        scroll_by       (f32),
-        /// Scroll smoothly to the given position in scroll units.
-        scroll_to       (f32),
+        set_thumb_size        (f32),
+        /// Determines if scrolling is allowed to overshoot the scrollbar bounds. Overshoot is
+        /// enabled by default.
+        set_overshoot_enabled (bool),
+        /// Scroll smoothly by the given amount in scroll units. Allows scroll to overshoot and
+        /// bounce back if `set_overshoot_enabled` is `true`.
+        scroll_by             (f32),
+        /// Scroll smoothly to the given position in scroll units. Always bounded by the scroll
+        /// area, independently of `set_overshoot_enabled` flag.
+        scroll_to             (f32),
         /// Jumps to the given position in scroll units without animation and without revealing the
         /// scrollbar.
-        jump_to         (f32),
+        jump_to               (f32),
     }
     Output {
         /// Scroll position in scroll units.
@@ -99,12 +103,13 @@ impl Frp {
         let network = &frp.network;
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
-        let thumb_position = Animation::new(network);
+        let thumb_position = OvershootAnimation::new(network);
         let thumb_color = color::Animation::new(network);
         let background_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
+
 
         frp::extend! { network
             resize <- frp.set_length.map(|&length| Vector2::new(length,WIDTH));
@@ -120,6 +125,7 @@ impl Frp {
         model.show_right_overflow(false);
         model.set_padding(PADDING);
 
+        let overshoot_limit = style.get_number(theme::component::slider::overshoot_limit);
         let default_color = style.get_color(theme::component::slider::track::color);
         let hover_color = style.get_color(theme::component::slider::track::hover_color);
         let bg_default_color = style.get_color(theme::component::slider::background::color);
@@ -133,23 +139,23 @@ impl Frp {
 
         frp::extend! { network
 
+            init_theme <- any_mut::<()>();
+
+            // Overshoot control
+            bar_not_filled <- all_with(&frp.set_thumb_size, &frp.set_max, |&size, &max| size < max);
+            overshoot_enabled <- frp.set_overshoot_enabled && bar_not_filled;
+
             // Scrolling and Jumping
+            thumb_position.set_overshoot_limit <+ all(&overshoot_limit, &init_theme)._0();
+            thumb_position.soft_change_by <+ frp.scroll_by.gate(&overshoot_enabled);
+            thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
+            thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
+            thumb_position.set_max_bound <+ all_with(&frp.set_thumb_size, &frp.set_max,
+                |thumb_size, max| max - thumb_size);
+            thumb_position.skip <+_ frp.jump_to;
 
-            frp.scroll_to <+ frp.scroll_by.map2(&thumb_position.target,|delta,pos| *pos+*delta);
-
-            // We will use this to reveal the scrollbar on scrolling. It has to be defined before
-            // the following nodes that update `thumb_position.target`.
-            active <- frp.scroll_to.map2(&thumb_position.target,|&new:&f32,&old:&f32| {
-                (new - old).abs() > ERROR_MARGIN_FOR_ACTIVITY_DETECTION
-            }).on_true();
-
-            unbounded_target_position <- any(&frp.scroll_to,&frp.jump_to);
-            thumb_position.target     <+ all_with3(&unbounded_target_position,&frp.set_thumb_size,
-                &frp.set_max,|target,&size,&max| target.min(max-size).max(0.0));
-            thumb_position.skip       <+ frp.jump_to.constant(());
             frp.source.thumb_position_target <+ thumb_position.target;
             frp.source.thumb_position <+ thumb_position.value;
-
 
             // === Mouse position in local coordinates ===
 
@@ -165,11 +171,10 @@ impl Frp {
 
             // === Color ===
 
-            init_color    <- any_mut::<()>();
-            default_color <- all(&default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            hover_color   <- all(&hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            bg_default_color <- all(&bg_default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
-            bg_hover_color   <- all(&bg_hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
+            default_color <- all(&default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            hover_color   <- all(&hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            bg_default_color <- all(&bg_default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
+            bg_hover_color   <- all(&bg_hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
 
             engaged                  <- base_frp.track_hover || base_frp.is_dragging_track;
             thumb_color.target_color <+ engaged.switch(&default_color,&hover_color).map(|c| c.opaque);
@@ -177,14 +182,17 @@ impl Frp {
             eval thumb_color.value((c) model.set_track_color(color::Rgba::from(*c)));
             eval background_color.value((c) model.set_background_color(color::Rgba::from(*c)));
 
-
             // === Hiding ===
 
             // We start a delayed animation whenever the bar is scrolled to a new place (it is
             // active). This will instantly reveal the scrollbar and hide it after the delay has
             // passed.
-            activity_cool_off.frp.reset <+ active;
-            activity_cool_off.frp.start <+ active;
+            thumb_position_previous <- thumb_position.value.previous();
+            thumb_position_changed  <- thumb_position.value.map2(&thumb_position_previous,
+                |t1, t2| (t1 - t2).abs() > ERROR_MARGIN_FOR_ACTIVITY_DETECTION);
+            thumb_position_changed <- thumb_position_changed.on_true().constant(());
+            activity_cool_off.frp.reset <+ thumb_position_changed;
+            activity_cool_off.frp.start <+ thumb_position_changed;
 
             recently_active <- bool(&activity_cool_off.frp.on_end,&activity_cool_off.frp.on_reset);
 
@@ -208,6 +216,8 @@ impl Frp {
             thumb_color.target_alpha <+ target_alpha.map2(&default_color, |target_alpha,base_color| target_alpha*base_color.alpha);
             background_color.target_alpha <+ target_alpha.map2(&bg_default_color, |target_alpha,base_color| target_alpha*base_color.alpha);;
 
+        }
+        frp::extend! { network
 
             // === Position on Screen ===
 
@@ -233,7 +243,12 @@ impl Frp {
             thumb_center_px     <- all_with(&visual_center,&inner_length, |normalized,length|
                 (normalized - 0.5) * length);
 
-            update_slider <- all(&visual_bounds,&resize);
+            // Because of overshoot, we want to further clamp true visual bounds, so the thumb does
+            // not go outside the bar. We want to only limit the bounds we use for drawing the thumb
+            // itself, without influencing other logic that depends on true thumb size or position.
+            clamped_visual_bounds <- visual_bounds.map(|bounds|
+                Bounds::new(bounds.start.max(0.0), bounds.end.min(1.0)));
+            update_slider <- all(&clamped_visual_bounds,&resize);
             eval update_slider(((value,size)) model.set_background_range(*value,*size));
 
 
@@ -287,11 +302,12 @@ impl Frp {
 
         // === Init Network ===
 
+        frp.set_overshoot_enabled(true);
         frp.set_length(200.0);
         frp.set_thumb_size(0.2);
         frp.set_max(1.0);
         init_mouse_position.emit(Vector2(f32::NAN, f32::NAN));
-        init_color.emit(());
+        init_theme.emit(());
     }
 
     fn compute_target_alpha(
