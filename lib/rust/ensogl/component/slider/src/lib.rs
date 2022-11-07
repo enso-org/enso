@@ -11,6 +11,7 @@ use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::Animation;
 
 
 
@@ -105,6 +106,8 @@ impl Slider {
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp;
 
+        let track_pos = Animation::new_non_init(&network);
+
         frp::extend! { network
 
             // User input
@@ -157,14 +160,14 @@ impl Slider {
             );
             output.value            <+ value_clamped;
 
-            track_pos               <- all3(&value_clamped, &input.set_min, &input.set_max).map(
+            track_pos.target        <+ all3(&value_clamped, &input.set_min, &input.set_max).map(
                 |(value, min, max)| (value - min) / (max - min)
             );
 
 
             // model update
 
-            eval track_pos (
+            eval track_pos.value (
                 (v) {
                     model.update_track(*v);
                 }
