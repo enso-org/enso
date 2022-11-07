@@ -12,6 +12,16 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 
+/**
+ * Scans the IR and gathers all the Truffle frame indexes of all local variables and
+ * function arguments.
+ * [[org.enso.compiler.codegen.IrToTruffle]] uses this metadata in order to build frame descriptors
+ * [[com.oracle.truffle.api.frame.FrameDescriptor]] for all the root nodes.
+ * It is implemented as a separate compiler pass so that:
+ *   - Persistance: The metadata is attached to IR nodes and serialized alongside the IR.
+ *   - Performance: IR is scanned just once.
+ *   - ...
+ */
 object FrameIndexAnalysis extends IRPass {
   override type Metadata = FrameInfo
   override type Config   = Configuration
@@ -44,13 +54,41 @@ object FrameIndexAnalysis extends IRPass {
     override def duplicate(): Option[IRPass.Metadata] = None
   }
   object FrameInfo {
+    /**
+     * Holds an index to a Truffle [[com.oracle.truffle.api.frame.FrameDescriptor]].
+     * The value is between [[Configuration.initialFrameIndexGap]] and [[Integer.MAX_VALUE]].
+     * Attached to function arguments ([[IR.DefinitionArgument]]) and bindings ([[IR.Expression.Binding]])
+     * @param index The index to Truffle frame.
+     */
     sealed class FrameIndex(
       val index: Int
     ) extends FrameInfo
 
+    /**
+     * Contains an array of local variables, in order of their definition.
+     * Attached to functions ([[IR.Function]]).
+     * Used for testing purposes.
+     * @param variables
+     * @param parent
+     */
     sealed class LocalVariables(
-      var variables: List[IR.Identifier] = List()
-    ) extends FrameInfo
+      var variables: List[IR.Identifier] = List(),
+      val parent: Option[LocalVariables] = None
+    ) extends FrameInfo {
+      def createChild(): LocalVariables = {
+        new LocalVariables(parent = Some(this))
+      }
+
+      def addLocalVar(varId: IR.Identifier): Int = {
+        variables = variables ++ List(varId)
+        variables.length - 1
+      }
+    }
+    object LocalVariables {
+      def createRoot(): LocalVariables = {
+        new LocalVariables()
+      }
+    }
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -86,7 +124,7 @@ object FrameIndexAnalysis extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    analyseExpression(ir, new FrameInfo.LocalVariables())
+    analyseExpression(ir, FrameInfo.LocalVariables.createRoot())
   }
 
   private def analyseModuleDefinition(
@@ -99,7 +137,7 @@ object FrameIndexAnalysis extends IRPass {
             method.copy(
               body = analyseFunction(
                 function,
-                new FrameInfo.LocalVariables()
+                FrameInfo.LocalVariables.createRoot()
               )
             )
           case _ =>
@@ -113,7 +151,7 @@ object FrameIndexAnalysis extends IRPass {
             method.copy(
               body = analyseFunction(
                 function,
-                new FrameInfo.LocalVariables()
+                FrameInfo.LocalVariables.createRoot()
               )
             )
           case _ =>
@@ -129,11 +167,11 @@ object FrameIndexAnalysis extends IRPass {
         t.copy(
           params = analyseArgumentDefs(
             t.params,
-            new FrameInfo.LocalVariables()
+            FrameInfo.LocalVariables.createRoot()
           )
         )
       case _ =>
-        val localVars = new FrameInfo.LocalVariables()
+        val localVars = FrameInfo.LocalVariables.createRoot()
         ir.mapExpressions(expr => analyseExpression(expr, localVars))
     }
   }
@@ -142,12 +180,12 @@ object FrameIndexAnalysis extends IRPass {
     function: IR.Function,
     parentLocalVars: FrameInfo.LocalVariables
   ): IR.Function = {
-    val currentLocalVars = new FrameInfo.LocalVariables()
+    val currentLocalVars = parentLocalVars.createChild()
     function match {
       case lambda @ IR.Function.Lambda(arguments, body, _, _, _, _) =>
         lambda
           .copy(
-            arguments = analyseArgumentDefs(arguments, parentLocalVars),
+            arguments = analyseArgumentDefs(arguments, currentLocalVars),
             body      = analyseExpression(body, currentLocalVars)
           )
           .updateMetadata(
@@ -165,8 +203,7 @@ object FrameIndexAnalysis extends IRPass {
     parentLocalVars: FrameInfo.LocalVariables
   ): List[IR.DefinitionArgument] = {
     args.map(arg => {
-      parentLocalVars.variables = parentLocalVars.variables ++ List(arg.getId)
-      val frameIndex = parentLocalVars.variables.length - 1
+      val frameIndex = parentLocalVars.addLocalVar(arg.getId)
       arg.updateMetadata(
         this -->> new FrameInfo.FrameIndex(frameIndex)
       )
@@ -179,11 +216,16 @@ object FrameIndexAnalysis extends IRPass {
   ): IR.Expression = {
     expr match {
       case binding: IR.Expression.Binding =>
-        localVars.variables = localVars.variables ++ List(binding.getId)
-        val frameIndex = localVars.variables.length - 1
-        binding.updateMetadata(
+        val frameIndex = localVars.addLocalVar(binding.getId)
+        binding
+          .copy(
+            expression = analyseExpression(binding.expression, localVars)
+          )
+          .updateMetadata(
           this -->> new FrameInfo.FrameIndex(frameIndex)
-        )
+          )
+      case function: IR.Function =>
+        analyseFunction(function, localVars)
       case _ =>
         expr.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
@@ -204,7 +246,7 @@ object FrameIndexAnalysis extends IRPass {
 
   sealed case class Configuration(
     override var shouldWriteToContext: Boolean = false,
-    var initialFrameIndexGap: Int              = 0,
-    var attachLocalVarMetadata: Boolean        = true
+    initialFrameIndexGap: Int              = 0,
+    attachLocalVarMetadata: Boolean        = true
   ) extends IRPass.Configuration
 }
