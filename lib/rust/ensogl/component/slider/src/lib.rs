@@ -128,7 +128,8 @@ impl Slider {
             drag_pos_end            <- any2(&drag_pos_end, &drag_pos_start);
 
 
-            // FIXME: also update on set_width, set_height
+            // Componenet size
+
             component_width         <- input.resize.map(|v| v.x );
             component_height        <- input.resize.map(|v| v.y );
             output.width            <+ any2(&component_width, &input.set_width);
@@ -157,9 +158,10 @@ impl Slider {
             );
 
             value_start             <- output.value.sample(&component_click);
+            value_update            <- bool(&component_release, &value_start); // update only after value_start is sampled
             value                   <- all4(&value_start, &range, &precision_adjusted, &drag_x_fract).map(
                 |(value, range, precision, delta)| value + delta * precision * range
-            );
+            ).gate(&value_update);
             value_clamped           <- all3(&value, &input.set_min, &input.set_max).map(
                 |(value, min, max)| value.max(*min).min(*max)
             );
@@ -203,6 +205,7 @@ impl Slider {
                     model.set_height(*v);
                 }
             );
+
         }
 
         self.frp.set_min(0.0);
