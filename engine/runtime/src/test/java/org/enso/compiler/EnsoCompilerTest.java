@@ -367,7 +367,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
     main =
@@ -1067,7 +1066,24 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
+  public void testRuntimeServerTestCode() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.Numbers import Number
+
+    main =
+        x = 6
+        y = x.foo 5
+        z = y + 5
+        z
+
+    Number.foo self = x ->
+        y = self + 3
+        z = y * x
+        z
+    """, true, false, true);
+  }
+
+  @Test
   public void testResolveExecutionContext() throws Exception {
     parseTest("""
     foo : A -> B -> C in Input
@@ -1101,11 +1117,11 @@ public class EnsoCompilerTest {
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
-      txt = txt.replaceAll("id = [0-9a-f\\-]*", "id = _");
+      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
     }
     if (noLocations) {
         for (;;) {
-          final String pref = "IdentifiedLocation(";
+          final String pref = " Location(";
           int at = txt.indexOf(pref);
           if (at == -1) {
             break;
@@ -1119,7 +1135,7 @@ public class EnsoCompilerTest {
             }
             to++;
           }
-          txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+          txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
         }
     }
     if (lessDocs) {
