@@ -71,6 +71,8 @@
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 - [Added support for scrolling by pressing and holding a mouse button on a
   scrollbar.][3824]
+- [Added scroll bounce animation][3836] which activates when scrolling past the
+  end of scrollable content.
 
 #### EnsoGL (rendering engine)
 
@@ -365,6 +367,7 @@
 [3804]: https://github.com/enso-org/enso/pull/3804
 [3818]: https://github.com/enso-org/enso/pull/3818
 [3776]: https://github.com/enso-org/enso/pull/3776
+[3836]: https://github.com/enso-org/enso/pull/3836
 
 #### Enso Compiler
 
