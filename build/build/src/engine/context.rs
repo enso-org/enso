@@ -18,7 +18,6 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
-use crate::paths::ENSO_DATA_DIRECTORY;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
@@ -416,7 +415,7 @@ impl RunContext {
         //     let output = Command::new(&self.repo_root.runner)
         //         .args([
         //             "--run",
-        //             
+        //
         // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
         //             factorial_input,
         //         ])
