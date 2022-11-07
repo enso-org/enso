@@ -187,12 +187,12 @@ define_themes! { [light:0, dark:1]
                 width = 400.0, 400.0;
             }
             component_list_panel {
-                background_color = Rgb::from_base_255(238.0, 238.0, 241.0),Rgb::from_base_255(238.0, 238.0, 241.0);
+                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
                     width = 414.0, 414.0;
                     height = 414.0, 414.0;
-                    padding = 5.0, 5.0;
+                    padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 30.0, 30.0;
 
@@ -244,12 +244,12 @@ define_themes! { [light:0, dark:1]
                         group_0 = Rgb::from_base_255(134.0, 135.0, 43.0), Rgb::from_base_255(134.0, 135.0, 43.0);
                         // Green
                         group_1 = Rgb::from_base_255(63.0, 139.0, 41.0), Rgb::from_base_255(63.0, 139.0, 41.0);
-                        // Blue
+                        // Light Blue
                         group_2 = Rgb::from_base_255(54.0, 122.0, 185.0), Rgb::from_base_255(54.0, 122.0, 185.0);
                         // Pink
                         group_3 = Rgb::from_base_255(193.0, 71.0, 171.0), Rgb::from_base_255(193.0, 71.0, 171.0);
-                        // Light blue
-                        group_4 = Rgb::from_base_255(65.0, 147.0, 207.0), Rgb::from_base_255(65.0, 147.0, 207.0);
+                        // Blue
+                        group_4 = Rgb::from_base_255(43.0, 117.0, 239.0), Rgb::from_base_255(43.0, 117.0, 239.0);
                         // Orange
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
@@ -291,7 +291,7 @@ define_themes! { [light:0, dark:1]
                     }
                 }
                 navigator {
-                    width = 40.0, 40.0;
+                    width = 41.0, 41.0;
                     button_size = 32.0, 32.0;
                     icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
                     icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
