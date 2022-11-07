@@ -146,7 +146,7 @@ impl Slider {
 
             precision               <- input.set_precision.sample(&component_click);
             precision_adjusted      <- all2(&precision, &drag_y_fract).map(
-                |(base, offset)| *base * (offset/5.0).exp()
+                |(base, offset)| *base * (10.0).pow(offset.round())
             );
 
             value_start             <- output.value.sample(&component_click);
