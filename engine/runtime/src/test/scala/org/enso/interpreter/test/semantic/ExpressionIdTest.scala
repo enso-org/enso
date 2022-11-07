@@ -147,5 +147,19 @@ class ExpressionIdTest extends InterpreterTest {
       instrumenter.assertNodeExists(id, "10")
       eval(meta.appendToCode(code))
     }
+
+    "annotate the body of a lambda" in
+    withIdsInstrumenter { instrumenter =>
+      val code =
+        """
+          |main =
+          |    x = 1
+          |""".stripMargin
+      val meta = new Metadata
+      val id   = meta.addItem(7, 11)
+
+      instrumenter.assertNodeExists(id, "1")
+      eval(meta.appendToCode(code))
+    }
   }
 }
