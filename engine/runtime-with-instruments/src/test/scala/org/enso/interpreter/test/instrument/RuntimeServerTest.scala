@@ -1269,7 +1269,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaaa")
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1442,7 +1442,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(77, 35, "aaaa")
+    val idMain   = metadata.addItem(77, 34, "aaaa")
     val idMainA  = metadata.addItem(86, 8, "aabb")
     val idMainP  = metadata.addItem(99, 12, "aacc")
     // pie id
@@ -1726,7 +1726,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(122, 88, "aaaa")
+    val idMain   = metadata.addItem(122, 87, "aaaa")
     val id1      = metadata.addItem(131, 15, "aad1")
     val id2      = metadata.addItem(151, 18, "aad2")
     val id3      = metadata.addItem(174, 15, "aad3")
@@ -2147,7 +2147,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaa")
 
     val mainFile = context.writeMain(context.Main.code)
 

@@ -678,7 +678,7 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 1, null);
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
             var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
             var id = new IdentifiedLocation(patched, last.location().get().id());

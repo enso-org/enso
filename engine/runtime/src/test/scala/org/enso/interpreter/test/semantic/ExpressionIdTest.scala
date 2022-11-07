@@ -102,7 +102,7 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(126, 109, "1111")
+      val id1  = meta.addItem(126, 108, "1111")
       val id2  = meta.addItem(172, 7)
       val id3  = meta.addItem(192, 9)
       val id4  = meta.addItem(229, 5)
@@ -156,9 +156,9 @@ class ExpressionIdTest extends InterpreterTest {
           |    x = 1
           |""".stripMargin
       val meta = new Metadata
-      val id   = meta.addItem(7, 11)
+      val id   = meta.addItem(7, 10)
 
-      instrumenter.assertNodeExists(id, "1")
+      instrumenter.assertNodeExists(id, "Nothing")
       eval(meta.appendToCode(code))
     }
   }

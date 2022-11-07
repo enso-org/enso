@@ -41,14 +41,14 @@ public class EnsoCompilerTest {
   public void testLocationsSimpleArithmeticExpression() throws Exception {
     parseTest("""
     main = 2 + 45 * 20
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
   public void testLocationsApplicationsAndMethodCalls() throws Exception {
     parseTest("""
     main = (2-2 == 0).if_then_else (Cons 5 6) 0
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -58,7 +58,7 @@ public class EnsoCompilerTest {
         x = 2 + 2 * 2
         y = x * x
         IO.println y
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -69,7 +69,7 @@ public class EnsoCompilerTest {
         x = a + 1
         y = b - 2
         x * y
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -78,7 +78,7 @@ public class EnsoCompilerTest {
     main =
         foo a = a + 1
         foo 42
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -86,7 +86,7 @@ public class EnsoCompilerTest {
     parseTest("""
         foo = a -> b ->
             IO.println a
-        """, true, false, true);
+        """, true, true, true);
   }
 
   @Test
@@ -96,7 +96,7 @@ public class EnsoCompilerTest {
         add = a -> b -> a + b
 
     main = Nothing.method
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -1080,7 +1080,7 @@ public class EnsoCompilerTest {
         y = self + 3
         z = y * x
         z
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
