@@ -2,8 +2,7 @@
 
 use ensogl_core::prelude::*;
 
-use crate::navigator::icon;
-
+use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -48,14 +47,14 @@ impl Colors {
 pub struct Model {
     icon_id:  icon::Id,
     /// Colors of the icon when the entry is selected.
-    active:   Colors,
+    active:   color::Lcha,
     /// Colors of the icon when the entry is not selected.
-    inactive: Colors,
+    inactive: color::Lcha,
 }
 
 impl Model {
     /// Constructor.
-    pub const fn new(icon_id: icon::Id, active: Colors, inactive: Colors) -> Self {
+    pub const fn new(icon_id: icon::Id, active: color::Lcha, inactive: color::Lcha) -> Self {
         Self { icon_id, active, inactive }
     }
 }
@@ -88,39 +87,29 @@ pub struct Params {
 pub struct Data {
     display_object: display::object::Instance,
     icon:           Rc<RefCell<Option<AnyIcon>>>,
-    strong_color:   Rc<Cell<color::Lcha>>,
-    weak_color:     Rc<Cell<color::Lcha>>,
+    color:          Rc<Cell<color::Lcha>>,
 }
 
 impl Data {
     pub fn new() -> Self {
         let display_object = display::object::Instance::new();
         let icon = default();
-        let strong_color = default();
-        let weak_color = default();
-        Self { display_object, icon, strong_color, weak_color }
+        let color = default();
+        Self { display_object, icon, color }
     }
 
     fn set_icon(&self, icon_id: icon::Id) {
         let size = Vector2(SIZE, SIZE);
         let icon = icon_id.create_shape(size);
-        icon.color.set(color::Rgba::from(self.strong_color.get()).into());
-        icon.weak_color.set(color::Rgba::from(self.weak_color.get()).into());
+        icon.color.set(color::Rgba::from(self.color.get()).into());
         self.display_object.add_child(&icon);
         *self.icon.borrow_mut() = Some(icon);
     }
 
-    fn set_strong_color(&self, color: color::Lcha) {
-        self.strong_color.set(color);
+    fn set_color(&self, color: color::Lcha) {
+        self.color.set(color);
         if let Some(icon) = self.icon.borrow().deref() {
             icon.color.set(color::Rgba::from(color).into());
-        }
-    }
-
-    fn set_weak_color(&self, color: color::Lcha) {
-        self.weak_color.set(color);
-        if let Some(icon) = self.icon.borrow().deref() {
-            icon.weak_color.set(color::Rgba::from(color).into());
         }
     }
 }
@@ -149,8 +138,7 @@ impl grid::entry::Entry for View {
         let input = &frp.private().input;
         let out = &frp.private().output;
 
-        let strong_color_anim = color::Animation::new(network);
-        let weak_color_anim = color::Animation::new(network);
+        let color_anim = color::Animation::new(network);
 
         frp::extend! { network
             init <- source_();
@@ -158,23 +146,17 @@ impl grid::entry::Entry for View {
             icon <- input.set_model.map(|m| m.icon_id);
             eval icon((icon) data.set_icon(*icon));
 
-            active_strong_color <- input.set_model.map(|m| m.active.strong);
-            active_weak_color <- input.set_model.map(|m| m.active.weak);
-            inactive_strong_color <- input.set_model.map(|m| m.inactive.strong);
-            inactive_weak_color <- input.set_model.map(|m| m.inactive.weak);
+            active_color <- input.set_model.map(|m| m.active);
+            inactive_color <- input.set_model.map(|m| m.inactive);
 
-            strong_color_anim.target <+ inactive_strong_color;
-            weak_color_anim.target <+ inactive_weak_color;
+            color_anim.target <+ inactive_color;
 
             entry_selected <- input.set_selected.on_true();
             entry_deselected <- input.set_selected.on_false();
-            strong_color_anim.target <+ active_strong_color.sample(&entry_selected);
-            strong_color_anim.target <+ inactive_strong_color.sample(&entry_deselected);
-            weak_color_anim.target <+ active_weak_color.sample(&entry_selected);
-            weak_color_anim.target <+ inactive_weak_color.sample(&entry_deselected);
+            color_anim.target <+ active_color.sample(&entry_selected);
+            color_anim.target <+ inactive_color.sample(&entry_deselected);
 
-            eval strong_color_anim.value((color) data.set_strong_color(*color));
-            eval weak_color_anim.value((color) data.set_weak_color(*color));
+            eval color_anim.value((color) data.set_color(*color));
 
             style <- input.set_params.on_change();
             selection_color <- style.map(|s| s.selection_color).on_change();

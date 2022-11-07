@@ -8,6 +8,7 @@ use ensogl_core::prelude::*;
 
 use crate::AllStyles;
 
+use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::tooltip;
@@ -26,7 +27,6 @@ use list_panel_theme::navigator as theme;
 
 
 mod entry;
-mod icon;
 
 type Grid = grid::selectable::GridView<entry::View>;
 
@@ -193,8 +193,8 @@ impl Navigator {
                 ((row, col), colors) {
                     let section_id = loc_to_section_id(&(*row, *col));
                     let icon_id = section_id_to_icon_id(section_id);
-                    let active_colors = entry::Colors::monochrome(colors.get(section_id));
-                    let inactive_colors = entry::Colors::monochrome(colors.inactive);
+                    let active_colors = colors.get(section_id).into();
+                    let inactive_colors = colors.inactive.into();
                     let model = entry::Model::new(icon_id, active_colors, inactive_colors);
                     (*row, *col, model)
                 }
@@ -204,8 +204,7 @@ impl Navigator {
             model <- top_buttons.model_for_entry_needed.map2(&colors.update, f!([]
                 ((row, col), colors) {
                     let icon_id = TOP_BUTTONS.get(*row).cloned().unwrap_or_default();
-                    let colors = entry::Colors::monochrome(colors.inactive);
-                    let model = entry::Model::new(icon_id, colors, colors);
+                    let model = entry::Model::new(icon_id, colors.inactive.into(), colors.inactive.into());
                     (*row, *col, model)
                 }
             ));

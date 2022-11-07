@@ -34,7 +34,12 @@ impl Color {
     /// provided colors.
     fn mix(&self, (first, second): &(color::Lcha, color::Lcha)) -> color::Lcha {
         match self {
-            Self::MainColorIntensity(intensity) => color::mix(*first, *second, *intensity),
+            // Self::MainColorIntensity(intensity) => color::mix(*first, *second, *intensity),
+            Self::MainColorIntensity(intensity) => {
+                let color =
+                    color::Lcha::new(second.lightness, second.chroma, second.hue, *intensity);
+                color
+            }
             Self::Arbitrary(color) => *color,
         }
     }
@@ -99,13 +104,9 @@ pub struct StyleColors {
     #[accessor = "Color::accessor"]
     pub hover_highlight: Color,
     /// The more contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "entry_theme::icon::strong_color"]
+    #[theme_path = "entry_theme::icon::color"]
     #[accessor = "Color::accessor"]
-    pub icon_strong:     Color,
-    /// The less contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "entry_theme::icon::weak_color"]
-    #[accessor = "Color::accessor"]
-    pub icon_weak:       Color,
+    pub icon:            Color,
     #[theme_path = "entry_theme::dimmed"]
     pub dimmed:          color::Rgba,
 }
@@ -118,26 +119,22 @@ pub struct StyleColors {
 pub struct SelectionStyleColors {
     #[theme_path = "selection_theme::text::color"]
     #[accessor = "Color::accessor"]
-    pub text:        Color,
+    pub text:       Color,
     #[theme_path = "selection_theme::background::color"]
     #[accessor = "Color::accessor"]
-    pub background:  Color,
+    pub background: Color,
     /// The more contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "selection_theme::icon_strong::color"]
+    #[theme_path = "selection_theme::icon::color"]
     #[accessor = "Color::accessor"]
-    pub icon_strong: Color,
-    /// The less contrasting parts of the [icon](crate::icon::Any).
-    #[theme_path = "selection_theme::icon_weak::color"]
-    #[accessor = "Color::accessor"]
-    pub icon_weak:   Color,
+    pub icon:       Color,
 }
 
 impl From<SelectionStyleColors> for StyleColors {
     fn from(selection: SelectionStyleColors) -> Self {
-        let SelectionStyleColors { text, background, icon_strong, icon_weak } = selection;
+        let SelectionStyleColors { text, background, icon } = selection;
         let dimmed = default();
         let hover_highlight = background;
-        Self { text, background, icon_weak, icon_strong, dimmed, hover_highlight }
+        Self { text, background, icon, dimmed, hover_highlight }
     }
 }
 
@@ -188,8 +185,7 @@ pub struct Colors {
     pub background:      frp::Sampler<color::Lcha>,
     pub hover_highlight: frp::Sampler<color::Lcha>,
     pub text:            frp::Sampler<color::Lcha>,
-    pub icon_strong:     frp::Sampler<color::Lcha>,
-    pub icon_weak:       frp::Sampler<color::Lcha>,
+    pub icon:            frp::Sampler<color::Lcha>,
     pub skip_animations: frp::Any,
 }
 
@@ -220,25 +216,28 @@ impl Colors {
             color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
 
             background <- all_with(&app_bg_and_main, &style_colors,
-                |app_bg_and_main, colors| colors.background.mix(app_bg_and_main)
+                |bg_and_main, colors| match colors.background {
+                    Color::Arbitrary(color) => color,
+                    Color::MainColorIntensity(intensity) => {
+                        color::mix(bg_and_main.0, bg_and_main.1, intensity)
+                    }
+                }
             ).sampler();
-            hover_highlight <- all_with(&app_bg_and_main, &style_colors,
-                |app_bg_and_main, colors| colors.hover_highlight.mix(app_bg_and_main)
+            bg_and_main <- all(&background, &color_anim.value);
+            hover_highlight <- all_with(&bg_and_main, &style_colors,
+                |bg_and_main, colors| colors.hover_highlight.mix(bg_and_main)
             ).sampler();
-            text <- all_with(&app_bg_and_main, &style_colors,
-                |app_bg_and_main, colors| colors.text.mix(app_bg_and_main)
+            text <- all_with(&bg_and_main, &style_colors,
+                |bg_and_main, colors| colors.text.mix(bg_and_main)
             ).sampler();
-            icon_weak <- all_with(&app_bg_and_main, &style_colors,
-                |app_bg_and_main, colors| colors.icon_weak.mix(app_bg_and_main)
-            ).sampler();
-            icon_strong <- all_with(&app_bg_and_main, &style_colors,
-                |app_bg_and_main, colors| colors.icon_strong.mix(app_bg_and_main)
+            icon <- all_with(&bg_and_main, &style_colors,
+                |bg_and_main, colors| colors.icon.mix(bg_and_main)
             ).sampler();
 
             skip_animations <- any(...);
             color_anim.skip <+ skip_animations;
         }
         init.emit(());
-        Self { icon_weak, icon_strong, text, background, hover_highlight, skip_animations }
+        Self { icon, text, background, hover_highlight, skip_animations }
     }
 }

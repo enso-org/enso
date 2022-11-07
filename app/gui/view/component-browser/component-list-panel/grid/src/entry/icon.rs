@@ -3,10 +3,12 @@
 use crate::prelude::*;
 use ide_view_component_list_panel_icons::common_part::*;
 
+use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_grid_view as grid_view;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::weak_icon_alpha;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry::icons;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::weak_icon_alpha_path;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use ide_view_component_list_panel_icons::define_icons;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
@@ -27,14 +29,146 @@ pub use ide_view_component_list_panel_icons::SIZE;
 // =============
 
 define_icons! {
+    /// A five-pointed star.
+    pub mod star(Star) {
+        ensogl_core::define_shape_system! {
+            above = [grid_view::selectable::highlight::shape];
+            pointer_events = false;
+            (style: Style, color: Vector4) {
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let shape = FiveStar(8.0.px(),0.447);
+                let shape = shape.fill(strong_color);
+                shape.shrink(SHRINK_AMOUNT.px()).into()
+            }
+        }
+    }
+
+    /// Local scope section button. A dot inside a circle.
+    pub mod local_scope(LocalScope) {
+        ensogl_core::define_shape_system! {
+           above = [grid_view::selectable::highlight::shape];
+            pointer_events = false;
+            (style: Style, color: Vector4) {
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let dot = Circle(3.0.px());
+                let outer = Circle(8.0.px()) - Circle(7.0.px());
+                let shape = dot + outer;
+                let shape = shape.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Sub-modules section button. Three rectangles placed behind each other with perspective.
+    pub mod sub_modules(SubModules) {
+        ensogl_core::define_shape_system! {
+           above = [grid_view::selectable::highlight::shape];
+            pointer_events = false;
+            (style: Style, color: Vector4) {
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let corners_radius = 1.5;
+                let top = Rect((8.0.px(), 1.5.px()));
+                let top = top.corners_radius(corners_radius.px()).translate_y(4.75.px());
+                let middle = Rect((12.0.px(), 1.5.px()));
+                let middle = middle.corners_radius(corners_radius.px()).translate_y(2.25.px());
+                let bottom = Rect((16.0.px(), 6.0.px()));
+                let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.5).px());
+                let shape = top + middle + bottom;
+                let shape = shape.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Four rounded rectangles in different colors aranged in a grid.
+    pub mod libraries(Libraries) {
+        ensogl_core::define_shape_system! {
+           above = [grid_view::selectable::highlight::shape];
+            pointer_events = false;
+            (style: Style, color: Vector4) {
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                // FIXME: only weak colors are used atm
+                let size = 7.0;
+                let half = size / 2.0;
+                let corners_radius = 1.0;
+                let rect0 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect0 = rect0.fill(weak_color.clone());
+                let rect0 = rect0.translate(((-half - 0.5).px(),(half + 0.5).px()));
+
+                let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect1 = rect1.fill(weak_color.clone());
+                let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
+
+                let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect2 = rect2.fill(weak_color.clone());
+                let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
+
+                let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect3 = rect3.fill(weak_color);
+                let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
+
+                let shape = rect0 + rect1 + rect2 + rect3;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A plus and three rounded rectangles in different colors aranged in a grid.
+    pub mod marketplace(Marketplace) {
+        ensogl_core::define_shape_system! {
+           above = [grid_view::selectable::highlight::shape];
+            pointer_events = false;
+            (style: Style, color: Vector4) {
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                // FIXME: only weak colors are used atm
+                let size = 7.0;
+                let half = size / 2.0;
+                let corners_radius = 1.0;
+                let plus = plus(size,1.5);
+                let plus = plus.fill(weak_color.clone());
+                let plus = plus.translate(((-half - 0.5).px(),(half + 0.5).px()));
+
+                let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect1 = rect1.fill(weak_color.clone());
+                let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
+
+                let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect2 = rect2.fill(weak_color.clone());
+                let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
+
+                let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
+                let rect3 = rect3.fill(weak_color);
+                let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
+
+                let shape = plus + rect1 + rect2 + rect3;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
         ensogl_core::define_shape_system! {
             above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Rectangle ===
 
@@ -64,8 +198,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Rect ===
 
@@ -95,8 +230,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Rect ===
 
@@ -135,8 +271,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Rect ===
 
@@ -191,8 +328,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 // We need to create the table in two parts, left and right of the cursor to achieve
                 // the right cell arangement.
                 let left_table  = table(2,2, 4.0).translate(((-8.0).px(), (-4.0).px()));
@@ -214,8 +352,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let upper_arrow = arrow(11.0,2.0,4.0,6.0).rotate((-PI/2.0).radians());
                 let upper_arrow = upper_arrow.translate(((-8.0).px(),2.0.px()));
                 let lower_arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
@@ -234,8 +373,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let table_color = weak_color;
                 let table = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
                 let table = table.fill(table_color);
@@ -268,8 +408,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let old_color = weak_color;
                 let new_color = strong_color;
 
@@ -292,8 +433,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let old_color = weak_color;
                 let new_color = strong_color;
 
@@ -315,8 +457,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let unselected = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
                 let unselected = unselected.fill(weak_color);
                 let selected   = table(1,3, 4.0).translate((4.0.px(),(-7.0).px()));
@@ -335,8 +478,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let unselected = table(3,2, 4.0).translate(((-7.0).px(),(-1.0).px()));
                 let unselected = unselected.fill(weak_color);
                 let selected   = table(3,1, 4.0).translate(((-7.0).px(),(-8.0).px()));
@@ -355,8 +499,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let weak_color   = weak_color;
                 let strong_color = strong_color;
 
@@ -379,8 +524,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let weak_color   = weak_color;
                 let strong_color = strong_color;
 
@@ -403,8 +549,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let column_color = weak_color.clone();
                 let plus_color = weak_color;
 
@@ -427,8 +574,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let row_color  = weak_color.clone();
                 let plus_color = weak_color;
 
@@ -451,8 +599,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let shape = path(2.0,&[
                     ( 4.0 ,  4.0),
                     ( 4.0 ,  5.5),
@@ -476,8 +625,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Page border ===
 
@@ -527,8 +677,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle = Circle(2.0.px());
                 let circle1 = circle.translate_y(5.5.px()).fill(weak_color.clone());
                 let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(weak_color.clone());
@@ -552,8 +703,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle = Circle(1.0.px()).fill(strong_color.clone());
                 let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px());
                 let arc1= arc1.fill(strong_color.clone());
@@ -576,8 +728,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
                 let background = background.fill(style.get_color(theme::system::background));
@@ -604,8 +757,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
                 let upper = half_arrow.translate((7.0.px(),0.5.px()));
                 let lower = half_arrow.rotate(PI.radians()).translate(((-7.0).px(),(-1.0).px()));
@@ -629,8 +783,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
 
                 // === Outline ===
 
@@ -674,8 +829,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let intersection_alpha: Var<f32> = style.get_number(icons::join::intersection_alpha).into();
+                let intersection_color = strong_color.clone().multiply_alpha(&intersection_alpha);
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let left_circle = Circle(4.5.px()).translate_x((-2.5).px());
                 let right_circle = Circle(4.5.px()).translate_x(2.5.px());
                 let intersection = &left_circle * &right_circle;
@@ -686,7 +844,7 @@ define_icons! {
 
                 let left_circle = left_circle.fill(weak_color.clone());
                 let right_circle = right_circle.fill(weak_color.clone());
-                let intersection = intersection.fill(weak_color);
+                let intersection = intersection.fill(intersection_color);
 
                 let shape =
                     left_circle + right_circle + intersection + left_outline + right_outline;
@@ -703,8 +861,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
                 let page = page.translate_x((-2.0).px());
                 let page = &page - page.shrink(1.0.px());
@@ -730,8 +889,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle = Circle(7.75.px());
                 let circle = &circle - circle.shrink(1.0.px());
 
@@ -754,8 +914,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle   = Circle(4.5.px()).translate_y(3.5.px());
                 let circle   = &circle - circle.shrink(2.0.px());
                 let triangle = Triangle(7.0,5.75).rotate(PI.radians()).translate_y((-2.125).px());
@@ -782,8 +943,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle = Circle(5.5.px());
                 let sphere = &circle - circle.shrink(1.0.px());
 
@@ -810,8 +972,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let body = Rect((10.0.px(),15.0.px()))
                     .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
                     .translate_y((-0.5).px());
@@ -840,8 +1003,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let lens =
                     Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
                 let outline = Circle(4.5.px()) - Circle(3.5.px());
@@ -868,8 +1032,9 @@ define_icons! {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -885,8 +1050,9 @@ define_icons! {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
                 let shape = triangle.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -902,8 +1068,9 @@ define_icons! {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let dot = Circle(4.0.px());
                 let shape = dot.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -919,8 +1086,9 @@ define_icons! {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
                     (0.0, -6.0),
@@ -942,8 +1110,9 @@ define_icons! {
         ensogl_core::define_shape_system! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color = color.clone();
-                let weak_color = color.with_alpha(style.get_number(weak_color_alpha));
+                let strong_color: Var<color::Rgba> = color.into();
+                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
+                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
                 let shape = rect.fill(strong_color);

@@ -189,7 +189,7 @@ define_themes! { [light:0, dark:1]
             component_list_panel {
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
-                weak_icon_alpha = 0.5;
+                weak_icon_alpha_path = 0.5, 0.5;
                 grid {
                     width = 414.0, 414.0;
                     height = 414.0, 414.0;
@@ -216,8 +216,7 @@ define_themes! { [light:0, dark:1]
                         icon {
                             size = 16.0, 16.0;
                             text_padding = 8.0, 8.0;
-                            strong_color = 1.0, 1.0;
-                            weak_color = 0.5, 0.5;
+                            color = 1.0, 1.0;
                         }
                         highlight {
                             corners_radius = 12.0, 12.0;
@@ -225,8 +224,7 @@ define_themes! { [light:0, dark:1]
                             selection {
                                 background.color = 0.75, 0.75;
                                 text.color = Rgba::white(), Rgba::white();
-                                icon_strong.color = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
-                                icon_weak.color = 0.5, 0.5;
+                                icon.color = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
                             }
                         }
                         shadow = shadow , shadow;
@@ -237,6 +235,9 @@ define_themes! { [light:0, dark:1]
                             exponent = shadow::exponent , shadow::exponent;
                             offset_x = shadow::offset_x , shadow::offset_x;
                             offset_y = shadow::offset_y , shadow::offset_y;
+                        }
+                        icons {
+                            join.intersection_alpha = 0.7, 0.7;
                         }
                     }
 

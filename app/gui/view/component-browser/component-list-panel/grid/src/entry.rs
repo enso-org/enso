@@ -216,8 +216,7 @@ pub struct Params {
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
-    strong_color:   color::Lcha,
-    weak_color:     color::Lcha,
+    color:          color::Lcha,
     shape:          Option<icon::Any>,
     id:             Option<icon::Id>,
 }
@@ -226,8 +225,7 @@ impl Default for CurrentIcon {
     fn default() -> Self {
         Self {
             display_object: display::object::Instance::new(),
-            strong_color:   default(),
-            weak_color:     default(),
+            color:          default(),
             shape:          default(),
             id:             default(),
         }
@@ -240,8 +238,7 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                shape.color.set(color::Rgba::from(self.strong_color).into());
-                shape.weak_color.set(color::Rgba::from(self.weak_color).into());
+                shape.color.set(color::Rgba::from(self.color).into());
                 self.display_object.add_child(&shape);
                 self.shape = Some(shape);
             } else {
@@ -250,17 +247,10 @@ impl CurrentIcon {
         }
     }
 
-    fn set_strong_color(&mut self, color: color::Lcha) {
-        self.strong_color = color;
+    fn set_color(&mut self, color: color::Lcha) {
+        self.color = color;
         if let Some(shape) = &self.shape {
             shape.color.set(color::Rgba::from(color).into());
-        }
-    }
-
-    fn set_weak_color(&mut self, color: color::Lcha) {
-        self.weak_color = color;
-        if let Some(shape) = &self.shape {
-            shape.weak_color.set(color::Rgba::from(color).into());
         }
     }
 }
@@ -470,8 +460,7 @@ impl grid_view::Entry for View {
             let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
-            eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
-            eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
+            eval colors.icon ((c) data.icon.borrow_mut().set_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
             // We want to animate only when params changed (the different section is highlighted).
             // Other case, where entry receives new model with new section means it is reused
