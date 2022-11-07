@@ -1100,7 +1100,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
+  @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
     # this is a comment
