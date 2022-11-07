@@ -133,10 +133,6 @@ impl Slider {
 
             // distance dragged
             drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
-            // horizontal drag as fraction of element width
-            drag_x_fract            <- all2(&drag_delta, &output.width).map(
-                |(delta, width)| delta.x / width
-            );
             // vertical drag as fraction of element height
             drag_y_fract            <- all2(&drag_delta, &output.height).map(
                 |(delta, height)| delta.y / height
@@ -149,14 +145,11 @@ impl Slider {
             precision_adjusted      <- all2(&precision, &drag_y_fract).map(
                 |(base, offset)| *base * (offset/5.0).exp()
             );
-            range                   <- all2(&input.set_min, &input.set_max).map(
-                |(min, max)| max - min
-            );
 
             value_start             <- output.value.sample(&component_click);
             value_update            <- bool(&component_release, &value_start); // update only after value_start is sampled
-            value                   <- all4(&value_start, &range, &precision_adjusted, &drag_x_fract).map(
-                |(value, range, precision, delta)| value + delta * precision * range
+            value                   <- all3(&value_start, &precision_adjusted, &drag_delta).map(
+                |(value, precision, delta)| value + delta.x * precision
             ).gate(&value_update);
             value                   <- any2(&input.set_value, &value);
             value_clamped           <- all3(&value, &input.set_min, &input.set_max).map(
@@ -217,7 +210,7 @@ impl Slider {
         self.frp.set_min(0.0);
         self.frp.set_max(5.0);
         self.frp.set_value(0.5);
-        self.frp.set_precision(1.0);
+        self.frp.set_precision(0.1);
 
         self
     }
