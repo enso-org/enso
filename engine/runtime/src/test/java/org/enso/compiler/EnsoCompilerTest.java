@@ -1121,7 +1121,7 @@ public class EnsoCompilerTest {
     }
     if (noLocations) {
         for (;;) {
-          final String pref = "IdentifiedLocation(";
+          final String pref = " Location(";
           int at = txt.indexOf(pref);
           if (at == -1) {
             break;
@@ -1135,7 +1135,7 @@ public class EnsoCompilerTest {
             }
             to++;
           }
-          txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+          txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
         }
     }
     if (lessDocs) {
