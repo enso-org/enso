@@ -572,10 +572,8 @@ class Compiler(
     * @param source the code to parse
     * @return an AST representation of `source`
     */
-  def parse(source: Source): AST = {
-
+  def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
-  }
 
   /** Parses the metadata of the provided language sources.
     *
@@ -669,19 +667,11 @@ class Compiler(
     module: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    try {
-      passManager.runPassesOnModule(
-        module,
-        moduleContext,
-        passes.moduleDiscoveryPasses
-      )
-    } catch {
-      case npe: Throwable => {
-        System.err.println("Error processing " + moduleContext)
-        npe.printStackTrace()
-        module
-      }
-    }
+    passManager.runPassesOnModule(
+      module,
+      moduleContext,
+      passes.moduleDiscoveryPasses
+    )
   }
 
   /** Lowers the input AST to the compiler's high-level intermediate
