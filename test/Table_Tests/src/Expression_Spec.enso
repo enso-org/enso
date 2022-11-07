@@ -10,17 +10,11 @@ from Standard.Test import Test, Test_Suite, Problems
 import project.Common_Table_Spec
 from project.Util import all
 
-## ToDos:
-   - Boolean conditions LIKE, NOT LIKE, AND, OR, NOT
-   - Function test
-   - Text concatenation
-   - Long Storage test
-
 spec detailed=False =
     # Create Test Table
     column_a = ["A", [1, 2, 3, 4, 5]]
     column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
-    column_c = ["C", ["A", "B", "C", "", Nothing]]
+    column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
     column_odd = ["Bad] Name", [True, False, True, False, True]]
     test_table = Table.new [column_a, column_b, column_c, column_odd]
 
@@ -133,6 +127,8 @@ spec detailed=False =
             expression_test "1_000.456/   2" 500.228
             expression_test " 2 ^ 4 " 16
             expression_test "  11   % 3    " 2
+            expression_test "1+1 * 2" 3
+            expression_test "1 + 1*2" 3
 
     Test.group "Column Arithmetic" <|
         specify_test "should be able to perform arithmetic on columns" expression_test->
@@ -218,5 +214,22 @@ spec detailed=False =
             expression_test "'Hello World' IS NOT EMPTY" True
             expression_test "'' IS NOT EMPTY" False
             expression_test "Nothing IS NOT EMPTY" False
+
+    Test.group "Text Operators" <|
+        specify_test "should be able to concatenate text" expression_test->
+            expression_test "'Hello ' + 'World'" "Hello World"
+            expression_test "[C] + ' World'" ["Hello World", "World World", "Hello World! World", " World", Nothing]
+            expression_test "'Hello ' + [C]" ["Hello Hello", "Hello World", "Hello Hello World!", "Hello ", Nothing]
+            expression_test "[C] + [C]" ["HelloHello", "WorldWorld", "Hello World!Hello World!", "", Nothing]
+
+        specify_test "should be able to use like" expression_test->
+            expression_test "'Hello World' LIKE 'Hello%'" True
+            expression_test "'Hello' LIKE 'H_llo'" True
+            expression_test "'Hello' LIKE 'H_l%'" True
+            expression_test "'Hello' LIKE 'H___o'" True
+            expression_test "'World' LIKE 'H___o'" False
+            expression_test "'Hello World' NOT LIKE 'Hello%'" False
+            expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
+            expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
 
 main = Test_Suite.run_main (spec True)

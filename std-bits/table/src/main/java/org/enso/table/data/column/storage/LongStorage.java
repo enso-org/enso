@@ -245,7 +245,8 @@ public final class LongStorage extends NumericStorage<Long> {
 
               @Override
               public long doLong(long in, long arg) {
-                throw new IllegalStateException("Internal error: Power operation should cast to double.");
+                throw new IllegalStateException(
+                    "Internal error: Power operation should cast to double.");
               }
             })
         .add(
