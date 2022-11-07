@@ -921,7 +921,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(2, 10)
+                    Suggestion.Position(3, 0)
                   )
                 ),
                 Vector()
@@ -970,7 +970,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(4, 10)
+                    Suggestion.Position(5, 0)
                   )
                 ),
                 Vector(
@@ -1031,7 +1031,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Number",
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(3, 10)
+                    Suggestion.Position(4, 0)
                   )
                 ),
                 Vector()
@@ -1099,7 +1099,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Unnamed.Test.A",
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
-                    endOfLine(5, 10)
+                    Suggestion.Position(6, 0)
                   )
                 ),
                 Vector()
@@ -1142,7 +1142,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(2, 7)
+                    Suggestion.Position(3, 0)
                   )
                 ),
                 Vector()
@@ -1187,7 +1187,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(4, 7)
+                    Suggestion.Position(5, 0)
                   )
                 ),
                 Vector(
@@ -1245,7 +1245,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Number",
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
-                    endOfLine(3, 7)
+                    Suggestion.Position(4, 0)
                   )
                 ),
                 Vector()
@@ -1302,7 +1302,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   returnType = "Unnamed.Test.A",
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
-                    endOfLine(5, 7)
+                    Suggestion.Position(6, 0)
                   )
                 ),
                 Vector()
