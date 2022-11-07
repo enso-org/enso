@@ -213,11 +213,11 @@ pub async fn put_files_gzipping(
 #[context("Failed to notify the cloud about GUI upload in version {}.", version)]
 pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     let body = json!({
-        "version_number": version.to_string(),
-        "version_type": "Ide"
+        "versionNumber": version.to_string(),
+        "versionType": "Ide"
     });
     let response = reqwest::Client::new()
-        .post("https://uhso47ta0i.execute-api.eu-west-1.amazonaws.com/versions")
+        .post("https://nngmxi3zr4.execute-api.eu-west-1.amazonaws.com/versions")
         .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
         .header("Content-Type", "application/json")
         .json(&body)
@@ -240,6 +240,15 @@ mod tests {
         );
         let version = "2022.1.1-dev.provisional.test.2".parse2()?;
         upload_gui_to_cloud(&assets, &version).await?;
+        notify_cloud_about_gui(&version).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn notify_cloud() -> Result {
+        setup_logging()?;
+        let version = Version::from_str("2022.1.1-rc.2")?;
         notify_cloud_about_gui(&version).await?;
         Ok(())
     }
