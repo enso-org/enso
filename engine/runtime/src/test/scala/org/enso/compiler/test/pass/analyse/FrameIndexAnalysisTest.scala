@@ -6,7 +6,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.analyse.FrameIndexAnalysis
+import org.enso.compiler.pass.analyse.FrameIndexAnalysis.FrameInfo.FrameIndex
+import org.enso.compiler.pass.analyse.FrameIndexAnalysis.FrameInfo.LocalVariables
 import org.enso.compiler.test.CompilerTest
+
+import scala.List
+import scala.collection.mutable.ListBuffer
 
 
 class FrameIndexAnalysisTest extends CompilerTest {
@@ -88,6 +93,25 @@ class FrameIndexAnalysisTest extends CompilerTest {
     localVars.get
   }
 
+  private def getNamesForVariables(module: IR, localVars: LocalVariables): List[String] = {
+    val localVarsNames: ListBuffer[String] = new ListBuffer()
+    localVars.variables.foreach(localVarId => {
+      val localVarIr = module.preorder.find(ir => ir.getId == localVarId)
+      localVarIr.get match {
+        case binding: IR.Expression.Binding =>
+          localVarsNames += binding.name.name
+        case defArg: IR.DefinitionArgument =>
+          localVarsNames += defArg.name.name
+        case _ => fail(s"Unexpected IR: ${localVarIr.get}")
+      }
+    })
+    localVarsNames.toList
+  }
+
+  "Pass configuration" should {
+    // TODO: Test FrameIndexAnalysis pass configuration
+  }
+
   "Frame index analysis for simple scopes" should {
     implicit val moduleContext: ModuleContext =
       buildModuleContext(
@@ -105,19 +129,19 @@ class FrameIndexAnalysisTest extends CompilerTest {
         .map(function => {
           val metadata = function.getMetadata(FrameIndexAnalysis)
           metadata shouldBe defined
-          val localVars = metadata.get.as[FrameIndexAnalysis.FrameInfo.LocalVariables]
+          val localVars = metadata.get.as[LocalVariables]
           localVars shouldBe defined
           localVars.get
         })
         .head
-      localVariables.variables shouldBe empty
+      localVariables.variables should not be empty
 
       val argFrameIndex = module.preorder
         .collect { case x: IR.DefinitionArgument => x }
         .map(argument => {
           val argMetadata = argument.getMetadata(FrameIndexAnalysis)
           argMetadata shouldBe defined
-          val frameIndex = argMetadata.get.as[FrameIndexAnalysis.FrameInfo.FrameIndex]
+          val frameIndex = argMetadata.get.as[FrameIndex]
           frameIndex shouldBe defined
           frameIndex.get
         })
@@ -138,12 +162,13 @@ class FrameIndexAnalysisTest extends CompilerTest {
         .map(binding => {
           val metadata = binding.getMetadata(FrameIndexAnalysis)
           metadata shouldBe defined
-          val frameIndex = metadata.get.as[FrameIndexAnalysis.FrameInfo.FrameIndex]
+          val frameIndex = metadata.get.as[FrameIndex]
           frameIndex shouldBe defined
           frameIndex.get
         })
         .head
-      frameIndex.index shouldBe 0
+      // There is synthetic self as an implicit argument
+      frameIndex.index shouldBe 1
     }
 
     "Argument and local var are in method's scope" in {
@@ -162,9 +187,116 @@ class FrameIndexAnalysisTest extends CompilerTest {
       val yBindingFrameIdx = getFrameIndexMetadata(yBinding)
       val myFuncMethodLocVars = getLocalVariablesMetadata(myFuncMethod.body)
 
-      xArgFrameIdx.index shouldBe 0
-      yBindingFrameIdx.index shouldBe 1
-      myFuncMethodLocVars.variables.length shouldBe 2
+      val locVarNames = getNamesForVariables(module, myFuncMethodLocVars)
+      locVarNames should equal (List("self", "x", "y"))
+
+      xArgFrameIdx.index shouldBe 1
+      yBindingFrameIdx.index shouldBe 2
+      myFuncMethodLocVars.variables.length shouldBe 3
+    }
+
+    "Nested function with arguments" in {
+      val module =
+        """
+          |my_func =
+          |    x = 10
+          |    nested_func y = x + y
+          |    nested_func x
+          |""".stripMargin.preprocessModule.analyseFrameIndexes
+      val myFunc = findMethod(module, "my_func")
+        .body
+        .asInstanceOf[IR.Function]
+      val nestedFunc = findBinding(module, "nested_func")
+        .expression
+        .asInstanceOf[IR.Function]
+      val myFuncLocVars = getLocalVariablesMetadata(myFunc)
+      val nestedFuncLocVars = getLocalVariablesMetadata(nestedFunc)
+
+      getNamesForVariables(module, myFuncLocVars) should equal (List("self", "x", "nested_func"))
+      getNamesForVariables(module, nestedFuncLocVars) should equal (List("y"))
+    }
+
+    "Nested function with arguments and local variables" in {
+      val module =
+        """
+          |my_func =
+          |    nested_func x =
+          |        y = x + 1
+          |        y
+          |    nested_func 42
+          |""".stripMargin.preprocessModule.analyseFrameIndexes
+      val myFunc = findMethod(module, "my_func")
+        .body
+        .asInstanceOf[IR.Function]
+      val nestedFunc = findBinding(module, "nested_func")
+        .expression
+        .asInstanceOf[IR.Function]
+      val myFuncLocVars = getNamesForVariables(
+        module,
+        getLocalVariablesMetadata(myFunc)
+      )
+      val nestedFuncLocVars = getNamesForVariables(
+        module,
+        getLocalVariablesMetadata(nestedFunc)
+      )
+
+      myFuncLocVars should equal (List("self", "nested_func"))
+      nestedFuncLocVars should equal (List("x", "y"))
+    }
+
+  }
+
+  "Anonymous functions" should {
+    implicit val moduleContext: ModuleContext =
+      buildModuleContext(
+        passConfiguration = Some(passConfig),
+        freshNameSupply = Some(new FreshNameSupply())
+      )
+
+    val module =
+      """
+        |apply : Integer -> (Integer -> Integer) -> Integer
+        |apply x func = func(x)
+        |
+        |my_func =
+        |    apply 42 x->
+        |        y = x + 1
+        |        y
+        |""".stripMargin.preprocessModule.analyseFrameIndexes
+
+    // Anonymous function passed as an argument to apply method
+    val anonFunc = module
+      .bindings(1)
+      .asInstanceOf[IR.Module.Scope.Definition.Method]
+      .body
+      .preorder
+      .collect {case x: IR.Function => x}
+      .last
+
+    "Contain local vars metadata" in {
+      val anonFuncVarNames = getNamesForVariables(
+        module,
+        getLocalVariablesMetadata(anonFunc)
+      )
+      anonFuncVarNames should equal (List("x", "y"))
+    }
+
+    "Argument has FrameIndex metadata" in {
+      val xArg = anonFunc
+        .children
+        .collect {case arg: IR.DefinitionArgument => arg}
+        .head
+      val frameIdx = getFrameIndexMetadata(xArg)
+      frameIdx.index shouldBe 0
+    }
+
+    "Local variable has FrameIndex metadata" in {
+      val yLocVar = anonFunc
+        .preorder
+        .collect {case binding: IR.Expression.Binding => binding}
+        .last
+      val frameIdx = getFrameIndexMetadata(yLocVar)
+      frameIdx.index shouldBe 1
     }
   }
 }
