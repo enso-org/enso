@@ -128,7 +128,7 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
       case Tree.TypeDef def -> {
-        var typeName = buildName(def.getName());
+        var typeName = buildName(def.getName(), true);
         var translatedBody = translateTypeBody(def.getBlock());
         var irConstructors = new java.util.ArrayList<IR>();
         for (var constructorLine : def.getConstructors()) {
@@ -1171,7 +1171,7 @@ final class TreeToIr {
     */
   @SuppressWarnings("unchecked")
   IR$Module$Scope$Import translateImport(Tree.Import imp) {
-    Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody()));
+    Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody(), true));
     if (imp.getPolyglot() != null) {
       if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
         throw new UnhandledEntity(imp, "translateImport");
@@ -1194,7 +1194,7 @@ final class TreeToIr {
         onlyNames = Option.apply(buildNameSequence(imp.getImport().getBody()));
       }
     } else {
-      qualifiedName = buildQualifiedName(imp.getImport().getBody());
+      qualifiedName = buildQualifiedName(imp.getImport().getBody(), Option.empty(), true);
     }
     Option<List<IR$Name$Literal>> hidingNames = Option.apply(imp.getHiding()).map(
             hiding -> buildNameSequence(hiding.getBody()));
@@ -1229,19 +1229,19 @@ final class TreeToIr {
     */
   @SuppressWarnings("unchecked")
   IR$Module$Scope$Export$Module translateExport(Tree.Export exp) {
-    Option<IR$Name$Literal> rename = Option.apply(exp.getAs()).map(as -> buildName(as.getBody()));
+    Option<IR$Name$Literal> rename = Option.apply(exp.getAs()).map(as -> buildName(as.getBody(), true));
     Option<List<IR$Name$Literal>> hidingNames = Option.apply(exp.getHiding()).map(
             hiding -> buildNameSequence(hiding.getBody()));
     IR$Name$Qualified qualifiedName;
     Option<List<IR$Name$Literal>> onlyNames = Option.empty();
     if (exp.getFrom() != null) {
-      qualifiedName = buildQualifiedName(exp.getFrom().getBody());
+      qualifiedName = buildQualifiedName(exp.getFrom().getBody(), Option.empty(), true);
       var onlyBodies = exp.getExport().getBody();
       if (exp.getAll() == null) {
         onlyNames = Option.apply(buildNameSequence(onlyBodies));
       }
     } else {
-      qualifiedName = buildQualifiedName(exp.getExport().getBody());
+      qualifiedName = buildQualifiedName(exp.getExport().getBody(), Option.empty(), true);
     }
     return new IR$Module$Scope$Export$Module(
       qualifiedName, rename, (exp.getFrom() != null), onlyNames,
@@ -1263,6 +1263,9 @@ final class TreeToIr {
 
   private IR$Name$Literal buildName(Token name) {
     return buildName(getIdentifiedLocation(name), name, false);
+  }
+  private IR$Name$Literal buildName(Token name, boolean generateId) {
+    return buildName(getIdentifiedLocation(name, generateId), name, false);
   }
   private IR$Name$Literal buildName(Tree ident) {
     return buildName(ident, false);
