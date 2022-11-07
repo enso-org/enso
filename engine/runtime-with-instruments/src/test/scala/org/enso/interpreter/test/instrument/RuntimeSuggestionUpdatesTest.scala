@@ -807,7 +807,7 @@ class RuntimeSuggestionUpdatesTest
                         ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(4, 6),
-                          Suggestion.Position(9, 0)
+                          Suggestion.Position(8, 11)
                         )
                       ),
                       Api.SuggestionAction.Add()
