@@ -31,7 +31,7 @@ pub use ide_view_component_list_panel_icons::SIZE;
 define_icons! {
     /// A five-pointed star.
     pub mod star(Star) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
             above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -47,7 +47,7 @@ define_icons! {
 
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -66,7 +66,7 @@ define_icons! {
 
     /// Sub-modules section button. Three rectangles placed behind each other with perspective.
     pub mod sub_modules(SubModules) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -90,7 +90,7 @@ define_icons! {
 
     /// Four rounded rectangles in different colors aranged in a grid.
     pub mod libraries(Libraries) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -126,7 +126,7 @@ define_icons! {
 
     /// A plus and three rounded rectangles in different colors aranged in a grid.
     pub mod marketplace(Marketplace) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -162,7 +162,7 @@ define_icons! {
 
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
             above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -194,7 +194,7 @@ define_icons! {
 
     /// A rounded rectangle with an arrow pointing out to the right.
     pub mod data_output(DataOutput) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -226,7 +226,7 @@ define_icons! {
 
     /// A rounded rectangle with the letter "A" and a text cursor.
     pub mod text_input(TextInput) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -267,7 +267,7 @@ define_icons! {
 
     /// A rounded rectangle with the number "5" and a text cursor.
     pub mod number_input(NumberInput) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -324,7 +324,7 @@ define_icons! {
 
     /// A table with 4x2 cells and a cursor shape in front of it.
     pub mod table_edit(TableEdit) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -348,7 +348,7 @@ define_icons! {
 
     /// An arrow to the left on top and an arrow to the right below.
     pub mod convert(Convert) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -369,7 +369,7 @@ define_icons! {
 
     /// A table with an eraser in front.
     pub mod dataframe_clean(DataframeClean) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -404,7 +404,7 @@ define_icons! {
 
     /// A light column on the left, a dark column in the middle and a plus on the right.
     pub mod add_column(AddColumn) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -429,7 +429,7 @@ define_icons! {
 
     /// A light row at the top, a dark row in the middle and a plus at the bottom.
     pub mod add_row(AddRow) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -453,7 +453,7 @@ define_icons! {
 
     /// Two light columns on the left and one dark column detached on the right.
     pub mod select_column(SelectColumn) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -474,7 +474,7 @@ define_icons! {
 
     /// Two light rows at the top and one dark row detached at the bottom.
     pub mod select_row(SelectRow) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -495,7 +495,7 @@ define_icons! {
 
     /// A light column, a dark column and a lightning bolt on the right.
     pub mod dataframe_map_column(DataframeMapColumn) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -520,7 +520,7 @@ define_icons! {
 
     /// A light row, a dark row and a lightning bolt below.
     pub mod dataframe_map_row(DataframeMapRow) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -545,7 +545,7 @@ define_icons! {
 
     /// Two columns with a plus in-between.
     pub mod dataframes_join(DataframesJoin) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -570,7 +570,7 @@ define_icons! {
 
     /// Two rows with a plus in-between.
     pub mod dataframes_union(DataframesUnion) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -595,7 +595,7 @@ define_icons! {
 
     /// A capital "Σ".
     pub mod sigma(Sigma) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -621,7 +621,7 @@ define_icons! {
     /// The shape of a sheet of paper that has been ripped apart with a vertical crack through the
     /// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
     pub mod split_text(SplitText) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -673,7 +673,7 @@ define_icons! {
 
     /// Some rectangles and circles in different colors.
     pub mod data_science(DataScience) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -699,7 +699,7 @@ define_icons! {
 
     /// A WiFi symbol, consisting of a small circle and three arcs of increasing size above it.
     pub mod network(Network) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -724,7 +724,7 @@ define_icons! {
 
     /// A dark rectangle containing the simple terminal prompt ">_".
     pub mod system(System) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -753,7 +753,7 @@ define_icons! {
     /// Two half arrow, one on top and pointing to the right, one at the bottom and pointing to the
     /// left. The shape has an outline in a darker color.
     pub mod io(IO) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -779,7 +779,7 @@ define_icons! {
     /// a thin rectangular tube shape below with a triangular end piece. The whole shape has an
     /// outline.
     pub mod preparation(Preparation) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -825,7 +825,7 @@ define_icons! {
     /// Two intersecting circles. The circles, their outlines and the intersection are displayed in
     /// different colors.
     pub mod join(Join) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -857,7 +857,7 @@ define_icons! {
     /// A page with three lines representing text. The upper line is part of an arrow pointing out
     /// to the right.
     pub mod text(Text) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -885,7 +885,7 @@ define_icons! {
 
     /// A clock shape.
     pub mod date_and_time(DateAndTime) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -910,7 +910,7 @@ define_icons! {
     /// The shape location marker. A thick circle outline going over into a triangle that poins
     /// down. Around the tip there is an ellipse outline.
     pub mod spatial(Spatial) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -939,7 +939,7 @@ define_icons! {
 
     /// The shape of a christal ball with a bas below.
     pub mod predictive(Predictive) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -968,7 +968,7 @@ define_icons! {
 
     /// The shape of an android.
     pub mod machine_learning(MachineLearning) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -999,7 +999,7 @@ define_icons! {
     /// The simplified shape of a camera. It consists of a small red circle in a bigger circle
     /// outline, representing the lens and a base above that the camera is mounted on.
     pub mod computer_vision(ComputerVision) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
@@ -1029,7 +1029,7 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Atom`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod atom(Atom) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
                 let strong_color: Var<color::Rgba> = color.into();
@@ -1047,7 +1047,7 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Function`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod function(Function) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
                 let strong_color: Var<color::Rgba> = color.into();
@@ -1065,7 +1065,7 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Local`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod local(Local) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
                 let strong_color: Var<color::Rgba> = color.into();
@@ -1083,7 +1083,7 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Method`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod method(Method) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
                 let strong_color: Var<color::Rgba> = color.into();
@@ -1107,7 +1107,7 @@ define_icons! {
     /// [`enso_gui::model::suggestion_database::entry::Kind::Module`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
     pub mod module(Module) {
-        ensogl_core::define_shape_system! {
+        ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
                 let strong_color: Var<color::Rgba> = color.into();

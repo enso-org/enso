@@ -101,7 +101,7 @@ impl Data {
     fn set_icon(&self, icon_id: icon::Id) {
         let size = Vector2(SIZE, SIZE);
         let icon = icon_id.create_shape(size);
-        icon.color.set(color::Rgba::from(self.color.get()).into());
+        icon.set_color(color::Rgba::from(self.color.get()).into());
         self.display_object.add_child(&icon);
         *self.icon.borrow_mut() = Some(icon);
     }
@@ -109,7 +109,7 @@ impl Data {
     fn set_color(&self, color: color::Lcha) {
         self.color.set(color);
         if let Some(icon) = self.icon.borrow().deref() {
-            icon.color.set(color::Rgba::from(color).into());
+            icon.set_color(color::Rgba::from(color).into());
         }
     }
 }
