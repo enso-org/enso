@@ -158,10 +158,11 @@ impl Slider {
             value                   <- all4(&value_start, &range, &precision_adjusted, &drag_x_fract).map(
                 |(value, range, precision, delta)| value + delta * precision * range
             ).gate(&value_update);
+            value                   <- any2(&input.set_value, &value);
             value_clamped           <- all3(&value, &input.set_min, &input.set_max).map(
                 |(value, min, max)| value.max(*min).min(*max)
             );
-            output.value            <+ any2(&input.set_value, &value_clamped);
+            output.value            <+ value_clamped;
 
             track_pos               <- all3(&value_clamped, &input.set_min, &input.set_max).map(
                 |(value, min, max)| (value - min) / (max - min)
