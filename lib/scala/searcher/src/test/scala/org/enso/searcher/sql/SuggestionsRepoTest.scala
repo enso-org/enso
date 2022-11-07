@@ -1838,6 +1838,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Suggestion.Argument("a", "Any", false, false, None)
         ),
         returnType    = "Standard.Builtins.Maybe",
+        parentType    = Some("Standard.Builtins.Any"),
         documentation = Some("To be or not to be")
       )
 

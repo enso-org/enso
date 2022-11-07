@@ -495,6 +495,9 @@ interface Type {
   /** The list of type parameters. */
   params: SuggestionEntryArgument[];
 
+  /** Qualified name of the parent type. */
+  parentType?: string;
+
   /** The fully qualified module name re-exporting this type. */
   reexport?: string;
 

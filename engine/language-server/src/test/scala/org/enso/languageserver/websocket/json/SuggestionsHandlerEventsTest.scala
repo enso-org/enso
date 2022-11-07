@@ -61,7 +61,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "defaultValue" : null,
                       "tagValues" : null
                     }
-                  ]
+                  ],
+                  "parentType" : "Any"
                }
              }
            ],
@@ -399,23 +400,22 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           "result" : {
             "entries" : [
               {
-                "id" : 5,
+                "id" : 1,
                 "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
+                  "type" : "type",
                   "module" : "local.Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
+                  "name" : "Newtype",
+                  "params" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
-                  }
+                  ],
+                  "parentType" : "Any"
                 }
               },
               {
@@ -461,65 +461,10 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               },
               {
-                "id" : 3,
-                "suggestion" : {
-                  "type" : "method",
-                  "externalId" : ${Suggestions.method.externalId.get},
-                  "module" : "local.Test.Main",
-                  "name" : "foo",
-                  "arguments" : [
-                    {
-                      "name" : "this",
-                      "reprType" : "MyType",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    },
-                    {
-                      "name" : "foo",
-                      "reprType" : "Number",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "42",
-                      "tagValues" : null
-                    }
-                  ],
-                  "selfType" : "MyType",
-                  "returnType" : "Number",
-                  "isStatic" : false,
-                  "documentation" : "Lovely",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "Lovely"
-                    }
-                  ]
-                }
-              },
-              {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "type",
-                  "module" : "local.Test.Main",
-                  "name" : "Newtype",
-                  "params" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null,
-                      "tagValues" : null
-                    }
-                  ]
-                }
-              },
-              {
                 "id" : 4,
                 "suggestion" : {
                   "type" : "function",
-                  "externalId" : ${Suggestions.function.externalId.get},
+                  "externalId" : "78d452ce-ed48-48f1-b4f2-b7f45f8dff89",
                   "module" : "local.Test.Main",
                   "name" : "print",
                   "arguments" : [
@@ -557,6 +502,63 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                     "end" : {
                       "line" : 1,
                       "character" : 22
+                    }
+                  }
+                }
+              },
+              {
+                "id" : 3,
+                "suggestion" : {
+                  "type" : "method",
+                  "externalId" : "ea9d7734-26a7-4f65-9dd9-c648eaf57d63",
+                  "module" : "local.Test.Main",
+                  "name" : "foo",
+                  "arguments" : [
+                    {
+                      "name" : "this",
+                      "reprType" : "MyType",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null,
+                      "tagValues" : null
+                    },
+                    {
+                      "name" : "foo",
+                      "reprType" : "Number",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "42",
+                      "tagValues" : null
+                    }
+                  ],
+                  "selfType" : "MyType",
+                  "returnType" : "Number",
+                  "isStatic" : false,
+                  "documentation" : "Lovely",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "Lovely"
+                    }
+                  ]
+                }
+              },
+              {
+                "id" : 5,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
+                  "module" : "local.Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
                     }
                   }
                 }

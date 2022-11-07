@@ -8,9 +8,10 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
+import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
@@ -19,9 +20,13 @@ import scala.collection.mutable
 /** Module that extracts [[Suggestion]] entries from the [[IR]].
   *
   * @param source the text source
+  * @param typeGraph the type hierarchy
   * @tparam A the type of the text source
   */
-final class SuggestionBuilder[A: IndexedSource](val source: A) {
+final class SuggestionBuilder[A: IndexedSource](
+  val source: A,
+  val typeGraph: TypeGraph
+) {
 
   import SuggestionBuilder._
 
@@ -310,15 +315,19 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: String,
     params: Seq[IR.DefinitionArgument],
     doc: Option[String]
-  ): Suggestion.Type =
+  ): Suggestion.Type = {
+    val qualifiedName = module.createChild(tp).toString
+    val parentType    = typeGraph.getDirectParents(qualifiedName).headOption
     Suggestion.Type(
       externalId    = None,
       module        = module.toString,
       name          = name,
       params        = params.map(buildArgument),
-      returnType    = module.createChild(tp).toString,
+      returnType    = qualifiedName,
+      parentType    = parentType,
       documentation = doc
     )
+  }
 
   /** Build an atom constructor. */
   private def buildAtomConstructor(
@@ -377,7 +386,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   /** Build type signature from the ir metadata.
     *
     * @param typeSignature the type signature metadata
-    * @param bindings the binding analysis metadata
     * @return the list of type arguments
     */
   private def buildTypeSignatureFromMetadata(
@@ -392,7 +400,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   /** Build type signature from the type expression.
     *
-    * @param bindings the binding analysis metadata
     * @param typeExpr the type signature expression
     * @return the list of type arguments
     */
@@ -633,10 +640,22 @@ object SuggestionBuilder {
   /** Create the suggestion builder.
     *
     * @param source the text source
+    * @param typeGraph the type hierarchy
+    * @tparam A the type of the text source
+    */
+  def apply[A: IndexedSource](
+    source: A,
+    typeGraph: TypeGraph
+  ): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, typeGraph)
+
+  /** Create the suggestion builder.
+    *
+    * @param source the text source
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source)
+    new SuggestionBuilder[A](source, Types.getTypeHierarchy)
 
   /** A single level of an `IR`.
     *

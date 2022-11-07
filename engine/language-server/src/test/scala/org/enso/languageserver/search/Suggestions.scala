@@ -43,6 +43,7 @@ object Suggestions {
     name                  = "Newtype",
     params                = Vector(Suggestion.Argument("a", "Any", false, false, None)),
     returnType            = "Newtype",
+    parentType            = Some("Any"),
     documentation         = None,
     documentationHtml     = None,
     documentationSections = None
