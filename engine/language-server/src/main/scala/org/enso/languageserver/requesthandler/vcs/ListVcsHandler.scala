@@ -63,9 +63,9 @@ class ListVcsHandler(
 
 object ListVcsHandler {
   def props(
-             timeout: FiniteDuration,
-             vcsManager: ActorRef,
-             rpcSession: JsonSession
-           ): Props =
+    timeout: FiniteDuration,
+    vcsManager: ActorRef,
+    rpcSession: JsonSession
+  ): Props =
     Props(new ListVcsHandler(timeout, vcsManager, rpcSession))
 }

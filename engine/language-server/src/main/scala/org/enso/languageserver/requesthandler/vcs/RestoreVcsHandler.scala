@@ -65,9 +65,9 @@ class RestoreVcsHandler(
 
 object RestoreVcsHandler {
   def props(
-             timeout: FiniteDuration,
-             vcsManager: ActorRef,
-             rpcSession: JsonSession
-           ): Props =
+    timeout: FiniteDuration,
+    vcsManager: ActorRef,
+    rpcSession: JsonSession
+  ): Props =
     Props(new RestoreVcsHandler(timeout, vcsManager, rpcSession))
 }

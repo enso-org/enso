@@ -525,9 +525,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         text1.get(0) should equal("file contents")
     }
 
-    "reset to a named save" taggedAs Retry in withCleanRoot {
-      client =>
-        client.send(json"""
+    "reset to a named save" taggedAs Retry in withCleanRoot { client =>
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
             "id": 1,
@@ -539,7 +538,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
@@ -550,33 +549,32 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-        val srcDir = testContentRoot.file.toPath.resolve("src")
-        Files.createDirectory(srcDir)
-        val fooPath = srcDir.resolve("Foo.enso")
-        fooPath.toFile.createNewFile()
-        Files.write(
-          fooPath,
-          "file contents".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, fooPath)
-        commit(testContentRoot.file, "Add missing files")
-        val barPath = srcDir.resolve("Bar.enso")
-        barPath.toFile.createNewFile()
-        Files.write(
-          barPath,
-          "file contents b".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, barPath)
-        commit(testContentRoot.file, "Release")
-        Files.write(
-          fooPath,
-          "different contents".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, fooPath)
-        commit(testContentRoot.file, "More changes")
+      val srcDir = testContentRoot.file.toPath.resolve("src")
+      Files.createDirectory(srcDir)
+      val fooPath = srcDir.resolve("Foo.enso")
+      fooPath.toFile.createNewFile()
+      Files.write(
+        fooPath,
+        "file contents".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, fooPath)
+      commit(testContentRoot.file, "Add missing files")
+      val barPath = srcDir.resolve("Bar.enso")
+      barPath.toFile.createNewFile()
+      Files.write(
+        barPath,
+        "file contents b".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, barPath)
+      commit(testContentRoot.file, "Release")
+      Files.write(
+        fooPath,
+        "different contents".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, fooPath)
+      commit(testContentRoot.file, "More changes")
 
-
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
             "id": 2,
@@ -588,7 +586,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
@@ -598,7 +596,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/restore",
             "id": 3,
@@ -611,47 +609,46 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": null
           }
           """)
 
-        val text1 = Files.readAllLines(fooPath)
-        text1.get(0) should equal("file contents")
+      val text1 = Files.readAllLines(fooPath)
+      text1.get(0) should equal("file contents")
     }
   }
 
   "List project saves" must {
-    "return all explicit commits" taggedAs Retry in withCleanRoot {
-      client =>
-        val srcDir = testContentRoot.file.toPath.resolve("src")
-        Files.createDirectory(srcDir)
-        val fooPath = srcDir.resolve("Foo.enso")
-        fooPath.toFile.createNewFile()
-        Files.write(
-          fooPath,
-          "file contents".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, fooPath)
-        commit(testContentRoot.file, "Add missing files")
-        val barPath = srcDir.resolve("Bar.enso")
-        barPath.toFile.createNewFile()
-        Files.write(
-          barPath,
-          "file contents b".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, barPath)
-        commit(testContentRoot.file, "Release")
-        Files.write(
-          fooPath,
-          "different contents".getBytes(StandardCharsets.UTF_8)
-        )
-        add(testContentRoot.file, fooPath)
-        commit(testContentRoot.file, "More changes")
+    "return all explicit commits" taggedAs Retry in withCleanRoot { client =>
+      val srcDir = testContentRoot.file.toPath.resolve("src")
+      Files.createDirectory(srcDir)
+      val fooPath = srcDir.resolve("Foo.enso")
+      fooPath.toFile.createNewFile()
+      Files.write(
+        fooPath,
+        "file contents".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, fooPath)
+      commit(testContentRoot.file, "Add missing files")
+      val barPath = srcDir.resolve("Bar.enso")
+      barPath.toFile.createNewFile()
+      Files.write(
+        barPath,
+        "file contents b".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, barPath)
+      commit(testContentRoot.file, "Release")
+      Files.write(
+        fooPath,
+        "different contents".getBytes(StandardCharsets.UTF_8)
+      )
+      add(testContentRoot.file, fooPath)
+      commit(testContentRoot.file, "More changes")
 
-        client.send(json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/list",
             "id": 1,
@@ -663,7 +660,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
@@ -678,7 +675,6 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           """)
     }
   }
-
 
   def withCleanRoot[T](test: WsTestClient => T): T = {
     FileUtils.deleteQuietly(testContentRoot.file)

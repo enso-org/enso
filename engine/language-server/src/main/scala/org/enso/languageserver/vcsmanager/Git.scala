@@ -9,10 +9,15 @@ import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import org.eclipse.jgit.api.errors.RefNotFoundException
 import org.eclipse.jgit.api.errors.WrongRepositoryStateException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
-import org.eclipse.jgit.lib.{ObjectId, Repository}
+import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
-import org.enso.languageserver.vcsmanager.Git.{DefaultGitRepoDir, MasterRef}
+import org.enso.languageserver.vcsmanager.Git.{
+  AuthoerEmail,
+  AuthorName,
+  DefaultGitRepoDir,
+  MasterRef
+}
 
 import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
@@ -31,19 +36,19 @@ class Git extends VcsApi[BlockingIO] {
       if (repoLocation.toFile.exists()) {
         throw new WrongRepositoryStateException("repository already exists")
       }
-      val initCmd =
-        JGit
-          .init()
-          .setDirectory(rootFile)
-          .setBare(false)
 
-      val jgit = initCmd.call()
+      val jgit = JGit
+        .init()
+        .setDirectory(rootFile)
+        .setBare(false)
+        .call()
+
       jgit
         .commit()
         .setAllowEmpty(true)
         .setAll(true)
         .setMessage("Initial commit")
-        .setAuthor("Enso VCS", "vcs@enso.io")
+        .setAuthor(AuthorName, AuthoerEmail)
         .call()
       ()
     }.mapError(errorHandling)
@@ -63,42 +68,28 @@ class Git extends VcsApi[BlockingIO] {
   ): BlockingIO[VcsFailure, (String, String)] = {
     effectBlocking {
       val repo = repository(root)
-      val jgit = new JGit(repo)
-      val addCmd =
-        jgit
-          .add()
-          .addFilepattern(".")
-
-      addCmd.call()
 
       // Ensure that the name is unique
       val commitName = named match {
         case Some(name) =>
-          val start = repo.resolve(Git.MasterRef)
-          if (start == null) {
-            name
-          } else {
-            val walk = new RevWalk(repo)
-            walk.markStart(walk.parseCommit(start))
-            val found =
-              try {
-                findRevision(walk, name)
-              } finally {
-                walk.dispose()
-              }
-            if (found.isEmpty) name
-            else {
-              throw new RefAlreadyExistsException(name + " already exists")
-            }
-          }
+          val found = findRevision(repo, name)
+          if (found.isEmpty) name
+          else throw new RefAlreadyExistsException(name + " already exists")
         case None =>
           Instant.now().toString
       }
 
+      val jgit = new JGit(repo)
+      // Add all modified and new files to the index
+      jgit
+        .add()
+        .addFilepattern(".")
+        .call()
+
       val revCommit = jgit
         .commit()
         .setMessage(commitName)
-        .setAuthor("Enso VCS", "vcs@enso.io")
+        .setAuthor(AuthorName, AuthoerEmail)
         .call()
       (revCommit.getShortMessage(), revCommit.getName())
     }.mapError(errorHandling)
@@ -112,28 +103,16 @@ class Git extends VcsApi[BlockingIO] {
       val repo = repository(root)
       name match {
         case Some(name) =>
-          val walk = new RevWalk(repo)
-          repoHead(repo) match {
-            case Some(from) =>
-              walk.markStart(walk.parseCommit(from))
-            case None =>
-              throw new RefNotFoundException(name)
-          }
-          val found =
-            try {
-              findRevision(walk, name)
-            } finally {
-              walk.dispose()
-            }
-          if (found.isEmpty) {
-            throw new RefNotFoundException(name)
-          } else {
+          val found = findRevision(repo, name)
+          found.map { rev =>
             val jgit = new JGit(repo)
             jgit
               .reset()
               .setMode(ResetType.HARD)
-              .setRef(found.get.getName())
+              .setRef(rev.getName())
               .call()
+          } getOrElse {
+            throw new RefNotFoundException(name)
           }
         case None =>
           val jgit = new JGit(repo)
@@ -160,24 +139,38 @@ class Git extends VcsApi[BlockingIO] {
     find(iterator.next(), iterator)
   }
 
+  private def findRevision(
+    repo: Repository,
+    name: String
+  ): Option[RevCommit] = {
+    Option(repo.resolve(Git.MasterRef)).flatMap { start =>
+      val walk = new RevWalk(repo)
+      walk.markStart(walk.parseCommit(start))
+      try {
+        findRevision(walk, name)
+      } finally {
+        walk.dispose()
+      }
+    }
+  }
+
   override def status(root: Path): BlockingIO[VcsFailure, RepoStatus] = {
     effectBlocking {
       val repo      = repository(root)
       val jgit      = new JGit(repo)
       val statusCmd = jgit.status()
       val status    = statusCmd.call()
-      val changed = status.getModified().asScala.toList ++ status
-        .getUntracked()
-        .asScala
-        .toList ++ status.getRemoved().asScala.toList
+      val changed =
+        status.getModified().asScala.toList ++
+        status.getUntracked().asScala.toList ++
+        status.getRemoved().asScala.toList
       val changedPaths = changed.map(name => Path.of(name)).toSet
       val logCmd       = jgit.log()
       val last =
-        if (repoHead(repo).isEmpty) null
-        else {
+        Option(repo.resolve(MasterRef)) flatMap (_ => {
           val logs = logCmd.setMaxCount(1).call().iterator()
-          if (logs.hasNext()) logs.next().getShortMessage() else null
-        }
+          if (logs.hasNext()) Option(logs.next().getShortMessage()) else None
+        }) getOrElse null
       RepoStatus(!status.isClean(), changedPaths, last)
     }.mapError(errorHandling)
   }
@@ -188,10 +181,6 @@ class Git extends VcsApi[BlockingIO] {
       val logCmd = jgit.log()
       logCmd.call().asScala.toList.map(_.getShortMessage())
     }.mapError(errorHandling)
-  }
-
-  private def repoHead(repo: Repository): Option[ObjectId] = {
-    Option(repo.resolve(MasterRef))
   }
 
   private val errorHandling: Throwable => VcsFailure = {
@@ -206,4 +195,6 @@ class Git extends VcsApi[BlockingIO] {
 object Git {
   val DefaultGitRepoDir = ".git"
   val MasterRef         = "refs/heads/master"
+  val AuthorName        = "Enso VCS"
+  val AuthoerEmail      = "enso@vcs.io"
 }
