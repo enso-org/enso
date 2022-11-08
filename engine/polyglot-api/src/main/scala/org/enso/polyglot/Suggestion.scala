@@ -201,6 +201,7 @@ object Suggestion {
     * @param name the atom name
     * @param params the list of parameters
     * @param returnType the type of an atom
+    * @param parentType qualified name of the parent type
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this atom
@@ -211,6 +212,7 @@ object Suggestion {
     name: String,
     params: Seq[Argument],
     returnType: String,
+    parentType: Option[String],
     documentation: Option[String],
     documentationHtml: Option[String]               = None,
     documentationSections: Option[List[DocSection]] = None,
@@ -226,6 +228,7 @@ object Suggestion {
       s"name=$name," +
       s"params=${params.map(_.toLogString(shouldMask))}," +
       s"returnType=$returnType" +
+      s"parentType=$parentType" +
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
       s",reexport=$reexport)"

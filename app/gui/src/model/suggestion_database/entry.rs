@@ -950,6 +950,7 @@ mod test {
             name:                   "TextType".to_string(),
             module:                 "TestProject.TestModule".to_string(),
             params:                 vec![],
+            parent_type:            Some("Any".to_string()),
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
