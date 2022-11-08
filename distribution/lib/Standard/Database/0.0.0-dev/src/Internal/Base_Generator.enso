@@ -3,7 +3,7 @@ from Standard.Base import all
 import project.Data.SQL
 import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -169,15 +169,16 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [bin "+", bin "-", bin "*", bin "/", bin "%"]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["^", make_function "POWER"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
+    functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     text = [is_empty, bin "LIKE"]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
-    base_map = Map.from_vector (arith + logic + compare + agg + counts + text + nulls + contains)
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -242,12 +243,12 @@ make_is_in_column arguments = case arguments.length of
    Arguments:
    - dialect: The SQL dialect in which the expression is being generated.
    - expr: The expression to generate SQL code for.
-generate_expression : Internal_Dialect -> Expression | Order_Descriptor | Query -> Builder
+generate_expression : Internal_Dialect -> SQL_Expression | Order_Descriptor | Query -> Builder
 generate_expression dialect expr = case expr of
-    Expression.Column origin name ->
+    SQL_Expression.Column origin name ->
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
-    Expression.Constant sql_type value -> SQL.interpolation sql_type value
-    Expression.Operation kind arguments ->
+    SQL_Expression.Constant sql_type value -> SQL.interpolation sql_type value
+    SQL_Expression.Operation kind arguments ->
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args

@@ -1,0 +1,290 @@
+from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Error
+
+from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+import Standard.Table.Data.Expression.Expression_Error
+
+import Standard.Visualization
+
+from Standard.Test import Test, Test_Suite, Problems
+
+import project.Common_Table_Spec
+from project.Util import all
+
+spec detailed=False =
+    # Create Test Table
+    column_a = ["A", [1, 2, 3, 4, 5]]
+    column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
+    column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
+    column_odd = ["Bad] Name", [True, False, True, False, True]]
+    test_table = Table.new [column_a, column_b, column_c, column_odd]
+
+    epsilon=0.0000000001
+
+    tester expression value =
+        new_table = test_table.set "NEW_COL" expression
+        new_table.column_count . should_equal (test_table.column_count + 1)
+        new_column = new_table.at -1
+        new_column.name . should_equal "NEW_COL"
+        expected = case value of
+            _ : Vector.Vector -> value
+            _ -> Vector.new test_table.row_count _->value
+
+        values = new_column.to_vector
+        values . each_with_index i->v->
+            e = expected.at i
+            match = case e of
+                _ : Number -> e.equals v epsilon
+                _ -> e == v
+            if match.not then values.should_equal expected
+
+    specify_test label action expression_test=tester =
+        case detailed of
+            True ->
+                specify_tester expression value =
+                    Test.specify (label + ": " + expression) <|
+                        expression_test expression value
+                action specify_tester
+            False ->
+                Test.specify label (action expression_test)
+
+    Test.group "Expression Integer literals" <|
+        specify_test "should be able to add an integer column" expression_test->
+            expression_test "1" 1
+            expression_test "-3" -3
+            expression_test "1_000" 1000
+
+    Test.group "Expression Decimal literals" <|
+        specify_test "should be able to add an decimal column" expression_test->
+            expression_test "1.23" 1.23
+            expression_test "-3.1415" -3.1415
+            expression_test "1_000.456" 1000.456
+
+    Test.group "Expression Boolean literals" <|
+        specify_test "should be able to add a boolean column" expression_test->
+            expression_test "True" True
+            expression_test "true" True
+            expression_test "TRUE" True
+            expression_test "tRuE" True
+            expression_test "False" False
+            expression_test "false" False
+            expression_test "FALSE" False
+            expression_test "FaLsE" False
+
+    Test.group "Expression Text literals" <|
+        specify_test "should be able to add a text column" expression_test->
+            expression_test "'Hello World'" 'Hello World'
+            expression_test "'Hello \'World\''" "Hello 'World'"
+            expression_test '"Hello World"' 'Hello World'
+            expression_test '"Hello ""World"""' 'Hello "World"'
+            expression_test '"Hello \\""World"""' 'Hello \\"World"'
+            expression_test "'Alpha\r\n\gBeta'" 'Alpha\r\n\\gBeta'
+
+    Test.group "Expression Text literals" <|
+        specify_test "should be able to get a Column" expression_test->
+            expression_test "[A]" (column_a.at 1)
+            expression_test "[Bad]] Name]" (column_odd.at 1)
+
+    Test.group "Expression Nothing literals" <|
+        specify_test "should be able to add an nothing column" expression_test->
+            expression_test "null" Nothing
+            expression_test "nUlL" Nothing
+            expression_test "Nothing" Nothing
+            expression_test "NOTHING" Nothing
+
+    Test.group "Expression Date and Time literals" <|
+        specify_test "should be able to add a date or time column" expression_test->
+            expression_test "#2020-12-23#" (Date.new 2020 12 23)
+            expression_test "#12:34#" (Time_Of_Day.new 12 34)
+            expression_test "#12:34:56#" (Time_Of_Day.new 12 34 56)
+            expression_test "#12:34:56.789#" (Time_Of_Day.new 12 34 56 789000000)
+            expression_test "#12:34:56.789000123#" (Time_Of_Day.new 12 34 56 789000123)
+            expression_test "#2020-12-23 12:34#" (Date_Time.new 2020 12 23 12 34)
+            expression_test "#2020-12-23 12:34:56#" (Date_Time.new 2020 12 23 12 34 56)
+            expression_test "#2020-12-23 12:34:56Z[UTC]#" (Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc)
+            expression_test "#2020-12-23 12:34:56+02:30[UTC]#" (Date_Time.new 2020 12 23 10 04 56 zone=Time_Zone.utc)
+            expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157000000 zone=Time_Zone.utc)
+            expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
+
+    Test.group "Expression Arithmetic" <|
+        specify_test "should be able to do basic arithmetic" expression_test->
+            expression_test "1+1" 2
+            expression_test "23-15" 8
+            expression_test "2.5*4.2" 10.5
+            expression_test "1_000.456/2" 500.228
+            expression_test "2^4" 16
+            expression_test "11%3" 2
+
+        specify_test "should be able to do basic arithmetic with order" expression_test->
+            expression_test "1+1*2+2" 5
+            expression_test "23-15/3+6" 24
+            expression_test "52.92/4.2^2" 3
+            expression_test "(1+1)*2+2" 6
+
+        specify_test "should be able to do basic arithmetic with whitespace" expression_test->
+            expression_test "1 + 1" 2
+            expression_test "  23 -15  " 8
+            expression_test "2.5*  4.2" 10.5
+            expression_test "1_000.456/   2" 500.228
+            expression_test " 2 ^ 4 " 16
+            expression_test "  11   % 3    " 2
+            expression_test "1+1 * 2" 3
+            expression_test "1 + 1*2" 3
+
+    Test.group "Column Arithmetic" <|
+        specify_test "should be able to perform arithmetic on columns" expression_test->
+            expression_test "[A] + 2" [3, 4, 5, 6, 7]
+            expression_test "[B] - 2" [-1, -0.5, 0.5, 2, 4]
+            expression_test "[A] * 4" [4, 8, 12, 16, 20]
+            expression_test "[B] / 2" [0.5, 0.75, 1.25, 2, 3]
+            expression_test "[A] + [B]" [2, 3.5, 5.5, 8, 11]
+            expression_test "[A] - [B]" [0, 0.5, 0.5, 0, -1]
+            expression_test "[A] * [B]" [1, 3, 7.5, 16, 30]
+            expression_test "[B] / [A]" [1, 0.75, 0.8333333333333334, 1, 1.2]
+            expression_test "[A] ^ [B]" [1, 2.8284271247461903, 15.588457268119896, 256, 15625]
+            expression_test "[A] % [B]" [0, 0.5, 0.5, 0, 5]
+            expression_test "[A] + [B] + [A]" [3, 5.5, 8.5, 12, 16]
+            expression_test "[A] - [B] - [A]" [-1, -1.5, -2.5, -4, -6]
+            expression_test "[A] * [B] * [A]" [1, 6, 22.5, 64, 150]
+            expression_test "[A] / [B] / [A]" [1.0, 0.6666666666666667, 0.39999999999999999, 0.25, 0.16666666666666667]
+            expression_test "[A] ^ [B] * [A]" [1, 5.65685424949238, 46.7653718043597, 1024, 78125]
+            expression_test "[A] % [B] % [A]" [0, 0.5, 0.5, 0, 0]
+
+        specify_test "should be able to perform arithmetic on columns with order" expression_test->
+            expression_test "([A] + [B]) * 3" [6, 10.5, 16.5, 24, 33]
+            expression_test "[A] * (4 + [B])" [5, 11, 19.5, 32, 50]
+            expression_test "[A] * [B] + [A]" [2, 5, 10.5, 20, 35]
+            expression_test "[A] + [B] * [B]" [2, 4.25, 9.25, 20, 41]
+            expression_test "([A] + [B]) / [A]" [2, 1.75, 1.83333333333333, 2, 2.2]
+            expression_test "[A] / [B] + 2" [3, 3.33333333333333, 3.2, 3, 2.83333333333333]
+            expression_test "([A] + [B]) % 4" [2, 3.5, 1.5, 0, 3]
+            expression_test "[A] % [B] + 2" [2, 2.5, 2.5, 2, 7]
+            expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
+            expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
+
+    Test.group "Comparison Operators" <|
+        specify_test "should be able to compare equality" expression_test->
+            expression_test "2 = 1 + 1" True
+            expression_test "2 == 1 + 1" True
+            expression_test "[A] = 2" [False, True, False, False, False]
+            expression_test "[A] == 2" [False, True, False, False, False]
+            expression_test "3 != 1 + 1" True
+            expression_test "3 <> 1 + 1" True
+            expression_test "[A] != 2" [True, False, True, True, True]
+            expression_test "[A] <> 2" [True, False, True, True, True]
+
+        specify_test "should be able to compare ordering" expression_test->
+            expression_test "1 > 2" False
+            expression_test "1 < 2" True
+            expression_test "[A] > 2" [False, False, True, True, True]
+            expression_test "[A] >= 2" [False, True, True, True, True]
+            expression_test "[A] < 2" [True, False, False, False, False]
+            expression_test "[A] <= 2" [True, True, False, False, False]
+
+        specify_test "should be able to use between" expression_test->
+            expression_test "1 + 1 BETWEEN 1 AND 3" True
+            expression_test "1 + 1 between 2 AND 3" True
+            expression_test "1 + 1 bETWEEN 1 AND 2" True
+            expression_test "[A] between 2 AND 3" [False, True, True, False, False]
+            expression_test "1 + 1 NOT BETWEEN 1 AND 3" False
+            expression_test "[A] not between 2 AND 3" [True, False, False, True, True]
+
+        specify_test "should be able to use in" expression_test->
+            expression_test "1 + 1 IN (2, 4, 6)" True
+            expression_test "[A] IN (2, 4, 6)" [False, True, False, True, False]
+            expression_test "1 + 1 NOT IN (2, 4, 6)" False
+            expression_test "[A] NOT IN (2, 4, 6)" [True, False, True, False, True]
+            expression_test "[A] IN (3)" [False, False, True, False, False]
+            expression_test "[A] NOT IN (3)" [True, True, False, True, True]
+
+        specify_test "should be able to check null" expression_test->
+            expression_test "1 IS NULL" False
+            expression_test "1 IS NoTHing" False
+            expression_test "Nothing IS NULL" True
+            expression_test "1 IS NOT NULL" True
+            expression_test "Nothing IS NOT NULL" False
+            expression_test "[A] IS NULL" [False, False, False, False, False]
+            expression_test "[C] IS NULL" [False, False, False, False, True]
+            expression_test "[A] IS NOT NULL" [True, True, True, True, True]
+            expression_test "[C] IS NOT NULL" [True, True, True, True, False]
+
+        specify_test "should be able to check empty" expression_test->
+            expression_test "'Hello World' IS EMPTY" False
+            expression_test "'' IS EMPTY" True
+            expression_test "Nothing IS EMPTY" True
+            expression_test "'Hello World' IS NOT EMPTY" True
+            expression_test "'' IS NOT EMPTY" False
+            expression_test "Nothing IS NOT EMPTY" False
+
+    Test.group "Text Operators" <|
+        specify_test "should be able to concatenate text" expression_test->
+            expression_test "'Hello ' + 'World'" "Hello World"
+            expression_test "[C] + ' World'" ["Hello World", "World World", "Hello World! World", " World", Nothing]
+            expression_test "'Hello ' + [C]" ["Hello Hello", "Hello World", "Hello Hello World!", "Hello ", Nothing]
+            expression_test "[C] + [C]" ["HelloHello", "WorldWorld", "Hello World!Hello World!", "", Nothing]
+
+        specify_test "should be able to use like" expression_test->
+            expression_test "'Hello World' LIKE 'Hello%'" True
+            expression_test "'Hello' LIKE 'H_llo'" True
+            expression_test "'Hello' LIKE 'H_l%'" True
+            expression_test "'Hello' LIKE 'H___o'" True
+            expression_test "'World' LIKE 'H___o'" False
+            expression_test "'Hello World' NOT LIKE 'Hello%'" False
+            expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
+            expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
+
+    Test.group "Boolean Operators" <|
+        specify_test "should be able to AND booleans" expression_test->
+            expression_test "True && TRUE" True
+            expression_test "True AND False" False
+            expression_test "True && [Bad]] Name]" [True, False, True, False, True]
+            expression_test "False AND [Bad]] Name]" False
+
+        specify_test "should be able to OR booleans" expression_test->
+            expression_test "True || TRUE" True
+            expression_test "True OR False" True
+            expression_test "False OR False" False
+            expression_test "True OR [Bad]] Name]" True
+            expression_test "False || [Bad]] Name]" [True, False, True, False, True]
+
+        specify_test "should be able to NOT booleans" expression_test->
+            expression_test "!TRUE" False
+            expression_test "Not False" True
+            expression_test "NOT [Bad]] Name]" [False, True, False, True, False]
+
+        specify_test "should be able to use IF" expression_test->
+            expression_test "IF True THEN 1 ELSE 0" 1
+            expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
+            expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
+
+    Test.group "Function invocation" <|
+        specify_test "should be able to call a function with arguments" expression_test->
+            expression_test "Not(True)" False
+            expression_test "not(False)" True
+            expression_test "iif(True, 1, 3)" 1
+            expression_test "iif([Bad]] Name], 2, 3)" [2, 3, 2, 3, 2]
+
+        specify_test "should be able to call a variable args function" expression_test->
+            expression_test "min(10, 3, 8)" 3
+            expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
+
+    Test.group "Errors should be handled" <|
+        error_tester expression fail_type =
+            test_table.set "NEW_COL" expression on_problems=Problem_Behavior.Report_Error . should_fail_with fail_type
+            test_table.set "NEW_COL" expression . column_count . should_equal test_table.column_count
+
+        specify_test "should fail with Syntax_Error if badly formed" expression_test=error_tester expression_test->
+            expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
+            expression_test "A + B" Expression_Error.Syntax_Error
+            expression_test "#2022-31-21#" Expression_Error.Syntax_Error
+
+        specify_test "should fail with Unsupported_Operation if not sufficient arguments" expression_test=error_tester expression_test->
+            expression_test "unknown([C])" Expression_Error.Unsupported_Operation
+
+        specify_test "should fail with Argument_Mismatch if not sufficient arguments" expression_test=error_tester expression_test->
+            expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
+
+        specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
+            expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
+
+main = Test_Suite.run_main (spec True)

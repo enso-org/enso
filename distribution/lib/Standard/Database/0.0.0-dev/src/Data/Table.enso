@@ -2,6 +2,8 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+import Standard.Table.Data.Expression.Expression
+import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -18,7 +20,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
@@ -27,6 +29,7 @@ import project.Internal.IR.Query.Query
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 polyglot java import java.sql.JDBCType
+polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
@@ -396,13 +399,20 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                _ : Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
+       _ : Text ->
+           table_at = self.at column
+           if table_at.is_error.not then self.filter table_at filter on_problems else
+               expression = self.evaluate column
+               if expression.is_error.not then self.filter expression filter on_problems else
+                   pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
+                   on_problems.handle_errors pick_error fallback=self
        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
 
     ## PRIVATE
     with_no_rows self =
-        false_expression = Expression.Operation "=" [Expression.Constant SQL_Type.integer 1, Expression.Constant SQL_Type.integer 2]
+        false_expression = SQL_Expression.Operation "=" [SQL_Expression.Constant SQL_Type.integer 1, SQL_Expression.Constant SQL_Type.integer 2]
         new_filters = self.context.where_filters + [false_expression]
         new_ctx = self.context.set_where_filters new_filters
         self.updated_context new_ctx
@@ -477,21 +487,35 @@ type Table
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
-    set : Text -> Column -> Table
-    set self name column = case Helpers.ensure_name_is_sane name of
-        True ->
-            is_used_in_index = self.context.meta_index.exists i-> i.name == name
-            case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
-                False ->
-                    new_col = Internal_Column.Value name column.sql_type column.expression
-                    replace = self.internal_columns.exists (c -> c.name == name)
-                    case replace of
-                        True ->
-                            new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
-                            self.updated_columns new_cols
-                        False ->
-                            self.updated_columns (self.internal_columns + [new_col])
+    set : Text -> Column | Text -> Problem_Behavior -> Table
+    set self name column on_problems=Report_Warning = on_problems.handle_errors fallback=self <|
+        case Helpers.ensure_name_is_sane name of
+            True ->
+                is_used_in_index = self.context.meta_index.exists i-> i.name == name
+                case is_used_in_index of
+                    True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                    False ->
+                        resolved = case column of
+                            _ : Text -> self.evaluate column
+                            _ -> column
+                        new_col = Internal_Column.Value name resolved.sql_type resolved.expression
+                        replace = self.internal_columns.exists (c -> c.name == name)
+                        case replace of
+                            True ->
+                                new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
+                                self.updated_columns new_cols
+                            False ->
+                                self.updated_columns (self.internal_columns + [new_col])
+
+    ## PRIVATE
+    evaluate : Text -> Column
+    evaluate self expression =
+        get_column name = self.at name
+        make_constant value =
+            new_type = SQL_Type.approximate_type value
+            other = SQL_Expression.Constant new_type value
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
+        Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
 
     ## UNSTABLE
 
@@ -732,7 +756,7 @@ type Table
             new_columns = left_renamed_columns + right_renamed_columns
 
             on_exprs = left_new_join_index.zip right_new_join_index l-> r->
-                Expression.Operation "=" [l.expression, r.expression]
+                SQL_Expression.Operation "=" [l.expression, r.expression]
             new_from = From_Spec.Join kind left_subquery right_subquery on_exprs
             new_limit = Nothing
             new_ctx = Context.Value new_from [] [] [] new_index new_limit
@@ -814,7 +838,7 @@ type Table
     ## Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
-        expr = Expression.Operation "COUNT_ROWS" []
+        expr = SQL_Expression.Operation "COUNT_ROWS" []
         column_name = "row_count"
         ## We need to keep some column in the subquery which will determine if
            the query is performing regular selection or aggregation. To avoid
@@ -889,7 +913,7 @@ type Table
             setup = self.context.as_subquery self.name [self.internal_columns]
             new_ctx = Context.for_subquery setup.first
             new_columns = setup.second.first.map column->
-                [column.name, Expression.Operation "COUNT" [column.expression]]
+                [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
             query = Query.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
@@ -971,7 +995,7 @@ type Table
             _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
-            [col.name, Expression.Constant col.sql_type value]
+            [col.name, SQL_Expression.Constant col.sql_type value]
         query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
@@ -1071,7 +1095,7 @@ type Integrity_Error
 # make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
-    cols = columns.map (p -> Internal_Column.Value p.first p.second (Expression.Column table_name p.first))
+    cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
     Table.Value table_name connection cols ctx
 
 ## PRIVATE

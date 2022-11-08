@@ -1872,17 +1872,26 @@ lazy val `std-base` = project
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
+  .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
+    Antlr4 / antlr4PackageName := Some("org.enso.table.expressions"),
+    Antlr4 / antlr4Version := "4.10.1",
+    Antlr4 / antlr4GenVisitor := true,
+    Antlr4 / antlr4TreatWarningsAsErrors := true,
+    Compile / managedSourceDirectories += {
+      (Antlr4 / sourceManaged).value / "main" / "antlr4"
+    },
     libraryDependencies ++= Seq(
       "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % "2.9.1",
       "org.apache.poi"      % "poi-ooxml"               % "5.2.2",
-      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0"
+      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0",
+      "org.antlr"           % "antlr4-runtime"          % "4.10.1"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
