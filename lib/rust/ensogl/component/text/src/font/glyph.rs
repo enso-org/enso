@@ -32,6 +32,7 @@ use font::Style;
 use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
+use std::sync::LazyLock;
 
 
 
@@ -58,21 +59,23 @@ impl Default for Hinting {
     }
 }
 
-lazy_static! {
-    /// A global hinting map for fonts. Map a platform and a font nam pair to hinting information.
-    /// See [`Hinting`] to learn  more.
-    pub static ref HINTING_MAP: HashMap<(Option<platform::Platform>, &'static str), Hinting> =
-        HashMap::from([((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
-            opacity_increase: 0.4,
-            opacity_exponent: 4.0,
-        }), ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
-            opacity_increase: 0.3,
-            opacity_exponent: 3.0,
-        }), ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
-            opacity_increase: 0.3,
-            opacity_exponent: 3.0,
-        })]);
-}
+static HINTING_MAP: LazyLock<HashMap<(Option<platform::Platform>, &'static str), Hinting>> =
+    LazyLock::new(|| {
+        HashMap::from([
+            ((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
+                opacity_increase: 0.4,
+                opacity_exponent: 4.0,
+            }),
+            ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
+                opacity_increase: 0.3,
+                opacity_exponent: 3.0,
+            }),
+            ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
+                opacity_increase: 0.3,
+                opacity_exponent: 3.0,
+            }),
+        ])
+    });
 
 
 
