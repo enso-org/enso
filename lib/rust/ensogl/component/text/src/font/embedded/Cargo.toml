@@ -18,5 +18,5 @@ enso-build = { path = "../../../../../../../../build/build" }
 enso-build-utilities = { path = "../../../../../../../../build/deprecated/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }
 tokio = { workspace = true }
-zip = { version = "0.5" }
+zip = { version = "0.6.2", default-features = false, features = [ "deflate" ] }
 owned_ttf_parser = "0.15.1"

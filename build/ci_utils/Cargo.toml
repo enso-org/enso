@@ -83,7 +83,7 @@ uuid = { version = "1.1.0", features = ["v4", "serde"] }
 walkdir = "2.3.2"
 which = "4.2.2"
 whoami = "1.2.1"
-zip = "0.6.2"
+zip = { version = "0.6.2", default-features = false, features = [ "deflate" ] }
 
 [dev-dependencies]
 warp = "0.3.2"

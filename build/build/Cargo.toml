@@ -80,7 +80,7 @@ uuid = { version = "1.1.0", features = ["v4"] }
 walkdir = "2.3.2"
 which = "4.2.2"
 whoami = "1.2.1"
-zip = "0.6.2"
+zip = { version = "0.6.2", default-features = false, features = [ "deflate" ] }
 
 [build-dependencies]
 ide-ci = { path = "../ci_utils" }
