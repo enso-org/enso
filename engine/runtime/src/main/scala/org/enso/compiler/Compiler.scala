@@ -449,9 +449,11 @@ class Compiler(
       val tree = ensoCompiler.parse(src)
       ensoCompiler.generateIR(tree)
     }
-    val size = src.getCharacters().length()
-    // change the condition to use old or new parser
-    val expr = if (size < 0) oldParser() else newParser()
+    val expr = if ("scala".equals(System.getenv("ENSO_PARSER"))) {
+      oldParser()
+    } else {
+      newParser()
+    }
 
     val exprWithModuleExports =
       if (module.isSynthetic)
