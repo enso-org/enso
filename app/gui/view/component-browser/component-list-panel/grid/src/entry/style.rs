@@ -22,24 +22,27 @@ use grid_theme::entry as entry_theme;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
     /// The final color is "main" color of the component group with the specified alpha value.
-    ComponentGroup { alpha: f32 },
+    #[allow(missing_docs)]
+    ComponentGroup { alpha_multiplier: f32 },
     /// The final color is defined as an arbitrary color in the stylesheet.
     Arbitrary(color::Lcha),
 }
 
 impl Default for Color {
     fn default() -> Self {
-        Self::ComponentGroup { alpha: 1.0 }
+        Self::ComponentGroup { alpha_multiplier: 1.0 }
     }
 }
 
 impl Color {
-    /// Get the final color by either taking the value from [`Self::Arbitrary`] or applying
+    /// Get the final color by either taking the value from [`Self::Arbitrary`] or by applying the
     /// specified transparency from [`Self::MainColorWithAlpha`] to [`main`] color.
     fn resolve(&self, main: &color::Lcha) -> color::Lcha {
         match self {
-            Self::ComponentGroup { alpha } =>
-                color::Lcha::new(main.lightness, main.chroma, main.hue, *alpha),
+            Self::ComponentGroup { alpha_multiplier } => {
+                let alpha = main.alpha * alpha_multiplier;
+                color::Lcha::new(main.lightness, main.chroma, main.hue, alpha)
+            }
             Self::Arbitrary(color) => *color,
         }
     }
@@ -63,14 +66,14 @@ impl Color {
                     let color = color::Lcha::from(color);
                     Color::Arbitrary(color)
                 }).unwrap_or_else(|| {
-                    let alpha = match data.number() {
+                    let alpha_multiplier = match data.number() {
                         Some(number) => number,
                         None => {
                             error!("Neither color nor alpha defined ({path}).");
                             0.0
                         }
                     };
-                    Color::ComponentGroup { alpha }
+                    Color::ComponentGroup { alpha_multiplier }
                 })
             });
             sampler <- color.sampler();
@@ -108,7 +111,8 @@ pub struct Colors {
     /// The "main color" of the dimmed component groups. For dimmed component groups,
     /// [`ResolvedColors`] would use this value instead of "main" color of the component group.
     #[theme_path = "entry_theme::dimmed"]
-    pub dimmed:               color::Rgba,
+    #[accessor = "Color::accessor"]
+    pub dimmed:               Color,
 }
 
 /// The colors of various parts of selected the Component Entry view. A subset of
@@ -130,7 +134,8 @@ pub struct SelectionColors {
     /// changes while the selection shape is animated and moves through different component
     /// groups.
     #[theme_path = "entry_theme::dimmed"]
-    pub dimmed:               color::Rgba,
+    #[accessor = "Color::accessor"]
+    pub dimmed:               Color,
 }
 
 impl From<SelectionColors> for Colors {
@@ -211,8 +216,10 @@ impl ResolvedColors {
             bg_intensity <- colors.map(|c| c.background_intensity);
             bg <- all_with(&bg, &init, |col, ()| color::Lcha::from(col));
             bg_and_main <- all(&bg, &color_anim.value);
-            dimmed <- colors.map(|c| color::Lcha::from(c.dimmed));
             let is_dimmed = is_dimmed.clone_ref();
+            dimmed <- all_with3(&init, main_color, &colors,
+                |_, main, colors| colors.dimmed.resolve(main)
+            );
             color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
 
             // Component list panel does not support semi-transparent background. Instead, we mix

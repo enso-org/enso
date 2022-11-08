@@ -31,7 +31,7 @@ define_icons! {
     /// A five-pointed star.
     pub mod star(Star) {
         ensogl_core::shape! {
-            above = [grid_view::selectable::highlight::shape];
+            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
                 let vivid_color: Var<color::Rgba> = color.into();
@@ -45,7 +45,7 @@ define_icons! {
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
         ensogl_core::shape! {
-           above = [grid_view::selectable::highlight::shape];
+           above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
                 let vivid_color: Var<color::Rgba> = color.into();
@@ -62,7 +62,7 @@ define_icons! {
     /// Sub-modules section button. Three rectangles placed behind each other with perspective.
     pub mod sub_modules(SubModules) {
         ensogl_core::shape! {
-           above = [grid_view::selectable::highlight::shape];
+           above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
                 let vivid_color: Var<color::Rgba> = color.into();
@@ -84,7 +84,7 @@ define_icons! {
     /// Four rounded rectangles in different colors aranged in a grid.
     pub mod libraries(Libraries) {
         ensogl_core::shape! {
-           above = [grid_view::selectable::highlight::shape];
+           above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
                 use special_icons::libraries as theme;
@@ -124,7 +124,7 @@ define_icons! {
     /// A plus and three rounded rectangles in different colors aranged in a grid.
     pub mod marketplace(Marketplace) {
         ensogl_core::shape! {
-           above = [grid_view::selectable::highlight::shape];
+           above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
                 use special_icons::marketplace as theme;

@@ -200,8 +200,8 @@ define_themes! { [light:0, dark:1]
                     // and floating-point numbers. This is possible due to a custom stylesheet
                     // accessor defined for
                     // [`ide_view_component_list_panel_grid::entry::style::Color`] type.
-                    // Floating-point numbers mean the mixing coefficient between the application
-                    // background and the "main" component group color.
+                    // Floating-point numbers mean the alpha multiplier for the "main" color of the
+                    // component group.
                     entry {
                         background.intensity = 0.08, 0.08;
                         dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);

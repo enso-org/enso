@@ -16,28 +16,6 @@ use ide_view_component_list_panel_icons::SIZE;
 
 
 
-// ==============
-// === Colors ===
-// ==============
-
-/// Colors of the entry.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Colors {
-    /// The more contrasting parts of the [icon](crate::icon::Any).
-    pub strong: color::Lcha,
-    /// The less contrasting parts of the [icon](crate::icon::Any).
-    pub weak:   color::Lcha,
-}
-
-impl Colors {
-    /// For monochrome icons, the weak color is the same as the strong color.
-    pub fn monochrome<C: Into<color::Lcha>>(color: C) -> Self {
-        let color = color.into();
-        Self { strong: color, weak: color }
-    }
-}
-
-
 // =============
 // === Model ===
 // =============
@@ -46,9 +24,9 @@ impl Colors {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Model {
     icon_id:  icon::Id,
-    /// Colors of the icon when the entry is selected.
+    /// Color of the icon when the entry is selected.
     active:   color::Lcha,
-    /// Colors of the icon when the entry is not selected.
+    /// Color of the icon when the entry is not selected.
     inactive: color::Lcha,
 }
 

@@ -484,14 +484,14 @@ impl grid_view::Entry for View {
             data.label.set_view_width <+ max_text_width.some();
             content_changed <- data.label.content.constant(());
             style_changed <- style.constant(());
-            set_model <- all3(&input.set_model, &content_changed, &style_changed);
-            highlight_range <= set_model.map(|(m, (), ())| m.highlighted.deref().clone());
-            highlight_header <- set_model.filter(|(m, (), ())| m.kind == Kind::Header);
-            data.label.set_property <+ highlight_header.map2(&style, |_, s| {
-                ((..).into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
-            });
+            label_updated <- all3(&input.set_model, &content_changed, &style_changed);
+            highlight_range <= label_updated.map(|(m, (), ())| m.highlighted.deref().clone());
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
+            });
+            is_header <- label_updated.filter(|(m, (), ())| m.kind == Kind::Header);
+            data.label.set_property <+ is_header.map2(&style, |_, s| {
+                ((..).into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));
