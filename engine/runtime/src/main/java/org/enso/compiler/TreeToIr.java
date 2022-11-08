@@ -713,11 +713,10 @@ final class TreeToIr {
           List<IR.CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
-            if (expr == null) {
-              continue;
+            if (expr instanceof Tree.Ident) {
+                var call = translateCallArgument(expr);
+                args = cons(call, args);
             }
-            var call = translateCallArgument(expr);
-            args = cons(call, args);
           }
           yield switch (fn) {
             case IR$Application$Prefix pref -> patchPrefixWithBlock(pref, block, args);

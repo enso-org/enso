@@ -1113,6 +1113,21 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAtomBenchmarks3() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.List import all
+
+    List.List.mapReverse self f acc = case self of
+        Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+        _ -> acc
+
+    main = list ->
+        res = list.mapReverse (x -> x + 1) Nil
+        res
+    """, true, true, false);
+  }
+
+  @Test
   @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
