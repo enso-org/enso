@@ -71,6 +71,8 @@
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 - [Added support for scrolling by pressing and holding a mouse button on a
   scrollbar.][3824]
+- [Added scroll bounce animation][3836] which activates when scrolling past the
+  end of scrollable content.
 
 #### EnsoGL (rendering engine)
 
@@ -231,6 +233,8 @@
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
 - [Implemented `Period` type][3818]
+- [Implemented new functions on Column and added expression syntax support to
+  create derived Columns.][3782]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -369,6 +373,8 @@
 [3818]: https://github.com/enso-org/enso/pull/3818
 [3776]: https://github.com/enso-org/enso/pull/3776
 [3855]: https://github.com/enso-org/enso/pull/3855
+[3836]: https://github.com/enso-org/enso/pull/3836
+[3782]: https://github.com/enso-org/enso/pull/3782
 
 #### Enso Compiler
 

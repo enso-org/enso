@@ -7,7 +7,7 @@ import project.Data.SQL_Type.SQL_Type
    The internal representation of an SQL expression which can be a column
    reference, an interpolated constant or an operation that combines other
    expressions.
-type Expression
+type SQL_Expression
     ## PRIVATE
 
        The internal representation of an SQL expression that gets a value from a
@@ -43,4 +43,4 @@ type Expression
          dialect.
        - expressions: a list of expressions which are arguments to the operation
          different operations support different amounts of arguments.
-    Operation (kind : Text) (expressions : Vector Expression)
+    Operation (kind : Text) (expressions : Vector SQL_Expression)

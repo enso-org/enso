@@ -46,6 +46,7 @@ object SuggestionRandom {
       name              = nextString(),
       params            = Seq(),
       returnType        = nextString(),
+      parentType        = optional(nextString()),
       documentation     = optional(nextString()),
       documentationHtml = optional(nextString())
     )

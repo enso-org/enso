@@ -130,7 +130,7 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |    foo x + foo y
           |""".stripMargin
-      instrumenter.assertNodeExists(121, 109, classOf[CaseNode])
+      instrumenter.assertNodeExists(121, 0, 109, 1, classOf[CaseNode])
       instrumenter.assertNodeExists(167, 7, classOf[ApplicationNode])
       instrumenter.assertNodeExists(187, 9, classOf[AssignmentNode])
       instrumenter.assertNodeExists(224, 5, classOf[ApplicationNode])
@@ -190,7 +190,7 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for negated literals" in
     withLocationsInstrumenter { instrumenter =>
       val code = "main = (-1)"
-      instrumenter.assertNodeExists(8, 2, classOf[LiteralNode])
+      instrumenter.assertNodeExists(7, 1, 4, 2, classOf[LiteralNode])
       eval(code)
     }
 
@@ -202,7 +202,7 @@ class CodeLocationsTest extends InterpreterTest {
           |    f = 1
           |    -f
           |""".stripMargin
-      instrumenter.assertNodeExists(22, 2, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(22, 1, 2, 1, classOf[ApplicationNode])
       eval(code)
     }
 
@@ -223,7 +223,10 @@ class CodeLocationsTest extends InterpreterTest {
       ) shouldEqual 1
       method.value.invokeMember(
         MethodNames.Function.GET_SOURCE_LENGTH
-      ) shouldEqual 24
+      ) should (
+        equal(24) or
+        equal(25)
+      )
 
       instrumenter.assertNodeExists(16, 9, classOf[ApplicationNode])
 
@@ -233,14 +236,13 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in sugared function definitions" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
-          |main =
-          |    f a b = a - b
-          |    f 10 20
-          |""".stripMargin
+        """|main =
+           |    f a b = a - b
+           |    f 10 20
+           |""".stripMargin
 
-      instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(20, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(11, 1, 13, 0, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(19, 1, 5, 0, classOf[ApplicationNode])
       eval(code)
     }
 

@@ -5,8 +5,10 @@ from Standard.Test import Test_Suite
 import project.In_Memory_Tests
 import project.Database.Main as Database_Tests
 import project.Data_Formatter_Spec
+import project.Expression_Spec
 
 main = Test_Suite.run_main <|
     In_Memory_Tests.in_memory_spec
-    Database_Tests.databases_spec
     Data_Formatter_Spec.spec
+    Expression_Spec.spec
+    Database_Tests.databases_spec
