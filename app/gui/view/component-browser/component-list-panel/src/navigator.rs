@@ -186,8 +186,9 @@ impl Navigator {
             select_section <- any(...);
             user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
             bottom_buttons.select_entry <+ user_selected_section;
-            chosen_section <-
-                all_with(&bottom_buttons.entry_selected, &user_selected_section, |e, u| (*e, *u)).filter(|(e, u)| *e != *u).map(|(loc, _)| loc.as_ref().map(loc_to_section_id));
+            selected_button_and_section <- all(&bottom_buttons.entry_selected, &user_selected_section);
+            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u);
+            chosen_section <- different_section_chosen._1().map(|loc| loc.as_ref().map(loc_to_section_id));
 
             model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
                 ((row, col), colors) {

@@ -108,7 +108,7 @@ pub struct Colors {
     #[theme_path = "entry_theme::icon::color"]
     #[accessor = "Color::accessor"]
     pub icon:                 Color,
-    /// The "main color" of the dimmed component groups. For dimmed component groups,
+    /// The "main color" of dimmed component groups. For dimmed component groups,
     /// [`ResolvedColors`] would use this value instead of "main" color of the component group.
     #[theme_path = "entry_theme::dimmed"]
     #[accessor = "Color::accessor"]
@@ -129,7 +129,7 @@ pub struct SelectionColors {
     #[theme_path = "selection_theme::icon::color"]
     #[accessor = "Color::accessor"]
     pub icon:                 Color,
-    /// The main color of the dimmed component groups. Selection is never displayed in a dimmed
+    /// The main color of dimmed component groups. Selection is never displayed in a dimmed
     /// component group. Still, we need to duplicate this parameter to avoid sudden color
     /// changes while the selection shape is animated and moves through different component
     /// groups.
@@ -182,7 +182,7 @@ pub struct Style {
 
 /// Colors used in the Component Group Entries.
 ///
-/// This structure can be created from single "main color" input. Each of these colors can be
+/// This structure can be created from a single "main color" input. Each of these colors can be
 /// computed by modifying the transparency of the "main color". See [`Color`] for more information.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
