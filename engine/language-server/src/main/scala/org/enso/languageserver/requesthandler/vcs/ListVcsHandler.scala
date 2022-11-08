@@ -1,12 +1,12 @@
 package org.enso.languageserver.requesthandler.vcs
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.vcsmanager.VcsManagerApi.{ListVcs}
+import org.enso.languageserver.vcsmanager.VcsManagerApi.ListVcs
 import org.enso.languageserver.vcsmanager.{VcsFailureMapper, VcsProtocol}
 
 import scala.concurrent.duration.FiniteDuration
@@ -59,4 +59,13 @@ class ListVcsHandler(
       cancellable.cancel()
       context.stop(self)
   }
+}
+
+object ListVcsHandler {
+  def props(
+             timeout: FiniteDuration,
+             vcsManager: ActorRef,
+             rpcSession: JsonSession
+           ): Props =
+    Props(new ListVcsHandler(timeout, vcsManager, rpcSession))
 }

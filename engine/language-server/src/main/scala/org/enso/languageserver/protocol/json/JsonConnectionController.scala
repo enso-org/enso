@@ -471,6 +471,10 @@ class JsonConnectionController(
         .props(requestTimeout, bufferRegistry, rpcSession),
       StatusVcs -> vcs.StatusVcsHandler
         .props(requestTimeout, vcsManager, rpcSession),
+      RestoreVcs -> vcs.RestoreVcsHandler
+        .props(requestTimeout, vcsManager, rpcSession),
+      ListVcs -> vcs.ListVcsHandler
+        .props(requestTimeout, vcsManager, rpcSession),
       ExecutionContextCreate -> executioncontext.CreateHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextDestroy -> executioncontext.DestroyHandler

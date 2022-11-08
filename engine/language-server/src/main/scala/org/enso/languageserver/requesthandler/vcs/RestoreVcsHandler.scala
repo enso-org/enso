@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.vcs
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -61,4 +61,13 @@ class RestoreVcsHandler(
       cancellable.cancel()
       context.stop(self)
   }
+}
+
+object RestoreVcsHandler {
+  def props(
+             timeout: FiniteDuration,
+             vcsManager: ActorRef,
+             rpcSession: JsonSession
+           ): Props =
+    Props(new RestoreVcsHandler(timeout, vcsManager, rpcSession))
 }

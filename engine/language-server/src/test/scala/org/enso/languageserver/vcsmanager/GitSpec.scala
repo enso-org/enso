@@ -173,6 +173,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
     "reset to last saved state" in new TestCtx with InitialRepoSetup {
       val fooFile = repoPath.resolve("Foo.enso")
+      val barFile = repoPath.resolve("Bar.enso")
       createStubFile(fooFile) should equal(true)
       Files.write(
         fooFile,
@@ -185,6 +186,12 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         fooFile,
         "different contents".getBytes(StandardCharsets.UTF_8)
       )
+      Files.write(
+        barFile,
+        "bar contents".getBytes(StandardCharsets.UTF_8)
+      )
+
+      barFile.toFile should exist
 
       val text1 = Files.readAllLines(fooFile)
       text1.get(0) should equal("different contents")
@@ -194,6 +201,8 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
       val text2 = Files.readAllLines(fooFile)
       text2.get(0) should equal("file contents")
+
+      barFile.toFile should exist // TODO: verify this is the expected logic
     }
 
     "reset to a named saved state" in new TestCtx with InitialRepoSetup {
