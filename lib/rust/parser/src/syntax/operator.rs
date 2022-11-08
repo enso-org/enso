@@ -90,20 +90,6 @@ impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
     }
 }
 
-/// Annotate expressions that should use spacing, because otherwise they are misleading. For
-/// example, `if cond then.x else.y` is parsed as `if cond then .x else .y`, which after expansion
-/// translates to `if cond then (\t -> t.x) else (\t -> t.y)`. However, for some macros spacing is
-/// not needed. For example, `(.x)` is parsed as `(\t -> t.x)`, which is understandable.
-fn annotate_tokens_that_need_spacing(item: syntax::Item) -> syntax::Item {
-    use syntax::tree::Variant::*;
-    item.map_tree(|ast| match &*ast.variant {
-        MultiSegmentApp(data)
-            if !matches!(data.segments.first().header.variant, token::Variant::OpenSymbol(_)) =>
-            ast.with_error("This expression cannot be used in a non-spaced equation."),
-        _ => ast,
-    })
-}
-
 /// Take [`Item`] stream, resolve operator precedence and return the final AST.
 ///
 /// The precedence resolution algorithm is based on the Shunting yard algorithm[1], extended to
