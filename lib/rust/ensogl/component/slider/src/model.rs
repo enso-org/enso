@@ -43,9 +43,7 @@ impl Model {
         root.add_child(&label);
         root.add_child(&value);
 
-        value.remove_from_scene_layer(&scene.layers.main);
         value.add_to_scene_layer(&scene.layers.label);
-        label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
