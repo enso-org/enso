@@ -190,11 +190,12 @@ fn init(app: Application) {
 
     let area = Rc::new(RefCell::new(Some(area)));
 
+    /// Initialization of HTML div displaying the same text. It allows for switching between
+    /// WebGL and HTML versions to compare them.
     let style = web::document.create_element_or_panic("style");
     let css = web::document.create_text_node("@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap');");
     style.append_child(&css).unwrap();
     web::document.head().unwrap().append_child(&style).unwrap();
-
     let div = web::document.create_div_or_panic();
     div.set_style_or_warn("width", "100px");
     div.set_style_or_warn("height", "100px");

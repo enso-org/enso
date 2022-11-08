@@ -65,6 +65,12 @@ lazy_static! {
         HashMap::from([((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
             opacity_increase: 0.4,
             opacity_exponent: 4.0,
+        }), ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
+            opacity_increase: 0.3,
+            opacity_exponent: 3.0,
+        }), ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
+            opacity_increase: 0.3,
+            opacity_exponent: 3.0,
         })]);
 }
 
@@ -581,6 +587,10 @@ impl System {
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
             eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
+
+
+            // === Debug mode ===
+            // Allows changing hinting parameters on the fly. See [`Hinting`] to learn more.
 
             debug_mode <- all_with(&keyboard.is_control_down, &keyboard.is_alt_down, |a, b| *a && *b);
             plus <- keyboard.down.map(|t| t == &Key::Character("=".into()));
