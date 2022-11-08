@@ -4,19 +4,19 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration.ToPair
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.analyse.FrameIndexAnalysis
-import org.enso.compiler.pass.analyse.FrameIndexAnalysis.FrameInfo.FrameIndex
-import org.enso.compiler.pass.analyse.FrameIndexAnalysis.FrameInfo.LocalVariables
+import org.enso.compiler.pass.analyse.FrameIndexAnalysis.FrameInfo.{FrameIndex, LocalVariables}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-import scala.List
 import scala.collection.mutable.ListBuffer
 
 
 class FrameIndexAnalysisTest extends CompilerTest {
   val passes = new Passes(defaultConfig)
-  val precursorPasses: PassGroup = passes.getPrecursors(FrameIndexAnalysis).get
+  val precursorPasses: PassGroup = passes
+    .getPrecursors(FrameIndexAnalysis)
+    .get
   val passConfig: PassConfiguration = PassConfiguration(
     FrameIndexAnalysis -->> FrameIndexAnalysis.Configuration(
       shouldWriteToContext = false,

@@ -12,16 +12,15 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 
-/**
- * Scans the IR and gathers all the Truffle frame indexes of all local variables and
- * function arguments.
- * [[org.enso.compiler.codegen.IrToTruffle]] uses this metadata in order to build frame descriptors
- * [[com.oracle.truffle.api.frame.FrameDescriptor]] for all the root nodes.
- * It is implemented as a separate compiler pass so that:
- *   - Persistance: The metadata is attached to IR nodes and serialized alongside the IR.
- *   - Performance: IR is scanned just once.
- *   - ...
- */
+/** Scans the IR and gathers all the Truffle frame indexes of all local variables and
+  * function arguments.
+  * [[org.enso.compiler.codegen.IrToTruffle]] uses this metadata in order to build frame descriptors
+  * [[com.oracle.truffle.api.frame.FrameDescriptor]] for all the root nodes.
+  * It is implemented as a separate compiler pass so that:
+  *   - Persistance: The metadata is attached to IR nodes and serialized alongside the IR.
+  *   - Performance: IR is scanned just once.
+  *   - ...
+  */
 object FrameIndexAnalysis extends IRPass {
   override type Metadata = FrameInfo
   override type Config   = Configuration
@@ -54,24 +53,23 @@ object FrameIndexAnalysis extends IRPass {
     override def duplicate(): Option[IRPass.Metadata] = None
   }
   object FrameInfo {
-    /**
-     * Holds an index to a Truffle [[com.oracle.truffle.api.frame.FrameDescriptor]].
-     * Indexing always starts at 0, if there is a need to insert a gap at the beginning, so static
-     * frame slots can be inserted, it has to be handled outside this class.
-     * Attached to function arguments ([[IR.DefinitionArgument]]) and bindings ([[IR.Expression.Binding]])
-     * @param index The index to Truffle frame.
-     */
+
+    /** Holds an index to a Truffle [[com.oracle.truffle.api.frame.FrameDescriptor]].
+      * Indexing always starts at 0, if there is a need to insert a gap at the beginning, so static
+      * frame slots can be inserted, it has to be handled outside this class.
+      * Attached to function arguments ([[IR.DefinitionArgument]]) and bindings ([[IR.Expression.Binding]])
+      * @param index The index to Truffle frame.
+      */
     sealed class FrameIndex(
       val index: Int
     ) extends FrameInfo
 
-    /**
-     * Contains an array of local variables, in order of their definition.
-     * Attached to functions ([[IR.Function]]).
-     * Used for testing purposes.
-     * @param variables
-     * @param parent
-     */
+    /** Contains an array of local variables, in order of their definition.
+      * Attached to functions ([[IR.Function]]).
+      * Used for testing purposes.
+      * @param variables
+      * @param parent
+      */
     sealed class LocalVariables(
       var variables: List[IR.Identifier] = List(),
       val parent: Option[LocalVariables] = None
@@ -105,8 +103,7 @@ object FrameIndexAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val config = moduleContext
-      .passConfiguration
+    val config = moduleContext.passConfiguration
       .flatMap(cfg => cfg.get(this))
       .getOrElse(
         throw new CompilerError(
@@ -133,8 +130,7 @@ object FrameIndexAnalysis extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val config = inlineContext
-      .passConfiguration
+    val config = inlineContext.passConfiguration
       .flatMap(cfg => cfg.get(this))
       .getOrElse(
         throw new CompilerError(
@@ -192,9 +188,7 @@ object FrameIndexAnalysis extends IRPass {
         )
       case _ =>
         val localVars = FrameInfo.LocalVariables.createRoot()
-        ir.mapExpressions(
-          expr => analyseExpression(expr, localVars, config)
-        )
+        ir.mapExpressions(expr => analyseExpression(expr, localVars, config))
     }
   }
 
@@ -247,10 +241,11 @@ object FrameIndexAnalysis extends IRPass {
         val frameIndex = localVars.addLocalVar(binding.getId)
         binding
           .copy(
-            expression = analyseExpression(binding.expression, localVars, config)
+            expression =
+              analyseExpression(binding.expression, localVars, config)
           )
           .updateMetadata(
-          this -->> new FrameInfo.FrameIndex(frameIndex)
+            this -->> new FrameInfo.FrameIndex(frameIndex)
           )
       case function: IR.Function =>
         analyseFunction(function, localVars, config)
@@ -270,11 +265,11 @@ object FrameIndexAnalysis extends IRPass {
     sourceIr: T,
     copyOfIr: T
   ): T = {
-    ???
+    copyOfIr
   }
 
   sealed case class Configuration(
     override var shouldWriteToContext: Boolean = false,
-    attachLocalVarMetadata: Boolean        = true
+    attachLocalVarMetadata: Boolean            = true
   ) extends IRPass.Configuration
 }
