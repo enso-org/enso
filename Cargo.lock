@@ -2018,6 +2018,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "percent-encoding 2.1.0",
  "unicode-segmentation",
+ "unidecode",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -7127,6 +7128,12 @@ name = "unicode-xid"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
+
+[[package]]
+name = "unidecode"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "402bb19d8e03f1d1a7450e2bd613980869438e0666331be3e073089124aa1adc"
 
 [[package]]
 name = "unreachable"

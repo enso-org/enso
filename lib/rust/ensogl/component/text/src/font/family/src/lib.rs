@@ -67,7 +67,7 @@ pub use owned_ttf_parser::Width;
 /// eliminate accidental mistakes, the same way as it's done in CSS:
 /// https://stackoverflow.com/questions/17967371/are-property-values-in-css-case-sensitive
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Display, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Deref, Display, Hash, PartialEq, Eq)]
 pub struct Name {
     pub normalized: String,
 }

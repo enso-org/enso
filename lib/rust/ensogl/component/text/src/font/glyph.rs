@@ -21,15 +21,61 @@ use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
+use ensogl_core::frp::io::keyboard::Key;
 use ensogl_core::system::gpu::texture;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::Texture;
+use ensogl_core::system::web::platform;
 use font::FontWithAtlas;
 use font::GlyphRenderInfo;
 use font::Style;
 use font::Weight;
 use font::Width;
 use owned_ttf_parser::GlyphId;
+use std::sync::LazyLock;
+
+
+
+// ===============
+// === Hinting ===
+// ===============
+
+/// System- and font-specific hinting properties. They affect the way the font is rasterized. In
+/// order to understand how these variables affect the font rendering, see the GLSL file (the
+/// [`FUNCTIONS`] variable).
+///
+/// Also, you can interactively change the values by holding `ctrl + alt + o` or `ctrl + alt + e`
+/// keys and using the `+` and `-` key to increment or decrement the value.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+pub struct Hinting {
+    pub opacity_increase: f32,
+    pub opacity_exponent: f32,
+}
+
+impl Default for Hinting {
+    fn default() -> Self {
+        Self { opacity_increase: 0.0, opacity_exponent: 1.0 }
+    }
+}
+
+static HINTING_MAP: LazyLock<HashMap<(Option<platform::Platform>, &'static str), Hinting>> =
+    LazyLock::new(|| {
+        HashMap::from([
+            ((Some(platform::Platform::MacOS), "mplus1p"), Hinting {
+                opacity_increase: 0.4,
+                opacity_exponent: 4.0,
+            }),
+            ((Some(platform::Platform::Windows), "mplus1p"), Hinting {
+                opacity_increase: 0.3,
+                opacity_exponent: 3.0,
+            }),
+            ((Some(platform::Platform::Linux), "mplus1p"), Hinting {
+                opacity_increase: 0.3,
+                opacity_exponent: 3.0,
+            }),
+        ])
+    });
 
 
 
@@ -59,12 +105,7 @@ ensogl_core::define_endpoints_2! {
 #[allow(missing_docs)]
 pub struct SystemData {}
 
-#[cfg(target_os = "macos")]
-const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
-
-#[cfg(not(target_os = "macos"))]
 const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
-
 const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
 
 impl SystemData {
@@ -80,6 +121,9 @@ impl SystemData {
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
         material.add_input("sdf_weight", 0.0);
+        // === Adjusting look and feel of different fonts on different operating systems ===
+        material.add_input("opacity_increase", 0.0);
+        material.add_input("opacity_exponent", 1.0);
         // TODO[WD]: We need to use this output, as we need to declare the same amount of shader
         //     outputs as the number of attachments to framebuffer. We should manage this more
         //     intelligent. For example, we could allow defining output shader fragments,
@@ -118,7 +162,15 @@ mod glyph_shape {
     ensogl_core::shape! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
-        (style: Style, font_size: f32, color: Vector4<f32>, sdf_weight: f32, atlas_index: f32) {
+        (
+            style: Style,
+            font_size: f32,
+            color: Vector4<f32>,
+            sdf_weight: f32,
+            atlas_index: f32,
+            opacity_increase: f32,
+            opacity_exponent: f32
+        ) {
             // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
         }
@@ -132,7 +184,6 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
-
         let size = font::msdf::Texture::size();
         let sprite_system = &data.model.sprite_system;
         let symbol = sprite_system.symbol();
@@ -522,17 +573,72 @@ impl System {
         let color_animation = color::Animation::new(frp.network());
         let x_advance = default();
         let attached_to_cursor = default();
+        let platform = platform::current();
+        let hinting = HINTING_MAP.get(&(platform, font.name())).copied().unwrap_or_default();
         let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         view.atlas_index.set(0.0);
+        view.opacity_increase.set(hinting.opacity_increase);
+        view.opacity_exponent.set(hinting.opacity_exponent);
         display_object.add_child(&view);
 
         let network = frp.network();
-        frp::extend! {network
+        let scene = scene();
+        let keyboard = &scene.keyboard.frp;
+        frp::extend! { network
             frp.private.output.target_color <+ frp.set_color;
             color_animation.target <+ frp.set_color;
             color_animation.skip <+ frp.skip_color_animation;
             eval color_animation.value ((c) view.color.set(Rgba::from(c).into()));
+
+
+            // === Debug mode ===
+            // Allows changing hinting parameters on the fly. See [`Hinting`] to learn more.
+
+            debug_mode <- all_with(&keyboard.is_control_down, &keyboard.is_alt_down, |a, b| *a && *b);
+            plus <- keyboard.down.map(|t| t == &Key::Character("=".into()));
+            minus <- keyboard.down.map(|t| t == &Key::Character("-".into()));
+
+            key_e_down <- keyboard.down.map(|t| t == &Key::Character("e".into())).on_true();
+            key_e_up <- keyboard.up.map(|t| t == &Key::Character("e".into())).on_true();
+            key_e <- bool(&key_e_up, &key_e_down);
+
+            key_o_down <- keyboard.down.map(|t| t == &Key::Character("o".into())).on_true();
+            key_o_up <- keyboard.up.map(|t| t == &Key::Character("o".into())).on_true();
+            key_o <- bool(&key_o_up, &key_o_down);
+
+            plus2 <- all_with(&plus, &debug_mode, |a, b| *a && *b);
+            minus2 <- all_with(&minus, &debug_mode, |a, b| *a && *b);
+
+            plus_e <- keyboard.down.gate(&plus2).gate(&key_e);
+            minus_e <- keyboard.down.gate(&minus2).gate(&key_e);
+
+            plus_o <- keyboard.down.gate(&plus2).gate(&key_o);
+            minus_o <- keyboard.down.gate(&minus2).gate(&key_o);
+
+            eval_ plus_o (view.opacity_increase.modify(|t| {
+                let opacity_increase = t + 0.01;
+                warn!("opacity_increase: {opacity_increase}");
+                opacity_increase
+            }));
+
+            eval_ minus_o (view.opacity_increase.modify(|t| {
+                let opacity_increase = t - 0.01;
+                warn!("opacity_increase: {opacity_increase}");
+                opacity_increase
+            }));
+
+            eval_ plus_e (view.opacity_exponent.modify(|t| {
+                let opacity_exponent = t + 0.1;
+                warn!("opacity_exponent: {opacity_exponent}");
+                opacity_exponent
+            }));
+
+            eval_ minus_e (view.opacity_exponent.modify(|t| {
+                let opacity_exponent = t - 0.1;
+                warn!("opacity_exponent: {opacity_exponent}");
+                opacity_exponent
+            }));
         }
 
         Glyph {
