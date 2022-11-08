@@ -957,7 +957,7 @@ final class TreeToIr {
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
   String buildTextConstant(Iterable elements, boolean stripComments) {
-    StringBuilder sb = new StringBuilder();
+    var sb = new StringBuilder();
     for (var t : elements) {
       switch (t) {
         case TextElement.Section s -> {
@@ -972,14 +972,19 @@ final class TreeToIr {
               } else {
                 sb.append('"');
                 sb.append(seg);
-                sb.append('"');
+                if (i + 1 < quotedSegments.length) {
+                  sb.append('"');
+                }
               }
             }
           } else {
             sb.append(text);
           }
         }
-        case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
+        case TextElement.Escape e -> {
+          var val = e.getToken().getValue();
+          sb.appendCodePoint(val);
+        }
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
     }

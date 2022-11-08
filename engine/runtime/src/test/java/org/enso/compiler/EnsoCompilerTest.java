@@ -1165,6 +1165,32 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testSimpleTrippleQuote() throws Exception {
+    parseTest("""
+    expected_response = Json.parse <| '''
+        {
+          "headers": {
+            "Content-Length": "13",
+            "Content-Type": "application/json",
+            "User-Agent": "Java-http-client/11.0.13"
+          },
+          "origin": "127.0.0.1",
+          "url": "",
+          "args": {},
+          "data": "{\\"key\\":\\"val\\"}",
+          "files": null,
+          "form": null,
+          "json": {
+            "key": "val"
+          }
+        }
+    json = Json.parse <| '''
+        {"key":"val"}
+    res = Http.new.post_json url_post json
+        """, true, true, false);
+  }
+
+  @Test
   @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
