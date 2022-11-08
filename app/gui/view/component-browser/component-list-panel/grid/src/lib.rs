@@ -524,10 +524,10 @@ impl Model {
 
     fn entries_params(
         &self,
-        (style, entry_style, color_intensities, group_colors): &(
+        (style, entry_style, colors, group_colors): &(
             Style,
             entry::Style,
-            entry::style::StyleColors,
+            entry::style::Colors,
             GroupColors,
         ),
         dimmed_groups: entry::DimmedGroups,
@@ -536,16 +536,16 @@ impl Model {
             style: entry_style.clone(),
             grid_style: *style,
             group_colors: *group_colors,
-            style_colors: *color_intensities,
+            colors: *colors,
             dimmed_groups,
         }
     }
 
     fn selection_entries_params(
         &self,
-        (base_params, color_intensities): &(entry::Params, entry::style::SelectionStyleColors),
+        (base_params, colors): &(entry::Params, entry::style::SelectionColors),
     ) -> entry::Params {
-        entry::Params { style_colors: (*color_intensities).into(), ..base_params.clone() }
+        entry::Params { colors: (*colors).into(), ..base_params.clone() }
     }
 
     fn navigation_scroll_margins(
@@ -599,9 +599,8 @@ impl component::Frp<Model> for Frp {
         let corners_radius = style_frp.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style_frp);
         let entry_style = entry::Style::from_theme(network, style_frp);
-        let style_colors = entry::style::StyleColors::from_theme(network, style_frp);
-        let selection_style_colors =
-            entry::style::SelectionStyleColors::from_theme(network, style_frp);
+        let colors = entry::style::Colors::from_theme(network, style_frp);
+        let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
         frp::extend! { network
             // === Active and Hovered Entry ===
 
@@ -650,10 +649,10 @@ impl component::Frp<Model> for Frp {
                 None => entry::DimmedGroups::None,
             });
             entries_style <-
-                all4(&style.update, &entry_style.update, &style_colors.update, &group_colors);
+                all4(&style.update, &entry_style.update, &colors.update, &group_colors);
             entries_params <-
                 all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
-            selection_entries_style <- all(entries_params, selection_style_colors.update);
+            selection_entries_style <- all(entries_params, selection_colors.update);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
@@ -732,8 +731,8 @@ impl component::Frp<Model> for Frp {
         grid.resize_grid(0, column::COUNT);
         style.init.emit(());
         entry_style.init.emit(());
-        style_colors.init.emit(());
-        selection_style_colors.init.emit(());
+        colors.init.emit(());
+        selection_colors.init.emit(());
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {

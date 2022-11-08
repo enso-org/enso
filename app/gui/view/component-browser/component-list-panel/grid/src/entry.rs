@@ -6,7 +6,7 @@ use ensogl_core::display::shape::*;
 use crate::content::GroupId;
 use crate::content::SectionId;
 use crate::entry::style::Colors;
-use crate::entry::style::StyleColors;
+use crate::entry::style::ResolvedColors;
 use crate::GroupColors;
 use crate::Style as GridStyle;
 
@@ -199,7 +199,7 @@ impl DimmedGroups {
 pub struct Params {
     pub style:         Style,
     pub grid_style:    GridStyle,
-    pub style_colors:  StyleColors,
+    pub colors:        Colors,
     pub group_colors:  GroupColors,
     pub dimmed_groups: DimmedGroups,
 }
@@ -435,7 +435,7 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
-            color_intensities <- input.set_params.map(|p| p.style_colors).on_change();
+            colors <- input.set_params.map(|p| p.colors).on_change();
             group_colors <- input.set_params.map(|p| p.group_colors).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
@@ -458,7 +458,7 @@ impl grid_view::Entry for View {
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
+            let colors = ResolvedColors::from_main_color(network, &data.style, &color, &colors, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
             eval colors.icon ((c) data.icon.borrow_mut().set_color(*c));

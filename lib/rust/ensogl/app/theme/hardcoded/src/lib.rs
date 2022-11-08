@@ -203,9 +203,8 @@ define_themes! { [light:0, dark:1]
                     // Floating-point numbers mean the mixing coefficient between the application
                     // background and the "main" component group color.
                     entry {
-                        background.color = 0.08, 0.08;
-                        dimmed = Rgb::from_base_255(200.0, 48.0, 47.0), Rgb::from_base_255(158.0, 162.0, 165.0);
-                        // dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
+                        background.intensity = 0.08, 0.08;
+                        dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
                         padding = 17.0, 17.0;
                         text {
                             font = "default", "default";
@@ -243,7 +242,7 @@ define_themes! { [light:0, dark:1]
                             corners_radius = 12.0, 12.0;
                             hover.color = 0.4, 0.4;
                             selection {
-                                background.color = 0.75, 0.75;
+                                background.intensity = 0.75, 0.75;
                                 text.color = Rgba::white(), Rgba::white();
                                 icon.color = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
                             }
