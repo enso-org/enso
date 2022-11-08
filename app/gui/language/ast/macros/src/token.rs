@@ -1,5 +1,3 @@
-use crate::prelude::*;
-
 use enso_macro_utils::path_segment_generic_args;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -28,7 +26,7 @@ pub fn spaceless_ast(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 /// Inner logic for `derive_has_tokens`.
 pub fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
     let ident = &decl.ident;
-    let params = decl.generics.params.iter().collect_vec();
+    let params = decl.generics.params.iter().collect::<Vec<_>>();
     let token_arms = data.variants.iter().map(|v| {
         let con_ident = &v.ident;
         quote!( #ident::#con_ident (elem) => elem.feed_to(consumer) )

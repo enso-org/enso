@@ -23,6 +23,9 @@
 #![warn(unsafe_code)]
 #![recursion_limit = "256"]
 
+#[cfg(not(any(test, target_arch = "wasm32")))]
+compile_error!("Trying to compile prelude for non-wasm arch. Do not use it in proc-macro crates.");
+
 mod bool;
 #[cfg(feature = "futures")]
 pub mod channel;
