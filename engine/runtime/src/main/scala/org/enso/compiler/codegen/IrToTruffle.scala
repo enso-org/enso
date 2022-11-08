@@ -244,7 +244,8 @@ class IrToTruffle(
             val readArg =
               ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
-            val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            val argRead =
+              ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
             argumentExpressions.append((assignmentArg, argRead))
           }
 
