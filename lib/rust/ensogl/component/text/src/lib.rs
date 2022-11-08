@@ -16,6 +16,7 @@
 #![feature(let_chains)]
 #![feature(step_trait)]
 #![feature(specialization)]
+#![feature(once_cell)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

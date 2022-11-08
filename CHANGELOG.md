@@ -89,6 +89,9 @@
   instances are now reusing the shape shaders and the same sprite system under
   the hood. This drastically reduces the amount of required draw calls for
   scenes with a lot of text.
+- [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
+  way. Also, additional fine-tuning is performed per font and per host operating
+  system.
 
 #### Enso Standard Library
 
@@ -230,6 +233,8 @@
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
 - [Implemented `Period` type][3818]
+- [Implemented new functions on Column and added expression syntax support to
+  create derived Columns.][3782]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -367,7 +372,9 @@
 [3804]: https://github.com/enso-org/enso/pull/3804
 [3818]: https://github.com/enso-org/enso/pull/3818
 [3776]: https://github.com/enso-org/enso/pull/3776
+[3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
+[3782]: https://github.com/enso-org/enso/pull/3782
 
 #### Enso Compiler
 

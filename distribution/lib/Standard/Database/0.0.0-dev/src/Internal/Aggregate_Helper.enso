@@ -3,7 +3,7 @@ from Standard.Base import all hiding First, Last
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 
 from project.Errors import Unsupported_Database_Operation_Error_Data
@@ -23,48 +23,48 @@ make_aggregate_column table aggregate new_name =
 ## PRIVATE
    Creates an Internal Representation of the expression that computes a
    requested statistic.
-make_expression : Aggregate_Column -> Dialect -> Expression
+make_expression : Aggregate_Column -> Dialect -> SQL_Expression
 make_expression aggregate dialect =
     is_non_empty_selector v = if v.is_nothing then False else v.columns.not_empty
     case aggregate of
         Group_By c _ -> c.expression
-        Count _ -> Expression.Operation "COUNT_ROWS" []
+        Count _ -> SQL_Expression.Operation "COUNT_ROWS" []
         Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error_Data "Count_Distinct must have at least one column.") else
             case ignore_nothing of
-                True -> Expression.Operation "COUNT_DISTINCT" (columns.map .expression)
-                False -> Expression.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
-        Count_Not_Nothing c _ -> Expression.Operation "COUNT" [c.expression]
-        Count_Nothing c _ -> Expression.Operation "COUNT_IS_NULL" [c.expression]
-        Count_Not_Empty c _ -> Expression.Operation "COUNT_NOT_EMPTY" [c.expression]
-        Count_Empty c _ -> Expression.Operation "COUNT_EMPTY" [c.expression]
-        Percentile p c _ -> Expression.Operation "PERCENTILE" [Expression.Constant SQL_Type.double p, c.expression]
-        Mode c _ -> Expression.Operation "MODE" [c.expression]
+                True -> SQL_Expression.Operation "COUNT_DISTINCT" (columns.map .expression)
+                False -> SQL_Expression.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
+        Count_Not_Nothing c _ -> SQL_Expression.Operation "COUNT" [c.expression]
+        Count_Nothing c _ -> SQL_Expression.Operation "COUNT_IS_NULL" [c.expression]
+        Count_Not_Empty c _ -> SQL_Expression.Operation "COUNT_NOT_EMPTY" [c.expression]
+        Count_Empty c _ -> SQL_Expression.Operation "COUNT_EMPTY" [c.expression]
+        Percentile p c _ -> SQL_Expression.Operation "PERCENTILE" [SQL_Expression.Constant SQL_Type.double p, c.expression]
+        Mode c _ -> SQL_Expression.Operation "MODE" [c.expression]
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.")
             True ->
                 order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of
-                    False -> Expression.Operation "FIRST" [c.expression]+order_bys
-                    True -> Expression.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
+                    False -> SQL_Expression.Operation "FIRST" [c.expression]+order_bys
+                    True -> SQL_Expression.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
         Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column.")
             True ->
                 order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of
-                    False -> Expression.Operation "LAST" [c.expression]+order_bys
-                    True -> Expression.Operation "LAST_NOT_NULL" [c.expression]+order_bys
-        Maximum c _ -> Expression.Operation "MAX" [c.expression]
-        Minimum c _ -> Expression.Operation "MIN" [c.expression]
-        Shortest c _ -> Expression.Operation "SHORTEST" [c.expression]
-        Longest c _ -> Expression.Operation "LONGEST" [c.expression]
+                    False -> SQL_Expression.Operation "LAST" [c.expression]+order_bys
+                    True -> SQL_Expression.Operation "LAST_NOT_NULL" [c.expression]+order_bys
+        Maximum c _ -> SQL_Expression.Operation "MAX" [c.expression]
+        Minimum c _ -> SQL_Expression.Operation "MIN" [c.expression]
+        Shortest c _ -> SQL_Expression.Operation "SHORTEST" [c.expression]
+        Longest c _ -> SQL_Expression.Operation "LONGEST" [c.expression]
         Standard_Deviation c _ population -> case population of
-            True -> Expression.Operation "STDDEV_POP" [c.expression]
-            False -> Expression.Operation "STDDEV_SAMP" [c.expression]
+            True -> SQL_Expression.Operation "STDDEV_POP" [c.expression]
+            False -> SQL_Expression.Operation "STDDEV_SAMP" [c.expression]
         Concatenate c _ separator prefix suffix quote_char ->
-            base_args = [c.expression, Expression.Constant SQL_Type.text separator, Expression.Constant SQL_Type.text prefix, Expression.Constant SQL_Type.text suffix]
+            base_args = [c.expression, SQL_Expression.Constant SQL_Type.text separator, SQL_Expression.Constant SQL_Type.text prefix, SQL_Expression.Constant SQL_Type.text suffix]
             case quote_char.is_empty of
-                True -> Expression.Operation "CONCAT" base_args
-                False -> Expression.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[Expression.Constant SQL_Type.text quote_char]
-        Sum c _ -> Expression.Operation "SUM" [c.expression]
-        Average c _ -> Expression.Operation "AVG" [c.expression]
-        Median c _ -> Expression.Operation "MEDIAN" [c.expression]
+                True -> SQL_Expression.Operation "CONCAT" base_args
+                False -> SQL_Expression.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[SQL_Expression.Constant SQL_Type.text quote_char]
+        Sum c _ -> SQL_Expression.Operation "SUM" [c.expression]
+        Average c _ -> SQL_Expression.Operation "AVG" [c.expression]
+        Median c _ -> SQL_Expression.Operation "MEDIAN" [c.expression]

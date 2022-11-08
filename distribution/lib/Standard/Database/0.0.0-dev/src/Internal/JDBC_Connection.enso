@@ -198,6 +198,9 @@ default_storage_type storage_type = case storage_type of
     Storage.Integer -> SQL_Type.integer
     Storage.Decimal -> SQL_Type.double
     Storage.Boolean -> SQL_Type.boolean
+    Storage.Date -> SQL_Type.date
+    Storage.Time_Of_Day -> SQL_Type.time_of_day
+    Storage.Date_Time -> SQL_Type.date_time
     ## Support for mixed type columns in Table upload is currently very limited,
        falling back to treating everything as text.
     Storage.Any -> SQL_Type.text

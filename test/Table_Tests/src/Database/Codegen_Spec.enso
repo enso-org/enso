@@ -79,7 +79,7 @@ spec =
         Test.specify "should support simple text operations" <|
             b = t1.at "B"
             add = b + "SUFFIX"
-            add.to_sql.prepare . should_equal ['SELECT ("T1"."B" + ?) AS "B" FROM "T1" AS "T1"', [["SUFFIX", str]]]
+            add.to_sql.prepare . should_equal ['SELECT ("T1"."B" || ?) AS "B" FROM "T1" AS "T1"', [["SUFFIX", str]]]
 
             ends = b.ends_with "suf"
             starts = b.starts_with "pref"
