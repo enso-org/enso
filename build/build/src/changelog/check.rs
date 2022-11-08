@@ -4,7 +4,7 @@ use crate::ci::labels::NO_CHANGELOG_CHECK;
 use crate::paths::generated::RepoRoot;
 
 use ide_ci::actions::workflow::MessageLevel;
-use ide_ci::programs::Git;
+use ide_ci::programs::git;
 
 
 
@@ -49,7 +49,7 @@ pub async fn check(repo_path: RepoRoot, context: ide_ci::actions::Context) -> Re
     let repository = context.payload.repository.context("Missing repository information.")?;
     let default_branch =
         repository.default_branch.context("Missing default branch information.")?;
-    let git = Git::new(&repo_path).await?;
+    let git = git::Context::new(&repo_path).await?;
     git.fetch_branch(REMOTE_NAME, &default_branch).await?;
     let remote_base = format!("{REMOTE_NAME}/{default_branch}");
     let files_changed = git.diff_against(remote_base).await?;

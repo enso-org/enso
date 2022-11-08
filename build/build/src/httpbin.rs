@@ -1,18 +1,16 @@
 use crate::prelude::*;
 
-use ide_ci::env::Variable;
 use ide_ci::programs::Go;
 use tokio::process::Child;
 
 
 
 pub mod env {
-    /// Environment variable that stores URL under which spawned httpbin server is available.
-    #[derive(Clone, Copy, Debug)]
-    pub struct Url;
-    impl ide_ci::env::Variable for Url {
-        const NAME: &'static str = "ENSO_HTTP_TEST_HTTPBIN_URL";
-        type Value = url::Url;
+    use super::*;
+
+    ide_ci::define_env_var! {
+        /// Environment variable that stores URL under which spawned httpbin server is available.
+        ENSO_HTTP_TEST_HTTPBIN_URL, Url;
     }
 }
 
@@ -40,14 +38,14 @@ pub async fn get_and_spawn_httpbin(port: u16) -> Result<Spawned> {
 
     let url_string = format!("http://localhost:{port}");
     let url = Url::parse(&url_string)?;
-    env::Url.set(&url);
+    env::ENSO_HTTP_TEST_HTTPBIN_URL.set(&url)?;
     Ok(Spawned { url, process })
 }
 
 impl Drop for Spawned {
     fn drop(&mut self) {
         debug!("Dropping the httpbin wrapper.");
-        env::Url.remove();
+        env::ENSO_HTTP_TEST_HTTPBIN_URL.remove();
     }
 }
 

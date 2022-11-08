@@ -2,11 +2,11 @@ use crate::prelude::*;
 
 use crate::ide::web::IdeDesktop;
 use crate::project::Context;
+use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::project::IsWatchable;
 use crate::project::IsWatcher;
 use crate::project::PerhapsWatched;
-use crate::project::PlainArtifact;
 use crate::project::Wasm;
 use crate::source::BuildTargetJob;
 use crate::source::GetTargetJob;
@@ -21,7 +21,23 @@ use ide_ci::ok_ready_boxed;
 
 
 
-pub type Artifact = PlainArtifact<Gui>;
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Shrinkwrap)]
+pub struct Artifact(crate::paths::generated::RepoRootDistGui);
+
+impl AsRef<Path> for Artifact {
+    fn as_ref(&self) -> &Path {
+        self.0.as_path()
+    }
+}
+
+impl IsArtifact for Artifact {}
+
+impl Artifact {
+    pub fn new(gui_path: impl AsRef<Path>) -> Self {
+        // TODO: sanity check
+        Self(crate::paths::generated::RepoRootDistGui::new_root(gui_path.as_ref()))
+    }
+}
 
 #[derive(Clone, Derivative, derive_more::Deref)]
 #[derivative(Debug)]
@@ -55,7 +71,7 @@ impl IsTarget for Gui {
     }
 
     fn adapt_artifact(self, path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self::Artifact>> {
-        Artifact::from_existing(path)
+        ok_ready_boxed(Artifact::new(path))
     }
 
     fn build_internal(
@@ -127,7 +143,7 @@ impl IsWatchable for Gui {
             let wasm_artifacts = ok_ready_boxed(perhaps_watched_wasm.as_ref().clone());
             let watch_process =
                 ide.watch_content(wasm_artifacts, &build_info.await?, watch_input.shell).await?;
-            let artifact = Self::Artifact::from_existing(destination).await?;
+            let artifact = Artifact::new(&destination);
             let web_watcher = crate::project::Watcher { watch_process, artifact };
             Ok(Self::Watcher { wasm: perhaps_watched_wasm, web: web_watcher })
         }

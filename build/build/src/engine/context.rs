@@ -19,11 +19,10 @@ use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::project::ProcessWrapper;
-use crate::retrieve_github_access_token;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
-use ide_ci::env::Variable;
+use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
@@ -88,7 +87,7 @@ impl RunContext {
         Sbt.require_present().await?;
 
         // Other programs.
-        ide_ci::programs::Git::new_current().await?.require_present().await?;
+        ide_ci::programs::Git.require_present().await?;
         ide_ci::programs::Go.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
@@ -97,7 +96,7 @@ impl RunContext {
         let prepare_simple_library_server = {
             if self.config.test_scala {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::Git::new(simple_server_path)
+                ide_ci::programs::git::Context::new(simple_server_path)
                     .await?
                     .cmd()?
                     .clean()
@@ -122,7 +121,8 @@ impl RunContext {
         // TODO: After flatc version is bumped, it should be possible to get it without `conda`.
         //       See: https://www.pivotaltracker.com/story/show/180303547
         if let Err(e) = Flatc.require_present_at(&FLATC_VERSION).await {
-            debug!("Cannot find expected flatc: {}", e);
+            warn!("Cannot find expected flatc: {}", e);
+            warn!("Will try to install it using conda. In case of issues, please install flatc manually, to avoid dependency on conda.");
             // GitHub-hosted runner has `conda` on PATH but not things installed by it.
             // It provides `CONDA` variable pointing to the relevant location.
             if let Some(conda_path) = std::env::var_os("CONDA").map(PathBuf::from) {
@@ -142,13 +142,14 @@ impl RunContext {
             Flatc.lookup()?;
         }
 
-        let _ = self.paths.emit_env_to_actions(); // Ignore error: we might not be run on CI.
+        self.paths.emit_env_to_actions().await?; // Ignore error: we might not be run on CI.
         debug!("Build configuration: {:#?}", self.config);
 
         // Setup Tests on Windows
         if TARGET_OS == OS::Windows {
-            env::CiTestTimeFactor.set(&2);
-            env::CiFlakyTestEnable.set(&true);
+            let default_time_factor: usize = 2;
+            env::CI_TEST_TIMEFACTOR.set(&default_time_factor)?;
+            env::CI_TEST_FLAKY_ENABLE.set(&true)?;
         }
 
         // TODO [mwu]
@@ -409,11 +410,22 @@ impl RunContext {
         }
 
         // if build_native_runner {
-        //     Command::new("./runner")
-        //         .current_dir(&self.repo_root)
-        //         .args(["--run", "./engine/runner-native/src/test/resources/Factorial.enso"])
-        //         .run_ok()
+        //     let factorial_input = "6";
+        //     let factorial_expected_output = "720";
+        //     let output = Command::new(&self.repo_root.runner)
+        //         .args([
+        //             "--run",
+        //
+        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
+        //             factorial_input,
+        //         ])
+        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
+        //         .run_stdout()
         //         .await?;
+        //     ensure!(
+        //         output.contains(factorial_expected_output),
+        //         "Native runner output does not contain expected result."
+        //     );
         // }
 
         // Verify License Packages in Distributions
@@ -481,28 +493,27 @@ impl RunContext {
     }
 
     pub async fn execute(&self, operation: Operation) -> Result {
-        match &operation {
+        match operation {
             Operation::Release(ReleaseOperation { command, repo }) => match command {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
-
-                    // Make packages.
-                    let release_id = crate::env::ReleaseId.fetch()?;
-                    let client = ide_ci::github::create_client(retrieve_github_access_token()?)?;
-                    let upload_asset = |asset: PathBuf| {
-                        ide_ci::github::release::upload_asset(repo, &client, release_id, asset)
-                    };
+                    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+                    let release = ide_ci::github::release::ReleaseHandle::new(
+                        &self.inner.octocrab,
+                        repo,
+                        release_id,
+                    );
                     for package in artifacts.packages.into_iter() {
                         package.pack().await?;
-                        upload_asset(package.artifact_archive).await?;
+                        release.upload_asset_file(package.artifact_archive).await?;
                     }
                     for bundle in artifacts.bundles.into_iter() {
                         bundle.pack().await?;
-                        upload_asset(bundle.artifact_archive).await?;
+                        release.upload_asset_file(bundle.artifact_archive).await?;
                     }
                     if TARGET_OS == OS::Linux {
-                        upload_asset(self.paths.manifest_file()).await?;
-                        upload_asset(self.paths.launcher_manifest_file()).await?;
+                        release.upload_asset_file(self.paths.manifest_file()).await?;
+                        release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
                     }
                 }
             },
