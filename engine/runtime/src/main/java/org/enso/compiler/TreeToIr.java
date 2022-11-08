@@ -713,7 +713,7 @@ final class TreeToIr {
           List<IR.CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
-            if (expr != null) {
+            if (expr == null) {
               continue;
             }
             var call = translateCallArgument(expr);

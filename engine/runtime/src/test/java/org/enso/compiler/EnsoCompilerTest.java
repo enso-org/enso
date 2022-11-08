@@ -796,19 +796,19 @@ public class EnsoCompilerTest {
     type My_Type
         Cons_A x
         Cons_B y=(Self.Cons_A 10)
-    
+
         static = 123
-    
+
         static_use = Self.static + (Self.Cons_A 5).x
         instance_use self = Self.static + self.x + (Self.Cons_A 5).x
 
         static_match x = case x of
             Self -> "it matched"
             _ -> "it didn't match"
-                  
+
         matching_method self = case self of
             Self.Cons_A y -> y + 2
-      
+
         match_by_type x = case x of
             _ : Self -> "it's a Self"
             _ -> "it's a something else"
@@ -1097,6 +1097,18 @@ public class EnsoCompilerTest {
     main =
         f a b = a - b
         f 10 20
+    """);
+  }
+
+  @Test
+  public void testAtomBenchmarks1() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.List import Cons,Nil
+
+    main =
+        generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+        res = generator (acc -> x -> Cons x acc) Nil 1 1000000
+        res
     """);
   }
 
