@@ -44,8 +44,8 @@ following rules around naming:
   - Each 'word' in the identifier must be lower-case or a number.
   - Words in the identifier are separated using `_`.
   - Numbers may not occur as the first 'word' in an identifier.
-- No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
-  `Make_new`). These should be rejected by the compiler.
+- Mixed-format names are allowed (e.g. `HTTP`, `foO`, `AWS_Profile`, or
+  `SQLite`).
 - We _strongly encourage_ using capitalised identifiers to refer to atoms.
 - All names are case-sensitive.
 
