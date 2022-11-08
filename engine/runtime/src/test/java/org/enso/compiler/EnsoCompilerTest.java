@@ -515,9 +515,10 @@ public class EnsoCompilerTest {
   @Test
   @Ignore
   public void testVariousKindsOfUnicodeWhitespace() throws Exception {
-    // mimics Text_Spec.enso:1049
+    // mimics Text_Spec.enso:1049 and 722
+    // search for: # Disabled in the New Parser
     parseTest("""
-    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
     """);
   }
 
