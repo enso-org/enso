@@ -11,8 +11,6 @@ use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
 
-use double_representation::identifier::ReferentName;
-use double_representation::project::QualifiedName;
 use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
 use engine_protocol::language_server;

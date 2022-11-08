@@ -9,7 +9,7 @@ use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::model::project::synchronized::Properties;
 
-use double_representation::project;
+use double_representation::name::project;
 use engine_protocol::project_manager::ProjectName;
 use parser_scala::Parser;
 

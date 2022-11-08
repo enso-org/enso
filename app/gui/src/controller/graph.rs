@@ -15,8 +15,6 @@ use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
 use double_representation::graph::GraphInfo;
 use double_representation::identifier::generate_name;
-use double_representation::identifier::LocatedName;
-use double_representation::identifier::NormalizedName;
 use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
@@ -582,7 +580,7 @@ impl Handle {
     ///
     /// Introducing identifier not included on this list should have no side-effects on the name
     /// resolution in the code in this graph.
-    pub fn used_names(&self) -> FallibleResult<Vec<LocatedName>> {
+    pub fn used_names(&self) -> FallibleResult<Vec<Located<String>>> {
         use double_representation::alias_analysis;
         let def = self.definition()?;
         let body = def.body();
@@ -956,11 +954,7 @@ impl span_tree::generate::Context for Handle {
         let db_entry = db.lookup_method(metadata.intended_method?)?;
         // If the name is different than intended method than apparently it is not intended anymore
         // and should be ignored.
-        let matching = if let Some(name) = name {
-            NormalizedName::new(name) == NormalizedName::new(&db_entry.name)
-        } else {
-            true
-        };
+        let matching = if let Some(name) = name { name == &db_entry.name } else { true };
         matching.then(|| db_entry.invocation_info())
     }
 }
@@ -990,7 +984,7 @@ pub mod tests {
     use ast::crumbs;
     use ast::test_utils::expect_shape;
     use double_representation::identifier::NormalizedName;
-    use double_representation::project;
+    use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
     use parser_scala::Parser;

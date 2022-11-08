@@ -3,14 +3,16 @@
 use crate::prelude::*;
 
 use crate::module;
+use crate::name;
 
+use crate::name::NamePath;
+use crate::name::QualifiedName;
 use ast::known;
 use ast::Ast;
 use ast::HasRepr;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BTreeSet;
-
 
 
 // =================
@@ -82,12 +84,8 @@ impl ImportedNames {
 /// Representation of a single import declaration.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize, Hash)]
 pub struct Info {
-    /// The segments of the qualified name of the imported module.
-    ///
-    /// This field is not Qualified name to cover semantically illegal imports that are possible to
-    /// be typed in and are representable in the text.
-    /// This includes targets with too few segments or segments not being valid referent names.
-    pub module:   Vec<String>,
+    /// The path of the qualified name of the imported module.
+    pub module:   name::NamePath,
     /// Imported names from [`module`].
     pub imported: ImportedNames,
 }
@@ -95,27 +93,20 @@ pub struct Info {
 impl Info {
     /// Create qualified import (i.e. `import <module-name>`) importing the given module without
     /// alias.
-    pub fn new_qualified(module: &module::QualifiedName) -> Self {
-        Self {
-            module:   Self::module_name_from_qualified(module),
-            imported: ImportedNames::Module { alias: None },
-        }
+    pub fn new_qualified(module: &QualifiedName) -> Self {
+        Self { module: module.into(), imported: ImportedNames::Module { alias: None } }
     }
 
-    pub fn new_single_name(module: &module::QualifiedName, name: String) -> Self {
+    pub fn new_single_name(module: &QualifiedName, name: String) -> Self {
         Self {
-            module:   Self::module_name_from_qualified(module),
+            module:   module.into(),
             imported: ImportedNames::List { names: iter::once(name).collect() },
         }
     }
 
-    fn module_name_from_qualified(qualified: &module::QualifiedName) -> Vec<String> {
-        qualified.segments().map(|segment| segment.to_string()).collect()
-    }
-
     /// Obtain the qualified name of the module.
-    pub fn qualified_module_name(&self) -> FallibleResult<module::QualifiedName> {
-        module::QualifiedName::from_all_segments(&self.module)
+    pub fn qualified_module_name(&self) -> FallibleResult<QualifiedName> {
+        QualifiedName::from_all_segments(&self.module)
     }
 
     /// Construct from an AST. Fails if the Ast is not an import declaration.
@@ -156,10 +147,10 @@ impl Info {
         }
     }
 
-    fn module_name_from_str(module: impl AsRef<str>) -> Vec<String> {
+    fn module_name_from_str(module: impl AsRef<str>) -> NamePath {
         let name = module.as_ref().trim();
         if name.is_empty() {
-            Vec::new()
+            default()
         } else {
             let segments = name.split(ast::opr::predefined::ACCESS);
             let trimmed = segments.map(str::trim);
@@ -177,7 +168,7 @@ impl Info {
         hasher.finish()
     }
 
-    pub fn normalized_module(&self) -> &[String] {
+    pub fn normalized_module(&self) -> &[ImString] {
         if self.module.len() == 3
             && self.module[2] == "Main"
             && !matches!(self.imported, ImportedNames::Module { .. })
@@ -212,7 +203,7 @@ impl Info {
 
 impl Display for Info {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let module = self.module.join(ast::opr::predefined::ACCESS);
+        let module = self.module.iter().map(ImString::as_str).join(ast::opr::predefined::ACCESS);
         let import_kw = ast::macros::QUALIFIED_IMPORT_KEYWORD;
         let from_kw = ast::macros::UNQUALIFIED_IMPORT_KEYWORD;
         match &self.imported {

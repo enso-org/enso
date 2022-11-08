@@ -7,8 +7,8 @@ use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use double_representation::identifier::Identifier;
-use double_representation::project;
-use double_representation::tp;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
@@ -226,9 +226,9 @@ pub struct LocalCall {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QualifiedMethodPointer {
     /// A module name containing the method.
-    pub module:          module::QualifiedName,
+    pub module:          QualifiedName,
     /// A type on which the method is defined.
-    pub defined_on_type: tp::QualifiedName,
+    pub defined_on_type: QualifiedName,
     /// A method name.
     pub name:            Identifier,
 }
@@ -377,7 +377,7 @@ pub struct ComponentGroup {
     pub name:       ImString,
     /// An optional color to use when displaying the component group.
     pub color:      Option<color::Rgb>,
-    pub components: Vec<suggestion::QualifiedName>,
+    pub components: Vec<QualifiedName>,
 }
 
 impl ComponentGroup {

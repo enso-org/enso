@@ -7,10 +7,9 @@ use crate::model::module::MethodId;
 use ast::opr;
 use convert_case::Case;
 use convert_case::Casing;
-use double_representation::identifier::ReferentName;
 use double_representation::import;
 use double_representation::module;
-use double_representation::tp;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
@@ -68,79 +67,6 @@ pub struct MissingSelfOnMethod(pub String);
 
 
 
-// =====================
-// === QualifiedName ===
-// =====================
-
-im_string_newtype! {
-    /// A single segment of a [`QualifiedName`] of an [`Entry`].
-    QualifiedNameSegment
-}
-
-/// A fully qualified name of an [`Entry`].
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-#[allow(missing_docs)]
-pub struct QualifiedName {
-    pub segments: Vec<QualifiedNameSegment>,
-}
-
-impl From<&str> for QualifiedName {
-    fn from(name: &str) -> Self {
-        name.split(ast::opr::predefined::ACCESS).collect()
-    }
-}
-
-impl From<String> for QualifiedName {
-    fn from(name: String) -> Self {
-        name.as_str().into()
-    }
-}
-
-impl From<QualifiedName> for String {
-    fn from(name: QualifiedName) -> Self {
-        String::from(&name)
-    }
-}
-
-impl From<&QualifiedName> for String {
-    fn from(name: &QualifiedName) -> Self {
-        name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
-    }
-}
-
-impl From<module::QualifiedName> for QualifiedName {
-    fn from(name: module::QualifiedName) -> Self {
-        name.segments().collect()
-    }
-}
-
-impl Display for QualifiedName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let text = String::from(self);
-        Display::fmt(&text, f)
-    }
-}
-
-impl<T> FromIterator<T> for QualifiedName
-where T: Into<QualifiedNameSegment>
-{
-    fn from_iter<I>(iter: I) -> Self
-    where I: IntoIterator<Item = T> {
-        let segments = iter.into_iter().map(|s| s.into()).collect();
-        Self { segments }
-    }
-}
-
-impl<'a> IntoIterator for &'a QualifiedName {
-    type Item = &'a QualifiedNameSegment;
-    type IntoIter = std::slice::Iter<'a, QualifiedNameSegment>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.segments.iter()
-    }
-}
-
-
-
 // ==================
 // === ModuleSpan ===
 // ==================
@@ -152,7 +78,7 @@ impl<'a> IntoIterator for &'a QualifiedName {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModuleSpan {
-    pub module: module::QualifiedName,
+    pub module: QualifiedName,
     pub span:   Location<enso_text::Utf16CodeUnit>,
 }
 
@@ -242,20 +168,20 @@ pub struct Entry {
     /// A type of suggestion.
     pub kind:               Kind,
     /// A module where the suggested object is defined.
-    pub defined_in:         module::QualifiedName,
+    pub defined_in:         QualifiedName,
     /// A name of suggested object.
     pub name:               String,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments:          Vec<Argument>,
     /// A type returned by the suggested object.
-    pub return_type:        tp::QualifiedName,
+    pub return_type:        QualifiedName,
     /// A module reexporting this entity.
-    pub reexported_in:      Option<module::QualifiedName>,
+    pub reexported_in:      Option<QualifiedName>,
     /// A HTML documentation associated with object.
     pub documentation_html: Option<String>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
-    pub self_type:          Option<tp::QualifiedName>,
+    pub self_type:          Option<QualifiedName>,
     /// A flag set to true if the method is a static or module method.
     pub is_static:          bool,
     /// A scope where this suggestion is visible.
@@ -267,9 +193,9 @@ pub struct Entry {
 impl Entry {
     pub fn new(
         kind: Kind,
-        defined_in: module::QualifiedName,
+        defined_in: impl Into<QualifiedName>,
         name: impl Into<String>,
-        return_type: tp::QualifiedName,
+        return_type: impl Into<QualifiedName>,
     ) -> Self {
         Self {
             kind,
@@ -287,9 +213,9 @@ impl Entry {
     }
 
     pub fn new_method(
-        on_type: tp::QualifiedName,
+        on_type: QualifiedName,
         name: impl Into<String>,
-        return_type: tp::QualifiedName,
+        return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
         let module = on_type.parent_module();
@@ -301,10 +227,10 @@ impl Entry {
     }
 
     pub fn new_extension_method(
-        defined_in: module::QualifiedName,
-        on_type: tp::QualifiedName,
+        defined_in: QualifiedName,
+        on_type: QualifiedName,
         name: impl Into<String>,
-        return_type: tp::QualifiedName,
+        return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
         Self {
@@ -314,16 +240,16 @@ impl Entry {
         }
     }
 
-    pub fn new_type(defined_in: module::QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_type(defined_in: QualifiedName, name: impl Into<String>) -> Self {
         let name = name.into();
         let return_type = tp::QualifiedName::new_module_member(defined_in.clone(), name.clone());
         Self::new(Kind::Type, defined_in, name, return_type)
     }
 
-    pub fn new_constructor(of_type: tp::QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_constructor(of_type: QualifiedName, name: impl Into<String>) -> Self {
         let defined_in_module = of_type.parent_module();
         Self {
-            self_type: Some(on_type),
+            self_type: Some(of_type),
             is_static: true,
             ..Self::new(Kind::Constructor, defined_in_module, name, of_type)
         }
@@ -525,7 +451,8 @@ impl Entry {
     ) -> FallibleResult<Self> {
         use language_server::types::SuggestionEntry::*;
         let (documentation, icon_name) = match &mut entry {
-            Atom { documentation, documentation_html, documentation_sections, .. }
+            Type { documentation, documentation_html, documentation_sections, .. }
+            | Constructor { documentation, documentation_html, documentation_sections, .. }
             | Method { documentation, documentation_html, documentation_sections, .. }
             | Module { documentation, documentation_html, documentation_sections, .. } => {
                 let documentation =

@@ -259,7 +259,7 @@ pub mod test {
     use super::*;
 
     use double_representation::definition::DefinitionName;
-    use double_representation::project;
+    use double_representation::name::project;
     use engine_protocol::language_server;
 
     #[derive(Clone, Derivative)]

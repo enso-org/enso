@@ -440,61 +440,57 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    #[derive(Debug, Default)]
-    struct MockBuilder {
-        next_id:        entry::Id,
-        result:         SuggestionDatabase,
-        context: Option<tp::QualifiedName>,
-    }
-
-    impl MockBuilder {
-        fn add_entry(&mut self, entry: Entry) {
-            let id = self.next_id;
-            self.next_id += 1;
-            self.result.put_entry(self.next_id, entry);
-        }
-
-        pub fn add_and_enter_module<S>(&mut self, segment: S)
-        where S: TryInto<ReferentName> + TryInto<module::QualifiedName> {
-            let new_context = if let Some(context) = &mut self.context {
-                context.id.push_segment(segment.try_into().unwrap());
-                context.clone()
-            } else {
-                let new_context = segment.try_into().unwrap();
-                self.contest = Some(new_context.clone());
-                new_context
-            };
-            self.add_entry(Entry::new_module(new_context));
-        }
-
-        pub fn add_and_enter_type(&mut self, type_name: impl Into<String>) {
-            let type_name = type_name.into();
-            let module = self.current_module.clone().expect("Cannot add type without module");
-            self.current_type = Some(type_name.clone());
-            self.add_entry(Entry::new_type(module, type_name))
-        }
-
-        pub fn leave(&mut self) {
-            let type_left = self.current_type.take().is_none();
-            if !type_left {
-                self.current_module = self.current_module.and_then(|m| m.parent_module())
-            }
-        }
-
-        fn current_type_or_module(&self) -> tp::QualifiedName {
-            let module =
-        }
-
-        pub fn add_method(
-            &mut self,
-            name: impl Into<String>,
-            arguments: Vec<SuggestionEntryArgument>,
-            return_type: impl TryInto<tp::QualifiedName>,
-        ) -> Self {
-            let on_type =
-            self.add_entry(Entry::new_method())
-        }
-    }
+    // #[derive(Debug, Default)]
+    // struct MockBuilder {
+    //     next_id:        entry::Id,
+    //     result:         SuggestionDatabase,
+    //     context: Option<tp::QualifiedName>,
+    // }
+    //
+    // impl MockBuilder {
+    //     fn add_entry(&mut self, entry: Entry) {
+    //         let id = self.next_id;
+    //         self.next_id += 1;
+    //         self.result.put_entry(self.next_id, entry);
+    //     }
+    //
+    //     pub fn add_and_enter_module<S>(&mut self, segment: S)
+    //     where S: TryInto<ReferentName> + TryInto<module::QualifiedName> {
+    //         let new_context = if let Some(context) = &mut self.context {
+    //             context.id.push_segment(segment.try_into().unwrap());
+    //             context.clone()
+    //         } else {
+    //             let new_context = segment.try_into().unwrap();
+    //             self.contest = Some(new_context.clone());
+    //             new_context
+    //         };
+    //         self.add_entry(Entry::new_module(new_context));
+    //     }
+    //
+    //     pub fn add_and_enter_type(&mut self, type_name: impl Into<String>) {
+    //         let type_name = type_name.into();
+    //         let module = self.current_module.clone().expect("Cannot add type without module");
+    //         self.current_type = Some(type_name.clone());
+    //         self.add_entry(Entry::new_type(module, type_name))
+    //     }
+    //
+    //     pub fn leave(&mut self) {
+    //         let type_left = self.current_type.take().is_none();
+    //         if !type_left {
+    //             self.current_module = self.current_module.and_then(|m| m.parent_module())
+    //         }
+    //     }
+    //
+    //     pub fn add_method(
+    //         &mut self,
+    //         name: impl Into<String>,
+    //         arguments: Vec<SuggestionEntryArgument>,
+    //         return_type: impl TryInto<tp::QualifiedName>,
+    //     ) -> Self {
+    //         let on_type =
+    //         self.add_entry(Entry::new_method())
+    //     }
+    // }
 
 
 

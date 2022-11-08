@@ -7,8 +7,8 @@ use crate::prelude::*;
 
 use crate::model::module::ProjectMetadata;
 
-use double_representation::identifier::ReferentName;
-use double_representation::project::QualifiedName;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::binary;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
@@ -38,7 +38,7 @@ pub trait API: Debug {
     fn name(&self) -> ReferentName;
 
     /// Project's qualified name
-    fn qualified_name(&self) -> QualifiedName;
+    fn qualified_name(&self) -> project::QualifiedName;
 
     /// Get Language Server JSON-RPC Connection for this project.
     fn json_rpc(&self) -> Rc<language_server::Connection>;
@@ -89,19 +89,16 @@ pub trait API: Debug {
     }
 
     /// Generates full module's qualified name that includes the leading project name segment.
-    fn qualified_module_name(
-        &self,
-        path: &model::module::Path,
-    ) -> crate::model::module::QualifiedName {
+    fn qualified_module_name(&self, path: &model::module::Path) -> QualifiedName {
         path.qualified_module_name(self.qualified_name())
     }
 
     /// Get qualified name of the project's `Main` module.
     ///
     /// This module is special, as it needs to be referred by the project name itself.
-    fn main_module(&self) -> model::module::QualifiedName {
+    fn main_module(&self) -> QualifiedName {
         let name = self.qualified_name();
-        model::module::QualifiedName::new_main(name)
+        QualifiedName::new_main(name)
     }
 
     /// Get the file path of the project's `Main` module.

@@ -11,7 +11,6 @@ use crate::controller::ide::API;
 use crate::ide::initializer;
 use crate::notification;
 
-use double_representation::identifier::ReferentName;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
@@ -168,12 +167,11 @@ impl ManagingProjectAPI for Handle {
 
 /// Select a new name for the project in a form of <suggested_name>_N, where N is a unique sequence
 /// number.
-fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> ReferentName {
+fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
     let nth_project_name = |i| iformat!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
-    let mut candidates = std::iter::once(first_candidate).chain(candidates);
+    let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
-    let name = candidates.find(|c| !existing_names.contains(c)).unwrap();
-    ReferentName::from_identifier_text(name).expect("Empty project name provided")
+    candidates.find(|c| !existing_names.contains(c)).unwrap()
 }

@@ -4,9 +4,9 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotificationPublisher;
-use crate::model::module::QualifiedName;
 
-use double_representation::project;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;

@@ -9,7 +9,7 @@ use crate::controller::searcher::component::MatchInfo;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
-use double_representation::project;
+use double_representation::name::project;
 use ensogl::data::color;
 use std::cmp;
 

@@ -7,9 +7,11 @@ use crate::controller::FilePath;
 use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
-use double_representation::identifier::ReferentName;
 use double_representation::import;
-use double_representation::project;
+use double_representation::module::Id;
+use double_representation::name::project;
+use double_representation::name::NamePath;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
@@ -25,10 +27,6 @@ use serde::Serialize;
 
 pub mod plain;
 pub mod synchronized;
-
-pub use double_representation::module::Id;
-pub use double_representation::module::QualifiedName;
-pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
 
 
@@ -96,7 +94,7 @@ pub struct Path {
 
 impl Path {
     /// Get the file name of the module with given name.
-    pub fn module_filename(name: &ReferentName) -> String {
+    pub fn module_filename(name: &str) -> String {
         iformat!("{name}.{LANGUAGE_FILE_EXTENSION}")
     }
 
@@ -104,8 +102,8 @@ impl Path {
     pub fn from_id(root_id: Uuid, id: &Id) -> Path {
         // We prepend source directory and replace trailing segment with filename.
         let src_dir = std::iter::once(SOURCE_DIRECTORY.to_owned());
-        let dirs = id.parent_segments().iter().map(ToString::to_string);
-        let filename = std::iter::once(Self::module_filename(&id.name()));
+        let dirs = id.parent_modules.iter().map(ToString::to_string);
+        let filename = iter::once(Self::module_filename(id.name.as_str()));
         let segments = src_dir.chain(dirs).chain(filename).collect();
         let path = FilePath { root_id, segments };
         Path { file_path: Rc::new(path) }
@@ -113,12 +111,12 @@ impl Path {
 
     /// Get path to the module with given qualified name under given root ID.
     pub fn from_name(root_id: Uuid, name: &QualifiedName) -> Path {
-        Self::from_id(root_id, name.id())
+        Self::from_id(root_id, name.module_id())
     }
 
     /// Get a path of the module that defines given method.
     pub fn from_method(root_id: Uuid, method: &MethodPointer) -> FallibleResult<Self> {
-        let name = QualifiedName::try_from(method)?;
+        let name = QualifiedName::try_from(&method.module)?;
         Ok(Self::from_name(root_id, &name))
     }
 
@@ -132,12 +130,8 @@ impl Path {
 
         if let [ref src_dir, ref dirs @ .., _] = *file_path.segments.as_slice() {
             (src_dir == SOURCE_DIRECTORY).ok_or_else(error(NotInSourceDirectory))?;
-            for dir in dirs {
-                ReferentName::validate(dir)?;
-            }
             let correct_extension = file_path.extension() == Some(LANGUAGE_FILE_EXTENSION);
             correct_extension.ok_or_else(error(WrongFileExtension))?;
-            ReferentName::validate(file_path.file_stem().unwrap_or_default())?;
             Ok(())
         } else {
             Err(error(NotEnoughSegments)().into())

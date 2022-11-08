@@ -309,7 +309,7 @@ pub(crate) mod tests {
     use crate::model::suggestion_database::entry::Kind;
 
     use double_representation::module;
-    use double_representation::project;
+    use double_representation::name::project;
     use engine_protocol::language_server;
 
 

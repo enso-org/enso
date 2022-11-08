@@ -10,7 +10,6 @@ use crate::definition;
 use crate::definition::DefinitionInfo;
 use crate::graph::GraphInfo;
 use crate::identifier::Identifier;
-use crate::identifier::ReferentName;
 use crate::node;
 use crate::node::MainLine;
 use crate::node::NodeInfo;
@@ -41,7 +40,7 @@ pub fn collapse(
     selected_nodes: impl IntoIterator<Item = node::Id>,
     name: Identifier,
     parser: &Parser,
-    module_name: ReferentName,
+    module_name: String,
 ) -> FallibleResult<Collapsed> {
     Collapser::new(graph.clone(), selected_nodes, parser.clone_ref(), module_name)?.collapse(name)
 }
@@ -298,7 +297,7 @@ pub struct Collapser {
     parser:         Parser,
     /// Identifier of the node to be introduced as a result of collapsing.
     collapsed_node: node::Id,
-    module_name:    ReferentName,
+    module_name:    String,
 }
 
 impl Collapser {
@@ -308,7 +307,7 @@ impl Collapser {
         graph: GraphInfo,
         selected_nodes: impl IntoIterator<Item = node::Id>,
         parser: Parser,
-        module_name: ReferentName,
+        module_name: String,
     ) -> FallibleResult<Self> {
         let graph = GraphHelper::new(graph);
         let extracted = Extracted::new(&graph, selected_nodes)?;

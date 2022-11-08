@@ -321,7 +321,7 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use double_representation::project;
+    use double_representation::name::project;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;

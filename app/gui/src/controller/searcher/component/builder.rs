@@ -26,7 +26,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
-use double_representation::project;
+use double_representation::name::project;
 
 
 
@@ -301,7 +301,7 @@ mod tests {
 
     use crate::controller::searcher::component::tests::mock_suggestion_db;
 
-    use double_representation::project;
+    use double_representation::name::project;
 
 
     #[derive(Clone, Debug, Eq, PartialEq)]
