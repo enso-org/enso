@@ -175,8 +175,7 @@ fn init(app: Application) {
     // This is a testing string left here for convenience.
     // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
     area.set_content(content);
-    // area.set_font("mplus1p");
-    area.set_font("dejavu");
+    area.set_font("mplus1p");
     area.set_property_default(color::Rgba::black());
     area.focus();
     area.hover();
@@ -192,8 +191,8 @@ fn init(app: Application) {
 
     let style = web::document.create_element_or_panic("style");
     let css = web::document.create_text_node("@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap');");
-    style.append_child(&css);
-    web::document.head().unwrap().append_child(&style);
+    style.append_child(&css).unwrap();
+    web::document.head().unwrap().append_child(&style).unwrap();
 
     let div = web::document.create_div_or_panic();
     div.set_style_or_warn("width", "100px");
@@ -204,7 +203,7 @@ fn init(app: Application) {
     div.set_style_or_warn("font-size", "12px");
     div.set_style_or_warn("display", "none");
     div.set_inner_text(content);
-    web::document.body().unwrap().append_child(&div);
+    web::document.body().unwrap().append_child(&div).unwrap();
 
     init_debug_hotkeys(&app.display.default_scene, &area, &div);
 
@@ -216,14 +215,12 @@ fn init(app: Application) {
     });
 
     mem::forget(handler);
-    mem::forget(style);
-    mem::forget(css);
     mem::forget(navigator);
     mem::forget(app);
 }
 
 fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web::HtmlDivElement) {
-    let mut html_version = Rc::new(Cell::new(false));
+    let html_version = Rc::new(Cell::new(false));
     let scene = scene.clone_ref();
     let area = area.clone_ref();
     let div = div.clone();
@@ -293,7 +290,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     } else {
                         area.set_property(buffer::RangeLike::Selections, formatting::Weight::Bold);
                     }
-                } else if key == "KeyH" {
+                } else if key == "KeyN" {
                     if event.shift_key() {
                         area.set_property_default(formatting::SdfWeight(0.02));
                     } else {
@@ -309,7 +306,9 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                         area.set_property(buffer::RangeLike::Selections, formatting::Style::Italic);
                     }
                 } else if key == "KeyF" {
-                    area.set_font(fonts_cycle.next().unwrap());
+                    let font = fonts_cycle.next().unwrap();
+                    warn!("Switching to font '{}'.", font);
+                    area.set_font(font);
                 } else if key == "Equal" {
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));

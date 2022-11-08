@@ -1321,7 +1321,9 @@ impl TextModel {
                         if truncated {
                             break;
                         }
-                        // FIXME[WD]: IN THIS PR: Talk with Adam why it's needed.
+                        // FIXME[WD]: This is a workaround for a bug in the MSDFgen binding. It
+                        //     should be fixed after updating the MSDFgen library.
+                        //     See: https://www.pivotaltracker.com/n/projects/2539304/stories/183747513
                         let magic_scale = 2048.0 / shaped_glyph_set.units_per_em as f32;
                         for shaped_glyph in &shaped_glyph_set.glyphs {
                             let glyph_byte_start = shaped_glyph.start_byte();

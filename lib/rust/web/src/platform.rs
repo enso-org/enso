@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 // ================
 
 /// This enumeration lists all the supported platforms.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 pub enum Platform {
     Android,
