@@ -16,4 +16,4 @@ publish = true
 
 [dependencies]
 serde = { version = "1.0.0", features = ["derive"] }
-nalgebra = { version = "0.21.1", features = ["serde-serialize"] }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }

@@ -44,7 +44,6 @@ tracing-subscriber = "0.3"
 tracing-wasm = "0.2"
 wasm-bindgen = { version = "0.2.78", features = ["nightly"], optional = true }
 weak-table = "0.3.0"
-nalgebra = { version = "0.26.2", optional = true }
 enso-web = { path = "../web" }
 gen-iter = "0.2.1"
 
