@@ -53,11 +53,9 @@ spec = Test.group "Columns" <|
         test_column.take (Last 7) . to_vector . should_equal expected_2.to_vector
         test_column.take (Last 0) . to_vector . should_equal expected_3.to_vector
 
-    Test.specify "should be able to get the first / head element" <|
+    Test.specify "should be able to get the first element" <|
         test_column.first . should_equal 1
-        test_column.head . should_equal 1
         empty_column.first.should_fail_with Empty_Error
-        empty_column.head.should_fail_with Empty_Error
 
     Test.specify "should be able to get the last element" <|
         test_column.last . should_equal 6
@@ -85,25 +83,12 @@ spec = Test.group "Columns" <|
         col = Examples.decimal_column.set_index Examples.integer_column
         col.index.to_vector . should_equal Examples.integer_column.to_vector
 
-    Test.specify "should allow computing variance and standard deviation" <|
-        const = Column.from_vector 'const' [1, 1, 1, 1, 1]
-        const.variance . should_equal 0
-        const.standard_deviation.should_equal 0
-
-        rand = Column.from_vector 'random' [10.0, 4.2, 6.8, 6.2, 7.2]
-        rand.variance . should_equal 4.372
-        rand.variance degrees_of_freedom_correction=0 . should_equal 3.4976
-        rand.standard_deviation . should_equal 2.090932806 epsilon=(10 ^ -6)
-        rand.standard_deviation degrees_of_freedom_correction=0 . should_equal 1.870187156 epsilon=(10 ^ -6)
-
-    Test.specify "should allow computing the R² score of a prediction" <|
-        sample = Column.from_vector 'sample' [1,2,3,4,5]
-        mean_pred = Column.from_vector 'mean' [3,3,3,3,3]
-        perfect_pred = Column.from_vector 'perfect' [1,2,3,4,5]
-        bad_pred = Column.from_vector 'bad' [5,4,3,2,1]
-
-        sample.r_squared mean_pred . should_equal 0
-        sample.r_squared perfect_pred . should_equal 1
-        sample.r_squared bad_pred . should_equal -3
+    Test.specify "should result in correct Storage if operation allows it" <|
+        another = Column.from_vector "Test" [10, 20, 30, 40, 50, 60]
+        (test_column + 1).storage_type . should_equal Storage.Integer
+        (test_column - 1).storage_type . should_equal Storage.Integer
+        (test_column * 2).storage_type . should_equal Storage.Integer
+        (test_column * 1.5).storage_type . should_equal Storage.Decimal
+        (test_column + another).storage_type . should_equal Storage.Integer
 
 main = Test_Suite.run_main spec

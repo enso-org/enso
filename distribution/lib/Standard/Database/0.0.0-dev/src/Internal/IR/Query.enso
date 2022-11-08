@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 
@@ -17,7 +17,7 @@ type Query
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute.
        - context: The query context, see `Context` for more detail.
-    Select (expressions : Vector (Pair Text Expression)) (context : Context)
+    Select (expressions : Vector (Pair Text SQL_Expression)) (context : Context)
 
     ## PRIVATE
 
