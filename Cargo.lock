@@ -1889,7 +1889,7 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "shrinkwraprs 0.3.0",
  "strum",
  "sysinfo",
@@ -1918,7 +1918,7 @@ dependencies = [
  "futures-util",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "tracing",
 ]
 
@@ -1942,13 +1942,28 @@ dependencies = [
  "octocrab",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "strum",
  "tempfile",
  "tokio",
  "toml",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "enso-build-macros"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.6.0",
+ "enso-build-base",
+ "itertools 0.10.5",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "serde_yaml 0.9.14",
+ "shrinkwraprs 0.3.0",
+ "syn",
 ]
 
 [[package]]
@@ -3849,7 +3864,7 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "sha2",
  "shrinkwraprs 0.3.0",
  "strum",
@@ -6144,9 +6159,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.9.13"
+version = "0.9.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8613d593412a0deb7bbd8de9d908efff5a0cb9ccd8f62c641e7b2ed2f57291d1"
+checksum = "6d232d893b10de3eb7258ff01974d6ee20663d8e833263c99409d4b13a0209da"
 dependencies = [
  "indexmap",
  "itoa 1.0.3",
