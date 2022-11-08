@@ -144,8 +144,7 @@ impl Slider {
 
             // value calculation
 
-            precision               <- input.set_precision.sample(&component_click);
-            precision_adjusted      <- all2(&precision, &drag_y_fract).map(
+            precision_adjusted      <- all2(&input.set_precision, &drag_y_fract).map(
                 |(base, offset)| *base * (10.0).pow(offset.round())
             );
 
@@ -155,12 +154,15 @@ impl Slider {
                 |(value, precision, delta)| value + delta.x * precision
             ).gate(&value_update);
             value                   <- any2(&input.set_value, &value);
-            value_clamped           <- all3(&value, &input.set_min, &input.set_max).map(
-                |(value, min, max)| value.max(*min).min(*max)
+            value                   <- all3(&value, &input.set_min, &input.set_max).map(
+                |(value, min, max)| value.clamp(*min, *max)
             );
-            output.value            <+ value_clamped;
+            value                   <- all2(&value, &precision_adjusted).map(
+                |(value, precision)| (value / precision).round() * precision
+            );
+            output.value            <+ value;
 
-            track_pos.target        <+ all3(&value_clamped, &input.set_min, &input.set_max).map(
+            track_pos.target        <+ all3(&value, &input.set_min, &input.set_max).map(
                 |(value, min, max)| (value - min) / (max - min)
             );
 
@@ -192,7 +194,7 @@ impl Slider {
 
             // text alignment
 
-            model.value.set_content <+ value_clamped.map(
+            model.value.set_content <+ value.map(
                 |value| format!("{:.2}", value).to_im_string()
             );
 
