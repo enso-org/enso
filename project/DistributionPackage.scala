@@ -136,11 +136,7 @@ object DistributionPackage {
     )
     val os = System.getProperty("os.name")
     val isMac = os.startsWith("Mac")
-    val dir = if (isMac) {
-      "target/rust/x86_64-apple-darwin/debug/"
-    } else {
-      "target/rust/debug/"
-    }
+    val dir = "target/rust/debug/"
     val parser = dir + (if (isMac) {
       "libenso_parser.dylib"
     } else if (os.startsWith("Windows")) {
