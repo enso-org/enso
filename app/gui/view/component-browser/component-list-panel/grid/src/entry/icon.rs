@@ -550,7 +550,7 @@ define_icons! {
             (style: Style, color: Vector4) {
                 let vivid_color: Var<color::Rgba> = color.into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
-                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let dull_color = vivid_color.multiply_alpha(&dull_alpha);
                 let column_color = dull_color.clone();
                 let plus_color = dull_color;
 
@@ -575,7 +575,7 @@ define_icons! {
             (style: Style, color: Vector4) {
                 let vivid_color: Var<color::Rgba> = color.into();
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
-                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let dull_color = vivid_color.multiply_alpha(&dull_alpha);
                 let row_color  = dull_color.clone();
                 let plus_color = dull_color;
 
@@ -836,10 +836,10 @@ define_icons! {
                 let left_outline = left_circle.grow(1.0.px()) - &left_circle;
                 let left_outline = left_outline.fill(vivid_color.clone());
                 let right_outline = right_circle.grow(1.0.px()) - &right_circle;
-                let right_outline = right_outline.fill(vivid_color.clone());
+                let right_outline = right_outline.fill(vivid_color);
 
                 let left_circle = left_circle.fill(dull_color.clone());
-                let right_circle = right_circle.fill(dull_color.clone());
+                let right_circle = right_circle.fill(dull_color);
                 let intersection = intersection.fill(intersection_color);
 
                 let shape =
@@ -1013,9 +1013,25 @@ define_icons! {
     }
 
     /// Outline of a circle. A placeholder icon for
-    /// [`enso_gui::model::suggestion_database::entry::Kind::Atom`] components. Planned to be
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Type`] components. Planned to be
     /// replaced by a carefully designed icon in the future.
-    pub mod atom(Atom) {
+    pub mod r#type(Type) {
+        ensogl_core::shape! {
+           above = [grid_view::selectable::highlight::shape, crate::entry::background];
+            (style: Style, color: Vector4) {
+                let vivid_color: Var<color::Rgba> = color.into();
+                let circle = Circle(5.5.px()) - Circle(4.0.px());
+                let shape = circle.fill(vivid_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Outline of a circle. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Constructor`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod constructor(Constructor) {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
