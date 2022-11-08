@@ -1,3 +1,5 @@
+//! This module contains data necessary to deploy Enso Runtime to the cloud.
+
 use crate::prelude::*;
 
 use crate::paths::generated;
@@ -8,11 +10,13 @@ use ide_ci::programs::Docker;
 
 
 
-/// Name of the repository.
+/// Name of the ECR repository with Runtime images.
 pub const NAME: &str = "runtime";
 
+/// Region where the ECR repository with Runtime images is located.
 pub const REGION: &str = "eu-west-1";
 
+/// Build the Runtime Docker image from the Engine package.
 #[instrument(fields(%dockerfile, %engine_package_root))]
 pub async fn build_runtime_image(
     dockerfile: generated::RepoRootToolsCiDocker,

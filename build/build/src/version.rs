@@ -1,3 +1,5 @@
+//! Code that deals with the version of Enso.
+
 use crate::prelude::*;
 
 use anyhow::Context;
@@ -5,7 +7,7 @@ use chrono::Datelike;
 use derivative::Derivative;
 use ide_ci::define_env_var;
 use ide_ci::env::new::TypedVariable;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github;
 use octocrab::models::repos::Release;
 use semver::Prerelease;
 use std::collections::BTreeSet;
@@ -18,64 +20,88 @@ use tracing::instrument;
 
 // Variable that stores Enso Engine version.
 define_env_var! {
+    /// The version of Enso (shared by GUI and Engine).
     ENSO_VERSION, Version;
+    /// Edition name for the build.
+    ///
+    /// By convention, this is the same as the version.
     ENSO_EDITION, String;
+
+    /// Whether the development-specific Engine features should be disabled.
     ENSO_RELEASE_MODE, bool;
 }
 
 pub const LOCAL_BUILD_PREFIX: &str = "dev";
 pub const NIGHTLY_BUILD_PREFIX: &str = "nightly";
+pub const RC_BUILD_PREFIX: &str = "rc";
 
-pub fn default_dev_version() -> Version {
-    let mut ret = Version::new(0, 0, 0);
-    ret.pre = Prerelease::new(LOCAL_BUILD_PREFIX).unwrap();
-    ret
-}
-
-pub fn is_nightly_release(release: &Release) -> bool {
-    !release.draft && release.tag_name.contains(NIGHTLY_BUILD_PREFIX)
-}
-
-pub async fn nightly_releases(
-    octocrab: &Octocrab,
-    repo: &RepoContext,
-) -> Result<impl Iterator<Item = Release>> {
-    Ok(repo.all_releases(octocrab).await?.into_iter().filter(is_nightly_release))
-}
-
-pub async fn latest_nightly_release(octocrab: &Octocrab, repo: &RepoContext) -> Result<Release> {
-    // TODO: this assumes that releases are returned in date order, to be confirmed
-    //       (but having to download all the pages to see which is latest wouldn't be nice)
-    nightly_releases(octocrab, repo).await?.next().context("Failed to find any nightly releases.")
-}
-
-
-#[derive(Clone, Derivative, Serialize, Deserialize, Shrinkwrap, PartialEq, Eq)]
-#[derivative(Debug)]
-pub struct Versions {
-    #[shrinkwrap(main_field)]
-    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
-    pub version:      Version,
-    pub release_mode: bool,
-}
-
-impl Default for Versions {
-    fn default() -> Self {
-        Versions { version: default_dev_version(), release_mode: false }
+/// Check if the given GitHub release matches the provided kind.
+pub fn is_release_of_kind(release: &Release, kind: Kind) -> bool {
+    match kind {
+        Kind::Dev => release.tag_name.contains(LOCAL_BUILD_PREFIX),
+        Kind::Nightly => release.tag_name.contains(NIGHTLY_BUILD_PREFIX),
+        Kind::Rc => release.tag_name.contains(RC_BUILD_PREFIX),
+        Kind::Stable => !release.prerelease,
     }
 }
 
+/// List all releases in the GitHub repository that are of a given kind.
+pub async fn releases_of_kind(
+    repo: &github::repo::Handle<impl IsRepo>,
+    kind: Kind,
+) -> Result<impl Iterator<Item = Release>> {
+    Ok(repo.all_releases().await?.into_iter().filter(move |r| is_release_of_kind(r, kind)))
+}
+
+/// Get the latest nightly release in the GitHub repository.
+pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) -> Result<Release> {
+    // TODO: this assumes that releases are returned in date order, to be confirmed
+    //       (but having to download all the pages to see which is latest wouldn't be nice)
+    releases_of_kind(repo, Kind::Nightly)
+        .await?
+        .next()
+        .context("Failed to find any nightly releases.")
+}
+
+/// Keeps the version of Enso, edition name and whether this version should be treated as a release.
+///
+/// Basically this is everything that is needed to define the version of the build.
+#[derive(Clone, Derivative, Serialize, Deserialize, Shrinkwrap, PartialEq, Eq)]
+#[derivative(Debug)]
+pub struct Versions {
+    /// The version of Enso.
+    ///
+    /// Currently it also doubles as the edition name. In future we might want to separate them.
+    #[shrinkwrap(main_field)]
+    #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
+    pub version: Version,
+
+    /// Whether this version should be treated as a release.
+    ///
+    /// This is later propagated to [`ENSO_RELEASE_MODE`] environment variable.
+    pub release_mode: bool,
+}
+
 impl Versions {
+    /// Create a new version from a single SemVer [`Version`] value.
+    ///
+    /// Edition name will be deduced, to be the same as the version.
+    /// Whether this version should be treated as a release is deduced from the version's
+    /// [pre-release](https://semver.org/#spec-item-9) part.
     pub fn new(version: Version) -> Self {
         let release_mode = !version.pre.as_str().contains(LOCAL_BUILD_PREFIX)
             && !version.pre.as_str().contains("SNAPSHOT");
         Versions { version, release_mode }
     }
 
+    /// Get the edition name.
+    ///
+    /// By convention, this is the same as the version.
     pub fn edition_name(&self) -> String {
         self.version.to_string()
     }
 
+    /// Pretty print the product name and version, e.g. "Enso 2022.1.0".
     pub fn pretty_name(&self) -> String {
         format!("Enso {}", self.version)
     }
@@ -84,7 +110,9 @@ impl Versions {
         Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
     }
 
-    pub async fn nightly_prerelease(octocrab: &Octocrab, repo: &RepoContext) -> Result<Prerelease> {
+    pub async fn nightly_prerelease(
+        repo: &github::repo::Handle<impl IsRepo>,
+    ) -> Result<Prerelease> {
         let date = chrono::Utc::now();
         let date = date.format("%F").to_string();
 
@@ -98,7 +126,7 @@ impl Versions {
             Ok(pre)
         };
 
-        let relevant_nightly_versions = nightly_releases(octocrab, repo)
+        let relevant_nightly_versions = releases_of_kind(repo, Kind::Nightly)
             .await?
             .filter_map(|release| {
                 if release.tag_name.contains(&todays_pre_text) {
@@ -121,15 +149,61 @@ impl Versions {
         unreachable!("After infinite loop.")
     }
 
+    /// Generate prerelease string for the "release candidate" release.
+    ///
+    /// We list all the RC releases in the repository, and increment the number of the latest one.
+    pub async fn rc_prerelease(
+        version: &Version,
+        repo: &github::repo::Handle<impl IsRepo>,
+    ) -> Result<Prerelease> {
+        let relevant_rc_versions = releases_of_kind(repo, Kind::Rc)
+            .await?
+            .filter_map(|release| {
+                let release_version = Version::parse(&release.tag_name).ok()?;
+                let version_matches = release_version.major == version.major
+                    && release_version.minor == version.minor
+                    && release_version.patch == version.patch;
+                version_matches.then_some(release_version.pre)
+            })
+            .collect::<BTreeSet<_>>();
+
+        // Generate subsequent RC sub-releases, until a free one is found.
+        // Should happen rarely.
+        for index in 0.. {
+            let pre = Prerelease::from_str(&format!("{}.{}", RC_BUILD_PREFIX, index))?;
+            if !relevant_rc_versions.contains(&pre) {
+                return Ok(pre);
+            }
+        }
+        unreachable!("After infinite loop.")
+    }
+
+    /// Get a git tag that should be applied to a commit released as this version.
     pub fn tag(&self) -> String {
         self.version.to_string()
     }
 
-    pub fn publish(&self) -> Result {
+    pub async fn publish(&self) -> Result {
         let edition = self.edition_name();
-        ENSO_VERSION.emit_to_workflow(&self.version)?;
-        ENSO_EDITION.emit_to_workflow(edition.as_str())?;
-        ENSO_RELEASE_MODE.emit_to_workflow(&self.release_mode)?;
+        // Some components (like SBT) consume version information through these environment
+        // variables.
+        ENSO_VERSION.set(&self.version)?;
+        ENSO_EDITION.set(&edition)?;
+        ENSO_RELEASE_MODE.set(&self.release_mode)?;
+
+        // This is actually used only in some workflows (primarily the release one, where release
+        // creation and the asset compilation happen in separate jobs). Still, no harm in doing this
+        // always.
+        //
+        // Note that our output names are the same as the environment variable names.
+        ide_ci::actions::workflow::set_output(ENSO_VERSION.name, &ENSO_VERSION.get_raw()?).await?;
+        ide_ci::actions::workflow::set_output(ENSO_EDITION.name, &ENSO_EDITION.get_raw()?).await?;
+        ide_ci::actions::workflow::set_output(
+            ENSO_RELEASE_MODE.name,
+            &ENSO_RELEASE_MODE.get_raw()?,
+        )
+        .await?;
+
         Ok(())
     }
 }
@@ -175,7 +249,7 @@ pub fn suggest_next_version(previous: &Version) -> Version {
 }
 
 #[instrument(ret)]
-pub fn versions_from_env(expected_build_kind: Option<BuildKind>) -> Result<Option<Versions>> {
+pub fn versions_from_env(expected_build_kind: Option<Kind>) -> Result<Option<Versions>> {
     if let Ok(version) = ENSO_VERSION.get() {
         // The currently adopted version scheme uses same string for version and edition name,
         // so we enforce it here. There are no fundamental reasons for this requirement.
@@ -188,7 +262,7 @@ pub fn versions_from_env(expected_build_kind: Option<BuildKind>) -> Result<Optio
             );
         }
         if let Some(expected_build_kind) = expected_build_kind {
-            let found_build_kind = BuildKind::deduce(&version)?;
+            let found_build_kind = Kind::deduce(&version)?;
             ensure!(
                 found_build_kind == expected_build_kind,
                 "Build kind mismatch. Found: {}, expected: {}.",
@@ -204,23 +278,25 @@ pub fn versions_from_env(expected_build_kind: Option<BuildKind>) -> Result<Optio
 }
 
 #[instrument(skip_all, ret)]
-pub async fn deduce_versions(
-    octocrab: &Octocrab,
-    build_kind: BuildKind,
-    target_repo: Result<&RepoContext>,
+pub async fn deduce_or_generate(
+    repo: Result<&github::repo::Handle<impl IsRepo>>,
+    kind: Kind,
     root_path: impl AsRef<Path>,
 ) -> Result<Versions> {
     debug!("Deciding on version to target.");
-    if let Some(versions) = versions_from_env(Some(build_kind))? {
+    if let Some(versions) = versions_from_env(Some(kind))? {
         Ok(versions)
     } else {
         let changelog_path = crate::paths::root_to_changelog(&root_path);
+        let base_version = base_version(&changelog_path)?;
         let version = Version {
-            pre: match build_kind {
-                BuildKind::Dev => Versions::local_prerelease()?,
-                BuildKind::Nightly => Versions::nightly_prerelease(octocrab, target_repo?).await?,
+            pre: match kind {
+                Kind::Dev => Versions::local_prerelease()?,
+                Kind::Nightly => Versions::nightly_prerelease(repo?).await?,
+                Kind::Rc => Versions::rc_prerelease(&base_version, repo?).await?,
+                Kind::Stable => todo!(), //Versions::stable(repo?).await?,
             },
-            ..base_version(&changelog_path)?
+            ..base_version
         };
         Ok(Versions::new(version))
     }
@@ -232,14 +308,14 @@ mod tests {
 
     #[test]
     fn is_nightly_test() {
-        let is_nightly = |text: &str| BuildKind::Nightly.matches(&Version::parse(text).unwrap());
+        let is_nightly = |text: &str| Kind::Nightly.matches(&Version::parse(text).unwrap());
         assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
         assert!(is_nightly("2022.1.1-nightly"));
         assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
         assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
 
         let version = Version::parse("2022.1.1-nightly.2022-06-06.3").unwrap();
-        assert!(BuildKind::deduce(&version).contains(&BuildKind::Nightly));
+        assert!(Kind::deduce(&version).contains(&Kind::Nightly));
     }
 
     #[test]
@@ -250,18 +326,33 @@ mod tests {
     }
 }
 
-#[derive(clap::ArgEnum, Clone, Copy, PartialEq, Eq, Debug, EnumString, EnumIter, strum::Display)]
+#[derive(
+    clap::ArgEnum,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Debug,
+    EnumString,
+    EnumIter,
+    strum::Display,
+    strum::AsRefStr
+)]
 #[strum(serialize_all = "kebab-case")]
-pub enum BuildKind {
+pub enum Kind {
     Dev,
     Nightly,
+    Rc,
+    Stable,
 }
 
-impl BuildKind {
+impl Kind {
     pub fn prerelease_prefix(self) -> &'static str {
         match self {
-            BuildKind::Dev => LOCAL_BUILD_PREFIX,
-            BuildKind::Nightly => NIGHTLY_BUILD_PREFIX,
+            Kind::Dev => LOCAL_BUILD_PREFIX,
+            Kind::Nightly => NIGHTLY_BUILD_PREFIX,
+            Kind::Rc => RC_BUILD_PREFIX,
+            Kind::Stable => "",
         }
     }
 
@@ -270,7 +361,7 @@ impl BuildKind {
     }
 
     pub fn deduce(version: &Version) -> Result<Self> {
-        BuildKind::iter()
+        Kind::iter()
             .find(|kind| kind.matches(version))
             .context(format!("Failed to deduce build kind for version {version}"))
     }

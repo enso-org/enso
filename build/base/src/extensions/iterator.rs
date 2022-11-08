@@ -1,3 +1,5 @@
+//! Extension methods for `Iterator` and `Iterator`-like types.
+
 use crate::prelude::*;
 
 use std::iter::Rev;
@@ -5,7 +7,10 @@ use std::iter::Take;
 
 
 
+/// Extension methods for `Iterator` and `Iterator`-like types.
 pub trait IteratorExt: Iterator {
+    /// try_filter
+    /// Transforms an [Iterator]'s items into `Result`s, and filters out the `Err` variants.
     fn try_filter<R>(mut self, mut f: impl FnMut(&Self::Item) -> Result<bool>) -> Result<R>
     where
         Self: Sized,
@@ -16,6 +21,7 @@ pub trait IteratorExt: Iterator {
         })
     }
 
+    /// Transforms an [Iterator]'s items into `Result`s, and filters out the `Err` variants.
     fn try_map<R, U>(mut self, mut f: impl FnMut(Self::Item) -> Result<U>) -> Result<R>
     where
         Self: Sized,
@@ -29,8 +35,12 @@ pub trait IteratorExt: Iterator {
 
 impl<I: Iterator> IteratorExt for I {}
 
+/// Extension methods for `Iterator` and `Iterator`-like types.s
 pub trait TryIteratorExt: Iterator {
+    /// The result of successful iteration.
     type Ok;
+
+    /// Collects the results of the iterator into a `Result<Vec<_>>`.
     fn try_collect_vec(self) -> Result<Vec<Self::Ok>>;
 }
 
@@ -45,7 +55,9 @@ where
     }
 }
 
+#[allow(missing_docs)]
 pub trait ExactDoubleEndedIteratorExt: ExactSizeIterator + DoubleEndedIterator + Sized {
+    /// Take the last n elements of the iterator.
     fn take_last_n(self, n: usize) -> Rev<Take<Rev<Self>>> {
         self.rev().take(n).rev()
     }
