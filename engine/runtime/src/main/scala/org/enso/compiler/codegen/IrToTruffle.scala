@@ -364,7 +364,7 @@ class IrToTruffle(
               language,
               expressionProcessor.scope,
               moduleScope,
-              bodyBuilder.bodyNode(),
+              () => bodyBuilder.bodyNode(),
               makeSection(moduleScope, methodDef.location),
               cons,
               methodDef.methodName.name
@@ -441,7 +441,7 @@ class IrToTruffle(
               language,
               expressionProcessor.scope,
               moduleScope,
-              bodyBuilder.bodyNode(),
+              () => bodyBuilder.bodyNode(),
               makeSection(moduleScope, methodDef.location),
               toType,
               methodDef.methodName.name
