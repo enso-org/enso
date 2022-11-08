@@ -194,8 +194,16 @@ impl Slider {
 
             // text alignment
 
-            model.value.set_content <+ value.map(
-                |value| format!("{:.2}", value).to_im_string()
+            model.value.set_content <+ all2(&value, &precision_adjusted).map(
+                |(value, precision)| {
+                    let (left, right) = value_truncate_precision(*value, *precision);
+
+                    if let Some(right) = right {
+                        format!("{}.{}", left, right).to_im_string()
+                    } else {
+                        left.to_im_string()
+                    }
+                }
             );
 
             eval model.value.width (
@@ -218,5 +226,29 @@ impl Slider {
         self.frp.set_precision(0.1);
 
         self
+    }
+}
+
+
+
+// ========================
+// === Helper functions ===
+// ========================
+
+fn value_truncate_precision(value: f32, precision: f32) -> (String, Option<String>) {
+    if precision < 1.0 {
+        let digits = (-precision.log10()).ceil() as usize;
+
+        // round before string conversion, as string is only truncated and not rounded
+        let scale = 10f32.powi(digits as i32);
+        let value = (value * scale).round() / scale;
+
+        let text_left = format!("{:.0}", value.trunc());
+        let text_right = format!("{:.6}", value.fract().abs());
+        let text_right = text_right.chars().skip(2).take(digits).collect();
+        (text_left, Some(text_right))
+    } else {
+        let text_left = format!("{:.0}", value.trunc());
+        (text_left, None)
     }
 }
