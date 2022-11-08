@@ -32,7 +32,7 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<LocalTime> seal() {
     return new TimeOfDayStorage(data, currentSize);
   }
 }

@@ -4,7 +4,7 @@ from Standard.Table import Table, Column
 
 import Standard.Visualization.Scatter_Plot
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 import project
 
@@ -141,4 +141,4 @@ spec =
             value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

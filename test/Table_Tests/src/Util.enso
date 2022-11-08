@@ -3,7 +3,7 @@ import Standard.Base.System
 
 from Standard.Table import Table, Column
 
-import Standard.Test
+from Standard.Test import Test
 
 Table.should_equal self expected =
     self_cols = self.columns

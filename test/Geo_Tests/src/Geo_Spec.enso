@@ -3,7 +3,7 @@ from Standard.Table.Data.Table.Table import Table_Data
 
 import Standard.Geo
 
-import Standard.Test
+from Standard.Test import Test
 
 spec =
     Test.group "Geo Points" <|

@@ -4,7 +4,7 @@ import Standard.Base.System.Platform
 import Standard.Base.System.Process
 from Standard.Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Process" <|
     Test.specify "should call simple command" <|
@@ -89,4 +89,4 @@ spec = Test.group "Process" <|
             Platform.Unknown ->
                 Test.fail "Unsupported platform."
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

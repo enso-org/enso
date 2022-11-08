@@ -13,9 +13,6 @@ import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Aggregate_Column.Aggregate_Column
 
-import project.IO.File_Read
-import project.IO.Auto_Detect.Auto_Detect
-
 import project.Delimited.Quote_Style.Quote_Style
 import project.Delimited.Delimited_Format
 import project.Data.Table_Conversions
@@ -34,9 +31,6 @@ export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
 export project.Data.Aggregate_Column.Aggregate_Column
 
-export project.IO.File_Read
-export project.IO.Auto_Detect.Auto_Detect
-
 export project.Delimited.Quote_Style.Quote_Style
 from project.Delimited.Delimited_Format export Delimited_Format, Delimited
 export project.Data.Table_Conversions
@@ -47,7 +41,7 @@ export project.Excel.Excel_Range.Excel_Range
 
 export project.Data.Data_Formatter.Data_Formatter
 
-import Standard.Geo.Geo_Json
+from Standard.Geo.Geo_Json import Object_Type
 
 ## ALIAS To Table
 
@@ -87,14 +81,14 @@ Json.Json.to_table self fields=Nothing = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->
-                row = if item.get_type == Geo_Json.Feature.to_text then item.get_feature_row else fs
+                row = if item.get_type == Object_Type.Feature.to_text then item.get_feature_row else fs
                 fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
             _ -> Vector.fill fields.length Nothing
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
         Table.new cols
     Json.Object _ ->
-        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not being a feature collection") else
+        if self.get_type != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not being a feature collection") else
             case self.get "features" of
                 Json.Array items ->
                     feature_rows = items.map .get_feature_row

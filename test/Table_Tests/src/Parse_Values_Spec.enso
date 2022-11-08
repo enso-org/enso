@@ -7,8 +7,7 @@ from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_C
 
 import Standard.Visualization
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
@@ -284,4 +283,4 @@ spec = Test.group "Table.parse_values" <|
         t2.at "floats" . to_vector . should_equal c2
         t2.at "bools" . to_vector . should_equal c3
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

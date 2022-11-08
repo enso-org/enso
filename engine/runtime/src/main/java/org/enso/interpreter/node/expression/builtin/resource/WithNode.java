@@ -4,13 +4,12 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.ResourceManager;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.ManagedResource;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Managed_Resource",
@@ -29,11 +28,10 @@ public abstract class WithNode extends Node {
     return WithNodeGen.create();
   }
 
-  abstract Stateful execute(
-      @MonadicState Object state, VirtualFrame frame, Object self, Object action);
+  abstract Object execute(State state, VirtualFrame frame, Object self, Object action);
 
   @Specialization
-  Stateful doWith(Object state, VirtualFrame frame, ManagedResource self, Object action) {
+  Object doWith(State state, VirtualFrame frame, ManagedResource self, Object action) {
     ResourceManager resourceManager = Context.get(this).getResourceManager();
     resourceManager.park(self);
     try {

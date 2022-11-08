@@ -69,11 +69,20 @@ public class EnsoCompilerTest {
     from Standard.Base.Data.Any import all
     import project.IO
     import Standard.Base as Enso_List
-    from Standard.Base import all hiding Number, Boolean
+    from Standard.Base import all hiding Number, Boolean, Decimal, Any
     polyglot java import java.lang.Float
     polyglot java import java.net.URI as Java_URI
 
     main = 3
+    """);
+  }
+
+  @Test
+  public void testImportAll() throws Exception {
+    parseTest("""
+    ## TODO Dubious constructor export
+    from project.Network.Http.Version.Version import all
+    from project.Network.Http.Version.Version export all
     """);
   }
 
@@ -94,6 +103,20 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testIfNothingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~_ = self
+    """);
+  }
+
+  @Test
+  public void testIfSomethingSelf() throws Exception {
+    parseTest("""
+    if_nothing self ~ignore = self
+    """);
+  }
+
+  @Test
   public void testMinusRec() throws Exception {
     parseTest("""
     minus n = minus n-1
@@ -108,9 +131,42 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testIsDigitWithSpaces() throws Exception {
+    parseTest("""
+    compare =
+        is_digit = character -> 42
+    """);
+  }
+
+  @Test
   public void testComments() throws Exception {
     parseTest("""
     # a b c
+    """);
+  }
+
+  @Test
+  public void testCaseTypeOf() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:Vector_2d -> x
+        _ -> x
+    """);
+  }
+
+  @Test
+  public void testCaseTypeOf2() throws Exception {
+    parseTest("""
+    cmp self = case self of
+        v:My_Type -> x
+    """);
+  }
+
+  @Test
+  public void testCaseTypeOfWithSpace() throws Exception {
+    parseTest("""
+    filter self filter = case filter of
+        _ : Filter -> 42
     """);
   }
 
@@ -216,6 +272,16 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNestedBlocks() throws Exception {
+    parseTest("""
+    type Array
+        meaning =
+            catch_primitive handler
+                42
+    """);
+  }
+
+  @Test
   public void testSelf1() throws Exception {
     parseTest("""
     contains self elem = self.contains Nothing
@@ -233,7 +299,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // because of https://github.com/enso-org/enso/pull/3653#issuecomment-1221841342
   public void testDocumentationComment() throws Exception {
     parseTest("""
     ## A type representing computations that may fail.
@@ -242,32 +307,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testColumnSelector() throws Exception {
     parseTest("""
+    ## Specifies a selection of columns from the table on which an operation is
+       going to be performed.
     type Column_Selector
-
-        ## Selects columns based on their names.
-
-           The `matcher` can be used to specify if the names should be matched
-           exactly or should be treated as regular expressions. It also allows to
-           specify if the matching should be case-sensitive.
-        type By_Name (names : Vector Text) (matcher : Matcher = Text_Matcher)
-
-        ## Selects columns by their index.
-
-           The index of the first column in the table is 0. If the provided index is
-           negative, it counts from the end of the table (e.g. -1 refers to the last
-           column in the table).
-        type By_Index (indexes : Vector Integer)
-
-        ## Selects columns having exactly the same names as the columns provided in
-           the input.
-
-           The input columns do not necessarily have to come from the same table, so
-           this approach can be used to match columns with the same names as a set
-           of columns of some other table, for example, when preparing for a join.
-        type By_Column (columns : Vector Column)
+        By_Index (indexes : Vector Integer)
+        By_Column (columns : Vector Column)
     """);
   }
 
@@ -279,6 +325,15 @@ public class EnsoCompilerTest {
         group = Vector.new_builder
         others = Vector.new_builder
         """);
+  }
+
+  @Test
+  public void testNumberTimes() throws Exception {
+    parseTest("""
+    Standard.Base.Number.times : List Any
+    Standard.Base.Number.times self act =
+        act
+    """);
   }
 
   @Test
@@ -341,6 +396,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testExportFromTen() throws Exception {
+    parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
+  }
+
+  @Test
   public void testExportFromAllHiding() throws Exception {
     parseTest("from prj.Data.Foo export all hiding Bar, Baz");
   }
@@ -349,6 +409,34 @@ public class EnsoCompilerTest {
   public void testTextLiteral() throws Exception {
     parseTest("""
     main = "I'm an inline raw text!"
+    """);
+  }
+
+  @Test
+  public void testTextLiteralWithEscape() throws Exception {
+    parseTest("""
+    wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testRawBlockLiteral() throws Exception {
+    // mimics TextTest
+    parseTest("""
+    x = \"\"\"
+        Foo
+        Bar
+          Baz
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testVariousKindsOfUnicodeWhitespace() throws Exception {
+    // mimics Text_Spec.enso:1049
+    parseTest("""
+    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
     """);
   }
 
@@ -369,6 +457,48 @@ public class EnsoCompilerTest {
     measure = ~act -> label -> iter_size -> num_iters ->
         42
     """);
+  }
+
+  @Test
+  public void testTestGroup() throws Exception {
+    parseTest("""
+    type Test
+        ## Creates a new test group, describing properties of the object
+           described by `self`.
+
+           Arguments:
+           - name: The name of the test group.
+           - behaviors: An action containing a set of specs for the group.
+           - pending: A reason for why the test is pending, or `Nothing` when it is not
+             pending.
+
+           > Example
+             Adding a test group.
+
+                 from Standard.Test import Test, Test_Suite
+
+                 example_group = Test_Suite.run <|
+                     Test.group "Number" <| Nothing
+        group : Text -> Any -> (Text | Nothing) -> Nothing
+        """);
+  }
+
+  @Test
+  public void testTestGroupSimple() throws Exception {
+    parseTest("""
+    group1 : Text -> Any -> (Text | Nothing) -> Nothing
+
+    type Test
+        group2 : Text -> Any -> (Text | Nothing) -> Nothing
+    """);
+  }
+
+  @Test
+  public void testWildcardLeftHandSide() throws Exception {
+    parseTest("""
+    Any.should_succeed self frames_to_skip=0 =
+        _ = frames_to_skip
+        """);
   }
 
   @Test
@@ -399,6 +529,17 @@ public class EnsoCompilerTest {
     test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
     test_problem_handling action expected_problems result_checker =
         result_checker result_ignoring
+    """);
+  }
+
+  @Test
+  public void testProblemHandling2() throws Exception {
+    parseTest("""
+    test_problem_handling action expected_problems result_checker =
+        error_result . should_fail_with first_problem_type frames_to_skip=3
+        warnings_checker warnings =
+            ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
+            warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
     """);
   }
 
@@ -495,6 +636,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testExtensionOperator() throws Exception {
+    parseTest("""
+    Text.* : Integer -> Text
+    Text.* self = 42
+    """);
+  }
+
+  @Test
   public void testTypeSignature() throws Exception {
     parseTest("""
     resolve_aggregate table problem_builder aggregate_column =
@@ -506,7 +655,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
+  public void testTypeSignature2() throws Exception {
+    parseTest("""
+    type Baz
+        resolve : Integer -> Column
+    """);
+  }
+
+  @Test
   public void testTypeSignatureQualified() throws Exception {
     parseTest("""
     type Baz
@@ -515,11 +671,10 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
-  public void testMethodDefQualified() throws Exception {
+  public void testMethodDef() throws Exception {
     parseTest("""
     type Foo
-        Identity.id x = x
+        id x = x
     """);
   }
 
@@ -542,6 +697,14 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testCaseWithLowerCaseA() throws Exception {
+    parseTest("""
+    map_nothing self = case self of
+        a -> f a
+    """);
+  }
+
+  @Test
   public void testBalanceUpperCase() throws Exception {
     parseTest("""
     balance_left k x l r = case r of
@@ -557,8 +720,226 @@ public class EnsoCompilerTest {
       """);
   }
 
+  @Test
+  public void testVectorVectorSimple() throws Exception {
+    parseTest("""
+    type Vector
+        build : Matrix Any Decimal
+    """);
+  }
+
+  @Test
+  public void testVectorVectorAny() throws Exception {
+    parseTest("""
+    type Vector
+        build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Decimal
+    """);
+  }
+
+  @Test
+  public void testCaseOfVector() throws Exception {
+    parseTest("""
+        m other = case other of
+            _:Vector.Vector -> 0
+        """);
+  }
+
+  @Test
+  public void testOperatorSectionRight() throws Exception {
+    parseTest("""
+    type Filter_Condition
+        to_predicate self = case self of
+            Less value -> <value
+    """);
+  }
+
+  @Test
+  public void testAutoScope() throws Exception {
+    parseTest("""
+    fn that_meta =
+        c_2 = that_meta.constructor ...
+        """);
+  }
+
+  @Test
+  public void testTextArrayType() throws Exception {
+    parseTest("""
+    type Connection
+        table_types : [Text]
+    """);
+  }
+
+  @Test
+  public void testListBody() throws Exception {
+    parseTest("""
+          list directory name_filter=Nothing recursive=False =
+              new directory . list name_filter=name_filter recursive=recursive
+                  """);
+  }
+
+  @Test
+  public void testLambdaBody() throws Exception {
+    parseTest("""
+    list =
+        all_files.filter file->
+            all_files
+    """);
+  }
+
+  @Test
+  public void testCaseWithComment() throws Exception {
+    parseTest("""
+    ansi_bold : Boolean -> Text -> Text
+    ansi_bold enabled txt =
+        case Platform.os of
+            ## Output formatting for Windows is not currently supported.
+            Platform.Windows -> txt
+            _ -> if enabled then Nothing
+    """);
+  }
+
+  @Test
+  @Ignore // Crashes old parser
+  public void testAlternationTypes() throws Exception {
+    parseTest("""
+    foo : [Integer | Text] -> (Integer | Text)
+    foo v = v.at 0
+    """);
+  }
+
+  @Test
+  public void testGroupOfPatterns() throws Exception {
+    parseTest("""
+    sum self = case self of
+        Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
+    """);
+  }
+
+  @Test
+  public void testNameAsMethodApp() throws Exception {
+    parseTest("""
+    f = foo x=A.B
+    """);
+  }
+
+  @Test
+  public void testIsMethodWithSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to . all f
+    """);
+  }
+
+  @Test
+  public void testIsMethodWithoutSpaces() throws Exception {
+    parseTest("""
+    f = 0.up_to.all f
+    """);
+  }
+
+  @Test
+  public void testHandleRequestError() throws Exception {
+    parseTest("""
+    request self req =
+        handle_request_error =
+            42
+    """);
+  }
+
+  @Test
+  public void testWriteFlag() throws Exception {
+    parseTest("""
+    type Write_Flag
+        JPEG_Quality val:Integer=95
+    """);
+  }
+
+  @Test
+  public void testHasDefaultsSuspended() throws Exception {
+    parseTest("""
+    Atom.constructor self = get_atom_constructor self.value ...
+    """);
+  }
+
+  @Test
+  public void testVectorVector() throws Exception {
+    parseTest("""
+    get_stack_trace : Vector.Vector Stack_Trace_Element
+    """);
+  }
+
+  @Test
+  public void testConstructorMultipleNamedArgs1() throws Exception {
+    parseTest("""
+    x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
+  public void testConstructorMultipleNamedArgs2() throws Exception {
+    parseTest("""
+    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  public void testDocAtEndOfBlock() throws Exception {
+    parseTest("""
+    x =
+      23
+      ## end of block
+    """);
+  }
+
+  @Test
+  public void testMethodSections() throws Exception {
+    parseTest("""
+    x = .from self=Foo
+    """);
+  }
+
+  static String simplifyIR(IR i) {
+    var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
+    for (;;) {
+      final String pref = "IdentifiedLocation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = at + pref.length();
+      int depth = 1;
+      while (depth > 0) {
+        switch (txt.charAt(to)) {
+          case '(' -> depth++;
+          case ')' -> depth--;
+        }
+        to++;
+      }
+      txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Comment.Documentation(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+    }
+    for (;;) {
+      final String pref = "IR.Case.Pattern.Doc(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("location =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+    }
+    return txt;
+  }
+
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws IOException {
+  static void parseTest(String code) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
@@ -566,27 +947,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = (i) -> {
-      var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-      for (;;) {
-        final String pref = "IdentifiedLocation(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-      }
-      return txt;
-    };
+    Function<IR, String> filter = EnsoCompilerTest::simplifyIR;
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);

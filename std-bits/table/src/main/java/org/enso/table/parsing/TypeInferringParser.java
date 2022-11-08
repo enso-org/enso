@@ -40,14 +40,14 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
+  public WithProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
       var aggregator = new ProblemAggregatorImpl(columnName);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
-        String cell = sourceStorage.getItem(i);
+        String cell = sourceStorage.getItemBoxed(i);
         if (cell != null) {
           Object parsed = parser.parseSingleValue(cell, aggregator);
           if (aggregator.hasProblems()) {

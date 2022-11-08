@@ -9,8 +9,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class Last extends Aggregator {
-  private final Storage storage;
-  private final Storage[] orderByColumns;
+  private final Storage<?> storage;
+  private final Storage<?>[] orderByColumns;
   private final int[] orderByDirections;
   private final Comparator<Object> objectComparator;
   private final boolean ignoreNothing;

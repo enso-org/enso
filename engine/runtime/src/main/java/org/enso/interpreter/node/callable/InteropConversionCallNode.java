@@ -16,6 +16,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle conversion application for the interop library. */
 @GenerateUncached
@@ -55,7 +56,7 @@ public abstract class InteropConversionCallNode extends Node {
   @ExplodeLoop
   Object callCached(
       UnresolvedConversion conversion,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildInvoker(cachedArgsLength)") InvokeConversionNode invokerNode,
@@ -66,13 +67,13 @@ public abstract class InteropConversionCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (cachedArgsLength < 2) throw ArityException.create(2, -1, cachedArgsLength);
-    return invokerNode.execute(null, state, conversion, args[0], args[1], args).getValue();
+    return invokerNode.execute(null, state, conversion, args[0], args[1], args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       UnresolvedConversion conversion,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached IndirectInvokeConversionNode indirectInvokeConversionNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -82,19 +83,17 @@ public abstract class InteropConversionCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (arguments.length < 2) throw ArityException.create(2, -1, arguments.length);
-    return indirectInvokeConversionNode
-        .execute(
-            null,
-            state,
-            conversion,
-            args[0],
-            args[1],
-            args,
-            buildSchema(arguments.length),
-            DefaultsExecutionMode.EXECUTE,
-            ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL,
-            1)
-        .getValue();
+    return indirectInvokeConversionNode.execute(
+        null,
+        state,
+        conversion,
+        args[0],
+        args[1],
+        args,
+        buildSchema(arguments.length),
+        DefaultsExecutionMode.EXECUTE,
+        ArgumentsExecutionMode.PRE_EXECUTED,
+        TailStatus.NOT_TAIL,
+        1);
   }
 }

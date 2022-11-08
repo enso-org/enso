@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Test
-import Standard.Test.Problems
+from Standard.Test import Test, Test_Suite, Problems
 
 type Foo_Error
 
@@ -73,4 +72,4 @@ spec = Test.group 'Matching Helper' <|
         Test.expect_panic_with matcher=No_Such_Method_Error_Data <|
             Text_Matcher.Case_Sensitive.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

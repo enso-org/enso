@@ -8,7 +8,7 @@ import org.enso.table.data.table.problems.UnquotedDelimiter;
 import java.util.List;
 
 public class Concatenate extends Aggregator {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final String separator;
   private final String prefix;
   private final String suffix;

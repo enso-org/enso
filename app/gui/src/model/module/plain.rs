@@ -16,7 +16,7 @@ use crate::model::module::TextChange;
 use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
-use double_representation::module::ImportId;
+use double_representation::import;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
 use parser_scala::api::SourceFile;
@@ -212,7 +212,7 @@ impl model::module::API for Module {
 
     fn with_import_metadata(
         &self,
-        id: ImportId,
+        id: import::Id,
         fun: Box<dyn FnOnce(&mut ImportMetadata) + '_>,
     ) -> FallibleResult {
         self.update_content(NotificationKind::MetadataChanged, |content| {
@@ -223,12 +223,12 @@ impl model::module::API for Module {
         })
     }
 
-    fn all_import_metadata(&self) -> Vec<(ImportId, ImportMetadata)> {
+    fn all_import_metadata(&self) -> Vec<(import::Id, ImportMetadata)> {
         let content = self.content.borrow();
         content.metadata.ide.import.clone().into_iter().collect()
     }
 
-    fn remove_import_metadata(&self, id: ImportId) -> FallibleResult<ImportMetadata> {
+    fn remove_import_metadata(&self, id: import::Id) -> FallibleResult<ImportMetadata> {
         self.try_updating_content(NotificationKind::MetadataChanged, |content| {
             let lookup = content.metadata.ide.import.remove(&id);
             lookup.ok_or_else(|| ImportMetadataNotFound(id).into())

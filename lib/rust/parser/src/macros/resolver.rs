@@ -58,7 +58,7 @@ impl MacroMap {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum Context {
     Expression,
     Statement,
@@ -231,12 +231,9 @@ impl<'s> TryAsRef<PartiallyMatchedMacro<'s>> for ItemOrPartiallyMatchedMacro<'s>
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    current_macro:       PartiallyMatchedMacro<'s>,
-    macro_stack:         Vec<PartiallyMatchedMacro<'s>>,
-    scopes:              Vec<Scope<'s>>,
-    lines:               Vec<syntax::tree::block::Line<'s>>,
-    newline:             Option<token::Newline<'s>>,
-    line_contains_items: bool,
+    macro_stack: Vec<PartiallyMatchedMacro<'s>>,
+    scopes:      Vec<Scope<'s>>,
+    open_blocks: Vec<syntax::Item<'s>>,
 }
 
 /// Result of the macro resolution step.
@@ -256,26 +253,16 @@ struct Scope<'s> {
     parent_tokens: std::vec::IntoIter<syntax::Item<'s>>,
     macros_start:  usize,
     outputs_start: usize,
-    prev_newline:  Option<token::Newline<'s>>,
-    prev_macro:    PartiallyMatchedMacro<'s>,
 }
 
 impl<'s> Resolver<'s> {
     /// New resolver with a special "root" segment definition allowing parsing arbitrary
     /// expressions.
     pub fn new_root() -> Self {
-        let current_macro = PartiallyMatchedMacro::new_root();
         let macro_stack = default();
         let scopes = default();
-        let lines = default();
-        let newline = Some(token::newline("", ""));
-        let line_contains_items = default();
-        Self { current_macro, macro_stack, scopes, lines, newline, line_contains_items }
-    }
-
-    fn replace_current_with_parent_macro(&mut self, parent_macro: PartiallyMatchedMacro<'s>) {
-        let child_macro = mem::replace(&mut self.current_macro, parent_macro);
-        self.current_macro.push(child_macro);
+        let open_blocks = vec![Token("", "", token::Variant::newline()).into()];
+        Self { macro_stack, scopes, open_blocks }
     }
 
     /// Returns the index of the first element in `self.macro_stack` that is active in the current
@@ -301,156 +288,83 @@ impl<'s> Resolver<'s> {
         tokens: Vec<syntax::Item<'s>>,
     ) -> syntax::Tree<'s> {
         let mut tokens = tokens.into_iter();
-        trace!("Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
         let mut opt_item: Option<syntax::Item<'s>>;
-        macro_rules! next_token {
-            () => {{
-                opt_item = tokens.next();
-                trace!("Next token {:#?}", &opt_item);
-            }};
-        }
-        macro_rules! trace_state {
-            () => {
-                trace!("Current macro:\n{:#?}", self.current_macro);
-                trace!("Parent macros:\n{:#?}", self.macro_stack);
-            };
-        }
-        next_token!();
+        opt_item = tokens.next();
+        let mut context = Context::Statement;
         loop {
-            while opt_item.is_none() {
-                if let Some(newline) = self.newline.take() {
-                    let expression = self.line_contains_items.as_some_from(|| self.unwind_stack());
-                    self.lines.push(syntax::tree::block::Line { newline, expression });
-                }
-                if let Some(parent_tokens) = self.exit_current_scope() {
-                    tokens = parent_tokens;
-                    next_token!();
+            while let Some(token) = opt_item {
+                if let syntax::Item::Token(Token { variant: token::Variant::Newline(_), .. }) =
+                    &token
+                {
+                    self.finish_current_line();
+                    self.open_blocks.push(token);
+                    opt_item = tokens.next();
+                    context = Context::Statement;
                     continue;
                 }
+                let step_result = match token {
+                    syntax::Item::Token(token) =>
+                        self.process_token(root_macro_map, token, context),
+                    syntax::Item::Block(tokens_) => {
+                        let parent_tokens = mem::replace(&mut tokens, tokens_.into_iter());
+                        let macros_start = self.macro_stack.len();
+                        let outputs_start = self.open_blocks.len();
+                        let scope = Scope { parent_tokens, macros_start, outputs_start };
+                        self.scopes.push(scope);
+                        opt_item = tokens.next();
+                        context = Context::Statement;
+                        continue;
+                    }
+                    _ => Step::NormalToken(token),
+                };
+                match step_result {
+                    Step::MacroStackPop(item) => opt_item = Some(item),
+                    Step::NewSegmentStarted => {
+                        opt_item = tokens.next();
+                        context = Context::Expression;
+                    }
+                    Step::NormalToken(item) => {
+                        self.push(item);
+                        opt_item = tokens.next();
+                        context = Context::Expression;
+                    }
+                }
+            }
+            self.finish_current_line();
+            if let Some(Scope { parent_tokens, macros_start, outputs_start }) = self.scopes.pop() {
+                tokens = parent_tokens;
+                opt_item = tokens.next();
+                debug_assert_eq!(macros_start, self.macro_stack.len());
+                let block = self.open_blocks.drain(outputs_start..).collect();
+                self.push(syntax::Item::Block(block));
+            } else {
                 break;
             }
-            let token = match opt_item {
-                Some(token) => token,
-                None => break,
-            };
-            if let syntax::Item::Token(Token {
-                variant: token::Variant::Newline(_),
-                left_offset,
-                code,
-            }) = token
-            {
-                let new_newline = token::newline(left_offset, code);
-                let newline = mem::replace(&mut self.newline, Some(new_newline));
-                if let Some(newline) = newline {
-                    let expression = self.line_contains_items.as_some_from(|| self.unwind_stack());
-                    self.lines.push(syntax::tree::block::Line { newline, expression });
-                }
-                next_token!();
-                self.line_contains_items = false;
-                continue;
-            }
-            let line_contained_items = mem::replace(&mut self.line_contains_items, true);
-            let context = match line_contained_items {
-                true => Context::Expression,
-                false => Context::Statement,
-            };
-            let step_result = match token {
-                syntax::Item::Token(token) => self.process_token(root_macro_map, token, context),
-                syntax::Item::Block(tokens_) => {
-                    let parent_tokens = mem::replace(&mut tokens, tokens_.into_iter());
-                    let new_root = PartiallyMatchedMacro::new_root();
-                    let prev_macro = mem::replace(&mut self.current_macro, new_root);
-                    let macros_start = self.macro_stack.len();
-                    let outputs_start = self.lines.len();
-                    let prev_newline = self.newline.take();
-                    let scope = Scope {
-                        parent_tokens,
-                        macros_start,
-                        outputs_start,
-                        prev_newline,
-                        prev_macro,
-                    };
-                    self.scopes.push(scope);
-                    next_token!();
-                    self.line_contains_items = false;
-                    continue;
-                }
-                _ => Step::NormalToken(token),
-            };
-            match step_result {
-                Step::MacroStackPop(item) => {
-                    trace_state!();
-                    opt_item = Some(item)
-                }
-                Step::NewSegmentStarted => {
-                    trace_state!();
-                    next_token!()
-                }
-                Step::NormalToken(item) => {
-                    self.current_macro.push(item);
-                    trace_state!();
-                    next_token!();
-                }
-            }
         }
-        syntax::tree::block::body_from_lines(self.lines)
+        let lines = syntax::tree::block::lines(self.open_blocks.into_iter());
+        syntax::tree::block::body_from_lines(lines)
     }
 
-    /// Finish processing the current block and close its macro scope, unless this is the top-level
-    /// block, which is indicated by returning `None`.
-    ///
-    /// This builds a [`syntax::Item::Block`] from the outputs of the current scope, restores the
-    /// state to resume processing the parent scope, and submits the built block as a token to the
-    /// newly-current macro (which would have been the macro active when the block began).
-    ///
-    /// Returns the remaining tokens of the parent block.
-    fn exit_current_scope(&mut self) -> Option<std::vec::IntoIter<syntax::Item<'s>>> {
-        let scope = self.scopes.pop()?;
-        let Scope { parent_tokens, macros_start, outputs_start, prev_newline, prev_macro } = scope;
-        debug_assert_eq!(macros_start, self.macro_stack.len());
-        self.current_macro = prev_macro;
-        let lines = self.lines.drain(outputs_start..);
-        let mut out = Vec::with_capacity(lines.len() * 2);
-        for line in lines {
-            let syntax::tree::block::Line { newline, expression } = line;
-            let newline = syntax::Token::from(newline);
-            let newline = syntax::Item::from(newline);
-            out.push(newline);
-            if let Some(expression) = expression {
-                let expression = syntax::Item::from(expression);
-                out.push(expression);
+    fn finish_current_line(&mut self) {
+        let mut macros = self.macro_stack.drain(self.macro_scope_start()..).rev();
+        if let Some(mut mac) = macros.next() {
+            for mut mac_ in macros {
+                mac_.push(mac);
+                mac = mac_;
             }
+            let (resolved, extra) = Self::resolve(mac);
+            self.open_blocks.push(resolved.into());
+            self.open_blocks.extend(extra);
         }
-        let block = syntax::Item::Block(out);
-        self.current_macro.push(block);
-        self.line_contains_items = true;
-        self.newline = prev_newline;
-        Some(parent_tokens)
     }
 
-    fn unwind_stack(&mut self) -> syntax::Tree<'s> {
-        macro_rules! trace_state {
-            () => {
-                trace!("Current macro:\n{:#?}", self.current_macro);
-                trace!("Parent macros:\n{:#?}", self.macro_stack);
-            };
+    fn push(&mut self, item: syntax::Item<'s>) {
+        let i = self.macro_scope_start();
+        if let Some(mac) = self.macro_stack[i..].last_mut() {
+            mac.push(item);
+        } else {
+            self.open_blocks.push(item);
         }
-        trace!("Finishing resolution. Popping the macro stack.");
-        let macros = self.macro_stack.drain(self.macro_scope_start()..).rev();
-        for parent_macro in macros {
-            let child_macro = mem::replace(&mut self.current_macro, parent_macro);
-            self.current_macro.push(child_macro);
-        }
-        trace_state!();
-        let macro_ = mem::replace(&mut self.current_macro, PartiallyMatchedMacro::new_root());
-        let (tree, rest) = Self::resolve(macro_);
-        if !rest.is_empty() {
-            panic!(
-                "Internal error. Not all tokens were consumed by the macro resolver:\n{:#?}",
-                rest
-            );
-        }
-        tree
     }
 
     fn process_token(
@@ -463,23 +377,28 @@ impl<'s> Resolver<'s> {
         if !token.variant.can_start_macro_segment() {
             return Step::NormalToken(token.into());
         }
-        if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
-            trace!("Entering next segment of the current macro.");
-            let mut new_match_tree =
-                Self::move_to_next_segment(&mut self.current_macro.matched_macro_def, subsegments);
-            let mut current_segment = MatchedSegment::new(token);
-            mem::swap(&mut new_match_tree, &mut self.current_macro.possible_next_segments);
-            mem::swap(&mut self.current_macro.current_segment, &mut current_segment);
-            self.current_macro.resolved_segments.push(current_segment);
-            Step::NewSegmentStarted
-        } else if let Some(parent_macro) = self.pop_macro_stack_if_reserved(repr) {
-            trace!("Next token reserved by parent macro. Resolving current macro.");
-            self.replace_current_with_parent_macro(parent_macro);
-            Step::MacroStackPop(token.into())
-        } else if let Some(segments) = root_macro_map.get(repr, context) {
+        if self.macro_stack.len() > self.macro_scope_start() {
+            let current_macro = self.macro_stack.last_mut().unwrap();
+            if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
+                trace!("Entering next segment of the current macro.");
+                let mut new_match_tree =
+                    Self::move_to_next_segment(&mut current_macro.matched_macro_def, subsegments);
+                let mut current_segment = MatchedSegment::new(token);
+                mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
+                mem::swap(&mut current_macro.current_segment, &mut current_segment);
+                current_macro.resolved_segments.push(current_segment);
+                return Step::NewSegmentStarted;
+            } else if let Some(popped) = self.pop_macro_stack_if_reserved(repr) {
+                trace!("Next token reserved by parent macro. Resolving current macro.");
+                let current_macro = self.macro_stack.last_mut().unwrap();
+                current_macro.push(popped);
+                return Step::MacroStackPop(token.into());
+            }
+        }
+        if let Some(segments) = root_macro_map.get(repr, context) {
             trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
-            let mut current_macro = PartiallyMatchedMacro {
+            let new_macro = PartiallyMatchedMacro {
                 current_segment: MatchedSegment { header: token, body: default() },
                 resolved_segments: default(),
                 possible_next_segments: Self::move_to_next_segment(
@@ -488,8 +407,7 @@ impl<'s> Resolver<'s> {
                 ),
                 matched_macro_def,
             };
-            mem::swap(&mut self.current_macro, &mut current_macro);
-            self.macro_stack.push(current_macro);
+            self.macro_stack.push(new_macro);
             Step::NewSegmentStarted
         } else {
             trace!("Consuming token as current segment body.");

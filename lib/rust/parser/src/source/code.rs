@@ -123,6 +123,12 @@ impl Length {
     pub fn is_zero(&self) -> bool {
         self.utf8 == 0
     }
+
+    /// Return the length in UTF-8 code units (bytes).
+    #[inline(always)]
+    pub fn utf8_bytes(&self) -> usize {
+        self.utf8
+    }
 }
 
 impl Add for Length {

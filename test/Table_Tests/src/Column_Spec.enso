@@ -4,7 +4,7 @@ import Standard.Table.Data.Column.Empty_Error
 import Standard.Table.Data.Storage.Storage
 import Standard.Examples
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
@@ -98,4 +98,4 @@ spec = Test.group "Columns" <|
         sample.r_squared perfect_pred . should_equal 1
         sample.r_squared bad_pred . should_equal -3
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

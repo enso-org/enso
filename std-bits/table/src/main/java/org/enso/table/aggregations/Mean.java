@@ -18,7 +18,7 @@ public class Mean extends Aggregator {
     }
   }
 
-  private final Storage storage;
+  private final Storage<?> storage;
 
   public Mean(String name, Column column) {
     super(name, Storage.Type.DOUBLE);

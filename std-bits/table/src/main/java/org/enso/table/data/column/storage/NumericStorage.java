@@ -1,12 +1,11 @@
 package org.enso.table.data.column.storage;
 
+import java.util.stream.DoubleStream;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.NumericAggregator;
 
-import java.util.stream.DoubleStream;
-
 /** A storage containing items representable as a {@code double}. */
-public abstract class NumericStorage extends Storage {
+public abstract class NumericStorage<T> extends Storage<T> {
   /**
    * Returns the value stored at the given index. The return value if the given index is missing
    * ({@link #isNa(long)}) is undefined.

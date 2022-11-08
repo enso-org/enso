@@ -4,15 +4,15 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import java.lang.ClassCastException
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 # === Test Resources ===
 
 type Ord
     Value number
 
-Ord.compare_to : Ord -> Ordering
-Ord.compare_to self that = that.number.compare_to self.number
+    compare_to : Ord -> Ordering
+    compare_to self that = that.number.compare_to self.number
 
 type No_Ord
     Value number
@@ -61,4 +61,4 @@ spec = Test.group "Object Comparator" <|
         (default_comparator 1 True).should_fail_with Incomparable_Values_Error
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values_Error
 
-main = Test.Suite.run_main spec
+main = Test_Suite.run_main spec

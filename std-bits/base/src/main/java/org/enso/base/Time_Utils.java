@@ -6,10 +6,21 @@ import org.enso.base.time.TimeUtilsBase;
 import org.enso.base.time.Time_Of_Day_Utils;
 import org.graalvm.polyglot.Value;
 
-import java.time.*;
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.*;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.time.temporal.WeekFields;
 import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
@@ -68,38 +79,18 @@ public class Time_Utils {
     return date.atTime(time).atZone(zone);
   }
 
-  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period duration) {
-    switch (op) {
-      case PLUS:
-        return date.plus(duration);
-      case MINUS:
-        return date.minus(duration);
-      default:
-        throw new DateTimeException("Unknown adjust operation");
-    }
+  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
+    return switch (op) {
+      case PLUS -> date.plus(period);
+      case MINUS -> date.minus(period);
+    };
   }
 
-  public static ZonedDateTime datetime_adjust(
-      ZonedDateTime datetime, AdjustOp op, Period period, Duration duration) {
-    switch (op) {
-      case PLUS:
-        return datetime.plus(period).plus(duration);
-      case MINUS:
-        return datetime.minus(period).minus(duration);
-      default:
-        throw new DateTimeException("Unknown adjust operation");
-    }
-  }
-
-  public static LocalTime time_adjust(LocalTime time, AdjustOp op, Duration duration) {
-    switch (op) {
-      case PLUS:
-        return time.plus(duration);
-      case MINUS:
-        return time.minus(duration);
-      default:
-        throw new DateTimeException("Unknown adjust operation");
-    }
+  public static ZonedDateTime datetime_adjust(ZonedDateTime datetime, AdjustOp op, Period period) {
+    return switch (op) {
+      case PLUS -> datetime.plus(period);
+      case MINUS -> datetime.minus(period);
+    };
   }
 
   public static int get_field_as_localdate(LocalDate date, TemporalField field) {

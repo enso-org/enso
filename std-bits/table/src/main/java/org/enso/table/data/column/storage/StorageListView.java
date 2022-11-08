@@ -11,7 +11,7 @@ import java.util.Objects;
  * is not modifiable.
  */
 public class StorageListView implements List<Object> {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final int from;
   private final int to;
 
@@ -20,11 +20,11 @@ public class StorageListView implements List<Object> {
    *
    * @param storage the storage to wrap.
    */
-  public StorageListView(Storage storage) {
+  public StorageListView(Storage<?> storage) {
     this(storage, 0, storage.size());
   }
 
-  private StorageListView(Storage storage, int from, int to) {
+  private StorageListView(Storage<?> storage, int from, int to) {
     this.storage = storage;
     this.from = from;
     this.to = to;

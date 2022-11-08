@@ -9,7 +9,7 @@ import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
-public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<String>> {
+public abstract class StringBooleanOp extends MapOperation<String, SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
     super(name);
   }
@@ -21,7 +21,7 @@ public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<St
   }
 
   @Override
-  public Storage runMap(SpecializedStorage<String> storage, Object arg) {
+  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -53,7 +53,7 @@ public abstract class StringBooleanOp extends MapOperation<SpecializedStorage<St
   }
 
   @Override
-  public Storage runZip(SpecializedStorage<String> storage, Storage arg) {
+  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg) {
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

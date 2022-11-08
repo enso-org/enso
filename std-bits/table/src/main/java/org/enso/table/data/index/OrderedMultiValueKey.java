@@ -21,7 +21,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
   private final int[] directions;
 
   public OrderedMultiValueKey(
-      Storage[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
+      Storage<?>[] storages, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     super(storages, rowIndex);
     this.objectComparator = objectComparator;
     this.directions = directions;

@@ -6,14 +6,16 @@ import Standard.Table.Data.Column.Column as Materialized_Column
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Integrity_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Expression.Expression
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation_Error
+from project.Errors import Unsupported_Database_Operation_Error, Unsupported_Database_Operation_Error_Data
 
 type Column
 
@@ -130,7 +132,7 @@ type Column
         prepare_operand operand operand_type = case operand of
             other_column : Column ->
                 if Helpers.check_integrity self other_column then other_column.expression else
-                    Error.throw <| Unsupported_Database_Operation_Error "Cannot use columns coming from different contexts in one expression without a join."
+                    Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 Expression.Constant actual_operand_type constant
@@ -394,6 +396,32 @@ type Column
     / : Column | Any -> Column
     / self other = self.make_binary_op "/" other
 
+    ## Element-wise modulus.
+
+       Arguments:
+       - other: The value to modulo `self` against. If `other` is a column, the
+         modulus is performed pairwise between corresponding elements of `self`
+         and `other`.
+
+       Returns a column with results of modulus this column's elements against
+       `other`.
+
+       > Example
+         Modulus of two columns against each other.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % Examples.decimal_column
+
+       > Example
+         Modulus of a column with a number.
+
+             import Standard.Examples
+
+             example_mod = Examples.integer_column % 3
+    % : Column | Any -> Column
+    % self other = self.make_binary_op "%" other
+
     ## UNSTABLE
 
        Element-wise boolean conjunction.
@@ -429,24 +457,78 @@ type Column
     not self = self.make_unary_op "NOT"
 
     ## UNSTABLE
+       Replaces `True` values with `when_true` and `False` with `when_false`.
+       Only meant for use with boolean columns.
+
+       TODO: Currently `when_true` and `when_false` need to be a single value.
+       In the future the API will also support row-based IIF if they are columns.
+    iif : Any -> Any -> Column
+    iif self when_true when_false =
+        ## TODO we should adjust new_type based on types when_true and
+           when_false, but this relies on the Value Types design which is still
+           in progress. This function has status of an internal prototype for
+           now, so we just rely on a simplified handling. Once Value Types are
+           properly implemented, this should be accordingly extended for the
+           full implementation of IIF. We will need to handle when_true and
+           when_false being either columns or regular values and rely on a
+           mapping of Enso base types to SQL types, and a rule for extracting a
+           common type.
+        approximate_type x = case x of
+            _ : Integer -> SQL_Type.integer
+            _ : Decimal -> SQL_Type.real
+            _ : Text -> SQL_Type.text
+            _ : Boolean -> SQL_Type.boolean
+            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
+        left_type = approximate_type when_true
+        right_type = approximate_type when_false
+        if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
+            self.make_op "IIF" [when_true, when_false] new_type=left_type
+
+
+    ## UNSTABLE
 
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing self = self.make_unary_op "ISNULL" new_type=SQL_Type.boolean
+    is_missing self = self.make_unary_op "IS_NULL" new_type=SQL_Type.boolean
+
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a NaN. This is only applicable to double columns.
+    is_nan : Column
+    is_nan self = self.make_unary_op "IS_NAN" new_type=SQL_Type.boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
     is_empty : Column
-    is_empty self = self.make_unary_op "ISEMPTY" new_type=SQL_Type.boolean
+    is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
+
+    ## PRIVATE
+       Returns a column of booleans with `True` at the positions where this
+       column contains a blank value.
+
+       Arguments:
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    is_blank : Boolean -> Boolean -> Column
+    is_blank self treat_nans_as_blank=False =
+        is_blank = case self.sql_type.is_definitely_text of
+            True -> self.is_empty
+            False -> self.is_missing
+        case treat_nans_as_blank && self.sql_type.is_definitely_double of
+            True -> is_blank || self.is_nan
+            False -> is_blank
 
     ## UNSTABLE
 
        Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
-    fill_missing self default = self.make_binary_op "FILLNULL" default
+    fill_missing self default = self.make_binary_op "FILL_NULL" default
 
     ## UNSTABLE
 
@@ -495,7 +577,7 @@ type Column
     take self range=(First 1) =
         _ = range
         msg = "`Column.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
        Creates a new Column from the input with the specified range of rows
@@ -507,7 +589,7 @@ type Column
     drop self range=(First 1) =
         _ = range
         msg = "`Column.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error msg)
+        Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
     ## UNSTABLE
 
@@ -551,14 +633,88 @@ type Column
     contains : Column | Text -> Column
     contains self other = self.make_binary_op "contains" other new_type=SQL_Type.boolean
 
-    ## PRIVATE
-       Checks for each element of the column if it matches an SQL-like pattern.
+    ## Checks for each element of the column if it matches an SQL-like pattern.
+
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column. The pattern is an SQL-like pattern, where
+         `%` matches any sequence of characters and `_` matches any single
+         character.
+
+       > Example
+         Check if elements of a column start with 'F' and end with a dot.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
-    like self other = self.make_binary_op "LIKE" other new_type=SQL_Type.boolean
+    like self pattern = self.make_binary_op "LIKE" pattern new_type=SQL_Type.boolean
+
+    ## Checks for each element of the column if it is contained within the
+       provided vector or column.
+
+       Arguments:
+       - vector: A vector of elements or another column. The resulting column
+         will contain true at the positions where the corresponding element of
+         `self` is contained in `vector`.
+
+       > Example
+         Check if elements of a column are contained in a provided vector.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.is_in [1, 2, 5]
+    is_in : Column | Vector -> Column
+    is_in self vector = case vector of
+        _ : Vector.Vector ->
+            ## This is slightly hacky - we don't provide operand types as we want to
+               allow any type to get through and currently we do not have a mapping
+               from Enso types to SQL types (it may be available in the future). So
+               we just rely on Nothing resolving to the current column type. That
+               type may not always match the operands, but the current
+               implementation uses this type only for two purposes: generated SQL
+               visualization (so the color will be consistent with the column type
+               and not the value type - that can be confusing, we probably want to
+               fix it later) and setting up the query - but at the set up this only
+               applies to adding nulls - setting any other object does not check the
+               type at this level anyway.
+            partitioned = vector.partition .is_nothing
+            nulls = partitioned.first
+            non_nulls = partitioned.second
+            ## Since SQL `NULL IN (NULL)` yields `NULL`, we need to handle this case
+               separately. So we handle all non-null values using `IS_IN` and then
+               `OR` that with a null check (if the vector contained any nulls to
+               begin with). The implementation also ensures that even
+               `NULL IN (...)` is coalesced to False, so that negation works as
+               expected.
+            is_in_not_null = self.make_op "IS_IN" operands=non_nulls new_type=SQL_Type.boolean
+            case nulls.not_empty of
+                True -> is_in_not_null || self.is_missing
+                False -> is_in_not_null
+        column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
+            ## We slightly abuse the expression syntax putting a Query as one of
+               the sub-expressions. Once type-checking is added, we may need to
+               amend the signature of `Expression.Operation` to account for
+               this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
+               need to do separate handling of nulls - we check if the target
+               column has any nulls and if so, we will do `IS NULL` checks for
+               our columns too. That is because, we want the containment check
+               for `NULL` to work the same way as for any other value.
+            in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
+            has_nulls_expression = Expression.Operation "BOOL_OR" [column.is_missing.expression]
+            has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
+            new_type = SQL_Type.boolean
+            new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
+            Column.Value self.name self.connection new_type new_expr self.context
 
     ## PRIVATE
     as_internal : Internal_Column
     as_internal self = Internal_Column.Value self.name self.sql_type self.expression
+
+    ## Provides a simplified text representation for display in the REPL and errors.
+    to_text : Text
+    to_text self = "(Database Column "+self.name.to_text+")"
 
 ## PRIVATE
 
