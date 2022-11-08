@@ -12,7 +12,11 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.FramePointer;
 
-/** Reads from a local target (variable or call target). */
+/** Reads from a local target (variable or call target).
+ *
+ * <p>Note that local in this context does not necessarily mean that the variable is in the given {@link Frame}.
+ * The {@code framePointer} field may point to the parent frame.
+ */
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
 @NodeField(name = "framePointer", type = FramePointer.class)
 public abstract class ReadLocalVariableNode extends ExpressionNode {

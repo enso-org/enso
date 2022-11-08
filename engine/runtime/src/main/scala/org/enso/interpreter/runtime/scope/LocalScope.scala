@@ -2,10 +2,13 @@ package org.enso.interpreter.runtime.scope
 
 import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlotKind}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope => AliasScope}
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
+  Id,
+  Occurrence,
+  Scope => AliasScope
+}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 /** A representation of an Enso local scope.
@@ -25,21 +28,35 @@ import scala.jdk.CollectionConverters._
   * @param dataflowInfo information on the dataflow analysis for this scope
   * @param flattenToParent whether or not the frame should be flattened into its
   *                        parent
-  * @param frameSlotIdxs a mapping from symbol definition identifiers to slot indexes in
-  *                      the Enso frame.
+  * @param parentFrameSlotIdxs Mapping of occurence identifiers to frame slot indexes
+  *       from the whole parent hierarchy, i.e., this parameter should contain all the
+  *       indexes for all the parents.
   */
 class LocalScope(
   final val parentScope: Option[LocalScope],
   final val aliasingGraph: AliasAnalysis.Graph,
   final val scope: AliasAnalysis.Graph.Scope,
   final val dataflowInfo: DataflowAnalysis.Metadata,
-  final val flattenToParent: Boolean                     = false,
-  final val frameSlotIdxs: mutable.Map[Graph.Id, Int]    = mutable.Map()
+  final val flattenToParent: Boolean                  = false,
+  private val parentFrameSlotIdxs: Map[Graph.Id, Int] = Map()
 ) {
+  lazy val frameDescriptor: FrameDescriptor = buildFrameDescriptor()
+  private lazy val localFrameSlotIdxs: Map[Graph.Id, Int] =
+    gatherLocalFrameSlotIdxs()
 
-  private val frameDescrBuilder: FrameDescriptor.Builder = FrameDescriptor.newBuilder()
-  private var frameDescriptor: Option[FrameDescriptor] = None
-  val monadicStateSlotIdx: Int = frameDescrBuilder.addSlot(FrameSlotKind.Object, "<<monadic_state>>", null)
+  /** All frame slot indexes, including local and all the parents.
+    * Useful for quick searching for [[FramePointer]] of parent scopes.
+    */
+  private lazy val allFrameSlotIdxs: Map[Graph.Id, Int] =
+    parentFrameSlotIdxs ++ localFrameSlotIdxs
+
+  /** Internal slots are prepended at the beginning of every [[FrameDescriptor]].
+    * Every tuple of the list denotes frame slot kind and its name.
+    * Note that `info` for a frame slot is not used by Enso.
+    */
+  private val internalSlots: List[(FrameSlotKind, String)] = List(
+    (FrameSlotKind.Object, "<<monadic_state>>")
+  )
 
   /** Creates a new child with a new aliasing scope.
     *
@@ -64,70 +81,59 @@ class LocalScope(
       childScope,
       dataflowInfo,
       flattenToParent,
-      frameSlotIdxs
+      allFrameSlotIdxs
     )
   }
 
-  /** Creates a frame slot for a given identifier and returns index into that
-    * slot.
+  /** Returns frame slot index to a monadic state, which is considered an internal slot.
+    * @return
+    */
+  def monadicStateSlotIdx: Int = {
+    for {
+      (_, name) <- internalSlots
+      idx       <- internalSlots.indices
+    } {
+      if (name == "<<monadic_state>>") {
+        return idx
+      }
+    }
+    throw new IllegalStateException(
+      "<<monadic_state>> slot should be present in every frame descriptor"
+    )
+  }
+
+  /** Get a frame slot index for a given identifier.
     *
-    * Also invalidates the previously built [[FrameDescriptor]] with
-    * [[buildFrameDescriptor()]].
+    * The identifier must be present in the local scope.
     *
     * @param id the identifier of a variable definition occurrence from alias
-    *           analysis
-    * @return a new frame slot index for `id`
+    *           analysis.
+    * @return the frame slot index for `id`.
     */
-  def createVarSlotIdx(id: Graph.Id): Int = {
-    val name = aliasingGraph.idToSymbol(id)
-    val slotIdx = frameDescrBuilder.addSlot(FrameSlotKind.Illegal, name, null)
-    if (frameDescriptor.isDefined) {
-      frameDescriptor = None
-    }
-    frameSlotIdxs(id) = slotIdx
-    slotIdx
+  def getVarSlotIdx(id: Graph.Id): Int = {
+    assert(localFrameSlotIdxs.contains(id))
+    localFrameSlotIdxs(id)
   }
 
-  /**
-   * Builds the [[FrameDescriptor]] from all the slots there have been added via
-   * [[createVarSlotIdx]]. May be called multiple times.
-   *
-   * Each subsequent call creates a new [[FrameDescriptor]] that is a _superset_ of
-   * the previous [[FrameDescriptor]] built with this method.
-   * A [[FrameDescriptor]] `fd1` is a _superset_ of [[FrameDescriptor]] `fd2` iff
-   * the set of all the slot names in `fd1` is a superset of the set of all the slot
-   * names in `fd2`.
-   */
-  def buildFrameDescriptor(): Unit = {
-    frameDescriptor = Some(frameDescrBuilder.build())
-  }
-
-  /**
-   * Returns the previously built [[FrameDescriptor]] via [[buildFrameDescriptor()]]
-   *
-   * @return Previously built frame descriptor.
-   */
-  def getFrameDescriptor: FrameDescriptor = {
-    assert(frameDescriptor.nonEmpty)
-    frameDescriptor.get
-  }
-
-  /** Obtains the frame pointer for a given identifier.
+  /** Obtains the frame pointer for a given identifier from the current scope, or from
+    * any parent scopes.
     *
     * @param id the identifier of a variable usage occurrence from alias
     *           analysis
     * @return the frame pointer for `id`, if it exists
     */
   def getFramePointer(id: Graph.Id): Option[FramePointer] = {
-    aliasingGraph.defLinkFor(id).flatMap { link =>
-      val slotIdx = frameSlotIdxs.get(link.target)
-      slotIdx.map(
-        new FramePointer(
-          if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
-          _
+    aliasingGraph
+      .defLinkFor(id)
+      .flatMap { link =>
+        val slotIdx = allFrameSlotIdxs.get(link.target)
+        slotIdx.map(
+          new FramePointer(
+            if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
+            _
+          )
         )
-      )
-    }
+      }
   }
 
   /** Collects all the bindings in the current stack of scopes, accounting for
@@ -137,6 +143,48 @@ class LocalScope(
     */
   def flattenBindings: java.util.Map[String, FramePointer] =
     flattenBindingsWithLevel(0).asJava
+
+  private def addInternalSlots(
+    descriptorBuilder: FrameDescriptor.Builder
+  ): Unit = {
+    for ((slotKind, name) <- internalSlots) {
+      descriptorBuilder.addSlot(slotKind, name, null)
+    }
+  }
+
+  /** Builds a [[FrameDescriptor]] from the alias analysis scope metadata for the local scope.
+    * See [[AliasAnalysis.Graph.Scope.allDefinitions]].
+    *
+    * @return [[FrameDescriptor]] built from the variable definitions in the local scope.
+    */
+  private def buildFrameDescriptor(): FrameDescriptor = {
+    val descriptorBuilder = FrameDescriptor.newBuilder()
+    addInternalSlots(descriptorBuilder)
+    for (definition <- scope.allDefinitions) {
+      val returnedFrameIdx =
+        descriptorBuilder.addSlot(
+          FrameSlotKind.Illegal,
+          definition.symbol,
+          null
+        )
+      assert(localFrameSlotIdxs(definition.id) == returnedFrameIdx)
+    }
+    val frameDescriptor = descriptorBuilder.build()
+    assert(
+      internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots
+    )
+    frameDescriptor
+  }
+
+  /** Gather local variables from the alias scope information.
+    * Does not include any vairables from the parent scopes.
+    * @return
+    */
+  private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
+    scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
+      definition.id -> (i + internalSlots.size)
+    }.toMap
+  }
 
   /** Flatten bindings from a given set of levels, accounting for shadowing.
     *
@@ -154,7 +202,7 @@ class LocalScope(
       case x: Occurrence.Def =>
         parentResult += x.symbol -> new FramePointer(
           level,
-          frameSlotIdxs(x.id)
+          allFrameSlotIdxs(x.id)
         )
       case _ =>
     }
@@ -162,10 +210,7 @@ class LocalScope(
   }
 
   override def toString: String = {
-    frameDescriptor match {
-      case None => "Not built"
-      case Some(fd: FrameDescriptor) => fd.toString
-    }
+    s"LocalScope(${frameDescriptor.toString})"
   }
 }
 object LocalScope {

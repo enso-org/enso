@@ -239,7 +239,7 @@ class IrToTruffle(
                 "No occurrence on an argument definition."
               )
               .unsafeAs[AliasAnalysis.Info.Occurrence]
-            val slotIdx = localScope.createVarSlotIdx(occInfo.id)
+            val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
               ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
@@ -568,10 +568,10 @@ class IrToTruffle(
   }
 
   private def generateEnsoProjectMethod(): Unit = {
-    val name = BindingsMap.Generated.ensoProjectMethodName
-    val pkg  = context.getPackageOf(moduleScope.getModule.getSourceFile)
+    val name            = BindingsMap.Generated.ensoProjectMethodName
+    val pkg             = context.getPackageOf(moduleScope.getModule.getSourceFile)
     val ensoProjectNode = new EnsoProjectNode(language, context, pkg)
-    val body = ensoProjectNode.getCallTarget
+    val body            = ensoProjectNode.getCallTarget
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
@@ -1174,10 +1174,10 @@ class IrToTruffle(
 
       currentVarName = binding.name.name
 
-      val slot = scope.createVarSlotIdx(occInfo.id)
+      val slotIdx = scope.getVarSlotIdx(occInfo.id)
 
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true), slot),
+        AssignmentNode.build(this.run(binding.expression, true), slotIdx),
         binding.location
       )
     }
@@ -1236,10 +1236,10 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot   = scope.getFramePointer(useInfo.id)
-          val global = name.getMetadata(GlobalNames)
-          if (slot.isDefined) {
-            ReadLocalVariableNode.build(slot.get)
+          val framePointer = scope.getFramePointer(useInfo.id)
+          val global       = name.getMetadata(GlobalNames)
+          if (framePointer.isDefined) {
+            ReadLocalVariableNode.build(framePointer.get)
           } else if (global.isDefined) {
             val resolution = global.get.target
             resolution match {
@@ -1458,7 +1458,7 @@ class IrToTruffle(
               )
               .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-            val slotIdx = scope.createVarSlotIdx(occInfo.id)
+            val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
               ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
             val assignArg = AssignmentNode.build(readArg, slotIdx)
@@ -1492,7 +1492,9 @@ class IrToTruffle(
       val foreignCt = context.getEnvironment
         .parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
-        .map(slotIdx => ReadLocalVariableNode.build(new FramePointer(0, slotIdx)))
+        .map(slotIdx =>
+          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+        )
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.build(argumentReaders, foreignCt)
     }
@@ -1541,14 +1543,14 @@ class IrToTruffle(
      * 1. Argument Conversion: Arguments are converted into their definitions so
      *    as to provide a compact representation of all known information about
      *    that argument.
-     * 2. Frame Conversion: A variable slot is created in the function's local
+     * 2. Frame Conversion: A variable framePointer is created in the function's local
      *    frame to contain the value of the function argument.
      * 3. Read Provision: A `ReadArgumentNode` is generated to allow that
      *    function argument to be treated purely as a local variable access. See
      *    Note [Handling Argument Defaults] for more information on how this
      *    works.
      * 4. Value Assignment: A `AssignmentNode` is created to connect the
-     *    argument value to the frame slot created in Step 2.
+     *    argument value to the framePointer created in Step 2.
      * 5. Body Rewriting: The expression representing the argument is written
      *    into the function body, thus allowing it to be read simply.
      */
@@ -1671,14 +1673,14 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-          val shouldSuspend = value match {
+          val shouldCreateClosureRootNode = value match {
             case _: IR.Name           => false
             case _: IR.Literal.Text   => false
             case _: IR.Literal.Number => false
             case _                    => true
           }
 
-          val childScope = if (shouldSuspend) {
+          val childScope = if (shouldCreateClosureRootNode) {
             scope.createChild(scopeInfo.scope)
           } else {
             // Note [Scope Flattening]
@@ -1687,7 +1689,7 @@ class IrToTruffle(
           val argumentExpression =
             new ExpressionProcessor(childScope, scopeName).run(value)
 
-          val result = if (!shouldSuspend) {
+          val result = if (!shouldCreateClosureRootNode) {
             argumentExpression
           } else {
             argumentExpression.setTailStatus(getTailStatus(value))

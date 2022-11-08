@@ -63,7 +63,6 @@ public class ClosureRootNode extends EnsoRootNode {
       String name,
       Boolean subjectToInstrumentation,
       boolean usedInBinding) {
-    localScope.buildFrameDescriptor();
     return new ClosureRootNode(
         language,
         localScope,

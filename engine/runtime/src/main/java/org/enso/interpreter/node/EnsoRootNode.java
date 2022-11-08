@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
@@ -35,7 +36,7 @@ public abstract class EnsoRootNode extends RootNode {
       ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
-    super(language, localScope.getFrameDescriptor());
+    super(language, localScope.frameDescriptor());
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;

@@ -79,7 +79,6 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    localScope.buildFrameDescriptor();
     return new MethodRootNode(
         language, localScope, moduleScope, body, section, type, methodName);
   }
