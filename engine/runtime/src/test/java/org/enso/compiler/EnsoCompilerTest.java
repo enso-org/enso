@@ -501,7 +501,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testRawBlockLiteral() throws Exception {
     // mimics TextTest
     parseTest("""
@@ -1124,6 +1123,44 @@ public class EnsoCompilerTest {
     main = list ->
         res = list.mapReverse (x -> x + 1) Nil
         res
+    """, true, true, false);
+  }
+
+  @Test
+  public void testShouldQuoteValuesContainingTheCommentSymbol() throws Exception {
+    parseTest("""
+    suite =
+        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+            format = Delimited ',' . with_comments
+            table.write file format on_problems=Report_Error . should_succeed
+            expected_text_2 = normalize_lines <| \"""
+                "#",B
+                b,
+                x,"#"
+                "#",abc
+            text_2 = File.read_text file
+            text_2.should_equal expected_text_2
+            file.delete
+    """, true, true, false);
+  }
+
+  @Test
+  public void testEmptyValueBetweenComments() throws Exception {
+    parseTest("""
+    expected_text = normalize_lines <| \"""
+                A,B
+                1,
+                ,""
+                3,abc
+    """, true, true, false);
+  }
+
+  @Test
+  @Ignore // problem in Delimited_Write_Spec.enso:172
+  public void testQuotedValues() throws Exception {
+    parseTest("""
+    expected_text = normalize_lines <| \"""
+        "one, two, three",-1.5,42,"4\"000",
     """, true, true, false);
   }
 

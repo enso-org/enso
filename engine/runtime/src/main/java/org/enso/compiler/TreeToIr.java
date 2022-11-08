@@ -964,9 +964,20 @@ final class TreeToIr {
           var text = s.getText().codeRepr();
           if (stripComments) {
             // Reproduce an AstToIr bug for testing.
-            text = text.replaceAll("#[^\n\r]*", "");
+            var quotedSegments = text.split("\"", -1);
+            for (int i = 0; i < quotedSegments.length; i++) {
+              var seg = quotedSegments[i];
+              if (i % 2 == 0) {
+                sb.append(seg.replaceAll("#[^\n\r]*", ""));
+              } else {
+                sb.append('"');
+                sb.append(seg);
+                sb.append('"');
+              }
+            }
+          } else {
+            sb.append(text);
           }
-          sb.append(text);
         }
         case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
         default -> throw new UnhandledEntity(t, "buildTextConstant");
