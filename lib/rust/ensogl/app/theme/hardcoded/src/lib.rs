@@ -189,7 +189,6 @@ define_themes! { [light:0, dark:1]
             component_list_panel {
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
-                weak_icon_alpha_path = 0.5, 0.5;
                 grid {
                     width = 414.0, 414.0;
                     height = 414.0, 414.0;
@@ -205,7 +204,8 @@ define_themes! { [light:0, dark:1]
                     // background and the "main" component group color.
                     entry {
                         background.color = 0.08, 0.08;
-                        dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
+                        dimmed = Rgb::from_base_255(200.0, 48.0, 47.0), Rgb::from_base_255(158.0, 162.0, 165.0);
+                        // dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
                         padding = 17.0, 17.0;
                         text {
                             font = "default", "default";
@@ -217,6 +217,27 @@ define_themes! { [light:0, dark:1]
                             size = 16.0, 16.0;
                             text_padding = 8.0, 8.0;
                             color = 1.0, 1.0;
+                            dull_color_alpha = 0.4, 0.4;
+                        }
+                        special_icons {
+                            join.intersection_alpha = 0.7, 0.7;
+                            libraries {
+                                dull_alpha = 1.0, 1.0;
+                                secondary_alpha = 1.0, 1.0;
+                                tertiary_alpha = 1.0, 1.0;
+                            }
+                            marketplace {
+                                dull_alpha = 1.0, 1.0;
+                                secondary_alpha = 1.0, 1.0;
+                                tertiary_alpha = 1.0, 1.0;
+                            }
+                            computer_vision {
+                                highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
+                            }
+                            system {
+                                background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
+                                content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
+                            }
                         }
                         highlight {
                             corners_radius = 12.0, 12.0;
@@ -235,9 +256,6 @@ define_themes! { [light:0, dark:1]
                             exponent = shadow::exponent , shadow::exponent;
                             offset_x = shadow::offset_x , shadow::offset_x;
                             offset_y = shadow::offset_y , shadow::offset_y;
-                        }
-                        icons {
-                            join.intersection_alpha = 0.7, 0.7;
                         }
                     }
 

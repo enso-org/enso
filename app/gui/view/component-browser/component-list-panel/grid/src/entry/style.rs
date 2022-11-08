@@ -32,14 +32,10 @@ impl Default for Color {
 impl Color {
     /// Get the final color by either taking the value from [`Self::Arbitrary`] or mixing the two
     /// provided colors.
-    fn mix(&self, (first, second): &(color::Lcha, color::Lcha)) -> color::Lcha {
+    fn mix(&self, color: &color::Lcha) -> color::Lcha {
         match self {
-            // Self::MainColorIntensity(intensity) => color::mix(*first, *second, *intensity),
-            Self::MainColorIntensity(intensity) => {
-                let color =
-                    color::Lcha::new(second.lightness, second.chroma, second.hue, *intensity);
-                color
-            }
+            Self::MainColorIntensity(intensity) =>
+                color::Lcha::new(color.lightness, color.chroma, color.hue, *intensity),
             Self::Arbitrary(color) => *color,
         }
     }
@@ -216,22 +212,19 @@ impl Colors {
             color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
 
             background <- all_with(&app_bg_and_main, &style_colors,
-                |bg_and_main, colors| match colors.background {
+                |(bg, main), colors| match colors.background {
                     Color::Arbitrary(color) => color,
-                    Color::MainColorIntensity(intensity) => {
-                        color::mix(bg_and_main.0, bg_and_main.1, intensity)
-                    }
+                    Color::MainColorIntensity(intensity) => color::mix(*bg, *main, intensity),
                 }
             ).sampler();
-            bg_and_main <- all(&background, &color_anim.value);
-            hover_highlight <- all_with(&bg_and_main, &style_colors,
-                |bg_and_main, colors| colors.hover_highlight.mix(bg_and_main)
+            hover_highlight <- all_with(&color_anim.value, &style_colors,
+                |main, colors| colors.hover_highlight.mix(main)
             ).sampler();
-            text <- all_with(&bg_and_main, &style_colors,
-                |bg_and_main, colors| colors.text.mix(bg_and_main)
+            text <- all_with(&color_anim.value, &style_colors,
+                |main, colors| colors.text.mix(main)
             ).sampler();
-            icon <- all_with(&bg_and_main, &style_colors,
-                |bg_and_main, colors| colors.icon.mix(bg_and_main)
+            icon <- all_with(&color_anim.value, &style_colors,
+                |main, colors| colors.icon.mix(main)
             ).sampler();
 
             skip_animations <- any(...);

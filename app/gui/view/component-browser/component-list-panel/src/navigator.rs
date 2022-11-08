@@ -184,10 +184,10 @@ impl Navigator {
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             select_section <- any(...);
-            bottom_buttons.select_entry <+
-                select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
+            user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
+            bottom_buttons.select_entry <+ user_selected_section;
             chosen_section <-
-                bottom_buttons.entry_selected.map(|loc| loc.as_ref().map(loc_to_section_id));
+                all_with(&bottom_buttons.entry_selected, &user_selected_section, |e, u| (*e, *u)).filter(|(e, u)| *e != *u).map(|(loc, _)| loc.as_ref().map(loc_to_section_id));
 
             model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
                 ((row, col), colors) {

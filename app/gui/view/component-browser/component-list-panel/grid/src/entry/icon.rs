@@ -4,15 +4,14 @@ use crate::prelude::*;
 use ide_view_component_list_panel_icons::common_part::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_grid_view as grid_view;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry::icons;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::weak_icon_alpha_path;
-use ensogl_hardcoded_theme::application::searcher::icons as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
 use ide_view_component_list_panel_icons::define_icons;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
 use std::f32::consts::PI;
+use theme::grid::entry::icon::dull_color_alpha;
+use theme::grid::entry::special_icons;
 
 
 // ==============
@@ -35,11 +34,9 @@ define_icons! {
             above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let shape = FiveStar(8.0.px(),0.447);
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -51,13 +48,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let dot = Circle(3.0.px());
                 let outer = Circle(8.0.px()) - Circle(7.0.px());
                 let shape = dot + outer;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -70,9 +65,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let corners_radius = 1.5;
                 let top = Rect((8.0.px(), 1.5.px()));
                 let top = top.corners_radius(corners_radius.px()).translate_y(4.75.px());
@@ -81,7 +74,7 @@ define_icons! {
                 let bottom = Rect((16.0.px(), 6.0.px()));
                 let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.5).px());
                 let shape = top + middle + bottom;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -94,27 +87,31 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                // FIXME: only weak colors are used atm
+                use special_icons::libraries as theme;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
+                let secondary_alpha: Var<f32> = style.get_number(theme::secondary_alpha).into();
+                let tertiary_alpha: Var<f32> = style.get_number(theme::tertiary_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let secondary_color = vivid_color.clone().multiply_alpha(&secondary_alpha);
+                let tertiary_color = vivid_color.clone().multiply_alpha(&tertiary_alpha);
                 let size = 7.0;
                 let half = size / 2.0;
                 let corners_radius = 1.0;
                 let rect0 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect0 = rect0.fill(weak_color.clone());
+                let rect0 = rect0.fill(vivid_color);
                 let rect0 = rect0.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
                 let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect1 = rect1.fill(weak_color.clone());
+                let rect1 = rect1.fill(secondary_color);
                 let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
                 let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect2 = rect2.fill(weak_color.clone());
+                let rect2 = rect2.fill(tertiary_color);
                 let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
                 let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect3 = rect3.fill(weak_color);
+                let rect3 = rect3.fill(dull_color);
                 let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = rect0 + rect1 + rect2 + rect3;
@@ -130,27 +127,31 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                // FIXME: only weak colors are used atm
+                use special_icons::marketplace as theme;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
+                let secondary_alpha: Var<f32> = style.get_number(theme::secondary_alpha).into();
+                let tertiary_alpha: Var<f32> = style.get_number(theme::tertiary_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let secondary_color = vivid_color.clone().multiply_alpha(&secondary_alpha);
+                let tertiary_color = vivid_color.clone().multiply_alpha(&tertiary_alpha);
                 let size = 7.0;
                 let half = size / 2.0;
                 let corners_radius = 1.0;
                 let plus = plus(size,1.5);
-                let plus = plus.fill(weak_color.clone());
+                let plus = plus.fill(vivid_color);
                 let plus = plus.translate(((-half - 0.5).px(),(half + 0.5).px()));
 
                 let rect1 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect1 = rect1.fill(weak_color.clone());
+                let rect1 = rect1.fill(secondary_color);
                 let rect1 = rect1.translate(((-half - 0.5).px(),(-half - 0.5).px()));
 
                 let rect2 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect2 = rect2.fill(weak_color.clone());
+                let rect2 = rect2.fill(tertiary_color);
                 let rect2 = rect2.translate(((half + 0.5).px(),(-half - 0.5).px()));
 
                 let rect3 = Rect((size.px(),size.px())).corners_radius(corners_radius.px());
-                let rect3 = rect3.fill(weak_color);
+                let rect3 = rect3.fill(dull_color);
                 let rect3 = rect3.translate(((half + 0.5).px(),(half + 0.5).px()));
 
                 let shape = plus + rect1 + rect2 + rect3;
@@ -166,22 +167,22 @@ define_icons! {
             above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Rectangle ===
 
                 let rect = Rect((11.0.px(),12.0.px())).corners_radius(2.0.px());
                 let rect = rect.translate_x(2.5.px());
-                let rect = rect.fill(weak_color);
+                let rect = rect.fill(dull_color);
 
 
                 // === Arrow ===
 
                 let arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
                 let arrow = arrow.translate_x(4.0.px());
-                let arrow = arrow.fill(strong_color);
+                let arrow = arrow.fill(vivid_color);
 
 
                 // === Shape ===
@@ -198,22 +199,22 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Rect ===
 
                 let rect = Rect((10.0.px(),12.0.px())).corners_radius(2.0.px());
                 let rect = rect.translate_x((-3.0).px());
-                let rect = rect.fill(weak_color);
+                let rect = rect.fill(dull_color);
 
 
                 // === Arrow ===
 
                 let arrow =
                     arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians()).translate_x(8.0.px());
-                let arrow = arrow.fill(strong_color);
+                let arrow = arrow.fill(vivid_color);
 
 
                 // === Shape ===
@@ -230,19 +231,19 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Rect ===
 
                 let rect = Rect((16.0.px(),10.0.px())).corners_radius(2.0.px());
-                let rect = rect.fill(weak_color);
+                let rect = rect.fill(dull_color);
 
 
                 // === Cursor ===
 
-                let cursor = cursor().translate_x(3.0.px()).fill(strong_color.clone());
+                let cursor = cursor().translate_x(3.0.px()).fill(vivid_color.clone());
 
 
                 // === Letter ===
@@ -254,7 +255,7 @@ define_icons! {
                 let bar           = Rect((4.0.px(),1.0.px())).translate_y((-1.0).px());
                 let letter        = left_stroke + right_stroke + bar;
                 let letter        = letter.translate_x((-3.0).px());
-                let letter = letter.fill(strong_color);
+                let letter = letter.fill(vivid_color);
 
 
                 // === Shape ===
@@ -271,19 +272,19 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Rect ===
 
                 let rect = Rect((16.0.px(),10.0.px())).corners_radius(2.0.px());
-                let rect = rect.fill(weak_color);
+                let rect = rect.fill(dull_color);
 
 
                 // === Cursor ===
 
-                let cursor = cursor().translate_x(3.0.px()).fill(strong_color.clone());
+                let cursor = cursor().translate_x(3.0.px()).fill(vivid_color.clone());
 
 
                 // === Number 5 ===
@@ -311,7 +312,7 @@ define_icons! {
                 let arc = arc.translate((arc_center.x.px(),arc_center.y.px()));
 
                 let number = (top + left + arc).translate_x((-3.0).px()).translate_y(2.5.px());
-                let number = number.fill(strong_color);
+                let number = number.fill(vivid_color);
 
 
                 // === Shape ===
@@ -328,17 +329,17 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 // We need to create the table in two parts, left and right of the cursor to achieve
                 // the right cell arangement.
                 let left_table  = table(2,2, 4.0).translate(((-8.0).px(), (-4.0).px()));
                 let right_table = table(2,2, 4.0).translate(((-1.0).px(),(-4.0).px()));
                 let gap         = Rect((4.0.px(),16.0.px()));
                 let table = left_table + right_table - gap;
-                let table = table.fill(weak_color);
-                let cursor      = cursor().fill(strong_color);
+                let table = table.fill(dull_color);
+                let cursor      = cursor().fill(vivid_color);
 
                 let shape = table + cursor;
                 shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -352,16 +353,14 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let upper_arrow = arrow(11.0,2.0,4.0,6.0).rotate((-PI/2.0).radians());
                 let upper_arrow = upper_arrow.translate(((-8.0).px(),2.0.px()));
                 let lower_arrow = arrow(11.0,2.0,4.0,6.0).rotate((PI/2.0).radians());
                 let lower_arrow = lower_arrow.translate((8.0.px(),(-1.0).px()));
 
                 let shape = upper_arrow + lower_arrow;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
@@ -373,10 +372,10 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let table_color = weak_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let table_color = dull_color;
                 let table = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
                 let table = table.fill(table_color);
 
@@ -390,7 +389,7 @@ define_icons! {
                 let eraser = eraser - eraser_bar;
                 let eraser = eraser.rotate(eraser_rotation.radians());
                 let eraser = eraser.translate((eraser_x.px(), eraser_y.px()));
-                let eraser = eraser.fill(strong_color);
+                let eraser = eraser.fill(vivid_color);
                 let eraser_bg = Rect((13.0.px(), 9.0.px()));
                 let eraser_bg = eraser_bg.rotate(eraser_rotation.radians());
                 let eraser_bg = eraser_bg.translate((eraser_x.px(), eraser_y.px()));
@@ -408,11 +407,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let old_color = weak_color;
-                let new_color = strong_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let old_color = dull_color;
+                let new_color = vivid_color;
 
                 let old_column = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
                 let old_column = old_column.fill(old_color);
@@ -433,11 +432,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let old_color = weak_color;
-                let new_color = strong_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let old_color = dull_color;
+                let new_color = vivid_color;
 
                 let old_row = table(3,1, 4.0).translate(((-7.0).px(),4.0.px())).fill(old_color);
                 let new_row =
@@ -457,13 +456,13 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let unselected = table(2,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
-                let unselected = unselected.fill(weak_color);
+                let unselected = unselected.fill(dull_color);
                 let selected   = table(1,3, 4.0).translate((4.0.px(),(-7.0).px()));
-                let selected   = selected.fill(strong_color);
+                let selected   = selected.fill(vivid_color);
 
                 let shape = unselected + selected;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -478,13 +477,13 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let unselected = table(3,2, 4.0).translate(((-7.0).px(),(-1.0).px()));
-                let unselected = unselected.fill(weak_color);
+                let unselected = unselected.fill(dull_color);
                 let selected   = table(3,1, 4.0).translate(((-7.0).px(),(-8.0).px()));
-                let selected   = selected.fill(strong_color);
+                let selected   = selected.fill(vivid_color);
 
                 let shape = unselected + selected;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -499,17 +498,17 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let weak_color   = weak_color;
-                let strong_color = strong_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let dull_color   = dull_color;
+                let vivid_color = vivid_color;
 
                 let weak_column   = table(1,3, 4.0).translate(((-8.0).px(),(-7.0).px()));
-                let weak_column = weak_column.fill(weak_color);
+                let weak_column = weak_column.fill(dull_color);
                 let strong_column = table(1,3, 4.0).translate(((-3.0).px(),(-7.0).px()));
-                let strong_column = strong_column.fill(strong_color.clone());
-                let lightning = lightning_bolt().translate_x(5.25.px()).fill(strong_color);
+                let strong_column = strong_column.fill(vivid_color.clone());
+                let lightning = lightning_bolt().translate_x(5.25.px()).fill(vivid_color);
 
                 let shape = weak_column + strong_column + lightning;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -524,17 +523,17 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let weak_color   = weak_color;
-                let strong_color = strong_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let dull_color   = dull_color;
+                let vivid_color = vivid_color;
 
-                let weak_row   = table(3,1, 4.0).translate(((-7.0).px(),4.0.px())).fill(weak_color);
+                let weak_row   = table(3,1, 4.0).translate(((-7.0).px(),4.0.px())).fill(dull_color);
                 let strong_row =
-                    table(3,1, 4.0).translate(((-7.0).px(),(-1.0).px())).fill(strong_color.clone());
+                    table(3,1, 4.0).translate(((-7.0).px(),(-1.0).px())).fill(vivid_color.clone());
                 let lightning  = lightning_bolt().rotate((PI/2.0).radians());
-                let lightning  = lightning.translate_y((-5.25).px()).fill(strong_color);
+                let lightning  = lightning.translate_y((-5.25).px()).fill(vivid_color);
 
                 let shape = weak_row + strong_row + lightning;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -549,11 +548,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let column_color = weak_color.clone();
-                let plus_color = weak_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let column_color = dull_color.clone();
+                let plus_color = dull_color;
 
                 let left_column = table(1,3, 3.0).translate(((-8.0).px(),(-5.5).px()));
                 let left_column = left_column.fill(column_color.clone());
@@ -574,11 +573,11 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let row_color  = weak_color.clone();
-                let plus_color = weak_color;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let row_color  = dull_color.clone();
+                let plus_color = dull_color;
 
                 let top_row = table(3,1, 3.0).translate(((-5.5).px(),5.0.px()));
                 let top_row = top_row.fill(row_color.clone());
@@ -599,9 +598,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let shape = path(2.0,&[
                     ( 4.0 ,  4.0),
                     ( 4.0 ,  5.5),
@@ -611,7 +608,7 @@ define_icons! {
                     ( 4.0 , -5.5),
                     ( 5.0 , -3.5),
                 ]);
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -625,9 +622,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Page border ===
 
@@ -644,7 +641,7 @@ define_icons! {
                 let line3 = Rect((2.0.px(),1.0.px())).translate_x(5.0.px());
                 let line4 = Rect((3.0.px(),1.0.px())).translate((4.5.px(),(-3.0).px()));
                 let page  = page + line1 + line2 + line3 + line4;
-                let page  = page.fill(weak_color);
+                let page  = page.fill(dull_color);
 
 
                 // === Crack ===
@@ -656,7 +653,7 @@ define_icons! {
                     (-1.25 , -3.25),
                     ( 0.0  , -6.5),
                 ]);
-                let crack = crack.fill(strong_color);
+                let crack = crack.fill(vivid_color);
 
                 let crack_left  = crack.translate_x((-1.0).px());
                 let crack_right = crack.translate_x(2.0.px());
@@ -677,18 +674,18 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let circle = Circle(2.0.px());
-                let circle1 = circle.translate_y(5.5.px()).fill(weak_color.clone());
-                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(weak_color.clone());
-                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(weak_color);
+                let circle1 = circle.translate_y(5.5.px()).fill(dull_color.clone());
+                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(dull_color.clone());
+                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(dull_color);
 
-                let circle4 = circle.fill(strong_color.clone());
+                let circle4 = circle.fill(vivid_color.clone());
                 let rect = Rect((4.0.px(),4.0.px()));
-                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(strong_color.clone());
-                let rect2 = rect.translate_y((-5.5).px()).fill(strong_color);
+                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(vivid_color.clone());
+                let rect2 = rect.translate_y((-5.5).px()).fill(vivid_color);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -703,16 +700,16 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let circle = Circle(1.0.px()).fill(strong_color.clone());
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let circle = Circle(1.0.px()).fill(vivid_color.clone());
                 let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px());
-                let arc1= arc1.fill(strong_color.clone());
+                let arc1= arc1.fill(vivid_color.clone());
                 let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px());
-                let arc2 = arc2.fill(strong_color);
+                let arc2 = arc2.fill(vivid_color);
                 let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px());
-                let arc3 = arc3.fill(weak_color);
+                let arc3 = arc3.fill(dull_color);
 
                 let shape = circle + arc1 + arc2 + arc3;
                 let shape = shape.translate_y((-5.5).px());
@@ -728,12 +725,10 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                use special_icons::system as theme;
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
-                let background = background.fill(style.get_color(theme::system::background));
+                let background = background.fill(style.get_color(theme::background));
                 let greater    = path(1.5,&[
                     (-3.75 ,  2.25),
                     (-1.25 , -0.25),
@@ -741,7 +736,7 @@ define_icons! {
                 ]);
                 let bar = Rect((4.0.px(),1.5.px())).translate((2.5.px(),(-2.75).px()));
                 let content = greater + bar;
-                let content = content.fill(style.get_color(theme::system::content));
+                let content = content.fill(style.get_color(theme::content));
 
                 let shape = background + content;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -757,16 +752,16 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
                 let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
                 let upper = half_arrow.translate((7.0.px(),0.5.px()));
                 let lower = half_arrow.rotate(PI.radians()).translate(((-7.0).px(),(-1.0).px()));
 
                 let base  = upper + lower;
-                let outer = base.fill(strong_color);
-                let inner = base.shrink(0.5.px()).fill(weak_color);
+                let outer = base.fill(vivid_color);
+                let inner = base.shrink(0.5.px()).fill(dull_color);
 
                 let shape = outer + inner;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -783,9 +778,9 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
 
                 // === Outline ===
 
@@ -800,7 +795,7 @@ define_icons! {
                     (-6.5 ,  5.5),
                     (-6.5 ,  6.0),
                 ]);
-                let outline = outline.fill(strong_color);
+                let outline = outline.fill(vivid_color);
 
 
                 // === Fill ===
@@ -811,7 +806,7 @@ define_icons! {
                 let small_triangle = Triangle(5.0.px(),2.5.px()).rotate((-PI/2.0).radians());
                 let small_triangle = small_triangle.translate(((-0.25).px(),(-4.5).px()));
                 let fill = big_triangle + pipe + small_triangle;
-                let fill = fill.fill(weak_color);
+                let fill = fill.fill(dull_color);
 
 
                 // === Shape ===
@@ -829,21 +824,22 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let intersection_alpha: Var<f32> = style.get_number(icons::join::intersection_alpha).into();
-                let intersection_color = strong_color.clone().multiply_alpha(&intersection_alpha);
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                use special_icons::join as theme;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let intersection_alpha: Var<f32> = style.get_number(theme::intersection_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let intersection_color = vivid_color.clone().multiply_alpha(&intersection_alpha);
                 let left_circle = Circle(4.5.px()).translate_x((-2.5).px());
                 let right_circle = Circle(4.5.px()).translate_x(2.5.px());
                 let intersection = &left_circle * &right_circle;
                 let left_outline = left_circle.grow(1.0.px()) - &left_circle;
-                let left_outline = left_outline.fill(strong_color.clone());
+                let left_outline = left_outline.fill(vivid_color.clone());
                 let right_outline = right_circle.grow(1.0.px()) - &right_circle;
-                let right_outline = right_outline.fill(strong_color.clone());
+                let right_outline = right_outline.fill(vivid_color.clone());
 
-                let left_circle = left_circle.fill(weak_color.clone());
-                let right_circle = right_circle.fill(weak_color.clone());
+                let left_circle = left_circle.fill(dull_color.clone());
+                let right_circle = right_circle.fill(dull_color.clone());
                 let intersection = intersection.fill(intersection_color);
 
                 let shape =
@@ -861,9 +857,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
                 let page = page.translate_x((-2.0).px());
                 let page = &page - page.shrink(1.0.px());
@@ -876,7 +870,7 @@ define_icons! {
                 let line2 = line1.translate_y((-3.0).px());
 
                 let shape = page + arrow + line1 + line2;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -889,9 +883,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let circle = Circle(7.75.px());
                 let circle = &circle - circle.shrink(1.0.px());
 
@@ -900,7 +892,7 @@ define_icons! {
 
                 let shape = circle + big_hand + small_hand;
                 let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -914,9 +906,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let circle   = Circle(4.5.px()).translate_y(3.5.px());
                 let circle   = &circle - circle.shrink(2.0.px());
                 let triangle = Triangle(7.0,5.75).rotate(PI.radians()).translate_y((-2.125).px());
@@ -930,7 +920,7 @@ define_icons! {
                 let ellipse     = ellipse - ellipse_gap;
 
                 let shape = marker + ellipse;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -943,9 +933,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let circle = Circle(5.5.px());
                 let sphere = &circle - circle.shrink(1.0.px());
 
@@ -959,7 +947,7 @@ define_icons! {
                 let base = base - circle.translate_y(1.5.px()).grow(2.0.px());
 
                 let shape = sphere + base;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -972,9 +960,7 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let body = Rect((10.0.px(),15.0.px()))
                     .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
                     .translate_y((-0.5).px());
@@ -989,7 +975,7 @@ define_icons! {
                 let right_arm = Rect((1.0.px(),4.5.px())).translate((6.5.px(),(-2.75).px()));
 
                 let shape = body + collar + left_eye + right_eye + antenna + left_arm + right_arm;
-                let shape = shape.fill(strong_color);
+                let shape = shape.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1003,19 +989,20 @@ define_icons! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             pointer_events = false;
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
-                let lens =
-                    Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
+                use special_icons::computer_vision as theme;
+                let vivid_color: Var<color::Rgba> = color.into();
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = vivid_color.clone().multiply_alpha(&dull_alpha);
+                let lens = Circle(2.0.px()).fill(style.get_color(theme::highlight));
                 let outline = Circle(4.5.px()) - Circle(3.5.px());
-                let outline = outline.fill(strong_color);
+                let outline = outline.fill(vivid_color);
 
-                let base =
-                    Circle(7.0.px()).translate_y(6.0.px()) * HalfPlane().translate_y(7.0.px());
+                let base = Circle(7.0.px());
+                let base = base.translate_y(6.0.px()) * HalfPlane();
+                let base = base.translate_y(7.0.px());
                 let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
                 let base = base - Circle(5.5.px());
-                let base = base.fill(weak_color);
+                let base = base.fill(dull_color);
 
                 let shape = lens + outline + base;
                 let shape = shape.translate_y((-2.0).px());
@@ -1032,11 +1019,9 @@ define_icons! {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let circle = Circle(5.5.px()) - Circle(4.0.px());
-                let shape = circle.fill(strong_color);
+                let shape = circle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1050,11 +1035,9 @@ define_icons! {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
-                let shape = triangle.fill(strong_color);
+                let shape = triangle.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1068,11 +1051,9 @@ define_icons! {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let dot = Circle(4.0.px());
-                let shape = dot.fill(strong_color);
+                let shape = dot.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1086,9 +1067,7 @@ define_icons! {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let rhomb = path(1.5, &[
                     (6.0, 0.0),
                     (0.0, -6.0),
@@ -1096,7 +1075,7 @@ define_icons! {
                     (0.0, 6.0),
                     (6.0, 0.0),
                 ]);
-                let shape = rhomb.fill(strong_color);
+                let shape = rhomb.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -1110,12 +1089,10 @@ define_icons! {
         ensogl_core::shape! {
            above = [grid_view::selectable::highlight::shape, crate::entry::background];
             (style: Style, color: Vector4) {
-                let strong_color: Var<color::Rgba> = color.into();
-                let weak_icon_alpha: Var<f32> = style.get_number(weak_icon_alpha_path).into();
-                let weak_color = strong_color.clone().multiply_alpha(&weak_icon_alpha);
+                let vivid_color: Var<color::Rgba> = color.into();
                 let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
-                let shape = rect.fill(strong_color);
+                let shape = rect.fill(vivid_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
