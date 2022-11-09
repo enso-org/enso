@@ -78,8 +78,8 @@ ensogl_core::define_endpoints_2! {
     Input {
         set_width(f32),
         set_height(f32),
-        set_slider_color(color::Rgba),
-        set_background_color(color::Rgba),
+        set_slider_color(color::Lcha),
+        set_background_color(color::Lcha),
 
         set_value(f32),
         set_value_default(f32),

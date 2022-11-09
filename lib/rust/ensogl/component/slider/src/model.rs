@@ -59,8 +59,8 @@ impl Model {
 
         model.set_width(200.0);
         model.set_height(50.0);
-        model.set_background_color(color::Rgba(0.8, 0.8, 0.8, 1.0));
-        model.set_track_color(color::Rgba(0.4, 0.4, 0.8, 1.0));
+        model.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
+        model.set_track_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
 
         model
     }
@@ -83,11 +83,11 @@ impl Model {
         self.track.size.set(size);
     }
 
-    pub fn set_track_color(&self, color: color::Rgba) {
-        self.track.color.set(color.into());
+    pub fn set_track_color(&self, color: color::Lcha) {
+        self.track.color.set(color::Rgba::from(color).into());
     }
-    pub fn set_background_color(&self, color: color::Rgba) {
-        self.background.color.set(color.into());
+    pub fn set_background_color(&self, color: color::Lcha) {
+        self.background.color.set(color::Rgba::from(color).into());
     }
 }
 
