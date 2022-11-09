@@ -667,10 +667,13 @@ lazy val `text-buffer` = project
     )
   )
 
-lazy val rustParserTargetDirectory = SettingKey[File]("target directory for the Rust parser")
+lazy val rustParserTargetDirectory =
+  SettingKey[File]("target directory for the Rust parser")
 
 (`syntax-rust-definition` / rustParserTargetDirectory) := {
-  val versionName = if (ensoVersion == defaultDevEnsoVersion) "debug" else ???
+  // setting "debug" for release, because it isn't yet safely integrated into
+  // the parser definition
+  val versionName = if (BuildInfo.isReleaseMode) "debug" else "debug"
   target.value / "rust" / versionName
 }
 
@@ -678,7 +681,8 @@ val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
   import sys.process._
-  val libGlob = (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+  val libGlob =
+    (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
 
   val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
   if (
@@ -687,22 +691,25 @@ val generateRustParserLib =
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
     val os = System.getProperty("os.name")
-    if (os.startsWith("Mac")) {
-      Seq(
-        "cargo",
-        "build",
-        "-p",
-        "enso-parser-jni",
-        "--target",
-        "x86_64-apple-darwin",
-        "-Z",
-        "unstable-options",
-        "--out-dir",
-        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
-      ) !
-    } else {
-      Seq("cargo", "build", "-p", "enso-parser-jni") !
-    }
+    val baseCommand = Seq(
+      "cargo",
+      "build",
+      "-p",
+      "enso-parser-jni",
+      "-Z",
+      "unstable-options",
+      "--out-dir",
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+    )
+    val releaseMode = baseCommand ++
+      (if (BuildInfo.isReleaseMode)
+         Seq("--release")
+       else Seq())
+    val macBuild = releaseMode ++
+      (if (os.contains("Mac"))
+         Seq("--target", "x86_64-apple-darwin")
+       else Seq())
+    macBuild !
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
