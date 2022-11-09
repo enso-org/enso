@@ -667,11 +667,19 @@ lazy val `text-buffer` = project
     )
   )
 
+lazy val rustParserTargetDirectory = SettingKey[File]("target directory for the Rust parser")
+
+(`syntax-rust-definition` / rustParserTargetDirectory) := {
+  val versionName = if (ensoVersion == defaultDevEnsoVersion) "debug" else ???
+  target.value / "rust" / versionName
+}
+
 val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
   import sys.process._
-  val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
+  val libGlob = (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+
   val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
   if (
     sys.env.get("CI").isDefined ||
@@ -690,7 +698,7 @@ val generateRustParserLib =
         "-Z",
         "unstable-options",
         "--out-dir",
-        "target/rust/debug"
+        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
       ) !
     } else {
       Seq("cargo", "build", "-p", "enso-parser-jni") !
@@ -2043,7 +2051,8 @@ buildEngineDistribution := {
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
   )
   log.info(s"Engine package created at $root")
 }

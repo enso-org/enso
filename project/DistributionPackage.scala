@@ -120,7 +120,8 @@ object DistributionPackage {
     ensoVersion: String,
     editionName: String,
     sourceStdlibVersion: String,
-    targetStdlibVersion: String
+    targetStdlibVersion: String,
+    targetDir: File
   ): Unit = {
 
     copyDirectoryIncremental(
@@ -136,8 +137,7 @@ object DistributionPackage {
     )
     val os = System.getProperty("os.name")
     val isMac = os.startsWith("Mac")
-    val dir = "target/rust/debug/"
-    val parser = dir + (if (isMac) {
+    val parser = targetDir / (if (isMac) {
       "libenso_parser.dylib"
     } else if (os.startsWith("Windows")) {
       "enso_parser.dll"
@@ -145,7 +145,7 @@ object DistributionPackage {
       "libenso_parser.so"
     })
     copyFilesIncremental(
-      Seq(file(parser)),
+      Seq(parser),
       distributionRoot / "component",
       cacheFactory.make("engine-parser-library")
     )
