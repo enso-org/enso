@@ -27,6 +27,9 @@ use crate::model::suggestion_database;
 
 use double_representation::module;
 use double_representation::name::project;
+use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
+use double_representation::name::QualifiedNameTemplate;
 
 
 
@@ -40,7 +43,7 @@ use double_representation::name::project;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
-    pub qualified_name:    module::QualifiedName,
+    pub qualified_name:    QualifiedName,
     pub content:           component::Group,
     /// The flattened content contains the content of a module and all its submodules. Is set to
     /// `Some` only when such flattened content is needed (decided during construction).
@@ -63,16 +66,16 @@ impl ModuleGroups {
         component_id: component::Id,
         entry: &suggestion_database::Entry,
     ) -> FallibleResult<Self> {
-        let is_top_module = entry.defined_in.is_top_module();
+        let in_top_module = entry.defined_in.is_top_element();
         let qualified_name = entry.qualified_name();
-        let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
+        let qualified_name = QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
             qualified_name,
             content: mk_group(),
-            flattened_content: is_top_module.as_some_from(mk_group),
+            flattened_content: in_top_module.as_some_from(mk_group),
             submodules: default(),
-            is_top_module,
+            is_top_module: in_top_module,
         })
     }
 
@@ -139,7 +142,7 @@ impl List {
             let component = Component::new_from_database_entry(id, entry.clone_ref());
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
-                if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
+                if let Some(parent_group) = self.lookup_module_group(db, parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
@@ -149,20 +152,9 @@ impl List {
                         self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
-                if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
+                if let Some(top_group) = self.lookup_module_group(db, top_module(&parent_module)) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
                         flatten_group.entries.borrow_mut().push(component.clone_ref());
-                        component_inserted_somewhere = true;
-                    }
-                }
-            } else {
-                // Entry has no parent module, so either it belongs to the main module of the
-                // project, or it is a main module itself.
-                if !entry.is_main_module() {
-                    let project_name = entry.defined_in.project_name.clone();
-                    let main_module = module::QualifiedName::new_main(project_name);
-                    if let Some(main_group) = self.lookup_module_group(db, &main_module) {
-                        main_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                     }
                 }
@@ -216,7 +208,7 @@ impl List {
     fn lookup_module_group(
         &mut self,
         db: &model::SuggestionDatabase,
-        module: &module::QualifiedName,
+        module: QualifiedNameRef,
     ) -> Option<&mut ModuleGroups> {
         let (module_id, db_entry) = db.lookup_by_qualified_name(module)?;
 
@@ -229,18 +221,9 @@ impl List {
             self.module_groups.get_mut(&module_id)
         } else {
             let groups = ModuleGroups::new(module_id, &db_entry).ok()?;
-            if let Some(module) = module.parent_module() {
-                if let Some(parent_groups) = self.lookup_module_group(db, &module) {
+            if let Some(module) = module.parent() {
+                if let Some(parent_groups) = self.lookup_module_group(db, module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
-                }
-            } else {
-                // Module has no parent, so it is a top-level module that can be added as a
-                // submodule of the main module of the project.
-                let main_module = module::QualifiedName::new_main(module.project_name.clone());
-                if main_module != *module {
-                    if let Some(main_groups) = self.lookup_module_group(db, &main_module) {
-                        main_groups.submodules.push(groups.content.clone_ref());
-                    }
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))
@@ -287,6 +270,13 @@ impl List {
         }
         component::group::List::new(favorites_groups)
     }
+}
+
+fn top_module<Segments: AsRef<[ImString]>>(
+    name: &QualifiedNameTemplate<Segments>,
+) -> QualifiedNameRef {
+    let top_module_end = name.path().len().min(1);
+    name.sub_path(0..top_module_end)
 }
 
 

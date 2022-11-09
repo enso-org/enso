@@ -8,7 +8,6 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::import;
-use double_representation::module::Id;
 use double_representation::name::project;
 use double_representation::name::NamePath;
 use double_representation::name::QualifiedName;
@@ -27,6 +26,8 @@ use serde::Serialize;
 
 pub mod plain;
 pub mod synchronized;
+
+pub use double_representation::module::Id;
 
 
 
@@ -111,12 +112,12 @@ impl Path {
 
     /// Get path to the module with given qualified name under given root ID.
     pub fn from_name(root_id: Uuid, name: &QualifiedName) -> Path {
-        Self::from_id(root_id, name.module_id())
+        Self::from_id(root_id, &name.module_id())
     }
 
     /// Get a path of the module that defines given method.
     pub fn from_method(root_id: Uuid, method: &MethodPointer) -> FallibleResult<Self> {
-        let name = QualifiedName::try_from(&method.module)?;
+        let name = QualifiedName::try_from(method.module.as_str())?;
         Ok(Self::from_name(root_id, &name))
     }
 
@@ -151,12 +152,9 @@ impl Path {
     /// E.g. `["Main"]` -> `//root_id/src/Main.enso`
     pub fn from_name_segments(
         root_id: Uuid,
-        name_segments: impl IntoIterator<Item: AsRef<str>>,
+        name_segments: impl IntoIterator<Item: Into<ImString>>,
     ) -> FallibleResult<Path> {
-        let segment_results = name_segments.into_iter().map(|s| ReferentName::new(s.as_ref()));
-        let segments = segment_results.collect::<Result<Vec<_>, _>>()?;
-        let id = Id::new(segments);
-        Ok(Self::from_id(root_id, &id))
+        Id::try_from_segments(name_segments).map(|id| Self::from_id(root_id, &id))
     }
 
     /// Get the module's identifier.
@@ -164,10 +162,9 @@ impl Path {
         if let [ref _src, ref dirs @ .., _] = *self.file_path.segments.as_slice() {
             // Path must designate a valid module and must be able to designate any valid module.
             // Therefore, unwraps in this method are safe.
-            let parent_segments = dirs.iter().map(ReferentName::new).map(Result::unwrap);
-            let final_segment = std::iter::once(self.module_name());
-            let segments = parent_segments.chain(final_segment);
-            Id::new(segments)
+            let parent_modules = dirs.iter().map(ImString::new).collect();
+            let name = ImString::new(self.module_name());
+            Id { parent_modules, name }
         } else {
             // Class invariant guarantees at least two segments in path.
             panic!("Unreachable")
@@ -189,10 +186,10 @@ impl Path {
     /// Get the module name from path.
     ///
     /// The module name is a filename without extension.
-    pub fn module_name(&self) -> ReferentName {
+    pub fn module_name(&self) -> &str {
         // The file stem existence should be checked during construction.
         // The path must also designate a file that is a valid module name.
-        ReferentName::new(self.file_path.file_stem().unwrap()).unwrap()
+        self.file_path.file_stem().unwrap()
     }
 
     /// Create a module path consisting of a single segment, based on a given module name.
@@ -231,13 +228,7 @@ impl Path {
     /// assert_eq!(name.to_string(), "local.Project.Main");
     /// ```
     pub fn qualified_module_name(&self, project_name: project::QualifiedName) -> QualifiedName {
-        let non_src_directories = &self.file_path.segments[1..self.file_path.segments.len() - 1];
-        let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
-        let module_name = self.module_name();
-        let module_name = std::iter::once(module_name.as_ref());
-        let module_segments = non_src_directories.chain(module_name);
-        // The module path during creation should be checked for at least one module segment.
-        QualifiedName::from_segments(project_name, module_segments).unwrap()
+        QualifiedName::new_module(project_name, self.id())
     }
 }
 
@@ -494,7 +485,7 @@ impl From<Vector2<f32>> for Position {
 #[allow(missing_docs)]
 pub struct MethodId {
     pub module:          QualifiedName,
-    pub defined_on_type: TypeQualifiedName,
+    pub defined_on_type: QualifiedName,
     pub name:            String,
 }
 
@@ -545,7 +536,7 @@ pub trait API: Debug + model::undo_redo::Aware {
     fn path(&self) -> &Path;
 
     /// Get the module name.
-    fn name(&self) -> ReferentName {
+    fn name(&self) -> &str {
         self.path().module_name()
     }
 

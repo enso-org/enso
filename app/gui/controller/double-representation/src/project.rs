@@ -8,21 +8,6 @@ use serde::Serialize;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-/// The namespace of the standard library.
-pub const STANDARD_NAMESPACE: &str = "Standard";
-
-/// The name of the project in the [`STANDARD_NAMESPACE`] containing the base standard library.
-pub const BASE_LIBRARY_NAME: &str = "Base";
-
-/// The full path of the [`BASE_LIBRARY_NAME`] project in the [`STANDARD_NAMESPACE`].
-pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", BASE_LIBRARY_NAME);
-
-
-
 // ==============
 // === Errors ===
 // ==============

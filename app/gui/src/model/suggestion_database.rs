@@ -8,7 +8,8 @@ use crate::model::suggestion_database::entry::ModuleSpan;
 use crate::notification;
 
 use ast::opr::predefined::ACCESS;
-use double_representation::module::QualifiedName;
+use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
 use ensogl::data::HashMapTree;
@@ -40,7 +41,7 @@ pub use example::Example;
 /// segments.
 #[derive(Clone, Debug, Default)]
 struct QualifiedNameToIdMap {
-    tree: HashMapTree<entry::QualifiedNameSegment, Option<entry::Id>>,
+    tree: HashMapTree<ImString, Option<entry::Id>>,
 }
 
 impl QualifiedNameToIdMap {
@@ -48,13 +49,13 @@ impl QualifiedNameToIdMap {
     pub fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
-        I: Into<entry::QualifiedNameSegment>, {
+        I: Into<ImString>, {
         self.tree.get(path).and_then(|v| *v)
     }
 
     /// Sets the `id` at `path`. Emits a warning if an `id` was set at this `path` before the
     /// operation.
-    pub fn set_and_warn_if_existed(&mut self, path: &entry::QualifiedName, id: entry::Id) {
+    pub fn set_and_warn_if_existed(&mut self, path: &QualifiedName, id: entry::Id) {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
@@ -64,7 +65,7 @@ impl QualifiedNameToIdMap {
 
     /// Removes the [`entry::Id`] stored at `path`. Emits a warning if there was no [`entry::Id`]
     /// stored at `path` before the operation.
-    pub fn remove_and_warn_if_did_not_exist(&mut self, path: &entry::QualifiedName) {
+    pub fn remove_and_warn_if_did_not_exist(&mut self, path: &QualifiedName) {
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
@@ -85,7 +86,7 @@ impl QualifiedNameToIdMap {
     /// function before it returns.
     fn replace_value_and_traverse_back_pruning_empty_subtrees(
         &mut self,
-        path: &entry::QualifiedName,
+        path: &QualifiedName,
         value: Option<entry::Id>,
     ) -> Option<entry::Id> {
         let mut path_iter = path.into_iter();
@@ -276,17 +277,18 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
-    pub fn lookup_by_qualified_name_str(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let (_, entry) = self.lookup_by_qualified_name(fully_qualified_name.split(ACCESS))?;
+    pub fn lookup_by_qualified_name_str(&self, qualified_name_str: &str) -> Option<Rc<Entry>> {
+        let qualified_name = QualifiedName::from_text(qualified_name_str).ok()?;
+        let (_, entry) = self.lookup_by_qualified_name(qualified_name.as_ref())?;
         Some(entry)
     }
 
     /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
     /// [`model::QualifiedName`].
-    pub fn lookup_by_qualified_name<P, I>(&self, name: P) -> Option<(SuggestionId, Rc<Entry>)>
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<entry::QualifiedNameSegment>, {
+    pub fn lookup_by_qualified_name(
+        &self,
+        name: QualifiedNameRef,
+    ) -> Option<(SuggestionId, Rc<Entry>)> {
         let id = self.qualified_name_to_id_map.borrow().get(name);
         id.and_then(|id| Some((id, self.lookup(id).ok()?)))
     }
@@ -384,12 +386,12 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 /// returned, and the `path` iterator is mutable. This allows the function to call itself
 /// recursively.
 fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
-    node: &mut HashMapTree<entry::QualifiedNameSegment, Option<entry::Id>>,
+    node: &mut HashMapTree<ImString, Option<entry::Id>>,
     mut path: P,
     value: &mut Option<entry::Id>,
 ) where
     P: Iterator<Item = I>,
-    I: Into<entry::QualifiedNameSegment>,
+    I: Into<ImString>,
 {
     use std::collections::hash_map::Entry;
     match path.next() {

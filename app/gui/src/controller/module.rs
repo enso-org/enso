@@ -134,7 +134,7 @@ impl Handle {
 
     /// Get the module's qualified name.
     pub fn qualified_name(&self, project_name: project::QualifiedName) -> QualifiedName {
-        QualifiedName::new(project_name, self.model.id())
+        QualifiedName::new(project_name, self.model.id().into())
     }
 
     /// Modify module by modifying its `Info` description (which is a wrapper directly over module's
@@ -155,7 +155,7 @@ impl Handle {
     /// Adds a new import to the module.
     ///
     /// May create duplicate entries if such import was already present.
-    pub fn add_import(&self, target: &QualifiedName) -> FallibleResult {
+    pub fn add_import(&self, target: QualifiedName) -> FallibleResult {
         let import = import::Info::new_qualified(target);
         self.modify(|info| info.add_import(&self.parser, import))?;
         Ok(())
@@ -164,7 +164,7 @@ impl Handle {
     /// Removes an import declaration that brings given target.
     ///
     /// Fails, if there was no such declaration found.
-    pub fn remove_import(&self, target: &QualifiedName) -> FallibleResult {
+    pub fn remove_import(&self, target: QualifiedName) -> FallibleResult {
         let import = import::Info::new_qualified(target);
         self.modify(|info| info.remove_import(&import))?
     }

@@ -34,8 +34,7 @@ pub mod synchronized;
 #[automock]
 pub trait API: Debug {
     /// Project's name
-    // TODO [mwu] This should return Rc<ReferentName>.
-    fn name(&self) -> ReferentName;
+    fn name(&self) -> ImString;
 
     /// Project's qualified name
     fn qualified_name(&self) -> project::QualifiedName;
@@ -105,7 +104,7 @@ pub trait API: Debug {
     fn main_module_path(&self) -> model::module::Path {
         let main_name = self.main_module();
         let content_root_id = self.project_content_root_id();
-        model::module::Path::from_id(content_root_id, &main_name.id)
+        model::module::Path::from_id(content_root_id, &main_name.module_id())
     }
 
     /// Get a model of the project's main module.

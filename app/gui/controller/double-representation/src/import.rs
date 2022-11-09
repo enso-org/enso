@@ -93,7 +93,7 @@ pub struct Info {
 impl Info {
     /// Create qualified import (i.e. `import <module-name>`) importing the given module without
     /// alias.
-    pub fn new_qualified(module: &QualifiedName) -> Self {
+    pub fn new_qualified(module: QualifiedName) -> Self {
         Self { module: module.into(), imported: ImportedNames::Module { alias: None } }
     }
 

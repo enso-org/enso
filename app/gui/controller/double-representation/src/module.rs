@@ -29,6 +29,10 @@ use serde::Serialize;
 // === Errors ===
 // ==============
 
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "Id segment list is empty.")]
+pub struct EmptySegments;
+
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Import `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
@@ -60,26 +64,25 @@ pub struct NotDirectChild(ast::Crumbs);
 // === Id ===
 // ==========
 
-#[derive(Clone, Debug, Shrinkwrap, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id {
     pub name:           ImString,
     pub parent_modules: Vec<ImString>,
 }
 
 impl Id {
-    /// Construct a module's ID value from a name segments sequence.
-    ///
-    /// Fails if the sequence is empty or if any of the segments is not a valid referent name.
-    pub fn try_new(segments: impl IntoIterator<Item: AsRef<str>>) -> FallibleResult<Id> {
-        let texts = segments.into_iter();
-        let names = texts.map(|text| ReferentName::new(text.as_ref()));
-        let segments = names.collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::new(segments))
+    pub fn try_from_segments(
+        segments: impl IntoIterator<Item: Into<ImString>>,
+    ) -> FallibleResult<Self> {
+        let mut segments = segments.into_iter().map(Into::into).collect_vec();
+        let name = segments.pop().ok_or(EmptySegments)?;
+        Ok(Self { name, parent_modules: segments })
     }
+}
 
-    /// Consume the [`Id`] and returns the name path of the module
-    pub fn into_path(self) -> NamePath {
-        self.parent_modules.into_iter().chain(self.name).collect()
+impl From<Id> for NamePath {
+    fn from(id: Id) -> Self {
+        id.parent_modules.into_iter().chain(iter::once(id.name)).collect()
     }
 }
 

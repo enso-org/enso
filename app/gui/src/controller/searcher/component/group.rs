@@ -10,6 +10,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::name::project;
+use double_representation::name::QualifiedNameRef;
 use ensogl::data::color;
 use std::cmp;
 
@@ -93,14 +94,14 @@ impl Group {
 
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
-        let name: String = if entry.defined_in.is_top_module() {
-            let project = &entry.defined_in.project_name.project;
+        let name: String = if entry.defined_in.is_top_element() {
+            let project = &entry.defined_in.project().project;
             let module = entry.defined_in.name();
             format!("{}.{}", project, module)
         } else {
             entry.defined_in.name().into()
         };
-        let project_name = entry.defined_in.project_name.clone();
+        let project_name = entry.defined_in.project().clone();
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 
@@ -132,12 +133,15 @@ impl Group {
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
-        let lookup_component = |qualified_name| {
-            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component::new_from_database_entry(id, suggestion))
-        };
         let components = &group.components;
-        let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
+        let looked_up_components = components
+            .iter()
+            .filter_map(|qualified_name| {
+                let (id, suggestion) =
+                    suggestion_db.lookup_by_qualified_name(qualified_name.as_ref())?;
+                Some(Component::new_from_database_entry(id, suggestion))
+            })
+            .collect_vec();
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {

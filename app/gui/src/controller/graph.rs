@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::model::module::NodeMetadata;
 
 use ast::crumbs::InfixCrumb;
+use ast::crumbs::Located;
 use ast::macros::DocumentationCommentInfo;
 use double_representation::connection;
 use double_representation::definition;
@@ -895,7 +896,7 @@ impl Handle {
         let introduced_name = module.generate_name(new_method_name_base)?;
         let node_ids = nodes.iter().map(|node| node.info.id());
         let graph = self.graph_info()?;
-        let module_name = self.module.name();
+        let module_name = self.module.name().to_owned();
         let collapsed = collapse(&graph, node_ids, introduced_name, &self.parser, module_name)?;
         let Collapsed { new_method, updated_definition, collapsed_node } = collapsed;
 

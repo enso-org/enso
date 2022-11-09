@@ -920,6 +920,7 @@ pub enum SuggestionEntry {
         module:                 String,
         params:                 Vec<SuggestionEntryArgument>,
         parent_type:            Option<String>,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]

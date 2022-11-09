@@ -1,17 +1,44 @@
+use crate::prelude::*;
+
 use crate::name::InvalidQualifiedName;
 use crate::name::NamePath;
 use crate::name::NamePathRef;
-use crate::prelude::*;
-use crate::project::BASE_LIBRARY_NAME;
-use crate::project::STANDARD_NAMESPACE;
 use ast::opr::predefined::ACCESS;
+use const_format::concatcp;
 use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
 
 
+// =================
+// === Constants ===
+// =================
+
+/// The namespace of the standard library.
+pub const STANDARD_NAMESPACE: &str = "Standard";
+
+/// The name of the project in the [`STANDARD_NAMESPACE`] containing the base standard library.
+pub const BASE_LIBRARY_NAME: &str = "Base";
+
+/// The full path of the [`BASE_LIBRARY_NAME`] project in the [`STANDARD_NAMESPACE`].
+pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", BASE_LIBRARY_NAME);
+
+
+
 /// The project qualified name has a form of `<namespace_name>.<project_name>`. It serves as
 /// a prefix for qualified names of other entities (modules, types, etc.).
-#[derive(Clone, CloneRef, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone,
+    CloneRef,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize
+)]
 #[serde(into = "String")]
 #[serde(try_from = "String")]
 pub struct QualifiedName {

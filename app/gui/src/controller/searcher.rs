@@ -17,8 +17,9 @@ use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
-use double_representation::module::QualifiedName;
 use double_representation::name::project;
+use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
 use double_representation::node::NodeInfo;
 use engine_protocol::language_server;
 use enso_text::Byte;
@@ -1022,9 +1023,9 @@ impl Searcher {
 
 
         // === Add imports ===
-        let here = self.module_qualified_name();
         for import in example.imports.iter().map(QualifiedName::from_text).filter_map(Result::ok) {
-            module.add_module_import(&here, self.ide.parser(), &import);
+            let import = import::Info::new_qualified(import);
+            module.add_import(self.ide.parser(), import);
         }
         graph.module.update_ast(module.ast)?;
         graph.module.set_node_metadata(added_node_id, metadata)?;
@@ -1257,8 +1258,11 @@ impl Searcher {
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
-        let mut builder =
-            component_list_builder_with_favorites(&self.database, &module_name, &*favorites);
+        let mut builder = component_list_builder_with_favorites(
+            &self.database,
+            module_name.as_ref(),
+            &*favorites,
+        );
         add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
@@ -1375,14 +1379,14 @@ impl Searcher {
         // We may unwrap here, because the constant is tested to be convertible to
         // [`QualifiedName`].
         let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
-        let self_type = tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
+        let self_type = module.clone();
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
                 name:               (*method).to_owned(),
                 kind:               model::suggestion_database::entry::Kind::Method,
                 defined_in:         module.clone(),
                 arguments:          vec![],
-                return_type:        "Standard.Base.System.File.File".to_owned(),
+                return_type:        "Standard.Base.System.File.File".try_into().unwrap(),
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 is_static:          true,
@@ -1401,7 +1405,7 @@ impl Searcher {
 
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
-    local_scope_module: &QualifiedName,
+    local_scope_module: QualifiedNameRef,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
     let mut builder = component::builder::List::new();
@@ -1421,7 +1425,7 @@ fn add_virtual_entries_to_builder(
         let snippets = if return_types.is_empty() {
             component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
         } else {
-            let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+            let parse_type_qn = |s| QualifiedName::from_text(s).ok();
             let rt_qns = return_types.iter().filter_map(parse_type_qn);
             component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
         };

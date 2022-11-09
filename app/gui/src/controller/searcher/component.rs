@@ -9,6 +9,7 @@ use crate::model::suggestion_database;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::module;
+use double_representation::name::QualifiedName;
 
 
 // ==============
@@ -178,7 +179,7 @@ impl Display for Component {
                 let self_type_ref = entry.self_type.as_ref();
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
-                    let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+                    let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
                     write!(f, "{} {}", self_name, entry_name)
                 } else {
                     write!(f, "{}", entry_name)
@@ -202,7 +203,7 @@ impl Display for Component {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub qualified_name: Rc<module::QualifiedName>,
+    pub qualified_name: Rc<QualifiedName>,
     pub content:        Group,
     pub submodules:     group::AlphabeticalList,
 }
@@ -265,7 +266,7 @@ impl List {
     }
 
     /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
-    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<module::QualifiedName>> {
+    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<QualifiedName>> {
         self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }
 

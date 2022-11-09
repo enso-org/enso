@@ -235,10 +235,7 @@ pub struct QualifiedMethodPointer {
 
 impl QualifiedMethodPointer {
     /// Create a method pointer representing a module method.
-    pub fn module_method(
-        module: module::QualifiedName,
-        name: Identifier,
-    ) -> QualifiedMethodPointer {
+    pub fn module_method(module: QualifiedName, name: Identifier) -> QualifiedMethodPointer {
         QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
     }
     /// Tries to create a new method pointer from string components.
@@ -388,8 +385,9 @@ impl ComponentGroup {
         let project = group.library.try_into()?;
         let name = group.name.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
-        let components = group.exports.into_iter().map(|e| e.name.into()).collect();
-        Ok(ComponentGroup { project, name, color, components })
+        let components: FallibleResult<Vec<_>> =
+            group.exports.into_iter().map(|e| e.name.try_into()).collect();
+        Ok(ComponentGroup { project, name, color, components: components? })
     }
 }
 

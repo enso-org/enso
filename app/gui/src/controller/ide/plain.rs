@@ -65,7 +65,7 @@ impl Handle {
             //TODO [ao]: this should be not the default; instead project model should not need the
             // id.    See https://github.com/enso-org/ide/issues/1572
             id:             default(),
-            name:           project::QualifiedName::from_segments(namespace, project_name)?,
+            name:           project::QualifiedName::new(namespace, project_name),
             engine_version: version,
         };
         let project = model::project::Synchronized::new_connected(

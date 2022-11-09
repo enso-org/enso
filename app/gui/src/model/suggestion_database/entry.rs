@@ -10,6 +10,7 @@ use convert_case::Casing;
 use double_representation::import;
 use double_representation::module;
 use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
@@ -199,10 +200,10 @@ impl Entry {
     ) -> Self {
         Self {
             kind,
-            defined_in,
+            defined_in: defined_in.into(),
             name: name.into(),
             arguments: vec![],
-            return_type,
+            return_type: return_type.into(),
             is_static: false,
             reexported_in: None,
             documentation_html: None,
@@ -218,7 +219,7 @@ impl Entry {
         return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
-        let module = on_type.parent_module();
+        let module = on_type.parent().unwrap_or(on_type.as_ref()).to_owned();
         Self {
             self_type: Some(on_type),
             is_static,
@@ -242,23 +243,23 @@ impl Entry {
 
     pub fn new_type(defined_in: QualifiedName, name: impl Into<String>) -> Self {
         let name = name.into();
-        let return_type = tp::QualifiedName::new_module_member(defined_in.clone(), name.clone());
+        let return_type = defined_in.clone().new_child(&name);
         Self::new(Kind::Type, defined_in, name, return_type)
     }
 
     pub fn new_constructor(of_type: QualifiedName, name: impl Into<String>) -> Self {
-        let defined_in_module = of_type.parent_module();
+        let defined_in_module = of_type.parent().unwrap_or(of_type.as_ref()).to_owned();
         Self {
-            self_type: Some(of_type),
+            self_type: Some(of_type.clone()),
             is_static: true,
             ..Self::new(Kind::Constructor, defined_in_module, name, of_type)
         }
     }
 
     pub fn new_function(
-        defined_in: module::QualifiedName,
+        defined_in: QualifiedName,
         name: impl Into<String>,
-        return_type: tp::QualifiedName,
+        return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
         Self {
@@ -268,9 +269,9 @@ impl Entry {
     }
 
     pub fn new_local(
-        defined_in: module::QualifiedName,
+        defined_in: QualifiedName,
         name: impl Into<String>,
-        return_type: impl Into<String>,
+        return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
         Self {
@@ -279,9 +280,9 @@ impl Entry {
         }
     }
 
-    pub fn new_module(full_name: module::QualifiedName) -> Self {
-        let name = String::from(full_name.name());
-        let return_type = (&name).into();
+    pub fn new_module(full_name: QualifiedName) -> Self {
+        let name = full_name.name().to_owned();
+        let return_type = full_name.clone();
         Self::new(Kind::Module, full_name, name, return_type)
     }
 
@@ -290,7 +291,7 @@ impl Entry {
         self
     }
 
-    pub fn reexported_in(mut self, module: module::QualifiedName) -> Self {
+    pub fn reexported_in(mut self, module: QualifiedName) -> Self {
         self.reexported_in = Some(module);
         self
     }
@@ -307,39 +308,33 @@ impl Entry {
 
     /// Check if this entry has self type same as the given identifier.
     pub fn has_self_type<TypeName>(&self, self_type: &TypeName) -> bool
-    where TypeName: PartialEq<tp::QualifiedName> {
+    where TypeName: PartialEq<QualifiedName> {
         self.self_type.contains(self_type)
     }
 
     pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self.kind {
-            Kind::Method if generate_this && self.is_static =>
-                if let Some(self_type) = &self.self_type {
-                    format!("{}{}{}", self_type.name, opr::predefined::ACCESS, self.name).into()
-                } else {
-                    format!("_{}{}", opr::predefined::ACCESS, self.name).into()
-                },
+            Kind::Method if generate_this && self.is_static => self.code_with_static_this().into(),
             Kind::Method if generate_this =>
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
+            Kind::Constructor => self.code_with_static_this().into(),
             _ => Cow::from(&self.name),
+        }
+    }
+
+    fn code_with_static_this(&self) -> String {
+        if let Some(self_type) = &self.self_type {
+            format!("{}{}{}", self_type.alias_name(), opr::predefined::ACCESS, self.name).into()
+        } else {
+            format!("_{}{}", opr::predefined::ACCESS, self.name).into()
         }
     }
 
     pub fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
         match self.kind {
             //TODO[ao] extension methods.
-            Kind::Method if self.is_static => {
-                warn!("Checking imports of {self:?}");
-                let self_type_entry =
-                    self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp));
-                if let Some((_, entry)) = self_type_entry {
-                    entry.required_imports(db)
-                } else {
-                    self.self_type
-                        .as_ref()
-                        .map(|t| import::Info::new_single_name(&t.parent_module(), t.name.clone()))
-                }
-            }
+            Kind::Method if self.is_static => self.import_for_static_self(&db),
+            Kind::Constructor => self.import_for_static_self(&db),
             Kind::Method => None,
             Kind::Module =>
                 if let Some(reexport) = &self.reexported_in {
@@ -347,7 +342,7 @@ impl Entry {
                 } else {
                     Some(import::Info::new_qualified(&self.defined_in))
                 },
-            Kind::Atom => {
+            Kind::Type => {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
                 Some(import::Info::new_single_name(imported_from, self.name.clone()))
             }
@@ -359,6 +354,18 @@ impl Entry {
     /// omitting module name.
     pub fn code_to_insert_skip_module(&self) -> String {
         self.name.clone()
+    }
+
+    pub fn import_for_static_self(&self, db: &SuggestionDatabase) -> Option<import::Info> {
+        let self_type_entry =
+            self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp));
+        if let Some((_, entry)) = self_type_entry {
+            entry.required_imports(db)
+        } else {
+            self.self_type
+                .as_ref()
+                .map(|t| import::Info::new_single_name(&t.parent_module(), t.name.clone()))
+        }
     }
 
     /// Return the Method Id of suggested method.
@@ -425,10 +432,10 @@ impl Entry {
 
     /// Get the fully qualified name of the parent module of this entry. Returns [`None`] if
     /// the entry represents a top-level module.
-    pub fn parent_module(&self) -> Option<module::QualifiedName> {
+    pub fn parent_module(&self) -> Option<QualifiedNameRef> {
         match self.kind {
-            Kind::Module => self.defined_in.parent_module(),
-            _ => Some(self.defined_in.clone()),
+            Kind::Module => self.defined_in.parent(),
+            _ => Some(self.defined_in.as_ref()),
         }
     }
 
@@ -462,28 +469,25 @@ impl Entry {
             }
             _ => (None, None),
         };
-        let reexported_in: Option<module::QualifiedName> = match &mut entry {
-            Atom { reexport: Some(reexport), .. }
+        let reexported_in: Option<QualifiedName> = match &mut entry {
+            Type { reexport: Some(reexport), .. }
+            | Constructor { reexport: Some(reexport), .. }
             | Method { reexport: Some(reexport), .. }
             | Module { reexport: Some(reexport), .. } => Some(mem::take(reexport).try_into()?),
             _ => None,
         };
         let mut this = match entry {
-            Atom { name, module, return_type, arguments, .. } =>
-                Self::new_atom(module.try_into()?, name, return_type).with_arguments(arguments),
+            Type { name, module, params, .. } =>
+                Self::new_type(module.try_into()?, name).with_arguments(params),
+            Constructor { name, arguments, return_type, .. } =>
+                Self::new_constructor(return_type.try_into()?, name).with_arguments(arguments),
             Method { name, module, self_type, return_type, is_static, arguments, .. } =>
-                Self::new_method(
-                    module.try_into()?,
-                    self_type.try_into()?,
-                    name,
-                    return_type,
-                    is_static,
-                )
-                .with_arguments(arguments),
+                Self::new_method(self_type.try_into()?, name, return_type.try_into()?, is_static)
+                    .with_arguments(arguments),
             Function { name, module, return_type, scope, .. } =>
-                Self::new_function(module.try_into()?, name, return_type, scope.into()),
+                Self::new_function(module.try_into()?, name, return_type.try_into()?, scope.into()),
             Local { name, module, return_type, scope, .. } =>
-                Self::new_local(module.try_into()?, name, return_type, scope.into()),
+                Self::new_local(module.try_into()?, name, return_type.try_into()?, scope.into()),
             Module { module, .. } => Self::new_module(module.try_into()?),
         };
         this.documentation_html = documentation;
@@ -521,9 +525,9 @@ impl Entry {
         modification: SuggestionsDatabaseModification,
     ) -> Vec<failure::Error> {
         let m = modification;
-        let module = m.module.map(|f| f.try_map(module::QualifiedName::from_text)).transpose();
-        let self_type = m.self_type.map(|f| f.try_map(tp::QualifiedName::from_text)).transpose();
-        let reexport = m.reexport.map(|f| f.try_map(module::QualifiedName::from_text)).transpose();
+        let module = m.module.map(|f| f.try_map(QualifiedName::from_text)).transpose();
+        let self_type = m.self_type.map(|f| f.try_map(QualifiedName::from_text)).transpose();
+        let reexport = m.reexport.map(|f| f.try_map(QualifiedName::from_text)).transpose();
         let other_update_results = [
             Entry::apply_field_update("return_type", &mut self.return_type, m.return_type),
             Entry::apply_opt_field_update(
@@ -803,7 +807,6 @@ mod test {
             let expected_qualified_name = qualified_name.split('.').collect();
             assert_eq!(entry_qualified_name, expected_qualified_name);
         }
-<<<<<<< HEAD
         let tpe = language_server::SuggestionEntry::Type {
             name:                   "TextType".to_string(),
             module:                 "TestProject.TestModule".to_string(),
