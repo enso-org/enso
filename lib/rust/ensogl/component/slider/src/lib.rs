@@ -178,15 +178,7 @@ impl Slider {
             // model update
 
             eval track_pos.value (
-                (v) {
-                    model.update_track(*v);
-                }
-            );
-            eval_ component_click (
-                model.set_active();
-            );
-            eval_ component_release (
-                model.set_inactive();
+                (v) model.track.value.set(*v);
             );
             eval input.set_width (
                 (v) {
@@ -215,14 +207,10 @@ impl Slider {
             );
 
             eval model.value.width (
-                (w) {
-                    model.text_align_width(*w);
-                }
+                (w) model.value.set_position_x(-*w / 2.0);
             );
             eval model.value.height (
-                (h) {
-                    model.text_align_height(*h);
-                }
+                (h) model.value.set_position_y(*h / 2.0);
             );
 
 

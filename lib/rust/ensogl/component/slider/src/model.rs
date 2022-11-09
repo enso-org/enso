@@ -57,18 +57,12 @@ impl Model {
             width: Cell::new(200.0),
         };
 
-        model.set_size(Vector2::new(200.0, 50.0));
+        model.set_width(200.0);
+        model.set_height(50.0);
         model.set_background_color(color::Rgba(0.8, 0.8, 0.8, 1.0));
-        model.set_inactive();
+        model.set_track_color(color::Rgba(0.4, 0.4, 0.8, 1.0));
 
         model
-    }
-
-    pub fn set_size(&self, size: Vector2) {
-        self.width.set(size.x);
-        self.height.set(size.y);
-        self.background.size.set(size);
-        self.track.size.set(size);
     }
 
     pub fn set_width(&self, width: f32) {
@@ -94,25 +88,6 @@ impl Model {
     }
     pub fn set_background_color(&self, color: color::Rgba) {
         self.background.color.set(color.into());
-    }
-
-    pub fn text_align_width(&self, width: f32) {
-        self.value.set_position_x(-width / 2.0);
-    }
-    pub fn text_align_height(&self, height: f32) {
-        self.value.set_position_y(height / 2.0);
-    }
-
-    pub fn update_track(&self, value: f32) {
-        self.track.value.set(value);
-    }
-
-    pub fn set_active(&self) {
-        self.set_track_color(color::Rgba(0.4, 0.4, 0.8, 1.0));
-    }
-
-    pub fn set_inactive(&self) {
-        self.set_track_color(color::Rgba(0.4, 0.4, 0.6, 1.0));
     }
 }
 
