@@ -984,7 +984,6 @@ pub mod tests {
 
     use ast::crumbs;
     use ast::test_utils::expect_shape;
-    use double_representation::identifier::NormalizedName;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;

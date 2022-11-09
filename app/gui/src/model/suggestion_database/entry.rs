@@ -358,13 +358,13 @@ impl Entry {
 
     pub fn import_for_static_self(&self, db: &SuggestionDatabase) -> Option<import::Info> {
         let self_type_entry =
-            self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp));
+            self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp.as_ref()));
         if let Some((_, entry)) = self_type_entry {
             entry.required_imports(db)
         } else {
             self.self_type
                 .as_ref()
-                .map(|t| import::Info::new_single_name(&t.parent_module(), t.name.clone()))
+                .and_then(|t| Some(import::Info::new_single_name(&t.parent()?, t.name())))
         }
     }
 
@@ -402,31 +402,17 @@ impl Entry {
         self.into()
     }
 
-    /// Check if this is a regular method (i.e. non-extension method).
-    pub fn is_regular_method(&self) -> bool {
-        let is_method = self.kind == Kind::Method;
-        let not_extension = self.self_type.contains_if(|this| this.in_module(&self.defined_in))
-            || self.self_type.contains(&self.defined_in);
-        is_method && not_extension
-    }
-
     /// Get the full qualified name of the entry.
-    pub fn qualified_name(&self) -> QualifiedName {
-        match self.kind {
-            Kind::Method => match &self.self_type {
-                Some(t) => chain_iter_and_entry_name(t, self).collect(),
-                None => {
-                    let msg = format!(
-                        "Cannot construct a fully qualified name for the suggestion database \
-                        entry {self:?}. Every entry with the 'Method' kind should have a self \
-                        type set, but this entry is missing the self type."
-                    );
-                    error!("{msg}");
-                    default()
-                }
-            },
-            Kind::Module => self.defined_in.into_iter().collect(),
-            _ => chain_iter_and_entry_name(&self.defined_in, self).collect(),
+    pub fn qualified_name(&self) -> Option<QualifiedName> {
+        if self.kind == Kind::Module {
+            Some(self.defined_in.clone())
+        } else {
+            let parent_path = match self.kind {
+                Kind::Method | Kind::Constructor => self.self_type.as_ref().unwrap_or(&self.defined_in),
+                Kind::Type => &self.defined_in,
+                Kind::Type| Kind::Local => None,
+                Kind::Module => 
+            };
         }
     }
 
@@ -702,13 +688,6 @@ pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
 
 
 // === Entry helpers ===
-
-fn chain_iter_and_entry_name<'a>(
-    iter: impl IntoIterator<Item = &'a str>,
-    entry: &'a Entry,
-) -> impl Iterator<Item = &'a str> {
-    iter.into_iter().chain(iter::once(entry.name.as_str()))
-}
 
 fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
 where I: IntoIterator<Item = &'a language_server::types::DocSection> {

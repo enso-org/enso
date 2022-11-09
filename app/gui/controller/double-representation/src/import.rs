@@ -93,14 +93,14 @@ pub struct Info {
 impl Info {
     /// Create qualified import (i.e. `import <module-name>`) importing the given module without
     /// alias.
-    pub fn new_qualified(module: QualifiedName) -> Self {
+    pub fn new_qualified(module: impl Into<NamePath>) -> Self {
         Self { module: module.into(), imported: ImportedNames::Module { alias: None } }
     }
 
-    pub fn new_single_name(module: &QualifiedName, name: String) -> Self {
+    pub fn new_single_name(module: impl Into<NamePath>, name: impl Into<String>) -> Self {
         Self {
             module:   module.into(),
-            imported: ImportedNames::List { names: iter::once(name).collect() },
+            imported: ImportedNames::List { names: iter::once(name.into()).collect() },
         }
     }
 
