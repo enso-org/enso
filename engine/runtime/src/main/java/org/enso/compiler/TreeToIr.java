@@ -824,6 +824,7 @@ final class TreeToIr {
               yield fn.setLocation(loc);
           }
       }
+      case Tree.Invalid __ -> new IR$Error$Syntax(tree, IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
   }
