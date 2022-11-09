@@ -205,12 +205,12 @@ define_themes! { [light:0, dark:1]
                     entry {
                         background.intensity = 0.08, 0.08;
                         dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
-                        padding = 17.0, 17.0;
+                        padding = 16.0, 16.0;
                         text {
-                            font = "default", "default";
-                            size = 12.0, 12.0;
+                            font = "mplus1p", "mplus1p";
+                            size = 11.5, 11.5;
                             color = 1.0, 1.0;
-                            highlight_bold = 0.02, 0.02;
+                            highlight_bold = 0.01, 0.01;
                         }
                         icon {
                             size = 16.0, 16.0;
@@ -300,9 +300,9 @@ define_themes! { [light:0, dark:1]
                         entry {
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
-                            font = "default", "default";
+                            font = "mplus1p", "mplus1p";
                             text_padding_left = 7.0, 7.0;
-                            text_size = 12.0, 12.0;
+                            text_size = 11.5, 11.5;
                             selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
                             greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);

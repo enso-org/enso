@@ -331,6 +331,7 @@ impl Data {
         self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
         let text_x = Self::text_x_position(kind, style, grid_style);
         let text_y = style.text_size / 2.0 + local_scope_offset;
+        // let text_y = local_scope_offset;
         self.label.set_position_xy(Vector2(text_x, text_y));
     }
 
@@ -490,8 +491,12 @@ impl grid_view::Entry for View {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
             is_header <- label_updated.filter(|(m, (), ())| m.kind == Kind::Header);
+            is_not_header <- label_updated.filter(|(m, (), ())| m.kind != Kind::Header);
             data.label.set_property <+ is_header.map2(&style, |_, s| {
-                ((..).into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
+                ((..).into(), Some(text::Weight::ExtraBold.into()))
+            });
+            data.label.set_property <+ is_not_header.map2(&style, |_, s| {
+                ((..).into(), Some(text::Weight::Medium.into()))
             });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));

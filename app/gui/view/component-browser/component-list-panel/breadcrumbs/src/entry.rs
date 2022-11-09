@@ -180,7 +180,7 @@ impl EntryData {
 
     fn update_layout(&self, contour: Contour, text_size: text::Size, text_padding: f32) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, text_size.value / 2.0));
+        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, 8.0));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }
@@ -197,6 +197,7 @@ impl EntryData {
 
     fn set_default_text_size(&self, size: text::Size) {
         self.text.set_property_default(size);
+        self.text.set_property_default(text::Weight::Medium);
     }
 
     fn is_state_change(&self, model: &Model) -> bool {
@@ -335,8 +336,8 @@ impl ensogl_grid_view::Entry for Entry {
                     data.width(*text_padding)
                 })
             );
-            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             // For text entries, we also listen for [`Text::width`] changes.
+            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
         }
