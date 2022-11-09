@@ -136,10 +136,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param arguments the arguments to execute {@code function} with
      */
     private void setNextCall(
-        VirtualFrame frame,
-        Function function,
-        CallerInfo callerInfo,
-        Object[] arguments) {
+        VirtualFrame frame, Function function, CallerInfo callerInfo, Object[] arguments) {
       frame.setObject(functionSlotIdx, function);
       frame.setObject(callerInfoSlotIdx, callerInfo);
       frame.setObject(argsSlotIdx, arguments);

@@ -1211,7 +1211,8 @@ case object AliasAnalysis extends IRPass {
             this.childScopes.foreach(scope =>
               childScopeCopies += scope.deepCopy(mapping)
             )
-            val newScope = new Scope(childScopeCopies.toList, occurrences, allDefinitions)
+            val newScope =
+              new Scope(childScopeCopies.toList, occurrences, allDefinitions)
             mapping.put(this, newScope)
             newScope
         }
