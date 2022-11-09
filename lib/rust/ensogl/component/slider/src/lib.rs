@@ -89,6 +89,8 @@ ensogl_core::define_endpoints_2! {
         set_value_color(color::Lcha),
 
         set_precision(f32),
+        set_precision_step_margin(f32),
+        set_precision_step_size(f32),
 
         set_tooltip(Option<ImString>),
         set_label(Option<ImString>),
@@ -137,26 +139,36 @@ impl Slider {
             drag_pos_start          <- mouse.position.sample(&component_click);
             drag_pos_end            <- mouse.position.gate(&component_drag);
             drag_pos_end            <- any2(&drag_pos_end, &drag_pos_start);
+            drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
 
+            mouse_y_local           <- mouse.position.map(
+                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y )
+            ).gate(&component_drag);
 
             // Componenet size
 
             output.width            <+ input.set_width;
             output.height           <+ input.set_height;
 
-            // distance dragged
-            drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
-            // vertical drag as fraction of element height
-            drag_y_fract            <- all2(&drag_delta, &output.height).map(
-                |(delta, height)| delta.y / height
+
+            // precision calculation
+            precision_adjust_margin <- all2(&input.set_height, &input.set_precision_step_margin).map(
+                |(height, margin)| height / 2.0 + margin
+            );
+            precision_adjusted      <- all4(
+                &input.set_precision,
+                &mouse_y_local,
+                &precision_adjust_margin,
+                &input.set_precision_step_size,
+            ).map(
+                |(base, offset, margin, step_size)| {
+                    let steps = ((offset.abs() - margin) / step_size).max(0.0).ceil() * offset.signum();
+                    *base * (10.0).pow(steps)
+                }
             );
 
 
             // value calculation
-
-            precision_adjusted      <- all2(&input.set_precision, &drag_y_fract).map(
-                |(base, offset)| *base * (10.0).pow(offset.round())
-            );
 
             value_reset             <- input.set_value_default.sample(&component_ctrl_click);
             value_start             <- output.value.sample(&component_click);
@@ -258,6 +270,8 @@ impl Slider {
         }
 
         self.frp.set_precision(0.1);
+        self.frp.set_precision_step_margin(10.0);
+        self.frp.set_precision_step_size(50.0);
 
         self.frp.set_value_min(0.0);
         self.frp.set_value_max(5.0);
