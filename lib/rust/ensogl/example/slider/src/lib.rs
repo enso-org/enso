@@ -70,4 +70,6 @@ fn init(app: &Application) {
     let slider1 = make_slider(app);
     slider1.inner().frp.set_width(400.0);
     slider1.inner().frp.set_height(50.0);
+    slider1.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider1.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
 }

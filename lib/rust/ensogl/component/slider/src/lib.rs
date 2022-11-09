@@ -86,11 +86,13 @@ ensogl_core::define_endpoints_2! {
         set_value_default(f32),
         set_value_min(f32),
         set_value_max(f32),
+        set_value_color(color::Lcha),
 
         set_precision(f32),
 
         set_tooltip(Option<ImString>),
         set_label(Option<ImString>),
+        set_label_color(color::Lcha),
     }
     Output {
         width(f32),
@@ -198,6 +200,19 @@ impl Slider {
             );
             eval_ value_is_default_false (
                 model.value.set_property_default(formatting::Weight::Bold);
+            );
+
+            eval input.set_background_color (
+                (color) model.set_background_color(*color);
+            );
+            eval input.set_slider_color (
+                (color) model.set_track_color(*color);
+            );
+            eval input.set_value_color (
+                (color) model.value.set_property_default(color);
+            );
+            eval input.set_label_color (
+                (color) model.label.set_property_default(color);
             );
 
 
