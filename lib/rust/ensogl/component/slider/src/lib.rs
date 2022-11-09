@@ -12,6 +12,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
+use ensogl_text::formatting;
 
 
 
@@ -127,7 +128,7 @@ impl Slider {
             component_drag          <- any2(&background_drag, &track_drag);
             component_release       <- any2(&background_release, &track_release);
 
-            component_ctrl_click   <- component_click.gate(&keyboard.is_control_down);
+            component_ctrl_click    <- component_click.gate(&keyboard.is_control_down);
 
             drag_pos_start          <- mouse.position.sample(&component_click);
             drag_pos_end            <- mouse.position.gate(&component_drag);
@@ -181,14 +182,22 @@ impl Slider {
                 (v) model.track.value.set(*v);
             );
             eval input.set_width (
-                (v) {
-                    model.set_width(*v);
-                }
+                (v) model.set_width(*v);
             );
             eval input.set_height (
-                (v) {
-                    model.set_height(*v);
-                }
+                (v) model.set_height(*v);
+            );
+
+            value_is_default        <- all2(&value, &input.set_value_default).map(
+                |(value, default)| value==default
+            );
+            value_is_default_true   <- value_is_default.on_true();
+            value_is_default_false  <- value_is_default.on_false();
+            eval_ value_is_default_true (
+                model.value.set_property_default(formatting::Weight::Normal);
+            );
+            eval_ value_is_default_false (
+                model.value.set_property_default(formatting::Weight::Bold);
             );
 
 
