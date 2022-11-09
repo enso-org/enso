@@ -18,6 +18,7 @@ import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Expression$Binding;
@@ -61,9 +62,11 @@ import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Line;
+import org.enso.syntax2.MultiSegmentAppSegment;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
+import org.enso.syntax2.Tree.MultiSegmentApp;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -1173,38 +1176,42 @@ final class TreeToIr {
     */
   @SuppressWarnings("unchecked")
   IR$Module$Scope$Import translateImport(Tree.Import imp) {
-    Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody(), true));
-    if (imp.getPolyglot() != null) {
-      if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
-        throw new UnhandledEntity(imp, "translateImport");
+    try {
+      Option<IR$Name$Literal> rename = Option.apply(imp.getAs()).map(as -> buildName(as.getBody(), true));
+      if (imp.getPolyglot() != null) {
+        if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
+          return translateSyntaxError(imp, IR$Error$Syntax$UnrecognizedToken$.MODULE$);
+        }
+        List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody(), true);
+        StringBuilder pkg = new StringBuilder();
+        String cls = extractPackageAndName(qualifiedName, pkg);
+        return new IR$Module$Scope$Import$Polyglot(
+          new IR$Module$Scope$Import$Polyglot$Java(pkg.toString(), cls),
+          rename.map(name -> name.name()), getIdentifiedLocation(imp),
+          meta(), diag()
+        );
       }
-      List<IR.Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody(), true);
-      StringBuilder pkg = new StringBuilder();
-      String cls = extractPackageAndName(qualifiedName, pkg);
-      return new IR$Module$Scope$Import$Polyglot(
-              new IR$Module$Scope$Import$Polyglot$Java(pkg.toString(), cls),
-              rename.map(name -> name.name()), getIdentifiedLocation(imp),
-              meta(), diag()
-      );
-    }
-    var isAll = imp.getAll() != null;
-    IR$Name$Qualified qualifiedName;
-    Option<List<IR$Name$Literal>> onlyNames = Option.empty();
-    if (imp.getFrom() != null) {
-      qualifiedName = buildQualifiedName(imp.getFrom().getBody(), Option.empty(), true);
-      if (!isAll) {
-        onlyNames = Option.apply(buildNameSequence(imp.getImport().getBody()));
+      var isAll = imp.getAll() != null;
+      IR$Name$Qualified qualifiedName;
+      Option<List<IR$Name$Literal>> onlyNames = Option.empty();
+      if (imp.getFrom() != null) {
+        qualifiedName = buildQualifiedName(imp.getFrom().getBody(), Option.empty(), true);
+        if (!isAll) {
+          onlyNames = Option.apply(buildNameSequence(imp.getImport().getBody()));
+        }
+      } else {
+        qualifiedName = buildQualifiedName(imp.getImport().getBody(), Option.empty(), true);
       }
-    } else {
-      qualifiedName = buildQualifiedName(imp.getImport().getBody(), Option.empty(), true);
-    }
-    Option<List<IR$Name$Literal>> hidingNames = Option.apply(imp.getHiding()).map(
-            hiding -> buildNameSequence(hiding.getBody()));
-    return new IR$Module$Scope$Import$Module(
-      qualifiedName, rename, isAll || onlyNames.isDefined() || hidingNames.isDefined(), onlyNames,
-      hidingNames, getIdentifiedLocation(imp), false,
+      Option<List<IR$Name$Literal>> hidingNames = Option.apply(imp.getHiding()).map(
+              hiding -> buildNameSequence(hiding.getBody()));
+      return new IR$Module$Scope$Import$Module(
+    qualifiedName, rename, isAll || onlyNames.isDefined() || hidingNames.isDefined(), onlyNames,
+        hidingNames, getIdentifiedLocation(imp), false,
       meta(), diag()
-    );
+      );
+    } catch (UnhandledEntity err) {
+      return translateUnhandledEntity(err, IR$Error$Syntax$InvalidImport$.MODULE$);
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -1263,6 +1270,10 @@ final class TreeToIr {
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
+  IR$Error$Syntax translateUnhandledEntity(UnhandledEntity err, IR$Error$Syntax$Reason reason) {
+    var where = (Tree) err.entity();
+    return translateSyntaxError(where, reason);
+  }
   IR$Error$Syntax translateSyntaxError(Tree where, IR$Error$Syntax$Reason reason) {
     var at = getIdentifiedLocation(where);
     if (at.isEmpty()) {

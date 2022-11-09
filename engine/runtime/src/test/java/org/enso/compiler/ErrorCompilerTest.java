@@ -6,7 +6,10 @@ import java.io.IOException;
 
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$Reason;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.syntax.text.Location;
 
 import org.junit.AfterClass;
@@ -128,8 +131,92 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 7);
   }
 
+  @Test
+  public void unexpectedSpecialOperator() throws Exception {
+    var ir = parseTest("foo = 1, 2");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 10);
+  }
+
+  @Test
+  public void malformedImport1() throws Exception {
+    var ir = parseTest("import");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 6);
+  }
+
+  @Test
+  public void malformedImport2() throws Exception {
+    var ir = parseTest("import as Foo");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 13);
+  }
+
+  @Test
+  public void malformedImport3() throws Exception {
+    var ir = parseTest("import Foo as Foo, Bar");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 22);
+  }
+
+  @Test
+  public void malformedImport4() throws Exception {
+    var ir = parseTest("import Foo as Foo.Bar");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 21);
+  }
+
+  @Test
+  public void malformedImport5() throws Exception {
+    var ir = parseTest("import Foo as");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 13, 13);
+  }
+
+  @Test
+  public void malformedImport6() throws Exception {
+    var ir = parseTest("import Foo as Bar.Baz");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 21);
+  }
+
+  @Test
+  public void malformedImport7() throws Exception {
+    var ir = parseTest("import Foo hiding");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 17, 17);
+  }
+
+  @Test
+  public void malformedImport8() throws Exception {
+    var ir = parseTest("import Foo hiding X,");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 18, 20);
+  }
+
+  @Test
+  public void malformedImport9() throws Exception {
+    var ir = parseTest("polyglot import Foo");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnrecognizedToken$.MODULE$, "Unrecognized token.", 0, 19);
+  }
+
+  @Test
+  public void malformedImport10() throws Exception {
+    var ir = parseTest("polyglot java import");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 20);
+  }
+
+  @Test
+  public void malformedImport11() throws Exception {
+    var ir = parseTest("from import all");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 4, 4);
+  }
+
+  @Test
+  public void malformedImport12() throws Exception {
+    var ir = parseTest("from Foo import all hiding");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 26, 26);
+  }
+
+  @Test
+  public void malformedImport13() throws Exception {
+    var ir = parseTest("from Foo import all hiding X.Y");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 27, 30);
+  }
+
   private void assertSingleSyntaxError(
-      IR.Module ir, IR$Error$Syntax$UnexpectedExpression$ type,
+      IR.Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end
   ) {
     var errors = assertIR(ir, IR$Error$Syntax.class, 1);
