@@ -85,7 +85,7 @@ ensogl_core::define_endpoints_2! {
         set_value_default(f32),
         set_value_min(f32),
         set_value_max(f32),
-        
+
         set_precision(f32),
 
         set_tooltip(Option<ImString>),
@@ -107,6 +107,7 @@ impl Slider {
 
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp;
+        let keyboard = &scene.keyboard.frp;
 
         let track_pos = Animation::new_non_init(&network);
 
@@ -125,6 +126,8 @@ impl Slider {
             component_click         <- any2(&background_click, &track_click);
             component_drag          <- any2(&background_drag, &track_drag);
             component_release       <- any2(&background_release, &track_release);
+
+            component_ctrl_click   <- component_click.gate(&keyboard.is_control_down);
 
             drag_pos_start          <- mouse.position.sample(&component_click);
             drag_pos_end            <- mouse.position.gate(&component_drag);
@@ -150,7 +153,10 @@ impl Slider {
                 |(base, offset)| *base * (10.0).pow(offset.round())
             );
 
+            value_reset             <- input.set_value_default.sample(&component_ctrl_click);
             value_start             <- output.value.sample(&component_click);
+            value_start             <- any2(&value_reset, &value_start);
+
             value_update            <- bool(&component_release, &value_start); // update only after value_start is sampled
             value                   <- all3(&value_start, &precision_adjusted, &drag_delta).map(
                 |(value, precision, delta)| value + delta.x * precision
@@ -226,6 +232,7 @@ impl Slider {
 
         self.frp.set_value_min(0.0);
         self.frp.set_value_max(5.0);
+        self.frp.set_value_default(0.5);
         self.frp.set_value(0.5);
 
         self
