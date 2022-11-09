@@ -16,7 +16,7 @@
 /// macro usage.
 ///
 /// For the given input:
-/// ```compile_fail
+/// ```text
 /// shared! { Uniform
 ///
 /// #[derive(Clone,Copy,Debug)]
@@ -47,7 +47,7 @@
 ///
 /// The following output will be generated:
 ///
-/// ```compile_fail
+/// ```text
 /// #[derive(Clone,Copy,Debug)]
 /// pub struct UniformData<Value> {
 ///     value: Value,

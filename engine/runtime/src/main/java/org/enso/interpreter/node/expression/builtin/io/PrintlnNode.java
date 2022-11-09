@@ -11,13 +11,12 @@ import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
@@ -28,13 +27,12 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
-  abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, @AcceptsError Object message);
+  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
-  Stateful doPrintText(
+  Object doPrintText(
       VirtualFrame frame,
-      Object state,
+      State state,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
     Context ctx = Context.get(this);
@@ -43,22 +41,22 @@ public abstract class PrintlnNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible. self is guaranteed to be a string");
     }
-    return new Stateful(state, ctx.getNothing());
+    return ctx.getNothing();
   }
 
   @Specialization(guards = "!strings.isString(message)")
-  Stateful doPrint(
+  Object doPrint(
       VirtualFrame frame,
-      Object state,
+      State state,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
-    Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+    var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     Context ctx = Context.get(this);
-    print(ctx.getOut(), expectStringNode.execute(str.getValue()));
-    return new Stateful(str.getState(), ctx.getNothing());
+    print(ctx.getOut(), expectStringNode.execute(str));
+    return ctx.getNothing();
   }
 
   boolean isText(Object o) {

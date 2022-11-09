@@ -1,600 +1,743 @@
-name: Release CI
-
+name: Release Candidate
 on:
-  push:
-    tags:
-      - "enso-*.*.*"
-
-env:
-  # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 21.3.0
-  # Please ensure that this is in sync with javaVersion in build.sbt
-  javaVersion: 11
-  # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.5.2
-  # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-11-29
-  # Please ensure that this is in sync with nodeVersion in scala.yml
-  nodeVersion: 14.17.2
-
-concurrency: "releases"
-
+  workflow_dispatch: {}
 jobs:
-  # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
-  build:
-    name: Build
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    strategy:
-      matrix:
-        os: [macOS-latest, ubuntu-18.04, windows-latest]
-      fail-fast: true
+  enso-build-cli-ci-gen-draft-release-linux:
+    name: Create release draft
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          path: repo
-      - name: Configure Pagefile (Windows)
-        if: runner.os == 'Windows'
-        uses: al-cheb/configure-pagefile-action@v1.2
-        with:
-          minimum-size: 16GB
-          maximum-size: 16GB
-          disk-root: "C:"
-      - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.9.0
-      - name: Disable TCP/UDP Offloading (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
-          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
-      - name: Disable TCP/UDP Offloading (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: sudo ethtool -K eth0 tx off rx off
-      - name: Disable TCP/UDP Offloading (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: >
-          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
-          -UdpIPv6
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
-      - name: Setup conda
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
         with:
-          update-conda: true
+          update-conda: false
           conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: |
-          conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: conda activate enso
-      - name: Install FlatBuffers Compiler
-        run: conda install flatbuffers=1.12.0
-      - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
         with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
-          native-image: true
-      - name: Download Project Template Files
-        working-directory: repo
-        shell: bash
-        run: |
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/data/store_data.xlsx https://github.com/enso-org/project-templates/raw/main/Orders/data/store_data.xlsx
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Orders/src/Main.enso
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/la_districts.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/la_districts.csv
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/restaurants.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/restaurants.csv
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Restaurants/src/Main.enso
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/stargazers/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Stargazers/src/Main.enso
-      - name: Set Up SBT
-        shell: bash
-        run: |
-          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
         with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-
-      # Bootstrap
-      - name: Enable Release Mode
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
-      - name: Bootstrap the Project
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors bootstrap
-
-      # Verify Legal Review
-      - name: Verify Packages
-        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors verifyLicensePackages
-
-      # Prepare distributions
-      - name: Build the Launcher Native Image
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors "launcher/assembly"
-          sbt --no-colors --mem 1536 "launcher/buildNativeImage"
-
-      - name: Build the PM Native Image
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors "project-manager/assembly"
-          sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
-
-      - name: Prepare Distribution Version (Unix)
-        working-directory: repo
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          chmod +x enso
-          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
-          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
-
-      - name: Prepare Distribution Version (Windows)
-        working-directory: repo
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
-          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
-
-      # Currently the only architecture supported by Github runners is amd64
-      - name: Prepare Distribution Environment
-        working-directory: repo
-        shell: bash
-        run: >
-          GRAAL_VERSION=$(echo ${{ env.graalVersion }}) DIST_OS=$(echo
-          ${{runner.os }} | awk '{print tolower($0)}') bash
-          tools/ci/prepare-distribution-env.sh
-
-      - name: Prepare Launcher Distribution
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt buildLauncherDistribution
-      - name: Prepare Engine Distribution
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt buildEngineDistribution
-
-      - name: Compile the Standard Libraries (Unix)
-        working-directory: repo
-        shell: bash
-        if: runner.os != 'Windows'
-        run: |
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
-
-      - name: Compile the Standard Libraries (Windows)
-        working-directory: repo
-        shell: bash
-        if: runner.os == 'Windows'
-        run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Base/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Database/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Examples/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Geo/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Google_Api/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Image/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Searcher/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Table/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Test/$DIST_VERSION
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --no-compile-dependencies --no-global-cache --compile $ENGINE_DIST_DIR/lib/Standard/Visualization/$DIST_VERSION
-
-      - name: Prepare Project Manager Distribution
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt buildProjectManagerDistribution
-      - name: Prepare GraalVM Distribution
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
-          sbt buildGraalDistribution
-
-      # Ensure that the versions encoded in the binary and in the release match
-      - name: Check Versions (Unix)
-        working-directory: repo
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
-          binversion=${{ env.DIST_VERSION }}
-          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
-          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
-          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-      - name: Check Versions (Windows)
-        working-directory: repo
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
-          binversion=${{ env.DIST_VERSION }}
-          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
-          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
-          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-
-      # Verify License Packages in Distributions
-      - name: Verify Distributed Licenses Package
-        working-directory: repo
-        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
-        shell: bash
-        # We assume that standard library version is the same as engine version.
-        run: |
-          sleep 1
-          sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Base/${{ env.DIST_VERSION }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Table/${{ env.DIST_VERSION }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Image/${{ env.DIST_VERSION }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/${{ env.DIST_VERSION }}/THIRD-PARTY"
-
-      # Publish
-      - name: Compress the built artifacts for upload
-        # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
-        shell: bash
-        working-directory: repo/built-distribution
-        run:
-          7z a -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
-          *
-      - name: Upload the Built Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}
-          path:
-            repo/built-distribution/built-distribution-${{ env.DIST_OS }}-${{
-            env.DIST_ARCH }}.zip
-      - name: Upload the Manifest Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: manifest
-          path: repo/${{ env.ENGINE_DIST_DIR }}/manifest.yaml
-      - name: Upload the Launcher Manifest Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: launcher-manifest
-          path: repo/distribution/launcher-manifest.yaml
-
-  create-release:
-    name: Prepare Release
-    runs-on: ubuntu-18.04
-    needs: build
-    steps:
-      - name: Checkout code
+      - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          path: repo
-      # Without specifying options, it downloads all artifacts
-      - uses: actions/download-artifact@v2
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - id: prepare
+        run: ./run release create-draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    outputs:
+      ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
+  enso-build-cli-ci-gen-job-build-wasm-linux:
+    name: Build GUI (WASM) (linux)
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
         with:
-          path: repo/built-distribution
-      - name: Unpack Artifacts
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        working-directory: repo/built-distribution
-        run: for f in built-distribution-*; do unzip -n "$f/$f.zip"; done
-
-      - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
+      - name: Checking out the repository
+        uses: actions/checkout@v2
         with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
-          native-image: true
-      - name: Set Up SBT
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+  enso-build-cli-ci-gen-job-deploy-gui-linux:
+    name: Upload GUI to S3 (linux)
+    needs:
+      - enso-build-cli-ci-gen-upload-ide-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: |
-          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
+      - name: Checking out the repository
+        uses: actions/checkout@v2
         with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-
-      - name: Save Version to Environment
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run release deploy-gui
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+  enso-build-cli-ci-gen-job-deploy-runtime-linux:
+    name: Upload Runtime to ECR (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-upload-backend-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: |
-          ref=${{ github.ref }}
-          DIST_VERSION=${ref#"refs/tags/enso-"}
-          echo "Preparing release for $DIST_VERSION"
-          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
-
-      - name: Prepare Packages
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run release deploy-runtime
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: eu-west-1
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
+          ENSO_BUILD_ECR_REPOSITORY: runtime
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-job-upload-backend-linux:
+    name: Upload Backend (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        working-directory: repo
-        run: |
-          sleep 1
-          sbt makePackages
-
-      - name: Prepare Bundles
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run backend upload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-job-upload-backend-macos:
+    name: Upload Backend (macos)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - macos-latest
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        working-directory: repo
-        run: |
-          sleep 1
-          sbt makeBundles
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run backend upload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-job-upload-backend-windows:
+    name: Upload Backend (windows)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
         with:
-          tag_name: enso-${{ env.DIST_VERSION }}
-          release_name: Enso ${{ env.DIST_VERSION }}
-          body: "Please fill-in the release description"
-          draft: true
-          prerelease: true
-
-      - name: Login to ACR
-        uses: docker/login-action@v1
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
         with:
-          registry: ensosharedwus2acr.azurecr.io
-          username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
-          password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
-
-      - name: Copy the docker entrypoint script
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: |
-          sleep 1
-          cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
-
-      - name: Publish Runtime Docker Image
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run backend upload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-publish-release-linux:
+    name: Publish release (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-deploy-gui-linux
+      - enso-build-cli-ci-gen-job-deploy-runtime-linux
+      - enso-build-cli-ci-gen-upload-ide-linux
+      - enso-build-cli-ci-gen-upload-ide-macos
+      - enso-build-cli-ci-gen-upload-ide-windows
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: |
-          sleep 1
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
-          docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
-
-      # Publish the launcher packages to the backup/fallback S3 bucket
-      - name: Prepare AWS Session
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run release publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+      AWS_REGION: us-west-1
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-upload-ide-linux:
+    name: Build IDE (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
-          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
-          eu-central-1
-          text
-          EOF
-      - name: Upload the Linux Launcher Package to S3
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-upload-ide-macos:
+    name: Build IDE (macos)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-macos
+    runs-on:
+      - macos-latest
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-linux-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the macOS Launcher Package to S3
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+        env:
+          APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
+          CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+  enso-build-cli-ci-gen-upload-ide-windows:
+    name: Build IDE (windows)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-windows
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-macos-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Windows Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-windows-amd64.zip s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Launcher Manifest to S3
-        shell: bash
-        run: >
-          aws s3 cp
-          repo/built-distribution/launcher-manifest/launcher-manifest.yaml
-          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION
-          }}/launcher-manifest.yaml --profile s3-upload --acl public-read
-      - name: Update the Release List in S3
-        shell: bash
-        run: |
-          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
-          TAG="enso-${{ env.DIST_VERSION }}"
-          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
-          launcher-manifest.yaml \
-          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
-          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
-      - name: Teardown AWS Session
-        shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          null
-          null
-          null
-          text
-          EOF
-
-      # Upload the assets to the created release
-      - name: Publish the Engine (Linux)
-        uses: actions/upload-release-asset@v1
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
-            }}-linux-amd64.tar.gz
-          asset_name: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Engine (MacOS)
-        uses: actions/upload-release-asset@v1
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
-            }}-macos-amd64.tar.gz
-          asset_name: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Engine (Windows)
-        uses: actions/upload-release-asset@v1
+        timeout-minutes: 360
+      - run: ./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-engine-${{ env.DIST_VERSION
-            }}-windows-amd64.zip
-          asset_name: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Publish the Launcher (Linux)
-        uses: actions/upload-release-asset@v1
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-            }}-linux-amd64.tar.gz
-          asset_name: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Launcher (MacOS)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-            }}-macos-amd64.tar.gz
-          asset_name: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Launcher (Windows)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-            }}-windows-amd64.zip
-          asset_name: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Publish the Project Manager (Linux)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
-            }}-linux-amd64.tar.gz
-          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Project Manager (MacOS)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
-            }}-macos-amd64.tar.gz
-          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Project Manager (Windows)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path:
-            repo/built-distribution/enso-project-manager-${{ env.DIST_VERSION
-            }}-windows-amd64.zip
-          asset_name: enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Publish the Bundle (Linux)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
-            }}-linux-amd64.tar.gz
-          asset_name: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Bundle (MacOS)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
-            }}-macos-amd64.tar.gz
-          asset_name: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
-          asset_content_type: application/x-tar
-      - name: Publish the Bundle (Windows)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/enso-bundle-${{ env.DIST_VERSION
-            }}-windows-amd64.zip
-          asset_name: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Publish the Manifest
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/manifest/manifest.yaml
-          asset_name: manifest.yaml
-          asset_content_type: application/yaml
-      - name: Publish the Launcher Manifest
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
-          asset_name: launcher-manifest.yaml
-          asset_content_type: application/yaml
+        timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
+      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+env:
+  ENSO_BUILD_KIND: rc
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
+  RUST_BACKTRACE: full
+concurrency: release

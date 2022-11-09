@@ -13,37 +13,79 @@ pub use clean::Clean;
 
 
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Git {
-    /// The path to the repository root above the `working_dir`.
-    ///
-    /// Many paths that git returns are relative to the repository root.
-    repo_path:   PathBuf,
-    /// Directory in which commands will be invoked.
-    /// It might not be the repository root and it makes difference for many commands.
-    working_dir: PathBuf,
-}
+#[derive(Clone, Copy, Debug)]
+pub struct Git;
 
 impl Program for Git {
     type Command = GitCommand;
     fn executable_name(&self) -> &'static str {
         "git"
     }
-    fn current_directory(&self) -> Option<PathBuf> {
-        Some(self.working_dir.clone())
-    }
 }
 
 impl Git {
-    pub async fn new(repo_path: impl Into<PathBuf>) -> Result<Self> {
-        let repo_path = repo_path.into();
-        let temp_git = Git { working_dir: repo_path.clone(), repo_path };
-        let repo_path = temp_git.repository_root().await?;
-        Ok(Git { repo_path, working_dir: temp_git.working_dir })
+    /// Create a new, empty git repository in the given directory.
+    pub fn init(&self, path: impl AsRef<Path>) -> Result<GitCommand> {
+        let mut cmd = self.cmd()?;
+        cmd.arg(Command::Init);
+        cmd.current_dir(path);
+        Ok(cmd)
+    }
+}
+
+/// The wrapper over `Git` program invocation context.
+///
+/// It is stateful (knowing both repository root and current directory locations), as they both are
+/// needed to properly handle relative paths.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Context {
+    /// The path to the repository root above the `working_dir`.
+    ///
+    /// Many paths that git returns are relative to the repository root.
+    repository_root: PathBuf,
+    /// Directory in which commands will be invoked.
+    /// It might not be the repository root and it makes difference for many commands.
+    working_dir:     PathBuf,
+}
+
+impl Context {
+    /// Initialize a new command invoking git.
+    pub fn cmd(&self) -> Result<GitCommand> {
+        Ok(Git.cmd()?.with_current_dir(&self.working_dir))
+    }
+
+    /// Create a wrapper with explicitly set repository root and working directory.
+    ///
+    /// The caller is responsible for ensuring that the `working_dir` is a subdirectory of the
+    /// `repository_root`.
+    pub async fn new_unchecked(
+        repository_root: impl AsRef<Path>,
+        working_dir: impl AsRef<Path>,
+    ) -> Self {
+        Self {
+            repository_root: repository_root.as_ref().to_path_buf(),
+            working_dir:     working_dir.as_ref().to_path_buf(),
+        }
+    }
+
+    /// Create a `Git` invocation context within a given directory.
+    ///
+    /// The `working_dir` is the directory in which git commands will be invoked. It is expected to
+    /// be a part of some git repository.
+    pub async fn new(working_directory: impl Into<PathBuf>) -> Result<Self> {
+        let working_directory = working_directory.into();
+        // Faux `Git` instance to get the repository root.
+        // TODO: should be nicer, likely instance should be separate from program.
+        let temp_git = Context {
+            working_dir:     working_directory.clone(),
+            repository_root: working_directory,
+        };
+        let repo_root = temp_git.repository_root().await?;
+        Ok(Context { repository_root: repo_root, working_dir: temp_git.working_dir })
     }
 
     pub async fn new_current() -> Result<Self> {
-        Git::new(crate::env::current_dir()?).await
+        Context::new(crate::env::current_dir()?).await
     }
 
     pub async fn head_hash(&self) -> Result<String> {
@@ -59,7 +101,7 @@ impl Git {
     /// List of files that are different than the compared commit.
     #[context("Failed to list files that are different than {}.", compare_against.as_ref())]
     pub async fn diff_against(&self, compare_against: impl AsRef<str>) -> Result<Vec<PathBuf>> {
-        let root = self.repo_path.as_path();
+        let root = self.repository_root.as_path();
         Ok(self
             .cmd()?
             .args(["diff", "--name-only", compare_against.as_ref()])
@@ -100,13 +142,20 @@ impl GitCommand {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Command {
+    /// Remove untracked files from the working tree.
     Clean,
+    /// Show changes between commits, commit and working tree, etc.
+    Diff,
+    /// Create an empty Git repository or reinitialize an existing one.
+    Init,
 }
 
 impl AsRef<OsStr> for Command {
     fn as_ref(&self) -> &OsStr {
         match self {
             Command::Clean => OsStr::new("clean"),
+            Command::Diff => OsStr::new("diff"),
+            Command::Init => OsStr::new("init"),
         }
     }
 }
@@ -118,7 +167,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn repo_root() -> Result {
-        let git = Git::new(".").await?;
+        let git = Context::new(".").await?;
         let diff = git.repository_root().await?;
         println!("{:?}", diff);
         Ok(())
@@ -127,7 +176,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn call_diff() -> Result {
-        let git = Git::new(".").await?;
+        let git = Context::new(".").await?;
         let diff = git.diff_against("origin/develop").await?;
         println!("{:?}", diff);
         Ok(())

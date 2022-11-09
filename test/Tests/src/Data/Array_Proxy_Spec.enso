@@ -1,0 +1,43 @@
+from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
+
+from Standard.Test import Test, Test_Suite
+
+type Proxy_Object
+    Value length
+
+    at : Integer -> Integer
+    at self ix = ix * 10
+
+spec =
+    Test.group "Array_Proxy" <|
+        Test.specify "should correctly delegate to the callback" <|
+            arr = Array_Proxy.new 3 (ix -> ix + 10)
+            arr.length . should_equal 3
+            arr.at 0 . should_equal 10
+            arr.at 1 . should_equal 11
+            arr.at 2 . should_equal 12
+            arr.at 3 . should_fail_with Index_Out_Of_Bounds_Error_Data
+
+        Test.specify "should be able to be used to construct a Vector" <|
+            v1 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> ix + 10))
+            v1.length . should_equal 3
+            v1 . should_equal [10, 11, 12]
+
+            v1.map (x -> x + 1) . should_equal [11, 12, 13]
+
+            v2 = Vector.from_polyglot_array (Array_Proxy.new 3 (ix -> v1.at 2 - ix))
+            v2.should_equal [12, 11, 10]
+            v2.sort . should_equal [10, 11, 12]
+
+        Test.specify "should be able to construct a Vector from a proxy object" <|
+            v1 = Vector.from_polyglot_array (Array_Proxy.from_proxy_object [4, 3, 2])
+            v1.should_equal [4, 3, 2]
+
+            v2 = Vector.from_polyglot_array (Array_Proxy.from_proxy_object (Proxy_Object.Value 5))
+            v2.should_equal [0, 10, 20, 30, 40]
+
+        Test.specify "should check the callback type validity at construction" <|
+            Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error_Data
+
+main = Test_Suite.run_main spec

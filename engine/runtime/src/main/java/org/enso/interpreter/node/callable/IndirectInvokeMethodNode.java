@@ -24,7 +24,7 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -36,9 +36,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
     return IndirectInvokeMethodNodeGen.create();
   }
 
-  public abstract Stateful execute(
+  public abstract Object execute(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -49,9 +49,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition);
 
   @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
-  Stateful doFunctionalDispatch(
+  Object doFunctionalDispatch(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -76,9 +76,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
   }
 
   @Specialization
-  Stateful doDataflowError(
+  Object doDataflowError(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
@@ -93,7 +93,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
     Function function =
         methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
     if (profile.profile(function == null)) {
-      return new Stateful(state, self);
+      return self;
     } else {
       return invokeFunctionNode.execute(
           function,
@@ -108,9 +108,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
   }
 
   @Specialization
-  Stateful doWarning(
+  Object doWarning(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       WithWarnings self,
       Object[] arguments,
@@ -122,7 +122,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached IndirectInvokeMethodNode childDispatch) {
     arguments[thisArgumentPosition] = self.getValue();
     ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
-    Stateful result =
+    Object result =
         childDispatch.execute(
             frame,
             state,
@@ -134,13 +134,13 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+    return WithWarnings.prependTo(result, warnings);
   }
 
   @Specialization
-  Stateful doPanicSentinel(
+  Object doPanicSentinel(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       PanicSentinel self,
       Object[] arguments,
@@ -159,9 +159,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
         "polyglotCallType != NOT_SUPPORTED",
         "polyglotCallType != CONVERT_TO_TEXT"
       })
-  Stateful doPolyglot(
+  Object doPolyglot(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -175,19 +175,16 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Bind("getPolyglotCallType(self, symbol, interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
-      @Cached HostMethodCallNode hostMethodCallNode,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
-      Stateful r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
-      if (r.getValue() instanceof DataflowError) {
+      var r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
+      if (r instanceof DataflowError) {
         return r;
       }
-      state = r.getState();
-      args[i] = r.getValue();
+      args[i] = r;
     }
-    return new Stateful(
-        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args));
+    return hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
   }
 
   @Specialization(
@@ -196,9 +193,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
       })
-  Stateful doConvertText(
+  Object doConvertText(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -235,13 +232,13 @@ public abstract class IndirectInvokeMethodNode extends Node {
   @ExplodeLoop
   @Specialization(
       guards = {
-        "!methods.hasType(self)",
-        "!methods.hasSpecialDispatch(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
-  Stateful doFallback(
+  Object doFallback(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -250,11 +247,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(self, symbol, interop)")
-          HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached MethodResolverNode methodResolverNode,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Function function =
         methodResolverNode.expectNonNull(self, Context.get(this).getBuiltins().any(), symbol);

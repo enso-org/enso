@@ -989,6 +989,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name             = module,
           selfType         = SelfTypeColumn.EMPTY,
           returnType       = "",
+          parentType       = None,
+          isStatic         = false,
           scopeStartLine   = ScopeColumn.EMPTY,
           scopeStartOffset = ScopeColumn.EMPTY,
           scopeEndLine     = ScopeColumn.EMPTY,
@@ -997,7 +999,38 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport         = reexport
         )
         row -> Seq()
-      case Suggestion.Atom(
+      case Suggestion.Type(
+            expr,
+            module,
+            name,
+            params,
+            returnType,
+            parentType,
+            doc,
+            _,
+            _,
+            reexport
+          ) =>
+        val row = SuggestionRow(
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.TYPE,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = parentType,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
+        )
+        row -> params
+      case Suggestion.Constructor(
             expr,
             module,
             name,
@@ -1012,11 +1045,13 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
           externalIdMost   = expr.map(_.getMostSignificantBits),
-          kind             = SuggestionKind.ATOM,
+          kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
           selfType         = SelfTypeColumn.EMPTY,
           returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
           documentation    = doc,
           scopeStartLine   = ScopeColumn.EMPTY,
           scopeStartOffset = ScopeColumn.EMPTY,
@@ -1032,6 +1067,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             args,
             selfType,
             returnType,
+            isStatic,
             doc,
             _,
             _,
@@ -1046,6 +1082,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name             = name,
           selfType         = selfType,
           returnType       = returnType,
+          parentType       = None,
+          isStatic         = isStatic,
           documentation    = doc,
           scopeStartLine   = ScopeColumn.EMPTY,
           scopeStartOffset = ScopeColumn.EMPTY,
@@ -1081,6 +1119,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name             = toConversionMethodName(sourceType, returnType),
           selfType         = SelfTypeColumn.EMPTY,
           returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
           documentation    = doc,
           scopeStartLine   = ScopeColumn.EMPTY,
           scopeStartOffset = ScopeColumn.EMPTY,
@@ -1099,6 +1139,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name             = name,
           selfType         = SelfTypeColumn.EMPTY,
           returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
           documentation    = None,
           scopeStartLine   = scope.start.line,
           scopeStartOffset = scope.start.character,
@@ -1117,6 +1159,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name             = name,
           selfType         = SelfTypeColumn.EMPTY,
           returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
           documentation    = None,
           scopeStartLine   = scope.start.line,
           scopeStartOffset = scope.start.character,
@@ -1172,8 +1216,22 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           documentationSections = None,
           reexport              = suggestion.reexport
         )
-      case SuggestionKind.ATOM =>
-        Suggestion.Atom(
+      case SuggestionKind.TYPE =>
+        Suggestion.Type(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          params                = arguments.sortBy(_.index).map(toArgument),
+          returnType            = suggestion.returnType,
+          parentType            = suggestion.parentType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
+        )
+      case SuggestionKind.CONSTRUCTOR =>
+        Suggestion.Constructor(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module                = suggestion.module,
@@ -1194,6 +1252,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments             = arguments.sortBy(_.index).map(toArgument),
           selfType              = suggestion.selfType,
           returnType            = suggestion.returnType,
+          isStatic              = suggestion.isStatic,
           documentation         = suggestion.documentation,
           documentationHtml     = None,
           documentationSections = None,

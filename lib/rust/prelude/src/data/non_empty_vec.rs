@@ -7,7 +7,6 @@ use crate::VecIndexedBy;
 
 use std::ops::Bound;
 use std::vec::Drain;
-use std::vec::Splice;
 
 
 
@@ -317,54 +316,16 @@ where I: vec_indexed_by::Index
     pub fn drain<R>(&mut self, range: R) -> Drain<T>
     where
         R: RangeBounds<I>,
-        I: PartialOrd + Copy + From<usize>, {
-        if range.contains(&I::from(0)) {
+        I: PartialOrd + Copy + From<u8>, {
+        if range.contains(&I::from(0_u8)) {
             match range.end_bound() {
-                Bound::Included(n) => self.elems.drain(I::from(1)..=*n),
-                Bound::Excluded(n) => self.elems.drain(I::from(1)..*n),
-                Bound::Unbounded => self.elems.drain(I::from(1)..),
+                Bound::Included(n) => self.elems.drain(I::from(1_u8)..=*n),
+                Bound::Excluded(n) => self.elems.drain(I::from(1_u8)..*n),
+                Bound::Unbounded => self.elems.drain(I::from(1_u8)..),
             }
         } else {
             self.elems.drain(range)
         }
-    }
-
-    /// Creates a splicing iterator that replaces the specified range in the vector with the given 4
-    /// `replace_with` iterator and yields the removed items.
-    ///
-    /// `replace_with` does not need to be the same length as range. The element range is removed
-    /// even if the iterator is not consumed until the end.
-    ///
-    /// It is unspecified how many elements are removed from the vector if the Splice value is
-    /// leaked.
-    ///
-    /// The input iterator replace_with is only consumed when the Splice value is dropped.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the starting point is greater than the end point or if the end point is greater
-    /// than the length of the vector.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2, 3, 4, 5]);
-    /// let replacements = [10, 20, 30, 40];
-    /// let yielded: Vec<_> = vec.splice(..2, replacements.iter().cloned()).collect();
-    /// assert_eq!(vec.as_slice(), &[10, 20, 30, 40, 2, 3, 4, 5]);
-    /// assert_eq!(yielded, &[0, 1])
-    /// ```
-    pub fn splice<R, Iter>(
-        &mut self,
-        range: R,
-        replace_with: Iter,
-    ) -> Splice<<Iter as IntoIterator>::IntoIter>
-    where
-        Iter: IntoIterator<Item = T>,
-        R: RangeBounds<I>,
-    {
-        self.elems.splice(range, replace_with)
     }
 }
 

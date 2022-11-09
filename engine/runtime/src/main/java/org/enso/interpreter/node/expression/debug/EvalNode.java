@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -58,7 +58,7 @@ public abstract class EvalNode extends BaseNode {
    * @param expression the string containing expression to evaluate
    * @return the result of evaluating {@code expression} in the {@code callerInfo} context
    */
-  public abstract Stateful execute(CallerInfo callerInfo, Object state, Text expression);
+  public abstract Object execute(CallerInfo callerInfo, State state, Text expression);
 
   @CompilerDirectives.TruffleBoundary
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
@@ -89,9 +89,9 @@ public abstract class EvalNode extends BaseNode {
         "callerInfo.getModuleScope() == cachedCallerInfo.getModuleScope()",
       },
       limit = Constants.CacheSizes.EVAL_NODE)
-  Stateful doCached(
+  Object doCached(
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Text expression,
       @Cached("expression") Text cachedExpression,
       @Cached("build()") ToJavaStringNode toJavaStringNode,
@@ -106,9 +106,9 @@ public abstract class EvalNode extends BaseNode {
   }
 
   @Specialization
-  Stateful doUncached(
+  Object doUncached(
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Text expression,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode,
       @Cached("build()") ToJavaStringNode toJavaStringNode) {

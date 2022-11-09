@@ -656,7 +656,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
-    take : (Index_Sub_Range | Range) -> Vector Any
+    take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(First 1) = case range of
         ## We are using a specialized implementation for `take Sample`, because
            the default implementation (which needs to be generic for any
@@ -675,7 +675,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
-    drop : (Index_Sub_Range | Range) -> Vector Any
+    drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(First 1) =
         Index_Sub_Range.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 

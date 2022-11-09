@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
-  private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
   public static final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
   public static final String META_PATH =
       "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinMethods.metadata";
@@ -26,7 +25,6 @@ public class MethodDefinition {
   private final ExecutableElement executeMethod;
   private final List<ArgumentDefinition> arguments;
   private final Set<String> imports;
-  private final boolean modifiesState;
   private final boolean needsCallerInfo;
   private final String constructorExpression;
 
@@ -48,7 +46,6 @@ public class MethodDefinition {
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
-    this.modifiesState = execute.getReturnType().toString().equals(STATEFUL);
     this.constructorExpression = initConstructor(element);
   }
 
@@ -191,11 +188,6 @@ public class MethodDefinition {
   /** @return the additional imports this method definition requires. */
   public Set<String> getImports() {
     return imports;
-  }
-
-  /** @return whether this method modifies the monadic state. */
-  public boolean modifiesState() {
-    return modifiesState;
   }
 
   /** @return whether this method requires caller info to work properly. */
@@ -369,6 +361,8 @@ public class MethodDefinition {
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
     private static final String SELF = "self";
+
+    private static final String STATE = "org.enso.interpreter.runtime.state.State";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -393,7 +387,7 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       name = element.getSimpleName().toString();
-      isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
+      isState = type.toString().equals(STATE);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
           (element.getAnnotation(AcceptsError.class) != null)
@@ -431,6 +425,16 @@ public class MethodDefinition {
             .printMessage(
                 Diagnostic.Kind.ERROR,
                 "The first positional argument should be called `self`.",
+                element);
+        return false;
+      }
+
+      if (isState() && !type.toString().equals(STATE)) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "The monadic state argument must be typed as " + STATE,
                 element);
         return false;
       }

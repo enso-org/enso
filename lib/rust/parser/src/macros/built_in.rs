@@ -36,6 +36,7 @@ fn statement() -> resolver::SegmentMap<'static> {
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
     macro_map.register(type_def());
+    macro_map.register(foreign());
     macro_map
 }
 
@@ -43,11 +44,11 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
         macro_definition! {("import", everything()) import_body},
-        macro_definition! {("import", everything(), "as", identifier()) import_body},
+        macro_definition! {("import", everything(), "as", everything()) import_body},
         macro_definition! {("import", everything(), "hiding", everything()) import_body},
         macro_definition! {("polyglot", everything(), "import", everything()) import_body},
         macro_definition! {
-        ("polyglot", everything(), "import", everything(), "as", identifier()) import_body},
+        ("polyglot", everything(), "import", everything(), "as", everything()) import_body},
         macro_definition! {
         ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
         macro_definition! {
@@ -72,49 +73,68 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut as_ = None;
     let mut hiding = None;
     let mut parser = operator::Precedence::new();
+    let mut incomplete_import = false;
     for segment in segments {
         let header = segment.header;
         let tokens = segment.result.tokens();
         let body;
         let field = match header.code.as_ref() {
             "polyglot" => {
-                body = parser.resolve(tokens).map(expect_ident);
+                body = Some(
+                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                );
                 &mut polyglot
             }
             "from" => {
-                body = parser.resolve(tokens).map(expect_qualified);
+                body = Some(
+                    parser.resolve(tokens).map(expect_qualified).unwrap_or_else(expected_nonempty),
+                );
                 &mut from
             }
             "import" => {
-                body = sequence_tree(&mut parser, tokens, expect_qualified);
+                let expect = match from {
+                    Some(_) => expect_ident,
+                    None => expect_qualified,
+                };
+                body = sequence_tree(&mut parser, tokens, expect);
+                incomplete_import = body.is_none();
                 &mut import
             }
             "all" => {
                 debug_assert!(tokens.is_empty());
                 all = Some(into_ident(header));
+                incomplete_import = false;
                 continue;
             }
             "as" => {
-                body = parser.resolve(tokens).map(expect_ident);
+                body = Some(
+                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                );
                 &mut as_
             }
             "hiding" => {
-                body = sequence_tree(&mut parser, tokens, expect_ident);
+                body = Some(
+                    sequence_tree(&mut parser, tokens, expect_ident)
+                        .unwrap_or_else(expected_nonempty),
+                );
                 &mut hiding
             }
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
-    let import = import.unwrap();
-    syntax::Tree::import(polyglot, from, import, all, as_, hiding)
+    let import = syntax::Tree::import(polyglot, from, import.unwrap(), all, as_, hiding);
+    if incomplete_import {
+        return import.with_error("Expected name or `all` keyword following `import` keyword.");
+    }
+    import
 }
 
 fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
         macro_definition! {("export", everything()) export_body},
-        macro_definition! {("export", everything(), "as", identifier()) export_body},
+        macro_definition! {("export", everything(), "as", everything()) export_body},
         macro_definition! {("from", everything(), "export", everything()) export_body},
         macro_definition! {
         ("from", everything(), "export", nothing(), "all", nothing()) export_body},
@@ -124,7 +144,7 @@ fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
         ("from", everything(), "export", nothing(), "all", nothing(), "hiding", everything())
         export_body},
         macro_definition! {
-        ("from", everything(), "as", identifier(), "export", everything()) export_body},
+        ("from", everything(), "as", everything(), "export", everything()) export_body},
     ];
     for def in defs {
         macros.register(def);
@@ -138,38 +158,55 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let mut as_ = None;
     let mut hiding = None;
     let mut parser = operator::Precedence::new();
+    let mut incomplete_export = false;
     for segment in segments {
         let header = segment.header;
         let tokens = segment.result.tokens();
         let body;
         let field = match header.code.as_ref() {
             "from" => {
-                body = parser.resolve(tokens).map(expect_qualified);
+                body = Some(
+                    parser.resolve(tokens).map(expect_qualified).unwrap_or_else(expected_nonempty),
+                );
                 &mut from
             }
             "export" => {
-                body = sequence_tree(&mut parser, tokens, expect_qualified);
+                let expect = match from {
+                    Some(_) => expect_ident,
+                    None => expect_qualified,
+                };
+                body = sequence_tree(&mut parser, tokens, expect);
+                incomplete_export = body.is_none();
                 &mut export
             }
             "all" => {
                 debug_assert!(tokens.is_empty());
                 all = Some(into_ident(header));
+                incomplete_export = false;
                 continue;
             }
             "as" => {
-                body = parser.resolve(tokens).map(expect_ident);
+                body = Some(
+                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                );
                 &mut as_
             }
             "hiding" => {
-                body = sequence_tree(&mut parser, tokens, expect_ident);
+                body = Some(
+                    sequence_tree(&mut parser, tokens, expect_ident)
+                        .unwrap_or_else(expected_nonempty),
+                );
                 &mut hiding
             }
             _ => unreachable!(),
         };
         *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
-    let export = export.unwrap();
-    syntax::Tree::export(from, export, all, as_, hiding)
+    let export = syntax::Tree::export(from, export.unwrap(), all, as_, hiding);
+    if incomplete_export {
+        return export.with_error("Expected name or `all` keyword following `export` keyword.");
+    }
+    export
 }
 
 /// If-then-else macro definition.
@@ -245,16 +282,34 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
             code,
             variant: syntax::token::Variant::Ident(ident),
         })) => syntax::Token(left_offset, code, ident),
-        _ => {
-            let placeholder = Tree::ident(syntax::token::ident("", "", false, 0, false, false));
-            return placeholder.with_error("Expected identifier after `type` keyword.");
-        }
+        _ => return Tree::ident(header).with_error("Expected identifier after `type` keyword."),
     };
     let params = operator::Precedence::new()
         .resolve_non_section(tokens)
         .map(crate::collect_arguments_inclusive)
         .unwrap_or_default();
     let mut builder = TypeDefBodyBuilder::default();
+    let mut beginning_of_line = true;
+    for item in &mut block {
+        match item {
+            syntax::Item::Token(syntax::Token {
+                variant: syntax::token::Variant::Newline(_),
+                ..
+            }) => {
+                beginning_of_line = true;
+                continue;
+            }
+            syntax::Item::Token(syntax::Token { variant, .. })
+                if beginning_of_line && matches!(variant, syntax::token::Variant::Operator(_)) =>
+            {
+                let opr_ident =
+                    syntax::token::variant::Ident { is_operator_lexically: true, ..default() };
+                *variant = syntax::token::Variant::Ident(opr_ident);
+            }
+            _ => (),
+        }
+        beginning_of_line = false;
+    }
     for block::Line { newline, expression } in block::lines(block) {
         builder.line(newline, expression);
     }
@@ -630,27 +685,16 @@ fn sequence_tree<'s>(
 ) -> Option<syntax::Tree<'s>> {
     use syntax::tree::*;
     let (first, rest) = sequence(parser, tokens);
-    let first = first.map(&mut f);
-    let mut rest = rest.into_iter().rev();
-    let mut invalid = false;
-    if let Some(OperatorDelimitedTree { operator, body }) = rest.next() {
-        let mut tree = body.map(f);
-        invalid = invalid || tree.is_none();
-        let mut prev_op = operator;
-        for OperatorDelimitedTree { operator, body } in rest {
-            invalid = invalid || body.is_none();
-            tree = Tree::opr_app(body, Ok(prev_op), tree).into();
-            prev_op = operator;
-        }
-        invalid = invalid || first.is_none();
-        let mut tree = Tree::opr_app(first, Ok(prev_op), tree);
-        if invalid {
-            tree = tree.with_error("Malformed comma-delimited sequence.");
-        }
-        tree.into()
-    } else {
-        first
+    let mut invalid = first.is_none();
+    let mut tree = first.map(&mut f);
+    for OperatorDelimitedTree { operator, body } in rest {
+        invalid = invalid || body.is_none();
+        tree = Tree::opr_app(tree, Ok(operator), body.map(&mut f)).into();
     }
+    if invalid {
+        tree = tree.map(|tree| tree.with_error("Malformed comma-delimited sequence."));
+    }
+    tree
 }
 
 fn splice<'s>() -> Definition<'s> {
@@ -668,6 +712,80 @@ fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
 }
 
+fn foreign<'s>() -> Definition<'s> {
+    crate::macro_definition! {("foreign", everything()) foreign_body}
+}
+
+fn foreign_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    let segment = segments.pop().0;
+    let keyword = into_ident(segment.header);
+    let tokens = segment.result.tokens().into_iter();
+    match try_foreign_body(keyword.clone(), tokens.clone()) {
+        Ok(foreign) => foreign,
+        Err(error) => (match operator::resolve_operator_precedence_if_non_empty(tokens) {
+            Some(rhs) => syntax::Tree::app(keyword.into(), rhs),
+            None => keyword.into(),
+        })
+        .with_error(error),
+    }
+}
+
+fn try_foreign_body<'s>(
+    keyword: syntax::token::Ident<'s>,
+    tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+) -> Result<syntax::Tree, &'static str> {
+    let mut tokens = tokens.into_iter();
+    let language = tokens
+        .next()
+        .and_then(try_into_token)
+        .and_then(try_token_into_ident)
+        .ok_or("Expected an identifier specifying foreign method's language.")?;
+    let expected_name = "Expected an identifier specifying foreign function's name.";
+    let function =
+        operator::resolve_operator_precedence_if_non_empty(tokens).ok_or(expected_name)?;
+    let expected_function = "Expected a function definition after foreign declaration.";
+    let box syntax::tree::Variant::OprApp(
+            syntax::tree::OprApp { lhs: Some(lhs), opr: Ok(equals), rhs: Some(body) }) = function.variant else {
+        return Err(expected_function)
+    };
+    if !equals.properties.is_assignment() {
+        return Err(expected_function);
+    };
+    if !matches!(body.variant, box syntax::tree::Variant::TextLiteral(_)) {
+        return Err("Expected a text literal as body of `foreign` declaration.");
+    }
+    let (name, args) = crate::collect_arguments(lhs);
+    let mut name = try_tree_into_ident(name).ok_or(expected_name)?;
+    name.left_offset += function.span.left_offset;
+    Ok(syntax::Tree::foreign_function(keyword, language, name, args, equals, body))
+}
+
+// === Token conversions ===
+
+fn try_into_token(item: syntax::Item) -> Option<syntax::Token> {
+    match item {
+        syntax::Item::Token(token) => Some(token),
+        _ => None,
+    }
+}
+
+fn try_token_into_ident(token: syntax::Token) -> Option<syntax::token::Ident> {
+    match token.variant {
+        syntax::token::Variant::Ident(ident) => {
+            let syntax::token::Token { left_offset, code, .. } = token;
+            Some(syntax::Token(left_offset, code, ident))
+        }
+        _ => None,
+    }
+}
+
+fn try_tree_into_ident(tree: syntax::Tree) -> Option<syntax::token::Ident> {
+    match tree.variant {
+        box syntax::tree::Variant::Ident(syntax::tree::Ident { token }) => Some(token),
+        _ => None,
+    }
+}
+
 fn into_open_symbol(token: syntax::token::Token) -> syntax::token::OpenSymbol {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::open_symbol(left_offset, code)
@@ -680,8 +798,11 @@ fn into_close_symbol(token: syntax::token::Token) -> syntax::token::CloseSymbol 
 
 fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     let syntax::token::Token { left_offset, code, .. } = token;
-    syntax::token::ident(left_offset, code, false, 0, false, false)
+    syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
+
+
+// === Validators ===
 
 fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
     if matches!(&*tree.variant, syntax::tree::Variant::Ident(_)) {
@@ -697,4 +818,9 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
     } else {
         tree.with_error("Expected qualified name.")
     }
+}
+
+fn expected_nonempty<'s>() -> syntax::Tree<'s> {
+    let empty = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
+    empty.with_error("Expected tokens.")
 }

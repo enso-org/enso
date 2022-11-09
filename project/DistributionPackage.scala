@@ -134,6 +134,25 @@ object DistributionPackage {
       distributionRoot / "component",
       cacheFactory.make("engine-jars")
     )
+    val os = System.getProperty("os.name")
+    val isMac = os.startsWith("Mac")
+    val dir = if (isMac) {
+      "target/rust/x86_64-apple-darwin/debug/"
+    } else {
+      "target/rust/debug/"
+    }
+    val parser = dir + (if (isMac) {
+      "libenso_parser.dylib"
+    } else if (os.startsWith("Windows")) {
+      "enso_parser.dll"
+    } else {
+      "libenso_parser.so"
+    })
+    copyFilesIncremental(
+      Seq(file(parser)),
+      distributionRoot / "component",
+      cacheFactory.make("engine-parser-library")
+    )
 
     (distributionRoot / "editions").mkdirs()
     Editions.writeEditionConfig(

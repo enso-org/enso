@@ -90,20 +90,6 @@ impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
     }
 }
 
-/// Annotate expressions that should use spacing, because otherwise they are misleading. For
-/// example, `if cond then.x else.y` is parsed as `if cond then .x else .y`, which after expansion
-/// translates to `if cond then (\t -> t.x) else (\t -> t.y)`. However, for some macros spacing is
-/// not needed. For example, `(.x)` is parsed as `(\t -> t.x)`, which is understandable.
-fn annotate_tokens_that_need_spacing(item: syntax::Item) -> syntax::Item {
-    use syntax::tree::Variant::*;
-    item.map_tree(|ast| match &*ast.variant {
-        MultiSegmentApp(data)
-            if !matches!(data.segments.first().header.variant, token::Variant::OpenSymbol(_)) =>
-            ast.with_error("This expression cannot be used in a non-spaced equation."),
-        _ => ast,
-    })
-}
-
 /// Take [`Item`] stream, resolve operator precedence and return the final AST.
 ///
 /// The precedence resolution algorithm is based on the Shunting yard algorithm[1], extended to
@@ -161,6 +147,22 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type == Some(ItemType::Ast) {
+            if let Some(Operand { value: syntax::Tree { variant: box
+                    syntax::tree::Variant::TextLiteral(ref mut lhs), .. }, .. }) = self.output.last_mut()
+                    && !lhs.closed
+                    && let box syntax::tree::Variant::TextLiteral(mut rhs) = operand.value.variant {
+                syntax::tree::join_text_literals(lhs, &mut rhs, operand.value.span);
+                if let syntax::tree::TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
+                    && open.code.starts_with('#') {
+                    let elements = mem::take(elements);
+                    let mut open = open.clone();
+                    let lhs_tree = self.output.pop().unwrap().value;
+                    open.left_offset += lhs_tree.span.left_offset;
+                    let doc = syntax::tree::DocComment { open, elements, newlines: default() };
+                    self.output.push(syntax::Tree::documented(doc, default()).into());
+                }
+                return;
+            }
             self.application();
         }
         self.output.push(operand);
@@ -225,16 +227,16 @@ impl<'s> ExpressionBuilder<'s> {
         if self.prev_type == Some(ItemType::Opr)
                 && let Some(prev_opr) = self.operator_stack.last_mut()
                 && let Arity::Binary { tokens, .. } = &mut prev_opr.opr {
-            if tokens.len() == 1 && opr.properties.is_type_annotation() {
-                let prev = match self.operator_stack.pop().unwrap().opr {
-                    Arity::Binary { tokens, .. } => tokens.into_iter().next().unwrap(),
-                    _ => unreachable!(),
-                };
-                self.output.push(Operand::from(syntax::Tree::opr_app(None, Ok(prev), None)));
-            } else {
-                tokens.push(opr);
+            if tokens.len() == 1 && tokens[0].properties.is_dot() {
+                let Token { left_offset, code, .. } = opr;
+                let is_operator = true;
+                let opr_ident = token::ident(left_offset, code, default(), default(), default(), is_operator, default());
+                self.output.push(Operand::from(syntax::Tree::ident(opr_ident)));
+                self.prev_type = Some(ItemType::Ast);
                 return;
             }
+            tokens.push(opr);
+            return;
         }
         self.push_operator(prec, assoc, Arity::binary(opr));
     }

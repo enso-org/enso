@@ -4,12 +4,9 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {
@@ -37,11 +34,10 @@ public class GetFieldNode extends RootNode {
    * @param frame current execution frame
    * @return the field value at predefined index
    */
-  public Stateful execute(VirtualFrame frame) {
+  public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    return new Stateful(state, atom.getFields()[index]);
+    return atom.getFields()[index];
   }
 
   @Override

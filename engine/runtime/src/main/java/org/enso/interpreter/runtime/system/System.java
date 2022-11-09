@@ -3,12 +3,13 @@ package org.enso.interpreter.runtime.system;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -53,20 +54,23 @@ public class System {
   @Builtin.WrapException(from = IOException.class, to = PanicException.class)
   @Builtin.WrapException(from = InterruptedException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
+  @ExplodeLoop
   public static Atom createProcess(
       Context ctx,
       Object command,
-      Array arguments,
+      Object arguments,
       Object input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
+      @Cached CoerceArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
-    String[] cmd = new String[arguments.getItems().length + 1];
+    Object[] arrArguments = coerce.execute(arguments);
+    String[] cmd = new String[arrArguments.length + 1];
     cmd[0] = expectStringNode.execute(command);
-    for (int i = 1; i <= arguments.getItems().length; i++) {
-      cmd[i] = expectStringNode.execute(arguments.getItems()[i - 1]);
+    for (int i = 1; i <= arrArguments.length; i++) {
+      cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
     }
     TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 

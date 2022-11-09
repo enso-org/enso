@@ -55,8 +55,8 @@ const SEPARATOR_MARGIN: f32 = 10.0;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
-        () {
+    ensogl::shape! {
+        (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
         }
@@ -72,9 +72,9 @@ pub mod background {
 mod icon {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
             let ring          = outer_circle - inner_circle;
@@ -98,9 +98,9 @@ mod icon {
 mod separator {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         pointer_events = false;
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
             let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());
@@ -301,19 +301,11 @@ impl BreadcrumbModel {
             }
         }
 
-        scene.layers.panel.add_exclusive(&view);
-        let background = &scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<background::DynamicShape>)
-            .shape_system
-            .symbol;
-        scene.layers.panel.add_exclusive(background);
-        scene.layers.panel.add_exclusive(&icon);
-        scene.layers.panel.add_exclusive(&separator);
+        scene.layers.panel.add(&view);
+        scene.layers.panel.add(&icon);
+        scene.layers.panel.add(&separator);
 
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape

@@ -37,7 +37,19 @@ object Suggestions {
     documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
-  val atom: Suggestion.Atom = Suggestion.Atom(
+  val tpe: Suggestion.Type = Suggestion.Type(
+    externalId            = None,
+    module                = "local.Test.Main",
+    name                  = "Newtype",
+    params                = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "Newtype",
+    parentType            = Some("Any"),
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
+  )
+
+  val constructor: Suggestion.Constructor = Suggestion.Constructor(
     externalId            = None,
     module                = "local.Test.Main",
     name                  = "MyType",
@@ -58,6 +70,7 @@ object Suggestions {
     ),
     selfType              = "MyType",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = Some("Lovely"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
@@ -96,6 +109,7 @@ object Suggestions {
     ),
     selfType              = "Any",
     returnType            = "Any",
+    isStatic              = false,
     documentation         = Some("Lovely"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
@@ -110,6 +124,7 @@ object Suggestions {
     ),
     selfType              = "Number",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = None,
     documentationHtml     = None,
     documentationSections = None
@@ -124,6 +139,7 @@ object Suggestions {
     ),
     selfType              = "Integer",
     returnType            = "Number",
+    isStatic              = false,
     documentation         = Some("Blah, blah"),
     documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
@@ -131,7 +147,8 @@ object Suggestions {
 
   val all = Seq(
     module,
-    atom,
+    tpe,
+    constructor,
     method,
     function,
     local,

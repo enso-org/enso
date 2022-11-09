@@ -244,8 +244,8 @@ A representation of an executable position in code, used by the execution APIs.
 `ExplicitCall` is a call performed at the top of the stack, to initialize the
 context with first execution. The `thisArgumentsPosition` field can be omitted,
 in which case the context will try to infer the argument on a best-effort basis.
-E.g. for a module-level method, or a method defined on a parameter-less atom
-type, `this` will be substituted for the unambiguous singleton instance.
+E.g. for a module-level method, or a method defined on a parameter-less type,
+`self` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
@@ -420,7 +420,7 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 #### Format
 
 ```typescript
-// The argument of an atom, method or function suggestion
+// The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
   // The argument name
   name: string;
@@ -453,17 +453,19 @@ interface SuggestionEntryScope {
 // A type of suggestion entries.
 type SuggestionEntry =
   // A module
-  | SuggestionEntryModule
-  // A value constructor
-  | SuggestionEntryAtom
+  | Module
+  // A type
+  | Type
+  // A type constructor
+  | Constructor
   // A method defined on a type
-  | SuggestionEntryMethod
+  | Method
   // A function
-  | SuggestionEntryFunction
+  | Function
   // A local value
-  | SuggestionEntryLocal;
+  | Local;
 
-interface SuggestionEntryModule {
+interface Module {
   /** The fully qualified module name. */
   module: string;
 
@@ -480,27 +482,27 @@ interface SuggestionEntryModule {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryAtom {
+interface Type {
   /** The external id. */
   externalId?: UUID;
 
-  /** The atom name. */
+  /** The type name. */
   name: string;
 
-  /** The module name where the atom is defined. */
+  /** The qualified module name where the type is defined. */
   module: string;
 
-  /** The list of arguments. */
-  arguments: SuggestionEntryArgument[];
+  /** The list of type parameters. */
+  params: SuggestionEntryArgument[];
 
-  /** The type of an atom. */
-  returnType: string;
+  /** Qualified name of the parent type. */
+  parentType?: string;
+
+  /** The fully qualified module name re-exporting this type. */
+  reexport?: string;
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -509,7 +511,36 @@ interface SuggestionEntryAtom {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryMethod {
+interface Constructor {
+  /** The external id. */
+  externalId?: UUID;
+
+  /** The constructor name. */
+  name: string;
+
+  /** The qualified module name where this constructor is defined. */
+  module: string;
+
+  /** The list of arguments. */
+  arguments: SuggestionEntryArgument[];
+
+  /** The type of the constructor. */
+  returnType: string;
+
+  /** The fully qualified module name re-exporting this constructor. */
+  reexport?: string;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
+}
+
+interface Method {
   /** The external id. */
   externalId?: UUID;
 
@@ -528,11 +559,14 @@ interface SuggestionEntryMethod {
   /** The return type of this method. */
   returnType: string;
 
+  /** The flag indicating whether this method is static or instance. */
+  isStatic: boolean;
+
+  /** The fully qualified module name re-exporting this method. */
+  reexport?: string;
+
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -541,7 +575,7 @@ interface SuggestionEntryMethod {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryFunction {
+interface Function {
   /** The external id. */
   externalId?: UUID;
 
@@ -561,7 +595,7 @@ interface SuggestionEntryFunction {
   scope: SuggestionEntryScope;
 }
 
-interface SuggestionEntryLocal {
+interface Local {
   /** The external id. */
   externalId?: UUID;
 
@@ -587,7 +621,13 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Module | Atom | Method | Function | Local;
+type SuggestionEntryType =
+  | Module
+  | Type
+  | Constructor
+  | Method
+  | Function
+  | Local;
 ```
 
 ### `SuggestionId`
@@ -3910,7 +3950,7 @@ main =
 #### MyType
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "MyType",
   arguments: [],
   returnType: "MyType",
@@ -3920,7 +3960,7 @@ main =
 #### Maybe.Nothing
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Nothing",
   arguments: [],
   returnType: "Maybe",
@@ -3930,7 +3970,7 @@ main =
 #### Maybe.Just
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Just",
   arguments: [
     {
@@ -3947,7 +3987,7 @@ main =
 #### Maybe.is_just
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "is_just",
   arguments: [],
   selfType: "Maybe",
@@ -3958,7 +3998,7 @@ main =
 #### foo
 
 ```typescript
-<SuggestionEntryFunction>{
+<Function>{
   name: "foo",
   arguments: [
     {
@@ -3975,7 +4015,7 @@ main =
 #### Number.baz
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "baz",
   arguments: [
     {
@@ -3993,7 +4033,7 @@ main =
 #### Local x
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "x",
   returnType: "Number",
 };
@@ -4002,7 +4042,7 @@ main =
 #### Local y
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "y",
   returnType: "Number",
 };

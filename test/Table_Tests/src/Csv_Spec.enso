@@ -74,7 +74,7 @@ spec =
             res = Text.from t format=(Delimited ";")
             res.should_equal expected
 
-        Test.specify 'should allow forced quoting of records'
+        Test.specify 'should allow forced quoting of records' <|
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]

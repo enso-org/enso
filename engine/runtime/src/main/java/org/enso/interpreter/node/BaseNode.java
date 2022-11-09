@@ -27,20 +27,6 @@ public abstract class BaseNode extends Node {
   }
 
   private @CompilationFinal TailStatus tailStatus = TailStatus.NOT_TAIL;
-  private @CompilationFinal int stateFrameSlotIdx = -1;
-
-  /**
-   * Obtains the frame slot containing state variable for this node.
-   *
-   * @return The frame slot for state variable
-   */
-  protected int getStateFrameSlotIdx() {
-    if (stateFrameSlotIdx == -1) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      stateFrameSlotIdx = ((EnsoRootNode) getRootNode()).getStateFrameSlotIdx();
-    }
-    return stateFrameSlotIdx;
-  }
 
   /**
    * Sets the new tail position status for this node.

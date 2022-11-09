@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Test_Suite
+
+polyglot java import java.time.LocalDate
+polyglot java import java.lang.String
+polyglot java import java.util.function.Function
+
+spec = Test.group "Polyglot" <|
+    Test.specify "should be able to invoke a polyglot method by name and pass arguments" <|
+        poly_date = LocalDate.now
+        date = Date.now.to_date_time
+
+        Polyglot.invoke poly_date "atStartOfDay" [] . should_equal date
+        Polyglot.invoke poly_date "atStartOfDay" [].to_array . should_equal date
+
+    Test.specify "should be able to create a new polyglot object using the constructor" <|
+        Polyglot.new String ["42"] . should_equal "42"
+        Polyglot.new String ["42"].to_array . should_equal "42"
+
+    Test.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
+        fun = Function.identity
+        Polyglot.execute fun ["42"] . should_equal "42"
+        Polyglot.execute fun ["42"].to_array . should_equal "42"
+
+main = Test_Suite.run_main spec

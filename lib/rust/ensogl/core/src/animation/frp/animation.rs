@@ -14,6 +14,7 @@ use enso_frp as frp;
 
 pub mod delayed;
 pub mod hysteretic;
+pub mod overshoot;
 
 
 

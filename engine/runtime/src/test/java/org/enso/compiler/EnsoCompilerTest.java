@@ -38,6 +38,77 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testLocationsSimpleArithmeticExpression() throws Exception {
+    parseTest("""
+    main = 2 + 45 * 20
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsApplicationsAndMethodCalls() throws Exception {
+    parseTest("""
+    main = (2-2 == 0).if_then_else (Cons 5 6) 0
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsCorrectAssignmentOfVariableReads() throws Exception {
+    parseTest("""
+    main =
+        x = 2 + 2 * 2
+        y = x * x
+        IO.println y
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsMethodWithComplexBody() throws Exception {
+    parseTest("""
+    foo a b =
+        x : Number
+        x = a + 1
+        y = b - 2
+        x * y
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsBuildFunctionSimple() throws Exception {
+    parseTest("""
+    main =
+        foo a = a + 1
+        foo 42
+    """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsDeeplyNestedFunctions() throws Exception {
+    parseTest("""
+        foo = a -> b ->
+            IO.println a
+        """, true, false, true);
+  }
+
+  @Test
+  public void testLocationsDeeplyNestedFunctionsNoBlock() throws Exception {
+    parseTest("""
+    Nothing.method =
+        add = a -> b -> a + b
+
+    main = Nothing.method
+    """, true, false, true);
+  }
+
+  @Test
+  @Ignore
+  public void testSpacesAtTheEndOfFile() throws Exception {
+    var fourSpaces = "    ";
+    parseTest("""
+    main = add_ten 5
+    """ + fourSpaces);
+  }
+
+  @Test
   public void testCase() throws Exception {
     parseTest("""
     type Msg
@@ -83,6 +154,13 @@ public class EnsoCompilerTest {
     ## TODO Dubious constructor export
     from project.Network.Http.Version.Version import all
     from project.Network.Http.Version.Version export all
+    """);
+  }
+
+  @Test
+  public void testImportTrue() throws Exception {
+    parseTest("""
+    from Standard.Base import True
     """);
   }
 
@@ -135,15 +213,6 @@ public class EnsoCompilerTest {
     parseTest("""
     compare =
         is_digit = character -> 42
-    """);
-  }
-
-  @Test
-  @Ignore
-  public void testIsDigitWithoutSpaces() throws Exception {
-    parseTest("""
-    compare =
-        is_digit=character -> 42
     """);
   }
 
@@ -298,12 +367,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testMetadataRaw() throws Exception {
     parseTest("""
-    main = 4
+    main =
+        foo = 42
+
+
     #### METADATA ####
-    [[{"index":{"value":7},"size":{"value":8}},"5bad897e-099b-4b00-9348-64092636746d"]]
+    [[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
+    []
     """);
   }
 
@@ -405,7 +477,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // wrong order of exported symbols
   public void testExportFromTen() throws Exception {
     parseTest("from prj.Data.Foo export One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten");
   }
@@ -426,6 +497,27 @@ public class EnsoCompilerTest {
   public void testTextLiteralWithEscape() throws Exception {
     parseTest("""
     wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testRawBlockLiteral() throws Exception {
+    // mimics TextTest
+    parseTest("""
+    x = \"\"\"
+        Foo
+        Bar
+          Baz
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testVariousKindsOfUnicodeWhitespace() throws Exception {
+    // mimics Text_Spec.enso:1049
+    parseTest("""
+    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
     """);
   }
 
@@ -473,12 +565,42 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testEmptyGroup() throws Exception {
+    parseTest("""
+    main =
+        x = Panic.catch_primitive () .convert_to_dataflow_error
+        x.catch_primitive err->
+            case err of
+                Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
+    """);
+  }
+
+  @Test
+  public void testEmptyGroup2AndAtSymbol() throws Exception {
+    parseTest("""
+    main =
+        x = ()
+        x = 5
+        y = @
+    """);
+  }
+
+  @Test
   public void testTestGroupSimple() throws Exception {
     parseTest("""
     group1 : Text -> Any -> (Text | Nothing) -> Nothing
 
     type Test
         group2 : Text -> Any -> (Text | Nothing) -> Nothing
+    """);
+  }
+
+  @Test
+  public void testNotAnOperator() throws Exception {
+    parseTest("""
+    main =
+        x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
+        x.to_text
     """);
   }
 
@@ -625,7 +747,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testExtensionOperator() throws Exception {
     parseTest("""
     Text.* : Integer -> Text
@@ -667,6 +788,33 @@ public class EnsoCompilerTest {
         id x = x
     """);
   }
+
+  @Test
+  public void testSelfTypeKeyword() throws Exception {
+    parseTest("""
+    type My_Type
+        Cons_A x
+        Cons_B y=(Self.Cons_A 10)
+    
+        static = 123
+    
+        static_use = Self.static + (Self.Cons_A 5).x
+        instance_use self = Self.static + self.x + (Self.Cons_A 5).x
+
+        static_match x = case x of
+            Self -> "it matched"
+            _ -> "it didn't match"
+                  
+        matching_method self = case self of
+            Self.Cons_A y -> y + 2
+      
+        match_by_type x = case x of
+            _ : Self -> "it's a Self"
+            _ -> "it's a something else"
+    """);
+  }
+
+
 
   @Test
   public void testCaseOnTextLiteral() throws Exception {
@@ -752,6 +900,21 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testAutoScope2() throws Exception {
+    parseTest("""
+    fn1 = fn ...
+    fn2 = fn 1 ...
+    """);
+  }
+
+  @Test
+  public void testForcedTerms() throws Exception {
+    parseTest("""
+    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
+    """);
+  }
+
+  @Test
   public void testTextArrayType() throws Exception {
     parseTest("""
     type Connection
@@ -806,6 +969,13 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testNameAsMethodApp() throws Exception {
+    parseTest("""
+    f = foo x=A.B
+    """);
+  }
+
+  @Test
   public void testIsMethodWithSpaces() throws Exception {
     parseTest("""
     f = 0.up_to . all f
@@ -850,8 +1020,162 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testSidesPlus() throws Exception {
+    parseTest("""
+    result = reduce (+)
+    """);
+  }
+
+  @Test
+  public void testConstructorMultipleNamedArgs1() throws Exception {
+    parseTest("""
+    x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
+  public void testConstructorMultipleNamedArgs2() throws Exception {
+    parseTest("""
+    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
+    """);
+  }
+
+  @Test
+  public void testDocAtEndOfBlock() throws Exception {
+    parseTest("""
+    x =
+      23
+      ## end of block
+    """);
+  }
+
+  @Test
+  public void testMethodSections() throws Exception {
+    parseTest("""
+    x = .from self=Foo
+    """);
+  }
+
+  @Test
+  public void testGroupArgument() throws Exception {
+    parseTest("""
+    foo = x -> (y = bar x) -> x + y
+    """);
+  }
+
+  @Test
+  public void testRuntimeServerTestCode() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.Numbers import Number
+
+    main =
+        x = 6
+        y = x.foo 5
+        z = y + 5
+        z
+
+    Number.foo self = x ->
+        y = self + 3
+        z = y * x
+        z
+    """, true, false, true);
+  }
+
+  @Test
+  public void testResolveExecutionContext() throws Exception {
+    parseTest("""
+    foo : A -> B -> C in Input
+    """);
+  }
+
+  @Test
+  public void testSugaredFunctionDefinition() throws Exception {
+    parseTest("""
+    main =
+        f a b = a - b
+        f 10 20
+    """);
+  }
+
+  @Test
+  @Ignore
+  public void testInThePresenceOfComments() throws Exception {
+    parseTest("""
+    # this is a comment
+    #this too
+    ## But this is a doc.
+    main = # define main
+        y = 1 # assign one to `y`
+        x = 2 # assign two to #x
+        # perform the addition
+        x + y # the addition is performed here
+    """);
+  }
+
+  static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
+    var txt = i.pretty();
+    if (noIds) {
+      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
+    }
+    if (noLocations) {
+        for (;;) {
+          final String pref = " Location(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = at + pref.length();
+          int depth = 1;
+          while (depth > 0) {
+            switch (txt.charAt(to)) {
+              case '(' -> depth++;
+              case ')' -> depth--;
+            }
+            to++;
+          }
+          txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
+        }
+    }
+    if (lessDocs) {
+        for (;;) {
+          final String pref = "IR.Comment.Documentation(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.Doc(" + txt.substring(to);
+        }
+        for (;;) {
+          final String pref = "IR.Case.Pattern.Doc(";
+          int at = txt.indexOf(pref);
+          if (at == -1) {
+            break;
+          }
+          int to = txt.indexOf("location =", at + pref.length());
+          txt = txt.substring(0, at) + "IR.Comment.CaseDoc(" + txt.substring(to);
+        }
+    }
+    for (;;) {
+      final String pref = "IR.Error.Syntax(";
+      int at = txt.indexOf(pref);
+      if (at == -1) {
+        break;
+      }
+      int to = txt.indexOf("reason =", at + pref.length());
+      txt = txt.substring(0, at) + "IR.Error.Syntax (" + txt.substring(to);
+    }
+    return txt;
+  }
+
+  private static void parseTest(String code) throws IOException {
+      parseTest(code, true, true, true);
+  }
+
   @SuppressWarnings("unchecked")
-  static void parseTest(String code) throws IOException {
+  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
@@ -859,27 +1183,7 @@ public class EnsoCompilerTest {
     var oldAst = new Parser().runWithIds(src.getCharacters().toString());
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
-    Function<IR, String> filter = (i) -> {
-      var txt = i.pretty().replaceAll("id = [0-9a-f\\-]*", "id = _");
-      for (;;) {
-        final String pref = "IdentifiedLocation(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "IdentifiedLocation[_]" + txt.substring(to);
-      }
-      return txt;
-    };
+    Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);

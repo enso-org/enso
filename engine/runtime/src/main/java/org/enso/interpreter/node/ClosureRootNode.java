@@ -2,15 +2,12 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node represents the root of Enso closures and closure-like structures.
@@ -85,11 +82,7 @@ public class ClosureRootNode extends EnsoRootNode {
     if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
       com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    frame.setObject(this.getStateFrameSlotIdx(), state);
-    Object result = body.executeGeneric(frame);
-    state = frame.getObject(this.getStateFrameSlotIdx());
-    return new Stateful(state, result);
+    return body.executeGeneric(frame);
   }
 
   final ExpressionNode getBody() {

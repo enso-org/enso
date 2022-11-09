@@ -2,13 +2,18 @@ use crate::prelude::*;
 
 
 
+/// A trie data structure, where each node represents a single fs path component.
+///
+/// As such, a trie defines a set of fs paths (each being defined by a path within the trie).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Trie<'a> {
     pub children: HashMap<std::path::Component<'a>, Trie<'a>>,
+    /// Number of paths that end in this node.
     pub count:    usize,
 }
 
 impl<'a> Trie<'a> {
+    /// Insert a path into the trie.
     pub fn insert(&mut self, path: &'a Path) {
         let mut current = self;
         for component in path.components() {
@@ -17,6 +22,7 @@ impl<'a> Trie<'a> {
         current.count += 1;
     }
 
+    /// Is this node a leaf?
     pub fn is_leaf(&self) -> bool {
         self.children.is_empty()
     }

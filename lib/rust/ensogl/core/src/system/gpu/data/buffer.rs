@@ -104,7 +104,6 @@ shared! { Buffer
 /// on CPU-side and will be uploaded to the GPU as soon as the context is bound or restored.
 #[derive(Debug)]
 pub struct BufferData<T> {
-    logger        : Logger,
     gl            : Option<GlData>,
     buffer        : ObservableVec<T>,
     mut_dirty     : MutDirty,
@@ -117,10 +116,9 @@ pub struct BufferData<T> {
 impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
-    (logger:Logger, stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
+    (stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
         debug_span!("Creating new {T::type_display()} buffer.").in_scope(|| {
             stats.inc_buffer_count();
-            let logger        = logger.clone();
             let mut_dirty     = MutDirty::new(Box::new(on_mut));
             let resize_dirty  = ResizeDirty::new(Box::new(on_resize));
             resize_dirty.set();
@@ -131,7 +129,7 @@ impl<T:Storable> {
             let stats         = stats.clone_ref();
             let gpu_mem_usage = default();
             let gl            = default();
-            Self {logger,gl,buffer,mut_dirty,resize_dirty,usage,stats,gpu_mem_usage}
+            Self {gl, buffer, mut_dirty, resize_dirty, usage, stats, gpu_mem_usage}
         })
     }
 
@@ -191,7 +189,7 @@ impl<T:Storable> {
                 } else if self.mut_dirty.check_all() {
                     self.upload_data(&self.mut_dirty.take().range);
                 } else {
-                    warning!(self.logger,"Update requested but it was not needed.");
+                    warn!("Update requested but it was not needed.");
                 }
                 self.mut_dirty.unset_all();
                 self.resize_dirty.unset();

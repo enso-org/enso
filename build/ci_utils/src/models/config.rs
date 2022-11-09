@@ -2,8 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::github::OrganizationPointer;
-use crate::github::RepoPointer;
+use crate::github::repo::IsRepo;
+use crate::github::IsOrganization;
+use crate::github::Repo;
 use crate::serde::regex_vec;
 use crate::serde::single_or_sequence;
 
@@ -42,7 +43,7 @@ impl RepoConfig {
 #[serde(rename_all = "snake_case")]
 pub enum RunnerLocation {
     Organization(OrganizationContext),
-    Repository(RepoContext),
+    Repository(Repo),
 }
 
 impl RunnerLocation {
@@ -55,7 +56,7 @@ impl RunnerLocation {
             RunnerLocation::Organization(org) =>
                 org.generate_runner_registration_token(octocrab).await,
             RunnerLocation::Repository(repo) =>
-                repo.generate_runner_registration_token(octocrab).await,
+                repo.handle(octocrab).generate_runner_registration_token().await,
         }
     }
 
@@ -74,51 +75,9 @@ pub struct OrganizationContext {
     pub name: String,
 }
 
-impl OrganizationPointer for OrganizationContext {
+impl IsOrganization for OrganizationContext {
     fn name(&self) -> &str {
         &self.name
-    }
-}
-
-/// Data denoting a specific GitHub repository.
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct RepoContext {
-    /// Owner - an organization's or user's name.
-    pub owner: String,
-    pub name:  String,
-}
-
-impl RepoPointer for RepoContext {
-    fn owner(&self) -> &str {
-        &self.owner
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-}
-
-impl Display for RepoContext {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.owner, self.name)
-    }
-}
-
-/// Parse from strings in format "owner/name". Opposite of `Display`.
-impl std::str::FromStr for RepoContext {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.split('/').collect_vec().as_slice() {
-            [owner, name] => Ok(Self { owner: owner.to_string(), name: name.to_string() }),
-            slice => bail!("Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}", s, slice.len()),
-        }
-    }
-}
-
-impl RepoContext {
-    pub fn new(owner: impl Into<String>, name: impl Into<String>) -> Self {
-        Self { owner: owner.into(), name: name.into() }
     }
 }
 

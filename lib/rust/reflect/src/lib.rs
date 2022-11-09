@@ -68,7 +68,7 @@
 //!
 //! Due to its syntax-transformation implementation, `reflect` sees types post-monomorphization: For
 //! example, in the following type definition:
-//! ```ignore
+//! ```text
 //! #[derive(Reflect)]
 //! struct Foo<T> {
 //!     field: T,

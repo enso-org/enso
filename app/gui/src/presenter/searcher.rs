@@ -53,7 +53,8 @@ pub struct NoSuchComponent(component_grid::GroupEntryId);
 
 fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
     match suggestion.kind {
-        Kind::Atom => format!("Atom {}", suggestion.name),
+        Kind::Type => format!("Type {}", suggestion.name),
+        Kind::Constructor => format!("Constructor {}", suggestion.name),
         Kind::Function => format!("Function {}", suggestion.name),
         Kind::Local => format!("Node {}", suggestion.name),
         Kind::Method => {

@@ -17,7 +17,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls
@@ -54,15 +54,16 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Specialization
-  public Stateful dispatch(
+  public Object dispatch(
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached(value = "createLoopNode()") LoopNode loopNode) {
     RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
     VirtualFrame frame = repeatedCallNode.createFrame();
-    repeatedCallNode.setNextCall(frame, function, callerInfo, state, arguments);
+    repeatedCallNode.setNextCall(frame, function, callerInfo, arguments);
+    repeatedCallNode.setState(frame, state);
     loopNode.execute(frame);
 
     return repeatedCallNode.getResult(frame);
@@ -70,10 +71,10 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
 
   @Specialization(replaces = "dispatch")
   @CompilerDirectives.TruffleBoundary
-  public Stateful uncachedDispatch(
+  public Object uncachedDispatch(
       Function function,
       CallerInfo callerInfo,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached ExecuteCallNode executeCallNode) {
     while (true) {
@@ -82,7 +83,6 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
-        state = e.getState();
         arguments = e.getArguments();
       }
     }
@@ -133,19 +133,20 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param frame the stack frame for execution
      * @param function the function to execute in {@code frame}
      * @param callerInfo the caller info to pass to the function
-     * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
     private void setNextCall(
         VirtualFrame frame,
         Function function,
         CallerInfo callerInfo,
-        Object state,
         Object[] arguments) {
       frame.setObject(functionSlotIdx, function);
       frame.setObject(callerInfoSlotIdx, callerInfo);
-      frame.setObject(stateSlotIdx, state);
       frame.setObject(argsSlotIdx, arguments);
+    }
+
+    private void setState(VirtualFrame frame, State state) {
+      frame.setObject(stateSlotIdx, state);
     }
 
     /**
@@ -154,8 +155,8 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param frame the stack frame for execution
      * @return the result of execution in {@code frame}
      */
-    public Stateful getResult(VirtualFrame frame) {
-      return (Stateful) frame.getObject(resultSlotIdx);
+    public Object getResult(VirtualFrame frame) {
+      return frame.getObject(resultSlotIdx);
     }
 
     private CallerInfo getCallerInfo(VirtualFrame frame) {
@@ -183,9 +184,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the state to pass to the next function
      */
     public Object getNextState(VirtualFrame frame) {
-      Object result = frame.getObject(stateSlotIdx);
-      frame.setObject(stateSlotIdx, null);
-      return result;
+      return frame.getObject(stateSlotIdx);
     }
 
     /**
@@ -218,7 +217,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
             resultSlotIdx, dispatchNode.executeCall(function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
-        setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
+        setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getArguments());
         return true;
       }
     }
