@@ -196,12 +196,12 @@ impl Slider {
 
             model.value.set_content <+ all2(&value, &precision_adjusted).map(
                 |(value, precision)| {
-                    let (left, right) = value_truncate_precision(*value, *precision);
+                    let text_left_right = value_truncate_precision(*value, *precision);
 
-                    if let Some(right) = right {
-                        format!("{}.{}", left, right).to_im_string()
-                    } else {
-                        left.to_im_string()
+                    match text_left_right {
+                        (Some(left), Some(right)) => format!("{}.{}", left, right).to_im_string(),
+                        (Some(left), None) => left,
+                        _ => unreachable!(), // FIXME How to handle this case? Format will always have a left part
                     }
                 }
             );
@@ -235,20 +235,18 @@ impl Slider {
 // === Helper functions ===
 // ========================
 
-fn value_truncate_precision(value: f32, precision: f32) -> (String, Option<String>) {
+fn value_truncate_precision(value: f32, precision: f32) -> (Option<ImString>, Option<ImString>) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
 
-        // round before string conversion, as string is only truncated and not rounded
-        let scale = 10f32.powi(digits as i32);
-        let value = (value * scale).round() / scale;
+        let text = format!("{:.prec$}", value, prec = digits);
+        let mut text_iter = text.split('.');
+        let text_left = text_iter.next().map(|s| s.into());
+        let text_right = text_iter.next().map(|s| s.into());
 
-        let text_left = format!("{:.0}", value.trunc());
-        let text_right = format!("{:.6}", value.fract().abs());
-        let text_right = text_right.chars().skip(2).take(digits).collect();
-        (text_left, Some(text_right))
+        (text_left, text_right)
     } else {
-        let text_left = format!("{:.0}", value.trunc());
-        (text_left, None)
+        let text_left = format!("{:.0}", value.trunc()).into();
+        (Some(text_left), None)
     }
 }
