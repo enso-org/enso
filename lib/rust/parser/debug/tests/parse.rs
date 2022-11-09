@@ -883,29 +883,24 @@ fn type_annotations() {
 
 #[test]
 fn inline_text_literals() {
-    #[rustfmt::skip]
-    let cases = [
-        (r#""I'm an inline raw text!""#, block![
-            (TextLiteral #((Section "I'm an inline raw text!")))]),
-        (r#"zero_length = """#, block![
-            (Assignment (Ident zero_length) "=" (TextLiteral #()))]),
-        (r#""type""#, block![(TextLiteral #((Section "type")))]),
-        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral #()))]),
-        (r#"unclosed = "a"#, block![
-            (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a"))))]),
-        (r#"'Other quote type'"#, block![(TextLiteral #((Section "Other quote type")))]),
-        (r#""Non-escape: \n""#, block![(TextLiteral #((Section "Non-escape: \\n")))]),
-        (r#""Non-escape: \""#, block![(TextLiteral #((Section "Non-escape: \\")))]),
-        (r#"'String with \' escape'"#, block![
-            (TextLiteral
-             #((Section "String with ") (Escape '\'') (Section " escape")))]),
-        (r#"'\u0915\u094D\u0937\u093F'"#, block![(TextLiteral #(
-         (Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}')))]),
-        (r#"('\n')"#, block![(Group (TextLiteral #((Escape '\n'))))]),
-        (r#"`"#, block![(Invalid)]),
-        (r#"(")")"#, block![(Group (TextLiteral #((Section ")"))))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!(r#""I'm an inline raw text!""#, (TextLiteral #((Section "I'm an inline raw text!"))));
+    test!(r#"zero_length = """#, (Assignment (Ident zero_length) "=" (TextLiteral #())));
+    test!(r#""type""#, (TextLiteral #((Section "type"))));
+    test!(r#"unclosed = ""#, (Assignment (Ident unclosed) "=" (TextLiteral #())));
+    test!(r#"unclosed = "a"#, (Assignment (Ident unclosed) "=" (TextLiteral #((Section "a")))));
+    test!(r#"'Other quote type'"#, (TextLiteral #((Section "Other quote type"))));
+    test!(r#""Non-escape: \n""#, (TextLiteral #((Section "Non-escape: \\n"))));
+    test!(r#""Non-escape: \""#, (TextLiteral #((Section "Non-escape: \\"))));
+    test!(r#"'String with \' escape'"#,
+        (TextLiteral #((Section "String with ") (Escape '\'') (Section " escape"))));
+    test!(r#"'\u0915\u094D\u0937\u093F'"#, (TextLiteral
+        #((Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}'))));
+    test!(r#"('\n')"#, (Group (TextLiteral #((Escape '\n')))));
+    test!(r#"`"#, (Invalid));
+    test!(r#"(")")"#, (Group (TextLiteral #((Section ")")))));
+    test!(r#"'\x'"#, (TextLiteral #((Escape ()))));
+    test!(r#"'\u'"#, (TextLiteral #((Escape ()))));
+    test!(r#"'\U'"#, (TextLiteral #((Escape ()))));
 }
 
 #[test]
