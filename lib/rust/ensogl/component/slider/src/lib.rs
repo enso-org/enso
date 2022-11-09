@@ -95,6 +95,8 @@ ensogl_core::define_endpoints_2! {
         set_tooltip(Option<ImString>),
         set_label(Option<ImString>),
         set_label_color(color::Lcha),
+        set_label_visible(bool),
+        set_label_inside(bool),
 
         set_slider_enabled(bool),
     }
@@ -266,6 +268,32 @@ impl Slider {
                 (h) model.value.set_position_y(*h / 2.0);
             );
 
+            label_text <- all2(&input.set_label, &input.set_label_visible).map(
+                |(label, visible)| match (label, visible) {
+                    (Some(label), true) => label.clone(),
+                    (None, _) | (_, false) => ("").to_im_string(),
+                }
+            );
+            model.label.set_content <+ label_text;
+
+            eval model.label.height (
+                (h) model.label.set_position_y(*h / 2.0);
+            );
+            label_pos_x <- all4(
+                &input.set_width,
+                &input.set_height,
+                &model.label.width,
+                &input.set_label_inside
+            ).map(
+                |(comp_width, comp_height, lab_width, inside)| if *inside {
+                    -comp_width / 2.0 + comp_height / 2.0
+                } else {
+                    -comp_width / 2.0 - comp_height / 2.0 - lab_width
+                }
+            );
+            eval label_pos_x (
+                (x) model.label.set_position_x(*x);
+            );
 
         }
 
@@ -282,6 +310,7 @@ impl Slider {
         self.frp.set_slider_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
         self.frp.set_slider_enabled(true);
 
+        self.frp.set_label_visible(true);
         self
     }
 }
