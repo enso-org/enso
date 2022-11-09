@@ -48,7 +48,7 @@ const BLINK_PERIOD: f32 =
 /// 0, blinking is enabled. It is used to disable blinking after each cursor operation, which makes
 /// cursor visible during typing and after position change.
 ///
-/// ```compile_fail
+/// ```text
 /// |
 /// |    on         off
 /// | <------>   <------->
@@ -64,7 +64,7 @@ const BLINK_PERIOD: f32 =
 pub mod shape {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style:Style, selection:f32, start_time:f32, not_blinking:f32, color_rgb:Vector3<f32>) {
             let width_abs = Var::<f32>::from("abs(input_size.x)");
@@ -240,7 +240,7 @@ impl Selection {
                     0.0
                 }
             }));
-            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph;//.on_change();
+            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
         }
 
         Self { frp, model }

@@ -4,7 +4,11 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
+import org.enso.compiler.data.BindingsMap.{
+  Resolution,
+  ResolutionNotFound,
+  ResolvedMethod
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
@@ -86,7 +90,7 @@ case object GlobalNames extends IRPass {
         "No fresh name supply passed to UppercaseNames resolver."
       )
     )
-    processExpression(ir, scopeMap, freshNameSupply)
+    processExpression(ir, scopeMap, freshNameSupply, None)
   }
 
   /** @inheritdoc */
@@ -102,8 +106,29 @@ case object GlobalNames extends IRPass {
   ): IR.Module.Scope.Definition = {
     definition match {
       case asc: IR.Type.Ascription => asc
+      case method: IR.Module.Scope.Definition.Method =>
+        val resolution = method.methodReference.typePointer.flatMap(
+          _.getMetadata(MethodDefinitions)
+        )
+        method.mapExpressions(
+          processExpression(_, bindings, freshNameSupply, resolution)
+        )
+      case tp: IR.Module.Scope.Definition.Type =>
+        tp.copy(members =
+          tp.members.map(
+            _.mapExpressions(
+              processExpression(
+                _,
+                bindings,
+                freshNameSupply,
+                bindings.resolveName(tp.name.name).toOption.map(Resolution)
+              )
+            )
+          )
+        )
+
       case a =>
-        a.mapExpressions(processExpression(_, bindings, freshNameSupply))
+        a.mapExpressions(processExpression(_, bindings, freshNameSupply, None))
     }
   }
 
@@ -111,9 +136,19 @@ case object GlobalNames extends IRPass {
     ir: IR.Expression,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
+    selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
   ): IR.Expression =
     ir.transformExpressions {
+      case selfTp: IR.Name.SelfType =>
+        selfTypeResolution
+          .map(res => selfTp.updateMetadata(this -->> res))
+          .getOrElse(
+            IR.Error.Resolution(
+              selfTp,
+              IR.Error.Resolution.ResolverError(ResolutionNotFound)
+            )
+          )
       case lit: IR.Name.Literal =>
         if (!lit.isMethod && !isLocalVar(lit)) {
           val resolution = bindings.resolveName(lit.name)
@@ -167,10 +202,29 @@ case object GlobalNames extends IRPass {
         app.function match {
           case lit: IR.Name.Literal =>
             if (!lit.isMethod)
-              resolveReferantApplication(app, lit, bindings, freshNameSupply)
-            else resolveLocalApplication(app, bindings, freshNameSupply)
+              resolveReferantApplication(
+                app,
+                lit,
+                bindings,
+                freshNameSupply,
+                selfTypeResolution
+              )
+            else
+              resolveLocalApplication(
+                app,
+                bindings,
+                freshNameSupply,
+                selfTypeResolution
+              )
           case _ =>
-            app.mapExpressions(processExpression(_, bindings, freshNameSupply))
+            app.mapExpressions(
+              processExpression(
+                _,
+                bindings,
+                freshNameSupply,
+                selfTypeResolution
+              )
+            )
 
         }
 
@@ -180,16 +234,20 @@ case object GlobalNames extends IRPass {
     app: IR.Application.Prefix,
     fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
-    freshNameSupply: FreshNameSupply
+    freshNameSupply: FreshNameSupply,
+    selfTypeResolution: Option[Resolution]
   ): IR.Expression = {
     val processedFun = processExpression(
       app.function,
       bindingsMap,
       freshNameSupply,
+      selfTypeResolution,
       isInsideApplication = true
     )
     val processedArgs = app.arguments.map(
-      _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
+      _.mapExpressions(
+        processExpression(_, bindingsMap, freshNameSupply, selfTypeResolution)
+      )
     )
     processedFun.getMetadata(this) match {
       case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
@@ -211,13 +269,21 @@ case object GlobalNames extends IRPass {
   private def resolveLocalApplication(
     app: IR.Application.Prefix,
     bindings: BindingsMap,
-    freshNameSupply: FreshNameSupply
+    freshNameSupply: FreshNameSupply,
+    selfTypeResolution: Option[Resolution]
   ): IR.Expression = {
     val processedFun =
-      processExpression(app.function, bindings, freshNameSupply)
+      processExpression(
+        app.function,
+        bindings,
+        freshNameSupply,
+        selfTypeResolution
+      )
     val processedArgs =
       app.arguments.map(
-        _.mapExpressions(processExpression(_, bindings, freshNameSupply))
+        _.mapExpressions(
+          processExpression(_, bindings, freshNameSupply, selfTypeResolution)
+        )
       )
 
     val appData = for {

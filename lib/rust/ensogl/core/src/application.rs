@@ -55,9 +55,15 @@ crate::define_endpoints_2! {
 
 /// A top level structure for an application. It combines a view, keyboard shortcut manager, and is
 /// intended to also manage layout of visible panes.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Application {
+    inner: Rc<ApplicationData>,
+}
+
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ApplicationData {
     pub logger:           Logger,
     pub cursor:           Cursor,
     pub display:          World,
@@ -91,7 +97,7 @@ impl Application {
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
         }
 
-        Self {
+        let data = ApplicationData {
             logger,
             cursor,
             display,
@@ -101,7 +107,9 @@ impl Application {
             themes,
             update_themes_handle,
             frp,
-        }
+        };
+
+        Self { inner: Rc::new(data) }
     }
 
     /// Create a new instance of a view.

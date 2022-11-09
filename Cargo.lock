@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.65"
+version = "1.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98161a4e3e2184da77bb14f02184cdd111e83bbbcc9979dfee3c44b9a85f5602"
+checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
 
 [[package]]
 name = "approx"
@@ -1854,6 +1854,7 @@ dependencies = [
  "derivative",
  "derive_more",
  "dirs",
+ "enso-build-base",
  "filetime",
  "flate2",
  "flume",
@@ -1868,13 +1869,14 @@ dependencies = [
  "indicatif",
  "itertools 0.10.5",
  "lazy_static",
- "log 0.4.17",
  "mime 0.3.16",
+ "new_mime_guess",
  "nix",
  "octocrab",
  "ouroboros",
  "paste 1.0.9",
  "path-absolutize",
+ "path-slash",
  "pin-project",
  "platforms",
  "port_check",
@@ -1887,7 +1889,7 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "shrinkwraprs 0.3.0",
  "strum",
  "sysinfo",
@@ -1907,6 +1909,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-build-base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "fn-error-context",
+ "futures 0.3.24",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "serde_yaml 0.9.14",
+ "tracing",
+]
+
+[[package]]
 name = "enso-build-cli"
 version = "0.1.0"
 dependencies = [
@@ -1916,6 +1932,7 @@ dependencies = [
  "clap 3.1.15",
  "derivative",
  "enso-build",
+ "enso-build-base",
  "enso-formatter",
  "futures 0.3.24",
  "futures-util",
@@ -1925,13 +1942,28 @@ dependencies = [
  "octocrab",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "strum",
  "tempfile",
  "tokio",
  "toml",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "enso-build-macros"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.6.0",
+ "enso-build-base",
+ "itertools 0.10.5",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "serde_yaml 0.9.14",
+ "shrinkwraprs 0.3.0",
+ "syn",
 ]
 
 [[package]]
@@ -2020,6 +2052,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "percent-encoding 2.1.0",
  "unicode-segmentation",
+ "unidecode",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -2144,13 +2177,6 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
-]
-
-[[package]]
-name = "enso-optics"
-version = "0.2.0"
-dependencies = [
- "enso-prelude",
 ]
 
 [[package]]
@@ -2476,7 +2502,6 @@ dependencies = [
  "enso-frp",
  "enso-generics",
  "enso-logger",
- "enso-optics",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
@@ -2695,15 +2720,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-example-shape-system"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "ensogl-example-slider"
 version = "0.1.0"
 dependencies = [
@@ -2760,7 +2776,6 @@ dependencies = [
  "ensogl-example-profiling-run-graph",
  "ensogl-example-render-profile-flamegraph",
  "ensogl-example-scroll-area",
- "ensogl-example-shape-system",
  "ensogl-example-slider",
  "ensogl-example-sprite-system",
  "ensogl-example-sprite-system-benchmark",
@@ -3811,10 +3826,10 @@ dependencies = [
  "derivative",
  "derive_more",
  "dirs",
+ "enso-build-base",
  "filetime",
  "flate2",
  "flume",
- "fn-error-context",
  "fs_extra",
  "futures 0.3.24",
  "futures-util",
@@ -3850,10 +3865,9 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.13",
+ "serde_yaml 0.9.14",
  "sha2",
  "shrinkwraprs 0.3.0",
- "snafu",
  "strum",
  "symlink",
  "syn",
@@ -4093,6 +4107,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if 1.0.0",
+]
+
+[[package]]
+name = "intellij-run-config-gen"
+version = "0.1.0"
+dependencies = [
+ "toml",
 ]
 
 [[package]]
@@ -4878,7 +4899,7 @@ dependencies = [
 [[package]]
 name = "octocrab"
 version = "0.17.0"
-source = "git+https://github.com/enso-org/octocrab#6bbc04b927cab3880bddd697911fb56bfa78b69e"
+source = "git+https://github.com/enso-org/octocrab#88f81c840085ce0aa591f9f53d6c62309cac8260"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6139,9 +6160,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.9.13"
+version = "0.9.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8613d593412a0deb7bbd8de9d908efff5a0cb9ccd8f62c641e7b2ed2f57291d1"
+checksum = "6d232d893b10de3eb7258ff01974d6ee20663d8e833263c99409d4b13a0209da"
 dependencies = [
  "indexmap",
  "itoa 1.0.3",
@@ -6547,18 +6568,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a99cb8c4b9a8ef0e7907cd3b617cc8dc04d571c4e73c8ae403d80ac160bb122"
+checksum = "10deb33631e3c9018b9baf9dcbbc4f737320d2b576bac10f6aefa048fa407e3e"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a891860d3c8d66fec8e73ddb3765f90082374dbaaa833407b904a94f1a7eb43"
+checksum = "982d17546b47146b28f7c22e3d08465f6b8903d0ea13c1660d9d84a6e7adcdbb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6924,9 +6945,9 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.36"
+version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fce9567bd60a67d08a16488756721ba392f24f29006402881e43b19aac64307"
+checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
  "cfg-if 1.0.0",
  "log 0.4.17",
@@ -6937,9 +6958,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.22"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11c75893af559bc8e10716548bdef5cb2b983f8e637db9d0e15126b61b484ee2"
+checksum = "4017f8f45139870ca7e672686113917c71c7a6e02d4924eda67186083c03081a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6948,9 +6969,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.29"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aeea4303076558a00714b823f9ad67d58a3bbda1df83d8827d21193156e22f7"
+checksum = "24eb03ba0eab1fd845050058ce5e616558e8f8d8fca633e6b163fe25c797213a"
 dependencies = [
  "once_cell",
  "valuable",
@@ -7144,6 +7165,12 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unidecode"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "402bb19d8e03f1d1a7450e2bd613980869438e0666331be3e073089124aa1adc"
 
 [[package]]
 name = "unreachable"

@@ -71,6 +71,8 @@
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 - [Added support for scrolling by pressing and holding a mouse button on a
   scrollbar.][3824]
+- [Added scroll bounce animation][3836] which activates when scrolling past the
+  end of scrollable content.
 
 #### EnsoGL (rendering engine)
 
@@ -83,6 +85,13 @@
   those visible, and re-use created entries during scrolling thus achieving
   great performance. There are variants of grid view with selection and
   highlight, scrollbars, and both.
+- [Massive improvements of text rendering performance][3776]. Different text
+  instances are now reusing the shape shaders and the same sprite system under
+  the hood. This drastically reduces the amount of required draw calls for
+  scenes with a lot of text.
+- [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
+  way. Also, additional fine-tuning is performed per font and per host operating
+  system.
 
 #### Enso Standard Library
 
@@ -224,6 +233,8 @@
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
 - [Implemented `Period` type][3818]
+- [Implemented new functions on Column and added expression syntax support to
+  create derived Columns.][3782]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -360,6 +371,10 @@
 [3824]: https://github.com/enso-org/enso/pull/3824
 [3804]: https://github.com/enso-org/enso/pull/3804
 [3818]: https://github.com/enso-org/enso/pull/3818
+[3776]: https://github.com/enso-org/enso/pull/3776
+[3855]: https://github.com/enso-org/enso/pull/3855
+[3836]: https://github.com/enso-org/enso/pull/3836
+[3782]: https://github.com/enso-org/enso/pull/3782
 
 #### Enso Compiler
 
@@ -415,6 +430,8 @@
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
+- [Add the `Self` keyword referring to current type][3844]
+- [Split Atom suggestion entry to Type and Constructor][3835]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -473,6 +490,8 @@
 [3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
+[3844]: https://github.com/enso-org/enso/pull/3844
+[3835]: https://github.com/enso-org/enso/pull/3835
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

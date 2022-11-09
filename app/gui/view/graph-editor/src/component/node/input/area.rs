@@ -218,7 +218,7 @@ impl Model {
         //   It needs to be more flexible once we have proper depth management.
         //   See https://www.pivotaltracker.com/story/show/183567632.
         let scene = &self.app.display.default_scene;
-        self.label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&self.label);
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);

@@ -2,7 +2,6 @@ package org.enso.table.data.table;
 
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
@@ -15,8 +14,6 @@ import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.IntStream;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -89,11 +86,11 @@ public class Column {
    * @return the result of masking this column with the provided column
    */
   public Column mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage storage)) {
+    if (!(maskCol.getStorage() instanceof BoolStorage boolStorage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    var mask = BoolStorage.toMask(storage);
+    var mask = BoolStorage.toMask(boolStorage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, getStorage().size());
     mask.and(localStorageMask);
@@ -154,25 +151,6 @@ public class Column {
   /** @return the index of this column */
   public Index getIndex() {
     return index;
-  }
-
-  /**
-   * Aggregates the values in this column, using a given aggregation operation.
-   *
-   * @param aggName name of a vectorized operation that can be used if possible. If null is passed,
-   *     this parameter is unused.
-   * @param aggregatorFunction the function to use if a vectorized operation is not available.
-   * @param skipNa whether missing values should be passed to the {@code fallback} function.
-   * @return a column indexed by the unique index of this aggregate, storing results of applying the
-   *     specified operation.
-   */
-  public Object aggregate(
-      String aggName, Function<List<Object>, Value> aggregatorFunction, boolean skipNa) {
-    Aggregator aggregator = storage.getAggregator(aggName, aggregatorFunction, skipNa, 1);
-
-    IntStream ixes = IntStream.range(0, storage.size());
-    aggregator.nextGroup(ixes);
-    return aggregator.seal().getItemBoxed(0);
   }
 
   /**

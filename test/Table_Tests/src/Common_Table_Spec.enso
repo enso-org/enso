@@ -815,6 +815,16 @@ spec prefix table_builder test_selection pending=Nothing =
             table.drop (First -1) . should_equal table
             table.drop (First 100) . should_equal empty
 
+            table.take 4 . at "alpha" . to_vector . should_equal [1,2,3,4]
+            table.take 0 . at "alpha" . to_vector . should_equal []
+            table.take -1 . at "alpha" . to_vector . should_equal []
+            table.take 100 . should_equal table
+
+            table.drop 2 . at "beta" . to_vector . should_equal ["C","D","E","F","G","H"]
+            table.drop 0 . should_equal table
+            table.drop -1 . should_equal table
+            table.drop 100 . should_equal empty
+
             table.take (Last 4) . at "beta" . to_vector . should_equal ["E","F","G","H"]
             table.take (Last 0) . should_equal empty
             table.take (Last -1) . should_equal empty
@@ -940,10 +950,20 @@ spec prefix table_builder test_selection pending=Nothing =
             alpha.take (First -1) . should_equal empty_alpha
             alpha.take (First 100) . should_equal alpha
 
+            alpha.take 4 . to_vector . should_equal [1,2,3,4]
+            alpha.take 0 . should_equal empty_alpha
+            alpha.take -1 . should_equal empty_alpha
+            alpha.take 100 . should_equal alpha
+
             beta.drop (First 2) . to_vector . should_equal ["C","D","E","F","G","H"]
             alpha.drop (First 0) . should_equal alpha
             alpha.drop (First -1) . should_equal alpha
             alpha.drop (First 100) . should_equal empty_alpha
+
+            beta.drop 2 . to_vector . should_equal ["C","D","E","F","G","H"]
+            alpha.drop 0 . should_equal alpha
+            alpha.drop -1 . should_equal alpha
+            alpha.drop 100 . should_equal empty_alpha
 
             beta.take (Last 4) . to_vector . should_equal ["E","F","G","H"]
             beta.take (Last 0) . should_equal empty_beta
@@ -1022,11 +1042,17 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should allow sampling rows" <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"
-            two = three.take (First 2)
-            one = three.take First
-            empty = three.take (First 0)
+            two = table_builder [["X", ["a", "a"]]] . at "X"
+            one = table_builder [["X", ["a"]]] . at "X"
+            empty = table_builder [["X", []]] . at "X"
 
-            [three, two, one, empty].map .to_vector . should_equal [["a", "a", "a"], ["a", "a"], ["a"], []]
+            three.take (First 2) . should_equal two
+            three.take First . should_equal one
+            three.take (First 0) . should_equal empty
+
+            three.take 2 . should_equal two
+            three.take . should_equal one
+            three.take 0 . should_equal empty
 
             three.take (Sample 0) . should_equal empty
             empty.take (Sample 0) . should_equal empty

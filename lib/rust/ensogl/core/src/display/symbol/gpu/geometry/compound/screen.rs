@@ -5,7 +5,6 @@
 use crate::prelude::*;
 use crate::system::gpu::data::types::*;
 
-use crate::display::scene::Scene;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
@@ -23,8 +22,8 @@ pub struct Screen {
 impl Screen {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(scene: &Scene, surface_material: Material) -> Self {
-        let sprite_system = SpriteSystem::new(scene);
+    pub fn new(surface_material: Material) -> Self {
+        let sprite_system = SpriteSystem::new();
         sprite_system.set_geometry_material(Self::geometry_material());
         sprite_system.set_material(surface_material);
         let sprite = sprite_system.new_instance();
@@ -33,8 +32,8 @@ impl Screen {
 
     /// Constructor of a geometry which covers the whole screen and displays on it the image
     /// provided as the input argument.
-    pub fn new_identity_painter(scene: &Scene, input: impl AsRef<str>) -> Self {
-        Self::new(scene, Self::identity_painter_surface_material(input))
+    pub fn new_identity_painter(input: impl AsRef<str>) -> Self {
+        Self::new(Self::identity_painter_surface_material(input))
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.

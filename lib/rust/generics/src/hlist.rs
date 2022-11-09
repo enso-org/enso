@@ -27,7 +27,7 @@ pub struct Cons<Head, Tail>(pub Head, pub Tail);
 /// Creates new `HList` from the provided elements, similar to `vec!`. In order to provide type for
 /// the list, use the `ty` macro. In order to pattern match on it, use the `pat` macro.
 ///
-/// ```compile_fail
+/// ```text
 /// let HList::pat![t1,t2] : HList::ty![&str,usize] = HList::new!["hello",7];
 /// ```
 #[macro_export]

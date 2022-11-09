@@ -27,7 +27,7 @@ class LambdaTest extends InterpreterTest {
           |    add = a -> b -> a + b
           |    adder = b -> add a b
           |    adder 2
-      """.stripMargin
+          |""".stripMargin
 
       eval(code).call(3) shouldEqual 5
     }
@@ -46,7 +46,7 @@ class LambdaTest extends InterpreterTest {
           |main =
           |    sumTo = x -> if x == 0 then 0 else x + (sumTo (x-1))
           |    sumTo 10
-      """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 55
     }

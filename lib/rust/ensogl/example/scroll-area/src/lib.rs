@@ -27,7 +27,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
@@ -58,7 +57,7 @@ pub fn main() {
 
 mod content {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let circle = Circle(50.px())
                 .translate(((-50.0).px(), 350.0.px()))
@@ -70,15 +69,18 @@ mod content {
                 .rotate(1.0.radians())
                 .translate((100.0.px(), (-350.0).px()))
                 .fill(color::Rgb::new(0.95,0.8,0.0));
-            (circle + triangle + star).into()
-
+            let capsule = UnevenCapsule(20.0.px(), 50.0.px(), 150.0.px())
+                .rotate(2.2.radians())
+                .translate(((-105.0).px(), (-395.0).px()))
+                .fill(color::Rgb::new(0.8,0.8,0.8));
+            (circle + triangle + star + capsule).into()
         }
     }
 }
 
 mod background {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let size = (200.px(), 200.px());
             let color = color::Rgb::new(0.9, 0.9, 0.9);
@@ -121,7 +123,7 @@ fn init(app: &Application) {
 
     let background = background::View::new();
     scroll_area.add_child(&background);
-    scene.layers.below_main.add_exclusive(&background);
+    scene.layers.below_main.add(&background);
     background.size.set(Vector2::new(200.0, 200.0));
     background.set_position_x(100.0);
     background.set_position_y(-100.0);

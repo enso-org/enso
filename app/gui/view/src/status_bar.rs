@@ -93,7 +93,7 @@ pub mod process {
 mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let theme             = ensogl_hardcoded_theme::application::status_bar::background;
             let theme             = style::Path::from(theme);
@@ -171,8 +171,8 @@ impl Model {
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
         let camera = scene.camera();
 
-        scene.layers.panel.add_exclusive(&background);
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.panel.add(&background);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;

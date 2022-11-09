@@ -57,7 +57,7 @@ mod status_indicator_shape {
     const INDICATOR_WIDTH_OUTER: f32 = 15.0;
     const INDICATOR_WIDTH_INNER: f32 = 10.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,color_rgba:Vector4<f32>) {
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");

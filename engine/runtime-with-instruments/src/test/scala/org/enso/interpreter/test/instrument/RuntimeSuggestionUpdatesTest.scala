@@ -963,7 +963,24 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Atom(
+                  Suggestion.Type(
+                    None,
+                    "Enso_Test.Test.A",
+                    "MyType",
+                    List(),
+                    "Enso_Test.Test.A.MyType",
+                    Some(ConstantsGen.ANY),
+                    None,
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Constructor(
                     None,
                     "Enso_Test.Test.A",
                     "MkA",

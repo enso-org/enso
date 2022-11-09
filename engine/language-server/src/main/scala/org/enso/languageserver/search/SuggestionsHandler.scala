@@ -714,9 +714,14 @@ final class SuggestionsHandler(
         val docSections = module.documentation.map(docSectionsBuilder.build)
         module.copy(documentationSections = docSections)
 
-      case atom: Suggestion.Atom =>
-        val docSections = atom.documentation.map(docSectionsBuilder.build)
-        atom.copy(documentationSections = docSections)
+      case constructor: Suggestion.Constructor =>
+        val docSections =
+          constructor.documentation.map(docSectionsBuilder.build)
+        constructor.copy(documentationSections = docSections)
+
+      case tpe: Suggestion.Type =>
+        val docSections = tpe.documentation.map(docSectionsBuilder.build)
+        tpe.copy(documentationSections = docSections)
 
       case method: Suggestion.Method =>
         val docSections = method.documentation.map(docSectionsBuilder.build)
