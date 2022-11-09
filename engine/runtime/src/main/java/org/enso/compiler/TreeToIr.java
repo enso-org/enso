@@ -18,6 +18,7 @@ import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
+import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
@@ -181,7 +182,7 @@ final class TreeToIr {
         var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
         if (language == null) {
           var message = "Language '" + languageName + "' is not a supported polyglot language.";
-          var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
+          var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
         var text = buildTextConstant(body.getElements(), true);
@@ -223,7 +224,7 @@ final class TreeToIr {
         yield cons(ascription, appendTo);
       }
       default -> {
-        var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+        var error = translateSyntaxError(inputAst, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
         yield cons(error, appendTo);
       }
     };
@@ -294,7 +295,7 @@ final class TreeToIr {
         var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
         if (language == null) {
           var message = "Language '" + languageName + "' is not a supported polyglot language.";
-          var error = new IR$Error$Syntax(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message), meta(), diag());
+          var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
         var text = buildTextConstant(body.getElements(), true);
@@ -312,7 +313,7 @@ final class TreeToIr {
         yield cons(annotation, appendTo);
       }
       default -> {
-        var ir = new IR$Error$Syntax(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
+        var ir = translateSyntaxError(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);
       }
     };
@@ -544,11 +545,11 @@ final class TreeToIr {
           var arr = app.getOpr().getLeft().getOperators();
           if (arr.size() > 0 && arr.get(0).codeRepr().equals("=")) {
               var errLoc = arr.size() > 1 ? getIdentifiedLocation(arr.get(1)) : at;
-              var err = new IR$Error$Syntax(errLoc.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+              var err = translateSyntaxError(errLoc.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$);
               var name = buildName(app.getLhs());
               yield new IR$Expression$Binding(name, err, at, meta(), diag());
           } else {
-              yield new IR$Error$Syntax(at.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+              yield translateSyntaxError(at.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$);
           }
         }
         yield switch (op.codeRepr()) {
@@ -595,7 +596,7 @@ final class TreeToIr {
             var rhs = unnamedCallArgument(app.getRhs());
             if ("@".equals(op.codeRepr()) && lhs.value() instanceof IR$Application$Prefix fn) {
                 final Option<IdentifiedLocation> where = getIdentifiedLocation(op);
-                var err = new IR$Error$Syntax(where.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$, meta(), diag());
+                var err = translateSyntaxError(where.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$);
                 var errArg = new IR$CallArgument$Specified(Option.empty(), err, where, meta(), diag());
                 var args = cons(rhs, cons(errArg, fn.arguments()));
                 yield new IR$Application$Prefix(fn.function(), args.reverse(), false, getIdentifiedLocation(app), meta(), diag());
@@ -730,7 +731,7 @@ final class TreeToIr {
       case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
       case Tree.Group group -> {
           yield switch (translateExpression(group.getBody(), false)) {
-              case null -> new IR$Error$Syntax(getIdentifiedLocation(group).get(), IR$Error$Syntax$EmptyParentheses$.MODULE$, meta(), diag());
+              case null -> translateSyntaxError(group, IR$Error$Syntax$EmptyParentheses$.MODULE$);
               case IR$Application$Prefix pref -> {
                   final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1, pref.getExternalId());
                   yield pref.setLocation(groupWithoutParenthesis);
@@ -824,7 +825,7 @@ final class TreeToIr {
               yield fn.setLocation(loc);
           }
       }
-      case Tree.Invalid __ -> new IR$Error$Syntax(tree, IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
+      case Tree.Invalid __ -> translateSyntaxError(tree, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
   }
@@ -1260,6 +1261,19 @@ final class TreeToIr {
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
     var text = buildTextConstant(doc.getElements(), true);
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
+  }
+
+  IR$Error$Syntax translateSyntaxError(Tree where, IR$Error$Syntax$Reason reason) {
+    var at = getIdentifiedLocation(where);
+    if (at.isEmpty()) {
+      return new IR$Error$Syntax(where, reason, meta(), diag());
+    } else {
+      return new IR$Error$Syntax(at.get(), reason, meta(), diag()).setLocation(at);
+    }
+  }
+
+  IR$Error$Syntax translateSyntaxError(IdentifiedLocation where, IR$Error$Syntax$Reason reason) {
+      return new IR$Error$Syntax(where, reason, meta(), diag());
   }
 
   private IR$Name$Literal buildName(Token name) {
