@@ -184,21 +184,32 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 // === Model ===
 // =============
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum Phase {
+    #[default]
+    Capturing,
+    Bubbling,
+}
+
 use std::any::TypeId;
 
 #[derive(Debug)]
-pub struct EventData {
+pub struct SomeEventData {
     payload: Box<dyn std::any::Any>,
+    phase:   Rc<Cell<Phase>>,
+    stopped: Rc<Cell<bool>>,
 }
 
-impl EventData {
+impl SomeEventData {
     pub fn new<T: 'static>(payload: T) -> Self {
         let payload = Box::new(payload);
-        Self { payload }
+        let phase = default();
+        let stopped = default();
+        Self { payload, phase, stopped }
     }
 }
 
-impl Default for EventData {
+impl Default for SomeEventData {
     fn default() -> Self {
         Self::new(())
     }
@@ -206,38 +217,50 @@ impl Default for EventData {
 
 // define_not_same_trait!();
 //
-// impl<T: 'static> From<T> for EventData
-// where (T, EventData): NotSame
+// impl<T: 'static> From<T> for SomeEventData
+// where (T, SomeEventData): NotSame
 // {
 //     fn from(t: T) -> Self {
 //         Self::new(t)
 //     }
 // }
+
+
 
 #[derive(Clone, CloneRef, Deref, Debug, Default)]
-pub struct Event {
-    data: Rc<EventData>,
+pub struct SomeEvent {
+    data: Rc<SomeEventData>,
 }
 
-impl Event {
+impl SomeEvent {
     pub fn new<T: 'static>(payload: T) -> Self {
-        Self { data: Rc::new(EventData::new(payload)) }
+        Self { data: Rc::new(SomeEventData::new(payload)) }
     }
 
-    pub fn downcast<T>(&self) -> Option<&T>
-    where T: 'static {
-        self.data.payload.downcast_ref()
+    pub fn downcast<T>(&self) -> Option<Event<T>>
+    where T: Clone + 'static {
+        self.data.payload.downcast_ref().map(|p: &T| Event::new(p.clone(), &self.stopped))
     }
 }
 
-// impl<T: 'static> From<T> for Event
-// where (T, Event): NotSame
-// {
-//     fn from(t: T) -> Self {
-//         Self::new(t)
-//     }
-// }
 
+#[derive(Clone, Debug, Deref, Default)]
+pub struct Event<T> {
+    #[deref]
+    payload: T,
+    stopped: Rc<Cell<bool>>,
+}
+
+impl<T> Event<T> {
+    fn new(payload: T, stopped: &Rc<Cell<bool>>) -> Self {
+        let stopped = stopped.clone_ref();
+        Self { payload, stopped }
+    }
+
+    pub fn stop_propagation(&self) {
+        self.stopped.set(true);
+    }
+}
 
 
 /// A hierarchical representation of object containing information about transformation in 3D space,
@@ -248,8 +271,8 @@ impl Event {
 #[derivative(Debug(bound = ""))]
 pub struct Model<Host = Scene> {
     network:        frp::Network,
-    pub emit_event: frp::Source<Event>,
-    pub on_event:   frp::Any<Event>,
+    pub emit_event: frp::Source<SomeEvent>,
+    pub on_event:   frp::Any<SomeEvent>,
     host:           PhantomData<Host>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer: RefCell<Option<WeakLayer>>,
@@ -742,7 +765,7 @@ impl<Host> Instance<Host> {
         self
     }
 
-    fn emit_event_impl(&self, event: &Event) {
+    fn emit_event_impl(&self, event: &SomeEvent) {
         let rev_parent_chain = self.rev_parent_chain();
         for object in rev_parent_chain {
             object.on_event.emit(event.clone_ref());
@@ -752,7 +775,6 @@ impl<Host> Instance<Host> {
     pub fn rev_parent_chain(&self) -> Vec<Instance<Host>> {
         let mut vec = default();
         self.build_rev_parent_chain(&mut vec);
-        vec.push(self.clone_ref());
         vec
     }
 

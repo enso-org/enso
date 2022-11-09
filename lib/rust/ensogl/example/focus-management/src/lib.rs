@@ -76,9 +76,9 @@ pub fn main() {
 
     let dp = rectangle.display_object();
     frp::extend! { network
-        eval circle.events.mouse_down ((t) circle.display_object().emit_event.emit(Event::new(t.clone())));
+        eval circle.events.mouse_down ((t) circle.display_object().emit_event.emit(SomeEvent::new(t.clone())));
 
-        e <- rectangle.display_object().on_event.filter_map(|t| t.downcast::<f32>().copied());
+        e <- rectangle.display_object().on_event.filter_map(|t| t.downcast::<f32>());
 
         e <- rectangle.on::<f32>();
         // trace rectangle.display_object().on_event;
@@ -96,6 +96,7 @@ pub fn main() {
 }
 
 use ensogl_core::display::object::Event;
+use ensogl_core::display::object::SomeEvent;
 
 
 pub trait NetworkEventHandler {
@@ -103,7 +104,7 @@ pub trait NetworkEventHandler {
         &self,
         label: &'static str,
         src: impl ensogl_core::display::Object,
-    ) -> frp::Stream<T>;
+    ) -> frp::Stream<Event<T>>;
 }
 
 impl NetworkEventHandler for frp::Network {
@@ -111,7 +112,7 @@ impl NetworkEventHandler for frp::Network {
         &self,
         label: &'static str,
         src: impl ensogl_core::display::Object,
-    ) -> frp::Stream<T> {
-        self.filter_map(label, &src.display_object().on_event, |t| t.downcast::<T>().cloned())
+    ) -> frp::Stream<Event<T>> {
+        self.filter_map(label, &src.display_object().on_event, |t| t.downcast::<T>())
     }
 }
