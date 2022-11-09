@@ -293,6 +293,30 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 22, 23);
   }
 
+  @Test
+  public void illegalForeignBody1() throws Exception {
+    var ir = parseTest("foreign 4");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 9);
+  }
+
+  @Test
+  public void illegalForeignBody2() throws Exception {
+    var ir = parseTest("foreign 4 * 4");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 13);
+  }
+
+  @Test
+  public void illegalForeignBody3() throws Exception {
+    var ir = parseTest("foreign foo = \"4\"");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 17);
+  }
+
+  @Test
+  public void illegalForeignBody4() throws Exception {
+    var ir = parseTest("foreign js foo = 4");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 18);
+  }
+
   private void assertSingleSyntaxError(
       IR.Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end
