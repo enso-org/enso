@@ -115,7 +115,7 @@ pub fn is_archive_name(path: impl AsRef<Path>) -> bool {
     skip_all,
     fields(src=%root_directory.as_ref().display(), dest=%output_archive.as_ref().display()),
     err)]
-pub async fn pack_directory_contents(
+pub async fn compress_directory(
     output_archive: impl AsRef<Path>,
     root_directory: impl AsRef<Path>,
 ) -> Result {

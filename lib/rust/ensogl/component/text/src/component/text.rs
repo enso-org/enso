@@ -1321,6 +1321,10 @@ impl TextModel {
                         if truncated {
                             break;
                         }
+                        // FIXME[WD]: This is a workaround for a bug in the MSDFgen binding. It
+                        //     should be fixed after updating the MSDFgen library.
+                        //     See: https://www.pivotaltracker.com/n/projects/2539304/stories/183747513
+                        let magic_scale = 2048.0 / shaped_glyph_set.units_per_em as f32;
                         for shaped_glyph in &shaped_glyph_set.glyphs {
                             let glyph_byte_start = shaped_glyph.start_byte();
                             // Drop styles assigned to skipped bytes. One byte will be skipped
@@ -1361,11 +1365,11 @@ impl TextModel {
                             glyph.set_color(style.color);
                             glyph.skip_color_animation();
                             glyph.set_sdf_weight(style.sdf_weight.value);
-                            glyph.set_size(style.size);
+                            glyph.set_size(formatting::Size(style.size.value * magic_scale));
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);
                             glyph.set_glyph_id(shaped_glyph.id());
                             glyph.x_advance.set(x_advance);
-                            glyph.view.set_position_xy(glyph_render_offset);
+                            glyph.view.set_position_xy(glyph_render_offset * magic_scale);
                             glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
 
                             glyph_offset_x += x_advance;

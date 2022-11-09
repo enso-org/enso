@@ -49,12 +49,12 @@ type SQL_Type
     numeric : SQL_Type
     numeric = SQL_Type.Value Types.NUMERIC "NUMERIC"
 
-    ## The SQL type representing one of the suppported textual types.
+    ## The SQL type representing one of the supported textual types.
     varchar : SQL_Type
     varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
 
     ## UNSTABLE
-       The SQL type representing one of the suppported textual types.
+       The SQL type representing one of the supported textual types.
 
        It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
     text : SQL_Type
@@ -63,6 +63,40 @@ type SQL_Type
     ## The SQL type representing a binary object.
     blob : SQL_Type
     blob = SQL_Type.Value Types.BLOB "BLOB"
+
+    ## The SQL type representing a date type.
+    date : SQL_Type
+    date = SQL_Type.Value Types.DATE "DATE"
+
+    ## The SQL type representing a time type.
+    time : SQL_Type
+    time = SQL_Type.Value Types.TIME "TIME"
+
+    ## The SQL type representing a time type.
+    date_time : SQL_Type
+    date_time = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMP"
+
+    ## ADVANCED
+       Given an Enso value gets the approximate SQL type.
+    approximate_type : Any -> SQL_Type ! Illegal_Argument_Error_Data
+    approximate_type value = case value of
+        _ : Boolean -> SQL_Type.boolean
+        _ : Integer -> SQL_Type.integer
+        _ : Decimal -> SQL_Type.double
+        _ : Text -> SQL_Type.varchar
+        _ : Date.Date -> SQL_Type.date
+        _ : Time_Of_Day.Time_Of_Day -> SQL_Type.time_of_day
+        _ : Date_Time.Date_Time -> SQL_Type.date_time
+            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
+
+    ## PRIVATE
+
+       Returns True if this type represents an integer or a double.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_numeric : Boolean
+    is_definitely_numeric self = self.is_definitely_double || self.is_definitely_integer
 
     ## PRIVATE
 

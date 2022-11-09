@@ -24,7 +24,12 @@ wasm-pack.log
 generated/
 /target
 /build/rust/target/
-dist
+
+###########
+## Scala ##
+###########
+
+.metals/
 
 ############
 ## NodeJS ##
@@ -119,7 +124,7 @@ build-cache/
 ######################
 ## Enso-Development ##
 ######################
-
+/dist
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
