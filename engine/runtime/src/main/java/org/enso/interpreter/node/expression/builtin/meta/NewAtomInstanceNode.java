@@ -5,8 +5,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 
 @BuiltinMethod(
     type = "Meta",
@@ -19,10 +19,10 @@ public abstract class NewAtomInstanceNode extends Node {
     return NewAtomInstanceNodeGen.create();
   }
 
-  abstract Atom execute(AtomConstructor constructor, Object fields);
+  abstract Struct execute(AtomConstructor constructor, Object fields);
 
   @Specialization
-  Atom doExecute(AtomConstructor constructor, Object fields, @Cached CoerceArrayNode coerce) {
+  Struct doExecute(AtomConstructor constructor, Object fields, @Cached CoerceArrayNode coerce) {
     return constructor.newInstance(coerce.execute(fields));
   }
 }

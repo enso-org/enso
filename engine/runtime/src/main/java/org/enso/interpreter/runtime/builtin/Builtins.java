@@ -36,6 +36,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
@@ -603,7 +604,7 @@ public class Builtins {
    * Convert from type-system type names to types.
    *
    * @param typeName the fully qualified type name of a builtin
-   * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
+   * @return the associated {@link Struct} if it exists,
    *     and {@code null} otherwise
    */
   public Type fromTypeSystem(String typeName) {

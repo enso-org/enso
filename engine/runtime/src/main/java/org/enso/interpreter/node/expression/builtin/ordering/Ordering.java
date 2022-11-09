@@ -3,8 +3,8 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 
 import java.util.List;
 
@@ -21,7 +21,7 @@ public class Ordering extends Builtin {
    * @param ord the java ordering
    * @return the Enso ordering corresponding to {@code ord}
    */
-  public Atom fromJava(int ord) {
+  public Struct fromJava(int ord) {
     if (ord == 0) {
       return newEqual();
     } else if (ord > 0) {
@@ -47,17 +47,17 @@ public class Ordering extends Builtin {
   }
 
   /** @return a new instance of Less */
-  public Atom newLess() {
+  public Struct newLess() {
     return less().newInstance();
   }
 
   /** @return a new instance of Equal */
-  public Atom newEqual() {
+  public Struct newEqual() {
     return equal().newInstance();
   }
 
   /** @return a new instance of Greater */
-  public Atom newGreater() {
+  public Struct newGreater() {
     return greater().newInstance();
   }
 }

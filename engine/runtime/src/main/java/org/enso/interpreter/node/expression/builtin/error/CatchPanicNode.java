@@ -14,7 +14,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -70,7 +70,7 @@ public abstract class CatchPanicNode extends Node {
       Object payload,
       AbstractTruffleException originalException) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom caughtPanic =
+    Struct caughtPanic =
         builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
     return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
   }

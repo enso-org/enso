@@ -7,12 +7,11 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -37,7 +36,7 @@ public abstract class CoerceArrayNode extends Node {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
+      Struct err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = Context.get(this).getBuiltins();
@@ -55,7 +54,7 @@ public abstract class CoerceArrayNode extends Node {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
+      Struct err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = Context.get(this).getBuiltins();
@@ -77,7 +76,7 @@ public abstract class CoerceArrayNode extends Node {
   @Fallback
   Object[] doOther(Object arr) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom error = builtins.error().makeTypeError("array", arr, "arr");
+    Struct error = builtins.error().makeTypeError("array", arr, "arr");
     throw new PanicException(error, this);
   }
 }

@@ -8,7 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -37,7 +37,7 @@ public abstract class ExpectStringNode extends Node {
       return library.asString(str);
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.text(), str, "str");
+      Struct err = builtins.error().makeTypeError(builtins.text(), str, "str");
       throw new PanicException(err, this);
     }
   }

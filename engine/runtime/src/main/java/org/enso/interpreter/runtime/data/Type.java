@@ -18,7 +18,7 @@ import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;

@@ -18,8 +18,8 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
@@ -131,14 +131,14 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   }
 
   /**
-   * Executes the current node, returning the result as an {@link Atom}.
+   * Executes the current node, returning the result as an {@link Struct}.
    *
    * @param frame the stack frame for execution
    * @return the Atom obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
    *     type
    */
-  public Atom executeAtom(VirtualFrame frame) throws UnexpectedResultException {
+  public Struct executeAtom(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectAtom(executeGeneric(frame));
   }
 

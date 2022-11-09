@@ -5,8 +5,8 @@ import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -31,7 +31,7 @@ import org.enso.polyglot.data.TypeGraph;
   double.class,
   Text.class,
   Function.class,
-  Atom.class,
+  Struct.class,
   AtomConstructor.class,
   Type.class,
   DataflowError.class,
@@ -122,8 +122,8 @@ public class Types {
       return ConstantsGen.TEXT;
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
-    } else if (value instanceof Atom atom) {
-      return atom.getConstructor().getQualifiedTypeName().toString();
+    } else if (value instanceof Struct struct) {
+      return struct.getConstructor().getQualifiedTypeName().toString();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getQualifiedName().toString();
     } else if (value instanceof Type t) {

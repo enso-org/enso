@@ -61,7 +61,6 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
@@ -71,6 +70,7 @@ import org.enso.interpreter.runtime.callable.{
   UnresolvedSymbol
 }
 import org.enso.interpreter.runtime.data.Type
+import org.enso.interpreter.runtime.data.struct.{Struct, AtomConstructor}
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{
   FramePointer,
@@ -1393,7 +1393,7 @@ class IrToTruffle(
       * @return a runtime node representing the error.
       */
     def processError(error: IR.Error): RuntimeExpression = {
-      val payload: Atom = error match {
+      val payload: Struct = error match {
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>

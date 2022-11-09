@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -39,9 +39,9 @@ public class Error {
   private final CaughtPanic caughtPanic;
   private final ForbiddenOperation forbiddenOperation;
 
-  @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
+  @CompilerDirectives.CompilationFinal private Struct arithmeticErrorShiftTooBig;
 
-  @CompilerDirectives.CompilationFinal private Atom arithmeticErrorDivideByZero;
+  @CompilerDirectives.CompilationFinal private Struct arithmeticErrorDivideByZero;
 
   private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
@@ -72,23 +72,23 @@ public class Error {
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
   }
 
-  public Atom makeSyntaxError(Object message) {
+  public Struct makeSyntaxError(Object message) {
     return syntaxError.newInstance(message);
   }
 
-  public Atom makeCompileError(Object message) {
+  public Struct makeCompileError(Object message) {
     return compileError.newInstance(message);
   }
 
-  public Atom makeIndexOutOfBoundsError(long index, long length) {
+  public Struct makeIndexOutOfBoundsError(long index, long length) {
     return indexOutOfBoundsError.newInstance(index, length);
   }
 
-  public Atom makeInexhaustivePatternMatchError(Object message) {
+  public Struct makeInexhaustivePatternMatchError(Object message) {
     return inexhaustivePatternMatchError.newInstance(message);
   }
 
-  public Atom makeUninitializedStateError(Object key) {
+  public Struct makeUninitializedStateError(Object key) {
     return uninitializedState.newInstance(key);
   }
 
@@ -111,7 +111,7 @@ public class Error {
    * @param symbol the method being called
    * @return a runtime representation of the error
    */
-  public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
+  public Struct makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
     return noSuchMethodError.newInstance(target, symbol);
   }
 
@@ -119,12 +119,12 @@ public class Error {
     return noSuchFieldError;
   }
 
-  public Atom makeNoSuchConversionError(
+  public Struct makeNoSuchConversionError(
       Object target, Object that, UnresolvedConversion conversion) {
     return noSuchConversionError.newInstance(target, that, conversion);
   }
 
-  public Atom makeInvalidConversionTargetError(Object target) {
+  public Struct makeInvalidConversionTargetError(Object target) {
     return invalidConversionTargetError.newInstance(target);
   }
 
@@ -136,7 +136,7 @@ public class Error {
    * @param name the name of the variable that is a type error
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeError(Object expected, Object actual, String name) {
+  public Struct makeTypeError(Object expected, Object actual, String name) {
     return typeError.newInstance(expected, actual, Text.create(name));
   }
 
@@ -150,12 +150,12 @@ public class Error {
    * @param reason the reason that the error is being thrown for
    * @return a runtime representation of the arithmetic error
    */
-  private Atom makeArithmeticError(Text reason) {
+  private Struct makeArithmeticError(Text reason) {
     return arithmeticError.newInstance(reason);
   }
 
   /** @return An arithmetic error representing a too-large shift for the bit shift. */
-  public Atom getShiftAmountTooLargeError() {
+  public Struct getShiftAmountTooLargeError() {
     if (arithmeticErrorShiftTooBig == null) {
       transferToInterpreterAndInvalidate();
       arithmeticErrorShiftTooBig = makeArithmeticError(shiftTooBigMessage);
@@ -164,7 +164,7 @@ public class Error {
   }
 
   /** @return An Arithmetic error representing a division by zero. */
-  public Atom getDivideByZeroError() {
+  public Struct getDivideByZeroError() {
     if (arithmeticErrorDivideByZero == null) {
       transferToInterpreterAndInvalidate();
       arithmeticErrorDivideByZero = makeArithmeticError(divideByZeroMessage);
@@ -177,7 +177,7 @@ public class Error {
    * @param index the index
    * @return An error representing that the {@code index} is not valid in {@code array}
    */
-  public Atom makeInvalidArrayIndexError(Object array, Object index) {
+  public Struct makeInvalidArrayIndexError(Object array, Object index) {
     return invalidArrayIndexError.newInstance(array, index);
   }
 
@@ -191,7 +191,7 @@ public class Error {
    * @param actual the actual arity
    * @return an error informing about the arity being mismatched
    */
-  public Atom makeArityError(long expected_min, long expected_max, long actual) {
+  public Struct makeArityError(long expected_min, long expected_max, long actual) {
     return arityError.newInstance(expected_min, expected_max, actual);
   }
 
@@ -201,7 +201,7 @@ public class Error {
    * @return an error informing about the particular assortment of arguments not being valid for a
    *     given method call
    */
-  public Atom makeUnsupportedArgumentsError(Object[] args, String message) {
+  public Struct makeUnsupportedArgumentsError(Object[] args, String message) {
     return unsupportedArgumentsError.newInstance(new Array(args), message);
   }
 
@@ -209,7 +209,7 @@ public class Error {
    * @param name the name of the module that doesn't exist
    * @return a module does not exist error
    */
-  public Atom makeModuleDoesNotExistError(String name) {
+  public Struct makeModuleDoesNotExistError(String name) {
     return moduleDoesNotExistError.newInstance(Text.create(name));
   }
 
@@ -217,7 +217,7 @@ public class Error {
    * @param target the target attempted to be invoked
    * @return a not invokable error
    */
-  public Atom makeNotInvokableError(Object target) {
+  public Struct makeNotInvokableError(Object target) {
     return notInvokableError.newInstance(target);
   }
 

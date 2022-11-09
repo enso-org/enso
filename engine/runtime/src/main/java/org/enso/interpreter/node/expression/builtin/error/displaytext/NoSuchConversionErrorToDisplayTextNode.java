@@ -5,8 +5,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "No_Such_Conversion_Error", name = "to_display_text")
@@ -18,7 +18,7 @@ public abstract class NoSuchConversionErrorToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
+  Text doAtom(Struct self, @Cached TypeToDisplayTextNode displayTypeNode) {
     return Text.create("Could not find a conversion from `")
         .add(displayTypeNode.execute(self.getFields()[1]))
         .add("` to `")

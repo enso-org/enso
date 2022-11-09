@@ -11,7 +11,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -34,7 +34,7 @@ public abstract class ThrowPanicNode extends Node {
         "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
       })
   Object doCaughtPanic(
-      Atom payload,
+      Struct payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @Cached BranchProfile typeErrorProfile) {
     // Note [Original Exception Type]

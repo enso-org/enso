@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.callable.atom;
+package org.enso.interpreter.runtime.data.struct;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -35,7 +35,7 @@ public final class AtomConstructor implements TruffleObject {
   private final String name;
   private final ModuleScope definitionScope;
   private final boolean builtin;
-  private @CompilerDirectives.CompilationFinal Atom cachedInstance;
+  private @CompilerDirectives.CompilationFinal Struct cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
   private final Type type;
@@ -108,7 +108,7 @@ public final class AtomConstructor implements TruffleObject {
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
     generateQualifiedAccessor();
     if (args.length == 0) {
-      cachedInstance = new Atom(this);
+      cachedInstance = new Struct(this);
     } else {
       cachedInstance = null;
     }
@@ -196,9 +196,9 @@ public final class AtomConstructor implements TruffleObject {
    * @return a new instance of the atom represented by this constructor
    */
   // TODO [AA] Check where this can be called from user code.
-  public Atom newInstance(Object... arguments) {
+  public Struct newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
-    return new Atom(this, arguments);
+    return new Struct(this, arguments);
   }
 
   /**
@@ -238,7 +238,7 @@ public final class AtomConstructor implements TruffleObject {
    * @throws ArityException when the provided field count does match this constructor's field count.
    */
   @ExportMessage
-  Atom instantiate(Object... arguments) throws ArityException {
+  Struct instantiate(Object... arguments) throws ArityException {
     int expected_arity = getArity();
     if (arguments.length != expected_arity) {
       throw ArityException.create(expected_arity, expected_arity, arguments.length);

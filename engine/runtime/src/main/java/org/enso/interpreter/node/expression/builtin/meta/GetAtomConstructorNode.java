@@ -3,7 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.struct.Struct;
 import org.enso.interpreter.runtime.data.Type;
 
 @BuiltinMethod(
@@ -19,8 +19,8 @@ public abstract class GetAtomConstructorNode extends Node {
   }
 
   @Specialization
-  Object doAtom(Atom atom) {
-    return atom.getConstructor();
+  Object doAtom(Struct struct) {
+    return struct.getConstructor();
   }
 
   @Specialization

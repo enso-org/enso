@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.type;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.struct.Struct;
 
 /**
  * TypesFromProxy provides a single static method `fromTypeSystem` which converts from type-system
@@ -23,7 +24,7 @@ public class TypesFromProxy {
    *     builtins can be referenced from
    * @param typeName the fully qualified type name as defined in {@link Constants} or {@link
    *     ConstantsGen}
-   * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
+   * @return the associated {@link Struct} if it exists,
    *     and {@code null} otherwise
    */
   public static Type fromTypeSystem(Builtins builtins, String typeName) {

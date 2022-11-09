@@ -4,8 +4,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.data.struct.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Arity_Error", name = "to_display_text")
@@ -18,7 +18,7 @@ public abstract class ArityErrorToDisplayTextNode extends Node {
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Text doAtom(Atom self) {
+  Text doAtom(Struct self) {
     Object[] fields = self.getFields();
 
     Text expected = Text.create(String.valueOf(fields[0]));
