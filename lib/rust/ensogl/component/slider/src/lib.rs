@@ -156,11 +156,11 @@ impl Slider {
                 |(value, precision, delta)| value + delta.x * precision
             ).gate(&value_update);
             value                   <- any2(&input.set_value, &value);
-            value                   <- all3(&value, &input.set_value_min, &input.set_value_max).map(
-                |(value, min, max)| value.clamp(*min, *max)
-            );
             value                   <- all2(&value, &precision_adjusted).map(
                 |(value, precision)| (value / precision).round() * precision
+            );
+            value                   <- all3(&value, &input.set_value_min, &input.set_value_max).map(
+                |(value, min, max)| value.clamp(*min, *max)
             );
             output.value            <+ value;
 
@@ -222,11 +222,11 @@ impl Slider {
 
         }
 
+        self.frp.set_precision(0.1);
+
         self.frp.set_value_min(0.0);
         self.frp.set_value_max(5.0);
         self.frp.set_value(0.5);
-
-        self.frp.set_precision(0.1);
 
         self
     }
