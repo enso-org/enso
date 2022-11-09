@@ -59,8 +59,6 @@ impl Model {
 
         model.set_width(200.0);
         model.set_height(50.0);
-        model.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
-        model.set_track_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
 
         model
     }

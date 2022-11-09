@@ -93,6 +93,8 @@ ensogl_core::define_endpoints_2! {
         set_tooltip(Option<ImString>),
         set_label(Option<ImString>),
         set_label_color(color::Lcha),
+
+        set_slider_enabled(bool),
     }
     Output {
         width(f32),
@@ -126,8 +128,8 @@ impl Slider {
             track_release           <- model.track.events.mouse_release_primary.constant(());
             track_drag              <- bool(&track_release, &track_click);
 
-            component_click         <- any2(&background_click, &track_click);
-            component_drag          <- any2(&background_drag, &track_drag);
+            component_click         <- any2(&background_click, &track_click).gate(&input.set_slider_enabled);
+            component_drag          <- any2(&background_drag, &track_drag).gate(&input.set_slider_enabled);
             component_release       <- any2(&background_release, &track_release);
 
             component_ctrl_click    <- component_click.gate(&keyboard.is_control_down);
@@ -202,16 +204,31 @@ impl Slider {
                 model.value.set_property_default(formatting::Weight::Bold);
             );
 
-            eval input.set_background_color (
+
+            // colors
+            background_color        <- all2(&input.set_background_color, &input.set_slider_enabled).map(
+                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+            );
+            slider_color        <- all2(&input.set_slider_color, &input.set_slider_enabled).map(
+                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+            );
+            value_color        <- all2(&input.set_value_color, &input.set_slider_enabled).map(
+                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+            );
+            label_color        <- all2(&input.set_label_color, &input.set_slider_enabled).map(
+                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+            );
+
+            eval background_color (
                 (color) model.set_background_color(*color);
             );
-            eval input.set_slider_color (
+            eval slider_color (
                 (color) model.set_track_color(*color);
             );
-            eval input.set_value_color (
+            eval value_color (
                 (color) model.value.set_property_default(color);
             );
-            eval input.set_label_color (
+            eval label_color (
                 (color) model.label.set_property_default(color);
             );
 
@@ -246,6 +263,10 @@ impl Slider {
         self.frp.set_value_max(5.0);
         self.frp.set_value_default(0.5);
         self.frp.set_value(0.5);
+
+        self.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
+        self.frp.set_slider_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
+        self.frp.set_slider_enabled(true);
 
         self
     }

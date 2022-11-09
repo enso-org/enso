@@ -1,4 +1,4 @@
-//! A debug scene which shows the number and range selector.
+//! A debug scene which shows the slider component
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -26,6 +26,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_slider as slider;
@@ -72,4 +73,12 @@ fn init(app: &Application) {
     slider1.inner().frp.set_height(50.0);
     slider1.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider1.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
+
+    let slider2 = make_slider(app);
+    slider2.inner().frp.set_width(400.0);
+    slider2.inner().frp.set_height(50.0);
+    slider2.inner().set_position_y(100.0);
+    slider2.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider2.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
+    slider2.inner().frp.set_slider_enabled(false);
 }
