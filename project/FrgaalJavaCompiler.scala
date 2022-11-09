@@ -20,9 +20,11 @@ import xsbti.compile.{IncToolOptions, Output, JavaCompiler => XJavaCompiler}
 import java.io.File
 import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
+import scala.util.Using
 import java.io.FileWriter
 
 object FrgaalJavaCompiler {
+  private val ENSO_SOURCES = ".enso-sources"
 
   val frgaal = "org.frgaal" % "compiler" % "19.0.0" % "provided"
 
@@ -87,25 +89,25 @@ object FrgaalJavaCompiler {
     }).asInstanceOf[Path]
 
     if (shared.toFile().exists()) {
-      val ensoMarker = new File(shared.toFile(), ".enso-sources")
-      val ensoConfig = new File(shared.toFile(), ".enso-sources-" + out.getFileName().toString())
-      val p = new java.util.Properties()
+      val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
+      val ensoConfig = new File(shared.toFile(), ENSO_SOURCES + "-" + out.getFileName().toString())
+      val ensoProperties = new java.util.Properties()
 
       def storeArray(name: String, values : Seq[String]) = {
-        values.zipWithIndex.foreach { case (value, idx) => p.setProperty(s"$name.$idx", value) }
+        values.zipWithIndex.foreach { case (value, idx) => ensoProperties.setProperty(s"$name.$idx", value) }
       }
 
-      p.setProperty("output", out.toString())
+      ensoProperties.setProperty("output", out.toString())
       storeArray("options", options)
-      source.foreach(v => p.setProperty("source", v))
-      p.setProperty("target", target)
-      javaHome.foreach(v => p.setProperty("java.home", v.toString()))
+      source.foreach(v => ensoProperties.setProperty("source", v))
+      ensoProperties.setProperty("target", target)
+      javaHome.foreach(v => ensoProperties.setProperty("java.home", v.toString()))
 
-      val w = new FileWriter(ensoConfig)
-      p.store(w, "# Enso compiler configuration")
-      w.close()
-      val wm = new FileWriter(ensoMarker)
-      wm.close()
+      Using(new FileWriter(ensoConfig)) { w =>
+        ensoProperties.store(w, "# Enso compiler configuration")
+      }
+      Using(new FileWriter(ensoMarker)) { _ =>
+      }
     } else {
       throw new IllegalStateException("Cannot write Enso source options to " + shared + " values:\n" +
         "options: " + options + " sources0: " + sources +" output: " + output
