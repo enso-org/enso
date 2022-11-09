@@ -53,8 +53,8 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger      = context.getLogger(getClass)
-  private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private val logger: TruffleLogger           = context.getLogger(getClass)
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -445,15 +445,15 @@ class Compiler(
       val tree = parse(src)
       generateIR(tree)
     }
-    def newParser() = {
-      val tree = ensoCompiler.parse(src)
-      ensoCompiler.generateIR(tree)
-    }
-    val expr = if ("scala".equals(System.getenv("ENSO_PARSER"))) {
-      oldParser()
-    } else {
-      newParser()
-    }
+    val expr =
+      if (
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
 
     val exprWithModuleExports =
       if (module.isSynthetic)
