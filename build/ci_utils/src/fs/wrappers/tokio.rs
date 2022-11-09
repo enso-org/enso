@@ -2,17 +2,29 @@ use crate::prelude::*;
 
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+use tokio_util::io::ReaderStream;
 
 
 
-#[context("Failed to obtain metadata for file: {}", path.as_ref().display())]
-pub async fn metadata<P: AsRef<Path>>(path: P) -> Result<std::fs::Metadata> {
-    tokio::fs::metadata(&path).await.anyhow_err()
+pub fn metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {
+    let path = path.as_ref().to_owned();
+    tokio::fs::metadata(path).anyhow_err().boxed()
 }
 
 #[context("Failed to open path for reading: {}", path.as_ref().display())]
 pub async fn open(path: impl AsRef<Path>) -> Result<File> {
     File::open(&path).await.anyhow_err()
+}
+
+// #[context("Failed to open path for reading: {}", path.as_ref().display())]
+pub fn open_stream(path: impl AsRef<Path>) -> BoxFuture<'static, Result<ReaderStream<File>>> {
+    let path = path.as_ref().to_owned();
+    let file = open(path);
+    async move {
+        let file = file.await?;
+        Ok(ReaderStream::new(file))
+    }
+    .boxed()
 }
 
 #[context("Failed to open path for writing: {}", path.as_ref().display())]

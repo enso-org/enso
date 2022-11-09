@@ -400,6 +400,34 @@ type Column
     % : Column | Any -> Column
     % self other = run_vectorized_binary_op self '%' (%) other
 
+    ## ALIAS Power Columns
+
+       Element-wise raising to the power.
+
+       Arguments:
+       - other: The exponent to raise `self` by. If `other` is a column, the
+         power operation is performed pairwise between corresponding elements
+         of `self` and `other`.
+
+       Returns a column containing the result of raising each element of `self`
+       by `other`.
+
+       > Example
+         Squares the elements of one column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ 2
+
+       > Example
+         Raises each value in a column by the value in another column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ Examples.integer_column
+    ^ : Column | Any -> Column
+    ^ self other = run_vectorized_binary_op self '^' (^) other
+
     ## ALIAS AND Columns
 
        Element-wise boolean conjunction.
@@ -460,7 +488,7 @@ type Column
     || self other =
         run_vectorized_binary_op self "||" (||) other
 
-    ## ALIAS NOT Columns
+    ## ALIAS NOT
 
        Boolean negation of each element in self column.
 
@@ -473,21 +501,91 @@ type Column
     not : Column
     not self = run_vectorized_unary_op self "not" .not
 
-    ## UNSTABLE
+    ## ALIAS IF
+
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
 
-       TODO: Currently `when_true` and `when_false` need to be a single value.
-       In the future the API will also support row-based IIF if they are columns.
+       Arguments:
+       - when_true: value or column when `self` is `True`.
+       - when_false: value or column when `self` is `False`.
+
+       > Example
+         If the value in a column is `True`, replace it with `1`, otherwise `0`.
+
+             import Standard.Examples
+
+             example_if = Examples.bool_column_1.iif 1 0
     iif : Any -> Any -> Column
     iif self when_true when_false = case self.storage_type of
         Storage.Boolean ->
             s = self.java_column.getStorage
             ix = self.java_column.getIndex
-            rs = s.iif when_true when_false
+
+            true_val = case when_true of
+                _ : Column -> when_true.java_column.getStorage
+                _ -> when_true
+
+            false_val = case when_false of
+                _ : Column -> when_false.java_column.getStorage
+                _ -> when_false
+
+            rs = s.iif true_val false_val
             Column.Column_Data (Java_Column.new "Result" ix rs)
         _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
 
+    ## Returns a column of first non-`Nothing` value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to coalesce with `self`.
+
+       > Example
+         Get the first non-`Nothing` value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
+    coalesce : (Any | Vector Any) -> Column
+    coalesce self values =
+        fallback a b = a.if_nothing b
+        run_vectorized_many_op self "coalesce" fallback values
+
+    ## Returns a column of minimum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to minimum with `self`.
+
+       > Example
+         Get the minimum value in two columns.
+
+             import Standard.Examples
+
+             example_min = Examples.decimal_column.min Examples.integer_column
+    min : (Any | Vector Any) -> Column
+    min self values =
+        fallback a b = if a.is_nothing then b else
+            if b.is_nothing then a else
+                if b < a then b else a
+        run_vectorized_many_op self "minimum" fallback values
+
+    ## Returns a column of maximum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to maximum with `self`.
+
+       > Example
+         Get the maximum value in two columns.
+
+             import Standard.Examples
+
+             example_max = Examples.decimal_column.max Examples.integer_column
+    max : (Any | Vector Any) -> Column
+    max self values =
+        fallback a b = if a.is_nothing then b else
+            if b.is_nothing then a else
+                if b > a then b else a
+        run_vectorized_many_op self "maximum" fallback values
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -696,7 +794,11 @@ type Column
             True ->
                 fallback_fn _ _ =
                     Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
-                run_vectorized_binary_op self op_name fallback_fn vector skip_nulls=False new_name=result_name
+                true_vector = case vector of
+                    _ : Array -> Vector.from_polyglot_array vector
+                    _ : Vector.Vector -> vector
+                    column : Column -> column.to_vector
+                run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
                 ## We have custom code for the non-vectorized case, because
                    usually a vectorized binary op will apply the fallback
@@ -705,6 +807,7 @@ type Column
                    against the whole other column, instead of just the
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
+                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector.Vector -> vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
@@ -881,6 +984,17 @@ type Column
             if storage.isNa index then Nothing else
                 storage.getItem index
 
+    ## UNSTABLE
+
+       Returns a column containing rows of this column.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    read : (Nothing | Integer) -> Column
+    read self max_rows=Nothing =
+        if max_rows.is_nothing then self else self.slice 0 max_rows
+
     ## Returns a vector containing all the elements in this column.
 
        > Example
@@ -996,98 +1110,6 @@ type Column
         data = ['data', self.to_vector.take (First max_data)]
         Json.from_pairs [size, name, data] . to_text
 
-    ## ALIAS Sum Columns
-
-       Sums the values in this column.
-
-       > Example
-         Sum the values in a column.
-
-             import Standard.Examples
-
-             example_sum = Examples.integer_column.sum
-    sum : Any
-    sum self = self.java_column.aggregate 'sum' (x-> Vector.from_polyglot_array x . reduce (+)) True
-
-    ## ALIAS Max Columns
-
-       Computes the maximum element of this column.
-
-       > Example
-         Compute the maximum value of a column.
-
-             import Standard.Examples
-
-             example_max = Examples.integer_column.max
-    max : Any
-    max self =
-        self.java_column.aggregate 'max' (x-> Vector.from_polyglot_array x . reduce Math.max) True
-
-    ## ALIAS Min Columns
-
-       Computes the minimum element of this column.
-
-       > Example
-         Compute the minimum value of a column.
-
-             import Standard.Examples
-
-             example_min = Examples.integer_column.min
-    min : Any
-    min self =
-        self.java_column.aggregate 'min' (x-> Vector.from_polyglot_array x . reduce Math.min) True
-
-    ## ALIAS Mean Columns
-
-       Computes the mean of non-missing elements of this column.
-
-       > Example
-         Compute the mean value of a column.
-
-             import Standard.Examples
-
-             example_mean = Examples.integer_column.mean
-    mean : Any
-    mean self =
-        vec_mean v = if v.length == 0 then Nothing else
-            (Vector.from_polyglot_array v).reduce (+) / v.length
-        self.java_column.aggregate 'mean' vec_mean True
-
-    ## Computes the variance of the sample represented by this column.
-
-       Arguments:
-       - degrees_of_freedom_correction: a correction to account for the
-         missing degrees of freedom in the sample. The default value of `1`
-         computes a sample variance. Setting it to `0` will compute population
-         variance instead.
-    variance self degrees_of_freedom_correction=1 =
-        mean = self.mean
-        shifted = self - mean
-        sq = shifted * shifted
-        sq.sum / (self.length - degrees_of_freedom_correction)
-
-    ## Computes the standard deviation of the sample represented by this column.
-
-       Arguments:
-       - degrees_of_freedom_correction: a correction to account for the
-         missing degrees of freedom in the sample. The default value of `1`
-         computes a sample standard deviation. Setting it to `0` will compute
-         population standard deviation instead.
-    standard_deviation self degrees_of_freedom_correction=1 =
-        self.variance degrees_of_freedom_correction . sqrt
-
-    ## Computes the coefficient of determination of a given prediction column.
-
-       Arguments:
-       - predictions: the column predicting the values of this column.
-    r_squared self predictions =
-        prediction_diff = self - predictions
-        ss_res = prediction_diff*prediction_diff . sum
-        ss_tot_lin = self - self.mean
-        ss_tot = ss_tot_lin*ss_tot_lin . sum
-        1 - ss_res / ss_tot
-
-
     ## UNSTABLE
 
        Sorts the column according to the specified rules.
@@ -1183,22 +1205,6 @@ type Column
 
     ## UNSTABLE
 
-       Returns the first element in the column, if it exists.
-
-       If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first element of a column.
-
-             import Standard.Examples
-
-             example_head = Examples.integer_column.head
-    head : Any ! Empty_Error
-    head self = self.first
-
-    ## UNSTABLE
-
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
@@ -1243,6 +1249,11 @@ type Column
     duplicate_count : Column
     duplicate_count self = Column_Data self.java_column.duplicateCount
 
+    ## PRIVATE
+       Helper for the expression to tell it which functions needs a Vector.
+    var_args_functions : Vector
+    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
+
 ## UNSTABLE
 
    An error for when the column contains no elements.
@@ -1252,6 +1263,33 @@ type Empty_Error
        Pretty prints the empty column error.
     to_display_text : Text
     to_display_text self = "The column is empty."
+
+## PRIVATE
+
+   Folds the vectorized operation over the provided column and values. When more
+   than one value to is provided, the result is folded with subsequent values.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+   - operands: The vector of operands to apply to the function after `column`.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - new_name: The name of the column created as the result of this operation.
+run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
+run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
+    case operands of
+        _ : Vector.Vector ->
+            folded = operands.fold column.java_column.getStorage current-> operand->
+                case operand of
+                    _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
+                    _ -> current.bimap name fallback_fn operand skip_nulls
+            Column.Column_Data (Java_Column.new new_name column.java_column.getIndex folded)
+        _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
+        _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
 ## PRIVATE
 
@@ -1267,7 +1305,7 @@ type Empty_Error
      `False`, the null values are passed as any other value and can have custom
      handling logic.
    - new_name: The name of the column created as the result of this operation.
-run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Boolean -> Text -> Column
+run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boolean -> Text -> Column
 run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
     Column.Column_Data col2 ->
         s1 = column.java_column.getStorage

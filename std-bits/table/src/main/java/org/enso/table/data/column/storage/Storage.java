@@ -9,9 +9,6 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.CountAggregator;
-import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
@@ -73,6 +70,7 @@ public abstract class Storage<T> {
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
+    public static final String POWER = "^";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
@@ -84,14 +82,6 @@ public abstract class Storage<T> {
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
-  }
-
-  public static final class Aggregators {
-    public static final String SUM = "sum";
-    public static final String MEAN = "mean";
-    public static final String MAX = "max";
-    public static final String MIN = "min";
-    public static final String COUNT = "count";
   }
 
   /**
@@ -135,36 +125,6 @@ public abstract class Storage<T> {
       }
     }
     return builder.seal();
-  }
-
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    if (name.equals(Aggregators.COUNT)) {
-      return new CountAggregator(this, resultSize);
-    }
-    return null;
-  }
-
-  /**
-   * Returns an aggregator created based on the provided parameters.
-   *
-   * @param name name of a vectorized operation that can be used if possible. If null is passed,
-   *     this parameter is unused.
-   * @param fallback the function to use if a vectorized operation is not available.
-   * @param skipNa whether missing values should be passed to the {@code fallback} function.
-   * @param resultSize the number of times the {@link
-   *     Aggregator#nextGroup(java.util.stream.IntStream)} method will be called.
-   * @return an aggregator satisfying the above properties.
-   */
-  public final Aggregator getAggregator(
-      String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
-    Aggregator result = null;
-    if (name != null) {
-      result = getVectorizedAggregator(name, resultSize);
-    }
-    if (result == null) {
-      result = new FunctionAggregator(fallback, this, skipNa, resultSize);
-    }
-    return result;
   }
 
   /**

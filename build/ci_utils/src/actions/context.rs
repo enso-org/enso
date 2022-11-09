@@ -1,4 +1,3 @@
-#[allow(unused_imports)]
 use crate::prelude::*;
 
 use octocrab::models;
@@ -20,6 +19,7 @@ pub struct WebhookPayload {
 /// Corresponds to https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Context {
+    /// Webhook payload object that triggered the workflow.
     pub payload:     WebhookPayload,
     pub event_name:  String,
     pub sha:         String,
@@ -37,6 +37,7 @@ pub struct Context {
 
 impl Context {
     /// Creates a new context from the environment.
+    #[context("Failed to create a new GitHub context from the environment.")]
     pub fn from_env() -> Result<Self> {
         let payload: WebhookPayload =
             if let Ok(event_path) = crate::actions::env::GITHUB_EVENT_PATH.get() {

@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -31,7 +31,7 @@ type Context
        - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
-    Value (from_spec : From_Spec) (where_filters : Vector Expression) (orders : Vector Order_Descriptor) (groups : Vector Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
+    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
 
     ## PRIVATE
 
@@ -82,7 +82,7 @@ type Context
 
        Arguments:
        - new_filters: The new filters to set in the query.
-    set_where_filters : Vector Expression -> Context
+    set_where_filters : Vector SQL_Expression -> Context
     set_where_filters self new_filters =
         Context.Value self.from_spec new_filters self.orders self.groups self.meta_index self.limit
 
@@ -119,7 +119,7 @@ type Context
 
        Arguments:
        - new_groups: The new grouping clauses to set in the query.
-    set_groups : Vector Expression -> Context
+    set_groups : Vector SQL_Expression -> Context
     set_groups self new_groups =
         Context.Value self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
 
@@ -152,7 +152,7 @@ type Context
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
-            Internal_Column.Value column.name column.sql_type (Expression.Column alias column.name)
+            Internal_Column.Value column.name column.sql_type (SQL_Expression.Column alias column.name)
 
         new_columns = column_lists.map columns->
             columns.map rewrite_internal_column

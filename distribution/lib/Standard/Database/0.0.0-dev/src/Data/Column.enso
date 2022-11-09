@@ -9,7 +9,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Integrity_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
 
@@ -36,7 +36,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:Connection sql_type:SQL_Type expression:Expression context:Context
+    Value name:Text connection:Connection sql_type:SQL_Type expression:SQL_Expression context:Context
 
     ## UNSTABLE
 
@@ -75,7 +75,7 @@ type Column
 
     ## UNSTABLE
 
-       Returns a materialized dataframe containing rows of this table.
+       Returns a materialized column containing rows of this column.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -135,12 +135,13 @@ type Column
                     Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
-                Expression.Constant actual_operand_type constant
+                SQL_Expression.Constant actual_operand_type constant
+
         actual_operand_types = operand_types.if_nothing (Vector.fill operands.length Nothing)
         expressions = operands.zip actual_operand_types prepare_operand
 
         actual_new_type = new_type.if_nothing self.sql_type
-        new_expr = Expression.Operation op_kind ([self.expression] + expressions)
+        new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
         Column.Value self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
@@ -194,41 +195,6 @@ type Column
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         self.to_table.join other on drop_unmatched left_suffix right_suffix
-
-    ## UNSTABLE
-
-       Sums the values in this column.
-    sum : Any
-    sum self = self.compute_aggregate "SUM"
-
-    ## UNSTABLE
-
-       Computes the maximum element of this column.
-    max : Any
-    max self = self.compute_aggregate "MAX"
-
-    ## UNSTABLE
-
-       Computes the minimum element of this column.
-    min : Any
-    min self = self.compute_aggregate "MIN"
-
-    ## UNSTABLE
-
-       Computes the mean of non-missing elements of this column.
-    mean : Any
-    mean self = self.compute_aggregate "AVG"
-
-    ## PRIVATE
-
-       Computes an aggregate operator.
-
-       Arguments:
-       - op_name: The name of the operator to compute.
-    compute_aggregate : Text
-    compute_aggregate self op_name =
-        agg = make_aggregate self op_name
-        agg.to_vector . at 0
 
     ## UNSTABLE
 
@@ -355,7 +321,12 @@ type Column
        of `self`.  If `other` is a column, the operation is performed pairwise
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
-    + self other = self.make_binary_op "+" other
+    + self other =
+        ## TODO: Revisit this as part of the column value type work.
+        op = case other of
+            _ : Column -> if self.sql_type.is_definitely_numeric || other.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
+            _ -> if self.sql_type.is_definitely_numeric then 'ADD_NUMBER' else 'ADD_TEXT'
+        self.make_binary_op op other
 
     ## UNSTABLE
 
@@ -422,6 +393,34 @@ type Column
     % : Column | Any -> Column
     % self other = self.make_binary_op "%" other
 
+    ## ALIAS Power
+
+       Element-wise raising to the power.
+
+       Arguments:
+       - other: The exponent to raise `self` by. If `other` is a column, the
+         power operation is performed pairwise between corresponding elements
+         of `self` and `other`.
+
+       Returns a column containing the result of raising each element of `self`
+       by `other`.
+
+       > Example
+         Squares the elements of one column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ 2
+
+       > Example
+         Raises each value in a column by the value in another column.
+
+             import Standard.Examples
+
+             example_div = Examples.decimal_column ^ Examples.integer_column
+    ^ : Column | Any -> Column
+    ^ self other = self.make_binary_op '^' other
+
     ## UNSTABLE
 
        Element-wise boolean conjunction.
@@ -456,12 +455,14 @@ type Column
     not : Column
     not self = self.make_unary_op "NOT"
 
-    ## UNSTABLE
+    ## ALIAS IF
+
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
 
-       TODO: Currently `when_true` and `when_false` need to be a single value.
-       In the future the API will also support row-based IIF if they are columns.
+       Arguments:
+       - when_true: value or column when `self` is `True`.
+       - when_false: value or column when `self` is `False`.
     iif : Any -> Any -> Column
     iif self when_true when_false =
         ## TODO we should adjust new_type based on types when_true and
@@ -473,17 +474,68 @@ type Column
            when_false being either columns or regular values and rely on a
            mapping of Enso base types to SQL types, and a rule for extracting a
            common type.
-        approximate_type x = case x of
-            _ : Integer -> SQL_Type.integer
-            _ : Decimal -> SQL_Type.real
-            _ : Text -> SQL_Type.text
-            _ : Boolean -> SQL_Type.boolean
-            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
-        left_type = approximate_type when_true
-        right_type = approximate_type when_false
+        left_type = get_approximate_type when_true self.sql_type
+        right_type = get_approximate_type when_false self.sql_type
         if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
             self.make_op "IIF" [when_true, when_false] new_type=left_type
 
+    ## Returns a column of first non-`Nothing` value on each row of `self` and
+       `values` list.
+
+       Arguments:
+       - values: list of columns or values to coalesce with `self`.
+
+       > Example
+         Get the first non-`Nothing` value in two columns.
+
+             import Standard.Examples
+
+             example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
+    coalesce : (Any | Vector Any) -> Column
+    coalesce self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "COALESCE" values new_type=self.sql_type
+        _ : Array -> self.coalesce (Vector.from_polyglot_array values)
+        _ -> self.coalesce [values]
+
+    ## Returns a column of minimum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to minimum with `self`.
+
+       > Example
+         Get the minimum value in two columns.
+
+             import Standard.Examples
+
+             example_min = Examples.decimal_column.min Examples.integer_column
+    min : (Any | Vector Any) -> Column
+    min self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "ROW_MIN" values new_type=self.sql_type
+        _ : Array -> self.min (Vector.from_polyglot_array values)
+        _ -> self.min [values]
+
+    ## Returns a column of maximum on each row of `self` and `values` list.
+
+       Arguments:
+       - values: list of columns or values to maximum with `self`.
+
+       > Example
+         Get the maximum value in two columns.
+
+             import Standard.Examples
+
+             example_max = Examples.decimal_column.max Examples.integer_column
+    max : (Any | Vector Any) -> Column
+    max self values = case values of
+        _ : Vector.Vector ->
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+                self.make_op "ROW_MAX" values new_type=self.sql_type
+        _ : Array -> self.max (Vector.from_polyglot_array values)
+        _ -> self.max [values]
 
     ## UNSTABLE
 
@@ -503,6 +555,18 @@ type Column
        this column contains an empty string or `Nothing`.
     is_empty : Column
     is_empty self = self.make_unary_op "IS_EMPTY" new_type=SQL_Type.boolean
+
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column does not contain a `Nothing`.
+
+       > Example
+         Check a column for present values.
+
+             import Standard.Examples
+
+             example_is_present = Examples.decimal_column.is_present
+    is_present : Column
+    is_present self = self.is_missing.not
 
     ## PRIVATE
        Returns a column of booleans with `True` at the positions where this
@@ -667,6 +731,7 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector = case vector of
+        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         _ : Vector.Vector ->
             ## This is slightly hacky - we don't provide operand types as we want to
                allow any type to get through and currently we do not have a mapping
@@ -695,18 +760,17 @@ type Column
         column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
             ## We slightly abuse the expression syntax putting a Query as one of
                the sub-expressions. Once type-checking is added, we may need to
-               amend the signature of `Expression.Operation` to account for
+               amend the signature of `SQL_Expression.Operation` to account for
                this. Also, unfortunately as `NULL IN (...)` is `NULL` in SQL, we
                need to do separate handling of nulls - we check if the target
                column has any nulls and if so, we will do `IS NULL` checks for
                our columns too. That is because, we want the containment check
                for `NULL` to work the same way as for any other value.
             in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
-            has_nulls_expression = Expression.Operation "BOOL_OR" [column.is_missing.expression]
+            has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_missing.expression]
             has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
-            new_type = SQL_Type.boolean
-            new_expr = Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
-            Column.Value self.name self.connection new_type new_expr self.context
+            new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
+            Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 
     ## PRIVATE
     as_internal : Internal_Column
@@ -716,48 +780,14 @@ type Column
     to_text : Text
     to_text self = "(Database Column "+self.name.to_text+")"
 
-## PRIVATE
-
-   A helper method for creating an aggregated column by applying some
-   operation.
-
-   Arguments:
-   - column: The column to aggregate.
-   - operation: The name of the aggregation operation.
-   - name_suffix: The suffix to apply to the name of the aggregate column.
-   - new_type: The SQL type of the result column.
-make_aggregate : Column -> Text -> Text -> SQL_Type -> Column
-make_aggregate column operation name_suffix="_agg" new_type=Nothing =
-    actual_new_type = new_type.if_nothing column.sql_type
-    expr = Expression.Operation operation [column.expression]
-    case Helpers.ensure_name_is_sane name_suffix of
-        True ->
-            new_name = column.name + name_suffix
-            lift_aggregate new_name column.connection actual_new_type expr column.context
+    ## PRIVATE
+       Helper for the expression to tell it which functions needs a Vector.
+    var_args_functions : Array
+    var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
 ## PRIVATE
-
-   A helper function that lifts an aggregate query into a subquery to ensure
-   correctness of further processing.
-
-   Argument:
-   - new_name: The new name for the aggregate column.
-   - connection: The connection with which the aggregate is associated.
-   - expected_type: The expected SQL type of the column.
-   - expr: The expression for the query.
-   - context: The context in which the query exists.
-lift_aggregate : Text -> Connection -> SQL_Type -> Expression -> Context -> Column
-lift_aggregate new_name connection expected_type expr context =
-    # TODO [RW] This is a simple workaround for #1643 - we always wrap the
-    # aggregate into a subquery, thus making it safe to use it everywhere. A
-    # more complex solution may be adopted at some point.
-    ixes = freshen_columns [new_name] context.meta_index
-    col = Internal_Column.Value new_name expected_type expr
-    setup = context.as_subquery new_name+"_sub" [[col], ixes]
-    subquery = setup.first
-    cols = setup.second
-    new_col = cols.first.first
-    new_ixes = cols.second
-    new_ctx = Context.for_subquery subquery . set_index new_ixes
-    Column.Value new_name connection new_col.sql_type new_col.expression new_ctx
-
+   TODO: Revisit this as part of the column value type work.
+get_approximate_type value default = case value of
+    _ : Column -> value.sql_type
+    Nothing -> default
+    _ -> SQL_Type.approximate_type value

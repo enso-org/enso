@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 type Internal_Column
     ## PRIVATE
@@ -12,7 +12,7 @@ type Internal_Column
        - name: The column name.
        - sql_type: The SQL type of the column.
        - expression: An expression for applying to the column.
-    Value name:Text sql_type:SQL_Type expression:Expression
+    Value name:Text sql_type:SQL_Type expression:SQL_Expression
 
     ## PRIVATE
 
