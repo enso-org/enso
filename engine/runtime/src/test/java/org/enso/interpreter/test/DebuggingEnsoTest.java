@@ -23,6 +23,7 @@ import org.junit.Test;
 
 public class DebuggingEnsoTest {
   @Test
+  @Ignore
   public void evaluation() throws Exception {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
