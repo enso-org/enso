@@ -68,6 +68,66 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 20);
   }
 
+  @Test
+  public void malformedSequence1() throws Exception {
+    var ir = parseTest("(1, )");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 5);
+  }
+
+  @Test
+  public void malformedSequence2() throws Exception {
+    var ir = parseTest("foo = (1, )");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 7, 9);
+  }
+
+  @Test
+  public void unmatchedDemiliter1() throws Exception {
+    var ir = parseTest("(");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 1);
+  }
+
+  @Test
+  public void unmatchedDemiliter2() throws Exception {
+    var ir = parseTest(")");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 1);
+  }
+
+  @Test
+  public void unmatchedDemiliter3() throws Exception {
+    var ir = parseTest("[");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 1);
+  }
+
+  @Test
+  public void unmatchedDemiliter4() throws Exception {
+    var ir = parseTest("[");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 1);
+  }
+
+  @Test
+  public void unmatchedDemiliter5() throws Exception {
+    var ir = parseTest("foo = (");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 7);
+  }
+
+  @Test
+  public void unmatchedDemiliter6() throws Exception {
+    var ir = parseTest("foo = )");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 7);
+  }
+
+  @Test
+  public void unmatchedDemiliter7() throws Exception {
+    var ir = parseTest("foo = [");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 7);
+  }
+
+  @Test
+  public void unmatchedDemiliter8() throws Exception {
+    var ir = parseTest("foo = ]");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 6, 7);
+  }
+
   private void assertSingleSyntaxError(
       IR.Module ir, IR$Error$Syntax$UnexpectedExpression$ type,
       String msg, int start, int end
