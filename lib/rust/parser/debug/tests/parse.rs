@@ -42,9 +42,9 @@ macro_rules! test {
 
 
 
-// =============
-// === Tests ===
-// =============
+// ================================
+// === Language Construct Tests ===
+// ================================
 
 #[test]
 fn nothing() {
@@ -1244,6 +1244,94 @@ fn multiline_annotations() {
             (Annotated "@" Builtin_Type #(()) (TypeDef type Date #() #() #()))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
+
+// ==========================
+// === Syntax Error Tests ===
+// ==========================
+
+#[test]
+fn space_required() {
+    test_invalid("foo = if cond.x else.y");
+}
+
+#[test]
+fn incomplete_type_definition() {
+    test_invalid("type");
+}
+
+#[test]
+fn bad_case() {
+    test_invalid("foo = case x of\n 4");
+    test_invalid("foo = case x of\n 4 ->");
+    test_invalid("foo = case x of\n 4->");
+}
+
+#[test]
+fn malformed_sequence() {
+    test_invalid("(1, )");
+    test_invalid("foo = (1, )");
+}
+
+#[test]
+fn unmatched_delimiter() {
+    test_invalid("(");
+    test_invalid(")");
+    test_invalid("[");
+    test_invalid("]");
+    test_invalid("foo = (");
+    test_invalid("foo = )");
+    test_invalid("foo = [");
+    test_invalid("foo = ]");
+}
+
+#[test]
+fn unexpected_special_operator() {
+    test_invalid("foo = 1, 2");
+}
+
+#[test]
+fn malformed_import() {
+    test_invalid("import");
+    test_invalid("import as Foo");
+    test_invalid("import Foo as Foo, Bar");
+    test_invalid("import Foo as Foo.Bar");
+    test_invalid("import Foo as");
+    test_invalid("import Foo as Bar.Baz");
+    test_invalid("import Foo hiding");
+    test_invalid("import Foo hiding X,");
+    test_invalid("polyglot import Foo");
+    test_invalid("polyglot java import");
+    test_invalid("from import all");
+    test_invalid("from Foo import all hiding");
+    test_invalid("from Foo import all hiding X.Y");
+    test_invalid("export");
+    test_invalid("export as Foo");
+    test_invalid("export Foo as Foo, Bar");
+    test_invalid("export Foo as Foo.Bar");
+    test_invalid("export Foo as");
+    test_invalid("export Foo as Bar.Baz");
+    test_invalid("export Foo hiding");
+    test_invalid("export Foo hiding X,");
+    test_invalid("from export all");
+    test_invalid("from Foo export all hiding");
+    test_invalid("from Foo export all hiding X.Y");
+}
+
+#[test]
+fn invalid_token() {
+    test_invalid("`");
+    test_invalid("splice_outside_text = `");
+}
+
+#[test]
+fn illegal_foreign_body() {
+    test_invalid("foreign 4");
+    test_invalid("foreign 4 * 4");
+    test_invalid("foreign foo = \"4\"");
+    test_invalid("foreign js foo = 4");
 }
 
 
