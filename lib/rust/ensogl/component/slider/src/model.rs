@@ -148,8 +148,8 @@ impl Background {
 mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
-        (color:Vector4) {
+    ensogl_core::shape! {
+        (style:Style, color:Vector4) {
             Background::new()
                 .shape
                 .fill(color)
@@ -161,8 +161,9 @@ mod background {
 mod track {
     use super::*;
 
-    ensogl_core::define_shape_system! {
-        (value:f32, color:Vector4) {
+    ensogl_core::shape! {
+        above = [background];
+        (style:Style, value:f32, color:Vector4) {
             let Background{
                 width,
                 height,
