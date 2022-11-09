@@ -1237,26 +1237,30 @@ final class TreeToIr {
     * @return the [[IR]] representation of `imp`
     */
   @SuppressWarnings("unchecked")
-  IR$Module$Scope$Export$Module translateExport(Tree.Export exp) {
-    Option<IR$Name$Literal> rename = Option.apply(exp.getAs()).map(as -> buildName(as.getBody(), true));
-    Option<List<IR$Name$Literal>> hidingNames = Option.apply(exp.getHiding()).map(
-            hiding -> buildNameSequence(hiding.getBody()));
-    IR$Name$Qualified qualifiedName;
-    Option<List<IR$Name$Literal>> onlyNames = Option.empty();
-    if (exp.getFrom() != null) {
-      qualifiedName = buildQualifiedName(exp.getFrom().getBody(), Option.empty(), true);
-      var onlyBodies = exp.getExport().getBody();
-      if (exp.getAll() == null) {
-        onlyNames = Option.apply(buildNameSequence(onlyBodies));
+  IR$Module$Scope$Export translateExport(Tree.Export exp) {
+    try {
+      Option<IR$Name$Literal> rename = Option.apply(exp.getAs()).map(as -> buildName(as.getBody(), true));
+      Option<List<IR$Name$Literal>> hidingNames = Option.apply(exp.getHiding()).map(
+              hiding -> buildNameSequence(hiding.getBody()));
+      IR$Name$Qualified qualifiedName;
+      Option<List<IR$Name$Literal>> onlyNames = Option.empty();
+      if (exp.getFrom() != null) {
+        qualifiedName = buildQualifiedName(exp.getFrom().getBody(), Option.empty(), true);
+        var onlyBodies = exp.getExport().getBody();
+        if (exp.getAll() == null) {
+          onlyNames = Option.apply(buildNameSequence(onlyBodies));
+        }
+      } else {
+        qualifiedName = buildQualifiedName(exp.getExport().getBody(), Option.empty(), true);
       }
-    } else {
-      qualifiedName = buildQualifiedName(exp.getExport().getBody(), Option.empty(), true);
+      return new IR$Module$Scope$Export$Module(
+        qualifiedName, rename, (exp.getFrom() != null), onlyNames,
+        hidingNames, getIdentifiedLocation(exp), false,
+        meta(), diag()
+        );
+    } catch (UnhandledEntity err) {
+      return translateUnhandledEntity(err, IR$Error$Syntax$InvalidImport$.MODULE$);
     }
-    return new IR$Module$Scope$Export$Module(
-      qualifiedName, rename, (exp.getFrom() != null), onlyNames,
-      hidingNames, getIdentifiedLocation(exp), false,
-      meta(), diag()
-      );
   }
 
   /** Translates a comment from its [[AST]] representation into its [[IR]]

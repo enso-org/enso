@@ -215,6 +215,72 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 27, 30);
   }
 
+  @Test
+  public void malformedExport1() throws Exception {
+    var ir = parseTest("export");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 6);
+  }
+
+  @Test
+  public void malformedExport2() throws Exception {
+    var ir = parseTest("export as Foo");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 13);
+  }
+
+  @Test
+  public void malformedExport3() throws Exception {
+    var ir = parseTest("export Foo as Foo, Bar");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 22);
+  }
+
+  @Test
+  public void malformedExport4() throws Exception {
+    var ir = parseTest("export Foo as Foo.Bar");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 21);
+  }
+
+  @Test
+  public void malformedExport5() throws Exception {
+    var ir = parseTest("export Foo as");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 13, 13);
+  }
+
+  @Test
+  public void malformedExport6() throws Exception {
+    var ir = parseTest("export Foo as Bar.Baz");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 14, 21);
+  }
+
+  @Test
+  public void malformedExport7() throws Exception {
+    var ir = parseTest("export Foo hiding");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 7, 17);
+  }
+
+  @Test
+  public void malformedExport8() throws Exception {
+    var ir = parseTest("export Foo hiding X,");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 7, 20);
+  }
+
+  @Test
+  public void malformedExport9() throws Exception {
+    var ir = parseTest("from export all");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 4, 4);
+  }
+
+  @Test
+  public void malformedExport10() throws Exception {
+    var ir = parseTest("from Foo export all hiding");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 26, 26);
+  }
+
+  @Test
+  public void malformedExport11() throws Exception {
+    var ir = parseTest("from Foo export all hiding X.Y");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 27, 30);
+  }
+
   private void assertSingleSyntaxError(
       IR.Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end
