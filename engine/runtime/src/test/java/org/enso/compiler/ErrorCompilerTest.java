@@ -281,6 +281,18 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path.", 27, 30);
   }
 
+  @Test
+  public void invalidToken1() throws Exception {
+    var ir = parseTest("`");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 1);
+  }
+
+  @Test
+  public void invalidToken2() throws Exception {
+    var ir = parseTest("splice_outside_text = `");
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 22, 23);
+  }
+
   private void assertSingleSyntaxError(
       IR.Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end
