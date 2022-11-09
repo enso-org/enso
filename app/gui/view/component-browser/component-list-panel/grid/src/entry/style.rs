@@ -213,9 +213,6 @@ impl ResolvedColors {
         frp::extend! { network
             init <- source_();
 
-            bg_intensity <- colors.map(|c| c.background_intensity);
-            panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
-            panel_bg_and_main <- all(&panel_bg, &color_anim.value);
             let is_dimmed = is_dimmed.clone_ref();
             dimmed <- all_with3(&init, main_color, &colors,
                 |_, main, colors| colors.dimmed.resolve(main)
@@ -225,6 +222,9 @@ impl ResolvedColors {
             // We do not support semi-transparent background of entries. Instead, we mix
             // the color of the component browser's background and the main color of the
             // component group.
+            panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
+            panel_bg_and_main <- all(&panel_bg, &color_anim.value);
+            bg_intensity <- colors.map(|c| c.background_intensity);
             background <- all_with(&panel_bg_and_main, &bg_intensity,
                 |(bg, main), intensity| color::mix(*bg, *main, *intensity)
             ).sampler();
