@@ -114,12 +114,12 @@ impl Slider {
 
             // User input
 
-            background_click        <- model.background.events.mouse_down.constant(());
-            background_release      <- model.background.events.mouse_release.constant(());
+            background_click        <- model.background.events.mouse_down_primary.constant(());
+            background_release      <- model.background.events.mouse_release_primary.constant(());
             background_drag         <- bool(&background_release, &background_click);
 
-            track_click             <- model.track.events.mouse_down.constant(());
-            track_release           <- model.track.events.mouse_release.constant(());
+            track_click             <- model.track.events.mouse_down_primary.constant(());
+            track_release           <- model.track.events.mouse_release_primary.constant(());
             track_drag              <- bool(&track_release, &track_click);
 
             component_click         <- any2(&background_click, &track_click);
