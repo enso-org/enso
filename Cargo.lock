@@ -2590,6 +2590,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-focus-management"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-grid-view"
 version = "0.1.0"
 dependencies = [
@@ -2736,6 +2744,7 @@ dependencies = [
  "ensogl-example-dom-symbols",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
+ "ensogl-example-focus-management",
  "ensogl-example-grid-view",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",

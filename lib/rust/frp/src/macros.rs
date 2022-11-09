@@ -166,6 +166,8 @@ macro_rules! extend_line1 {
 #[macro_export]
 macro_rules! extend_line2 {
     ([$($lines:tt)*] $net:ident def $name:ident = $name2:ident) => { $($lines)* };
+    ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident()                                         . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(module_path!(),"::",stringify!($name),":",line!()),&$tgt1.$tgt2(),$($arg)*)                 ;] $net def $name = $name $($ts)* } };
+    ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident() . $tgt3:ident                           . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(module_path!(),"::",stringify!($name),":",line!()),&$tgt1.$tgt2().$tgt3,$($arg)*)           ;] $net def $name = $name $($ts)* } };
     ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? =                                                                       $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(module_path!(),"::",stringify!($name),":",line!()),$($arg)*)                                ;] $net def $name = $name $($ts)* } };
     ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident                                                         . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(module_path!(),"::",stringify!($name),":",line!()),&$tgt1,$($arg)*)                         ;] $net def $name = $name $($ts)* } };
     ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident                                           . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(module_path!(),"::",stringify!($name),":",line!()),&$tgt1.$tgt2,$($arg)*)                   ;] $net def $name = $name $($ts)* } };
@@ -234,7 +236,7 @@ macro_rules! extend_line2 {
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident               ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4         . map (f_!($($args)*)) $($ts)* } };
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident . $tgt5:ident ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4 . $tgt5 . map (f_!($($args)*)) $($ts)* } };
 
-    ([] $net:ident trace $($path:ident).*) => { $net.trace(stringify!($($path).*),&$($path).*); };
+    ([] $net:ident trace $($ts:tt)*) => { $net.trace(stringify!($($ts)*),&$($ts)*); };
     ([] $net:ident $($ts:tt)*) => { $($ts)*; }
 }
 

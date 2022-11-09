@@ -41,7 +41,9 @@ impl<Host> ParentBind<Host> {
 
 impl<Host> Drop for ParentBind<Host> {
     fn drop(&mut self) {
-        self.parent().for_each(|p| p.remove_child_by_index(self.index));
+        if let Some(parent) = self.parent() {
+            parent.remove_child_by_index(self.index)
+        }
     }
 }
 
@@ -182,13 +184,72 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 // === Model ===
 // =============
 
+use std::any::TypeId;
+
+#[derive(Debug)]
+pub struct EventData {
+    payload: Box<dyn std::any::Any>,
+}
+
+impl EventData {
+    pub fn new<T: 'static>(payload: T) -> Self {
+        let payload = Box::new(payload);
+        Self { payload }
+    }
+}
+
+impl Default for EventData {
+    fn default() -> Self {
+        Self::new(())
+    }
+}
+
+// define_not_same_trait!();
+//
+// impl<T: 'static> From<T> for EventData
+// where (T, EventData): NotSame
+// {
+//     fn from(t: T) -> Self {
+//         Self::new(t)
+//     }
+// }
+
+#[derive(Clone, CloneRef, Deref, Debug, Default)]
+pub struct Event {
+    data: Rc<EventData>,
+}
+
+impl Event {
+    pub fn new<T: 'static>(payload: T) -> Self {
+        Self { data: Rc::new(EventData::new(payload)) }
+    }
+
+    pub fn downcast<T>(&self) -> Option<&T>
+    where T: 'static {
+        self.data.payload.downcast_ref()
+    }
+}
+
+// impl<T: 'static> From<T> for Event
+// where (T, Event): NotSame
+// {
+//     fn from(t: T) -> Self {
+//         Self::new(t)
+//     }
+// }
+
+
+
 /// A hierarchical representation of object containing information about transformation in 3D space,
 /// list of children, and set of utils for dirty flag propagation.
 ///
 /// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
-#[derivative(Debug(bound = ""), Default(bound = ""))]
+#[derivative(Debug(bound = ""))]
 pub struct Model<Host = Scene> {
+    network:        frp::Network,
+    pub emit_event: frp::Source<Event>,
+    pub on_event:   frp::Any<Event>,
     host:           PhantomData<Host>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer: RefCell<Option<WeakLayer>>,
@@ -202,10 +263,43 @@ pub struct Model<Host = Scene> {
     visible:        Cell<bool>,
 }
 
+impl<Host> Default for Model<Host> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Host> Model<Host> {
     /// Constructor.
     pub fn new() -> Self {
-        default()
+        let network = frp::Network::new("display_object");
+        let host = default();
+        let assigned_layer = default();
+        let layer = default();
+        let dirty = default();
+        let callbacks = default();
+        let parent_bind = default();
+        let children = default();
+        let transform = default();
+        let visible = default();
+        frp::extend! { network
+            emit_event <- source();
+            on_event <- any(...);
+        }
+        Self {
+            network,
+            emit_event,
+            on_event,
+            host,
+            assigned_layer,
+            layer,
+            dirty,
+            callbacks,
+            parent_bind,
+            children,
+            transform,
+            visible,
+        }
     }
 
     /// Checks whether the object is visible.
@@ -619,29 +713,60 @@ pub struct Id(usize);
 /// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
 /// management.
 #[derive(Derivative)]
-#[derive(CloneRef)]
-#[derivative(Clone(bound = ""), Default(bound = ""))]
+#[derive(CloneRef, Deref)]
+#[derivative(Clone(bound = ""))]
 pub struct Instance<Host = Scene> {
     rc: Rc<Model<Host>>,
 }
 
-impl<Host> Deref for Instance<Host> {
-    type Target = Rc<Model<Host>>;
-    fn deref(&self) -> &Self::Target {
-        &self.rc
-    }
-}
-
 impl<Host> Instance<Host> {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new() -> Self
+    where Host: 'static {
+        Self { rc: Rc::new(Model::new()) }.init()
     }
 
     /// Create a new weak pointer to this display object instance.
     pub fn downgrade(&self) -> WeakInstance<Host> {
         let weak = Rc::downgrade(&self.rc);
         WeakInstance { weak }
+    }
+
+    fn init(self) -> Self
+    where Host: 'static {
+        let network = &self.network;
+        let this = &self;
+        frp::extend! { network
+            eval self.emit_event ((event) this.emit_event_impl(event));
+        }
+        self
+    }
+
+    fn emit_event_impl(&self, event: &Event) {
+        let rev_parent_chain = self.rev_parent_chain();
+        for object in rev_parent_chain {
+            object.on_event.emit(event.clone_ref());
+        }
+    }
+
+    pub fn rev_parent_chain(&self) -> Vec<Instance<Host>> {
+        let mut vec = default();
+        self.build_rev_parent_chain(&mut vec);
+        vec.push(self.clone_ref());
+        vec
+    }
+
+    fn build_rev_parent_chain(&self, vec: &mut Vec<Instance<Host>>) {
+        if let Some(parent) = self.parent() {
+            parent.build_rev_parent_chain(vec);
+            vec.push(parent);
+        }
+    }
+}
+
+impl<Host: 'static> Default for Instance<Host> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
