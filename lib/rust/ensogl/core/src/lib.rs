@@ -57,9 +57,9 @@ pub mod system;
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
 pub use animation::Easing;
+pub use display::event;
 pub use enso_frp as frp;
 pub use enso_types as types;
-
 
 
 /// Commonly used utilities.

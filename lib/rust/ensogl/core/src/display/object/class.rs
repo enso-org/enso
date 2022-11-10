@@ -10,6 +10,7 @@ use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
+use super::event;
 use super::transform;
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
@@ -184,101 +185,6 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 // === Model ===
 // =============
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum State {
-    #[default]
-    Running,
-    RunningNonCancellable,
-    Cancelled,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Phase {
-    #[default]
-    Capturing,
-    Bubbling,
-}
-
-use std::any::TypeId;
-
-
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Focus;
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Blur;
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FocusIn;
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FocusOut;
-
-#[derive(Clone, CloneRef, Debug)]
-pub struct SomeEvent {
-    data:     frp::AnyData,
-    state:    Rc<Cell<State>>,
-    captures: Rc<Cell<bool>>,
-    bubbles:  Rc<Cell<bool>>,
-}
-
-impl SomeEvent {
-    pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
-        let event = Event::new(target.map(|t| t.downgrade()), payload);
-        let state = event.state.clone_ref();
-        let captures = Rc::new(Cell::new(true));
-        let bubbles = Rc::new(Cell::new(true));
-        Self { data: frp::AnyData::new(event), state, captures, bubbles }
-    }
-}
-
-impl Default for SomeEvent {
-    fn default() -> Self {
-        Self::new::<(), ()>(None, ())
-    }
-}
-
-#[derive(Derivative, Deref)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = "T: Debug"))]
-#[derivative(Default(bound = "T: Default"))]
-pub struct Event<Host: 'static, T> {
-    data: Rc<EventData<Host, T>>,
-}
-
-#[derive(Deref, Derivative)]
-#[derivative(Debug(bound = "T: Debug"))]
-#[derivative(Default(bound = "T: Default"))]
-pub struct EventData<Host: 'static, T> {
-    #[deref]
-    payload: T,
-    target:  Option<WeakInstance<Host>>,
-    state:   Rc<Cell<State>>,
-}
-
-impl<Host, T> Event<Host, T> {
-    fn new(target: Option<WeakInstance<Host>>, payload: T) -> Self {
-        let state = default();
-        let data = Rc::new(EventData { payload, target, state });
-        Self { data }
-    }
-
-    pub fn stop_propagation(&self) {
-        if self.state.get() == State::RunningNonCancellable {
-            warn!("Trying to cancel a non-cancellable event.");
-        } else {
-            self.state.set(State::Cancelled);
-        }
-    }
-
-    pub fn target(&self) -> Option<Instance<Host>> {
-        self.data.target.as_ref().and_then(|t| t.upgrade())
-    }
-}
-
-
-
 /// A hierarchical representation of object containing information about transformation in 3D space,
 /// list of children, and set of utils for dirty flag propagation.
 ///
@@ -287,7 +193,8 @@ impl<Host, T> Event<Host, T> {
 #[derivative(Debug(bound = ""))]
 pub struct Model<Host: 'static = Scene> {
     network:             frp::Network,
-    pub event_source:    frp::Source<SomeEvent>,
+    /// Source for events. See the documentation of [`event::Event`] to learn more about events.
+    pub event_source:    frp::Source<event::SomeEvent>,
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
     host:                PhantomData<Host>,
@@ -311,18 +218,21 @@ impl<Host> Default for Model<Host> {
 }
 
 impl<Host: 'static> Model<Host> {
-    pub fn on_event_capturing<T>(&self) -> frp::Source<Event<Host, T>>
+    /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
+    pub fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
     where
         Host: 'static,
         T: frp::Data, {
-        self.capturing_event_fan.output::<Event<Host, T>>(&self.network)
+        self.bubbling_event_fan.output::<event::Event<Host, T>>(&self.network)
     }
 
-    pub fn on_event<T>(&self) -> frp::Source<Event<Host, T>>
+    /// Get event handler for capturing events. You should rather not need this function. Use
+    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
+    pub fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
     where
         Host: 'static,
         T: frp::Data, {
-        self.bubbling_event_fan.output::<Event<Host, T>>(&self.network)
+        self.capturing_event_fan.output::<event::Event<Host, T>>(&self.network)
     }
 
     /// Constructor.
@@ -815,46 +725,48 @@ impl<Host: 'static> Instance<Host> {
         self
     }
 
-    fn new_event<T>(&self, payload: T) -> SomeEvent
+    fn new_event<T>(&self, payload: T) -> event::SomeEvent
     where
         Host: 'static,
         T: 'static, {
-        SomeEvent::new(Some(self), payload)
+        event::SomeEvent::new(Some(self), payload)
     }
 
     fn _emit_event<T>(&self, payload: T)
     where
         Host: 'static,
         T: 'static, {
-        self.event_source.emit(SomeEvent::new(Some(self), payload));
+        self.event_source.emit(event::SomeEvent::new(Some(self), payload));
     }
 
-    fn emit_event_impl(&self, event: &SomeEvent) {
+    fn emit_event_impl(&self, event: &event::SomeEvent) {
         let rev_parent_chain = self.rev_parent_chain();
         if event.captures.get() {
             for object in &rev_parent_chain {
                 object.capturing_event_fan.emit(&event.data);
-                if event.state.get() == State::Cancelled {
+                if event.state() == event::State::Cancelled {
                     break;
                 }
             }
         }
-        if event.state.get() != State::Cancelled {
+        if event.state() != event::State::Cancelled {
             self.capturing_event_fan.emit(&event.data);
         }
-        if event.state.get() != State::Cancelled {
+        if event.state() != event::State::Cancelled {
             self.bubbling_event_fan.emit(&event.data);
         }
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
                 object.bubbling_event_fan.emit(&event.data);
-                if event.state.get() == State::Cancelled {
+                if event.state() == event::State::Cancelled {
                     break;
                 }
             }
         }
     }
 
+    /// Get reversed parent chain of this display object (`[root, child_of root, ...,
+    /// parent_of_this_object]`). It will NOT contain this object.
     pub fn rev_parent_chain(&self) -> Vec<Instance<Host>> {
         let mut vec = default();
         self.build_rev_parent_chain(&mut vec);
@@ -887,8 +799,8 @@ impl<Host: 'static> Instance<Host> {
     fn _focus(&self) {
         self._blur_all();
         self.propagate_up_new_focus_instance(&self.downgrade());
-        let focus_event = self.new_event(Focus);
-        let focus_in_event = self.new_event(FocusIn);
+        let focus_event = self.new_event(event::Focus);
+        let focus_in_event = self.new_event(event::FocusIn);
         focus_event.bubbles.set(false);
         self.event_source.emit(focus_event);
         self.event_source.emit(focus_in_event);
@@ -908,8 +820,8 @@ impl<Host: 'static> Instance<Host> {
 
     fn blur_unchecked(&self) {
         self.propagate_up_no_focus_instance();
-        let blur_event = self.new_event(Blur);
-        let focus_out_event = self.new_event(FocusOut);
+        let blur_event = self.new_event(event::Blur);
+        let focus_out_event = self.new_event(event::FocusOut);
         blur_event.bubbles.set(false);
         self.event_source.emit(blur_event);
         self.event_source.emit(focus_out_event);
@@ -1211,7 +1123,7 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object()._emit_event(event)
     }
 
-    fn on_event<T>(&self) -> frp::Source<Event<Host, T>>
+    fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
     where
         Host: 'static,
         T: frp::Data, {

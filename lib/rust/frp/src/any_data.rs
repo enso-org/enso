@@ -1,4 +1,4 @@
-/// Wrapper for any type of data that can be used as an FRP value.
+//! Wrapper for any type of data that can be used as an FRP value.
 use crate::prelude::*;
 
 
@@ -12,7 +12,7 @@ use crate::prelude::*;
 #[allow(missing_docs)]
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct AnyData {
-    pub data: Rc<dyn std::any::Any>,
+    pub data: Rc<dyn Any>,
 }
 
 impl AnyData {

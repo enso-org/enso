@@ -13,10 +13,9 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::object::class::FocusIn;
-use ensogl_core::display::object::class::FocusOut;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::style::theme;
+use ensogl_core::event::FocusIn;
+use ensogl_core::event::FocusOut;
 use ensogl_core::Animation;
 
 
@@ -61,7 +60,7 @@ fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::Vi
 
     // Please note that this clones [`rect`] refs to closures, so [`network`] keeps them alive.
     frp::extend! { network
-        eval rect.events.mouse_down ((t) rect.focus());
+        eval_ rect.events.mouse_down (rect.focus());
 
         eval border_size.value ((size) rect.border_size.set(*size));
         eval border_color.value ((color) rect.border_color.set(color::Rgba::from(color).into()));
@@ -106,7 +105,6 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let theme_manager = theme::Manager::from(&scene.style_sheet);
     let network = &scene.frp.network;
 
     let container_size = RECT_SIZE + RECT_DIFF;

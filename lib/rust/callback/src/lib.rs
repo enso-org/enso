@@ -22,7 +22,6 @@
 
 use enso_prelude::*;
 
-use std::any::TypeId;
 use std::marker::Unsize;
 
 
