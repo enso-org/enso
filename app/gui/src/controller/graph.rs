@@ -955,7 +955,7 @@ impl span_tree::generate::Context for Handle {
         let db_entry = db.lookup_method(metadata.intended_method?)?;
         // If the name is different than intended method than apparently it is not intended anymore
         // and should be ignored.
-        let matching = if let Some(name) = name { name == &db_entry.name } else { true };
+        let matching = if let Some(name) = name { name == db_entry.name } else { true };
         matching.then(|| db_entry.invocation_info())
     }
 }
@@ -1218,7 +1218,7 @@ main =
         let mut test = Fixture::set_up();
         test.data.code = "main = foo".into();
         test.run(|graph| async move {
-            let expected_name = LocatedName::new_root(NormalizedName::new("foo"));
+            let expected_name = Located::new_root("foo".to_owned());
             let used_names = graph.used_names().unwrap();
             assert_eq!(used_names, vec![expected_name]);
         })

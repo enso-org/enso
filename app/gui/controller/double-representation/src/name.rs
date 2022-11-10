@@ -9,7 +9,7 @@ use enso_prelude::serde_reexports::Serialize;
 pub mod project;
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
+#[derive(Copy, Clone, Debug, Fail)]
 pub enum InvalidQualifiedName {
     #[fail(display = "The qualified name is empty.")]
     EmptyName,
@@ -123,15 +123,12 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     pub fn module_id(&self) -> module::Id {
         let module_path = self.path.as_ref();
         let parent_modules = &module_path[0..module_path.len().saturating_sub(1)];
-        module::Id {
-            name:           self.name().into(),
-            parent_modules: parent_modules.iter().cloned().collect(),
-        }
+        module::Id { name: self.name().into(), parent_modules: parent_modules.to_vec() }
     }
 
     /// Check if the name refers to entity defined/reexported in library's main module.
     pub fn is_top_element(&self) -> bool {
-        self.path.as_ref().len() == 0
+        self.path.as_ref().is_empty()
     }
 
     pub fn sub_path(
@@ -195,6 +192,20 @@ impl TryFrom<String> for QualifiedName {
 
     fn try_from(text: String) -> Result<Self, Self::Error> {
         Self::from_text(text)
+    }
+}
+
+#[cfg(test)]
+impl From<&str> for QualifiedName {
+    fn from(text: &str) -> Self {
+        Self::from_text(text).unwrap()
+    }
+}
+
+#[cfg(test)]
+impl From<String> for QualifiedName {
+    fn from(text: String) -> Self {
+        Self::from_text(text).unwrap()
     }
 }
 

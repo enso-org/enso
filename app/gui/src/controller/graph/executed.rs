@@ -14,7 +14,6 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
-use double_representation::module;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;

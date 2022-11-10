@@ -323,7 +323,7 @@ impl Collapser {
     pub fn call_to_extracted(&self, extracted: &definition::ToAdd) -> FallibleResult<Ast> {
         // TODO actually check that generated name is single-identifier
         let mut target = extracted.name.clone();
-        target.extended_target.insert(0, Located::new_root(self.module_name.clone().into()));
+        target.extended_target.insert(0, Located::new_root(self.module_name.clone()));
         let base = target.ast(&self.parser)?;
         let args = extracted.explicit_parameter_names.iter().map(Ast::var);
         let chain = ast::prefix::Chain::new(base, args);

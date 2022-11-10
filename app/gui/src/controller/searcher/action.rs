@@ -3,11 +3,9 @@
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
-use crate::model::suggestion_database::entry::CodeToInsert;
 
 use crate::model::SuggestionDatabase;
 use double_representation::import;
-use double_representation::module;
 
 
 
@@ -44,7 +42,7 @@ impl Suggestion {
     pub(crate) fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
         match self {
             Suggestion::FromDatabase(s) => s.required_imports(db),
-            Suggestion::Hardcoded(s) => None,
+            Suggestion::Hardcoded(_) => None,
         }
     }
 

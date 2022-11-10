@@ -8,7 +8,6 @@ use crate::model::suggestion_database;
 
 use convert_case::Case;
 use convert_case::Casing;
-use double_representation::module;
 use double_representation::name::QualifiedName;
 
 

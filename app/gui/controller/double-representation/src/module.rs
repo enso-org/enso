@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use enso_text::index::*;
+use std::fmt::Formatter;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -10,19 +11,15 @@ use crate::definition::EmptyDefinitionId;
 use crate::identifier;
 use crate::identifier::Identifier;
 use crate::import;
-use crate::project;
 
 use crate::name::NamePath;
 use crate::name::QualifiedName;
-use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
 use ast::crumbs::Located;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
-use serde::Deserialize;
-use serde::Serialize;
 
 
 // ==============
@@ -78,6 +75,10 @@ impl Id {
         let name = segments.pop().ok_or(EmptySegments)?;
         Ok(Self { name, parent_modules: segments })
     }
+
+    pub fn segments(&self) -> impl Iterator<Item = &ImString> {
+        self.parent_modules.iter().chain(iter::once(&self.name))
+    }
 }
 
 impl From<Id> for NamePath {
@@ -86,6 +87,11 @@ impl From<Id> for NamePath {
     }
 }
 
+impl Display for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.segments().format("."))
+    }
+}
 
 
 // ============

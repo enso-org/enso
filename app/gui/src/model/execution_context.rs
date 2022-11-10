@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::model::module;
-use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use double_representation::identifier::Identifier;
@@ -236,7 +234,7 @@ pub struct QualifiedMethodPointer {
 impl QualifiedMethodPointer {
     /// Create a method pointer representing a module method.
     pub fn module_method(module: QualifiedName, name: Identifier) -> QualifiedMethodPointer {
-        QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
+        QualifiedMethodPointer { module: module.clone(), defined_on_type: module, name }
     }
     /// Tries to create a new method pointer from string components.
     pub fn from_qualified_text(

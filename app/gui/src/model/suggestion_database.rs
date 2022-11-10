@@ -7,7 +7,6 @@ use crate::model::suggestion_database::entry::Kind;
 use crate::model::suggestion_database::entry::ModuleSpan;
 use crate::notification;
 
-use ast::opr::predefined::ACCESS;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
@@ -289,7 +288,8 @@ impl SuggestionDatabase {
         &self,
         name: QualifiedNameRef,
     ) -> Option<(SuggestionId, Rc<Entry>)> {
-        let id = self.qualified_name_to_id_map.borrow().get(name);
+        let segments = name.segments().map(CloneRef::clone_ref);
+        let id = self.qualified_name_to_id_map.borrow().get(segments);
         id.and_then(|id| Some((id, self.lookup(id).ok()?)))
     }
 
@@ -426,8 +426,6 @@ mod test {
     use crate::model::suggestion_database::entry::Scope;
 
     use crate::model::module;
-    use double_representation::identifier::ReferentName;
-    use double_representation::tp;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
@@ -442,59 +440,142 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    // #[derive(Debug, Default)]
-    // struct MockBuilder {
-    //     next_id:        entry::Id,
-    //     result:         SuggestionDatabase,
-    //     context: Option<tp::QualifiedName>,
-    // }
-    //
-    // impl MockBuilder {
-    //     fn add_entry(&mut self, entry: Entry) {
-    //         let id = self.next_id;
-    //         self.next_id += 1;
-    //         self.result.put_entry(self.next_id, entry);
-    //     }
-    //
-    //     pub fn add_and_enter_module<S>(&mut self, segment: S)
-    //     where S: TryInto<ReferentName> + TryInto<module::QualifiedName> {
-    //         let new_context = if let Some(context) = &mut self.context {
-    //             context.id.push_segment(segment.try_into().unwrap());
-    //             context.clone()
-    //         } else {
-    //             let new_context = segment.try_into().unwrap();
-    //             self.contest = Some(new_context.clone());
-    //             new_context
-    //         };
-    //         self.add_entry(Entry::new_module(new_context));
-    //     }
-    //
-    //     pub fn add_and_enter_type(&mut self, type_name: impl Into<String>) {
-    //         let type_name = type_name.into();
-    //         let module = self.current_module.clone().expect("Cannot add type without module");
-    //         self.current_type = Some(type_name.clone());
-    //         self.add_entry(Entry::new_type(module, type_name))
-    //     }
-    //
-    //     pub fn leave(&mut self) {
-    //         let type_left = self.current_type.take().is_none();
-    //         if !type_left {
-    //             self.current_module = self.current_module.and_then(|m| m.parent_module())
-    //         }
-    //     }
-    //
-    //     pub fn add_method(
-    //         &mut self,
-    //         name: impl Into<String>,
-    //         arguments: Vec<SuggestionEntryArgument>,
-    //         return_type: impl TryInto<tp::QualifiedName>,
-    //     ) -> Self {
-    //         let on_type =
-    //         self.add_entry(Entry::new_method())
-    //     }
-    // }
+    #[derive(Debug, Default)]
+    struct MockBuilder {
+        next_id:    entry::Id,
+        pub result: SuggestionDatabase,
+        context:    Option<QualifiedName>,
+    }
 
+    impl MockBuilder {
+        fn add_entry(&mut self, entry: Entry) {
+            let id = self.next_id;
+            self.next_id += 1;
+            self.result.put_entry(self.next_id, entry);
+        }
 
+        pub fn add_and_enter_module<S>(&mut self, segment: S)
+        where S: Into<ImString> + TryInto<QualifiedName> {
+            let module_path = if let Some(path) = &mut self.context {
+                path.push(segment.into());
+                path.clone()
+            } else {
+                let initial_path = segment.try_into().unwrap();
+                self.context = Some(initial_path.clone());
+                initial_path
+            };
+            self.add_entry(Entry::new_module(module_path));
+        }
+
+        pub fn add_and_enter_type(
+            &mut self,
+            type_name: impl Into<String>,
+            arguments: Vec<SuggestionEntryArgument>,
+        ) {
+            let type_name = type_name.into();
+            let defined_in = self.context.take().expect("Cannot add type without module");
+            self.context = Some(defined_in.clone().new_child(&type_name));
+            self.add_entry(Entry::new_type(defined_in, type_name).with_arguments(arguments))
+        }
+
+        pub fn leave(&mut self) {
+            self.context = self.context.and_then(|ctx| ctx.parent()).map(|ctx| ctx.to_owned())
+        }
+
+        pub fn add_method(
+            &mut self,
+            name: impl Into<String>,
+            arguments: Vec<SuggestionEntryArgument>,
+            return_type: impl TryInto<QualifiedName>,
+            is_static: bool,
+        ) {
+            let on_type = self.context.as_ref().expect("Cannot add method without context");
+            let return_type = return_type.try_into().expect("Invalid return type");
+            self.add_entry(
+                Entry::new_nonextension_method(on_type.clone(), name, return_type, is_static)
+                    .with_arguments(arguments),
+            );
+        }
+
+        pub fn add_constructor(
+            &mut self,
+            name: impl Into<String>,
+            arguments: Vec<SuggestionEntryArgument>,
+        ) {
+            let on_type = self.context.as_ref().expect("Cannot add constructor without context");
+            self.add_entry(Entry::new_constructor(on_Type.clone, name).with_arguments(arguments));
+        }
+    }
+
+    macro_rules! mock_database_entry_argument {
+        ($name:ident) => {
+            SuggestionEntryArgument {
+                name: stringify!($name),
+                repr_type: "Any",
+                is_suspended: false,
+                has_default: false,
+                default_value: false,
+            }
+        };
+        ($name:ident: $($path:ident).*) => {
+            SuggestionEntryArgument {
+                name: stringify!($name),
+                repr_type: stringify!($($path).*),
+                is_suspended: false,
+                has_default: false,
+                default_value: false,
+            }
+        }
+    }
+
+    macro_rules! mock_database_entry_arguments {
+        ($(($($arg_name:ident $(:$($arg_type_path:ident).*)?),*))?) => {
+            vec![$($(mock_database_entry_argument!{$arg_name $(:$($arg_type_path).*)?}),*)?]
+        }
+    }
+
+    macro_rules! mock_database_entries {
+        ([$builder:ident] mod $name:ident $(.$name2:ident)? { $($content:tt)* } $($rest:tt)*) => {
+            $builder.add_and_enter_module(stringify!{$name$(.$name2)?});
+            mock_database_entry! { [$builder] $($content)* };
+            $builder.leave;
+            mock_database_entry! { [$builder] $($rest)* };
+        };
+        ([$builder:ident] type $name:ident $(($($args:tt)*))? { $($content:tt)* } $($rest:tt)*) => {
+            let args = mock_database_entry_arguments! {$(($($args)*))?};
+            $builder.add_and_enter_type(stringify!{$name}, args);
+            mock_database_entry! { [$builder] $($content)* };
+            $builder.leave;
+            mock_database_entry! { [$builder] $($rest)* };
+        };
+        ([$builder:ident] $name:ident $(($($args:tt)*))?; $($rest:tt)*) => {
+            let args = mock_database_entry_arguments! {$(($($args)*))?};
+            $builder.add_constructor(stringify!{$name}, args);
+            mock_database_entry! { [$builder] $($rest)* };
+        };
+        ([$builder:ident] fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
+            let args = mock_database_entry_arguments! {$(($($args)*))?};
+            $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, false);
+            mock_database_entry! { [$builder] $($rest)* };
+        };
+        ([$builder:ident] static fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
+            let args = mock_database_entry_arguments! {$(($($args)*))?};
+            $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, true);
+            mock_database_entry! { [$builder] $($rest)* };
+        };
+        ([$builder:ident]) => {}
+    }
+
+    #[macro_export]
+    macro_rules! mock_database {
+        ($($content:tt)*) => {
+            {
+                let mut builder = MockBuilder::default();
+                mock_database_entries! {[builder] $($content)*};
+                builder.result
+            }
+        }
+    }
 
     const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
 

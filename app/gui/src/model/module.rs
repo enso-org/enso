@@ -9,7 +9,6 @@ use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::import;
 use double_representation::name::project;
-use double_representation::name::NamePath;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
@@ -129,7 +128,7 @@ impl Path {
             move || InvalidModulePath { path, issue }
         };
 
-        if let [ref src_dir, ref dirs @ .., _] = *file_path.segments.as_slice() {
+        if let [ref src_dir, ref _dirs @ .., _] = *file_path.segments.as_slice() {
             (src_dir == SOURCE_DIRECTORY).ok_or_else(error(NotInSourceDirectory))?;
             let correct_extension = file_path.extension() == Some(LANGUAGE_FILE_EXTENSION);
             correct_extension.ok_or_else(error(WrongFileExtension))?;

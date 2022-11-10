@@ -10,7 +10,6 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::name::project;
-use double_representation::name::QualifiedNameRef;
 use ensogl::data::color;
 use std::cmp;
 

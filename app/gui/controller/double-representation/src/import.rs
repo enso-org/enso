@@ -2,9 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::module;
-use crate::name;
-
 use crate::name::NamePath;
 use crate::name::QualifiedName;
 use ast::known;
@@ -85,7 +82,7 @@ impl ImportedNames {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize, Hash)]
 pub struct Info {
     /// The path of the qualified name of the imported module.
-    pub module:   name::NamePath,
+    pub module:   NamePath,
     /// Imported names from [`module`].
     pub imported: ImportedNames,
 }

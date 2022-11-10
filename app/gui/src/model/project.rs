@@ -240,7 +240,7 @@ pub mod test {
 
     /// Sets up name expectation on the mock project, returning a given name.
     pub fn expect_name(project: &mut MockAPI, name: impl Into<String>) {
-        let name = ReferentName::new(name.into()).unwrap();
+        let name = name.into();
         project.expect_name().returning_st(move || name.clone());
     }
 

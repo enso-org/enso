@@ -25,7 +25,6 @@ use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
-use double_representation::module;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -142,7 +141,8 @@ impl List {
             let component = Component::new_from_database_entry(id, entry.clone_ref());
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
-                if let Some(parent_group) = self.lookup_module_group(db, parent_module) {
+                if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
+                {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
@@ -210,7 +210,7 @@ impl List {
         db: &model::SuggestionDatabase,
         module: QualifiedNameRef,
     ) -> Option<&mut ModuleGroups> {
-        let (module_id, db_entry) = db.lookup_by_qualified_name(module)?;
+        let (module_id, db_entry) = db.lookup_by_qualified_name(module.clone_ref())?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.

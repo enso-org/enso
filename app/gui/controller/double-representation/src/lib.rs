@@ -48,7 +48,6 @@ pub mod import;
 pub mod module;
 pub mod name;
 pub mod node;
-pub mod project;
 pub mod refactorings;
 #[cfg(test)]
 pub mod test_utils;
