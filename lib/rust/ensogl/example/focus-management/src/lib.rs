@@ -13,9 +13,11 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::object::class::FocusIn;
+use ensogl_core::display::object::class::FocusOut;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene;
 use ensogl_core::display::style::theme;
+use ensogl_core::Animation;
 
 
 
@@ -23,27 +25,20 @@ use ensogl_core::display::style::theme;
 // === Shapes ===
 // ==============
 
+const BORDER_SIZE: f32 = 4.0;
+const RECT_SIZE: f32 = 140.0;
+const RECT_DIFF: f32 = 40.0;
+
 mod rectangle {
     use super::*;
     ensogl_core::shape! {
-        (style: Style, color: Vector4<f32>) {
+        (style: Style, color: Vector4<f32>, border_size: f32, border_color: Vector4<f32>) {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-            let rect = Rect((width, height));
-            let shape = rect.fill(color);
-            shape.into()
-        }
-    }
-}
-
-mod circle {
-    use super::*;
-    ensogl_core::shape! {
-        above = [rectangle];
-        (style:Style, color: Vector4<f32>) {
-            let radius = Var::<Pixels>::from("input_size.x") / 2.0;
-            let shape = Circle(radius);
-            let shape = shape.fill(color);
+            let rect = Rect((&width, &height)).corners_radius(10.0.px());
+            let inside = rect.shrink(BORDER_SIZE.px());
+            let border = &inside.grow((border_size - 1.0).px()) - &inside;
+            let shape = inside.fill(color) + border.fill(border_color);
             shape.into()
         }
     }
@@ -55,6 +50,54 @@ mod circle {
 // === Entry Point ===
 // ===================
 
+
+fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::View {
+    let rect = rectangle::View::new();
+    rect.size.set(Vector2::new(width, height));
+    rect.color.set(color::Rgba::new(0.0, 0.0, 0.0, 0.3).into());
+
+    let border_size = Animation::<f32>::new(network);
+    let border_color = color::Animation::new(network);
+
+    // Please note that this clones [`rect`] refs to closures, so [`network`] keeps them alive.
+    frp::extend! { network
+        eval rect.events.mouse_down ((t) rect.focus());
+
+        eval border_size.value ((size) rect.border_size.set(*size));
+        eval border_color.value ((color) rect.border_color.set(color::Rgba::from(color).into()));
+
+        let rect_on_focus_in = rect.on_event::<FocusIn>();
+        let rect_on_focus_out = rect.on_event::<FocusOut>();
+
+        border_size_on_focus_in <- rect_on_focus_in.constant(BORDER_SIZE);
+        border_size_on_focus_out <- rect_on_focus_out.constant(0.0);
+        new_border_size <- any(&border_size_on_focus_in, &border_size_on_focus_out);
+        border_size.target <+ new_border_size;
+
+        new_color <- rect_on_focus_in.map (f!([rect] (e) {
+            let is_target = e.target().as_ref() == Some(rect.display_object());
+            if is_target {
+                color::Lcha::from(color::Rgba::new(0.878, 0.25, 0.25, 1.0))
+            } else {
+                color::Lcha::from(color::Rgba::new(0.247, 0.407, 0.808, 1.0))
+            }
+        }));
+        border_color.target <+ new_color;
+    }
+
+    rect
+}
+
+fn define_stack(network: &frp::Network) -> rectangle::View {
+    let h0 = define_rect(RECT_SIZE, RECT_SIZE, network);
+    let h1 = define_rect(RECT_SIZE - RECT_DIFF, RECT_SIZE - RECT_DIFF, network);
+    let h2 = define_rect(RECT_SIZE - 2.0 * RECT_DIFF, RECT_SIZE - 2.0 * RECT_DIFF, network);
+
+    h0.add_child(&h1);
+    h1.add_child(&h2);
+    h0
+}
+
 /// The example entry point.
 #[entry_point]
 #[allow(dead_code)]
@@ -64,34 +107,18 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let theme_manager = theme::Manager::from(&scene.style_sheet);
-
-    let rectangle = rectangle::View::new();
-    rectangle.size.set(Vector2::new(140.0, 140.0));
-
-    let circle = circle::View::new();
-    circle.size.set(Vector2(100.0, 100.0));
-    circle.color.set(color::Rgba::new(1.0, 0.0, 0.0, 1.0).into());
-
     let network = &scene.frp.network;
 
-    let dp = rectangle.display_object();
-    frp::extend! { network
-        eval circle.events.mouse_down ((t) circle.emit_event(31.0_f32));
+    let container_size = RECT_SIZE + RECT_DIFF;
+    let container = define_rect(container_size * 2.0, container_size, network);
+    let left_stack = define_stack(network);
+    let right_stack = define_stack(network);
+    left_stack.mod_position_x(|x| x - (container_size) / 2.0);
+    right_stack.mod_position_x(|x| x + (container_size) / 2.0);
 
-        trace rectangle.on_event::<f32>();
-        // e <- rectangle.display_object().on_event.filter_map(|t| t.downcast::<f32>());
-
-        // e <- rectangle.on::<f32>();
-        // trace rectangle.display_object().on_event;
-        // trace e;
-    }
-
-    world.add_child(&rectangle);
-    rectangle.add_child(&circle);
-
+    world.add_child(&container);
+    container.add_child(&left_stack);
+    container.add_child(&right_stack);
     world.keep_alive_forever();
-
     mem::forget(navigator);
-    mem::forget(circle);
-    mem::forget(rectangle);
 }

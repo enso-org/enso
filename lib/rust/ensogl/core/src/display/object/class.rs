@@ -28,7 +28,7 @@ use transform::CachedTransform;
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 #[allow(missing_docs)]
-pub struct ParentBind<Host> {
+pub struct ParentBind<Host: 'static> {
     pub parent: WeakInstance<Host>,
     pub index:  usize,
 }
@@ -39,7 +39,7 @@ impl<Host> ParentBind<Host> {
     }
 }
 
-impl<Host> Drop for ParentBind<Host> {
+impl<Host: 'static> Drop for ParentBind<Host> {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
             parent.remove_child_by_index(self.index)
@@ -62,7 +62,7 @@ impl<Host> Drop for ParentBind<Host> {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
-pub struct Callbacks<Host> {
+pub struct Callbacks<Host: 'static> {
     on_updated:             RefCell<Option<Box<dyn Fn(&Model<Host>)>>>,
     on_show:                RefCell<Option<Box<dyn Fn(&Host, Option<&WeakLayer>)>>>,
     on_hide:                RefCell<Option<Box<dyn Fn(&Host)>>>,
@@ -131,7 +131,7 @@ type SceneLayerDirty = dirty::SharedBool<OnDirtyCallback>;
 /// the hierarchy is updated after calling the `update` method.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct DirtyFlags<Host> {
+pub struct DirtyFlags<Host: 'static> {
     parent:           NewParentDirty,
     children:         ChildrenDirty,
     removed_children: RemovedChildren<Host>,
@@ -203,17 +203,33 @@ use std::any::TypeId;
 
 
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Focus;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Blur;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FocusIn;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FocusOut;
+
 #[derive(Clone, CloneRef, Debug)]
 pub struct SomeEvent {
-    data:  frp::AnyData,
-    state: Rc<Cell<State>>,
+    data:     frp::AnyData,
+    state:    Rc<Cell<State>>,
+    captures: Rc<Cell<bool>>,
+    bubbles:  Rc<Cell<bool>>,
 }
 
 impl SomeEvent {
     pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
         let event = Event::new(target.map(|t| t.downgrade()), payload);
         let state = event.state.clone_ref();
-        Self { data: frp::AnyData::new(event), state }
+        let captures = Rc::new(Cell::new(true));
+        let bubbles = Rc::new(Cell::new(true));
+        Self { data: frp::AnyData::new(event), state, captures, bubbles }
     }
 }
 
@@ -227,14 +243,14 @@ impl Default for SomeEvent {
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
-pub struct Event<Host, T> {
+pub struct Event<Host: 'static, T> {
     data: Rc<EventData<Host, T>>,
 }
 
 #[derive(Deref, Derivative)]
 #[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
-pub struct EventData<Host, T> {
+pub struct EventData<Host: 'static, T> {
     #[deref]
     payload: T,
     target:  Option<WeakInstance<Host>>,
@@ -255,6 +271,10 @@ impl<Host, T> Event<Host, T> {
             self.state.set(State::Cancelled);
         }
     }
+
+    pub fn target(&self) -> Option<Instance<Host>> {
+        self.data.target.as_ref().and_then(|t| t.upgrade())
+    }
 }
 
 
@@ -265,13 +285,13 @@ impl<Host, T> Event<Host, T> {
 /// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct Model<Host = Scene> {
+pub struct Model<Host: 'static = Scene> {
     network:             frp::Network,
     pub event_source:    frp::Source<SomeEvent>,
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
     host:                PhantomData<Host>,
-    focused_child:       RefCell<Option<WeakLayer>>,
+    focused_descendant:  RefCell<Option<WeakInstance<Host>>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer:      RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
@@ -290,7 +310,7 @@ impl<Host> Default for Model<Host> {
     }
 }
 
-impl<Host> Model<Host> {
+impl<Host: 'static> Model<Host> {
     pub fn on_event_capturing<T>(&self) -> frp::Source<Event<Host, T>>
     where
         Host: 'static,
@@ -309,7 +329,7 @@ impl<Host> Model<Host> {
     pub fn new() -> Self {
         let network = frp::Network::new("display_object");
         let host = default();
-        let focused_child = default();
+        let focused_descendant = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = default();
@@ -329,7 +349,7 @@ impl<Host> Model<Host> {
             capturing_event_fan,
             bubbling_event_fan,
             host,
-            focused_child,
+            focused_descendant,
             assigned_layer,
             layer,
             dirty,
@@ -573,7 +593,7 @@ impl<Host> Model<Host> {
 
 // === Register / Unregister ===
 
-impl<Host> Model<Host> {
+impl<Host: 'static> Model<Host> {
     fn register_child<T: Object<Host>>(&self, child: &T) -> usize {
         let index = self.children.borrow_mut().insert(child.weak_display_object());
         self.dirty.children.set(index);
@@ -583,12 +603,23 @@ impl<Host> Model<Host> {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind<Host>> {
+        if let Some(instance) = &*self.focused_descendant.borrow() {
+            if let Some(instance) = instance.upgrade() {
+                instance._blur();
+            }
+        }
         self.parent_bind.borrow_mut().take()
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind: ParentBind<Host>) {
         trace!("Adding new parent bind.");
+        if let Some(focus_instance) = &*self.focused_descendant.borrow() {
+            if let Some(parent) = bind.parent.upgrade() {
+                parent._blur_all();
+                parent.propagate_up_new_focus_instance(focus_instance);
+            }
+        }
         if let Some(parent) = bind.parent() {
             let index = bind.index;
             let dirty = parent.dirty.children.clone_ref();
@@ -754,21 +785,24 @@ pub struct Id(usize);
 #[derive(Derivative)]
 #[derive(CloneRef, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct Instance<Host = Scene> {
+pub struct Instance<Host: 'static = Scene> {
     rc: Rc<Model<Host>>,
 }
 
-impl<Host> Instance<Host> {
-    /// Constructor.
-    pub fn new() -> Self
-    where Host: 'static {
-        Self { rc: Rc::new(Model::new()) }.init()
-    }
 
+impl<Host> Instance<Host> {
     /// Create a new weak pointer to this display object instance.
     pub fn downgrade(&self) -> WeakInstance<Host> {
         let weak = Rc::downgrade(&self.rc);
         WeakInstance { weak }
+    }
+}
+
+impl<Host: 'static> Instance<Host> {
+    /// Constructor.
+    pub fn new() -> Self
+    where Host: 'static {
+        Self { rc: Rc::new(Model::new()) }.init()
     }
 
     fn init(self) -> Self
@@ -781,6 +815,13 @@ impl<Host> Instance<Host> {
         self
     }
 
+    fn new_event<T>(&self, payload: T) -> SomeEvent
+    where
+        Host: 'static,
+        T: 'static, {
+        SomeEvent::new(Some(self), payload)
+    }
+
     fn _emit_event<T>(&self, payload: T)
     where
         Host: 'static,
@@ -790,10 +831,12 @@ impl<Host> Instance<Host> {
 
     fn emit_event_impl(&self, event: &SomeEvent) {
         let rev_parent_chain = self.rev_parent_chain();
-        for object in &rev_parent_chain {
-            object.capturing_event_fan.emit(&event.data);
-            if event.state.get() == State::Cancelled {
-                break;
+        if event.captures.get() {
+            for object in &rev_parent_chain {
+                object.capturing_event_fan.emit(&event.data);
+                if event.state.get() == State::Cancelled {
+                    break;
+                }
             }
         }
         if event.state.get() != State::Cancelled {
@@ -802,10 +845,12 @@ impl<Host> Instance<Host> {
         if event.state.get() != State::Cancelled {
             self.bubbling_event_fan.emit(&event.data);
         }
-        for object in rev_parent_chain.iter().rev() {
-            object.bubbling_event_fan.emit(&event.data);
-            if event.state.get() == State::Cancelled {
-                break;
+        if event.bubbles.get() {
+            for object in rev_parent_chain.iter().rev() {
+                object.bubbling_event_fan.emit(&event.data);
+                if event.state.get() == State::Cancelled {
+                    break;
+                }
             }
         }
     }
@@ -821,6 +866,69 @@ impl<Host> Instance<Host> {
             parent.build_rev_parent_chain(vec);
             vec.push(parent);
         }
+    }
+
+    fn focused_instance(&self) -> Option<Instance<Host>> {
+        if let Some(child) = &*self.focused_descendant.borrow() {
+            child.upgrade()
+        } else {
+            self.parent().and_then(|parent| parent.focused_instance())
+        }
+    }
+
+    fn _is_focused(&self) -> bool {
+        self.focused_descendant
+            .borrow()
+            .as_ref()
+            .map(|t| t.upgrade().as_ref() == Some(self))
+            .unwrap_or_default()
+    }
+
+    fn _focus(&self) {
+        self._blur_all();
+        self.propagate_up_new_focus_instance(&self.downgrade());
+        let focus_event = self.new_event(Focus);
+        let focus_in_event = self.new_event(FocusIn);
+        focus_event.bubbles.set(false);
+        self.event_source.emit(focus_event);
+        self.event_source.emit(focus_in_event);
+    }
+
+    fn _blur(&self) {
+        if self._is_focused() {
+            self.blur_unchecked();
+        }
+    }
+
+    fn _blur_all(&self) {
+        if let Some(instance) = self.focused_instance() {
+            instance.blur_unchecked();
+        }
+    }
+
+    fn blur_unchecked(&self) {
+        self.propagate_up_no_focus_instance();
+        let blur_event = self.new_event(Blur);
+        let focus_out_event = self.new_event(FocusOut);
+        blur_event.bubbles.set(false);
+        self.event_source.emit(blur_event);
+        self.event_source.emit(focus_out_event);
+    }
+
+    /// Clears the focus info in this instance and all parent instances. In order to work properly,
+    /// this should be called on the focused instance. Otherwise, it may clear the information
+    /// only partially.
+    fn propagate_up_no_focus_instance(&self) {
+        *self.focused_descendant.borrow_mut() = None;
+        self.parent().for_each(|parent| parent.propagate_up_no_focus_instance());
+    }
+
+    /// Set the focus instance to the provided one here and in all instances on the path to the
+    /// root.
+    fn propagate_up_new_focus_instance(&self, instance: &WeakInstance<Host>) {
+        assert!(self.focused_descendant.borrow().is_none()); // FIXME: assert dbg
+        *self.focused_descendant.borrow_mut() = Some(instance.clone());
+        self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
     }
 }
 
@@ -838,7 +946,9 @@ impl<Host> Instance<Host> {
     pub fn _id(&self) -> Id {
         Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
     }
+}
 
+impl<Host: 'static> Instance<Host> {
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
     pub fn _display_layers(&self) -> Option<WeakLayer> {
@@ -869,12 +979,6 @@ impl<Host> Instance<Host> {
 
     /// Adds a new `Object` as a child to the current one.
     pub fn _add_child<T: Object<Host>>(&self, child: &T) {
-        self.clone_ref().add_child_take(child);
-    }
-
-    /// Adds a new `Object` as a child to the current one. This is the same as `add_child` but takes
-    /// the ownership of `self`.
-    pub fn add_child_take<T: Object<Host>>(self, child: &T) {
         trace!("Adding new child.");
         let child = child.display_object();
         child.unset_parent();
@@ -971,7 +1075,7 @@ impl<Host> Debug for Instance<Host> {
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-pub struct WeakInstance<Host> {
+pub struct WeakInstance<Host: 'static> {
     weak: Weak<Model<Host>>,
 }
 
@@ -1040,7 +1144,7 @@ impl<Host, T: Object<Host>> Object<Host> for &T {
 // === ObjectOps ===
 // =================
 
-impl<Host, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
+impl<Host: 'static, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
@@ -1048,7 +1152,7 @@ impl<Host, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 // HOTFIX[WD]: We are using names with underscores in order to fix this bug:
 // https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
-pub trait ObjectOps<Host = Scene>: Object<Host> {
+pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
     // === Information ===
 
     /// Globally unique identifier of this display object.
@@ -1112,6 +1216,25 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
         Host: 'static,
         T: frp::Data, {
         self.display_object().rc.on_event()
+    }
+
+
+    // === Focus ===
+
+    fn is_focused(&self) -> bool {
+        self.display_object()._is_focused()
+    }
+
+    fn focus(&self) {
+        self.display_object()._focus()
+    }
+
+    fn blur(&self) {
+        self.display_object()._blur()
+    }
+
+    fn blur_all(&self) {
+        self.display_object()._blur_all()
     }
 
 
