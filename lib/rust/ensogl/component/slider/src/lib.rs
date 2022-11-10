@@ -263,13 +263,9 @@ impl Slider {
 
             model.value.set_content <+ all2(&value, &precision_adjusted).map(
                 |(value, precision)| {
-                    let text_left_right = value_truncate_precision(*value, *precision);
+                    let (left, right) = value_truncate_precision(*value, *precision);
 
-                    match text_left_right {
-                        (Some(left), Some(right)) => format!("{}.{}", left, right).to_im_string(),
-                        (Some(left), None) => left,
-                        _ => unreachable!(), // FIXME How to handle this case? Format will always have a left part
-                    }
+                    format!("{}.{}", left, right).to_im_string()
                 }
             );
 
@@ -333,18 +329,18 @@ impl Slider {
 // === Helper functions ===
 // ========================
 
-fn value_truncate_precision(value: f32, precision: f32) -> (Option<ImString>, Option<ImString>) {
+fn value_truncate_precision(value: f32, precision: f32) -> (ImString, ImString) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
 
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
-        let text_left = text_iter.next().map(|s| s.into());
-        let text_right = text_iter.next().map(|s| s.into());
+        let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or(ImString::default());
+        let text_right = text_iter.next().map(|s| s.to_im_string()).unwrap_or(ImString::default());
 
         (text_left, text_right)
     } else {
-        let text_left = format!("{:.0}", value.trunc()).into();
-        (Some(text_left), None)
+        let text_left = format!("{:.0}", value.trunc()).to_im_string();
+        (text_left, ImString::default())
     }
 }
