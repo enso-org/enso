@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.text;
 
+import com.ibm.icu.text.BreakIterator;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -14,6 +15,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.enso.interpreter.dsl.Builtin;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -21,6 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public final class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
+  private volatile long length = -1;
   private static final Lock lock = new ReentrantLock();
 
   private Text(String string) {
@@ -31,6 +34,28 @@ public final class Text implements TruffleObject {
   private Text(ConcatRope contents) {
     this.contents = contents;
     this.isFlat = false;
+  }
+
+  @Builtin.Method(description = """
+  Computes the number of characters in the text.
+
+    ! What is a Character?
+      A character is defined as an Extended Grapheme Cluster, see Unicode
+      Standard Annex 29. This is the smallest unit that still has semantic
+      meaning in most text-processing applications.
+
+    > Example
+      Getting the length of the string "건반(Korean)".
+
+          "건반(Korean)".length
+   """)
+  public long length() {
+    long l = length;
+    if (l == -1) {
+      l = computeLength();
+      length = l;
+    }
+    return l;
   }
 
   /**
@@ -115,6 +140,17 @@ public final class Text implements TruffleObject {
   @ExportMessage
   String asString(@Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     return toJavaStringNode.execute(this);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private long computeLength() {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(toString());
+    long len = 0;
+    while (iter.next() != BreakIterator.DONE) {
+      len++;
+    }
+    return len;
   }
 
   @CompilerDirectives.TruffleBoundary
