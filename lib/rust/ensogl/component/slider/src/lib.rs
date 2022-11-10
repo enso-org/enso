@@ -223,11 +223,11 @@ impl Slider {
             eval track_pos.value (
                 (v) model.track.value.set(*v);
             );
-            eval input.set_width (
-                (v) model.set_width(*v);
+            component_size <- all2(&input.set_width, &input.set_height).map(
+                |(width, height)| Vector2::new(*width, *height)
             );
-            eval input.set_height (
-                (v) model.set_height(*v);
+            eval component_size (
+                (size) model.set_size(*size);
             );
 
             value_is_default        <- all2(&value, &input.set_value_default).map(

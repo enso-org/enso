@@ -22,11 +22,7 @@ pub struct Model {
     pub value_dot:   text::Text,
     pub value_right: text::Text,
     pub root:        display::object::Instance,
-
-    width:  Cell<f32>,
-    height: Cell<f32>,
-
-    pub app: Application,
+    pub app:         Application,
 }
 
 impl Model {
@@ -63,32 +59,15 @@ impl Model {
             value_right,
             root,
             app,
-            height: Cell::new(50.0),
-            width: Cell::new(200.0),
         };
 
-        model.set_width(200.0);
-        model.set_height(50.0);
-
+        model.set_size(Vector2::new(200.0, 50.0));
         model.value_dot.set_content(".");
 
         model
     }
 
-    pub fn set_width(&self, width: f32) {
-        self.width.set(width);
-
-        let size = Vector2::new(width, self.height.get());
-
-        self.background.size.set(size);
-        self.track.size.set(size);
-    }
-
-    pub fn set_height(&self, height: f32) {
-        self.height.set(height);
-
-        let size = Vector2::new(self.width.get(), height);
-
+    pub fn set_size(&self, size: Vector2<f32>) {
         self.background.size.set(size);
         self.track.size.set(size);
     }
