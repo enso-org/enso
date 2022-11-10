@@ -7,7 +7,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -78,7 +77,7 @@ public final class EnsoBigInteger implements TruffleObject {
 
   @ExportMessage
   final boolean fitsInDouble() {
-    return false;
+    return true;
   }
 
   @ExportMessage
@@ -108,7 +107,7 @@ public final class EnsoBigInteger implements TruffleObject {
 
   @ExportMessage
   final double asDouble() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return value.doubleValue();
   }
 
   @ExportMessage
