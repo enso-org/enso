@@ -1,4 +1,7 @@
-//! UI components that allows picking a number or range through mouse interaction.
+//! UI component that allows picking a number through mouse interaction. Horizontal mouse movement
+//! changes the value within a set range. Vertical mouse movement changes the precision of the
+//! slider, this influences the response to horizontal mouse movement and the increment steps to
+//! which the value is snapped.
 
 #![recursion_limit = "1024"]
 // === Standard Linter Configuration ===
@@ -39,6 +42,7 @@ pub const PRECISION_STEP_BASE: f32 = 10.0;
 // === Slider component ===
 // ========================
 
+/// Slider component structure
 pub struct Slider {
     pub frp: Frp,
     model:   Rc<Model>,
@@ -46,6 +50,7 @@ pub struct Slider {
 }
 
 impl Slider {
+    /// Constructor
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(&app));
         let app = app.clone_ref();
@@ -96,27 +101,44 @@ impl application::View for Slider {
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set the width of the component
         set_width(f32),
+        /// Set the height of the component
         set_height(f32),
 
+        /// Set the color of the slider
         set_slider_color(color::Lcha),
+        /// Set the color of the background
         set_background_color(color::Lcha),
 
+        /// Set the slider value
         set_value(f32),
+        /// Set the default value to reset a slider to
         set_value_default(f32),
+        /// Set the minimum to which the value is clamped
         set_value_min(f32),
+        /// Set the maximum to which the value is clamped
         set_value_max(f32),
+        /// Set the color of the value text display
         set_value_color(color::Lcha),
 
+        /// Set the default precision at which the slider operates
         set_precision(f32),
+        /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
         set_precision_step_margin(f32),
+        /// Set the distance of vertical mouse movement needed to increment/decrement the precision to the next step
         set_precision_step_size(f32),
 
+        /// Set a slider label
         set_label(ImString),
+        /// Set the color of the slider label
         set_label_color(color::Lcha),
+        /// Set whether the label is displayed
         set_label_visible(bool),
+        /// Set whether the label is shown inside the slider, as opposed to left of it
         set_label_inside(bool),
 
+        /// Set whether the slider is enabled, when disabled the slider is greyed out and cannot be interacted with
         set_slider_enabled(bool),
     }
     Output {
@@ -127,6 +149,7 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl Slider {
+    /// Initialise a slider component
     fn init(self) -> Self {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -171,6 +194,8 @@ impl Slider {
                 f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y )
             ).gate(&component_drag);
 
+
+
             // Componenet size
 
             output.width            <+ input.set_width;
@@ -178,6 +203,7 @@ impl Slider {
 
 
             // precision calculation
+
             precision_adjust_margin <- all2(&input.set_height, &input.set_precision_step_margin).map(
                 |(height, margin)| height / 2.0 + margin
             );
@@ -370,6 +396,8 @@ impl Slider {
 // === Helper functions ===
 // ========================
 
+/// Rounds a floating point value to a specified precision and provides two strings: one with the
+/// digits left of the decimal point, and one optional with the digits right of the decimal point
 fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Option<ImString>) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;

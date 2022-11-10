@@ -14,15 +14,23 @@ use ensogl_text as text;
 // === Model definition ===
 // ========================
 
+/// Slider model structure
 pub struct Model {
+    /// Background element
     pub background:  background::View,
+    /// Slider track element that moves dependent on the value of the slider
     pub track:       track::View,
+    /// Slider label
     pub label:       text::Text,
+    /// Slider value text left of the decimal point
     pub value_left:  text::Text,
+    /// Slider value text decimal point
     pub value_dot:   text::Text,
+    /// Slider value text right of the decimal point
     pub value_right: text::Text,
-    pub root:        display::object::Instance,
-    pub app:         Application,
+
+    pub root: display::object::Instance,
+    pub app:  Application,
 }
 
 impl Model {
@@ -50,16 +58,8 @@ impl Model {
         value_right.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
-        let model = Self {
-            background,
-            track,
-            label,
-            value_left,
-            value_dot,
-            value_right,
-            root,
-            app,
-        };
+        let model =
+            Self { background, track, label, value_left, value_dot, value_right, root, app };
 
         model.set_size(Vector2::new(200.0, 50.0));
         model.value_dot.set_content(".");
@@ -67,18 +67,22 @@ impl Model {
         model
     }
 
+    /// Set component size
     pub fn set_size(&self, size: Vector2<f32>) {
         self.background.size.set(size);
         self.track.size.set(size);
     }
 
+    /// Set slider track color
     pub fn set_track_color(&self, color: color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
     }
+    /// Set slider background color
     pub fn set_background_color(&self, color: color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
     }
 
+    /// Set slider label visibility
     pub fn set_label_visible(&self, enabled: bool) {
         if enabled {
             self.root.add_child(&self.label);
@@ -87,6 +91,7 @@ impl Model {
         }
     }
 
+    /// Set visibility of value text right of the decimal point
     pub fn set_value_decimal_visible(&self, enabled: bool) {
         if enabled {
             self.root.add_child(&self.value_dot);
@@ -117,6 +122,7 @@ struct Background {
 }
 
 impl Background {
+    /// Create new rounded background shape
     fn new() -> Self {
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
