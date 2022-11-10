@@ -60,7 +60,7 @@ public abstract class MethodNodeClassGenerator {
               + "\", name = \""
               + ensoMethodName
               + "\", description = \""
-              + description
+              + description.replace("\n", "\\n")
               + "\")");
       if (isAbstract()) {
         out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
@@ -121,7 +121,7 @@ public abstract class MethodNodeClassGenerator {
             + "\", name = \""
             + ensoMethodName
             + "\", description = \""
-            + description
+            + description.replace("\n", "\\n")
             + "\")");
   }
 

@@ -3,20 +3,23 @@ package org.enso.interpreter.dsl;
 import org.enso.interpreter.dsl.builtins.*;
 
 import com.google.common.base.CaseFormat;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.openide.util.lookup.ServiceProvider;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
-import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
-import javax.tools.StandardLocation;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**

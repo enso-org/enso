@@ -155,7 +155,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("@NodeInfo(");
       out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
-      out.println("  description = \"" + methodDefinition.getDescription() + "\")");
+      out.println("  description = \"" + methodDefinition.getDescription().replace("\n", "\\n") + "\")");
       out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 
