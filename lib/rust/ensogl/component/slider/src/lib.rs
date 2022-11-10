@@ -103,9 +103,7 @@ ensogl_core::define_endpoints_2! {
         set_precision_step_margin(f32),
         set_precision_step_size(f32),
 
-        set_tooltip(Option<ImString>),
-
-        set_label(Option<ImString>),
+        set_label(ImString),
         set_label_color(color::Lcha),
         set_label_visible(bool),
         set_label_inside(bool),
@@ -300,13 +298,10 @@ impl Slider {
                 (h) model.value_right.set_position_y(*h / 2.0);
             );
 
-            label_text <- all2(&input.set_label, &input.set_label_visible).map(
-                |(label, visible)| match (label, visible) {
-                    (Some(label), true) => label.clone(),
-                    (None, _) | (_, false) => ImString::default(),
-                }
+            model.label.set_content <+ input.set_label;
+            eval input.set_label_visible (
+                (v) model.set_label_visible(*v);
             );
-            model.label.set_content <+ label_text;
 
             eval model.label.height (
                 (h) model.label.set_position_y(*h / 2.0);

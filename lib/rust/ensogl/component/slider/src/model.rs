@@ -99,6 +99,14 @@ impl Model {
     pub fn set_background_color(&self, color: color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
     }
+
+    pub fn set_label_visible(&self, enabled: bool) {
+        if enabled {
+            self.root.add_child(&self.label);
+        } else {
+            self.root.remove_child(&self.label);
+        } 
+    }
 }
 
 impl display::Object for Model {
