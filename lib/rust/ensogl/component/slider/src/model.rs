@@ -15,13 +15,13 @@ use ensogl_text as text;
 // ========================
 
 pub struct Model {
-    pub background: background::View,
-    pub track:      track::View,
-    pub label:      text::Text,
-    pub value_left: text::Text,
-    pub value_dot:  text::Text,
-    pub value_right:text::Text,
-    pub root:       display::object::Instance,
+    pub background:  background::View,
+    pub track:       track::View,
+    pub label:       text::Text,
+    pub value_left:  text::Text,
+    pub value_dot:   text::Text,
+    pub value_right: text::Text,
+    pub root:        display::object::Instance,
 
     width:  Cell<f32>,
     height: Cell<f32>,
@@ -105,7 +105,17 @@ impl Model {
             self.root.add_child(&self.label);
         } else {
             self.root.remove_child(&self.label);
-        } 
+        }
+    }
+
+    pub fn set_value_decimal_visible(&self, enabled: bool) {
+        if enabled {
+            self.root.add_child(&self.value_dot);
+            self.root.add_child(&self.value_right);
+        } else {
+            self.root.remove_child(&self.value_dot);
+            self.root.remove_child(&self.value_right);
+        }
     }
 }
 

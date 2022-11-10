@@ -273,8 +273,16 @@ impl Slider {
                     value_text_truncate_precision(*value, *precision)
                 }
             );
-            model.value_left.set_content <+ value_text.map(|t| t.0.clone() );
-            model.value_right.set_content <+ value_text.map(|t| t.1.clone() );
+            value_text_decimal_visible <- value_text.map(|t| t.1.is_some());
+            model.value_left.set_content <+ value_text.map(|t| t.0.clone());
+            value_text_right <- value_text.map(|t| t.1.clone()).gate(&value_text_decimal_visible);
+            model.value_right.set_content <+ value_text_right.map(
+                |t| t.clone().unwrap() // value_text_right is gated by t.1.is_some() in value_text_decimal_visible
+            );
+            value_text_decimal_visibility_change <- value_text_decimal_visible.on_change();
+            eval value_text_decimal_visibility_change (
+                (v) model.set_value_decimal_visible(*v);
+            );
 
             value_text_left_pos_x <- all2(&model.value_left.width, &model.value_dot.width).map(
                 |(left, dot)| -*left - *dot / 2.0
@@ -348,18 +356,19 @@ impl Slider {
 // === Helper functions ===
 // ========================
 
-fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, ImString) {
+fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Option<ImString>) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
 
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
-        let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or(ImString::default());
-        let text_right = text_iter.next().map(|s| s.to_im_string()).unwrap_or(ImString::default());
+        let text_left =
+            text_iter.next().map(|s| s.to_im_string()).unwrap_or_else(|| ImString::default());
+        let text_right = text_iter.next().map(|s| s.to_im_string());
 
         (text_left, text_right)
     } else {
         let text_left = format!("{:.0}", value.trunc()).to_im_string();
-        (text_left, ImString::default())
+        (text_left, None)
     }
 }
