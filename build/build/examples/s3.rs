@@ -3,7 +3,7 @@ use enso_build::prelude::*;
 use aws_sdk_s3::model::ObjectCannedAcl;
 use aws_sdk_s3::types::ByteStream;
 use aws_sdk_s3::Client;
-use enso_build::aws::BucketContext;
+use enso_build::aws::s3::BucketContext;
 use enso_build::aws::EDITIONS_BUCKET_NAME;
 
 
@@ -15,7 +15,7 @@ async fn main() -> Result {
         client:     Client::new(&config),
         bucket:     EDITIONS_BUCKET_NAME.to_string(),
         upload_acl: ObjectCannedAcl::PublicRead,
-        key_prefix: "enso".into(),
+        key_prefix: Some("enso".into()),
     };
 
     // std::env::set_var("AWS_SECRET_ACCESS_KEY", std::env::var("AWS_SECRET_ACCESS_KEY")?.trim());

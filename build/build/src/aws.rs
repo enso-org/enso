@@ -1,14 +1,11 @@
 use crate::prelude::*;
 
-use crate::version::BuildKind;
+use crate::version::Kind;
 
 use anyhow::Context;
 use aws_sdk_s3::model::ObjectCannedAcl;
-use aws_sdk_s3::output::PutObjectOutput;
 use aws_sdk_s3::types::ByteStream;
-use bytes::Buf;
-use ide_ci::models::config::RepoContext;
-use serde::de::DeserializeOwned;
+use s3::BucketContext;
 
 
 // ==============
@@ -16,6 +13,7 @@ use serde::de::DeserializeOwned;
 // ==============
 
 pub mod ecr;
+pub mod s3;
 
 
 
@@ -49,7 +47,7 @@ impl Edition {
         self.0.contains("nightly")
             || Version::find_in_text(self)
                 .as_ref()
-                .map_or(false, |version| BuildKind::Nightly.matches(version))
+                .map_or(false, |version| Kind::Nightly.matches(version))
     }
 }
 
@@ -87,56 +85,12 @@ impl Manifest {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct BucketContext {
-    pub client:     aws_sdk_s3::Client,
-    pub bucket:     String,
-    pub upload_acl: ObjectCannedAcl,
-    pub key_prefix: String,
-}
-
-impl BucketContext {
-    pub async fn get(&self, path: &str) -> Result<ByteStream> {
-        Ok(self
-            .client
-            .get_object()
-            .bucket(&self.bucket)
-            .key(format!("{}/{}", self.key_prefix, path))
-            .send()
-            .await?
-            .body)
-    }
-
-    pub async fn put(&self, path: &str, data: ByteStream) -> Result<PutObjectOutput> {
-        dbg!(self
-            .client
-            .put_object()
-            .bucket(&self.bucket)
-            .acl(self.upload_acl.clone())
-            .key(format!("{}/{}", self.key_prefix, path))
-            .body(data))
-        .send()
-        .await
-        .anyhow_err()
-    }
-
-    pub async fn get_yaml<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        let text = self.get(path).await?.collect().await?;
-        serde_yaml::from_reader(text.reader()).anyhow_err()
-    }
-
-    pub async fn put_yaml(&self, path: &str, data: &impl Serialize) -> Result<PutObjectOutput> {
-        let buf = serde_yaml::to_string(data)?;
-        self.put(path, ByteStream::from(buf.into_bytes())).await
-    }
-}
-
-pub async fn update_manifest(repo_context: &RepoContext, edition_file: &Path) -> Result {
+pub async fn update_manifest(repo_context: &impl IsRepo, edition_file: &Path) -> Result {
     let bucket_context = BucketContext {
         client:     aws_sdk_s3::Client::new(&aws_config::load_from_env().await),
         bucket:     EDITIONS_BUCKET_NAME.to_string(),
         upload_acl: ObjectCannedAcl::PublicRead,
-        key_prefix: repo_context.name.clone(),
+        key_prefix: Some(repo_context.name().to_string()),
     };
 
     let new_edition_name = Edition(

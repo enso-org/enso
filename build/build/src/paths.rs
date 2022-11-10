@@ -16,6 +16,10 @@ ide_ci::define_env_var! {
     /// Directory where JUnit-format test run results are stored.
     /// These are generated as part of the standard library test suite run.
     ENSO_TEST_JUNIT_DIR, PathBuf;
+
+    /// Used to overwrite the default location of data directory. See:
+    /// <https://enso.org/docs/developer/enso/distribution/distribution.html#installed-enso-distribution-layout>.
+    ENSO_DATA_DIRECTORY, PathBuf;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
@@ -59,7 +63,7 @@ impl ComponentPaths {
         Self { name, root, dir, artifact_archive }
     }
 
-    pub fn emit_to_actions(&self, prefix: &str) -> Result {
+    pub async fn emit_to_actions(&self, prefix: &str) -> Result {
         let paths = [
             ("NAME", &self.name),
             ("ROOT", &self.root),
@@ -70,7 +74,8 @@ impl ComponentPaths {
             ide_ci::actions::workflow::set_env(
                 &iformat!("{prefix}_DIST_{what}"),
                 &path.to_string_lossy(),
-            )?;
+            )
+            .await?;
         }
         Ok(())
     }
@@ -182,7 +187,7 @@ impl Paths {
 
     /// Sets the environment variables in the current process and in GitHub Actions Runner (if being
     /// run in its environment), so future steps of the job also have access to them.
-    pub fn emit_env_to_actions(&self) -> Result {
+    pub async fn emit_env_to_actions(&self) -> Result {
         let components = [
             ("ENGINE", &self.engine),
             ("LAUNCHER", &self.launcher),
@@ -190,11 +195,11 @@ impl Paths {
         ];
 
         for (prefix, paths) in components {
-            paths.emit_to_actions(prefix)?;
+            paths.emit_to_actions(prefix).await?;
         }
 
-        ide_ci::actions::workflow::set_env("TARGET_DIR", &self.target.to_string_lossy())?;
-        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.test_results.as_path())?;
+        ide_ci::actions::workflow::set_env("TARGET_DIR", &self.target.to_string_lossy()).await?;
+        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.test_results.as_path()).await?;
         Ok(())
     }
 
@@ -264,18 +269,21 @@ pub fn root_to_changelog(root: impl AsRef<Path>) -> PathBuf {
 
 /// The default value of `ENSO_DATA_DIRECTORY`.
 /// See: <https://enso.org/docs/developer/enso/distribution/distribution.html#installed-enso-distribution-layout>
+///
+/// We use it as a fallback when the environment variable is not set.
 pub fn default_data_directory() -> PathBuf {
     let project_path = match TARGET_OS {
         OS::MacOS => "org.enso",
         _ => "enso",
     };
     // We can unwrap, because all systems we target define data local directory.
+    // This is enforced by the unit test below.
     dirs::data_local_dir().unwrap().join(project_path)
 }
 
 /// Get the `ENSO_DATA_DIRECTORY` path.
 pub fn data_directory() -> PathBuf {
-    std::env::var_os("ENSO_DATA_DIRECTORY").map_or_else(default_data_directory, PathBuf::from)
+    ENSO_DATA_DIRECTORY.get().unwrap_or_else(|_| default_data_directory())
 }
 
 /// Get the place where global IR caches are stored.
@@ -300,5 +308,16 @@ pub fn parent_cargo_toml(initial_path: impl AsRef<Path>) -> Result<PathBuf> {
         }
         path.pop();
         ensure!(path.pop(), "No Cargo.toml found for {}", initial_path.as_ref().display());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_data_directory_is_present() {
+        // We just check that the function does not panic, as it has unwrap.
+        default_data_directory();
     }
 }
