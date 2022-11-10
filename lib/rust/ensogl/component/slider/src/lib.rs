@@ -1,8 +1,11 @@
 //! UI components that allows picking a number or range through mouse interaction.
 
 #![recursion_limit = "1024"]
-
-pub mod model;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
 use crate::model::*;
 use ensogl_core::prelude::*;
@@ -13,6 +16,13 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::Animation;
 use ensogl_text::formatting;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod model;
 
 
 
@@ -79,6 +89,7 @@ ensogl_core::define_endpoints_2! {
     Input {
         set_width(f32),
         set_height(f32),
+
         set_slider_color(color::Lcha),
         set_background_color(color::Lcha),
 
@@ -93,6 +104,7 @@ ensogl_core::define_endpoints_2! {
         set_precision_step_size(f32),
 
         set_tooltip(Option<ImString>),
+
         set_label(Option<ImString>),
         set_label_color(color::Lcha),
         set_label_visible(bool),
