@@ -18,7 +18,9 @@ pub struct Model {
     pub background: background::View,
     pub track:      track::View,
     pub label:      text::Text,
-    pub value:      text::Text,
+    pub value_left: text::Text,
+    pub value_dot:  text::Text,
+    pub value_right:text::Text,
     pub root:       display::object::Instance,
 
     width:  Cell<f32>,
@@ -31,7 +33,9 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
-        let value = app.new_view::<text::Text>();
+        let value_left = app.new_view::<text::Text>();
+        let value_dot = app.new_view::<text::Text>();
+        let value_right = app.new_view::<text::Text>();
         let background = background::View::new();
         let track = track::View::new();
 
@@ -41,24 +45,32 @@ impl Model {
         root.add_child(&background);
         root.add_child(&track);
         root.add_child(&label);
-        root.add_child(&value);
+        root.add_child(&value_left);
+        root.add_child(&value_dot);
+        root.add_child(&value_right);
 
-        value.add_to_scene_layer(&scene.layers.label);
+        value_left.add_to_scene_layer(&scene.layers.label);
+        value_dot.add_to_scene_layer(&scene.layers.label);
+        value_right.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
             background,
             track,
             label,
-            value,
+            value_left,
+            value_dot,
+            value_right,
             root,
             app,
-            height: Cell::new(200.0),
+            height: Cell::new(50.0),
             width: Cell::new(200.0),
         };
 
         model.set_width(200.0);
         model.set_height(50.0);
+
+        model.value_dot.set_content(".");
 
         model
     }

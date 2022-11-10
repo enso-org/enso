@@ -223,15 +223,20 @@ impl Slider {
             );
             value_is_default_true   <- value_is_default.on_true();
             value_is_default_false  <- value_is_default.on_false();
-            eval_ value_is_default_true (
-                model.value.set_property_default(formatting::Weight::Normal);
-            );
-            eval_ value_is_default_false (
-                model.value.set_property_default(formatting::Weight::Bold);
-            );
+            eval_ value_is_default_true ({
+                model.value_left.set_property_default(formatting::Weight::Normal);
+                model.value_dot.set_property_default(formatting::Weight::Normal);
+                model.value_right.set_property_default(formatting::Weight::Normal);
+            });
+            eval_ value_is_default_false ({
+                model.value_left.set_property_default(formatting::Weight::Bold);
+                model.value_dot.set_property_default(formatting::Weight::Bold);
+                model.value_right.set_property_default(formatting::Weight::Bold);
+            });
 
 
             // colors
+
             background_color        <- all2(&input.set_background_color, &input.set_slider_enabled).map(
                 |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
@@ -252,7 +257,11 @@ impl Slider {
                 (color) model.set_track_color(*color);
             );
             eval value_color (
-                (color) model.value.set_property_default(color);
+                (color) {
+                    model.value_left.set_property_default(color);
+                    model.value_dot.set_property_default(color);
+                    model.value_right.set_property_default(color);
+                }
             );
             eval label_color (
                 (color) model.label.set_property_default(color);
@@ -261,19 +270,34 @@ impl Slider {
 
             // text alignment
 
-            model.value.set_content <+ all2(&value, &precision_adjusted).map(
+            value_text <- all2(&value, &precision_adjusted).map(
                 |(value, precision)| {
-                    let (left, right) = value_truncate_precision(*value, *precision);
-
-                    format!("{}.{}", left, right).to_im_string()
+                    value_text_truncate_precision(*value, *precision)
                 }
             );
+            model.value_left.set_content <+ value_text.map(|t| t.0.clone() );
+            model.value_right.set_content <+ value_text.map(|t| t.1.clone() );
 
-            eval model.value.width (
-                (w) model.value.set_position_x(-*w / 2.0);
+            value_text_left_pos_x <- all2(&model.value_left.width, &model.value_dot.width).map(
+                |(left, dot)| -*left - *dot / 2.0
             );
-            eval model.value.height (
-                (h) model.value.set_position_y(*h / 2.0);
+            eval value_text_left_pos_x (
+                (x) model.value_left.set_position_x(*x);
+            );
+            eval model.value_left.height (
+                (h) model.value_left.set_position_y(*h / 2.0);
+            );
+            eval model.value_dot.width (
+                (w) model.value_dot.set_position_x(-*w / 2.0);
+            );
+            eval model.value_dot.height (
+                (h) model.value_dot.set_position_y(*h / 2.0);
+            );
+            eval model.value_dot.width (
+                (w) model.value_right.set_position_x(*w / 2.0);
+            );
+            eval model.value_right.height (
+                (h) model.value_right.set_position_y(*h / 2.0);
             );
 
             label_text <- all2(&input.set_label, &input.set_label_visible).map(
@@ -329,7 +353,7 @@ impl Slider {
 // === Helper functions ===
 // ========================
 
-fn value_truncate_precision(value: f32, precision: f32) -> (ImString, ImString) {
+fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, ImString) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
 
