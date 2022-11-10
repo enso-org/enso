@@ -14,22 +14,22 @@ use crate::data::watch;
 
 /// Owned call stack type.
 #[cfg(feature = "stack-trace")]
-pub type OwnedCallStack = EnabledCallStack;
+pub type OwnedCallStack<'a> = EnabledCallStack<'a>;
 
 /// Owned call stack type.
 #[cfg(not(feature = "stack-trace"))]
-pub type OwnedCallStack = DisabledCallStack;
+pub type OwnedCallStack<'a> = DisabledCallStack;
 
 /// A call stack trace for FRP events.
-pub type CallStack<'a> = &'a OwnedCallStack;
+pub type CallStack<'a> = &'a OwnedCallStack<'a>;
 
 
 // === Ops ===
 
 /// Call stack operations available on both enabled and disabled stack implementations.
-pub trait CallStackOps: Default + Display {
+pub trait CallStackOps<'a>: Default + Display {
     /// Create a sub stack trace.
-    fn sub(&self, label: Label) -> Self;
+    fn sub(&'a self, label: Label) -> Self;
 }
 
 
@@ -37,22 +37,30 @@ pub trait CallStackOps: Default + Display {
 
 /// A call stack trace for FRP events.
 #[derive(Debug, Default)]
-pub struct EnabledCallStack {
-    stack: Vec<Label>,
+pub struct EnabledCallStack<'a> {
+    parent: Option<&'a EnabledCallStack<'a>>,
+    label:  Label,
 }
 
-impl CallStackOps for EnabledCallStack {
-    fn sub(&self, label: Label) -> Self {
-        let stack = self.stack.to_vec().pushed(label);
-        Self { stack }
+impl<'a> CallStackOps<'a> for EnabledCallStack<'a> {
+    fn sub(&'a self, label: Label) -> Self {
+        Self { parent: Some(self), label }
     }
 }
 
-impl Display for EnabledCallStack {
+impl Display for EnabledCallStack<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let indent = "\n    ";
-        let trace = indent.to_string() + &self.stack.join(indent);
-        write!(f, "Call stack trace:{}", trace)
+        f.write_str("Call stack trace:")?;
+        let mut stack = self;
+        loop {
+            f.write_str("\n    ")?;
+            f.write_str(stack.label)?;
+            match stack.parent {
+                None => break,
+                Some(parent) => stack = parent,
+            }
+        }
+        Ok(())
     }
 }
 
@@ -63,8 +71,8 @@ impl Display for EnabledCallStack {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DisabledCallStack;
 
-impl CallStackOps for DisabledCallStack {
-    fn sub(&self, _label: Label) -> Self {
+impl<'a> CallStackOps<'a> for DisabledCallStack {
+    fn sub(&'a self, _label: Label) -> Self {
         *self
     }
 }
