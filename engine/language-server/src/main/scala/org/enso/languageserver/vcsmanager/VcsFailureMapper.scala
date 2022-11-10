@@ -9,7 +9,6 @@ object VcsFailureMapper {
     case RepoNotFound(_)        => VcsManagerApi.RepoNotFound
     case ProjectRootNotFound(_) => VcsManagerApi.ContentRootNotFoundError
     case SaveNotFound           => VcsManagerApi.NamedSaveNotFound
-    case SaveAlreadyExists      => VcsManagerApi.NamedSaveAlreadyExists
     case GenericVcsFailure(msg) => VcsManagerApi.VcsError(msg)
   }
 

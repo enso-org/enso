@@ -31,12 +31,13 @@ object VcsProtocol {
   case class StatusRepo(clientId: ClientId, root: Path)
 
   case class StatusRepoResponse(
-    result: Either[VcsFailure, (Boolean, List[Path], String)]
-  ) extends VCSResponse[(Boolean, List[Path], String)]
+    result: Either[VcsFailure, (Boolean, List[Path], (String, String))]
+  ) extends VCSResponse[(Boolean, List[Path], (String, String))]
 
   case class ListRepo(clientId: ClientId, root: Path)
 
-  case class ListRepoResponse(result: Either[VcsFailure, List[String]])
-      extends VCSResponse[List[String]]
+  case class ListRepoResponse(
+    result: Either[VcsFailure, List[(String, String)]]
+  ) extends VCSResponse[List[(String, String)]]
 
 }

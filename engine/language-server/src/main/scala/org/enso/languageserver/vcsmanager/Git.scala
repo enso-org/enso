@@ -1,15 +1,19 @@
 package org.enso.languageserver.vcsmanager
 
-import java.io.FileNotFoundException
+import java.io.{FileNotFoundException, IOException}
 import java.nio.file.Path
 import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
-import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import org.eclipse.jgit.api.errors.RefNotFoundException
 import org.eclipse.jgit.api.errors.WrongRepositoryStateException
-import org.eclipse.jgit.errors.RepositoryNotFoundException
-import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.errors.{
+  IncorrectObjectTypeException,
+  InvalidObjectIdException,
+  MissingObjectException,
+  RepositoryNotFoundException
+}
+import org.eclipse.jgit.lib.{ObjectId, Repository}
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
 import org.enso.languageserver.vcsmanager.Git.{
@@ -23,7 +27,6 @@ import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
 import java.time.Instant
-import scala.annotation.tailrec
 
 class Git extends VcsApi[BlockingIO] {
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
@@ -65,21 +68,12 @@ class Git extends VcsApi[BlockingIO] {
   override def commit(
     root: Path,
     named: Option[String]
-  ): BlockingIO[VcsFailure, (String, String)] = {
+  ): BlockingIO[VcsFailure, RepoCommit] = {
     effectBlocking {
       val repo = repository(root)
 
-      // Ensure that the name is unique
-      val commitName = named match {
-        case Some(name) =>
-          val found = findRevision(repo, name)
-          if (found.isEmpty) name
-          else throw new RefAlreadyExistsException(name + " already exists")
-        case None =>
-          Instant.now().toString
-      }
-
-      val jgit = new JGit(repo)
+      val commitName = named.getOrElse(Instant.now().toString)
+      val jgit       = new JGit(repo)
       // Add all modified and new files to the index
       jgit
         .add()
@@ -91,66 +85,52 @@ class Git extends VcsApi[BlockingIO] {
         .setMessage(commitName)
         .setAuthor(AuthorName, AuthoerEmail)
         .call()
-      (revCommit.getShortMessage(), revCommit.getName())
+      RepoCommit(revCommit.getName(), revCommit.getShortMessage())
     }.mapError(errorHandling)
   }
 
   override def restore(
     root: Path,
-    name: Option[String]
+    commitId: Option[String]
   ): BlockingIO[VcsFailure, Unit] = {
     effectBlocking {
       val repo = repository(root)
-      name match {
+      val resetCmd0 = new JGit(repo)
+        .reset()
+        .setMode(ResetType.HARD)
+
+      val resetCmd = commitId match {
         case Some(name) =>
           val found = findRevision(repo, name)
           found.map { rev =>
-            val jgit = new JGit(repo)
-            jgit
-              .reset()
-              .setMode(ResetType.HARD)
+            resetCmd0
               .setRef(rev.getName())
-              .call()
           } getOrElse {
             throw new RefNotFoundException(name)
           }
         case None =>
-          val jgit = new JGit(repo)
-          val resetCmd = jgit
-            .reset()
-            .setMode(ResetType.HARD)
-          resetCmd.call()
+          resetCmd0
       }
+      resetCmd.call()
       ()
     }.mapError(errorHandling)
   }
 
-  private def findRevision(walk: RevWalk, name: String): Option[RevCommit] = {
-    @tailrec
-    def find(
-      current: RevCommit,
-      it: java.util.Iterator[RevCommit]
-    ): Option[RevCommit] = {
-      if (current == null) None
-      else if (current.getShortMessage() == name) Some(current)
-      else find(it.next(), it)
-    }
-    val iterator = walk.iterator()
-    find(iterator.next(), iterator)
-  }
-
   private def findRevision(
     repo: Repository,
-    name: String
+    sha: String
   ): Option[RevCommit] = {
-    Option(repo.resolve(Git.MasterRef)).flatMap { start =>
-      val walk = new RevWalk(repo)
-      walk.markStart(walk.parseCommit(start))
-      try {
-        findRevision(walk, name)
-      } finally {
-        walk.dispose()
-      }
+    val walk = new RevWalk(repo)
+    try {
+      val revCommitId = ObjectId.fromString(sha)
+      Some(walk.parseCommit(revCommitId))
+    } catch {
+      case _: MissingObjectException       => None
+      case _: IncorrectObjectTypeException => None
+      case _: InvalidObjectIdException     => None
+      case _: IOException                  => None
+    } finally {
+      walk.dispose()
     }
   }
 
@@ -169,24 +149,30 @@ class Git extends VcsApi[BlockingIO] {
       val last =
         Option(repo.resolve(MasterRef)) flatMap (_ => {
           val logs = logCmd.setMaxCount(1).call().iterator()
-          if (logs.hasNext()) Option(logs.next().getShortMessage()) else None
+          if (logs.hasNext()) {
+            val log = logs.next()
+            Option(RepoCommit(log.getName, log.getShortMessage()))
+          } else None
         }) getOrElse null
       RepoStatus(!status.isClean(), changedPaths, last)
     }.mapError(errorHandling)
   }
 
-  override def list(root: Path): BlockingIO[VcsFailure, List[String]] = {
+  override def list(root: Path): BlockingIO[VcsFailure, List[RepoCommit]] = {
     effectBlocking {
       val jgit   = new JGit(repository(root))
       val logCmd = jgit.log()
-      logCmd.call().asScala.toList.map(_.getShortMessage())
+      logCmd
+        .call()
+        .asScala
+        .toList
+        .map(rev => RepoCommit(rev.getName, rev.getShortMessage))
     }.mapError(errorHandling)
   }
 
   private val errorHandling: Throwable => VcsFailure = {
     case ex: FileNotFoundException       => ProjectNotFound(ex.getMessage)
     case ex: RepositoryNotFoundException => RepoNotFound(ex.getMessage)
-    case _: RefAlreadyExistsException    => SaveAlreadyExists
     case _: RefNotFoundException         => SaveNotFound
     case ex                              => GenericVcsFailure(ex.getMessage)
   }

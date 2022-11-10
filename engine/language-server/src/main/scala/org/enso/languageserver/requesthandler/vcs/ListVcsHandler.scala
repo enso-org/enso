@@ -49,7 +49,9 @@ class ListVcsHandler(
       replyTo ! ResponseResult(
         ListVcs,
         id,
-        ListVcs.Result(saves)
+        ListVcs.Result(saves.map { case (commitId, message) =>
+          ListVcs.Save(commitId, message)
+        })
       )
       cancellable.cancel()
       context.stop(self)

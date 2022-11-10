@@ -65,7 +65,9 @@ class VcsManager(
         } yield revCommit
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.SaveRepoResponse)
+        .map(r =>
+          VcsProtocol.SaveRepoResponse(r.map(RepoCommit.unapply(_).get))
+        )
         .pipeTo(sender())
     case VcsProtocol.RestoreRepo(_, repoRoot, optRevName) =>
       val result =
@@ -91,7 +93,7 @@ class VcsManager(
               (
                 status.isDirty,
                 status.changed.map(f => Path(repoRoot.rootId, f)).toList,
-                status.lastCommit
+                RepoCommit.unapply(status.lastCommit).get
               )
             )
           )
@@ -105,7 +107,9 @@ class VcsManager(
         } yield tags
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.ListRepoResponse)
+        .map(r =>
+          VcsProtocol.ListRepoResponse(r.map(_.map(RepoCommit.unapply(_).get)))
+        )
         .pipeTo(sender())
   }
 

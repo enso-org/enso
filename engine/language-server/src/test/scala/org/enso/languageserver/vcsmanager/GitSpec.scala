@@ -85,17 +85,6 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       commitResult.swap.getOrElse(null) shouldBe an[RepoNotFound]
     }
 
-    "reject commits with the same name" in new TestCtx with InitialRepoSetup {
-      createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
-      val commitResult1 = vcs.commit(repoPath, "First").unsafeRunSync()
-      commitResult1.isRight shouldBe true
-
-      createStubFile(repoPath.resolve("Bar.enso")) should equal(true)
-      val commitResult2 = vcs.commit(repoPath, "First").unsafeRunSync()
-      commitResult2.isLeft shouldBe true
-      commitResult2.swap.getOrElse(null) shouldBe an[SaveAlreadyExists.type]
-    }
-
     "commit without explicit name" in new TestCtx {
       val path       = repoPath
       val initResult = vcs.init(path).unsafeRunSync()
@@ -114,10 +103,12 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
   "VCS status" should {
     "report dirty status when untracked files are added" in new TestCtx
       with InitialRepoSetup {
-      val modifiedResult1 = vcs.status(repoPath).unsafeRunSync()
-      modifiedResult1.isRight shouldBe true
-      modifiedResult1.getOrElse(null) should equal(
-        RepoStatus(false, Set(), "Initial commit")
+      val modifiedResultEither1 = vcs.status(repoPath).unsafeRunSync()
+      modifiedResultEither1.isRight shouldBe true
+      val r = modifiedResultEither1.getOrElse(null)
+      r shouldBe an[RepoStatus]
+      repoStatusIgnoreSha(r) should equal(
+        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -129,10 +120,12 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
     "not report dirty status when untracked files were committed" in new TestCtx
       with InitialRepoSetup {
-      val modifiedResult1 = vcs.status(repoPath).unsafeRunSync()
-      modifiedResult1.isRight shouldBe true
-      modifiedResult1.getOrElse(null) should equal(
-        RepoStatus(false, Set(), "Initial commit")
+      val modifiedResultEither1 = vcs.status(repoPath).unsafeRunSync()
+      modifiedResultEither1.isRight shouldBe true
+      val r = modifiedResultEither1.getOrElse(null)
+      r shouldBe an[RepoStatus]
+      repoStatusIgnoreSha(r) should equal(
+        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -140,10 +133,15 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val commitResult = vcs.commit(repoPath, "New files").unsafeRunSync()
       commitResult.isRight shouldBe true
 
-      val modifiedResult2 = vcs.status(repoPath).unsafeRunSync()
-      modifiedResult2.isRight shouldBe true
-      modifiedResult2
-        .getOrElse(null) shouldBe RepoStatus(false, Set(), "New files")
+      val modifiedResultEither2 = vcs.status(repoPath).unsafeRunSync()
+      modifiedResultEither2.isRight shouldBe true
+      val r2 = modifiedResultEither2.getOrElse(null)
+      r2 shouldBe an[RepoStatus]
+      repoStatusIgnoreSha(r2) shouldBe RepoStatus(
+        false,
+        Set(),
+        RepoCommit(null, "New files")
+      )
     }
 
     "report dirty status when tracked files were modified" in new TestCtx
@@ -158,12 +156,14 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         "file contents".getBytes(StandardCharsets.UTF_8)
       )
 
-      val modifiedResult2 = vcs.status(repoPath).unsafeRunSync()
-      modifiedResult2.isRight shouldBe true
-      modifiedResult2.getOrElse(null) shouldBe RepoStatus(
+      val modifiedResultEither2 = vcs.status(repoPath).unsafeRunSync()
+      modifiedResultEither2.isRight shouldBe true
+      val r = modifiedResultEither2.getOrElse(null)
+      r shouldBe an[RepoStatus]
+      repoStatusIgnoreSha(r) shouldBe RepoStatus(
         true,
         Set(fooFile.getFileName),
-        "New files"
+        RepoCommit(null, "New files")
       )
 
     }
@@ -196,7 +196,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val text1 = Files.readAllLines(fooFile)
       text1.get(0) should equal("different contents")
 
-      val restoreResult = vcs.restore(repoPath, name = None).unsafeRunSync()
+      val restoreResult = vcs.restore(repoPath, commitId = None).unsafeRunSync()
       restoreResult.isRight shouldBe true
 
       val text2 = Files.readAllLines(fooFile)
@@ -215,6 +215,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       )
       val commitResult = vcs.commit(repoPath, "New files").unsafeRunSync()
       commitResult.isRight shouldBe true
+      val commitId = commitResult.getOrElse(null).commitId
 
       val text2 = "different contents"
       Files.write(
@@ -229,7 +230,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       fileText1.get(0) should equal("different contents")
 
       val restoreResult =
-        vcs.restore(repoPath, Some("New files")).unsafeRunSync()
+        vcs.restore(repoPath, Some(commitId)).unsafeRunSync()
       restoreResult.isRight shouldBe true
 
       val fileText2 = Files.readAllLines(fooFile)
@@ -239,7 +240,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     "report problem when named save does not exist" in new TestCtx
       with InitialRepoSetup {
       val restoreResult =
-        vcs.restore(repoPath, Some("New files")).unsafeRunSync()
+        vcs.restore(repoPath, Some("invalidsha")).unsafeRunSync()
       restoreResult.isLeft shouldBe true
       restoreResult.swap.getOrElse(null) shouldBe an[SaveNotFound.type]
     }
@@ -266,7 +267,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val listResult = vcs.list(repoPath).unsafeRunSync()
       listResult.isRight shouldBe true
 
-      listResult.getOrElse(Nil) should equal(
+      listResult.getOrElse(Nil).map(_.message) should equal(
         files.reverse.map(f => s"$f commit") ::: List("Initial commit")
       )
     }
@@ -314,6 +315,10 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
     def createStubFile(path: Path): Boolean = {
       path.toFile.createNewFile()
+    }
+
+    def repoStatusIgnoreSha(r: RepoStatus) = {
+      r.copy(lastCommit = r.lastCommit.copy(commitId = null))
     }
   }
 

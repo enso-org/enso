@@ -10,6 +10,4 @@ case class ProjectNotFound(reason: String) extends VcsFailure
 
 case object SaveNotFound extends VcsFailure
 
-case object SaveAlreadyExists extends VcsFailure
-
 case class GenericVcsFailure(reason: String) extends VcsFailure

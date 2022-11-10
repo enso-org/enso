@@ -49,7 +49,7 @@ class StatusVcsHandler(
       replyTo ! ResponseResult(
         StatusVcs,
         id,
-        StatusVcs.Result(isModified, changed, last)
+        StatusVcs.Result(isModified, changed, StatusVcs.Save(last._1, last._2))
       )
       cancellable.cancel()
       context.stop(self)

@@ -371,13 +371,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "Initial commit"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Initial commit"
+              }
             }
           }
           """)
@@ -409,7 +412,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
@@ -430,7 +433,10 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                   ]
                 }
               ],
-              "lastCommit": "Initial commit"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Initial commit"
+              }
             }
           }
           """)
@@ -448,13 +454,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "Add missing files"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Add missing files"
+              }
             }
           }
           """)
@@ -476,13 +485,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "Initial commit"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Initial commit"
+              }
             }
           }
           """)
@@ -520,7 +532,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
@@ -534,7 +546,10 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                   ]
                 }
               ],
-              "lastCommit": "Add missing files"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Add missing files"
+              }
             }
           }
           """)
@@ -569,13 +584,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
+        client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 4,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "Add missing files"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Add missing files"
+              }
             }
           }
           """)
@@ -597,13 +615,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "Initial commit"
+              "lastSave": {
+                "commitId": "*",
+                "message": "Initial commit"
+              }
             }
           }
           """)
@@ -645,16 +666,21 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
               "dirty": false,
               "changed": [],
-              "lastCommit": "More changes"
+              "lastSave": {
+                "commitId": "*",
+                "message": "More changes"
+              }
             }
           }
           """)
+      val sndToLast = commits(testContentRoot.file).tail.head
+
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/restore",
@@ -664,7 +690,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                 "rootId": $testContentRootId,
                 "segments": []
               },
-              "name": "Release"
+              "commitId": ${sndToLast.getName}
             }
           }
           """)
@@ -677,6 +703,29 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
 
       val text1 = Files.readAllLines(fooPath)
       text1.get(0) should equal("file contents")
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "vcs/restore",
+            "id": 4,
+            "params": {
+              "root": {
+                "rootId": $testContentRootId,
+                "segments": []
+              },
+              "commitId": "sth sth"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 4,
+            "error": {
+              "code": 1004,
+              "message": "Requested save not found"
+            }
+          }
+          """)
     }
   }
 
@@ -719,15 +768,27 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(json"""
+      client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
-              "saves": [
-                "More changes",
-                "Release",
-                "Add missing files",
-                "Initial commit"
+              "saves" : [
+                {
+                  "commitId" : "*",
+                  "message" : "More changes"
+                },
+                {
+                  "commitId" : "*",
+                  "message" : "Release"
+                },
+                {
+                  "commitId" : "*",
+                  "message" : "Add missing files"
+                },
+                {
+                  "commitId" : "*",
+                  "message" : "Initial commit"
+                }
               ]
             }
           }

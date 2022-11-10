@@ -29,7 +29,8 @@ object VcsManagerApi {
 
   case object StatusVcs extends Method("vcs/status") {
     case class Params(root: Path)
-    case class Result(dirty: Boolean, changed: List[Path], lastCommit: String)
+    case class Result(dirty: Boolean, changed: List[Path], lastSave: Save)
+    case class Save(commitId: String, message: String)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = StatusVcs.Params
@@ -40,7 +41,7 @@ object VcsManagerApi {
   }
 
   case object RestoreVcs extends Method("vcs/restore") {
-    case class Params(root: Path, name: Option[String])
+    case class Params(root: Path, commitId: Option[String])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = RestoreVcs.Params
@@ -52,7 +53,8 @@ object VcsManagerApi {
 
   case object ListVcs extends Method("vcs/list") {
     case class Params(root: Path)
-    case class Result(saves: List[String])
+    case class Result(saves: List[Save])
+    case class Save(commitId: String, message: String)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ListVcs.Params

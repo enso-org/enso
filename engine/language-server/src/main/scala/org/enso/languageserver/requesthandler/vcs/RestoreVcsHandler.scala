@@ -28,7 +28,7 @@ class RestoreVcsHandler(
       bufferManager ! VcsProtocol.RestoreRepo(
         rpcSession.clientId,
         params.root,
-        params.name
+        params.commitId
       )
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
