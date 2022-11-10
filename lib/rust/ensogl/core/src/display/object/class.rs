@@ -184,7 +184,15 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 // === Model ===
 // =============
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum State {
+    #[default]
+    Running,
+    RunningNonCancellable,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Phase {
     #[default]
     Capturing,
@@ -193,57 +201,20 @@ pub enum Phase {
 
 use std::any::TypeId;
 
-#[derive(Debug)]
-pub struct SomeEventData {
-    payload: Box<dyn std::any::Any>,
-    phase:   Rc<Cell<Phase>>,
-    stopped: Rc<Cell<bool>>,
-}
-
-impl SomeEventData {
-    pub fn new<T: 'static>(payload: T) -> Self {
-        let payload = Box::new(payload);
-        let phase = default();
-        let stopped = default();
-        Self { payload, phase, stopped }
-    }
-}
-
-impl Default for SomeEventData {
-    fn default() -> Self {
-        Self::new(())
-    }
-}
-
-// define_not_same_trait!();
-//
-// impl<T: 'static> From<T> for SomeEventData
-// where (T, SomeEventData): NotSame
-// {
-//     fn from(t: T) -> Self {
-//         Self::new(t)
-//     }
-// }
-
 
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SomeEvent {
-    data:    frp::AnyData,
-    stopped: Rc<Cell<bool>>,
+    data:  frp::AnyData,
+    state: Rc<Cell<State>>,
 }
 
 impl SomeEvent {
     pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
         let event = Event::new(target.map(|t| t.downgrade()), payload);
-        let stopped = event.stopped.clone_ref();
-        Self { data: frp::AnyData::new(event), stopped }
+        let state = event.state.clone_ref();
+        Self { data: frp::AnyData::new(event), state }
     }
-
-    // pub fn downcast<T>(&self) -> Option<Event<T>>
-    // where T: Clone + 'static {
-    //     self.data.payload.downcast_ref().map(|p: &T| Event::new(p.clone(), &self.stopped))
-    // }
 }
 
 impl Default for SomeEvent {
@@ -267,18 +238,22 @@ pub struct EventData<Host, T> {
     #[deref]
     payload: T,
     target:  Option<WeakInstance<Host>>,
-    stopped: Rc<Cell<bool>>,
+    state:   Rc<Cell<State>>,
 }
 
 impl<Host, T> Event<Host, T> {
     fn new(target: Option<WeakInstance<Host>>, payload: T) -> Self {
-        let stopped = default();
-        let data = Rc::new(EventData { payload, target, stopped });
+        let state = default();
+        let data = Rc::new(EventData { payload, target, state });
         Self { data }
     }
 
     pub fn stop_propagation(&self) {
-        self.stopped.set(true);
+        if self.state.get() == State::RunningNonCancellable {
+            warn!("Trying to cancel a non-cancellable event.");
+        } else {
+            self.state.set(State::Cancelled);
+        }
     }
 }
 
@@ -296,6 +271,7 @@ pub struct Model<Host = Scene> {
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
     host:                PhantomData<Host>,
+    focused_child:       RefCell<Option<WeakLayer>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer:      RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
@@ -333,6 +309,7 @@ impl<Host> Model<Host> {
     pub fn new() -> Self {
         let network = frp::Network::new("display_object");
         let host = default();
+        let focused_child = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = default();
@@ -352,6 +329,7 @@ impl<Host> Model<Host> {
             capturing_event_fan,
             bubbling_event_fan,
             host,
+            focused_child,
             assigned_layer,
             layer,
             dirty,
@@ -814,19 +792,19 @@ impl<Host> Instance<Host> {
         let rev_parent_chain = self.rev_parent_chain();
         for object in &rev_parent_chain {
             object.capturing_event_fan.emit(&event.data);
-            if event.stopped.get() {
+            if event.state.get() == State::Cancelled {
                 break;
             }
         }
-        if !event.stopped.get() {
+        if event.state.get() != State::Cancelled {
             self.capturing_event_fan.emit(&event.data);
         }
-        if !event.stopped.get() {
+        if event.state.get() != State::Cancelled {
             self.bubbling_event_fan.emit(&event.data);
         }
         for object in rev_parent_chain.iter().rev() {
             object.bubbling_event_fan.emit(&event.data);
-            if event.stopped.get() {
+            if event.state.get() == State::Cancelled {
                 break;
             }
         }
