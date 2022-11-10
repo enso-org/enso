@@ -38,14 +38,14 @@ class ListVcsHandler(
   ): Receive = {
     case RequestTimeout =>
       logger.error(
-        "Initialize project request [{}] for [{}] timed out.",
+        "List project saves request [{}] for [{}] timed out.",
         id,
         rpcSession.clientId
       )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.ListRepoResult(Right(saves)) =>
+    case VcsProtocol.ListRepoResponse(Right(saves)) =>
       replyTo ! ResponseResult(
         ListVcs,
         id,
@@ -54,7 +54,7 @@ class ListVcsHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.ListRepoResult(Left(failure)) =>
+    case VcsProtocol.ListRepoResponse(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

@@ -52,12 +52,12 @@ class InitVcsHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.InitRepoResult(Right(_)) =>
+    case VcsProtocol.InitRepoResponse(Right(_)) =>
       replyTo ! ResponseResult(InitVcs, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.InitRepoResult(Left(failure)) =>
+    case VcsProtocol.InitRepoResponse(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

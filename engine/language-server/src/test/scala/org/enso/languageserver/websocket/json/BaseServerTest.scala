@@ -164,7 +164,8 @@ class BaseServerTest
         contentRootManagerWrapper,
         new FileSystem,
         zioExec
-      )
+      ),
+      s"file-manager-${UUID.randomUUID()}"
     )
     val vcsManager = system.actorOf(
       VcsManager.props(
@@ -172,7 +173,8 @@ class BaseServerTest
         new Git,
         contentRootManagerWrapper,
         zioExec
-      )
+      ),
+      s"vcs-manager-${UUID.randomUUID()}"
     )
     val bufferRegistry =
       system.actorOf(
@@ -183,7 +185,8 @@ class BaseServerTest
           timingsConfig
         )(
           Sha3_224VersionCalculator
-        )
+        ),
+        s"buffer-registry-${UUID.randomUUID()}"
       )
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(
@@ -191,7 +194,8 @@ class BaseServerTest
         contentRootManagerWrapper,
         new FileSystem,
         zioExec
-      )
+      ),
+      s"fileevent-registry-${UUID.randomUUID()}"
     )
 
     val idlenessMonitor = system.actorOf(
@@ -206,7 +210,8 @@ class BaseServerTest
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
           sessionRouter
-        )
+        ),
+        s"context-registry-${UUID.randomUUID()}"
       )
 
     val suggestionsHandler =
@@ -218,7 +223,8 @@ class BaseServerTest
           versionsRepo,
           sessionRouter,
           runtimeConnectorProbe.ref
-        )
+        ),
+        s"suggestions-handler-${UUID.randomUUID()}"
       )
 
     val capabilityRouter =
@@ -227,7 +233,8 @@ class BaseServerTest
           bufferRegistry,
           fileEventRegistry,
           suggestionsHandler
-        )
+        ),
+        s"capability-router-${UUID.randomUUID()}"
       )
 
     // initialize

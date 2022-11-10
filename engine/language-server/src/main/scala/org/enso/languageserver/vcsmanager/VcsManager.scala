@@ -55,7 +55,7 @@ class VcsManager(
         } yield ()
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.InitRepoResult)
+        .map(VcsProtocol.InitRepoResponse)
         .pipeTo(sender())
     case VcsProtocol.SaveRepo(_, repoRoot, name) =>
       val result =
@@ -65,7 +65,7 @@ class VcsManager(
         } yield revCommit
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.SaveRepoResult)
+        .map(VcsProtocol.SaveRepoResponse)
         .pipeTo(sender())
     case VcsProtocol.RestoreRepo(_, repoRoot, optRevName) =>
       val result =
@@ -75,7 +75,7 @@ class VcsManager(
         } yield ()
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.RestoreRepoResult)
+        .map(VcsProtocol.RestoreRepoResponse)
         .pipeTo(sender())
     case VcsProtocol.StatusRepo(_, repoRoot) =>
       val result =
@@ -86,7 +86,7 @@ class VcsManager(
       exec
         .execTimed(config.timeout, result)
         .map(r =>
-          VcsProtocol.StatusRepoResult(
+          VcsProtocol.StatusRepoResponse(
             r.map(status =>
               (
                 status.isDirty,
@@ -105,7 +105,7 @@ class VcsManager(
         } yield tags
       exec
         .execTimed(config.timeout, result)
-        .map(VcsProtocol.ListRepoResult)
+        .map(VcsProtocol.ListRepoResponse)
         .pipeTo(sender())
   }
 

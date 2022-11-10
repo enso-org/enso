@@ -38,14 +38,14 @@ class StatusVcsHandler(
   ): Receive = {
     case RequestTimeout =>
       logger.error(
-        "Initialize project request [{}] for [{}] timed out.",
+        "Status project request [{}] for [{}] timed out.",
         id,
         rpcSession.clientId
       )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.StatusRepoResult(Right((isModified, changed, last))) =>
+    case VcsProtocol.StatusRepoResponse(Right((isModified, changed, last))) =>
       replyTo ! ResponseResult(
         StatusVcs,
         id,
@@ -54,7 +54,7 @@ class StatusVcsHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.StatusRepoResult(Left(failure)) =>
+    case VcsProtocol.StatusRepoResponse(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

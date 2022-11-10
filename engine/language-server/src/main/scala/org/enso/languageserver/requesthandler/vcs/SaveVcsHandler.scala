@@ -44,19 +44,19 @@ class SaveVcsHandler(
   ): Receive = {
     case RequestTimeout =>
       logger.error(
-        "Initialize project request [{}] for [{}] timed out.",
+        "Save project request [{}] for [{}] timed out.",
         id,
         rpcSession.clientId
       )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.SaveRepoResult(Right((name, sha))) =>
+    case VcsProtocol.SaveRepoResponse(Right((name, sha))) =>
       replyTo ! ResponseResult(SaveVcs, id, SaveVcs.Result(name, sha))
       cancellable.cancel()
       context.stop(self)
 
-    case VcsProtocol.SaveRepoResult(Left(failure)) =>
+    case VcsProtocol.SaveRepoResponse(Left(failure)) =>
       replyTo ! ResponseError(Some(id), VcsFailureMapper.mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

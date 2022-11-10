@@ -5,13 +5,19 @@ import org.enso.languageserver.filemanager.Path
 
 object VcsProtocol {
 
+  sealed trait VCSResponse[T] {
+    def result: Either[VcsFailure, T]
+  }
+
   case class InitRepo(clientId: ClientId, root: Path)
 
-  case class InitRepoResult(result: Either[VcsFailure, Unit])
+  case class InitRepoResponse(result: Either[VcsFailure, Unit])
+      extends VCSResponse[Unit]
 
   case class SaveRepo(clientId: ClientId, root: Path, name: Option[String])
 
-  case class SaveRepoResult(result: Either[VcsFailure, (String, String)])
+  case class SaveRepoResponse(result: Either[VcsFailure, (String, String)])
+      extends VCSResponse[(String, String)]
 
   case class RestoreRepo(
     clientId: ClientId,
@@ -19,16 +25,18 @@ object VcsProtocol {
     revName: Option[String]
   )
 
-  case class RestoreRepoResult(result: Either[VcsFailure, Unit])
+  case class RestoreRepoResponse(result: Either[VcsFailure, Unit])
+      extends VCSResponse[Unit]
 
   case class StatusRepo(clientId: ClientId, root: Path)
 
-  case class StatusRepoResult(
+  case class StatusRepoResponse(
     result: Either[VcsFailure, (Boolean, List[Path], String)]
-  )
+  ) extends VCSResponse[(Boolean, List[Path], String)]
 
   case class ListRepo(clientId: ClientId, root: Path)
 
-  case class ListRepoResult(result: Either[VcsFailure, List[String]])
+  case class ListRepoResponse(result: Either[VcsFailure, List[String]])
+      extends VCSResponse[List[String]]
 
 }

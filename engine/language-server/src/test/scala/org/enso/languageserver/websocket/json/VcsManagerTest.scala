@@ -295,6 +295,65 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
       allCommits(0).getShortMessage should be(saveName2)
       allCommits(1).getShortMessage should be(saveName1)
     }
+
+    "force all pending saves" taggedAs Retry in withCleanRoot { client =>
+      this.timingsConfig.withAutoSave(5.seconds)
+
+      val fooPath = testContentRoot.file.toPath.resolve("foo.txt")
+      fooPath.toFile.createNewFile()
+      Files.write(
+        fooPath,
+        "123456789".getBytes(StandardCharsets.UTF_8)
+      )
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : null,
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+      val saveName1 = "wip: my save"
+      client.send(json"""
+        { "jsonrpc": "2.0",
+          "method": "vcs/save",
+          "id": 2,
+          "params": {
+            "root": {
+              "rootId": $testContentRootId,
+              "segments": []
+            },
+            "name": $saveName1
+          }
+        }
+        """)
+      client.fuzzyExpectJson(json"""
+        { "jsonrpc": "2.0",
+          "id": 2,
+          "result": {
+            "name" : "*",
+            "sha"  : "*"
+          }
+        }
+        """)
+      commits(testContentRoot.file) should have length 2
+      isClean(testContentRoot.file) should be(true)
+    }
   }
 
   "Status project" must {
@@ -727,6 +786,11 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         case _: Throwable => false
       }
     )
+  }
+
+  def isClean(root: File): Boolean = {
+    val jgit = new JGit(repository(root.toPath))
+    jgit.status().call().isClean
   }
 
 }
