@@ -227,40 +227,61 @@ impl Default for SomeEventData {
 
 
 
-#[derive(Clone, CloneRef, Deref, Debug, Default)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct SomeEvent {
-    data: Rc<SomeEventData>,
-}
-
-impl SomeEvent {
-    pub fn new<T: 'static>(payload: T) -> Self {
-        Self { data: Rc::new(SomeEventData::new(payload)) }
-    }
-
-    pub fn downcast<T>(&self) -> Option<Event<T>>
-    where T: Clone + 'static {
-        self.data.payload.downcast_ref().map(|p: &T| Event::new(p.clone(), &self.stopped))
-    }
-}
-
-
-#[derive(Clone, Debug, Deref, Default)]
-pub struct Event<T> {
-    #[deref]
-    payload: T,
+    data:    frp::AnyData,
     stopped: Rc<Cell<bool>>,
 }
 
-impl<T> Event<T> {
-    fn new(payload: T, stopped: &Rc<Cell<bool>>) -> Self {
-        let stopped = stopped.clone_ref();
-        Self { payload, stopped }
+impl SomeEvent {
+    pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
+        let event = Event::new(target.map(|t| t.downgrade()), payload);
+        let stopped = event.stopped.clone_ref();
+        Self { data: frp::AnyData::new(event), stopped }
+    }
+
+    // pub fn downcast<T>(&self) -> Option<Event<T>>
+    // where T: Clone + 'static {
+    //     self.data.payload.downcast_ref().map(|p: &T| Event::new(p.clone(), &self.stopped))
+    // }
+}
+
+impl Default for SomeEvent {
+    fn default() -> Self {
+        Self::new::<(), ()>(None, ())
+    }
+}
+
+#[derive(Derivative, Deref)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = "T: Debug"))]
+#[derivative(Default(bound = "T: Default"))]
+pub struct Event<Host, T> {
+    data: Rc<EventData<Host, T>>,
+}
+
+#[derive(Deref, Derivative)]
+#[derivative(Debug(bound = "T: Debug"))]
+#[derivative(Default(bound = "T: Default"))]
+pub struct EventData<Host, T> {
+    #[deref]
+    payload: T,
+    target:  Option<WeakInstance<Host>>,
+    stopped: Rc<Cell<bool>>,
+}
+
+impl<Host, T> Event<Host, T> {
+    fn new(target: Option<WeakInstance<Host>>, payload: T) -> Self {
+        let stopped = default();
+        let data = Rc::new(EventData { payload, target, stopped });
+        Self { data }
     }
 
     pub fn stop_propagation(&self) {
         self.stopped.set(true);
     }
 }
+
 
 
 /// A hierarchical representation of object containing information about transformation in 3D space,
@@ -270,20 +291,21 @@ impl<T> Event<T> {
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Model<Host = Scene> {
-    network:        frp::Network,
-    pub emit_event: frp::Source<SomeEvent>,
-    pub on_event:   frp::Any<SomeEvent>,
-    host:           PhantomData<Host>,
+    network:             frp::Network,
+    pub event_source:    frp::Source<SomeEvent>,
+    capturing_event_fan: frp::Fan,
+    bubbling_event_fan:  frp::Fan,
+    host:                PhantomData<Host>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer: RefCell<Option<WeakLayer>>,
+    assigned_layer:      RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:          RefCell<Option<WeakLayer>>,
-    dirty:          DirtyFlags<Host>,
-    callbacks:      Callbacks<Host>,
-    parent_bind:    RefCell<Option<ParentBind<Host>>>,
-    children:       RefCell<OptVec<WeakInstance<Host>>>,
-    transform:      RefCell<CachedTransform>,
-    visible:        Cell<bool>,
+    layer:               RefCell<Option<WeakLayer>>,
+    dirty:               DirtyFlags<Host>,
+    callbacks:           Callbacks<Host>,
+    parent_bind:         RefCell<Option<ParentBind<Host>>>,
+    children:            RefCell<OptVec<WeakInstance<Host>>>,
+    transform:           RefCell<CachedTransform>,
+    visible:             Cell<bool>,
 }
 
 impl<Host> Default for Model<Host> {
@@ -293,6 +315,20 @@ impl<Host> Default for Model<Host> {
 }
 
 impl<Host> Model<Host> {
+    pub fn on_event_capturing<T>(&self) -> frp::Source<Event<Host, T>>
+    where
+        Host: 'static,
+        T: frp::Data, {
+        self.capturing_event_fan.output::<Event<Host, T>>(&self.network)
+    }
+
+    pub fn on_event<T>(&self) -> frp::Source<Event<Host, T>>
+    where
+        Host: 'static,
+        T: frp::Data, {
+        self.bubbling_event_fan.output::<Event<Host, T>>(&self.network)
+    }
+
     /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new("display_object");
@@ -305,14 +341,16 @@ impl<Host> Model<Host> {
         let children = default();
         let transform = default();
         let visible = default();
+        let capturing_event_fan = frp::Fan::new(&network);
+        let bubbling_event_fan = frp::Fan::new(&network);
         frp::extend! { network
-            emit_event <- source();
-            on_event <- any(...);
+            event_source <- source();
         }
         Self {
             network,
-            emit_event,
-            on_event,
+            event_source,
+            capturing_event_fan,
+            bubbling_event_fan,
             host,
             assigned_layer,
             layer,
@@ -760,15 +798,37 @@ impl<Host> Instance<Host> {
         let network = &self.network;
         let this = &self;
         frp::extend! { network
-            eval self.emit_event ((event) this.emit_event_impl(event));
+            eval self.event_source ((event) this.emit_event_impl(event));
         }
         self
     }
 
+    fn _emit_event<T>(&self, payload: T)
+    where
+        Host: 'static,
+        T: 'static, {
+        self.event_source.emit(SomeEvent::new(Some(self), payload));
+    }
+
     fn emit_event_impl(&self, event: &SomeEvent) {
         let rev_parent_chain = self.rev_parent_chain();
-        for object in rev_parent_chain {
-            object.on_event.emit(event.clone_ref());
+        for object in &rev_parent_chain {
+            object.capturing_event_fan.emit(&event.data);
+            if event.stopped.get() {
+                break;
+            }
+        }
+        if !event.stopped.get() {
+            self.capturing_event_fan.emit(&event.data);
+        }
+        if !event.stopped.get() {
+            self.bubbling_event_fan.emit(&event.data);
+        }
+        for object in rev_parent_chain.iter().rev() {
+            object.bubbling_event_fan.emit(&event.data);
+            if event.stopped.get() {
+                break;
+            }
         }
     }
 
@@ -1011,10 +1071,15 @@ impl<Host, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 // https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
 pub trait ObjectOps<Host = Scene>: Object<Host> {
+    // === Information ===
+
     /// Globally unique identifier of this display object.
     fn id(&self) -> Id {
         self.display_object()._id()
     }
+
+
+    // === Hierarchy ===
 
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
@@ -1052,6 +1117,23 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
     /// Checks whether the object is orphan (do not have parent object attached).
     fn is_orphan(&self) -> bool {
         self.display_object().rc.is_orphan()
+    }
+
+
+    // === Events ===
+
+    fn emit_event<T>(&self, event: T)
+    where
+        Host: 'static,
+        T: 'static, {
+        self.display_object()._emit_event(event)
+    }
+
+    fn on_event<T>(&self) -> frp::Source<Event<Host, T>>
+    where
+        Host: 'static,
+        T: frp::Data, {
+        self.display_object().rc.on_event()
     }
 
 

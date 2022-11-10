@@ -76,13 +76,14 @@ pub fn main() {
 
     let dp = rectangle.display_object();
     frp::extend! { network
-        eval circle.events.mouse_down ((t) circle.display_object().emit_event.emit(SomeEvent::new(t.clone())));
+        eval circle.events.mouse_down ((t) circle.emit_event(31.0_f32));
 
-        e <- rectangle.display_object().on_event.filter_map(|t| t.downcast::<f32>());
+        trace rectangle.on_event::<f32>();
+        // e <- rectangle.display_object().on_event.filter_map(|t| t.downcast::<f32>());
 
-        e <- rectangle.on::<f32>();
+        // e <- rectangle.on::<f32>();
         // trace rectangle.display_object().on_event;
-        trace e;
+        // trace e;
     }
 
     world.add_child(&rectangle);
@@ -93,26 +94,4 @@ pub fn main() {
     mem::forget(navigator);
     mem::forget(circle);
     mem::forget(rectangle);
-}
-
-use ensogl_core::display::object::Event;
-use ensogl_core::display::object::SomeEvent;
-
-
-pub trait NetworkEventHandler {
-    fn on<T: frp::node::Data>(
-        &self,
-        label: &'static str,
-        src: impl ensogl_core::display::Object,
-    ) -> frp::Stream<Event<T>>;
-}
-
-impl NetworkEventHandler for frp::Network {
-    fn on<T: frp::node::Data>(
-        &self,
-        label: &'static str,
-        src: impl ensogl_core::display::Object,
-    ) -> frp::Stream<Event<T>> {
-        self.filter_map(label, &src.display_object().on_event, |t| t.downcast::<T>())
-    }
 }
