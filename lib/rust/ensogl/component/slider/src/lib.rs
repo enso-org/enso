@@ -283,7 +283,7 @@ impl Slider {
             label_text <- all2(&input.set_label, &input.set_label_visible).map(
                 |(label, visible)| match (label, visible) {
                     (Some(label), true) => label.clone(),
-                    (None, _) | (_, false) => ("").to_im_string(),
+                    (None, _) | (_, false) => ImString::default(),
                 }
             );
             model.label.set_content <+ label_text;
