@@ -26,6 +26,15 @@ pub mod model;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Base of the exponentiation for precision increment steps of 10^x
+pub const PRECISION_STEP_BASE: f32 = 10.0;
+
+
+
 // ========================
 // === Slider component ===
 // ========================
@@ -173,9 +182,9 @@ impl Slider {
                 &precision_adjust_margin,
                 &input.set_precision_step_size,
             ).map(
-                |(base, offset, margin, step_size)| {
+                |(default, offset, margin, step_size)| {
                     let steps = ((offset.abs() - margin) / step_size).max(0.0).ceil() * offset.signum();
-                    *base * (10.0).pow(steps)
+                    *default * (PRECISION_STEP_BASE).pow(steps)
                 }
             );
 
