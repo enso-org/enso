@@ -29,7 +29,8 @@ import * as https from 'https'
 
 import { Auth } from "aws-amplify";
 import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
-import { amplifyConfig } from "../amplify";
+import { amplifyConfig } from "./amplify";
+import opener from 'opener'
 
 const authInfo = 'auth-info'
 
@@ -559,7 +560,7 @@ async function checkMinSupportedVersion(config: Config) {
 // === Authentication ===
 // ======================
 
-class Authentication {
+class FirebaseAuthentication {
     protected readonly config: any
     public readonly firebaseui: any
     public readonly ui: any
@@ -567,8 +568,10 @@ class Authentication {
     public authCallback: any
 
     constructor(authCallback: any) {
-        Auth.configure(amplifyConfig);
-
+        this.firebaseui = require('firebaseui')
+        this.config = firebase_config
+        // initialize Firebase
+        firebase.initializeApp(this.config)
         // create HTML markup
         this.createHtml()
         // initialize Firebase UI
@@ -640,60 +643,15 @@ class Authentication {
         }
     }
 
-    protected async handleSignedOutUser() {
-        console.log('handleSignedOutUser')
-        const jwt = await this.getAccessToken();
-        console.log('jwt', jwt);
-
-        if (!jwt) {
-            console.log('fetaratedSignIn');
-            Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google });
-        }
-        console.log('END handleSignedOutUser')
-        // document.getElementById('auth-container').style.display = 'block'
-        // this.ui.start('#firebaseui-container', this.getUiConfig())
+    protected handleSignedOutUser() {
+        document.getElementById('auth-container').style.display = 'block'
+        this.ui.start('#firebaseui-container', this.getUiConfig())
     }
 
     protected handleSignedInUser(user: any) {
-        console.log('handleSignedInUser', user)
-        this.handleSignedOutUser()
-        //document.getElementById('auth-container').style.display = 'none'
-        //this.authCallback(user)
+        document.getElementById('auth-container').style.display = 'none'
+        this.authCallback(user)
     }
-
-    protected async getAccessToken() {
-        try {
-            const session = await Auth.currentSession();
-            return session.getAccessToken().getJwtToken();
-        } catch (error) { }
-    };
-
-    protected async getOrganization(accessToken: string | undefined) {
-        let organizationId;
-        let userName;
-        let error;
-
-        if (accessToken) {
-            const result = await getOrganization(accessToken);
-            if (result) {
-                if (!result.error && result.myOrganization) {
-                    organizationId = result.myOrganization.id;
-                    userName = result.myOrganization.name ?? undefined;
-                } else if (result.error !== "Not found") {
-                    error = 'Unexpected auth error'
-                }
-            } else {
-                error = 'Unexpected auth error'
-            }
-        }
-
-        return {
-            id: organizationId,
-            name: userName,
-            error,
-        }
-    };
-
 
     /// Create the HTML markup.
     ///
@@ -960,19 +918,48 @@ API.main = async function(inputConfig: any) {
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
-    console.log(config)
-
-    if (await checkMinSupportedVersion(config)) {
-        if (config.authentication_enabled && !config.entry) {
-            new Authentication(function(user: any) {
-                config.email = user.email
-                runEntryPoint(config)
-            })
-        } else {
-            await runEntryPoint(config)
-        }
-    } else {
-        // Display a message asking to update the application.
-        createVersionCheckHtml()
+    //var opener = require('opener')
+    //var childProcess = require("child_process");
+    var cfg: any = amplifyConfig
+    cfg.oauth.options.urlOpener = async (url: string, redirectSignIn: string) => {
+        console.log('urlOpener', url, redirectSignIn)
+        opener(url)
+        //var childProcess = require("child_process");
+        //childProcess.execFile('xclock')
     }
+
+    console.log('Auth.configure', cfg)
+    Auth.configure(cfg);
+
+    let session;
+    let jwt;
+    try {
+        session = await Auth.currentSession();
+        jwt = session.getAccessToken().getJwtToken();
+    } catch (error) { }
+
+    console.log('session', session)
+    console.log('jwt', jwt)
+
+    if (!jwt) {
+        console.log('Auth.federatedSignIn');
+        Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google });
+        console.log('Auth.federatedSignIn AFTER')
+    } else {
+        runEntryPoint(config)
+    }
+
+    // if (await checkMinSupportedVersion(config)) {
+    //     if (config.authentication_enabled && !config.entry) {
+    //         new FirebaseAuthentication(function (user: any) {
+    //             config.email = user.email
+    //             runEntryPoint(config)
+    //         })
+    //     } else {
+    //         await runEntryPoint(config)
+    //     }
+    // } else {
+    //     // Display a message asking to update the application.
+    //     createVersionCheckHtml()
+    // }
 }
