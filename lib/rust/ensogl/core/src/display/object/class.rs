@@ -1130,13 +1130,21 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object()._emit_event(event)
     }
 
-    /// Create a new event handler for the given event type. See docs of [`event::Event`] to learn
-    /// more.
+    /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
     fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
     where
         Host: 'static,
         T: frp::Data, {
         self.display_object().rc.on_event()
+    }
+
+    /// Get event handler for capturing events. You should rather not need this function. Use
+    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
+    fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
+    where
+        Host: 'static,
+        T: frp::Data, {
+        self.display_object().rc.on_event_capturing()
     }
 
 
