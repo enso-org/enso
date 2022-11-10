@@ -139,6 +139,11 @@ impl Slider {
 
         let track_pos = Animation::new_non_init(&network);
 
+        let background_color = color::Animation::new(&network);
+        let track_color = color::Animation::new(&network);
+        let value_color = color::Animation::new(&network);
+        let label_color = color::Animation::new(&network);
+
         frp::extend! { network
 
             // User input
@@ -244,33 +249,33 @@ impl Slider {
 
             // colors
 
-            background_color        <- all2(&input.set_background_color, &input.set_slider_enabled).map(
+            background_color.target <+ all2(&input.set_background_color, &input.set_slider_enabled).map(
                 |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
-            slider_color        <- all2(&input.set_slider_color, &input.set_slider_enabled).map(
+            track_color.target <+ all2(&input.set_slider_color, &input.set_slider_enabled).map(
                 |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
-            value_color        <- all2(&input.set_value_color, &input.set_slider_enabled).map(
+            value_color.target <+ all2(&input.set_value_color, &input.set_slider_enabled).map(
                 |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
-            label_color        <- all2(&input.set_label_color, &input.set_slider_enabled).map(
+            label_color.target <+ all2(&input.set_label_color, &input.set_slider_enabled).map(
                 |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
 
-            eval background_color (
+            eval background_color.value (
                 (color) model.set_background_color(*color);
             );
-            eval slider_color (
+            eval track_color.value (
                 (color) model.set_track_color(*color);
             );
-            eval value_color (
+            eval value_color.value (
                 (color) {
                     model.value_left.set_property_default(color);
                     model.value_dot.set_property_default(color);
                     model.value_right.set_property_default(color);
                 }
             );
-            eval label_color (
+            eval label_color.value (
                 (color) model.label.set_property_default(color);
             );
 
