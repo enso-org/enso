@@ -1,4 +1,4 @@
-//! Example scene showing simple usage of a shape system.
+//! Example scene showing the usage of focusing objects in display object hierarchy.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -49,7 +49,6 @@ mod rectangle {
 // === Entry Point ===
 // ===================
 
-
 fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::View {
     let rect = rectangle::View::new();
     rect.size.set(Vector2::new(width, height));
@@ -83,7 +82,6 @@ fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::Vi
         }));
         border_color.target <+ new_color;
     }
-
     rect
 }
 
@@ -91,7 +89,6 @@ fn define_stack(network: &frp::Network) -> rectangle::View {
     let h0 = define_rect(RECT_SIZE, RECT_SIZE, network);
     let h1 = define_rect(RECT_SIZE - RECT_DIFF, RECT_SIZE - RECT_DIFF, network);
     let h2 = define_rect(RECT_SIZE - 2.0 * RECT_DIFF, RECT_SIZE - 2.0 * RECT_DIFF, network);
-
     h0.add_child(&h1);
     h1.add_child(&h2);
     h0

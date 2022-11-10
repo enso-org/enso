@@ -812,12 +812,17 @@ impl<Host: 'static> Instance<Host> {
         }
     }
 
+    /// Blur the currently focused object, if any. Even if it is not on the path from this object to
+    /// root.
     fn _blur_all(&self) {
         if let Some(instance) = self.focused_instance() {
             instance.blur_unchecked();
         }
     }
 
+    /// Blur this object and propagate the information to root. Does not check if this object was
+    /// focused. Calling this method on a non-focused object may cause inconsistent state, as parent
+    /// objects will erase information about the currently focused object.
     fn blur_unchecked(&self) {
         self.propagate_up_no_focus_instance();
         let blur_event = self.new_event(event::Blur);
@@ -1116,6 +1121,7 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
 
     // === Events ===
 
+    /// Emit a new event. See docs of [`event::Event`] to learn more.
     fn emit_event<T>(&self, event: T)
     where
         Host: 'static,
@@ -1123,6 +1129,8 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object()._emit_event(event)
     }
 
+    /// Create a new event handler for the given event type. See docs of [`event::Event`] to learn
+    /// more.
     fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
     where
         Host: 'static,
@@ -1133,18 +1141,23 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
 
     // === Focus ===
 
+    /// Check whether this object is focused.
     fn is_focused(&self) -> bool {
         self.display_object()._is_focused()
     }
 
+    /// Focus this object. See docs of [`Event::Focus`] to learn more.
     fn focus(&self) {
         self.display_object()._focus()
     }
 
+    /// Blur ("unfocus") this object. See docs of [`Event::Blur`] to learn more.
     fn blur(&self) {
         self.display_object()._blur()
     }
 
+    /// Blur ("unfocus") the currently focused object if any. See docs of [`Event::Blur`] to learn
+    /// more.
     fn blur_all(&self) {
         self.display_object()._blur_all()
     }
