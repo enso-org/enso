@@ -52,7 +52,7 @@ pub struct Slider {
 impl Slider {
     /// Constructor
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let app = app.clone_ref();
         let frp = Frp::new();
 
@@ -160,12 +160,12 @@ impl Slider {
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 
-        let track_pos = Animation::new_non_init(&network);
+        let track_pos = Animation::new_non_init(network);
 
-        let background_color = color::Animation::new(&network);
-        let track_color = color::Animation::new(&network);
-        let value_color = color::Animation::new(&network);
-        let label_color = color::Animation::new(&network);
+        let background_color = color::Animation::new(network);
+        let track_color = color::Animation::new(network);
+        let value_color = color::Animation::new(network);
+        let label_color = color::Animation::new(network);
 
         frp::extend! { network
 
@@ -405,7 +405,7 @@ fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Optio
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
         let text_left =
-            text_iter.next().map(|s| s.to_im_string()).unwrap_or_else(|| ImString::default());
+            text_iter.next().map(|s| s.to_im_string()).unwrap_or_else(ImString::default);
         let text_right = text_iter.next().map(|s| s.to_im_string());
 
         (text_left, text_right)
