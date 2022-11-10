@@ -27,8 +27,7 @@ public final class Parser implements AutoCloseable {
     } catch (URISyntaxException | LinkageError e) {
       System.err.println("Cannot load " + parser);
       File root = new File(".").getAbsoluteFile();
-      if (!searchFromDirToTop(e, root, "target", "rust", "x86_64-apple-darwin", "debug", name)
-          && !searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
+      if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
         throw new IllegalStateException("Cannot load parser from " + parser, e);
       }
     }
