@@ -513,7 +513,8 @@ impl<Host: 'static> Model<Host> {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind<Host>> {
-        if let Some(instance) = &*self.focused_descendant.borrow() {
+        let focused_descendant = self.focused_descendant.borrow().clone();
+        if let Some(instance) = focused_descendant {
             if let Some(instance) = instance.upgrade() {
                 instance._blur();
             }
