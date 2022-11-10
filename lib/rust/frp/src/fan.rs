@@ -1,8 +1,10 @@
 //! A utility with a single input allowing emitting values of different types and multiple
 //! outputs, one per type.
+
 use crate::prelude::*;
 
 use crate::AnyData;
+
 use std::any::TypeId;
 
 

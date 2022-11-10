@@ -92,6 +92,10 @@
 - [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
   way. Also, additional fine-tuning is performed per font and per host operating
   system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
 
 #### Enso Standard Library
 
@@ -375,6 +379,7 @@
 [3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
 
 #### Enso Compiler
 

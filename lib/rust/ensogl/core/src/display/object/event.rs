@@ -3,9 +3,10 @@
 //! configurable and some events propagation can be cancelled. To learn more about the mechanics,
 //! see: https://javascript.info/bubbling-and-capturing.
 
+use crate::prelude::*;
+
 use super::class::Instance;
 use super::class::WeakInstance;
-use crate::prelude::*;
 
 
 
