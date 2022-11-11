@@ -147,11 +147,11 @@ impl Model {
     }
 
     /// Set slider label visibility
-    pub fn set_label_visible(&self, enabled: bool) {
-        if enabled {
-            self.root.add_child(&self.label);
-        } else {
+    pub fn set_label_hidden(&self, hidden: bool) {
+        if hidden {
             self.root.remove_child(&self.label);
+        } else {
+            self.root.add_child(&self.label);
         }
     }
 

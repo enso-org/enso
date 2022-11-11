@@ -53,6 +53,9 @@ fn make_slider(app: &Application) -> Leak<slider::Slider> {
     let slider = app.new_view::<slider::Slider>();
     slider.frp.set_width(200.0);
     slider.frp.set_height(50.0);
+    slider.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
+    slider.frp.set_value_max(5.0);
+    slider.frp.set_value_default(1.0);
     app.display.add_child(&slider);
     Leak::new(slider)
 }
@@ -82,7 +85,7 @@ fn init(app: &Application) {
     slider2.inner().set_position_y(60.0);
     slider2.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.2, 1.0));
     slider2.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.7, 1.0));
-    slider2.inner().frp.set_slider_enabled(false);
+    slider2.inner().frp.set_slider_disabled(true);
     slider2.inner().frp.set_label("Disabled slider".to_im_string());
 
     let slider3 = make_slider(app);
@@ -92,7 +95,7 @@ fn init(app: &Application) {
     slider3.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider3.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
     slider3.inner().frp.set_label("Inner label".to_im_string());
-    slider3.inner().frp.set_label_inside(true);
+    slider3.inner().frp.set_label_position(slider::LabelPosition::Inside);
 
     let slider4 = make_slider(app);
     slider4.inner().frp.set_width(400.0);
@@ -101,5 +104,5 @@ fn init(app: &Application) {
     slider4.inner().frp.set_slider_color(color::Lcha(0.4, 0.7, 0.2, 1.0));
     slider4.inner().frp.set_value_color(color::Lcha(0.2, 0.7, 0.7, 1.0));
     slider4.inner().frp.set_label("Disabled label".to_im_string());
-    slider4.inner().frp.set_label_visible(false);
+    slider4.inner().frp.set_label_hidden(true);
 }

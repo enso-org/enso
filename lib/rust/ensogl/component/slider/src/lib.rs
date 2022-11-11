@@ -33,6 +33,12 @@ pub mod model;
 // === Constants ===
 // =================
 
+/// The slider precision when slider dragging is initiated.
+pub const PRECISION_DEFAULT: f32 = 0.1;
+/// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
+pub const PRECISION_STEP_SIZE: f32 = 50.0;
+/// Margin above/below the component within which vertical mouse movement will not result in a change in slider precision.
+pub const PRECISION_STEP_MARGIN: f32 = 10.0;
 /// Base of the exponentiation for precision increment steps of 10^x
 pub const PRECISION_STEP_BASE: f32 = 10.0;
 
@@ -93,6 +99,12 @@ impl application::View for Slider {
     }
 }
 
+#[derive(Clone,Debug,Default)]
+pub enum LabelPosition{
+    #[default]
+    Outside,
+    Inside,
+}
 
 
 // ===========
@@ -130,11 +142,11 @@ ensogl_core::define_endpoints_2! {
         /// Set the color of the slider label
         set_label_color(color::Lcha),
         /// Set whether the label is displayed
-        set_label_visible(bool),
+        set_label_hidden(bool),
         /// Set whether the label is shown inside the slider, as opposed to left of it
-        set_label_inside(bool),
+        set_label_position(LabelPosition),
         /// Set whether the slider is enabled, when disabled the slider is greyed out and cannot be interacted with
-        set_slider_enabled(bool),
+        set_slider_disabled(bool),
     }
     Output {
         width(f32),
@@ -172,8 +184,8 @@ impl Slider {
             track_release <- model.track.events.mouse_release_primary.constant(());
             track_drag <- bool(&track_release,&track_click);
 
-            component_click <- any2(&background_click,&track_click).gate(&input.set_slider_enabled);
-            component_drag <- any2(&background_drag,&track_drag).gate(&input.set_slider_enabled);
+            component_click <- any2(&background_click,&track_click).gate_not(&input.set_slider_disabled);
+            component_drag <- any2(&background_drag,&track_drag).gate_not(&input.set_slider_disabled);
             component_release <- any2(&background_release,&track_release);
 
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
@@ -268,18 +280,18 @@ impl Slider {
 
             background_color.target <+ all2(
                 &input.set_background_color,
-                &input.set_slider_enabled,
+                &input.set_slider_disabled,
             ).map(
-                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
+                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
             );
-            track_color.target <+ all2(&input.set_slider_color, &input.set_slider_enabled).map(
-                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
+            track_color.target <+ all2(&input.set_slider_color, &input.set_slider_disabled).map(
+                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
             );
-            value_color.target <+ all2(&input.set_value_color, &input.set_slider_enabled).map(
-                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
+            value_color.target <+ all2(&input.set_value_color, &input.set_slider_disabled).map(
+                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
             );
-            label_color.target <+ all2(&input.set_label_color, &input.set_slider_enabled).map(
-                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
+            label_color.target <+ all2(&input.set_label_color, &input.set_slider_disabled).map(
+                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
             );
 
             eval background_color.value ((color) model.set_background_color(*color));
@@ -322,35 +334,26 @@ impl Slider {
             eval model.value_right.height ((h) model.value_right.set_position_y(*h / 2.0));
 
             model.label.set_content <+ input.set_label;
-            eval input.set_label_visible ((v) model.set_label_visible(*v));
+            eval input.set_label_hidden((v) model.set_label_hidden(*v));
 
             eval model.label.height ((h) model.label.set_position_y(*h / 2.0));
             label_pos_x <- all4(
                 &input.set_width,
                 &input.set_height,
                 &model.label.width,
-                &input.set_label_inside,
+                &input.set_label_position,
             ).map(
-                |(comp_width,comp_height,lab_width,inside)| if *inside {
-                    -comp_width / 2.0 + comp_height / 2.0
-                } else {
-                    -comp_width / 2.0 - comp_height / 2.0 - lab_width
+                |(comp_width,comp_height,lab_width,position)| match *position {
+                    LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
+                    LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
                 }
             );
             eval label_pos_x ((x) model.label.set_position_x(*x));
         }
 
-        self.frp.set_precision(0.1);
-        self.frp.set_precision_step_margin(10.0);
-        self.frp.set_precision_step_size(50.0);
-        self.frp.set_value_min(0.0);
-        self.frp.set_value_max(5.0);
-        self.frp.set_value_default(0.5);
-        self.frp.set_value(0.5);
-        self.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
-        self.frp.set_slider_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
-        self.frp.set_slider_enabled(true);
-        self.frp.set_label_visible(true);
+        self.frp.set_precision(PRECISION_DEFAULT);
+        self.frp.set_precision_step_margin(PRECISION_STEP_MARGIN);
+        self.frp.set_precision_step_size(PRECISION_STEP_SIZE);
         self
     }
 }
