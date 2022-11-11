@@ -309,20 +309,17 @@ impl Slider {
 
             // text alignment
 
-            value_text <- all2(&value,&precision_adjusted).map(
-                |(value,precision)| {
-                    value_text_truncate_precision(*value,*precision)
-                }
+            value_text_left_right <- all2(&value,&precision_adjusted).map(
+                |(value,precision)| value_text_truncate_precision(*value,*precision)
             );
-            value_text_decimal_visible <- value_text.map(|t| t.1.is_some());
-            model.value_left.set_content <+ value_text.map(|t| t.0.clone());
-            value_text_right <- value_text.map(|t| t.1.clone()).gate(&value_text_decimal_visible);
-            // value_text_right is gated by t.1.is_some() in value_text_decimal_visible
-            model.value_right.set_content <+ value_text_right.map(|t| t.clone().unwrap());
-            value_text_decimal_visibility_change <- value_text_decimal_visible.on_change();
-            eval value_text_decimal_visibility_change (
-                (v) model.set_value_decimal_visible(*v);
-            );
+            value_text_left <- value_text_left_right._0();
+            value_text_right <- value_text_left_right._1();
+            value_text_right_visible <- value_text_right.map(|t| t.is_some());
+            value_text_right <- value_text_right.gate(&value_text_right_visible);
+            model.value_left.set_content <+ value_text_left;
+            model.value_right.set_content <+ value_text_right.unwrap();
+            value_text_right_visibility_change <- value_text_right_visible.on_change();
+            eval value_text_right_visibility_change ((v) model.set_value_decimal_visible(*v));
 
             value_text_left_pos_x <- all2(&model.value_left.width,&model.value_dot.width).map(
                 |(left,dot)| -*left - *dot / 2.0
@@ -350,7 +347,7 @@ impl Slider {
                 }
             );
             eval label_pos_x ((x) model.label.set_position_x(*x));
-        }
+        };
         self.init_precision_defaults()
     }
 
