@@ -29,6 +29,9 @@ case class Path(rootId: UUID, segments: Vector[String]) {
     new File(parentDir, fileName)
   }
 
+  /** Checks if the provided path is a prefix of the current path.
+    * The content root of the provided path has to be identical to the content root of the current one.
+    */
   def startsWith(path: Path): Boolean = {
     (rootId == path.rootId) && (segments.length >= path.segments.length) && segments
       .zip(path.segments)
