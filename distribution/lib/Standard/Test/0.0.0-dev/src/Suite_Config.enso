@@ -29,9 +29,6 @@ find_caller_script stack =
 
 ## Holds configuration for a Test_Suite
 type Suite_Config
-    ## PRIVATE - construct a configuration
-    Value only_group_regexp print_only_failures output_path
-
     ## Creates an Suite_Config based off environment and caller location
     from_environment : Suite_Config
     from_environment =
@@ -49,6 +46,9 @@ type Suite_Config
                     (File.new junit_folder) / project_root.name / "JUnit.xml"
 
         Suite_Config.Value only_group_regexp print_only_failures results_path
+
+    ## PRIVATE - construct a configuration
+    Value only_group_regexp print_only_failures output_path
 
     should_run_group self name =
         regexp = self.only_group_regexp

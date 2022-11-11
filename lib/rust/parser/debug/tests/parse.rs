@@ -144,17 +144,14 @@ fn doc_comments() {
 
 #[test]
 fn type_definition_no_body() {
-    test("type Bool", block![(TypeDef type Bool #() #() #())]);
-    test("type Option a", block![(TypeDef type Option #((() (Ident a) () ())) #() #())]);
-    test("type Option (a)", block![
-        (TypeDef type Option #((() (Ident a) () ())) #() #())]);
-    test("type Foo (a : Int)", block![
-        (TypeDef type Foo #((() (Ident a) (":" (Ident Int)) ())) #() #())]);
-    test("type A a=0", block![
-        (TypeDef type A #((() (Ident a) () ("=" (Number () "0" ())))) #() #())]);
-    test("type Existing_Headers (column_names : Vector Text)", block![
+    test!("type Bool", (TypeDef type Bool #() #()));
+    test!("type Option a", (TypeDef type Option #((() (Ident a) () ())) #()));
+    test!("type Option (a)", (TypeDef type Option #((() (Ident a) () ())) #()));
+    test!("type Foo (a : Int)", (TypeDef type Foo #((() (Ident a) (":" (Ident Int)) ())) #()));
+    test!("type A a=0", (TypeDef type A #((() (Ident a) () ("=" (Number () "0" ())))) #()));
+    test!("type Existing_Headers (column_names : Vector Text)",
         (TypeDef type Existing_Headers #(
-         (() (Ident column_names) (":" (App (Ident Vector) (Ident Text))) ())) #() #())]);
+         (() (Ident column_names) (":" (App (Ident Vector) (Ident Text))) ())) #()));
 }
 
 #[test]
@@ -170,26 +167,27 @@ fn type_constructors() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((() Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
-           ((() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
-           ((() Point #() #())))
-         #())
-    ];
+         #(((Constructor (() Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ()))))))
+           ((Constructor (() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())))
+           ((Constructor (() Point #() #())))))];
     test(&code.join("\n"), expected);
     let code = "type Foo\n Bar (a : B = C.D)";
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef type Foo #()
-         #(((() Bar #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D))))) #())))
-         #())];
+        (TypeDef type Foo #() #(((Constructor (
+            ()
+            Bar
+            #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D)))))
+            #())))))];
     test(code, expected);
     let code = "type Foo\n ## Bar\n Baz";
-    let expected =
-        block![(TypeDef type Foo #() #((((#((Section " Bar")) #(())) Baz #() #()))) #())];
+    let expected = block![(TypeDef type Foo #() #((
+        (Constructor ((#((Section " Bar")) #(())) Baz #() #())))))];
     test(code, expected);
     let code = ["type A", "    Foo (a : Integer, b : Integer)"];
     #[rustfmt::skip]
-    let expected = block![(TypeDef type A #() #(((() Foo #((() (Invalid) () ())) #()))) #())];
+    let expected = block![(TypeDef type A #() #((
+        (Constructor (() Foo #((() (Invalid) () ())) #())))))];
     test(&code.join("\n"), expected);
 }
 
@@ -198,11 +196,10 @@ fn type_methods() {
     let code = ["type Geo", "    number =", "        x", "    area self = x + x"];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef type Geo #() #()
-         #((Function (Ident number) #() "=" (BodyBlock #((Ident x))))
-           (Function (Ident area) #((() (Ident self) () ())) "="
-            (OprApp (Ident x) (Ok "+") (Ident x)))))
-    ];
+        (TypeDef type Geo #()
+         #(((Binding (Function (Ident number) #() "=" (BodyBlock #((Ident x))))))
+           ((Binding (Function (Ident area) #((() (Ident self) () ())) "="
+                               (OprApp (Ident x) (Ok "+") (Ident x)))))))];
     test(&code.join("\n"), expected);
 }
 
@@ -218,13 +215,14 @@ fn type_operator_methods() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef type Foo #() #()
-         #((TypeSignature (Ident #"+") ":"
-            (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))
-            (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))
-            (TypeSignature (OprApp (Ident Foo) (Ok ".") (Ident #"+")) ":" (Ident Foo))
-            (Function (OprApp (Ident Foo) (Ok ".") (Ident #"+"))
-                      #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))))];
+        (TypeDef type Foo #()
+         #(((Binding (TypeSignature (Ident #"+") ":"
+            (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo))))))
+           ((Binding
+            (Function (Ident #"+") #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))))
+           ((Binding (TypeSignature (OprApp (Ident Foo) (Ok ".") (Ident #"+")) ":" (Ident Foo))))
+           ((Binding (Function (OprApp (Ident Foo) (Ok ".") (Ident #"+"))
+                     #((() (Ident self) () ()) (() (Ident b) () ())) "=" (Ident b))))))];
     test(&code.join("\n"), expected);
 }
 
@@ -245,15 +243,15 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((() Circle #() #(
+         #(((Constructor (() Circle #() #(
              ((() (Ident radius) (":" (Ident float)) ()))
-             ((() (Ident x) () ())))))
-           ((() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
-           ((() Point #() #()))
-           (()))
-         #((Function (Ident number) #() "=" (BodyBlock #((Ident x))))
-           (Function (Ident area) #((() (Ident self) () ())) "=" (OprApp (Ident x) (Ok "+") (Ident x)))))
-    ];
+             ((() (Ident x) () ()))))))
+           ((Constructor (() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())))
+           ((Constructor (() Point #() #())))
+           (())
+           ((Binding (Function (Ident number) #() "=" (BodyBlock #((Ident x))))))
+           ((Binding (Function (Ident area) #((() (Ident self) () ())) "="
+                               (OprApp (Ident x) (Ok "+") (Ident x)))))))];
     test(&code.join("\n"), expected);
 }
 
@@ -264,9 +262,8 @@ fn type_def_defaults() {
     let expected = block![
         (TypeDef type Result #((() (Ident error) () ())
                                (() (Ident ok) () ("=" (Ident Nothing))))
-         #(((() Ok #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing)))) #())))
-         #())
-    ];
+         #(((Constructor
+             (() Ok #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing)))) #())))))];
     test(&code.join("\n"), expected);
 }
 
@@ -280,9 +277,9 @@ fn type_def_nested() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef type Foo #() #()
-         #((TypeDef type Bar #() #() #())
-           (TypeDef type Baz #() #() #())))
+        (TypeDef type Foo #()
+         #(((Binding (TypeDef type Bar #() #())))
+           ((Binding (TypeDef type Baz #() #())))))
     ];
     test(&code.join("\n"), expected);
 }
@@ -1233,12 +1230,8 @@ fn inline_annotations() {
 
 #[test]
 fn multiline_annotations() {
-    #[rustfmt::skip]
-    let cases = [
-        ("@Builtin_Type\ntype Date", block![
-            (Annotated "@" Builtin_Type #(()) (TypeDef type Date #() #() #()))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("@Builtin_Type\ntype Date",
+        (Annotated "@" Builtin_Type #(()) (TypeDef type Date #() #())));
 }
 
 

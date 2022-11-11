@@ -198,7 +198,7 @@ impl<'g> ToSExpr<'g> {
                     Ok(c) => Value::Char(c),
                     Err(_) => Value::Null,
                 }
-            },
+            }
             Primitive::U64 => Value::Number(read_u64(data).into()),
             Primitive::I64 => Value::Number((read_u64(data) as i64).into()),
             Primitive::Bool => {
