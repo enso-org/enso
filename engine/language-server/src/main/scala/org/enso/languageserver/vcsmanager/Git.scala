@@ -28,7 +28,7 @@ import zio.blocking.effectBlocking
 
 import java.time.Instant
 
-class Git extends VcsApi[BlockingIO] {
+private class Git extends VcsApi[BlockingIO] {
 
   private def repository(path: Path): Repository = {
     val builder = new FileRepositoryBuilder();
@@ -187,10 +187,14 @@ class Git extends VcsApi[BlockingIO] {
 }
 
 object Git {
-  val DefaultGitRepoDir = ".git"
-  val MasterRef         = "refs/heads/master"
-  val AuthorName        = "Enso VCS"
-  val AuthorEmail       = "vcs@enso.io"
+  private val DefaultGitRepoDir = ".git"
+  private val MasterRef         = "refs/heads/master"
+  private val AuthorName        = "Enso VCS"
+  private val AuthorEmail       = "vcs@enso.io"
 
   private class RepoExists extends Exception
+
+  /** Returns a Git implementation of VcsApi
+    */
+  def apply(): VcsApi[BlockingIO] = new Git()
 }

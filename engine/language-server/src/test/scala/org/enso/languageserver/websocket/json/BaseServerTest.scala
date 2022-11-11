@@ -170,7 +170,7 @@ class BaseServerTest
     val vcsManager = system.actorOf(
       VcsManager.props(
         config.vcsManager,
-        new Git,
+        Git(),
         contentRootManagerWrapper,
         zioExec
       ),
