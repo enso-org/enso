@@ -36,9 +36,8 @@ class VcsManager(
       .mapError { _ => ContentRootNotFound }
       .absolve
 
-  // TODO: better conversion
   private def toVcsError: FileSystemFailure => VcsFailure = {
-    case ex: FileSystemFailure => ProjectRootNotFound(ex.toString)
+    case ex: FileSystemFailure => ProjectNotFound(ex.toString)
   }
 
   private def resolvePath(path: Path): IO[VcsFailure, File] =
@@ -99,11 +98,11 @@ class VcsManager(
           )
         )
         .pipeTo(sender())
-    case VcsProtocol.ListRepo(_, repoRoot) =>
+    case VcsProtocol.ListRepo(_, repoRoot, limit) =>
       val result =
         for {
           root <- resolvePath(repoRoot)
-          tags <- vcs.list(root.toPath)
+          tags <- vcs.list(root.toPath, limit)
         } yield tags
       exec
         .execTimed(config.timeout, result)

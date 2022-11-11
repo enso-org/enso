@@ -3,6 +3,10 @@ package org.enso.languageserver.vcsmanager
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.filemanager.Path
 
+/** The VCS JSON RPC API provided by the language server.
+  * See [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
+  * for message specifications.
+  */
 object VcsManagerApi {
   case object InitVcs extends Method("vcs/init") {
     case class Params(root: Path)
@@ -17,7 +21,7 @@ object VcsManagerApi {
 
   case object SaveVcs extends Method("vcs/save") {
     case class Params(root: Path, name: Option[String])
-    case class Result(name: String, sha: String)
+    case class Result(commitId: String, message: String)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = SaveVcs.Params
@@ -52,7 +56,7 @@ object VcsManagerApi {
   }
 
   case object ListVcs extends Method("vcs/list") {
-    case class Params(root: Path)
+    case class Params(root: Path, limit: Option[Int])
     case class Result(saves: List[Save])
     case class Save(commitId: String, message: String)
 
@@ -66,18 +70,19 @@ object VcsManagerApi {
 
   // Errors
 
-  case class VcsError(override val message: String) extends Error(1000, message)
+  case class VCSError(override val message: String) extends Error(1000, message)
 
   case object ContentRootNotFoundError
       extends Error(1001, "Content root not found")
 
   case object ProjectNotFound extends Error(1002, "Project not found")
 
-  case object RepoNotFound
+  case object VCSNotFound
       extends Error(1003, "Project is not under version control")
 
-  case object NamedSaveNotFound extends Error(1004, "Requested save not found")
-  case object NamedSaveAlreadyExists
-      extends Error(1005, "Requested save already exists")
+  case object SaveNotFound extends Error(1004, "Requested save not found")
+
+  case object VCSAlreadyExists
+      extends Error(1005, "Requested project is already under version control")
 
 }

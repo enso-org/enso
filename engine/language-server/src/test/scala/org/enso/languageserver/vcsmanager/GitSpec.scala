@@ -40,7 +40,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       targetRepo.toFile should exist
       val result = vcs.init(repoPath).unsafeRunSync()
       result.isLeft shouldBe true
-      result.swap.getOrElse(null) shouldBe an[GenericVcsFailure]
+      result.swap.getOrElse(null) shouldBe an[RepoAlreadyExists.type]
       targetRepo.toFile should exist
     }
   }
@@ -255,7 +255,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "VCS list" should {
 
-    "return all saves to the repo" in new TestCtx with InitialRepoSetup {
+    "return all commits to the repo" in new TestCtx with InitialRepoSetup {
       val files = List("Foo", "Bar", "Baz")
       files.foreach { file =>
         createStubFile(repoPath.resolve(s"$file.enso")) should equal(true)
@@ -269,6 +269,25 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
       listResult.getOrElse(Nil).map(_.message) should equal(
         files.reverse.map(f => s"$f commit") ::: List("Initial commit")
+      )
+    }
+
+    "return last X commits" in new TestCtx with InitialRepoSetup {
+      val numOfCommits = 2
+      val files        = List("Foo", "Bar", "Baz")
+      files.foreach { file =>
+        createStubFile(repoPath.resolve(s"$file.enso")) should equal(true)
+        val commitResult1 =
+          vcs.commit(repoPath, s"$file commit").unsafeRunSync()
+        commitResult1.isRight shouldBe true
+      }
+
+      val listResult =
+        vcs.list(repoPath, limit = Some(numOfCommits)).unsafeRunSync()
+      listResult.isRight shouldBe true
+
+      listResult.getOrElse(Nil).map(_.message) should equal(
+        files.reverse.map(f => s"$f commit").take(numOfCommits)
       )
     }
 

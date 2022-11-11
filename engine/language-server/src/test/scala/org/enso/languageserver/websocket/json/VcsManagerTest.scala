@@ -99,8 +99,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           { "jsonrpc": "2.0",
             "id": 1,
             "error": {
-              "code": 1000,
-              "message": "repository already exists"
+              "code": 1005,
+              "message": "Requested project is already under version control"
             }
           }
           """)
@@ -146,8 +146,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
-              "name" : "*",
-              "sha"  : "*"
+              "commitId" : "*",
+              "message"  : "*"
             }
           }
           """)
@@ -189,8 +189,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           { "jsonrpc": "2.0",
             "id": 4,
             "result": {
-              "name" : "*",
-              "sha"  : "*"
+              "commitId" : "*",
+              "message"  : "*"
             }
           }
           """)
@@ -240,8 +240,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           { "jsonrpc": "2.0",
             "id": 2,
             "result": {
-              "name" : "*",
-              "sha"  : "*"
+              "commitId" : "*",
+              "message"  : "*"
             }
           }
           """)
@@ -285,8 +285,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           { "jsonrpc": "2.0",
             "id": 4,
             "result": {
-              "name" : "*",
-              "sha"  : "*"
+              "commitId" : "*",
+              "message"  : "*"
             }
           }
           """)
@@ -346,8 +346,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         { "jsonrpc": "2.0",
           "id": 2,
           "result": {
-            "name" : "*",
-            "sha"  : "*"
+            "commitId" : "*",
+            "message"  : "*"
           }
         }
         """)
@@ -788,6 +788,37 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                 {
                   "commitId" : "*",
                   "message" : "Initial commit"
+                }
+              ]
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "vcs/list",
+            "id": 1,
+            "params": {
+              "root": {
+                "rootId": $testContentRootId,
+                "segments": []
+              },
+              "limit": 2
+            }
+          }
+          """)
+      client.fuzzyExpectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "saves" : [
+                {
+                  "commitId" : "*",
+                  "message" : "More changes"
+                },
+                {
+                  "commitId" : "*",
+                  "message" : "Release"
                 }
               ]
             }

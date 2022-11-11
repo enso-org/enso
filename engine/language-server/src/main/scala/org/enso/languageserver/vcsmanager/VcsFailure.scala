@@ -2,9 +2,9 @@ package org.enso.languageserver.vcsmanager
 
 sealed trait VcsFailure
 
-case class ProjectRootNotFound(reason: String) extends VcsFailure
-
 case class RepoNotFound(reason: String) extends VcsFailure
+
+case object RepoAlreadyExists extends VcsFailure
 
 case class ProjectNotFound(reason: String) extends VcsFailure
 

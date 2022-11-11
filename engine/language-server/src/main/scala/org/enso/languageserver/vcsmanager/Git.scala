@@ -6,7 +6,6 @@ import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.api.errors.RefNotFoundException
-import org.eclipse.jgit.api.errors.WrongRepositoryStateException
 import org.eclipse.jgit.errors.{
   IncorrectObjectTypeException,
   InvalidObjectIdException,
@@ -17,10 +16,11 @@ import org.eclipse.jgit.lib.{ObjectId, Repository}
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
 import org.enso.languageserver.vcsmanager.Git.{
-  AuthoerEmail,
+  AuthorEmail,
   AuthorName,
   DefaultGitRepoDir,
-  MasterRef
+  MasterRef,
+  RepoExists
 }
 
 import scala.jdk.CollectionConverters._
@@ -29,6 +29,15 @@ import zio.blocking.effectBlocking
 import java.time.Instant
 
 class Git extends VcsApi[BlockingIO] {
+
+  private def repository(path: Path): Repository = {
+    val builder = new FileRepositoryBuilder();
+    builder
+      .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
+      .setMustExist(true)
+      .build()
+  }
+
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
     effectBlocking {
       val rootFile = root.toFile
@@ -37,7 +46,7 @@ class Git extends VcsApi[BlockingIO] {
       }
       val repoLocation = root.resolve(DefaultGitRepoDir)
       if (repoLocation.toFile.exists()) {
-        throw new WrongRepositoryStateException("repository already exists")
+        throw new RepoExists()
       }
 
       val jgit = JGit
@@ -51,18 +60,10 @@ class Git extends VcsApi[BlockingIO] {
         .setAllowEmpty(true)
         .setAll(true)
         .setMessage("Initial commit")
-        .setAuthor(AuthorName, AuthoerEmail)
+        .setAuthor(AuthorName, AuthorEmail)
         .call()
       ()
     }.mapError(errorHandling)
-  }
-
-  private def repository(path: Path): Repository = {
-    val builder = new FileRepositoryBuilder();
-    builder
-      .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
-      .setMustExist(true)
-      .build()
   }
 
   override def commit(
@@ -83,7 +84,7 @@ class Git extends VcsApi[BlockingIO] {
       val revCommit = jgit
         .commit()
         .setMessage(commitName)
-        .setAuthor(AuthorName, AuthoerEmail)
+        .setAuthor(AuthorName, AuthorEmail)
         .call()
       RepoCommit(revCommit.getName(), revCommit.getShortMessage())
     }.mapError(errorHandling)
@@ -158,11 +159,17 @@ class Git extends VcsApi[BlockingIO] {
     }.mapError(errorHandling)
   }
 
-  override def list(root: Path): BlockingIO[VcsFailure, List[RepoCommit]] = {
+  override def list(
+    root: Path,
+    limit: Option[Int]
+  ): BlockingIO[VcsFailure, List[RepoCommit]] = {
     effectBlocking {
       val jgit   = new JGit(repository(root))
       val logCmd = jgit.log()
-      logCmd
+      limit
+        .filter(_ > 0)
+        .map(logCmd.setMaxCount(_))
+        .getOrElse(logCmd)
         .call()
         .asScala
         .toList
@@ -174,6 +181,7 @@ class Git extends VcsApi[BlockingIO] {
     case ex: FileNotFoundException       => ProjectNotFound(ex.getMessage)
     case ex: RepositoryNotFoundException => RepoNotFound(ex.getMessage)
     case _: RefNotFoundException         => SaveNotFound
+    case _: RepoExists                   => RepoAlreadyExists
     case ex                              => GenericVcsFailure(ex.getMessage)
   }
 }
@@ -182,5 +190,7 @@ object Git {
   val DefaultGitRepoDir = ".git"
   val MasterRef         = "refs/heads/master"
   val AuthorName        = "Enso VCS"
-  val AuthoerEmail      = "enso@vcs.io"
+  val AuthorEmail       = "vcs@enso.io"
+
+  private class RepoExists extends Exception
 }

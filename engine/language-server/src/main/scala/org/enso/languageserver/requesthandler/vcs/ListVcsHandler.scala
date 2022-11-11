@@ -25,7 +25,11 @@ class ListVcsHandler(
 
   private def requestStage: Receive = {
     case Request(ListVcs, id, params: ListVcs.Params) =>
-      vcsManager ! VcsProtocol.ListRepo(rpcSession.clientId, params.root)
+      vcsManager ! VcsProtocol.ListRepo(
+        rpcSession.clientId,
+        params.root,
+        params.limit
+      )
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
