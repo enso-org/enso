@@ -37,7 +37,7 @@ impl Background {
         let width = width - Var::from(2.0 * component_margin);
         let height = height - Var::from(2.0 * component_margin);
         let shape = Rect((&width, &height)).corners_radius(&height / 2.0);
-        let shape = shape.translate(Vector2(component_margin, component_margin)).into();
+        let shape = shape.into();
         Background { width, height, shape }
     }
 }
@@ -61,10 +61,8 @@ mod track {
     ensogl_core::shape! {
         above = [background];
         (style:Style, slider_fraction_filled:f32, color:Vector4) {
-            let component_margin = Pixels::from(COMPONENT_MARGIN);
             let Background{width,height,shape: background} = Background::new();
             let track = Rect((&width * &slider_fraction_filled,&height));
-            let track = track.translate(Vector2(component_margin,component_margin));
             let track = track.translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5);
             let track = track.intersection(background).fill(color);
             track.into()
