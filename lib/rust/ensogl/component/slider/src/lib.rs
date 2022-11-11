@@ -266,14 +266,10 @@ impl Slider {
             value_is_default_true <- value_is_default.on_true();
             value_is_default_false <- value_is_default.on_false();
             eval_ value_is_default_true ({
-                model.value_left.set_property_default(formatting::Weight::Normal);
-                model.value_dot.set_property_default(formatting::Weight::Normal);
-                model.value_right.set_property_default(formatting::Weight::Normal);
+                model.set_value_text_property_default(formatting::Weight::Normal);
             });
             eval_ value_is_default_false ({
-                model.value_left.set_property_default(formatting::Weight::Bold);
-                model.value_dot.set_property_default(formatting::Weight::Bold);
-                model.value_right.set_property_default(formatting::Weight::Bold);
+                model.set_value_text_property_default(formatting::Weight::Bold);
             });
 
 
@@ -298,11 +294,7 @@ impl Slider {
             eval background_color.value ((color) model.set_background_color(*color));
             eval track_color.value ((color) model.set_track_color(*color));
             eval value_color.value (
-                (color) {
-                    model.value_left.set_property_default(color);
-                    model.value_dot.set_property_default(color);
-                    model.value_right.set_property_default(color);
-                }
+                (color) model.set_value_text_property_default(color);
             );
             eval label_color.value ((color) model.label.set_property_default(color));
 

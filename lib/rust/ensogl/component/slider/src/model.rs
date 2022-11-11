@@ -7,6 +7,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_text as text;
+use ensogl_text::formatting::ResolvedProperty;
 
 
 
@@ -16,6 +17,7 @@ use ensogl_text as text;
 
 /// Size of the margin around the component's shapes for proper anti-aliasing.
 const COMPONENT_MARGIN: f32 = 4.0;
+
 
 
 // =====================================================
@@ -162,6 +164,13 @@ impl Model {
             self.root.remove_child(&self.value_dot);
             self.root.remove_child(&self.value_right);
         }
+    }
+
+    /// Set default properties to the group of text elements showing the slider value
+    pub fn set_value_text_property_default(&self, property: impl Into<ResolvedProperty> + Copy) {
+        self.value_left.set_property_default(property.into());
+        self.value_dot.set_property_default(property.into());
+        self.value_right.set_property_default(property.into());
     }
 }
 
