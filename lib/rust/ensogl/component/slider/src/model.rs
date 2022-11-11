@@ -18,7 +18,6 @@ use ensogl_text as text;
 const COMPONENT_MARGIN: f32 = 4.0;
 
 
-
 // =====================================================
 // === Slider background and track shape definitions ===
 // =====================================================
@@ -32,17 +31,13 @@ struct Background {
 impl Background {
     /// Create new rounded background rectangle
     fn new() -> Self {
+        let component_margin = Pixels::from(COMPONENT_MARGIN);
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
-
-        let width = width - Var::from(Pixels::from(2.0 * COMPONENT_MARGIN));
-        let height = height - Var::from(Pixels::from(2.0 * COMPONENT_MARGIN));
-
-        let shape = Rect((&width, &height))
-            .corners_radius(&height / 2.0)
-            .translate(Vector2::<Pixels>(COMPONENT_MARGIN.into(), COMPONENT_MARGIN.into()))
-            .into();
-
+        let width = width - Var::from(2.0 * component_margin);
+        let height = height - Var::from(2.0 * component_margin);
+        let shape = Rect((&width, &height)).corners_radius(&height / 2.0);
+        let shape = shape.translate(Vector2(component_margin, component_margin)).into();
         Background { width, height, shape }
     }
 }
@@ -66,18 +61,13 @@ mod track {
     ensogl_core::shape! {
         above = [background];
         (style:Style, slider_fraction_filled:f32, color:Vector4) {
-            let Background{
-                width,
-                height,
-                shape: background
-            } = Background::new();
-
-            Rect( (&width * &slider_fraction_filled, &height) )
-                .translate(Vector2::<Pixels>(COMPONENT_MARGIN.into(), COMPONENT_MARGIN.into()))
-                .translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5)
-                .intersection(background)
-                .fill(color)
-                .into()
+            let component_margin = Pixels::from(COMPONENT_MARGIN);
+            let Background{width,height,shape: background} = Background::new();
+            let track = Rect((&width * &slider_fraction_filled,&height));
+            let track = track.translate(Vector2(component_margin,component_margin));
+            let track = track.translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5);
+            let track = track.intersection(background).fill(color);
+            track.into()
         }
     }
 }
@@ -102,9 +92,8 @@ pub struct Model {
     pub value_dot:   text::Text,
     /// Slider value text right of the decimal point
     pub value_right: text::Text,
-
-    pub root: display::object::Instance,
-    pub app:  Application,
+    pub root:        display::object::Instance,
+    pub app:         Application,
 }
 
 impl Model {
@@ -116,7 +105,6 @@ impl Model {
         let value_right = app.new_view::<text::Text>();
         let background = background::View::new();
         let track = track::View::new();
-
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
 
@@ -152,6 +140,7 @@ impl Model {
     pub fn set_track_color(&self, color: color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
     }
+
     /// Set slider background color
     pub fn set_background_color(&self, color: color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());

@@ -55,7 +55,6 @@ impl Slider {
         let model = Rc::new(Model::new(app));
         let app = app.clone_ref();
         let frp = Frp::new();
-
         Self { frp, model, app }.init()
     }
 }
@@ -68,6 +67,7 @@ impl display::Object for Slider {
 
 impl Deref for Slider {
     type Target = Frp;
+
     fn deref(&self) -> &Self::Target {
         &self.frp
     }
@@ -105,12 +105,10 @@ ensogl_core::define_endpoints_2! {
         set_width(f32),
         /// Set the height of the component
         set_height(f32),
-
         /// Set the color of the slider
         set_slider_color(color::Lcha),
         /// Set the color of the background
         set_background_color(color::Lcha),
-
         /// Set the slider value
         set_value(f32),
         /// Set the default value to reset a slider to
@@ -121,14 +119,12 @@ ensogl_core::define_endpoints_2! {
         set_value_max(f32),
         /// Set the color of the value text display
         set_value_color(color::Lcha),
-
         /// Set the default precision at which the slider operates
         set_precision(f32),
         /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
         set_precision_step_margin(f32),
         /// Set the distance of vertical mouse movement needed to increment/decrement the precision to the next step
         set_precision_step_size(f32),
-
         /// Set a slider label
         set_label(ImString),
         /// Set the color of the slider label
@@ -137,7 +133,6 @@ ensogl_core::define_endpoints_2! {
         set_label_visible(bool),
         /// Set whether the label is shown inside the slider, as opposed to left of it
         set_label_inside(bool),
-
         /// Set whether the slider is enabled, when disabled the slider is greyed out and cannot be interacted with
         set_slider_enabled(bool),
     }
@@ -155,13 +150,10 @@ impl Slider {
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
-
         let track_pos = Animation::new_non_init(network);
-
         let background_color = color::Animation::new(network);
         let track_color = color::Animation::new(network);
         let value_color = color::Animation::new(network);
@@ -169,52 +161,54 @@ impl Slider {
 
         frp::extend! { network
 
+
             // User input
 
-            background_click        <- model.background.events.mouse_down_primary.constant(());
-            background_release      <- model.background.events.mouse_release_primary.constant(());
-            background_drag         <- bool(&background_release, &background_click);
+            background_click <- model.background.events.mouse_down_primary.constant(());
+            background_release <- model.background.events.mouse_release_primary.constant(());
+            background_drag <- bool(&background_release,&background_click);
 
-            track_click             <- model.track.events.mouse_down_primary.constant(());
-            track_release           <- model.track.events.mouse_release_primary.constant(());
-            track_drag              <- bool(&track_release, &track_click);
+            track_click <- model.track.events.mouse_down_primary.constant(());
+            track_release <- model.track.events.mouse_release_primary.constant(());
+            track_drag <- bool(&track_release,&track_click);
 
-            component_click         <- any2(&background_click, &track_click).gate(&input.set_slider_enabled);
-            component_drag          <- any2(&background_drag, &track_drag).gate(&input.set_slider_enabled);
-            component_release       <- any2(&background_release, &track_release);
+            component_click <- any2(&background_click,&track_click).gate(&input.set_slider_enabled);
+            component_drag <- any2(&background_drag,&track_drag).gate(&input.set_slider_enabled);
+            component_release <- any2(&background_release,&track_release);
 
-            component_ctrl_click    <- component_click.gate(&keyboard.is_control_down);
+            component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
 
-            drag_pos_start          <- mouse.position.sample(&component_click);
-            drag_pos_end            <- mouse.position.gate(&component_drag);
-            drag_pos_end            <- any2(&drag_pos_end, &drag_pos_start);
-            drag_delta              <- all2(&drag_pos_end, &drag_pos_start).map(|(end, start)| end - start);
+            drag_pos_start <- mouse.position.sample(&component_click);
+            drag_pos_end <- mouse.position.gate(&component_drag);
+            drag_pos_end <- any2(&drag_pos_end,&drag_pos_start);
+            drag_delta <- all2(&drag_pos_end,&drag_pos_start).map(|(end,start)| end - start);
 
-            mouse_y_local           <- mouse.position.map(
-                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y )
+            mouse_y_local <- mouse.position.map(
+                f!([scene,model] (pos) scene.screen_to_object_space(&model.background,*pos).y )
             ).gate(&component_drag);
 
 
 
             // Componenet size
 
-            output.width            <+ input.set_width;
-            output.height           <+ input.set_height;
+            output.width <+ input.set_width;
+            output.height <+ input.set_height;
 
 
             // precision calculation
 
-            precision_adjust_margin <- all2(&input.set_height, &input.set_precision_step_margin).map(
-                |(height, margin)| height / 2.0 + margin
+            precision_adjust_margin <- all2(&input.set_height,&input.set_precision_step_margin).map(
+                |(height,margin)| height / 2.0 + margin
             );
-            precision_adjusted      <- all4(
+            precision_adjusted <- all4(
                 &input.set_precision,
                 &mouse_y_local,
                 &precision_adjust_margin,
                 &input.set_precision_step_size,
             ).map(
-                |(default, offset, margin, step_size)| {
-                    let steps = ((offset.abs() - margin) / step_size).max(0.0).ceil() * offset.signum();
+                |(default,offset,margin,step_size)| {
+                    let steps = ((offset.abs() - margin).max(0.0) / step_size).ceil();
+                    let steps = steps * offset.signum();
                     *default * (PRECISION_STEP_BASE).pow(steps)
                 }
             );
@@ -222,45 +216,42 @@ impl Slider {
 
             // value calculation
 
-            value_reset             <- input.set_value_default.sample(&component_ctrl_click);
-            value_start             <- output.value.sample(&component_click);
-            value_start             <- any2(&value_reset, &value_start);
+            value_reset <- input.set_value_default.sample(&component_ctrl_click);
+            value_start <- output.value.sample(&component_click);
+            value_start <- any2(&value_reset,&value_start);
 
-            value_update            <- bool(&component_release, &value_start); // update only after value_start is sampled
-            value                   <- all3(&value_start, &precision_adjusted, &drag_delta).map(
-                |(value, precision, delta)| value + delta.x * precision
+            // value_update is updated only after value_start is sampled
+            value_update <- bool(&component_release,&value_start);
+            value <- all3(&value_start,&precision_adjusted,&drag_delta).map(
+                |(value,precision,delta)| value + delta.x * precision
             ).gate(&value_update);
-            value                   <- any2(&input.set_value, &value);
-            value                   <- all2(&value, &precision_adjusted).map(
-                |(value, precision)| (value / precision).round() * precision
+            value <- any2(&input.set_value,&value);
+            value <- all2(&value,&precision_adjusted).map(
+                |(value,precision)| (value / precision).round() * precision
             );
-            value                   <- all3(&value, &input.set_value_min, &input.set_value_max).map(
-                |(value, min, max)| value.clamp(*min, *max)
+            value <- all3(&value,&input.set_value_min,&input.set_value_max).map(
+                |(value,min,max)| value.clamp(*min,*max)
             );
-            output.value            <+ value;
+            output.value <+ value;
 
-            track_pos.target        <+ all3(&value, &input.set_value_min, &input.set_value_max).map(
-                |(value, min, max)| (value - min) / (max - min)
+            track_pos.target <+ all3(&value,&input.set_value_min,&input.set_value_max).map(
+                |(value,min,max)| (value - min) / (max - min)
             );
 
 
             // model update
 
-            eval track_pos.value (
-                (v) model.track.slider_fraction_filled.set(*v);
+            eval track_pos.value ((v) model.track.slider_fraction_filled.set(*v));
+            component_size <- all2(&input.set_width,&input.set_height).map(
+                |(width,height)| Vector2(*width,*height)
             );
-            component_size <- all2(&input.set_width, &input.set_height).map(
-                |(width, height)| Vector2::new(*width, *height)
-            );
-            eval component_size (
-                (size) model.set_size(*size);
-            );
+            eval component_size ((size) model.set_size(*size));
 
-            value_is_default        <- all2(&value, &input.set_value_default).map(
-                |(value, default)| value==default
+            value_is_default <- all2(&value,&input.set_value_default).map(
+                |(value,default)| value==default
             );
-            value_is_default_true   <- value_is_default.on_true();
-            value_is_default_false  <- value_is_default.on_false();
+            value_is_default_true <- value_is_default.on_true();
+            value_is_default_false <- value_is_default.on_false();
             eval_ value_is_default_true ({
                 model.value_left.set_property_default(formatting::Weight::Normal);
                 model.value_dot.set_property_default(formatting::Weight::Normal);
@@ -275,25 +266,24 @@ impl Slider {
 
             // colors
 
-            background_color.target <+ all2(&input.set_background_color, &input.set_slider_enabled).map(
-                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+            background_color.target <+ all2(
+                &input.set_background_color,
+                &input.set_slider_enabled,
+            ).map(
+                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
             track_color.target <+ all2(&input.set_slider_color, &input.set_slider_enabled).map(
-                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
             value_color.target <+ all2(&input.set_value_color, &input.set_slider_enabled).map(
-                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
             label_color.target <+ all2(&input.set_label_color, &input.set_slider_enabled).map(
-                |(color, enabled)| if *enabled { *color } else { color.to_grayscale() }
+                |(color,enabled)| if *enabled { *color } else { color.to_grayscale() }
             );
 
-            eval background_color.value (
-                (color) model.set_background_color(*color);
-            );
-            eval track_color.value (
-                (color) model.set_track_color(*color);
-            );
+            eval background_color.value ((color) model.set_background_color(*color));
+            eval track_color.value ((color) model.set_track_color(*color));
             eval value_color.value (
                 (color) {
                     model.value_left.set_property_default(color);
@@ -301,90 +291,65 @@ impl Slider {
                     model.value_right.set_property_default(color);
                 }
             );
-            eval label_color.value (
-                (color) model.label.set_property_default(color);
-            );
+            eval label_color.value ((color) model.label.set_property_default(color));
 
 
             // text alignment
 
-            value_text <- all2(&value, &precision_adjusted).map(
-                |(value, precision)| {
-                    value_text_truncate_precision(*value, *precision)
+            value_text <- all2(&value,&precision_adjusted).map(
+                |(value,precision)| {
+                    value_text_truncate_precision(*value,*precision)
                 }
             );
             value_text_decimal_visible <- value_text.map(|t| t.1.is_some());
             model.value_left.set_content <+ value_text.map(|t| t.0.clone());
             value_text_right <- value_text.map(|t| t.1.clone()).gate(&value_text_decimal_visible);
-            model.value_right.set_content <+ value_text_right.map(
-                |t| t.clone().unwrap() // value_text_right is gated by t.1.is_some() in value_text_decimal_visible
-            );
+            // value_text_right is gated by t.1.is_some() in value_text_decimal_visible
+            model.value_right.set_content <+ value_text_right.map(|t| t.clone().unwrap());
             value_text_decimal_visibility_change <- value_text_decimal_visible.on_change();
             eval value_text_decimal_visibility_change (
                 (v) model.set_value_decimal_visible(*v);
             );
 
-            value_text_left_pos_x <- all2(&model.value_left.width, &model.value_dot.width).map(
-                |(left, dot)| -*left - *dot / 2.0
+            value_text_left_pos_x <- all2(&model.value_left.width,&model.value_dot.width).map(
+                |(left,dot)| -*left - *dot / 2.0
             );
-            eval value_text_left_pos_x (
-                (x) model.value_left.set_position_x(*x);
-            );
-            eval model.value_left.height (
-                (h) model.value_left.set_position_y(*h / 2.0);
-            );
-            eval model.value_dot.width (
-                (w) model.value_dot.set_position_x(-*w / 2.0);
-            );
-            eval model.value_dot.height (
-                (h) model.value_dot.set_position_y(*h / 2.0);
-            );
-            eval model.value_dot.width (
-                (w) model.value_right.set_position_x(*w / 2.0);
-            );
-            eval model.value_right.height (
-                (h) model.value_right.set_position_y(*h / 2.0);
-            );
+            eval value_text_left_pos_x ((x) model.value_left.set_position_x(*x));
+            eval model.value_left.height ((h) model.value_left.set_position_y(*h / 2.0));
+            eval model.value_dot.width ((w) model.value_dot.set_position_x(-*w / 2.0));
+            eval model.value_dot.height ((h) model.value_dot.set_position_y(*h / 2.0));
+            eval model.value_dot.width ((w) model.value_right.set_position_x(*w / 2.0));
+            eval model.value_right.height ((h) model.value_right.set_position_y(*h / 2.0));
 
             model.label.set_content <+ input.set_label;
-            eval input.set_label_visible (
-                (v) model.set_label_visible(*v);
-            );
+            eval input.set_label_visible ((v) model.set_label_visible(*v));
 
-            eval model.label.height (
-                (h) model.label.set_position_y(*h / 2.0);
-            );
+            eval model.label.height ((h) model.label.set_position_y(*h / 2.0));
             label_pos_x <- all4(
                 &input.set_width,
                 &input.set_height,
                 &model.label.width,
-                &input.set_label_inside
+                &input.set_label_inside,
             ).map(
-                |(comp_width, comp_height, lab_width, inside)| if *inside {
+                |(comp_width,comp_height,lab_width,inside)| if *inside {
                     -comp_width / 2.0 + comp_height / 2.0
                 } else {
                     -comp_width / 2.0 - comp_height / 2.0 - lab_width
                 }
             );
-            eval label_pos_x (
-                (x) model.label.set_position_x(*x);
-            );
-
+            eval label_pos_x ((x) model.label.set_position_x(*x));
         }
 
         self.frp.set_precision(0.1);
         self.frp.set_precision_step_margin(10.0);
         self.frp.set_precision_step_size(50.0);
-
         self.frp.set_value_min(0.0);
         self.frp.set_value_max(5.0);
         self.frp.set_value_default(0.5);
         self.frp.set_value(0.5);
-
         self.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
         self.frp.set_slider_color(color::Lcha(0.5, 0.5, 0.0, 1.0));
         self.frp.set_slider_enabled(true);
-
         self.frp.set_label_visible(true);
         self
     }
@@ -392,22 +357,20 @@ impl Slider {
 
 
 
-// ========================
-// === Helper functions ===
-// ========================
+// =============================
+// === Value text formatting ===
+// =============================
 
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
-/// digits left of the decimal point, and one optional with the digits right of the decimal point
+/// digits left of the decimal point, and one optional with the digits right of the decimal point.
 fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Option<ImString>) {
     if precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
-
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
-        let text_left =
-            text_iter.next().map(|s| s.to_im_string()).unwrap_or_else(ImString::default);
+        let text_left = text_iter.next().map(|s| s.to_im_string());
+        let text_left = text_left.unwrap_or_else(ImString::default);
         let text_right = text_iter.next().map(|s| s.to_im_string());
-
         (text_left, text_right)
     } else {
         let text_left = format!("{:.0}", value.trunc()).to_im_string();
