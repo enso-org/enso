@@ -33,11 +33,10 @@ struct Background {
 impl Background {
     /// Create new rounded background rectangle
     fn new() -> Self {
-        let component_margin = Pixels::from(COMPONENT_MARGIN);
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
-        let width = width - Var::from(2.0 * component_margin);
-        let height = height - Var::from(2.0 * component_margin);
+        let width = width - COMPONENT_MARGIN.px() * 2.0;
+        let height = height - COMPONENT_MARGIN.px() * 2.0;
         let shape = Rect((&width, &height)).corners_radius(&height / 2.0);
         let shape = shape.into();
         Background { width, height, shape }
