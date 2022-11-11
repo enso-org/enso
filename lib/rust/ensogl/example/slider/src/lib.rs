@@ -56,6 +56,7 @@ fn make_slider(app: &Application) -> Leak<slider::Slider> {
     slider.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
     slider.frp.set_value_max(5.0);
     slider.frp.set_value_default(1.0);
+    slider.frp.set_value(1.0);
     app.display.add_child(&slider);
     Leak::new(slider)
 }

@@ -62,6 +62,7 @@ pub const PRECISION_STEP_BASE: f32 = 10.0;
 // ========================
 
 /// Slider component structure
+#[derive(Debug)]
 pub struct Slider {
     pub frp: Frp,
     model:   Rc<Model>,
@@ -112,10 +113,13 @@ impl application::View for Slider {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+/// Position of the slider label.
+#[derive(Clone, Copy, Debug, Default)]
 pub enum LabelPosition {
     #[default]
+    /// Place the label outside the slider component, on its left side..
     Outside,
+    /// Place the label inside the slider component, on the left side.
     Inside,
 }
 
@@ -267,14 +271,10 @@ impl Slider {
             // model update
 
             eval track_pos.value ((v) model.track.slider_fraction_filled.set(*v));
-            component_size <- all2(&input.set_width,&input.set_height).map(
-                |(width,height)| Vector2(*width,*height)
-            );
+            component_size <- all2(&input.set_width,&input.set_height).map(|(w,h)| Vector2(*w,*h));
             eval component_size ((size) model.set_size(*size));
 
-            value_is_default <- all2(&value,&input.set_value_default).map(
-                |(value,default)| value==default
-            );
+            value_is_default <- all2(&value,&input.set_value_default).map(|(val,def)| val==def);
             value_is_default_true <- value_is_default.on_true();
             value_is_default_false <- value_is_default.on_false();
             eval_ value_is_default_true ({

@@ -78,6 +78,7 @@ mod track {
 // ===============================
 
 /// Slider model structure
+#[derive(Debug)]
 pub struct Model {
     /// Background element
     pub background:  background::View,
@@ -96,6 +97,7 @@ pub struct Model {
 }
 
 impl Model {
+    /// Create a new slider model
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
@@ -122,7 +124,7 @@ impl Model {
         Self { background, track, label, value_left, value_dot, value_right, root, app }.init()
     }
 
-    /// Initialise model
+    /// Initialise slider model
     pub fn init(self) -> Self {
         self.value_dot.set_content(".");
         self
