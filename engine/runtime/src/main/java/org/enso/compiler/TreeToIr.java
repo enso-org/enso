@@ -17,6 +17,7 @@ import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
@@ -62,11 +63,9 @@ import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Line;
-import org.enso.syntax2.MultiSegmentAppSegment;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.Tree.MultiSegmentApp;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -188,13 +187,14 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
         );
         yield cons(binding, appendTo);
       }
+
       case Tree.Annotated anno -> {
         var annotation = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
@@ -301,11 +301,12 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
       }
+
       case Tree.Documented doc -> {
         var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
@@ -682,7 +683,7 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 1, null);
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
             var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
             var id = new IdentifiedLocation(patched, last.location().get().id());
@@ -717,11 +718,10 @@ final class TreeToIr {
           List<IR.CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
-            if (expr != null) {
-              continue;
+            if (expr instanceof Tree.Ident) {
+                var call = translateCallArgument(expr);
+                args = cons(call, args);
             }
-            var call = translateCallArgument(expr);
-            args = cons(call, args);
           }
           yield switch (fn) {
             case IR$Application$Prefix pref -> patchPrefixWithBlock(pref, block, args);
@@ -742,7 +742,16 @@ final class TreeToIr {
               case IR.Expression in -> in;
           };
       }
-      case Tree.TextLiteral txt -> translateLiteral(txt);
+      case Tree.TextLiteral txt -> {
+        try {
+          yield translateLiteral(txt);
+        } catch (UnhandledEntity ex) {
+          if (ex.entity() instanceof IR.Expression expr) {
+            yield expr;
+          }
+          throw ex;
+        }
+      }
       case Tree.CaseOf cas -> {
         var expr = translateExpression(cas.getExpression(), false);
         List<IR$Case$Branch> branches = nil();
@@ -959,24 +968,49 @@ final class TreeToIr {
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
     var stripComments = txt.getOpen().codeRepr().length() > 1;
     // Splices are not yet supported in the IR.
-    var value = buildTextConstant(txt.getElements(), stripComments);
+    var value = buildTextConstant(txt, txt.getElements(), stripComments);
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String buildTextConstant(Iterable elements, boolean stripComments) {
-    StringBuilder sb = new StringBuilder();
+  String buildTextConstant(Tree at, Iterable<TextElement> elements, boolean stripComments) {
+    var sb = new StringBuilder();
+    TextElement error = null;
     for (var t : elements) {
       switch (t) {
         case TextElement.Section s -> {
           var text = s.getText().codeRepr();
           if (stripComments) {
             // Reproduce an AstToIr bug for testing.
-            text = text.replaceAll("#[^\n\r]*", "");
+            var quotedSegments = text.split("\"", -1);
+            for (int i = 0; i < quotedSegments.length; i++) {
+              var seg = quotedSegments[i];
+              if (i % 2 == 0) {
+                sb.append(seg.replaceAll("#[^\n\r]*", ""));
+              } else {
+                sb.append('"');
+                sb.append(seg);
+                if (i + 1 < quotedSegments.length) {
+                  sb.append('"');
+                }
+              }
+            }
+          } else {
+            sb.append(text);
           }
-          sb.append(text);
         }
-        case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
+        case TextElement.Escape e -> {
+          var val = e.getToken().getValue();
+          if (val == -1) {
+            error = t;
+          } else {
+            sb.appendCodePoint(val);
+          }
+        }
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
+    }
+    if (error != null) {
+      var ir = translateSyntaxError(at, IR$Error$Syntax$InvalidEscapeSequence$.MODULE$.apply(sb.toString()));
+      throw new UnhandledEntity(ir, "buildTextConstant");
     }
     return sb.toString();
   }
@@ -1270,7 +1304,7 @@ final class TreeToIr {
     * @return the [[IR]] representation of `comment`
     */
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
-    var text = buildTextConstant(doc.getElements(), true);
+    var text = buildTextConstant(where, doc.getElements(), true);
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
@@ -1438,13 +1472,13 @@ final class TreeToIr {
     }
   }
 
-    private void checkArgs(List<IR.CallArgument> args) {
-        LinearSeq<IR.CallArgument> a = args;
-        while (!a.isEmpty()) {
-            if (a.head() == null) {
-                throw new IllegalStateException("Problem: " + args);
-            }
-            a = (LinearSeq<IR.CallArgument>) a.tail();
-        }
+  private void checkArgs(List<IR.CallArgument> args) {
+    LinearSeq<IR.CallArgument> a = args;
+    while (!a.isEmpty()) {
+      if (a.head() == null) {
+        throw new IllegalStateException("Problem: " + args);
+      }
+      a = (LinearSeq<IR.CallArgument>) a.tail();
     }
+  }
 }

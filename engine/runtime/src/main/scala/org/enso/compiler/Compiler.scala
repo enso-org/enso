@@ -53,8 +53,8 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger      = context.getLogger(getClass)
-  private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private val logger: TruffleLogger           = context.getLogger(getClass)
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -444,14 +444,16 @@ class Compiler(
       val tree = parse(src)
       generateIR(tree)
     }
-    def newParser() = {
-      System.err.println("Using new parser to process " + src.getURI())
-      val tree = ensoCompiler.parse(src)
-      ensoCompiler.generateIR(tree)
-    }
-    val size = src.getCharacters().length()
-    // change the condition to use old or new parser
-    val expr = if (size >= 0) oldParser() else newParser()
+    val expr =
+      if (
+        "rust".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        System.err.println("Using new parser to process " + src.getURI())
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
 
     val exprWithModuleExports =
       if (module.isSynthetic)
