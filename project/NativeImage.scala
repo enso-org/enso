@@ -100,6 +100,9 @@ object NativeImage {
           Seq()
         }
 
+      val quickBuildOption =
+        if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
+
       val memoryLimitOptions =
         memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
 
@@ -115,6 +118,7 @@ object NativeImage {
 
       var cmd =
         Seq(nativeImagePath) ++
+        quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
         initializeAtBuildtimeOptions ++
