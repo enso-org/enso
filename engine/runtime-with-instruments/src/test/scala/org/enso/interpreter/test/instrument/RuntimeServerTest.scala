@@ -683,7 +683,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT.A"),
+      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT"),
       TestMessages.update(
         contextId,
         idMainP,
@@ -2005,6 +2005,59 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send updates for constructor type" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    val idMain = metadata.addItem(39, 27)
+
+    val code =
+      """type My_Type
+        |    My_Constructor
+        |
+        |main =
+        |    My_Type.My_Constructor
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idMain, s"$moduleName.My_Type"),
       context.executionComplete(contextId)
     )
   }
