@@ -7,8 +7,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 @NodeInfo(description = "Converts Enso Text to a Java String.")
 public final class ToJavaStringNode extends Node {
   private static final ToJavaStringNode UNCACHED = new ToJavaStringNode();
-  private ToJavaStringNode() {
-  }
+
+  private ToJavaStringNode() {}
 
   /**
    * Returns the uncached version of this node.
