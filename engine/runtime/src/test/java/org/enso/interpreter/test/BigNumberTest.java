@@ -1,8 +1,10 @@
 package org.enso.interpreter.test;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -63,14 +65,32 @@ public class BigNumberTest {
     assertEquals("Size 200", 200, vec.getArraySize());
 
     var longs = 0;
+    var doubles = 0;
+    var values = new ArrayList<BigInteger>();
     for (long i = 0; i < vec.getArraySize(); i++) {
       var e = vec.getArrayElement(i);
       assertTrue("All numbers are numbers, but " + e + " is not", e.isNumber());
       if (e.fitsInLong()) {
         longs++;
       }
-      assertTrue("All numbers must fit into double, but " + e + " doesn't", e.fitsInDouble());
+      if (e.fitsInDouble()) {
+        doubles++;
+      }
+      var n = e.as(Number.class);
+      assertNotNull("All numbers can be seend as java.lang.Number", n);
+      var b = new BigInteger(n.toString());
+      assertNotNull("Each Enso number can be parsed as big integer", b);
+      assertEquals("Textual values are the same", n.toString(), b.toString());
+      values.add(b);
     }
     assertEquals("There are few long values and rest of doubles", 63, longs);
+    assertEquals("There are few double values and rest of Numbers", 63, doubles);
+    assertEquals("Two hundred numbers collected", 200, values.size());
+    for (int i = 1; i < values.size(); i++) {
+      var prev = values.get(i - 1);
+      var next = values.get(i);
+
+      assertEquals("Each value is accurate", prev.multiply(BigInteger.valueOf(2)), next);
+    }
   }
 }
