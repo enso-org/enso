@@ -247,7 +247,7 @@ impl Slider {
             // model update
 
             eval track_pos.value (
-                (v) model.track.value.set(*v);
+                (v) model.track.slider_fraction_filled.set(*v);
             );
             component_size <- all2(&input.set_width, &input.set_height).map(
                 |(width, height)| Vector2::new(*width, *height)

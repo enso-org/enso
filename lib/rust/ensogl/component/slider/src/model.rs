@@ -10,6 +10,15 @@ use ensogl_text as text;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Size of the margin around the component's shapes for proper anti-aliasing.
+const COMPONENT_MARGIN: f32 = 4.0;
+
+
+
 // ========================
 // === Model definition ===
 // ========================
@@ -69,8 +78,9 @@ impl Model {
 
     /// Set component size
     pub fn set_size(&self, size: Vector2<f32>) {
-        self.background.size.set(size);
-        self.track.size.set(size);
+        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
+        self.background.size.set(size + margin);
+        self.track.size.set(size + margin);
     }
 
     /// Set slider track color
@@ -127,7 +137,13 @@ impl Background {
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
 
-        let shape = Rect((&width, &height)).corners_radius(&height / 2.0).into();
+        let width = width - Var::from(Pixels::from(2.0 * COMPONENT_MARGIN));
+        let height = height - Var::from(Pixels::from(2.0 * COMPONENT_MARGIN));
+
+        let shape = Rect((&width, &height))
+            .corners_radius(&height / 2.0)
+            .translate(Vector2::<Pixels>(COMPONENT_MARGIN.into(), COMPONENT_MARGIN.into()))
+            .into();
 
         Background { width, height, shape }
     }
@@ -151,15 +167,16 @@ mod track {
 
     ensogl_core::shape! {
         above = [background];
-        (style:Style, value:f32, color:Vector4) {
+        (style:Style, slider_fraction_filled:f32, color:Vector4) {
             let Background{
                 width,
                 height,
                 shape: background
             } = Background::new();
 
-            Rect( (&width*&value, &height) )
-                .translate_x(&width*(&value-1.0)*0.5)
+            Rect( (&width * &slider_fraction_filled, &height) )
+                .translate(Vector2::<Pixels>(COMPONENT_MARGIN.into(), COMPONENT_MARGIN.into()))
+                .translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5)
                 .intersection(background)
                 .fill(color)
                 .into()
