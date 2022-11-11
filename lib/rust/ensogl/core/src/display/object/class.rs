@@ -220,18 +220,14 @@ impl<Host> Default for Model<Host> {
 impl<Host: 'static> Model<Host> {
     /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
     pub fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where
-        Host: 'static,
-        T: frp::Data, {
+    where T: frp::Data {
         self.bubbling_event_fan.output::<event::Event<Host, T>>()
     }
 
     /// Get event handler for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
     pub fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where
-        Host: 'static,
-        T: frp::Data, {
+    where T: frp::Data {
         self.capturing_event_fan.output::<event::Event<Host, T>>()
     }
 
@@ -712,13 +708,11 @@ impl<Host> Instance<Host> {
 
 impl<Host: 'static> Instance<Host> {
     /// Constructor.
-    pub fn new() -> Self
-    where Host: 'static {
+    pub fn new() -> Self {
         Self { rc: Rc::new(Model::new()) }.init()
     }
 
-    fn init(self) -> Self
-    where Host: 'static {
+    fn init(self) -> Self {
         let network = &self.network;
         let this = &self;
         frp::extend! { network
@@ -728,16 +722,12 @@ impl<Host: 'static> Instance<Host> {
     }
 
     fn _new_event<T>(&self, payload: T) -> event::SomeEvent
-    where
-        Host: 'static,
-        T: 'static, {
+    where T: 'static {
         event::SomeEvent::new(Some(self), payload)
     }
 
     fn _emit_event<T>(&self, payload: T)
-    where
-        Host: 'static,
-        T: 'static, {
+    where T: 'static {
         self.event_source.emit(event::SomeEvent::new(Some(self), payload));
     }
 
@@ -1127,26 +1117,20 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
 
     /// Emit a new event. See docs of [`event::Event`] to learn more.
     fn emit_event<T>(&self, event: T)
-    where
-        Host: 'static,
-        T: 'static, {
+    where T: 'static {
         self.display_object()._emit_event(event)
     }
 
     /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
     fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where
-        Host: 'static,
-        T: frp::Data, {
+    where T: frp::Data {
         self.display_object().rc.on_event()
     }
 
     /// Get event handler for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
     fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where
-        Host: 'static,
-        T: frp::Data, {
+    where T: frp::Data {
         self.display_object().rc.on_event_capturing()
     }
 
