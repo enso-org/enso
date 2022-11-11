@@ -37,7 +37,8 @@ pub mod model;
 pub const PRECISION_DEFAULT: f32 = 0.1;
 /// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
 pub const PRECISION_STEP_SIZE: f32 = 50.0;
-/// Margin above/below the component within which vertical mouse movement will not result in a change in slider precision.
+/// Margin above/below the component within which vertical mouse movement will not result in a
+/// change in slider precision.
 pub const PRECISION_STEP_MARGIN: f32 = 10.0;
 /// Base of the exponentiation for precision increment steps of 10^x
 pub const PRECISION_STEP_BASE: f32 = 10.0;
@@ -99,8 +100,8 @@ impl application::View for Slider {
     }
 }
 
-#[derive(Clone,Debug,Default)]
-pub enum LabelPosition{
+#[derive(Clone, Debug, Default)]
+pub enum LabelPosition {
     #[default]
     Outside,
     Inside,
@@ -350,7 +351,12 @@ impl Slider {
             );
             eval label_pos_x ((x) model.label.set_position_x(*x));
         }
+        self.init_precision_defaults()
+    }
 
+    /// Initiate the precision adjustment areas above/below the slider and the default precision
+    /// value
+    fn init_precision_defaults(self) -> Self {
         self.frp.set_precision(PRECISION_DEFAULT);
         self.frp.set_precision_step_margin(PRECISION_STEP_MARGIN);
         self.frp.set_precision_step_size(PRECISION_STEP_SIZE);
