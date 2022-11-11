@@ -1998,11 +1998,11 @@ mod tests {
         check_focus_consistency(Some(&obj_left_2));
 
         obj_left_1.unset_parent();
-        assert_eq!(obj_root.is_focused(), false);
-        assert_eq!(obj_left_1.is_focused(), false);
-        assert_eq!(obj_left_2.is_focused(), true);
-        assert_eq!(obj_right_1.is_focused(), false);
-        assert_eq!(obj_right_2.is_focused(), false);
+        assert!(!obj_root.is_focused());
+        assert!(!obj_left_1.is_focused());
+        assert!(obj_left_2.is_focused());
+        assert!(!obj_right_1.is_focused());
+        assert!(!obj_right_2.is_focused());
 
         assert_eq!(obj_root.focused_instance().as_ref(), None);
         assert_eq!(obj_left_1.focused_instance().as_ref(), Some(&obj_left_2));
