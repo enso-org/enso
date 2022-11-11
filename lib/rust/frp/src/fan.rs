@@ -30,6 +30,7 @@ impl Debug for FanOutput {
 #[derive(Debug)]
 pub struct Fan {
     pub source: crate::Any<AnyData>,
+    network:    crate::WeakNetwork,
     map:        Map,
 }
 
@@ -47,7 +48,8 @@ impl Fan {
                 }
             });
         }
-        Self { source, map }
+        let network = network.downgrade();
+        Self { source, network, map }
     }
 
     /// Get the output stream of the fan for the given type. See docs of [`Fan`] for an example.
@@ -57,22 +59,26 @@ impl Fan {
     /// query the right function based on the [`TypeId`] when emitting the value. When changing this
     /// implementation, please remember to test it rigorously.
     #[allow(unsafe_code)]
-    pub fn output<T: crate::Data>(&self, network: &crate::Network) -> crate::Source<T> {
-        let id = TypeId::of::<T>();
-        let mut map = self.map.borrow_mut();
-        let fan_output = map.entry(id).or_insert_with(|| {
-            crate::extend! { network
-                output <- source::<T>();
-            }
-            let stream = AnyData::new(output);
-            let runner = Rc::new(|stream: &AnyData, event: &AnyData| {
-                let stream = unsafe { stream.downcast_ref_unchecked::<crate::Source<T>>() };
-                let event = unsafe { event.downcast_ref_unchecked::<T>() };
-                stream.emit(event.clone());
+    pub fn output<T: crate::Data>(&self) -> crate::Source<T> {
+        if let Some(network) = self.network.upgrade() {
+            let id = TypeId::of::<T>();
+            let mut map = self.map.borrow_mut();
+            let fan_output = map.entry(id).or_insert_with(|| {
+                crate::extend! { network
+                    output <- source::<T>();
+                }
+                let stream = AnyData::new(output);
+                let runner = Rc::new(|stream: &AnyData, event: &AnyData| {
+                    let stream = unsafe { stream.downcast_ref_unchecked::<crate::Source<T>>() };
+                    let event = unsafe { event.downcast_ref_unchecked::<T>() };
+                    stream.emit(event.clone());
+                });
+                FanOutput { stream, runner }
             });
-            FanOutput { stream, runner }
-        });
-        unsafe { fan_output.stream.downcast_ref_unchecked::<crate::Source<T>>().clone_ref() }
+            unsafe { fan_output.stream.downcast_ref_unchecked::<crate::Source<T>>().clone_ref() }
+        } else {
+            crate::Source::new()
+        }
     }
 
     /// Emit a new event to the fan. You should prefer using the [`Fan::source`] when emitting
@@ -96,8 +102,8 @@ mod tests {
     fn test1() {
         let network = crate::Network::new("network");
         let fan = Fan::new(&network);
-        let out_usize = fan.output::<usize>(&network);
-        let out_string = fan.output::<String>(&network);
+        let out_usize = fan.output::<usize>();
+        let out_string = fan.output::<String>();
         let last_usize: Rc<RefCell<usize>> = default();
         let last_string: Rc<RefCell<String>> = default();
 

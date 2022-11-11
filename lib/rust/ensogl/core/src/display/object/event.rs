@@ -57,6 +57,11 @@ impl SomeEvent {
     pub fn state(&self) -> State {
         self.state.get()
     }
+
+    /// Check whether the event was cancelled.
+    pub fn is_cancelled(&self) -> bool {
+        self.state() == State::Cancelled
+    }
 }
 
 impl Default for SomeEvent {

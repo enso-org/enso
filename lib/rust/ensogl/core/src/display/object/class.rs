@@ -223,7 +223,7 @@ impl<Host: 'static> Model<Host> {
     where
         Host: 'static,
         T: frp::Data, {
-        self.bubbling_event_fan.output::<event::Event<Host, T>>(&self.network)
+        self.bubbling_event_fan.output::<event::Event<Host, T>>()
     }
 
     /// Get event handler for capturing events. You should rather not need this function. Use
@@ -232,7 +232,7 @@ impl<Host: 'static> Model<Host> {
     where
         Host: 'static,
         T: frp::Data, {
-        self.capturing_event_fan.output::<event::Event<Host, T>>(&self.network)
+        self.capturing_event_fan.output::<event::Event<Host, T>>()
     }
 
     /// Constructor.
@@ -513,13 +513,14 @@ impl<Host: 'static> Model<Host> {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind<Host>> {
-        let focused_descendant = self.focused_descendant.borrow().clone();
-        if let Some(instance) = focused_descendant {
-            if let Some(instance) = instance.upgrade() {
-                instance._blur();
+        let parent_bind = self.parent_bind.borrow_mut().take();
+        if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
+            let is_focused = self.focused_descendant.borrow().is_some();
+            if is_focused {
+                parent.propagate_up_no_focus_instance();
             }
         }
-        self.parent_bind.borrow_mut().take()
+        parent_bind
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
@@ -726,7 +727,7 @@ impl<Host: 'static> Instance<Host> {
         self
     }
 
-    fn new_event<T>(&self, payload: T) -> event::SomeEvent
+    fn _new_event<T>(&self, payload: T) -> event::SomeEvent
     where
         Host: 'static,
         T: 'static, {
@@ -744,22 +745,24 @@ impl<Host: 'static> Instance<Host> {
         let rev_parent_chain = self.rev_parent_chain();
         if event.captures.get() {
             for object in &rev_parent_chain {
-                object.capturing_event_fan.emit(&event.data);
-                if event.state() == event::State::Cancelled {
+                if !event.is_cancelled() {
+                    object.capturing_event_fan.emit(&event.data);
+                } else {
                     break;
                 }
             }
         }
-        if event.state() != event::State::Cancelled {
+        if !event.is_cancelled() {
             self.capturing_event_fan.emit(&event.data);
         }
-        if event.state() != event::State::Cancelled {
+        if !event.is_cancelled() {
             self.bubbling_event_fan.emit(&event.data);
         }
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
-                object.bubbling_event_fan.emit(&event.data);
-                if event.state() == event::State::Cancelled {
+                if !event.is_cancelled() {
+                    object.bubbling_event_fan.emit(&event.data);
+                } else {
                     break;
                 }
             }
@@ -781,27 +784,27 @@ impl<Host: 'static> Instance<Host> {
         }
     }
 
-    fn focused_instance(&self) -> Option<Instance<Host>> {
-        if let Some(child) = &*self.focused_descendant.borrow() {
-            child.upgrade()
+    fn focused_descendant(&self) -> Option<Instance<Host>> {
+        self.focused_descendant.borrow().as_ref().and_then(|t| t.upgrade())
+    }
+
+    fn _focused_instance(&self) -> Option<Instance<Host>> {
+        if let Some(child) = self.focused_descendant() {
+            Some(child)
         } else {
-            self.parent().and_then(|parent| parent.focused_instance())
+            self.parent().and_then(|parent| parent._focused_instance())
         }
     }
 
     fn _is_focused(&self) -> bool {
-        self.focused_descendant
-            .borrow()
-            .as_ref()
-            .map(|t| t.upgrade().as_ref() == Some(self))
-            .unwrap_or_default()
+        self.focused_descendant().as_ref() == Some(self)
     }
 
     fn _focus(&self) {
         self._blur_all();
         self.propagate_up_new_focus_instance(&self.downgrade());
-        let focus_event = self.new_event(event::Focus);
-        let focus_in_event = self.new_event(event::FocusIn);
+        let focus_event = self._new_event(event::Focus);
+        let focus_in_event = self._new_event(event::FocusIn);
         focus_event.bubbles.set(false);
         self.event_source.emit(focus_event);
         self.event_source.emit(focus_in_event);
@@ -816,7 +819,7 @@ impl<Host: 'static> Instance<Host> {
     /// Blur the currently focused object, if any. Even if it is not on the path from this object to
     /// root.
     fn _blur_all(&self) {
-        if let Some(instance) = self.focused_instance() {
+        if let Some(instance) = self._focused_instance() {
             instance.blur_unchecked();
         }
     }
@@ -826,8 +829,8 @@ impl<Host: 'static> Instance<Host> {
     /// objects will erase information about the currently focused object.
     fn blur_unchecked(&self) {
         self.propagate_up_no_focus_instance();
-        let blur_event = self.new_event(event::Blur);
-        let focus_out_event = self.new_event(event::FocusOut);
+        let blur_event = self._new_event(event::Blur);
+        let focus_out_event = self._new_event(event::FocusOut);
         blur_event.bubbles.set(false);
         self.event_source.emit(blur_event);
         self.event_source.emit(focus_out_event);
@@ -1147,6 +1150,11 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object().rc.on_event_capturing()
     }
 
+    /// Creates a new event with this object set to target.
+    fn new_event<T: 'static>(&self, payload: T) -> event::SomeEvent {
+        self.display_object()._new_event(payload)
+    }
+
 
     // === Focus ===
 
@@ -1169,6 +1177,11 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
     /// more.
     fn blur_all(&self) {
         self.display_object()._blur_all()
+    }
+
+    /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
+    fn focused_instance(&self) -> Option<Instance<Host>> {
+        self.display_object()._focused_instance()
     }
 
 
@@ -1880,5 +1893,222 @@ mod tests {
         assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
         assert_eq!(node2.display_layer(), Some(layer2.downgrade()));
         assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
+    }
+
+    #[test]
+    fn focus_consistency_test() {
+        //         obj_root
+        //         /      \
+        // obj_left_1     obj_right_1
+        //     |               |
+        // obj_left_2     obj_right_2
+        let obj_root = Instance::<()>::new();
+        let obj_left_1 = Instance::<()>::new();
+        let obj_left_2 = Instance::<()>::new();
+        let obj_right_1 = Instance::<()>::new();
+        let obj_right_2 = Instance::<()>::new();
+        obj_root.add_child(&obj_left_1);
+        obj_root.add_child(&obj_right_1);
+        obj_left_1.add_child(&obj_left_2);
+        obj_right_1.add_child(&obj_right_2);
+
+        let check_focus_consistency = |focused: Option<&Instance<()>>| {
+            // Check that at most one object is focused and if so, that it is the correct one.
+            assert_eq!(obj_root.is_focused(), focused == Some(&obj_root));
+            assert_eq!(obj_left_1.is_focused(), focused == Some(&obj_left_1));
+            assert_eq!(obj_left_2.is_focused(), focused == Some(&obj_left_2));
+            assert_eq!(obj_right_1.is_focused(), focused == Some(&obj_right_1));
+            assert_eq!(obj_right_2.is_focused(), focused == Some(&obj_right_2));
+
+            // Check that all nodes contain the valid reference to the focused one.
+            assert_eq!(obj_root.focused_instance().as_ref(), focused);
+            assert_eq!(obj_left_1.focused_instance().as_ref(), focused);
+            assert_eq!(obj_left_2.focused_instance().as_ref(), focused);
+            assert_eq!(obj_right_1.focused_instance().as_ref(), focused);
+            assert_eq!(obj_right_2.focused_instance().as_ref(), focused);
+
+            // Check that focus information is correctly distributed across the branches.
+            if focused == Some(&obj_root) {
+                assert_eq!(obj_root.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_left_2.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_2.focused_descendant().as_ref(), None);
+            } else if focused == Some(&obj_left_1) {
+                assert_eq!(obj_root.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_1.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_2.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_2.focused_descendant().as_ref(), None);
+            } else if focused == Some(&obj_left_2) {
+                assert_eq!(obj_root.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_1.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_2.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_right_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_2.focused_descendant().as_ref(), None);
+            } else if focused == Some(&obj_right_1) {
+                assert_eq!(obj_root.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_left_2.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_1.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_right_2.focused_descendant().as_ref(), None);
+            } else if focused == Some(&obj_right_2) {
+                assert_eq!(obj_root.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_left_1.focused_descendant().as_ref(), None);
+                assert_eq!(obj_left_2.focused_descendant().as_ref(), None);
+                assert_eq!(obj_right_1.focused_descendant().as_ref(), focused);
+                assert_eq!(obj_right_2.focused_descendant().as_ref(), focused);
+            }
+        };
+
+        // === Checking the initial state ===
+
+        check_focus_consistency(None);
+
+
+        // === Checking if blurring works ===
+
+        obj_left_1.focus();
+        check_focus_consistency(Some(&obj_left_1));
+
+        obj_left_2.blur();
+        check_focus_consistency(Some(&obj_left_1));
+
+        obj_left_1.blur();
+        check_focus_consistency(None);
+
+
+        // === Checking if focus stealing works ===
+
+        obj_left_1.focus();
+        check_focus_consistency(Some(&obj_left_1));
+
+        obj_right_1.focus();
+        check_focus_consistency(Some(&obj_right_1));
+
+        obj_left_2.focus();
+        check_focus_consistency(Some(&obj_left_2));
+
+        obj_right_2.focus();
+        check_focus_consistency(Some(&obj_right_2));
+
+        obj_root.blur_all();
+        check_focus_consistency(None);
+
+
+        // === Checking if detaching subtree removes focus from parent its parent ===
+
+        obj_left_2.focus();
+        check_focus_consistency(Some(&obj_left_2));
+
+        obj_left_1.unset_parent();
+        assert_eq!(obj_root.is_focused(), false);
+        assert_eq!(obj_left_1.is_focused(), false);
+        assert_eq!(obj_left_2.is_focused(), true);
+        assert_eq!(obj_right_1.is_focused(), false);
+        assert_eq!(obj_right_2.is_focused(), false);
+
+        assert_eq!(obj_root.focused_instance().as_ref(), None);
+        assert_eq!(obj_left_1.focused_instance().as_ref(), Some(&obj_left_2));
+        assert_eq!(obj_left_2.focused_instance().as_ref(), Some(&obj_left_2));
+        assert_eq!(obj_right_1.focused_instance().as_ref(), None);
+        assert_eq!(obj_right_2.focused_instance().as_ref(), None);
+
+
+        // === Checking if attaching subtree with a focus steals the existing one ===
+
+        obj_right_2.focus();
+        obj_root.add_child(&obj_left_1);
+        check_focus_consistency(Some(&obj_left_2));
+    }
+
+    #[test]
+    fn focus_event_propagation_test() {
+        let obj_1 = Instance::<()>::new();
+        let obj_2 = Instance::<()>::new();
+        let obj_3 = Instance::<()>::new();
+        obj_1.add_child(&obj_2);
+        obj_2.add_child(&obj_3);
+
+        let capturing_1 = obj_1.on_event_capturing::<f32>();
+        let capturing_2 = obj_2.on_event_capturing::<f32>();
+        let capturing_3 = obj_3.on_event_capturing::<f32>();
+        let bubbling_1 = obj_1.on_event::<f32>();
+        let bubbling_2 = obj_2.on_event::<f32>();
+        let bubbling_3 = obj_3.on_event::<f32>();
+
+
+        // === Event phases test ===
+
+        let network = frp::Network::new("network");
+        let out: Rc<RefCell<Vec<&'static str>>> = default();
+        frp::extend! { network
+            eval_ capturing_1 (out.borrow_mut().push("capturing_1"));
+            eval_ capturing_2 (out.borrow_mut().push("capturing_2"));
+            eval_ capturing_3 (out.borrow_mut().push("capturing_3"));
+            eval_ bubbling_1 (out.borrow_mut().push("bubbling_1"));
+            eval_ bubbling_2 (out.borrow_mut().push("bubbling_2"));
+            eval_ bubbling_3 (out.borrow_mut().push("bubbling_3"));
+        }
+
+        obj_3.emit_event::<f32>(0.0);
+        assert_eq!(&*out.borrow(), &[
+            "capturing_1",
+            "capturing_2",
+            "capturing_3",
+            "bubbling_3",
+            "bubbling_2",
+            "bubbling_1"
+        ]);
+        drop(network);
+
+
+        // === Cancelling the event ===
+
+        let network = frp::Network::new("network");
+        let out: Rc<RefCell<Vec<&'static str>>> = default();
+        frp::extend! { network
+            eval_ capturing_1 (out.borrow_mut().push("capturing_1"));
+            eval capturing_2 ([out] (e) {
+                e.stop_propagation();
+                out.borrow_mut().push("capturing_2")
+            });
+            eval_ capturing_3 (out.borrow_mut().push("capturing_3"));
+            eval_ bubbling_1 (out.borrow_mut().push("bubbling_1"));
+            eval_ bubbling_2 (out.borrow_mut().push("bubbling_2"));
+            eval_ bubbling_3 (out.borrow_mut().push("bubbling_3"));
+        }
+
+        obj_3.emit_event::<f32>(0.0);
+        assert_eq!(&*out.borrow(), &["capturing_1", "capturing_2",]);
+        drop(network);
+
+
+        // === Manual event creation ===
+
+        let network = frp::Network::new("network");
+        let out: Rc<RefCell<Vec<&'static str>>> = default();
+        frp::extend! { network
+            eval_ capturing_1 (out.borrow_mut().push("capturing_1"));
+            eval_ capturing_2 (out.borrow_mut().push("capturing_2"));
+            eval_ capturing_3 (out.borrow_mut().push("capturing_3"));
+            eval_ bubbling_1 (out.borrow_mut().push("bubbling_1"));
+            eval bubbling_2 ([out] (e) {
+                e.stop_propagation();
+                out.borrow_mut().push("bubbling_2")
+            });
+            eval_ bubbling_3 (out.borrow_mut().push("bubbling_3"));
+        }
+
+        let event = obj_3.new_event::<f32>(0.0);
+        obj_3.event_source.emit(&event);
+        assert_eq!(&*out.borrow(), &[
+            "capturing_1",
+            "capturing_2",
+            "capturing_3",
+            "bubbling_3",
+            "bubbling_2"
+        ]);
+        drop(network);
     }
 }

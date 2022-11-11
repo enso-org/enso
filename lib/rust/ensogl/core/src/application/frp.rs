@@ -219,11 +219,14 @@ macro_rules! define_endpoints {
             $(<$($param $(:($($constraints)*))?),*>)?
 
             Input { $($([$($input_opts)*])?)?
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
                 deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
                 deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
                 deprecated_set_focus(bool),
                 $($($(#[doc=$($in_doc )*])*
@@ -845,11 +848,14 @@ macro_rules! define_endpoints_2 {
             [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>] [<($($($param),*)?)>]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
                 deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
                 deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
                 deprecated_set_focus(bool)
                 $($(,
