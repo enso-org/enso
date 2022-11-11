@@ -65,6 +65,7 @@ public class BigNumberTest {
     var longs = 0;
     for (long i = 0; i < vec.getArraySize(); i++) {
       var e = vec.getArrayElement(i);
+      assertTrue("All numbers are numbers, but " + e + " is not", e.isNumber());
       if (e.fitsInLong()) {
         longs++;
       }
