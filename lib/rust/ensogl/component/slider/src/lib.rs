@@ -367,7 +367,7 @@ fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Optio
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
         let text_left = text_iter.next().map(|s| s.to_im_string());
-        let text_left = text_left.unwrap_or_else(ImString::default);
+        let text_left = text_left.unwrap_or_default();
         let text_right = text_iter.next().map(|s| s.to_im_string());
         (text_left, text_right)
     } else {
