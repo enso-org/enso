@@ -205,7 +205,7 @@ pub struct Model<Host: 'static = Scene> {
     layer:               RefCell<Option<WeakLayer>>,
     dirty:               DirtyFlags<Host>,
     callbacks:           Callbacks<Host>,
-    parent_bind:         RefCell<Option<ParentBind<Host>>>,
+    parent_bind:         Rc<RefCell<Option<ParentBind<Host>>>>,
     children:            RefCell<OptVec<WeakInstance<Host>>>,
     transform:           RefCell<CachedTransform>,
     visible:             Cell<bool>,
@@ -218,19 +218,6 @@ impl<Host> Default for Model<Host> {
 }
 
 impl<Host: 'static> Model<Host> {
-    /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
-    pub fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where T: frp::Data {
-        self.bubbling_event_fan.output::<event::Event<Host, T>>()
-    }
-
-    /// Get event handler for capturing events. You should rather not need this function. Use
-    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    pub fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
-    where T: frp::Data {
-        self.capturing_event_fan.output::<event::Event<Host, T>>()
-    }
-
     /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new("display_object");
@@ -325,6 +312,19 @@ impl<Host: 'static> Model<Host> {
         trace!("Removing parent bind.");
         self.dirty.unset_on_dirty();
         self.dirty.parent.set();
+    }
+
+    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
+    pub fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    where T: frp::Data {
+        self.bubbling_event_fan.output::<event::Event<Host, T>>()
+    }
+
+    /// Get event stream for capturing events. You should rather not need this function. Use
+    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
+    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    where T: frp::Data {
+        self.capturing_event_fan.output::<event::Event<Host, T>>()
     }
 }
 
@@ -524,7 +524,7 @@ impl<Host: 'static> Model<Host> {
         trace!("Adding new parent bind.");
         if let Some(focus_instance) = &*self.focused_descendant.borrow() {
             if let Some(parent) = bind.parent.upgrade() {
-                parent._blur_all();
+                parent._blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
         }
@@ -713,26 +713,28 @@ impl<Host: 'static> Instance<Host> {
     }
 
     fn init(self) -> Self {
+        // This implementation is a bit complex because we do not want to clone network to the FRP
+        // closure in order to avoid a memory leak.
         let network = &self.network;
-        let this = &self;
+        let parent_bind = &self.parent_bind;
+        let capturing_event_fan = &self.capturing_event_fan;
+        let bubbling_event_fan = &self.bubbling_event_fan;
         frp::extend! { network
-            eval self.event_source ((event) this.emit_event_impl(event));
+            eval self.event_source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
+                let parent = parent_bind.borrow().as_ref().and_then(|t| t.parent());
+                Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
+            });
         }
         self
     }
 
-    fn _new_event<T>(&self, payload: T) -> event::SomeEvent
-    where T: 'static {
-        event::SomeEvent::new(Some(self), payload)
-    }
-
-    fn _emit_event<T>(&self, payload: T)
-    where T: 'static {
-        self.event_source.emit(event::SomeEvent::new(Some(self), payload));
-    }
-
-    fn emit_event_impl(&self, event: &event::SomeEvent) {
-        let rev_parent_chain = self.rev_parent_chain();
+    fn emit_event_impl(
+        event: &event::SomeEvent,
+        parent: Option<Instance<Host>>,
+        capturing_event_fan: &frp::Fan,
+        bubbling_event_fan: &frp::Fan,
+    ) {
+        let rev_parent_chain = Self::rev_parent_chain(parent);
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
@@ -743,10 +745,10 @@ impl<Host: 'static> Instance<Host> {
             }
         }
         if !event.is_cancelled() {
-            self.capturing_event_fan.emit(&event.data);
+            capturing_event_fan.emit(&event.data);
         }
         if !event.is_cancelled() {
-            self.bubbling_event_fan.emit(&event.data);
+            bubbling_event_fan.emit(&event.data);
         }
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
@@ -760,18 +762,28 @@ impl<Host: 'static> Instance<Host> {
     }
 
     /// Get reversed parent chain of this display object (`[root, child_of root, ...,
-    /// parent_of_this_object]`). It will NOT contain this object.
-    pub fn rev_parent_chain(&self) -> Vec<Instance<Host>> {
+    /// parent]`). The last item is the argument passed to this function.
+    fn rev_parent_chain(parent: Option<Instance<Host>>) -> Vec<Instance<Host>> {
         let mut vec = default();
-        self.build_rev_parent_chain(&mut vec);
+        Self::build_rev_parent_chain(&mut vec, parent);
         vec
     }
 
-    fn build_rev_parent_chain(&self, vec: &mut Vec<Instance<Host>>) {
-        if let Some(parent) = self.parent() {
-            parent.build_rev_parent_chain(vec);
+    fn build_rev_parent_chain(vec: &mut Vec<Instance<Host>>, parent: Option<Instance<Host>>) {
+        if let Some(parent) = parent {
+            Self::build_rev_parent_chain(vec, parent.parent());
             vec.push(parent);
         }
+    }
+
+    fn _new_event<T>(&self, payload: T) -> event::SomeEvent
+    where T: 'static {
+        event::SomeEvent::new(Some(self), payload)
+    }
+
+    fn _emit_event<T>(&self, payload: T)
+    where T: 'static {
+        self.event_source.emit(event::SomeEvent::new(Some(self), payload));
     }
 
     fn focused_descendant(&self) -> Option<Instance<Host>> {
@@ -791,7 +803,7 @@ impl<Host: 'static> Instance<Host> {
     }
 
     fn _focus(&self) {
-        self._blur_all();
+        self._blur_tree();
         self.propagate_up_new_focus_instance(&self.downgrade());
         let focus_event = self._new_event(event::Focus);
         let focus_in_event = self._new_event(event::FocusIn);
@@ -806,9 +818,9 @@ impl<Host: 'static> Instance<Host> {
         }
     }
 
-    /// Blur the currently focused object, if any. Even if it is not on the path from this object to
-    /// root.
-    fn _blur_all(&self) {
+    /// Blur the display object tree this object belongs to. If any tree node (any node directly or
+    /// indirectly connected with each other) was focused, it will be blurred.
+    fn _blur_tree(&self) {
         if let Some(instance) = self._focused_instance() {
             instance.blur_unchecked();
         }
@@ -837,7 +849,7 @@ impl<Host: 'static> Instance<Host> {
     /// Set the focus instance to the provided one here and in all instances on the path to the
     /// root.
     fn propagate_up_new_focus_instance(&self, instance: &WeakInstance<Host>) {
-        assert!(self.focused_descendant.borrow().is_none()); // FIXME: assert dbg
+        debug_assert!(self.focused_descendant.borrow().is_none());
         *self.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
     }
@@ -1121,15 +1133,15 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object()._emit_event(event)
     }
 
-    /// Get event handler for bubbling events. See docs of [`event::Event`] to learn more.
-    fn on_event<T>(&self) -> frp::Source<event::Event<Host, T>>
+    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
+    fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
     where T: frp::Data {
         self.display_object().rc.on_event()
     }
 
-    /// Get event handler for capturing events. You should rather not need this function. Use
+    /// Get event stream for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    fn on_event_capturing<T>(&self) -> frp::Source<event::Event<Host, T>>
+    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
     where T: frp::Data {
         self.display_object().rc.on_event_capturing()
     }
@@ -1157,10 +1169,10 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
         self.display_object()._blur()
     }
 
-    /// Blur ("unfocus") the currently focused object if any. See docs of [`Event::Blur`] to learn
-    /// more.
-    fn blur_all(&self) {
-        self.display_object()._blur_all()
+    /// Blur the display object tree this object belongs to. If any tree node (any node directly or
+    /// indirectly connected with each other) was focused, it will be blurred.
+    fn blur_tree(&self) {
+        self.display_object()._blur_tree()
     }
 
     /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
@@ -1976,7 +1988,7 @@ mod tests {
         obj_right_2.focus();
         check_focus_consistency(Some(&obj_right_2));
 
-        obj_root.blur_all();
+        obj_root.blur_tree();
         check_focus_consistency(None);
 
 

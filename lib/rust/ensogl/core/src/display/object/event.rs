@@ -5,8 +5,8 @@
 
 use crate::prelude::*;
 
-use super::class::Instance;
-use super::class::WeakInstance;
+use crate::display::object::class::Instance;
+use crate::display::object::class::WeakInstance;
 
 
 
@@ -32,14 +32,16 @@ pub enum State {
 // === SomeEvent ===
 // =================
 
-/// A counterpart of [`Event`] with hidden payload type. It is used to construct, configure, and
+/// Similar to [`Event`] but with a hidden payload type. It is used to construct, configure, and
 /// emit new events.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct SomeEvent {
     pub data:     frp::AnyData,
     state:        Rc<Cell<State>>,
+    /// Indicates whether the event participates in the capturing phase.
     pub captures: Rc<Cell<bool>>,
+    /// Indicates whether the event participates in the bubbling phase.
     pub bubbles:  Rc<Cell<bool>>,
 }
 
@@ -85,7 +87,8 @@ impl Default for SomeEvent {
 /// element, or by defining the event, then sending it to a specified target using
 /// [`display::object::Instance::event_source::emit(...)`].
 ///
-/// See: https://developer.mozilla.org/en-US/docs/Web/API/Event.
+/// See the JavaScript counterpart of this struct:
+/// https://developer.mozilla.org/en-US/docs/Web/API/Event.
 #[derive(Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = "T: Debug"))]
@@ -124,7 +127,7 @@ impl<Host, T> Event<Host, T> {
         }
     }
 
-    /// The read-only property, a reference to the object onto which the event was dispatched.
+    /// A reference to the object onto which the event was dispatched.
     ///
     /// See: https://developer.mozilla.org/en-US/docs/Web/API/Event/target.
     pub fn target(&self) -> Option<Instance<Host>> {

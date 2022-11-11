@@ -27,7 +27,7 @@ impl Debug for FanOutput {
 /// A utility with a single input allowing emitting values of different types and multiple
 /// outputs, one per type. See tests to learn how to use it.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Clone, CloneRef)]
 pub struct Fan {
     pub source: crate::Any<AnyData>,
     network:    crate::WeakNetwork,
@@ -59,7 +59,7 @@ impl Fan {
     /// query the right function based on the [`TypeId`] when emitting the value. When changing this
     /// implementation, please remember to test it rigorously.
     #[allow(unsafe_code)]
-    pub fn output<T: crate::Data>(&self) -> crate::Source<T> {
+    pub fn output<T: crate::Data>(&self) -> crate::Stream<T> {
         if let Some(network) = self.network.upgrade() {
             let id = TypeId::of::<T>();
             let mut map = self.map.borrow_mut();
@@ -69,15 +69,25 @@ impl Fan {
                 }
                 let stream = AnyData::new(output);
                 let runner = Rc::new(|stream: &AnyData, event: &AnyData| {
-                    let stream = unsafe { stream.downcast_ref_unchecked::<crate::Source<T>>() };
-                    let event = unsafe { event.downcast_ref_unchecked::<T>() };
+                    let stream = if cfg!(debug_assertions) {
+                        stream.downcast_ref::<crate::Source<T>>().unwrap()
+                    } else {
+                        unsafe { stream.downcast_ref_unchecked::<crate::Source<T>>() }
+                    };
+                    let event = if cfg!(debug_assertions) {
+                        event.downcast_ref::<T>().unwrap()
+                    } else {
+                        unsafe { event.downcast_ref_unchecked::<T>() }
+                    };
                     stream.emit(event.clone());
                 });
                 FanOutput { stream, runner }
             });
-            unsafe { fan_output.stream.downcast_ref_unchecked::<crate::Source<T>>().clone_ref() }
+            unsafe {
+                fan_output.stream.downcast_ref_unchecked::<crate::Source<T>>().clone_ref().into()
+            }
         } else {
-            crate::Source::new()
+            crate::Source::new().into()
         }
     }
 
