@@ -96,23 +96,26 @@ private class Git extends VcsApi[BlockingIO] {
   ): BlockingIO[VcsFailure, Unit] = {
     effectBlocking {
       val repo = repository(root)
-      val resetCmd0 = new JGit(repo)
+
+      val jgit = new JGit(repo)
+      val resetCmd = jgit
         .reset()
         .setMode(ResetType.HARD)
 
-      val resetCmd = commitId match {
+      commitId match {
         case Some(name) =>
-          val found = findRevision(repo, name)
-          found.map { rev =>
-            resetCmd0
-              .setRef(rev.getName())
-          } getOrElse {
+          val foundRev = findRevision(repo, name).getOrElse(
             throw new RefNotFoundException(name)
-          }
+          )
+          // Reset first to avoid checkout conflicts
+          resetCmd.call()
+          jgit
+            .checkout()
+            .setName(foundRev.getName)
+            .call()
         case None =>
-          resetCmd0
+          resetCmd.call()
       }
-      resetCmd.call()
       ()
     }.mapError(errorHandling)
   }
