@@ -167,27 +167,29 @@ fn type_constructors() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Constructor (() Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ()))))))
-           ((Constructor (() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())))
-           ((Constructor (() Point #() #())))))];
+         #(((TypeConstructorDef
+             () Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
+           ((TypeConstructorDef
+             () Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
+           ((TypeConstructorDef () Point #() #()))))];
     test(&code.join("\n"), expected);
     let code = "type Foo\n Bar (a : B = C.D)";
     #[rustfmt::skip]
     let expected = block![
-        (TypeDef type Foo #() #(((Constructor (
-            ()
-            Bar
-            #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D)))))
-            #())))))];
+        (TypeDef type Foo #() #(((TypeConstructorDef
+         ()
+         Bar
+         #((() (Ident a) (":" (Ident B)) ("=" (OprApp (Ident C) (Ok ".") (Ident D)))))
+         #()))))];
     test(code, expected);
     let code = "type Foo\n ## Bar\n Baz";
     let expected = block![(TypeDef type Foo #() #((
-        (Constructor ((#((Section " Bar")) #(())) Baz #() #())))))];
+        (TypeConstructorDef (#((Section " Bar")) #(())) Baz #() #()))))];
     test(code, expected);
     let code = ["type A", "    Foo (a : Integer, b : Integer)"];
     #[rustfmt::skip]
     let expected = block![(TypeDef type A #() #((
-        (Constructor (() Foo #((() (Invalid) () ())) #())))))];
+        (TypeConstructorDef () Foo #((() (Invalid) () ())) #()))))];
     test(&code.join("\n"), expected);
 }
 
@@ -243,11 +245,12 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef type Geo #()
-         #(((Constructor (() Circle #() #(
+         #(((TypeConstructorDef () Circle #() #(
              ((() (Ident radius) (":" (Ident float)) ()))
-             ((() (Ident x) () ()))))))
-           ((Constructor (() Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())))
-           ((Constructor (() Point #() #())))
+             ((() (Ident x) () ())))))
+           ((TypeConstructorDef
+             () Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()))
+           ((TypeConstructorDef () Point #() #()))
            (())
            ((Binding (Function (Ident number) #() "=" (BodyBlock #((Ident x))))))
            ((Binding (Function (Ident area) #((() (Ident self) () ())) "="
@@ -262,8 +265,8 @@ fn type_def_defaults() {
     let expected = block![
         (TypeDef type Result #((() (Ident error) () ())
                                (() (Ident ok) () ("=" (Ident Nothing))))
-         #(((Constructor
-             (() Ok #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing)))) #())))))];
+         #(((TypeConstructorDef () Ok
+             #((() (Ident value) (":" (Ident ok)) ("=" (Ident Nothing)))) #()))))];
     test(&code.join("\n"), expected);
 }
 
