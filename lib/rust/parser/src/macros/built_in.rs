@@ -409,7 +409,7 @@ impl<'s> TypeDefBodyBuilder<'s> {
             return TypeDefStatement::Constructor { constructor };
         }
         let statement = crate::expression_to_statement(expression);
-        return TypeDefStatement::Binding { statement };
+        TypeDefStatement::Binding { statement }
     }
 }
 
