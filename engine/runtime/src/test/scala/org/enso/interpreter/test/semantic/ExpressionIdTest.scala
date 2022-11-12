@@ -41,7 +41,7 @@ class ExpressionIdTest extends InterpreterTest {
         """from Standard.Base import all
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(38, 36)
       val id2  = meta.addItem(63, 8)
@@ -66,7 +66,7 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo 10 20
           |
           |main = Nothing.method
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(137, 5)
       val id2  = meta.addItem(155, 1)
@@ -100,7 +100,7 @@ class ExpressionIdTest extends InterpreterTest {
           |        _ -> 5 * 5
           |
           |    foo x + foo y
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(126, 108, "1111")
       val id2  = meta.addItem(172, 7)
@@ -122,7 +122,7 @@ class ExpressionIdTest extends InterpreterTest {
           |    bar = x -> x + x * x
           |    foo = x -> (y = bar x) -> x + y
           |    foo 3
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id1  = meta.addItem(53, 5)
       val id2  = meta.addItem(57, 1)
@@ -140,7 +140,7 @@ class ExpressionIdTest extends InterpreterTest {
           |    bar = a -> ~b -> ~c -> b
           |
           |    bar 0 10 0
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id   = meta.addItem(35, 1)
 
@@ -154,7 +154,7 @@ class ExpressionIdTest extends InterpreterTest {
         """
           |main =
           |    x = 1
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
       val id   = meta.addItem(7, 10)
 

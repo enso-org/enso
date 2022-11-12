@@ -23,7 +23,11 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
   implicit private class PreprocessModule(code: String) {
 
     def preprocessModule(name: QualifiedName): IR.Module = {
-      val module = new runtime.Module(name, null, code)
+      val module = new runtime.Module(
+        name,
+        null,
+        code.stripMargin.linesIterator.mkString("\n")
+      )
       langCtx.getCompiler.run(module)
       module.getIr
     }
