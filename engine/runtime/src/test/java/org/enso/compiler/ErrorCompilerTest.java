@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
@@ -315,6 +316,14 @@ public class ErrorCompilerTest {
   public void illegalForeignBody4() throws Exception {
     var ir = parseTest("foreign js foo = 4");
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 18);
+  }
+
+  @Test
+  public void illegalEscapeSequence() throws Exception {
+    var ir = parseTest("""
+    escape = 'wrong \\c sequence'
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidEscapeSequence$.MODULE$.apply("wrong  sequence"), "Invalid escape sequence wrong  sequence.", 9, 28);
   }
 
   private void assertSingleSyntaxError(
