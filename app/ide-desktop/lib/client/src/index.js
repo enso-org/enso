@@ -189,7 +189,8 @@ optParser.options('verbose', {
 
 optParser.options('entry-point', {
     group: debugOptionsGroup,
-    describe: 'Run an alternative entry point (e.g. one of the debug scenes). To see list of ' +
+    describe:
+        'Run an alternative entry point (e.g. one of the debug scenes). To see list of ' +
         'entry points, do not provide the argument.',
 })
 
@@ -205,7 +206,8 @@ optParser.options('devtron', {
 
 optParser.options('load-profile', {
     group: debugOptionsGroup,
-    describe: "Load a performance profile. For use with developer tools such as the " +
+    describe:
+        'Load a performance profile. For use with developer tools such as the ' +
         "'profiling-run-graph' entry point.",
     requiresArg: true,
     type: `array`,
@@ -553,7 +555,7 @@ async function parseCmdArgs() {
             console.log() // newline
             console.log(electronOptParserHelp)
         }
-        if(error) {
+        if (error) {
             console.log() // newline
             console.log(error)
         }
@@ -573,7 +575,9 @@ async function parseCmdArgs() {
 
 // Top-level await is not supported. This is a hack:
 // https://usefulangle.com/post/248/javascript-async-anonymous-function-iife
-let args = (async () =>  { await parseCmdArgs() })()
+let args = (async () => {
+    await parseCmdArgs()
+})()
 
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
