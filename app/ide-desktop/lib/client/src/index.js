@@ -793,8 +793,6 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
-    console.log('args', args)
-
     // Note [Main error handling]
     try {
         runBackend()
