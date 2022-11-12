@@ -158,18 +158,18 @@ spec =
             text.should_equal expected_text
             file.delete
 
-        Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
+        Test.specify 'should allow to always quote text and custom values, but for non-text primitives only if absolutely necessary' <|
             format = Delimited "," value_formatter=(Data_Formatter.Value thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type.Value 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
             table.write file format on_problems=Report_Error . should_succeed
-            expected_text = normalize_lines <| """
+            expected_text1 = normalize_lines <| """
                 "The Column \"Name\"","B","C","D","E"
                 "foo",1.0,"foo",1,
                 "'bar'","1\"000\"000.5","[[[My Type :: 44]]]",2,13:55:00
                 "\"baz\"",2.2,"Tue, 21 Jun 2022",3,
-                "one, two, three",-1.5,42,"4\"000",
+            expected_text = expected_text1 + '"one, two, three",-1.5,42,"4\\"000",\n'
             text = File.read_text file
             text.should_equal expected_text
             file.delete
