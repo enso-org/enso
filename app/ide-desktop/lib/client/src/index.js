@@ -8,7 +8,7 @@ import isDev from 'electron-is-dev'
 import path from 'node:path'
 import * as Server from './server.js'
 import util from 'node:util'
-import yargs from 'yargs'
+import yargs from 'yargs/yargs'
 import remoteMain from '@electron/remote/main/index.js'
 
 import { project_manager_bundle } from '../paths.js'
@@ -28,9 +28,6 @@ const project_manager_executable = path.join(
     project_manager_bundle,
     PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
-
-// FIXME default options parsed wrong
-// https://github.com/yargs/yargs/issues/1590
 
 // ================
 // === Defaults ===
@@ -67,19 +64,34 @@ const trustedHosts = [
 let usage = `
 ${buildCfg.name} ${buildCfg.version} command line interface.
 
-Usage: ${buildCfg.name} [options] [--] [backend args]...
+Usage: enso [options] [--electron electron-args...] [-- backend-args...]
+
+Arguments that follow the two dashes (\`--\`) will be passed to the backend process. They are used\
+ if IDE spawns backend, i.e. if '--backend false' has not been set.
 `
 
-let epilogue = `
-Arguments that follow the two dashes (\`--\`) will be passed to the backend process. They are used\
- if IDE spawns backend, i.e. if '--backend false' has not been set.`
+let electronOptsUsage = `Electron Options:
 
-let optParser = yargs
+The following options should be passed after the \`--electron\` flag but before the \`--\` flag.\
+ Alternatively, they can be prefixed with \`electron-\` and used as regular options. For example,\
+ to restrict disk cache size usage, you can use either \`--electron --disk-cache-size 1024\` or\
+ \`--electron-disk-cache-size 1024\`.`
+
+let optParser = yargs()
     .scriptName('')
     .usage(usage)
-    .epilogue(epilogue)
-    .help()
+    .help(false)
     .version(false)
+    // Makes all flags passed after '--' be one string.
+    .parserConfiguration({ 'populate--': true })
+    .strict()
+
+let electronOptParser = yargs()
+    .scriptName('')
+    .usage(electronOptsUsage)
+    .help(false)
+    .version(false)
+    // Makes all flags passed after '--' be one string.
     .parserConfiguration({ 'populate--': true })
     .strict()
 
@@ -89,41 +101,79 @@ let configOptionsGroup = 'Config Options:'
 
 optParser.options('port', {
     group: configOptionsGroup,
-    describe: `Port to use [${Server.DEFAULT_PORT}]`,
+    describe: `Port to use. [${Server.DEFAULT_PORT}]`,
 })
 
 optParser.options('project', {
     group: configOptionsGroup,
-    describe: 'Open the specified project on startup',
+    describe: 'Open the specified project on startup.',
 })
 
 optParser.options('server', {
     group: configOptionsGroup,
-    describe: 'Run the server [true]',
+    describe: 'Run the server. [true]',
     type: 'boolean',
 })
 
 optParser.options('window', {
     group: configOptionsGroup,
-    describe: 'Show the window [true]',
+    describe: 'Show the window. [true]',
     type: 'boolean',
 })
 
 optParser.options('background-throttling', {
     group: configOptionsGroup,
-    describe: 'Throttle animations when run in background [false]',
+    describe: 'Throttle animations when run in background. [false]',
     type: 'boolean',
 })
 
 optParser.options('backend', {
     group: configOptionsGroup,
-    describe: 'Start the backend process automatically [true]',
+    describe: 'Start the backend process automatically. [true]',
     type: 'boolean',
 })
 
 optParser.options('backend-path', {
     group: configOptionsGroup,
-    describe: 'Set the path of a local project manager to use for running projects',
+    describe: 'Set the path of a local project manager to use for running projects.',
+})
+
+optParser.options('crash-report-host', {
+    group: configOptionsGroup,
+    describe:
+        'The address of the server that will receive crash reports. ' +
+        'Consists of a hostname, optionally followed by a ":" and a port number.',
+    requiresArg: true,
+    default: defaultLogServerHost,
+})
+
+optParser.options('data-gathering', {
+    group: configOptionsGroup,
+    describe: 'Enable the sharing of any usage data.',
+    type: 'boolean',
+    default: true,
+})
+
+optParser.options('preferred-engine-version', {
+    group: configOptionsGroup,
+    describe: 'The Engine version that IDE will try to use for newly created projects.',
+    type: 'string',
+    default: BUNDLED_ENGINE_VERSION,
+})
+
+optParser.options('enable-new-component-browser', {
+    group: configOptionsGroup,
+    describe:
+        'Enable to have new Component Browser panel in place of old Node Searcher. A temporary ' +
+        'feature flag, until the Component Browser is stable.',
+    type: 'boolean',
+    default: true,
+})
+
+optParser.options('skip-min-version-check', {
+    group: configOptionsGroup,
+    describe: 'Disables the check whether this IDE version is still supported.',
+    type: 'boolean',
 })
 
 // === Debug Options ===
@@ -139,24 +189,24 @@ optParser.options('verbose', {
 
 optParser.options('entry-point', {
     group: debugOptionsGroup,
-    describe: 'Run an alternative entry point (e.g. one of the debug scenes)',
-    //    requiresArg : true
+    describe: 'Run an alternative entry point (e.g. one of the debug scenes). To see list of ' +
+        'entry points, do not provide the argument.',
 })
 
 optParser.options('dev', {
     group: debugOptionsGroup,
-    describe: 'Run the application in development mode',
+    describe: 'Run the application in development mode.',
 })
 
 optParser.options('devtron', {
     group: debugOptionsGroup,
-    describe: 'Install the Devtron Developer Tools extension',
+    describe: 'Install the Devtron Developer Tools extension.',
 })
 
 optParser.options('load-profile', {
     group: debugOptionsGroup,
-    describe:
-        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    describe: "Load a performance profile. For use with developer tools such as the " +
+        "'profiling-run-graph' entry point.",
     requiresArg: true,
     type: `array`,
 })
@@ -181,87 +231,349 @@ let styleOptionsGroup = 'Style Options:'
 
 optParser.options('frame', {
     group: styleOptionsGroup,
-    describe: 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
+    describe: 'Draw window frame. [false] on MacOS, [true] otherwise.',
     type: `boolean`,
 })
 
 optParser.options('vibrancy', {
     group: styleOptionsGroup,
-    describe: 'Use the vibrancy effect',
+    describe: 'Use the vibrancy effect.',
     default: false,
     type: `boolean`,
 })
 
 optParser.options('window-size', {
     group: styleOptionsGroup,
-    describe: `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
+    describe: `Set the window size. [${windowCfg.width}x${windowCfg.height}]`,
     requiresArg: true,
 })
 
 optParser.options('theme', {
     group: styleOptionsGroup,
-    describe: 'Use the provided theme. Defaults to `light`.',
+    describe: 'Use the provided theme. [light]',
     type: `string`,
 })
 
 optParser.options('node-labels', {
     group: styleOptionsGroup,
-    describe: 'Show node labels. Defaults to `true`.',
+    describe: 'Show node labels. [true]',
     default: true,
     type: `boolean`,
 })
 
 // === Other Options ===
 
+let infoOptionsGroup = 'Debug Information:'
+
+optParser.options('help', {
+    group: infoOptionsGroup,
+    describe: `Print the help information.`,
+})
+
+const HELP_EXTRA_KEY = 'help-extra'
+optParser.options(HELP_EXTRA_KEY, {
+    group: infoOptionsGroup,
+    describe: `Print the help information including less common options.`,
+})
+
 optParser.options('info', {
-    describe: `Print the system debug info`,
+    group: infoOptionsGroup,
+    describe: `Print the system debug info.`,
 })
 
 optParser.options('version', {
-    describe: `Print the version`,
+    group: infoOptionsGroup,
+    describe: `Print the version.`,
 })
 
-optParser.options('crash-report-host', {
-    describe:
-        'The address of the server that will receive crash reports. ' +
-        'Consists of a hostname, optionally followed by a ":" and a port number',
-    requiresArg: true,
-    default: defaultLogServerHost,
-})
+// === Electrion Options ===
 
-optParser.options('data-gathering', {
-    describe: 'Enable the sharing of any usage data',
-    type: 'boolean',
-    default: true,
-})
+let electronOptions = {
+    'auth-server-whitelist': {
+        describe:
+            'A comma-separated list of servers for which integrated authentication is ' +
+            'enabled.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'auth-negotiate-delegate-whitelist': {
+        describe:
+            'A comma-separated list of servers for which delegation of user credentials is ' +
+            "required. Without '*' prefix the URL has to match exactly.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'disable-ntlm-v2': {
+        describe: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
+        nargs: 0,
+    },
+    'disable-http-cache': {
+        describe: 'Disables the disk cache for HTTP requests.',
+        nargs: 0,
+    },
+    'disable-http2': {
+        describe: 'Disable HTTP/2 and SPDY/3.1 protocols.',
+        nargs: 0,
+    },
+    'disable-renderer-backgrounding': {
+        describe:
+            "Prevents Chromium from lowering the priority of invisible pages' renderer " +
+            'processes.',
+        nargs: 0,
+    },
+    'disk-cache-size': {
+        describe: 'Forces the maximum disk space to be used by the disk cache, in bytes.',
+        nargs: 1,
+        type: 'number',
+        requiresArg: true,
+    },
+    'enable-logging': {
+        describe: "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
+        type: 'string',
+    },
+    'force-fieldtrials': {
+        describe:
+            'Field trials to be forcefully enabled or disabled. For example, ' +
+            "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'host-rules': {
+        describe:
+            'A comma-separated list of rules that control how hostnames are mapped. For ' +
+            "example, 'MAP * 127.0.0.1'.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'host-resolver-rules': {
+        describe: "Like '--host-rules' but these rules only apply to the host resolver.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'ignore-certificate-errors': {
+        describe: "Ignore the connections limit for domains list separated by ','.",
+        nargs: 0,
+    },
+    'ignore-connections-limit': {
+        describe: "Ignore the connections limit for domains list separated by ','.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'js-flags': {
+        describe:
+            'Specifies the flags passed to the Node.js engine. For example, ' +
+            '\'--js-flags="--harmony_proxies --harmony_collections"\'.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    lang: {
+        describe: 'Set a custom locale.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'log-file': {
+        describe:
+            "If '--enable-logging' is specified, logs will be written to the given path. " +
+            'The parent directory must exist.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'log-net-log': {
+        describe: 'Enables net log events to be saved and writes them to the provided path.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'log-level': {
+        describe:
+            "Sets the verbosity of logging when used together with '--enable-logging'. The " +
+            "argument should be one of Chrome's LogSeverities.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'no-proxy-server': {
+        describe: "Ignore the connections limit for domains list separated by ','.",
+        nargs: 0,
+    },
+    'no-sandbox': {
+        describe:
+            'Disables the Chromium sandbox. Forces renderer process and Chromium helper ' +
+            'processes to run un-sandboxed. Should only be used for testing.',
+        nargs: 0,
+    },
+    'proxy-bypass-list': {
+        describe:
+            'Instructs Electron to bypass the proxy server for the given ' +
+            'semi-colon-separated list of hosts. This flag has an effect only if used in tandem ' +
+            "with '--proxy-server'. For example, " +
+            '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'proxy-pac-url': {
+        describe: 'Uses the PAC script at the specified url.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'proxy-server': {
+        describe:
+            "Use a specified proxy server ('address:port'), which overrides the system " +
+            'setting. This switch only affects requests with HTTP protocol, including HTTPS and ' +
+            'WebSocket requests. It is also noteworthy that not all proxy servers support HTTPS ' +
+            'and WebSocket requests. The proxy URL does not support username and password ' +
+            'authentication per ' +
+            '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    'remote-debugging-port': {
+        describe: 'Enables remote debugging over HTTP on the specified port.',
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    v: {
+        describe:
+            'Gives the default maximal active V-logging level; 0 is the default. Normally ' +
+            'positive values are used for V-logging levels. This switch only works when ' +
+            "'--enable-logging' is also passed.",
+        nargs: 1,
+        type: 'number',
+        requiresArg: true,
+    },
+    vmodule: {
+        describe:
+            'Gives the per-module maximal V-logging levels to override the value given by ' +
+            "'--v'. E.g. 'my_module=2,foo*=3' would change the logging level for all code in " +
+            "source files 'my_module.*' and 'foo*.*'. Any pattern containing a forward or " +
+            'backward slash will be tested against the whole pathname and not only the module. ' +
+            "This switch only works when '--enable-logging' is also passed.",
+        nargs: 1,
+        type: 'string',
+        requiresArg: true,
+    },
+    force_high_performance_gpu: {
+        describe: 'Force using discrete GPU when there are multiple GPUs available.',
+        nargs: 0,
+    },
+    force_low_power_gpu: {
+        describe: 'Force using integrated GPU when there are multiple GPUs available.',
+        nargs: 0,
+    },
+}
 
-optParser.options('preferred-engine-version', {
-    describe: 'The Engine version that IDE will try to use for newly created projects',
-    type: 'string',
-    default: BUNDLED_ENGINE_VERSION,
-})
-
-optParser.options('enable-new-component-browser', {
-    describe:
-        'Enable to have new Component Browser panel in place of old Node Searcher. A temporary feature flag, ' +
-        'until the Component Browser is unstable',
-    type: 'boolean',
-    default: true,
-})
-
-optParser.options('skip-min-version-check', {
-    describe: 'Disables the check whether this IDE version is still supported',
-    type: 'boolean',
-})
+for (let option in electronOptions) {
+    optParser.options(
+        `electron-${option}`,
+        Object.assign({ hidden: true }, electronOptions[option])
+    )
+    electronOptParser.options(option, Object.assign({ group: ' ' }, electronOptions[option]))
+}
 
 // === Parsing ===
 
-function parseCmdArgs() {
+const ELECTRON_FLAG_SEPARATOR = '--electron'
+const BACKEND_FLAG_SEPARATOR = '--'
+
+async function parseCmdArgs() {
+    console.log('isDev', isDev)
     let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv
-    return optParser.parse(argv)
+
+    // === Extracting electron flags (between the `--electron` and the `--` flag) ===
+
+    let hasElectronFlags = argv.includes(ELECTRON_FLAG_SEPARATOR)
+    let hasBackendFlags = argv.includes(BACKEND_FLAG_SEPARATOR)
+
+    let backendFlags = hasBackendFlags ? argv.slice(argv.indexOf(BACKEND_FLAG_SEPARATOR)) : []
+    let rest = hasBackendFlags ? argv.slice(0, argv.indexOf(BACKEND_FLAG_SEPARATOR)) : argv
+    let electronFlags = hasElectronFlags
+        ? rest.slice(rest.indexOf(ELECTRON_FLAG_SEPARATOR) + 1)
+        : []
+    let appFlags = hasElectronFlags ? rest.slice(0, rest.indexOf(ELECTRON_FLAG_SEPARATOR)) : rest
+
+    // === Parsing arguments ===
+
+    let unknownArgsRegexp = new RegExp(String.raw`(\n)?Unknown argument(s)?:.*`, 'gm')
+
+    let optParserErr
+    let optParserResult
+    let optParserArgv = appFlags.concat(backendFlags)
+    optParser.parse(optParserArgv, (err, result) => {
+        optParserErr = err ? err.message.replace(unknownArgsRegexp, '') : ''
+        optParserResult = result
+    })
+
+    let electronOptParserErr
+    let electronOptParserResult
+    electronOptParser.parse(electronFlags, (err, result) => {
+        electronOptParserErr = err ? err.message.replace(unknownArgsRegexp, '') : ''
+        electronOptParserResult = result
+    })
+
+    let result = Object.assign(electronOptParserResult, optParserResult)
+    let optParserHelp = await optParser.getHelp()
+    let electronOptParserHelp = await electronOptParser.getHelp()
+
+    // === Gluing errors from both arg parsers ===
+
+    let error = null
+    if (optParserErr || electronOptParserErr) {
+        error = `Unknown arguments: `
+        if (optParserErr) {
+            error += optParserErr
+        }
+        if (electronOptParserErr) {
+            if (optParserErr) {
+                error += ', '
+            }
+            error += electronOptParserErr
+        }
+    }
+
+    // === Printing errors and help if requested by the user ===
+
+    if (error || result.help || result[HELP_EXTRA_KEY]) {
+        console.log(optParserHelp)
+        let electronHelp =
+            result[HELP_EXTRA_KEY] || electronOptParserErr || optParserErr.includes('electron')
+        if (electronHelp) {
+            console.log() // newline
+            console.log(electronOptParserHelp)
+        }
+        if(error) {
+            console.log() // newline
+            console.log(error)
+        }
+        if (!electronHelp) {
+            console.log() // newline
+            console.log(`Use '--${HELP_EXTRA_KEY}' to see less common options.`)
+        }
+        if (error) {
+            process.exit(1)
+        } else {
+            process.exit(0)
+        }
+    }
+
+    return result
 }
 
-let args = parseCmdArgs()
+// Top-level await is not supported. This is a hack:
+// https://usefulangle.com/post/248/javascript-async-anonymous-function-iife
+let args = (async () =>  { await parseCmdArgs() })()
 
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
@@ -477,6 +789,8 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
+    console.log('args', args)
+
     // Note [Main error handling]
     try {
         runBackend()

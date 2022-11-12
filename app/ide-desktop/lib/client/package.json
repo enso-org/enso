@@ -33,7 +33,8 @@
     "electron-notarize": "1.2.1",
     "enso-copy-plugin": "^1.0.0",
     "ts-node": "^10.9.1",
-    "fast-glob": "^3.2.12"
+    "fast-glob": "^3.2.12",
+    "dmg-builder": "^24.0.0-alpha.3"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
