@@ -288,21 +288,18 @@ impl WorldData {
         let display_mode = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
+            let digit_prefix = "Digit";
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "Digit0" {
-                    display_mode.set(0)
-                } else if key == "Digit1" {
-                    display_mode.set(1)
-                } else if key == "Digit2" {
-                    display_mode.set(2)
                 } else if key == "KeyP" {
                     enso_debug_api::save_profile(&profiler::internal::take_log());
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::take_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
+                } else if key.starts_with(digit_prefix) {
+                    display_mode.set(key.trim_start_matches(digit_prefix).parse().unwrap_or(0));
                 }
             }
         });

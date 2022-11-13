@@ -327,10 +327,12 @@ impl SpriteSystem {
         material.add_output_def::<Vector3<f32>>("local");
         material.set_main(
             "
+                float zoom = input_z_zoom_1 / input_local.z;
+                float padding = min(1.0, ceil(1.0 / zoom));
                 mat4 model_view_projection = input_view_projection * input_transform;
-                input_local                = vec3((input_uv - input_alignment) * input_size, 0.0);
-                gl_Position                = model_view_projection * vec4(input_local,1.0);
-                input_local.z              = gl_Position.z;
+                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
+                gl_Position = model_view_projection * vec4(input_local,1.0);
+                input_local.z = gl_Position.z;
                 ",
             // This is left here in case it will be needed. The `instance_id` is the same as the
             // built-in `gl_InstanceID` and can be implemented very efficiently:
