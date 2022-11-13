@@ -441,14 +441,14 @@ class Compiler(
 
     val src = module.getSource
     def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
       val tree = parse(src)
       generateIR(tree)
     }
     val expr =
       if (
-        "rust".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
       ) {
-        System.err.println("Using new parser to process " + src.getURI())
         val tree = ensoCompiler.parse(src)
         ensoCompiler.generateIR(tree)
       } else {
