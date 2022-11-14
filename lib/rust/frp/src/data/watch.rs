@@ -11,20 +11,20 @@ use crate::prelude::*;
 /// Handle for the `Counter`. When created increases, and when dropped decreases the counter.
 #[derive(Debug)]
 pub struct Handle {
-    count: Weak<()>,
+    _count: Weak<()>,
 }
 
 impl Handle {
     /// Constructor. The constructed `Handle` increases the Counter count by one until it is
     /// dropped.
     pub fn new(counter: &Counter) -> Self {
-        Self { count: Rc::downgrade(&counter.count) }
+        Self { _count: Rc::downgrade(&counter.count) }
     }
 
     /// Create a placeholder handle that doesn't correspond to any live counter. Creating or
     /// dropping this handle has no effect.
     pub fn null() -> Self {
-        Self { count: Weak::new() }
+        Self { _count: Weak::new() }
     }
 }
 
