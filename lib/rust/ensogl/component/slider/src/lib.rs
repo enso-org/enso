@@ -182,7 +182,7 @@ impl Slider {
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
-        let track_pos = Animation::new_non_init(network);
+        let track_pos_anim = Animation::new_non_init(network);
         let background_color_anim = color::Animation::new(network);
         let track_color_anim = color::Animation::new(network);
         let value_text_color_anim = color::Animation::new(network);
@@ -263,14 +263,14 @@ impl Slider {
             );
             output.value <+ value;
 
-            track_pos.target <+ all3(&value,&input.set_value_min,&input.set_value_max).map(
+            track_pos_anim.target <+ all3(&value,&input.set_value_min,&input.set_value_max).map(
                 |(value,min,max)| (value - min) / (max - min)
             );
 
 
             // model update
 
-            eval track_pos.value ((v) model.track.slider_fraction_filled.set(*v));
+            eval track_pos_anim.value ((v) model.track.slider_fraction_filled.set(*v));
             component_size <- all2(&input.set_width,&input.set_height).map(|(w,h)| Vector2(*w,*h));
             eval component_size ((size) model.set_size(*size));
 
@@ -303,9 +303,7 @@ impl Slider {
 
             // text alignment
 
-            value_text_left_right <- all2(&value,&precision_adjusted).map(
-                |(value,precision)| value_text_truncate_precision(*value,*precision)
-            );
+            value_text_left_right <- all2(&value,&precision_adjusted).map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
             value_text_right_visible <- value_text_right.map(|t| t.is_some());
@@ -363,8 +361,8 @@ impl Slider {
 
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
-fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Option<ImString>) {
-    if precision < 1.0 {
+fn value_text_truncate_split((value, precision): &(f32, f32)) -> (ImString, Option<ImString>) {
+    if *precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
@@ -384,7 +382,12 @@ fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Optio
 // === Desaturate colors ===
 // =========================
 
-/// Conditionally desaturates an input color. Used when a component is to be grayed out when disabled.
-fn desaturate_color((color,desaturate):&(color::Lcha,bool)) -> color::Lcha {
-    if *desaturate { color.to_grayscale() } else { *color }
-} 
+/// Conditionally desaturates an input color. Used when a component is to be grayed out when
+/// disabled.
+fn desaturate_color((color, desaturate): &(color::Lcha, bool)) -> color::Lcha {
+    if *desaturate {
+        color.to_grayscale()
+    } else {
+        *color
+    }
+}
