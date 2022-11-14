@@ -253,7 +253,7 @@ public class Text_Utils {
    * @param str the string to measure
    * @return length of the string
    */
-  public static long grapheme_length(String str) {
+  private static long grapheme_length(String str) {
     BreakIterator iter = BreakIterator.getCharacterInstance();
     iter.setText(str);
     long len = 0;
