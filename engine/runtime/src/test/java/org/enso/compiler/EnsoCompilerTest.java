@@ -41,14 +41,14 @@ public class EnsoCompilerTest {
   public void testLocationsSimpleArithmeticExpression() throws Exception {
     parseTest("""
     main = 2 + 45 * 20
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
   public void testLocationsApplicationsAndMethodCalls() throws Exception {
     parseTest("""
     main = (2-2 == 0).if_then_else (Cons 5 6) 0
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -58,7 +58,7 @@ public class EnsoCompilerTest {
         x = 2 + 2 * 2
         y = x * x
         IO.println y
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -69,7 +69,7 @@ public class EnsoCompilerTest {
         x = a + 1
         y = b - 2
         x * y
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -78,7 +78,7 @@ public class EnsoCompilerTest {
     main =
         foo a = a + 1
         foo 42
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -86,7 +86,7 @@ public class EnsoCompilerTest {
     parseTest("""
         foo = a -> b ->
             IO.println a
-        """, true, false, true);
+        """, true, true, true);
   }
 
   @Test
@@ -96,7 +96,7 @@ public class EnsoCompilerTest {
         add = a -> b -> a + b
 
     main = Nothing.method
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -501,7 +501,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testRawBlockLiteral() throws Exception {
     // mimics TextTest
     parseTest("""
@@ -515,9 +514,10 @@ public class EnsoCompilerTest {
   @Test
   @Ignore
   public void testVariousKindsOfUnicodeWhitespace() throws Exception {
-    // mimics Text_Spec.enso:1049
+    // mimics Text_Spec.enso:1049 and 722
+    // search for: # Disabled in the New Parser
     parseTest("""
-    '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
     """);
   }
 
@@ -795,19 +795,19 @@ public class EnsoCompilerTest {
     type My_Type
         Cons_A x
         Cons_B y=(Self.Cons_A 10)
-    
+
         static = 123
-    
+
         static_use = Self.static + (Self.Cons_A 5).x
         instance_use self = Self.static + self.x + (Self.Cons_A 5).x
 
         static_match x = case x of
             Self -> "it matched"
             _ -> "it didn't match"
-                  
+
         matching_method self = case self of
             Self.Cons_A y -> y + 2
-      
+
         match_by_type x = case x of
             _ : Self -> "it's a Self"
             _ -> "it's a something else"
@@ -1080,7 +1080,7 @@ public class EnsoCompilerTest {
         y = self + 3
         z = y * x
         z
-    """, true, false, true);
+    """, true, true, true);
   }
 
   @Test
@@ -1100,7 +1100,98 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
+  public void testAtomBenchmarks1() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.List import Cons,Nil
+
+    main =
+        generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+        res = generator (acc -> x -> Cons x acc) Nil 1 1000000
+        res
+    """);
+  }
+
+  @Test
+  public void testAtomBenchmarks3() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.List import all
+
+    List.List.mapReverse self f acc = case self of
+        Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+        _ -> acc
+
+    main = list ->
+        res = list.mapReverse (x -> x + 1) Nil
+        res
+    """, true, true, false);
+  }
+
+  @Test
+  public void testShouldQuoteValuesContainingTheCommentSymbol() throws Exception {
+    parseTest("""
+    suite =
+        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+            format = Delimited ',' . with_comments
+            table.write file format on_problems=Report_Error . should_succeed
+            expected_text_2 = normalize_lines <| \"""
+                "#",B
+                b,
+                x,"#"
+                "#",abc
+            text_2 = File.read_text file
+            text_2.should_equal expected_text_2
+            file.delete
+    """, true, true, false);
+  }
+
+  @Test
+  public void testEmptyValueBetweenComments() throws Exception {
+    parseTest("""
+    expected_text = normalize_lines <| \"""
+                A,B
+                1,
+                ,""
+                3,abc
+    """, true, true, false);
+  }
+
+  @Test
+  @Ignore // problem in Delimited_Write_Spec.enso:172
+  public void testQuotedValues() throws Exception {
+    parseTest("""
+    expected_text = normalize_lines <| \"""
+        "one, two, three",-1.5,42,"4\"000",
+    """, true, true, false);
+  }
+
+  @Test
+  public void testSimpleTrippleQuote() throws Exception {
+    parseTest("""
+    expected_response = Json.parse <| '''
+        {
+          "headers": {
+            "Content-Length": "13",
+            "Content-Type": "application/json",
+            "User-Agent": "Java-http-client/11.0.13"
+          },
+          "origin": "127.0.0.1",
+          "url": "",
+          "args": {},
+          "data": "{\\"key\\":\\"val\\"}",
+          "files": null,
+          "form": null,
+          "json": {
+            "key": "val"
+          }
+        }
+    json = Json.parse <| '''
+        {"key":"val"}
+    res = Http.new.post_json url_post json
+        """, true, true, false);
+  }
+
+  @Test
+  @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
     # this is a comment

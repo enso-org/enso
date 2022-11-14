@@ -92,6 +92,10 @@
 - [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
   way. Also, additional fine-tuning is performed per font and per host operating
   system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
 
 #### Enso Standard Library
 
@@ -375,6 +379,7 @@
 [3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
 
 #### Enso Compiler
 
@@ -407,6 +412,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Using parser written in Rust.][3611]
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
@@ -467,6 +473,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3611]: https://github.com/enso-org/enso/pull/3611
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
