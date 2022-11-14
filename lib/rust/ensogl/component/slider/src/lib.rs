@@ -42,13 +42,22 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// Default slider precision when slider dragging is initiated. The precision indicates both how much the value is changed per pixel dragged and how many digits are displayed after the decimal.
+/// Default slider precision when slider dragging is initiated. The precision indicates both how
+/// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
 pub const PRECISION_DEFAULT: f32 = 0.1;
-/// Margin above/below the component within which vertical mouse movement will not affect slider precision.
+/// Margin above/below the component within which vertical mouse movement will not affect slider
+/// precision.
 pub const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
-/// The vertical mouse movement (in pixels) needed to change the slider precision by one step. Dragging the mouse upward beyond the margin will decrease the precision by one step for every `STEP_SIZE` pixels and adjust the slider value more quickly. Dragging the mouse downwards will increase the precision and change the value more slowly.
+/// The vertical mouse movement (in pixels) needed to change the slider precision by one step.
+/// Dragging the mouse upward beyond the margin will decrease the precision by one step for every
+/// `STEP_SIZE` pixels and adjust the slider value more quickly. Dragging the mouse downwards will
+/// increase the precision and change the value more slowly.
 pub const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
-/// The actual slider precision changes exponentially with each adjustment step. When the adjustment is changed by one step, the slider's precision is changed to the next power of `STEP_BASE`. A `STEP_BASE` of 10.0 results in the precision being powers of 10 for consecutive steps, e.g [1.0, 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the precision.
+/// The actual slider precision changes exponentially with each adjustment step. When the adjustment
+/// is changed by one step, the slider's precision is changed to the next power of `STEP_BASE`. A
+/// `STEP_BASE` of 10.0 results in the precision being powers of 10 for consecutive steps, e.g [1.0,
+/// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
+/// precision.
 pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 
 
@@ -57,7 +66,12 @@ pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 // === Slider component ===
 // ========================
 
-/// A slider UI component that allows adjusting a value through mouse interaction. Dragging the slider in a horizontal direction changes the value, limited to a range between `min_value` and `max_value`. The selected value is displayed, and a track fills the slider proportional to the value within the specified range. Dragging the slider in a vertical direction adjusts the precision of the slider. The precision affects the increments by which the value changes when the mouse is moved.
+/// A slider UI component that allows adjusting a value through mouse interaction. Dragging the
+/// slider in a horizontal direction changes the value, limited to a range between `min_value` and
+/// `max_value`. The selected value is displayed, and a track fills the slider proportional to the
+/// value within the specified range. Dragging the slider in a vertical direction adjusts the
+/// precision of the slider. The precision affects the increments by which the value changes when
+/// the mouse is moved.
 #[derive(Debug, Deref)]
 pub struct Slider {
     /// Public FRP api of the Component.

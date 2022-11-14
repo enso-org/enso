@@ -43,7 +43,7 @@ impl Background {
     }
 }
 
-    /// Background shape.
+/// Background shape.
 mod background {
     use super::*;
 
@@ -122,16 +122,8 @@ impl Model {
         value_text_right.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
-        Self {
-            background,
-            track,
-            label,
-            value_text_left,
-            value_text_dot,
-            value_text_right,
-            root,
-        }
-        .init()
+        Self { background, track, label, value_text_left, value_text_dot, value_text_right, root }
+            .init()
     }
 
     /// Initialise slider model.
