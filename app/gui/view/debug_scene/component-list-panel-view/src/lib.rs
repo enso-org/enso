@@ -46,7 +46,7 @@ use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ide_view_component_list_panel::grid;
-use ide_view_component_list_panel::grid::entry::icon;
+use ide_view_component_list_panel::icon;
 
 
 
@@ -60,7 +60,7 @@ const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
     ("table input", icon::Id::DataInput),
     ("text input", icon::Id::TextInput),
     ("number input", icon::Id::NumberInput),
-    ("table output", icon::Id::TableEdit),
+    ("table output", icon::Id::DataOutput),
     ("dataframe clean", icon::Id::DataframeClean),
     ("data input", icon::Id::DataInput),
 ];

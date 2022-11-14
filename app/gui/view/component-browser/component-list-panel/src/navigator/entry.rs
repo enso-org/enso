@@ -2,7 +2,6 @@
 
 use ensogl_core::prelude::*;
 
-use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
@@ -11,6 +10,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_grid_view as grid;
+use ide_view_component_list_panel_icons as icon;
 use ide_view_component_list_panel_icons::Any as AnyIcon;
 use ide_view_component_list_panel_icons::SIZE;
 

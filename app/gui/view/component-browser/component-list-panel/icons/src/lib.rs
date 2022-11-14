@@ -18,8 +18,9 @@ mod prelude {
 }
 
 pub mod common_part;
+pub use icon::Id;
 mod define_macro;
-
+mod icon;
 
 
 // =================

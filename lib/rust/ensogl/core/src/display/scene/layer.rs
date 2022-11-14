@@ -619,14 +619,18 @@ impl LayerModel {
     }
 
     fn depth_sort(&self, global_element_depth_order: Option<&DependencyGraph<LayerItem>>) {
+        DEBUG!("Started depth sort: {global_element_depth_order.is_some()}");
         let graph = self.combined_depth_order_graph(global_element_depth_order);
         let elements_sorted = self.elements.borrow().iter().copied().collect_vec();
+        DEBUG!("Graph: {graph:?}");
         let sorted_elements = graph.into_unchecked_topo_sort(elements_sorted);
+        DEBUG!("Sorted elements: {sorted_elements:?}");
         let sorted_symbols = sorted_elements
             .into_iter()
             .filter_map(|element| match element {
                 LayerItem::Symbol(symbol_id) => Some(symbol_id),
                 LayerItem::ShapeSystem(id) => {
+                    DEBUG!("Shape system id: {id:?}");
                     let out = self.shape_system_to_symbol_info_map.borrow().get(&id).map(|t| t.id);
                     if out.is_none() {
                         warn!("Trying to perform depth-order of non-existing element '{:?}'.", id)
@@ -782,6 +786,7 @@ impl LayerModel {
         let s1_id = ShapeSystem::<S1>::id();
         let s2_id = ShapeSystem::<S2>::id();
         let fresh = self.add_global_elements_order_dependency(s1_id, s2_id);
+        DEBUG!("Add global_shapes_order {fresh}");
         (fresh, default(), default())
     }
 

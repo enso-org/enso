@@ -32,7 +32,6 @@
 
 use crate::prelude::*;
 
-use crate::entry::icon;
 use crate::layout::Layout;
 
 use enso_frp as frp;
@@ -51,6 +50,7 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
 use ensogl_text as text;
+use ide_view_component_list_panel_icons as icon;
 
 
 // ==============
@@ -271,6 +271,17 @@ impl component::Model for Model {
         display_object.add_child(&grid);
         grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+
+        DEBUG!("Setting global shapes order dependency");
+        let shape_id = ensogl_core::display::shape::ShapeSystem::<entry::background::Shape>::id();
+        DEBUG!("Background shape id: {shape_id:?}");
+        icon::Id::add_global_shapes_order_dependency_above::<
+            grid_view::selectable::highlight::shape::Shape,
+        >(&app.display.default_scene.layers);
+        icon::Id::add_global_shapes_order_dependency_above::<entry::background::Shape>(
+            &app.display.default_scene.layers,
+        );
+
         Self {
             display_object,
             grid,

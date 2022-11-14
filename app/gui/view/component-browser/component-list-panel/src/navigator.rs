@@ -8,7 +8,6 @@ use ensogl_core::prelude::*;
 
 use crate::AllStyles;
 
-use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::tooltip;
@@ -22,6 +21,7 @@ use ensogl_tooltip::Tooltip;
 use grid::Col;
 use grid::Row;
 use ide_view_component_list_panel_grid::SectionId;
+use ide_view_component_list_panel_icons as icon;
 use list_panel_theme::navigator as theme;
 
 

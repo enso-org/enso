@@ -25,13 +25,13 @@ use ensogl_grid_view::entry::MovedHeaderPosition;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry as theme;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
+use ide_view_component_list_panel_icons as icon;
 
 
 // ==============
 // === Export ===
 // ==============
 
-pub mod icon;
 pub mod style;
 
 pub use crate::entry::style::Style;

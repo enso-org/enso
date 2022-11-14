@@ -3941,6 +3941,7 @@ name = "ide-view-component-list-panel-icons"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "failure",
 ]
 

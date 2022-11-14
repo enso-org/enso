@@ -9,7 +9,7 @@
 /// The macro takes many modules with attached "variant name". Inside the modules, there should
 /// be icon defined with `ensogl::shape!` macro. The macro will also generate an
 /// enum called `Id` gathering all icon' "variant names". The enum will allow for dynamically
-/// creating given icon shape view (returned as [`crate::icon::AnyIcon`]).
+/// creating given icon shape view (returned as [`crate::icon::Any`]).
 ///
 /// # Example
 ///
@@ -105,6 +105,15 @@ macro_rules! define_icons {
             /// Call `f` for each possible icon id.
             pub fn for_each<F: FnMut(Self)>(mut f: F) {
                 $(f(Self::$variant);)*
+            }
+
+            pub fn add_global_shapes_order_dependency_above<T: ensogl_core::display::shape::system::Shape>(layer: &ensogl_core::display::scene::layer::Layer) {
+                $(error!("{:?} = {:?}", Self::$variant, ensogl_core::display::shape::system::ShapeSystem::<$name::Shape>::id());)*
+                $(layer.add_global_shapes_order_dependency::<T, $name::Shape>();)*
+            }
+
+            pub fn add_global_shapes_order_dependency_below<T: ensogl_core::display::shape::system::Shape>(layer: &ensogl_core::display::scene::layer::Layer) {
+                $(layer.add_global_shapes_order_dependency::<$name::Shape, T>();)*
             }
 
             /// Get a string identifier with the icon's name.
