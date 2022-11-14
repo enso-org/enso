@@ -30,7 +30,7 @@ pub enum Color {
 
 impl Default for Color {
     fn default() -> Self {
-        Self::ComponentGroup { alpha_multiplier: 1.0 }
+        Self::Arbitrary(color::Lcha::black())
     }
 }
 
@@ -39,10 +39,7 @@ impl Color {
     /// specified transparency from [`Self::MainColorWithAlpha`] to [`main`] color.
     fn resolve(&self, main: &color::Lcha) -> color::Lcha {
         match self {
-            Self::ComponentGroup { alpha_multiplier } => {
-                let alpha = main.alpha * alpha_multiplier;
-                color::Lcha::new(main.lightness, main.chroma, main.hue, alpha)
-            }
+            Self::ComponentGroup { alpha_multiplier } => main.multiply_alpha(*alpha_multiplier),
             Self::Arbitrary(color) => *color,
         }
     }
@@ -69,7 +66,7 @@ impl Color {
                     let alpha_multiplier = match data.number() {
                         Some(number) => number,
                         None => {
-                            error!("Neither color nor alpha defined ({path}).");
+                            error!("Neither color nor alpha defined for {path}.");
                             0.0
                         }
                     };

@@ -26,7 +26,7 @@ mod define_macro;
 // === Constants ===
 // =================
 
-/// The width and height of all icon.
+/// The width and height of all icons.
 pub const SIZE: f32 = 16.0;
 
 /// This constant exists for development purposes only, and is published for debug scene.
