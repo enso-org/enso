@@ -39,7 +39,9 @@ impl VsWhere {
 
         let stdout = command.run_stdout().await?;
         let instances = serde_json::from_str::<Vec<InstanceInfo>>(&stdout)?;
-        Ok(instances.into_iter().next().ok_or(NoMsvcInstallation)?)
+        instances.into_iter().next().with_context(|| {
+            format!("No Visual Studio installation found with component {}.", component)
+        })
     }
 
     /// Looks up installation of Visual Studio that has installed
@@ -53,10 +55,6 @@ impl VsWhere {
         Self::find_with(Component::MsBuild).await
     }
 }
-
-#[derive(Clone, Copy, Debug, Snafu)]
-#[snafu(display("failed to find a MSVC installation"))]
-pub struct NoMsvcInstallation;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -139,7 +137,7 @@ impl From<&Format> for OsString {
 }
 
 // cf. https://docs.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community?view=vs-2019&preserve-view=true
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Display)]
 pub enum Component {
     /// MSVC v142 - VS 2019 C++ x64/x86 build tools
     CppBuildTools,

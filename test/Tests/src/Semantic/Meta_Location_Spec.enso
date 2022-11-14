@@ -21,7 +21,7 @@ spec = Test.group "Meta-Value Inspection" <|
         x = 42
         y = My_Type.Value 1 2 3
         Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Numbers.Integer"
-        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Location_Spec.My_Type.Value"
+        Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Location_Spec.My_Type"
 
     Test.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Tests'

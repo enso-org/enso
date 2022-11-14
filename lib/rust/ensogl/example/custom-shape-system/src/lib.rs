@@ -12,7 +12,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
@@ -24,7 +23,7 @@ use ensogl_core::display::object::ObjectOps;
 
 mod shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));
@@ -52,26 +51,34 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
-    let view1 = shape::View::new();
-    view1.size.set(Vector2::new(300.0, 300.0));
-    view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+    let view = shape::View::new();
+    view.size.set(Vector2::new(300.0, 300.0));
+    view.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    world.add_child(&view1);
+    world.add_child(&view);
     world.keep_alive_forever();
 
     frp::new_network! { network
-        trace view1.events.mouse_over;
-        trace view1.events.mouse_out;
-        trace view1.events.mouse_down;
+        trace view.events.mouse_over;
+        trace view.events.mouse_out;
+        trace view.events.mouse_down;
     }
 
+    let mut i = 0;
     world
         .on
         .before_frame
         .add(move |_time| {
             let _keep_alive = &network;
-            let _keep_alive = &view1;
+            let _keep_alive = &view;
             let _keep_alive = &navigator;
+            i += 1;
+            if i == 5 {
+                if let Some(program) = view.sprite.borrow().symbol.shader().program() {
+                    DEBUG!("\n\nVERTEX:\n{program.shader.vertex.code}");
+                    DEBUG!("\n\nFRAGMENT:\n{program.shader.fragment.code}");
+                }
+            }
         })
         .forget();
 }

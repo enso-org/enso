@@ -163,10 +163,13 @@
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(unboxed_closures)]
+#![feature(downcast_unchecked)]
 #![recursion_limit = "512"]
 
+pub mod any_data;
 pub mod data;
 pub mod debug;
+pub mod fan;
 pub mod future;
 pub mod io;
 pub mod macros;
@@ -179,7 +182,9 @@ pub use network::*;
 pub use node::*;
 pub use nodes::*;
 
+pub use any_data::AnyData;
 pub use enso_web as web;
+pub use fan::Fan;
 pub use stream::Stream;
 
 /// Set of often used types and functions.

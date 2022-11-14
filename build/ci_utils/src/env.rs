@@ -5,6 +5,13 @@ use std::collections::BTreeSet;
 use unicase::UniCase;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod known;
+
+
 
 pub fn current_dir() -> Result<PathBuf> {
     std::env::current_dir().context("Failed to get current directory.")
@@ -16,6 +23,20 @@ pub fn set_current_dir(path: impl AsRef<Path>) -> Result {
     std::env::set_current_dir(&path).anyhow_err()
 }
 
+/// Define typed accessors for environment variables. Supported types inclide `String`, `PathBuf`,
+/// and other types that implement `FromStr`.
+///
+/// Example:
+/// ```
+/// # use std::path::PathBuf;
+/// # use ide_ci::define_env_var;
+/// # use ide_ci::env::new::TypedVariable;
+/// define_env_var! {
+///     /// Documentation.
+///     ENV_VAR_NAME, PathBuf;
+/// };
+/// let path = ENV_VAR_NAME.get().unwrap_or_else(|_error| PathBuf::from("default"));
+/// ```
 #[macro_export]
 macro_rules! define_env_var {
     () => {};
@@ -41,10 +62,6 @@ macro_rules! define_env_var {
         $crate::define_env_var!($($tail)*);
     };
 }
-
-
-
-pub mod known;
 
 pub mod new {
     use super::*;
@@ -95,22 +112,21 @@ pub mod new {
             self.parse(self.get_raw()?.as_str())
         }
 
-        fn set(&self, value: impl AsRef<Self::Borrowed>) -> Result {
-            let value = self.generate(value.as_ref())?;
+        fn set(&self, value: &Self::Borrowed) -> Result {
+            let value = self.generate(value)?;
             self.set_raw(value);
             Ok(())
         }
 
-        fn set_workflow_output(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            crate::actions::workflow::set_output(self.name(), &self.generate(value.borrow())?);
-            Ok(())
-        }
-        fn set_workflow_env(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            crate::actions::workflow::set_env(self.name(), &self.generate(value.borrow())?)
-        }
-        fn emit_to_workflow(&self, value: impl Borrow<Self::Borrowed>) -> Result {
-            self.set_workflow_output(value.borrow())?;
-            self.set_workflow_env(value.borrow())
+        fn set_workflow_env(
+            &self,
+            value: impl Borrow<Self::Borrowed>,
+        ) -> BoxFuture<'static, Result> {
+            let name = self.name().to_string();
+            let value = self.generate(value.borrow());
+            value
+                .and_then_async(move |value| crate::actions::workflow::set_env(name, &value))
+                .boxed()
         }
     }
 
@@ -150,9 +166,10 @@ pub mod new {
         }
     }
 
-    #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, derive_more::Deref)]
     pub struct SimpleVariable<Value, Borrowed: ?Sized = Value> {
-        pub name:          Cow<'static, str>,
+        #[deref]
+        pub name:          &'static str,
         pub phantom_data:  PhantomData<Value>,
         pub phantom_data2: PhantomData<Borrowed>,
     }
@@ -163,9 +180,9 @@ pub mod new {
         }
     }
 
-    impl<Value, Borrowed: ?Sized> AsRef<str> for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
         fn as_ref(&self) -> &str {
-            &self.name
+            self.name
         }
     }
 
@@ -183,17 +200,13 @@ pub mod new {
 
     impl<Value, Borrowed: ?Sized> SimpleVariable<Value, Borrowed> {
         pub const fn new(name: &'static str) -> Self {
-            Self {
-                name:          Cow::Borrowed(name),
-                phantom_data:  PhantomData,
-                phantom_data2: PhantomData,
-            }
+            Self { name, phantom_data: PhantomData, phantom_data2: PhantomData }
         }
     }
 
-    impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> const RawVariable for SimpleVariable<Value, Borrowed> {
         fn name(&self) -> &str {
-            &self.name
+            self.name
         }
     }
 
@@ -266,110 +279,18 @@ pub mod new {
     }
 }
 
-//
-//
-// impl<'a, T> SpecFromIter<T> for std::slice::Iter<'a, T> {
-//     fn f(&self) {}
-// }
-
-#[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
-pub struct StrLikeVariable {
-    pub name: &'static str,
-}
-
-impl StrLikeVariable {
-    pub const fn new(name: &'static str) -> Self {
-        Self { name }
-    }
-}
-
-impl Variable for StrLikeVariable {
-    const NAME: &'static str = "";
-    fn name(&self) -> &str {
-        self.name
-    }
-}
-
-pub trait Variable {
-    const NAME: &'static str;
-    type Value: FromString = String;
-
-    fn format(&self, value: &Self::Value) -> String
-    where Self::Value: ToString {
-        value.to_string()
-    }
-
-    fn name(&self) -> &str {
-        Self::NAME
-    }
-
-    fn fetch(&self) -> Result<Self::Value> {
-        self.fetch_as()
-    }
-
-    fn fetch_as<T: FromString>(&self) -> Result<T> {
-        self.fetch_string()?.parse2()
-    }
-
-    fn fetch_string(&self) -> Result<String> {
-        expect_var(self.name())
-    }
-
-    fn fetch_os_string(&self) -> Result<OsString> {
-        expect_var_os(self.name())
-    }
-
-    fn set(&self, value: &Self::Value)
-    where Self::Value: ToString {
-        debug!("Setting env {}={}", self.name(), self.format(value));
-        std::env::set_var(self.name(), self.format(value))
-    }
-
-    fn set_os(&self, value: &Self::Value)
-    where Self::Value: AsRef<OsStr> {
-        std::env::set_var(self.name(), value)
-    }
-
-    fn set_path<P>(&self, value: &P)
-    where
-        Self::Value: AsRef<Path>,
-        P: AsRef<Path>, {
-        std::env::set_var(self.name(), value.as_ref())
-    }
-
-    fn emit_env(&self, value: &Self::Value) -> Result
-    where Self::Value: ToString {
-        crate::actions::workflow::set_env(self.name(), value)
-    }
-
-    fn emit(&self, value: &Self::Value) -> Result
-    where Self::Value: ToString {
-        self.emit_env(value)?;
-        crate::actions::workflow::set_output(self.name(), value);
-        Ok(())
-    }
-
-    fn is_set(&self) -> bool {
-        self.fetch_os_string().is_ok()
-    }
-
-    fn remove(&self) {
-        std::env::remove_var(self.name())
-    }
-}
-
 const PATH_ENVIRONMENT_NAME: &str = "PATH";
 
 
 pub fn expect_var(name: impl AsRef<str>) -> Result<String> {
     let name = name.as_ref();
-    std::env::var(name).context(anyhow!("Missing environment variable {}.", name))
+    std::env::var(name).with_context(|| anyhow!("Missing environment variable {name}."))
 }
 
 pub fn expect_var_os(name: impl AsRef<OsStr>) -> Result<OsString> {
     let name = name.as_ref();
     std::env::var_os(name)
-        .ok_or_else(|| anyhow!("Missing environment variable {}.", name.to_string_lossy()))
+        .with_context(|| anyhow!("Missing environment variable {}.", name.to_string_lossy()))
 }
 
 pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
@@ -383,17 +304,17 @@ pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
     Ok(())
 }
 
-pub async fn fix_duplicated_env_var(var_name: impl AsRef<OsStr>) -> Result {
-    let var_name = var_name.as_ref();
-
-    let mut paths = indexmap::IndexSet::new();
-    while let Ok(path) = std::env::var(var_name) {
-        paths.extend(std::env::split_paths(&path));
-        std::env::remove_var(var_name);
-    }
-    std::env::set_var(var_name, std::env::join_paths(paths)?);
-    Ok(())
-}
+// pub async fn fix_duplicated_env_var(var_name: impl AsRef<OsStr>) -> Result {
+//     let var_name = var_name.as_ref();
+//
+//     let mut paths = indexmap::IndexSet::new();
+//     while let Ok(path) = std::env::var(var_name) {
+//         paths.extend(std::env::split_paths(&path));
+//         std::env::remove_var(var_name);
+//     }
+//     std::env::set_var(var_name, std::env::join_paths(paths)?);
+//     Ok(())
+// }
 
 #[derive(Clone, Debug)]
 pub enum Action {

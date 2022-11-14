@@ -1,12 +1,9 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
@@ -207,6 +204,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
               @Override
               protected double doDouble(double a, double b) {
                 return a % b;
+              }
+            })
+        .add(
+            new DoubleNumericOp(Maps.POWER) {
+              @Override
+              protected double doDouble(double a, double b) {
+                return Math.pow(a, b);
               }
             })
         .add(

@@ -9,7 +9,7 @@ use ide_ci::log::setup_logging;
 
 pub const PACKAGE: GithubRelease<&str> = GithubRelease {
     project_url: "https://github.com/enso-org/msdfgen-wasm",
-    version:     "v1.4",
+    version:     "v1.4.1",
     filename:    "msdfgen_wasm.js",
 };
 

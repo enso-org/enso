@@ -10,7 +10,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::primitive::system::DynamicShape;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;

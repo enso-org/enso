@@ -75,7 +75,7 @@ impl View {
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
-        model.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&model);
         model.add_to_scene_layer(&scene.layers.panel_text);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
         //  should be changed in the second part of focus management
@@ -90,11 +90,11 @@ impl View {
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
-            eval_ show (model.focus());
+            eval_ show (model.deprecated_focus());
             eval_ hide (height_fraction.set_target_value(0.0));
             eval_ hide ([model] {
                 model.remove_all_cursors();
-                model.defocus();
+                model.deprecated_defocus();
             });
 
             frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);

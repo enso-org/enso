@@ -807,7 +807,7 @@ class RuntimeSuggestionUpdatesTest
                         ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(4, 6),
-                          Suggestion.Position(9, 0)
+                          Suggestion.Position(8, 11)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -969,6 +969,7 @@ class RuntimeSuggestionUpdatesTest
                     "MyType",
                     List(),
                     "Enso_Test.Test.A.MyType",
+                    Some(ConstantsGen.ANY),
                     None,
                     None,
                     None

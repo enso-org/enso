@@ -25,13 +25,11 @@ generated/
 /target
 /build/rust/target/
 
-#############
-## Haskell ##
-#############
+###########
+## Scala ##
+###########
 
-dist
-cabal-dev
-.stack-work/
+.metals/
 
 ############
 ## NodeJS ##
@@ -59,7 +57,9 @@ package-lock.json
 ## Tooling Specific ##
 ######################
 
-.idea/
+!.idea
+.idea/*
+!.idea/runConfigurations/
 .vscode/
 .metals/
 *.swp
@@ -124,7 +124,7 @@ build-cache/
 ######################
 ## Enso-Development ##
 ######################
-
+dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions

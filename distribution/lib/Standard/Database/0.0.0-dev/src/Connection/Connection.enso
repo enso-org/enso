@@ -8,7 +8,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table as Database_Table
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
 
 from project.Internal.Result_Set import read_column, result_set_to_table
@@ -182,7 +182,7 @@ type Connection
 
         db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
         if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, Expression.Constant col.sql_type Nothing]
+            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant col.sql_type Nothing]
             insert_query = self.dialect.generate_sql <| Query.Insert name pairs
             insert_template = insert_query.prepare.first
             self.jdbc_connection.load_table insert_template db_table table batch_size

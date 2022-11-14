@@ -20,7 +20,6 @@ enso-debug-api = { path = "../../debug-api" }
 enso-frp = { path = "../../frp" }
 enso-generics = { path = "../../generics" }
 enso-logger = { path = "../../logger" }
-enso-optics = { path = "../../optics" }
 enso-prelude = { path = "../../prelude" }
 enso-profiler = { path = "../../profiler" }
 enso-shapely = { path = "../../shapely" }

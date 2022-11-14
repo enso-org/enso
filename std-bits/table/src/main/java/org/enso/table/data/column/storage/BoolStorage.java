@@ -2,6 +2,8 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
+import java.util.function.IntFunction;
+
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -168,19 +170,27 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   public Storage<?> iif(Value when_true, Value when_false) {
-    Object on_true = Polyglot_Utils.convertPolyglotValue(when_true);
-    Object on_false = Polyglot_Utils.convertPolyglotValue(when_false);
+    var on_true = makeRowProvider(when_true);
+    var on_false = makeRowProvider(when_false);
     InferredBuilder builder = new InferredBuilder(size);
     for (int i = 0; i < size; i++) {
       if (isMissing.get(i)) {
         builder.append(null);
       } else if (getItem(i)) {
-        builder.append(on_true);
+        builder.append(on_true.apply(i));
       } else {
-        builder.append(on_false);
+        builder.append(on_false.apply(i));
       }
     }
     return builder.seal();
+  }
+
+  private static IntFunction<Object> makeRowProvider(Value value) {
+    if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
+      return i->(Object)s.getItemBoxed(i);
+    }
+    var converted = Polyglot_Utils.convertPolyglotValue(value);
+    return i->converted;
   }
 
   private static MapOpStorage<Boolean, BoolStorage> buildOps() {

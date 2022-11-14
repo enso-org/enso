@@ -266,10 +266,10 @@ impl component::Model for Model {
         let colors = default();
         let requested_section_info = default();
         let base_layer = &app.display.default_scene.layers.node_searcher_text;
-        let grid_layer = base_layer.create_sublayer();
-        let selection_layer = base_layer.create_sublayer();
+        let grid_layer = base_layer.create_sublayer("grid_layer");
+        let selection_layer = base_layer.create_sublayer("selection_layer");
         display_object.add_child(&grid);
-        grid_layer.add_exclusive(&grid);
+        grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
         Self {
             display_object,
@@ -723,9 +723,9 @@ impl component::Frp<Model> for Frp {
 
             // === Focus propagation ===
 
-            grid.focus <+ input.focus;
-            grid.defocus <+ input.defocus;
-            grid.set_focus <+ input.set_focus;
+            grid.deprecated_focus <+ input.deprecated_focus;
+            grid.deprecated_defocus <+ input.deprecated_defocus;
+            grid.deprecated_set_focus <+ input.deprecated_set_focus;
         }
 
         // Set the proper number of columns so we can set column widths.

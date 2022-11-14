@@ -53,7 +53,8 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger = context.getLogger(getClass)
+  private val logger: TruffleLogger           = context.getLogger(getClass)
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -437,8 +438,23 @@ class Compiler(
       compilerConfig   = config,
       isGeneratingDocs = isGenDocs
     )
-    val parsedAST = parse(module.getSource)
-    val expr      = generateIR(parsedAST)
+
+    val src = module.getSource
+    def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
+      val tree = parse(src)
+      generateIR(tree)
+    }
+    val expr =
+      if (
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
+
     val exprWithModuleExports =
       if (module.isSynthetic)
         expr

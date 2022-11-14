@@ -33,7 +33,16 @@ case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
 
   def assertNodeExists(start: Int, length: Int, kind: Class[_]): Unit =
-    bindings ::= instrument.bindTo(start, length, kind)
+    assertNodeExists(start, 0, length, 0, kind)
+
+  def assertNodeExists(
+    start: Int,
+    diff: Int,
+    length: Int,
+    lengthDiff: Int,
+    kind: Class[_]
+  ): Unit =
+    bindings ::= instrument.bindTo(start, diff, length, lengthDiff, kind)
 
   def verifyResults(): Unit = {
     bindings.foreach { binding =>
@@ -41,7 +50,8 @@ case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
       if (!listener.isSuccessful) {
         Assertions.fail(
           s"Node of type ${listener.getType.getSimpleName} at position " +
-          s"${listener.getStart} with length ${listener.getLength} was not found."
+          s"${listener.getStart} with length ${listener.getLength} was not found." +
+          s"${listener.dumpCloseSections()}"
         )
       }
     }
@@ -67,7 +77,8 @@ case class IdsInstrumenter(instrument: CodeIdsTestInstrument) {
       if (!listener.isSuccessful) {
         Assertions.fail(
           s"Node with id ${listener.getId} does not exist or did not return the" +
-          s" correct value (expected ${listener.getExpectedResult}."
+          s" correct value (expected ${listener.getExpectedResult}.\n" +
+          s"${listener.dumpNodes()}"
         )
       }
     }

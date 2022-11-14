@@ -8,7 +8,7 @@
 
 /// Surprisingly useful function. Consider the following code:
 ///
-/// ```compile_fail
+/// ```text
 /// fn init(self) -> Self {
 ///    let mut data = self.borrow_mut();
 ///    ...
@@ -22,7 +22,7 @@
 /// We can use this function to narrow-down the lifetimes. The following code
 /// compiles just fine:
 ///
-/// ```compile_fail
+/// ```text
 /// fn init(self) -> Self {
 ///    with(self.borrow_mut(), |mut data| {
 ///        ...

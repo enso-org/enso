@@ -739,6 +739,7 @@ object IR {
             |rename = $rename,
             |onlyNames = $onlyNames,
             |hiddenNames = $hiddenNames,
+            |isAll = $isAll,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -7432,6 +7433,7 @@ object IR {
     ) extends Error
         with Diagnostic.Kind.Interactive
         with IR.Module.Scope.Definition
+        with IR.Module.Scope.Export
         with IR.Module.Scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -7482,8 +7484,9 @@ object IR {
       @annotation.nowarn
       override val location: Option[IdentifiedLocation] =
         at match {
-          case ast: AST => ast.location.map(IdentifiedLocation(_, ast.id))
-          case _        => None
+          case ast: AST                => ast.location.map(IdentifiedLocation(_, ast.id))
+          case loc: IdentifiedLocation => Some(loc)
+          case _                       => None
         }
 
       /** @inheritdoc */

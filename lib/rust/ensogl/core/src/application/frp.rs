@@ -6,7 +6,7 @@
 ///
 /// Given the definition:
 ///
-/// ```compile_fail
+/// ```text
 ///     define_endpoints! { [GLOBAL_OPTS] <GENERIC_PARAMETERS>
 ///         Input { [INPUT_OPTS]
 ///             input1 (f32),
@@ -34,7 +34,7 @@
 /// and `set_focus(bool)` are always defined and connected. They are mainly used for shortcut
 /// manager to send commands only to focused GUI elements.
 ///
-/// ```compile_fail
+/// ```text
 ///     /// Frp network and endpoints.
 ///     #[derive(Debug, Clone, CloneRef)]
 ///     #[allow(missing_docs)]
@@ -219,13 +219,16 @@ macro_rules! define_endpoints {
             $(<$($param $(:($($constraints)*))?),*>)?
 
             Input { $($([$($input_opts)*])?)?
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
-                focus(),
+                deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
-                defocus(),
+                deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
-                set_focus(bool),
+                deprecated_set_focus(bool),
                 $($($(#[doc=$($in_doc )*])*
                 $in_field ($($in_field_type )*)),*)?
             }
@@ -357,8 +360,8 @@ macro_rules! define_endpoints {
                 let mut command_map : HashMap<String,Command> = default();
                 $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
                     $($out_field <- source.$out_field.sampler();)*
-                    focus_events   <- bool(&input.defocus,&input.focus);
-                    focused        <- any(&input.set_focus,&focus_events);
+                    focus_events   <- bool(&input.deprecated_defocus, &input.deprecated_focus);
+                    focused        <- any(&input.deprecated_set_focus, &focus_events);
                     source.focused <+ focused;
                 }
                 $($crate::build_status_map!
@@ -534,7 +537,7 @@ pub trait API: crate::application::command::FrpNetworkProvider {
 ///
 /// Given the definition:
 ///
-/// ```compile_fail
+/// ```text
 ///     define_endpoints_2! { [GLOBAL_OPTS] <GENERIC_PARAMETERS>
 ///         Input { [INPUT_OPTS]
 ///             input1 (f32),
@@ -567,7 +570,7 @@ pub trait API: crate::application::command::FrpNetworkProvider {
 /// simplifies some of the struct contents. This makes it easier to get a basic understanding of
 /// the transformation that happens.
 ///
-/// ```compile_fail
+/// ```text
 /// 
 ///
 /// #[derive(Debug, Derivative)]
@@ -679,7 +682,7 @@ pub trait API: crate::application::command::FrpNetworkProvider {
 /// For convenience there is also a `Combined` struct that holds both the input and output nodes.
 /// This struct is exposed on the `Input` struct through a `Deref` implementation.
 ///
-/// ```compile_fail
+/// ```text
 ///     #[derive(Debug, CloneRef, Clone)]
 ///     pub struct Public {
 ///         pub input: public::Input,
@@ -741,7 +744,7 @@ pub trait API: crate::application::command::FrpNetworkProvider {
 /// `Output` section of the macro call. The private input streams receive the events generated from
 /// the public input and the private output nodes propagate events to the public outputs.     
 ///
-///```compile_fail
+///```text
 /// 
 ///     #[derive(Debug)]
 ///     pub struct Private {
@@ -788,7 +791,7 @@ pub trait API: crate::application::command::FrpNetworkProvider {
 /// `api.input.input1.emit(64)` it is possible to write `api.input.input1(64)`.
 ///
 /// The code generated for the example looks similar to this
-/// ```compile_fail
+/// ```text
 /// impl InputData {
 ///     pub fn input1(&self, t1: impl IntoParam<f32>) {
 ///         self.input1.emit(t1);
@@ -845,13 +848,16 @@ macro_rules! define_endpoints_2 {
             [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>] [<($($($param),*)?)>]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
-                focus(),
+                deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
-                defocus(),
+                deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
-                set_focus(bool)
+                deprecated_set_focus(bool)
                 $($(,
                     $(#$in_field_attr)*
                     $in_field $in_field_type
@@ -1113,8 +1119,8 @@ macro_rules! define_endpoints_2_normalized_public {
 
                     $crate::frp::extend! { $output_opts network
                         $( $out_field <- private_output.$out_field.profile().sampler(); )*
-                        focus_events   <- bool(&public_input.defocus,&public_input.focus);
-                        focused        <- any(&public_input.set_focus,&focus_events);
+                        focus_events   <- bool(&public_input.deprecated_defocus, &public_input.deprecated_focus);
+                        focused        <- any(&public_input.deprecated_set_focus, &focus_events);
                         private_output.focused <+ focused;
                     }
                     let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();

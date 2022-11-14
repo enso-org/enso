@@ -1,4 +1,4 @@
-//! Abstractions for objects that can interact with the pointer (in most cases this is a mouse).
+//! Abstractions for objects that can interact with the pointer (e.g., a mouse).
 
 use crate::prelude::*;
 

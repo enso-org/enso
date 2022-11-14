@@ -71,6 +71,8 @@
   Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
 - [Added support for scrolling by pressing and holding a mouse button on a
   scrollbar.][3824]
+- [Added scroll bounce animation][3836] which activates when scrolling past the
+  end of scrollable content.
 
 #### EnsoGL (rendering engine)
 
@@ -83,6 +85,17 @@
   those visible, and re-use created entries during scrolling thus achieving
   great performance. There are variants of grid view with selection and
   highlight, scrollbars, and both.
+- [Massive improvements of text rendering performance][3776]. Different text
+  instances are now reusing the shape shaders and the same sprite system under
+  the hood. This drastically reduces the amount of required draw calls for
+  scenes with a lot of text.
+- [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
+  way. Also, additional fine-tuning is performed per font and per host operating
+  system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
 
 #### Enso Standard Library
 
@@ -224,6 +237,8 @@
 - [Implemented `Table.rows` giving access to a vector of rows.][3827]
 - [Define Enso epoch start as 15th October 1582][3804]
 - [Implemented `Period` type][3818]
+- [Implemented new functions on Column and added expression syntax support to
+  create derived Columns.][3782]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -360,6 +375,11 @@
 [3824]: https://github.com/enso-org/enso/pull/3824
 [3804]: https://github.com/enso-org/enso/pull/3804
 [3818]: https://github.com/enso-org/enso/pull/3818
+[3776]: https://github.com/enso-org/enso/pull/3776
+[3855]: https://github.com/enso-org/enso/pull/3855
+[3836]: https://github.com/enso-org/enso/pull/3836
+[3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
 
 #### Enso Compiler
 
@@ -392,6 +412,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Using parser written in Rust.][3611]
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
@@ -452,6 +473,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3611]: https://github.com/enso-org/enso/pull/3611
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608

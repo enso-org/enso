@@ -215,7 +215,7 @@ fn get_enabled_level(levels: &[impl AsRef<str>]) -> usize {
 ///
 /// # Usage
 ///
-/// ```ignore
+/// ```text
 /// enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
 /// ```
 ///

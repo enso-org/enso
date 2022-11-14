@@ -122,10 +122,10 @@ impl Model {
         let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
-        list.focus();
+        list.deprecated_focus();
         let documentation = documentation::View::new(&app);
         let doc_provider = default();
-        scene.layers.node_searcher.add_exclusive(&list);
+        scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 

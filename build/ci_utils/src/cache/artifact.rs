@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::cache::Cache;
 use crate::cache::Storable;
-use crate::models::config::RepoContext;
+use crate::github::Repo;
 
 use octocrab::models::ArtifactId;
 
@@ -10,7 +10,7 @@ use octocrab::models::ArtifactId;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key {
-    pub repository:  RepoContext,
+    pub repository:  Repo,
     pub artifact_id: ArtifactId,
 }
 
@@ -34,7 +34,8 @@ impl Storable for ExtractedArtifact {
         async move {
             let ExtractedArtifact { client, key } = this;
             let Key { artifact_id, repository } = key;
-            repository.download_and_unpack_artifact(&client, artifact_id, &store).await?;
+            let repository = repository.handle(&client);
+            repository.download_and_unpack_artifact(artifact_id, &store).await?;
             Ok(())
         }
         .boxed()

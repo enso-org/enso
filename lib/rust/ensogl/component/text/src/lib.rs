@@ -5,6 +5,7 @@
 
 #![recursion_limit = "1024"]
 // === Features ===
+#![allow(incomplete_features)]
 #![feature(const_trait_impl)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
@@ -14,6 +15,8 @@
 #![feature(allocator_api)]
 #![feature(let_chains)]
 #![feature(step_trait)]
+#![feature(specialization)]
+#![feature(once_cell)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

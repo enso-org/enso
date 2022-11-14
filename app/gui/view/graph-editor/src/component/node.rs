@@ -106,7 +106,7 @@ pub type Comment = ImString;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
             let width    = Var::<Pixels>::from("input_size.x");
@@ -125,7 +125,7 @@ pub mod background {
 pub mod backdrop {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         // Disable to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
@@ -186,7 +186,7 @@ pub mod backdrop {
 pub mod drag_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -212,7 +212,7 @@ pub mod drag_area {
 pub mod error_shape {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 
@@ -506,7 +506,7 @@ impl NodeModel {
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
-        scene.layers.above_nodes.add_exclusive(&action_bar);
+        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -553,8 +553,8 @@ impl NodeModel {
 
     #[profile(Debug)]
     fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
-        layer.add_exclusive(&self.display_object);
-        action_bar_layer.add_exclusive(&self.action_bar);
+        layer.add(&self.display_object);
+        action_bar_layer.add(&self.action_bar);
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
         self.profiling_label.set_label_layer(text_layer);
@@ -563,7 +563,7 @@ impl NodeModel {
 
     /// Move all sub-components to `edited_node` layer.
     ///
-    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
@@ -579,7 +579,7 @@ impl NodeModel {
 
     /// Move all sub-components to `main` layer.
     ///
-    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other

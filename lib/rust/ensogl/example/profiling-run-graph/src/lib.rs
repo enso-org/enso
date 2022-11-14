@@ -81,7 +81,7 @@ pub async fn main() {
     let base_profile = &profiles[0];
     let flame_graph = profile_to_graph(base_profile, app);
     scene.add_child(&flame_graph);
-    scene.layers.main.add_exclusive(&flame_graph);
+    scene.layers.main.add(&flame_graph);
 
     let sequence_diagram = SequenceDiagram::new(app);
     sequence_diagram.set_profile(profiles);
@@ -91,7 +91,7 @@ pub async fn main() {
     sequence_diagram.set_position_y(-sequence_diagram_offset);
 
     scene.add_child(&sequence_diagram);
-    scene.layers.main.add_exclusive(&sequence_diagram);
+    scene.layers.main.add(&sequence_diagram);
 
     let tooltip = ensogl_tooltip::Tooltip::new(app);
     scene.add_child(&tooltip);

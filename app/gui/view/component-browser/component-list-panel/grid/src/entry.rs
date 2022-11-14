@@ -62,7 +62,8 @@ pub mod background {
     // We don't use the usual padding of sprites, because we clip the shadow under the background
     // and clipping the shadow shape with `*` operator causes glitches.
     // See https://www.pivotaltracker.com/story/show/182593513
-    ensogl_core::define_shape_system! {
+
+    ensogl_core::shape! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
@@ -216,8 +217,8 @@ pub struct Params {
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
-    strong_color:   color::Lcha,
-    weak_color:     color::Lcha,
+    vivid_color:    color::Lcha,
+    dull_color:     color::Lcha,
     shape:          Option<icon::Any>,
     id:             Option<icon::Id>,
 }
@@ -226,8 +227,8 @@ impl Default for CurrentIcon {
     fn default() -> Self {
         Self {
             display_object: display::object::Instance::new(),
-            strong_color:   default(),
-            weak_color:     default(),
+            vivid_color:    default(),
+            dull_color:     default(),
             shape:          default(),
             id:             default(),
         }
@@ -240,8 +241,8 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                shape.strong_color.set(color::Rgba::from(self.strong_color).into());
-                shape.weak_color.set(color::Rgba::from(self.weak_color).into());
+                shape.set_vivid_color(color::Rgba::from(self.vivid_color).into());
+                shape.set_dull_color(color::Rgba::from(self.dull_color).into());
                 self.display_object.add_child(&shape);
                 self.shape = Some(shape);
             } else {
@@ -250,17 +251,17 @@ impl CurrentIcon {
         }
     }
 
-    fn set_strong_color(&mut self, color: color::Lcha) {
-        self.strong_color = color;
+    fn set_vivid_color(&mut self, color: color::Lcha) {
+        self.vivid_color = color;
         if let Some(shape) = &self.shape {
-            shape.strong_color.set(color::Rgba::from(color).into());
+            shape.set_vivid_color(color::Rgba::from(color).into());
         }
     }
 
-    fn set_weak_color(&mut self, color: color::Lcha) {
-        self.weak_color = color;
+    fn set_dull_color(&mut self, color: color::Lcha) {
+        self.dull_color = color;
         if let Some(shape) = &self.shape {
-            shape.weak_color.set(color::Rgba::from(color).into());
+            shape.set_dull_color(color::Rgba::from(color).into());
         }
     }
 }
@@ -470,8 +471,8 @@ impl grid_view::Entry for View {
             let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
-            eval colors.icon_strong ((c) data.icon.borrow_mut().set_strong_color(*c));
-            eval colors.icon_weak ((c) data.icon.borrow_mut().set_weak_color(*c));
+            eval colors.icon_strong ((c) data.icon.borrow_mut().set_vivid_color(*c));
+            eval colors.icon_weak ((c) data.icon.borrow_mut().set_dull_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
             // We want to animate only when params changed (the different section is highlighted).
             // Other case, where entry receives new model with new section means it is reused

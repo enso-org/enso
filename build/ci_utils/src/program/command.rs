@@ -232,6 +232,15 @@ pub trait IsCommandWrapper {
     //     let fut = self.borrow_mut_command().output();
     //     async move { fut.await.anyhow_err() }.boxed()
     // }
+
+
+
+    fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
+    where Self: Sized {
+        let mut this = self;
+        this.current_dir(dir);
+        this
+    }
 }
 
 impl<T: BorrowMut<tokio::process::Command>> IsCommandWrapper for T {
@@ -432,12 +441,6 @@ impl Command {
     pub fn with_stderr(self, stderr: Stdio) -> Self {
         let mut this = self;
         this.stderr(stderr);
-        this
-    }
-
-    pub fn with_current_dir(self, dir: impl AsRef<Path>) -> Self {
-        let mut this = self;
-        this.current_dir(dir);
         this
     }
 }

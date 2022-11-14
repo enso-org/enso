@@ -7,7 +7,7 @@ import project.Data.SQL
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -244,8 +244,8 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
-                            upper = Expression.Operation "UPPER" [internal_column.expression]
-                            folded_expression = Expression.Operation "LOWER" [upper]
+                            upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
+                            folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
         False ->
             Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing

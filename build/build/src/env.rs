@@ -1,28 +1,16 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 
-use ide_ci::env::Variable;
+use ide_ci::define_env_var;
 use ide_ci::programs::docker::ContainerId;
 
 
 
-#[derive(Clone, Copy, Debug)]
-pub struct ReleaseId;
-impl Variable for ReleaseId {
-    const NAME: &'static str = "ENSO_RELEASE_ID";
-    type Value = octocrab::models::ReleaseId;
-}
+define_env_var! {
+    ENSO_RELEASE_ID, octocrab::models::ReleaseId;
 
-#[derive(Clone, Copy, Debug)]
-pub struct RunnerContainerName;
-impl Variable for RunnerContainerName {
-    const NAME: &'static str = "ENSO_RUNNER_CONTAINER_NAME";
-    type Value = ContainerId;
-}
+    /// Name of the container that is running the current build.
+    ENSO_RUNNER_CONTAINER_NAME, ContainerId;
 
-#[derive(Clone, Copy, Debug)]
-pub struct NightlyEditionsLimit;
-impl Variable for NightlyEditionsLimit {
-    const NAME: &'static str = "ENSO_NIGHTLY_EDITIONS_LIMIT";
-    type Value = usize;
+    ENSO_NIGHTLY_EDITIONS_LIMIT, usize;
 }
