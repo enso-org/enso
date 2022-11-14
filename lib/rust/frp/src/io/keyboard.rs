@@ -9,7 +9,6 @@ use crate::io::js::Listener;
 use enso_web::KeyboardEvent;
 use inflector::Inflector;
 use unicode_segmentation::UnicodeSegmentation;
-use unidecode::unidecode;
 
 
 
@@ -123,7 +122,7 @@ impl Key {
         if key == " " {
             Self::Space
         } else if key.graphemes(true).count() == 1 {
-            Self::Character(unidecode(&key).to_lowercase())
+            Self::Character(key)
         } else {
             let key = KEY_NAME_MAP.get(key_ref).cloned().unwrap_or(Self::Other(key));
             match (key, code) {

@@ -451,6 +451,20 @@ impl<T: HasOutputStatic> WeakNode<T> {
             self.definition.upgrade().map(|definition| Node { stream, definition })
         })
     }
+
+    /// Constructs a new [`WeakNode`] without allocating any memory. Calling [`upgrade`] on the
+    /// return value always gives [`None`].
+    pub fn new() -> Self {
+        let stream = Stream { data: Weak::new() };
+        let definition = Weak::new();
+        Self { stream, definition }
+    }
+}
+
+impl<T: HasOutputStatic> Default for WeakNode<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<Out> OwnedStream<Out> {

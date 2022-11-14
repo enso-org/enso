@@ -753,7 +753,7 @@ impl Area {
             // === Cursor setup ===
 
             eval frp.input.set_edit_mode ([model](edit_mode) {
-                model.label.set_focus(edit_mode);
+                model.label.deprecated_set_focus(edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
                     model.label.set_content(model.expression.borrow().code.clone());
