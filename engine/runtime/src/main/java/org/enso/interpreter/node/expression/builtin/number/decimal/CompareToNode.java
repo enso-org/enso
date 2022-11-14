@@ -50,7 +50,7 @@ public abstract class CompareToNode extends Node {
   Object doOther(double self, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber();
-    var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
+    var typeError = Context.get(this).getBuiltins().error().makeTypeError(number, that, "that");
     return DataflowError.withoutTrace(typeError, this);
   }
 

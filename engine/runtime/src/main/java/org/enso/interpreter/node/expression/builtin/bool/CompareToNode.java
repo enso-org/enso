@@ -32,8 +32,8 @@ public abstract class CompareToNode extends Node {
   @Fallback
   Object doOther(Boolean self, Object that) {
     CompilerDirectives.transferToInterpreter();
-    var number = Context.get(this).getBuiltins().number().getNumber();
-    var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
+    var bool = Context.get(this).getBuiltins().bool().getType();
+    var typeError = Context.get(this).getBuiltins().error().makeTypeError(bool, that, "that");
     return DataflowError.withoutTrace(typeError, this);
   }
 }
