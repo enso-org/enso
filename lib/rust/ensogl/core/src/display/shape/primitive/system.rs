@@ -400,22 +400,28 @@ impl ShapeSystemModel {
 
     fn default_geometry_material() -> Material {
         let mut material = SpriteSystem::default_geometry_material();
+        // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
+        // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
+        //
+        // First, we are computing the vertex position without shape padding. This is required to
+        // make the function [`aa_side_padding`] work, as it uses [`zoom`], which uses the
+        // [`input_local.z`] value. The depth of the vertex can be computed only after the
+        // [`model_view_projection`] matrix is applied.
+        //
+        // Please note that this method is not guaranteed to always provide correct results. If
+        // there is a big angle between the camera and the shape normal axes (e.g. when the shape is
+        // significantly rotated around its Y-axis), the padding might be too small. To correct it,
+        // we might take normal axes into account, but it will require more computations, and we do
+        // not need it currently.
+        //
+        // Also, please note that we are first using the [`input_uv`] variable, and then we are
+        // changing it. It's because the unchanged value is the incoming UV in range 0..1, and then
+        // we are scaling it to a bigger range, so the padded area UV is not contained within 0..1.
         material.set_main(
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
 
-                // First, we are computing the vertex position without shape padding. This is 
-                // required to make the function [`aa_side_padding`] work, as it uses [`zoom`], 
-                // which uses [`input_local.z`]. This method was chosen because it is future-proof.
-                // Consider a sprite rotated around its Y-axis and a camera rotated around its 
-                // X-axis. The correct zoom can be computed only after the [`model_view_projection`]
-                // matrix is applied. See the docs of [`aa_side_padding`] to learn more about shape 
-                // padding.
-                //
-                // Please note that we are first using [`input_uv`] here, and then we are changing
-                // it. It's because first we are using the original, incoming UV in range 0..1, and
-                // then we are scaling it to a bigger range, so the padded area UV is not contained
-                // within 0..1.
+                // Computing the vertex position without shape padding.
                 vec3 input_local_no_padding = vec3((input_uv - input_alignment) * input_size, 0.0);
                 vec4 position_no_padding = model_view_projection * vec4(input_local_no_padding, 1.0);
                 input_local.z = position_no_padding.z;
