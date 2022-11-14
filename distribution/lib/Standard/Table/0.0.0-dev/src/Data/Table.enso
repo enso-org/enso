@@ -1332,12 +1332,13 @@ type Table
             tables_prim = case tables of
                 _ : Vector.Vector -> tables
                 table : Table -> [table]
-            case tables_prim.find t-> t.columns.sort != self.columns.sort of
-                Nothing ->
-                    # TODO type handling is not done in the prototype
-                    to_concat = [self]+tables_prim . map .java_table
-                    Java_Table.concat to_concat
-                bad_table -> unimplemented "Handling unmatched columns in concat is not implemented in the prototype"
+            # TODO checking names is suppressed in the prototype
+            #case tables_prim.find t-> ((t.columns.map .name . sort) != (self.columns.map .name . sort)) of
+            #    Nothing ->
+                # TODO type handling is not done in the prototype
+            to_concat = [self]+tables_prim . map .java_table
+            Table.Table_Data (Java_Table.concat to_concat)
+            #    bad_table -> Panic.throw (Illegal_Argument_Error_Data "Handling unmatched columns in concat is not implemented in the prototype")
 
     ## Returns the number of rows in this table.
 

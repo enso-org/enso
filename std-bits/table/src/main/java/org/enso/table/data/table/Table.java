@@ -349,7 +349,45 @@ public class Table {
   }
 
   public Table crossJoin(Table right) {
-    throw new RuntimeException("TODO");
+    // TODO this is a prototype implementation
+    int l = rowCount();
+    int r = right.rowCount();
+    int outSize = l * r;
+    int[] countMask = new int[l];
+    for (int i = 0; i < l; i++) {
+      countMask[i] = r;
+    }
+    int[] orderMaskArr = new int[outSize];
+    int orderMaskPosition = 0;
+    for (int i = 0; i < l; i++) {
+      for (int j = 0; j < r; j++) {
+        orderMaskArr[orderMaskPosition++] = j;
+      }
+    }
+    OrderMask orderMask = new OrderMask(orderMaskArr);
+    Column[] newColumns = new Column[this.columns.length + right.columns.length];
+    Index newIndex = index.countMask(countMask, outSize);
+    Set<String> lnames =
+        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());
+    Set<String> rnames =
+        Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toSet());
+    for (int i = 0; i < columns.length; i++) {
+      Column original = columns[i];
+      newColumns[i] =
+          new Column(
+              suffixIfNecessary(rnames, original.getName(), "_left"),
+              newIndex,
+              original.getStorage().countMask(countMask, outSize));
+    }
+    for (int i = 0; i < right.columns.length; i++) {
+      Column original = right.columns[i];
+      newColumns[i + columns.length] =
+          new Column(
+              suffixIfNecessary(lnames, original.getName(), "_right"),
+              newIndex,
+              original.getStorage().applyMask(orderMask));
+    }
+    return new Table(newColumns, newIndex);
   }
 
   /**

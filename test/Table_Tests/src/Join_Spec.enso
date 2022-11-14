@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import Table
+from Standard.Table.Data.Join_Condition import Join_Condition, Join_Comparator
 
 main =
     a = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -14,13 +15,13 @@ main =
     c.print
 
     IO.println "a.concat b:"
-    (a.concat b).print.catch IO.println
+    (a.concat b).print
 
     IO.println "a.zip c:"
     (a.zip c).print
 
     IO.println "a.join c (on first column):"
-    (a.join2 c).print
+    (a.join2 c on=[Join_Condition.On "X" Join_Comparator.Equal_To "A"]).print
 
     IO.println "a.cross_join c:"
     (a.cross_join c).print
