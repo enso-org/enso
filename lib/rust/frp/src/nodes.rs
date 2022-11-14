@@ -116,6 +116,7 @@ impl Network {
         self.register(OwnedGateNot::new(label, event, behavior))
     }
 
+    /// Unwraps the value of incoming events and emits the unwrapped values.
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
         T: EventOutput<Output = Option<S>>,
@@ -123,6 +124,7 @@ impl Network {
         self.register(OwnedUnwrap::new(label, event))
     }
 
+    /// On every incoming event, iterate over its value and emit each element separately.
     pub fn iter<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -131,6 +133,7 @@ impl Network {
         self.register(OwnedIter::new(label, event))
     }
 
+    /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -139,6 +142,7 @@ impl Network {
         self.register(OwnedFold::new(label, event))
     }
 
+    /// Get the 0-based index of the incoming event.
     pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt0<Output<T1>>>
     where
         T1: EventOutput,
@@ -147,6 +151,7 @@ impl Network {
         self.register(OwnedGet0::new(label, event))
     }
 
+    /// Get the 1-based index of the incoming event.
     pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt1<Output<T1>>>
     where
         T1: EventOutput,
@@ -155,6 +160,7 @@ impl Network {
         self.register(OwnedGet1::new(label, event))
     }
 
+    /// Get the 2-based index of the incoming event.
     pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt2<Output<T1>>>
     where
         T1: EventOutput,
@@ -174,6 +180,7 @@ impl Network {
         self.gate(label, t, &changed)
     }
 
+    /// Just like [`value.into()`] on the reference of the incoming value.
     pub fn ref_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
     where
         T: EventOutput<Output = V>,
@@ -182,6 +189,7 @@ impl Network {
         self.map(label, t, |v| v.into())
     }
 
+    /// Just like [`value.clone().into()`] on the incoming value.
     pub fn cloned_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
     where
         T: EventOutput<Output = V>,
@@ -190,6 +198,7 @@ impl Network {
         self.map(label, t, |v| v.clone().into())
     }
 
+    /// Just like [`Some(value.into())`] on the reference of the incoming value.
     pub fn ref_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
     where
         T: EventOutput<Output = V>,
@@ -198,12 +207,22 @@ impl Network {
         self.map(label, t, |v| Some(v.into()))
     }
 
+    /// Just like [`Some(value.clone().into())`] on the incoming value.
     pub fn cloned_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
     where
         T: EventOutput<Output = V>,
         V: Clone + Into<S>,
         S: Clone + Debug + 'static, {
         self.map(label, t, |v| Some(v.clone().into()))
+    }
+
+    /// Converts the incoming values to [`AnyData`] hiding their types. This can be used to create
+    /// FRP inputs accepting different types, not known at compile time.
+    pub fn any_data<T>(&self, label: Label, t: &T) -> Stream<crate::AnyData>
+    where
+        T: EventOutput,
+        T::Output: Clone + 'static, {
+        self.map(label, t, |v| crate::AnyData::new(v.clone()))
     }
 
 

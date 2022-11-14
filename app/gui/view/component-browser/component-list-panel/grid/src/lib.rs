@@ -723,9 +723,9 @@ impl component::Frp<Model> for Frp {
 
             // === Focus propagation ===
 
-            grid.focus <+ input.focus;
-            grid.defocus <+ input.defocus;
-            grid.set_focus <+ input.set_focus;
+            grid.deprecated_focus <+ input.deprecated_focus;
+            grid.deprecated_defocus <+ input.deprecated_defocus;
+            grid.deprecated_set_focus <+ input.deprecated_set_focus;
         }
 
         // Set the proper number of columns so we can set column widths.

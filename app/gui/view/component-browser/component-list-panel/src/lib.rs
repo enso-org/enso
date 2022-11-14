@@ -382,7 +382,7 @@ impl component::Frp<Model> for Frp {
             // TODO[ib] Temporary solution for focus, we grab keyboard events if the
             //   component browser is visible. The proper implementation is tracked in
             //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.set_focus <+ is_visible;
+            model.grid.deprecated_set_focus <+ is_visible;
 
             on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();

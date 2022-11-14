@@ -40,4 +40,6 @@ pub mod types {
     pub use scene::dom::DomScene;
     pub use scene::Scene;
 }
+
+pub use object::event;
 pub use types::*;
