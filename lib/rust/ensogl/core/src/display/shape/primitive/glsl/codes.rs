@@ -14,9 +14,7 @@ macro_rules! include_codes {
         /// Enum describing possible GLSL codes.
         #[allow(missing_docs)]
         pub enum Codes {
-            $(
-                [<$name:camel>],
-            )*
+            $([<$name:camel>]),*
         }
 
         impl Codes {
@@ -28,6 +26,9 @@ macro_rules! include_codes {
             }
 
             /// Conversion from the numeric representation of the code to the code variant.
+            ///
+            /// This is implemented as multiple ifs because macros don't allow usage of the
+            /// [`include!`] macro as a pattern match arm.
             pub const fn from_value(number:u32) -> Option<Self> {
                 $(
                     if Self::[<$name:camel>].value() == number {
