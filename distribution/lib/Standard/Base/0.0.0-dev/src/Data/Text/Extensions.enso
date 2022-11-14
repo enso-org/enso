@@ -26,22 +26,6 @@ polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 
-## ALIAS Length
-
-   Computes the number of characters in the text.
-
-   ! What is a Character?
-     A character is defined as an Extended Grapheme Cluster, see Unicode
-     Standard Annex 29. This is the smallest unit that still has semantic
-     meaning in most text-processing applications.
-
-   > Example
-     Getting the length of the string "건반(Korean)".
-
-         "건반(Korean)".length
-Text.length : Integer
-Text.length self = Text_Utils.grapheme_length self
-
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 
    ! What is a Character?

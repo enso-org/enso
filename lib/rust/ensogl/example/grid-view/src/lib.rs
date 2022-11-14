@@ -102,7 +102,7 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
     };
     view.set_entries_params(params);
     view.reset_entries(1000, 1000);
-    view.frp().focus();
+    view.frp().deprecated_focus();
     network
 }
 

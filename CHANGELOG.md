@@ -92,6 +92,10 @@
 - [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
   way. Also, additional fine-tuning is performed per font and per host operating
   system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
 
 #### Enso Standard Library
 
@@ -375,6 +379,7 @@
 [3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
 
 #### Enso Compiler
 
@@ -433,6 +438,7 @@
 - [Initialize Builtins at Native Image build time][3821]
 - [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Support VCS for projects in Language Server][3851]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -494,6 +500,7 @@
 [3821]: https://github.com/enso-org/enso/pull/3821
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3851]: https://github.com/enso-org/enso/pull/3851
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

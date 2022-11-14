@@ -313,14 +313,13 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     for block::Line { newline, expression } in block::lines(block) {
         builder.line(newline, expression);
     }
-    let (constructors, body) = builder.finish();
-    Tree::type_def(header, name, params, constructors, body)
+    let body = builder.finish();
+    Tree::type_def(header, name, params, body)
 }
 
 #[derive(Default)]
 struct TypeDefBodyBuilder<'s> {
-    constructors:  Vec<syntax::tree::TypeConstructorLine<'s>>,
-    body:          Vec<syntax::tree::block::Line<'s>>,
+    body:          Vec<syntax::tree::TypeDefLine<'s>>,
     documentation: Option<(syntax::token::Newline<'s>, syntax::tree::DocComment<'s>)>,
 }
 
@@ -342,58 +341,42 @@ impl<'s> TypeDefBodyBuilder<'s> {
             doc.newlines.push(newline);
             return;
         }
-        if self.body.is_empty() {
-            if let Some(expression) = expression {
-                match Self::to_constructor_line(expression) {
-                    Ok(mut expression) => {
-                        if let Some((nl, mut doc)) = self.documentation.take() {
-                            let nl = mem::replace(&mut newline, nl);
-                            doc.newlines.push(nl);
-                            expression.documentation = doc.into();
-                        }
-                        let expression = Some(expression);
-                        let line = syntax::tree::TypeConstructorLine { newline, expression };
-                        self.constructors.push(line);
+        let statement = expression.map(|expression| {
+            let mut statement = Self::to_body_statement(expression);
+            match &mut statement {
+                syntax::tree::TypeDefStatement::Constructor { constructor } => {
+                    if let Some((nl, mut doc)) = self.documentation.take() {
+                        let nl = mem::replace(&mut newline, nl);
+                        doc.newlines.push(nl);
+                        constructor.documentation = doc.into();
                     }
-                    Err(expression) => self.push_body(newline, expression.into()),
                 }
-            } else {
-                self.constructors.push(newline.into());
+                syntax::tree::TypeDefStatement::Binding { statement } => {
+                    if let Some((nl, mut doc)) = self.documentation.take() {
+                        let nl = mem::replace(&mut newline, nl);
+                        doc.newlines.push(nl);
+                        *statement = syntax::Tree::documented(doc, statement.clone().into());
+                    }
+                }
             }
-        } else {
-            self.push_body(newline, expression);
-        }
+            statement
+        });
+        let line = syntax::tree::TypeDefLine { newline, statement };
+        self.body.push(line);
     }
 
-    fn push_body(
-        &mut self,
-        mut newline: syntax::token::Newline<'s>,
-        expression: Option<syntax::Tree<'s>>,
-    ) {
-        let mut expression = expression.map(crate::expression_to_statement);
-        if let Some((nl, mut doc)) = self.documentation.take() {
-            let nl = mem::replace(&mut newline, nl);
-            doc.newlines.push(nl);
-            expression = syntax::Tree::documented(doc, expression.take()).into();
-        }
-        self.body.push(syntax::tree::block::Line { newline, expression });
-    }
-
-    /// Return the constructor/body sequences.
-    pub fn finish(
-        mut self,
-    ) -> (Vec<syntax::tree::TypeConstructorLine<'s>>, Vec<syntax::tree::block::Line<'s>>) {
+    /// Return the type body statements.
+    pub fn finish(self) -> Vec<syntax::tree::TypeDefLine<'s>> {
+        let mut body = self.body;
         if let Some((newline, doc)) = self.documentation {
-            let expression = syntax::Tree::documented(doc, default()).into();
-            self.body.push(syntax::tree::block::Line { newline, expression });
+            let statement = syntax::Tree::documented(doc, default());
+            let statement = Some(syntax::tree::TypeDefStatement::Binding { statement });
+            body.push(syntax::tree::TypeDefLine { newline, statement });
         }
-        (self.constructors, self.body)
+        body
     }
 
-    /// Interpret the given expression as a `TypeConstructorDef`, if its syntax is compatible.
-    fn to_constructor_line(
-        expression: syntax::Tree<'_>,
-    ) -> Result<syntax::tree::TypeConstructorDef<'_>, syntax::Tree<'_>> {
+    fn to_body_statement(expression: syntax::Tree<'_>) -> syntax::tree::TypeDefStatement<'_> {
         use syntax::tree::*;
         let mut last_argument_default = default();
         let mut left_offset = crate::source::Offset::default();
@@ -428,7 +411,9 @@ impl<'s> TypeDefBodyBuilder<'s> {
                     })
                     .collect();
                 let arguments = default();
-                return Ok(TypeConstructorDef { documentation, constructor, arguments, block });
+                let constructor =
+                    TypeConstructorDef { documentation, constructor, arguments, block };
+                return TypeDefStatement::Constructor { constructor };
             }
             _ => &expression,
         };
@@ -443,9 +428,12 @@ impl<'s> TypeDefBodyBuilder<'s> {
                 *default = Some(ArgumentDefault { equals, expression });
             }
             let block = default();
-            return Ok(TypeConstructorDef{ documentation, constructor, arguments, block });
+            let constructor =
+                TypeConstructorDef { documentation, constructor, arguments, block };
+            return TypeDefStatement::Constructor { constructor };
         }
-        Err(expression)
+        let statement = crate::expression_to_statement(expression);
+        TypeDefStatement::Binding { statement }
     }
 }
 
