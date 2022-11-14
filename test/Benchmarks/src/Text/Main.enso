@@ -1,0 +1,10 @@
+import project.Text.Build
+import project.Text.Compare
+import project.Text.Contains
+import project.Text.Reverse
+
+main =
+    Build.main
+    Compare.main
+    Contains.main
+    Reverse.main

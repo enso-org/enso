@@ -1,0 +1,4 @@
+import project.Statistics.Count_Min_Max
+
+main =
+    Count_Min_Max.main

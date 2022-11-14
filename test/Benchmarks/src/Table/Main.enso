@@ -1,0 +1,6 @@
+import project.Table.Aggregate
+import project.Table.Sorting
+
+main =
+    Aggregate.main
+    Sorting.main
