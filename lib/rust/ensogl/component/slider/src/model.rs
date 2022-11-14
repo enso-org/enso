@@ -1,4 +1,4 @@
-//! Model for the slider component
+//! Model for the slider component.
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -31,7 +31,7 @@ struct Background {
 }
 
 impl Background {
-    /// Create new rounded background rectangle
+    /// Create new rounded rectangle to serve as the component's background.
     fn new() -> Self {
         let width: Var<Pixels> = "input_size.x".into();
         let height: Var<Pixels> = "input_size.y".into();
@@ -46,6 +46,7 @@ impl Background {
 mod background {
     use super::*;
 
+    /// Background shape.
     ensogl_core::shape! {
         (style:Style, color:Vector4) {
             Background::new()
@@ -59,6 +60,7 @@ mod background {
 mod track {
     use super::*;
 
+    /// Track shape that fills the slider proportional to the slider value.
     ensogl_core::shape! {
         above = [background];
         (style:Style, slider_fraction_filled:f32, color:Vector4) {
@@ -77,27 +79,28 @@ mod track {
 // === Slider model definition ===
 // ===============================
 
-/// Slider model structure
+/// The slider model contains the visual elements of the slider component.
 #[derive(Debug)]
 pub struct Model {
     /// Background element
     pub background:       background::View,
-    /// Slider track element that moves dependent on the value of the slider
+    /// Slider track element that fills the slider proportional to the slider value.
     pub track:            track::View,
-    /// Slider label
+    /// Slider label that is shown next to the slider.
     pub label:            text::Text,
-    /// Slider value text left of the decimal point
+    /// Textual representation of the slider value, only part left of the decimal point.
     pub value_text_left:  text::Text,
-    /// Slider value text decimal point
+    /// Decimal point that is used to display non-integer slider values.
     pub value_text_dot:   text::Text,
-    /// Slider value text right of the decimal point
+    /// Textual representation of the slider value, only part right of the decimal point.
     pub value_text_right: text::Text,
+    /// Root of the display object.
     pub root:             display::object::Instance,
-    pub app:              Application,
+    //pub app:              Application,
 }
 
 impl Model {
-    /// Create a new slider model
+    /// Create a new slider model.
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
@@ -106,7 +109,6 @@ impl Model {
         let value_text_right = app.new_view::<text::Text>();
         let background = background::View::new();
         let track = track::View::new();
-        let app = app.clone_ref();
         let scene = &app.display.default_scene;
 
         root.add_child(&background);
@@ -129,35 +131,34 @@ impl Model {
             value_text_dot,
             value_text_right,
             root,
-            app,
         }
         .init()
     }
 
-    /// Initialise slider model
+    /// Initialise slider model.
     pub fn init(self) -> Self {
         self.value_text_dot.set_content(".");
         self
     }
 
-    /// Set component size
+    /// Set the component size.
     pub fn set_size(&self, size: Vector2<f32>) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         self.background.size.set(size + margin);
         self.track.size.set(size + margin);
     }
 
-    /// Set slider track color
+    /// Set the color of the slider track.
     pub fn set_track_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
     }
 
-    /// Set slider background color
+    /// Set the color of the slider background.
     pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
     }
 
-    /// Set slider label visibility
+    /// Set whether the slider label is hidden.
     pub fn set_label_hidden(&self, hidden: bool) {
         if hidden {
             self.root.remove_child(&self.label);
@@ -166,7 +167,7 @@ impl Model {
         }
     }
 
-    /// Set visibility of value text right of the decimal point
+    /// Set whether the value display decimal point and the text right of it are visible.
     pub fn set_value_text_right_visible(&self, enabled: bool) {
         if enabled {
             self.root.add_child(&self.value_text_dot);
@@ -177,7 +178,7 @@ impl Model {
         }
     }
 
-    /// Set default properties to the group of text elements showing the slider value
+    /// Set default properties to the group of text elements displaying the slider value.
     pub fn set_value_text_property(&self, property: impl Into<ResolvedProperty> + Copy) {
         self.value_text_left.set_property_default(property.into());
         self.value_text_dot.set_property_default(property.into());
