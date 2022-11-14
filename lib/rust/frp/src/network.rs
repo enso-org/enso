@@ -127,7 +127,7 @@ impl Network {
         stream
     }
 
-    /// Register a boxed node. Static part of registration.
+    /// Register a boxed node. Non-generic part of registration.
     #[inline(never)]
     fn register_boxed(&self, node: Box<dyn Item>) {
         self.data.nodes.borrow_mut().push(node);
