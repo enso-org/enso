@@ -23,6 +23,7 @@ import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
@@ -52,6 +53,11 @@ object JsonRpc {
     .registerRequest(TreeFile)
     .registerRequest(InfoFile)
     .registerRequest(ChecksumFile)
+    .registerRequest(InitVcs)
+    .registerRequest(SaveVcs)
+    .registerRequest(StatusVcs)
+    .registerRequest(ListVcs)
+    .registerRequest(RestoreVcs)
     .registerRequest(RedirectStandardOutput)
     .registerRequest(RedirectStandardError)
     .registerRequest(SuppressStandardOutput)
