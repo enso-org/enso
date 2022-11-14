@@ -62,8 +62,9 @@ pub const PRECISION_ADJUST_STEP_BASE: f32 = 10.0;
 // ========================
 
 /// Slider component structure
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 pub struct Slider {
+    #[deref]
     pub frp: Frp,
     model:   Rc<Model>,
     pub app: Application,
@@ -82,14 +83,6 @@ impl Slider {
 impl display::Object for Slider {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
-    }
-}
-
-impl Deref for Slider {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }
 
