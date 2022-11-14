@@ -44,14 +44,6 @@ polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## PRIVATE
-
-       A table.
-
-       Arguments:
-       - java_table: The internal java representation of the table.
-    Table_Data java_table
-
     ## Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:
@@ -98,6 +90,14 @@ type Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
+
+    ## PRIVATE
+
+       A table.
+
+       Arguments:
+       - java_table: The internal java representation of the table.
+    Table_Data java_table
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
