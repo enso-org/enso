@@ -100,6 +100,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/event`](#fileevent)
   - [`file/rootAdded`](#filerootadded)
   - [`file/rootRemoved`](#filerootremoved)
+- [Version Control System](#vcs-operations)
+  - [`vcs/init`](#vcsinit)
+  - [`vcs/list`](#vcslist)
+  - [`vcs/restore`](#vcsrestore)
+  - [`vcs/save`](#vcssave)
+  - [`vcs/status`](#vcsstatus)
 - [Text Editing Operations](#text-editing-operations)
   - [`text/openFile`](#textopenfile)
   - [`text/openBuffer`](#textopenbuffer)
@@ -2650,6 +2656,219 @@ removal of the content root in order to inform them of the removal of the root.
 
 TBC
 
+## Version Control System Operations
+
+The language server has a set of version control operations to keep track of
+changes made to the projects.
+
+### `vcs/init`
+
+This requests that the VCS manager component initializes version control for the
+project identified by the root directory.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that no prior VCS is present for the project at a specified
+location. If VCS has already been initialized once, the operation will fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSAlreadyPresent`](#vcsalreadyexistserror) to signal that the requested
+  project does not exist
+
+### `vcs/save`
+
+This requests that the VCS manager component record any changes made to the
+project, compared to the last save.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. If no changes have been
+recorded since the last save, the operation must still succeed. All saves
+include a timestamp when the request was made. For easier identification, the
+request has an optional `name` parameter that will prefix the timestamp.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  name?: String;
+}
+```
+
+#### Result
+
+```typescript
+{
+  commitId: String;
+  message: String;
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/status`
+
+This requests that the VCS manager component report the current status of the
+changes made to the project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. The status of the
+project includes:
+
+- `dirtty` flag, indicating if any of the project files has been modified, added
+  or deleted
+- list of paths to the modified files, if any
+- the metadata of a last save
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  dirty: Boolean;
+  changed: [Path];
+  lastSave: {
+    commitId: String;
+    message: String;
+  }
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/restore`
+
+This requests that the VCS manager component restores the project to a past
+state recorded in Enso's VCS. All unsaved changes will be lost.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+The request has an optional `commitId` parameter that refers to the past
+checkpoint recorded with `vcs/save`. If no save exists with a provided
+`commitId`, the request must fail. If no `commitId` exists, the operation will
+restore the project to the last saved state, will all current modifications
+forgotten.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  commitId?: String
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+- [`SaveNotFound`](#savenotfounderror) to signat that the requested save could
+  not be identified in the project's version control
+
+#### Result
+
+```typescript
+null;
+```
+
+### `vcs/list`
+
+This requests that the VCS manager component returns a list of project's saves.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+By default, the operation will return all project's saves. An optional `limit`
+parameter will ensure that only the last `limti` ones are reported.
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  limit?: Number
+}
+```
+
+#### Result
+
+```typescript
+{
+  saves: [
+    {
+      commitId: String;
+      message: String;
+    }
+  ]
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
 ## Text Editing Operations
 
 The language server also has a set of text editing operations to ensure that it
@@ -2749,6 +2968,8 @@ This requests the language server to close the specified file.
 - **Connection:** Protocol
 - **Visibility:** Public
 
+Any pending changes to files will be saved before closing the file.
+
 #### Parameters
 
 ```typescript
@@ -2778,7 +2999,9 @@ This requests for the language server to save the specified file.
 - **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
-that file, or if the client is requesting a save of an outdated version.
+that file, or if the client is requesting a save of an outdated version. Note
+that language-server autosaves changes to the file, making this operation
+obsolete.
 
 #### Parameters
 
