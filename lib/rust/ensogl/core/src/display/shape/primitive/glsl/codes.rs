@@ -11,16 +11,44 @@ use crate::prelude::*;
 
 macro_rules! include_codes {
     ($($name:ident),* $(,)?) => { paste! {
-        $(
-            #[doc = "The value of the '`"]
-            #[doc = stringify!($name)]
-            #[doc = "`' GLSL code."]
-            pub const [<$name:snake:upper>]: u32 =
-                include!(concat!("codes/", stringify!($name), ".txt"));
-        )*
-        /// Mapping between the GLSL code names and their values.
-        pub const MAP: &[(&str, u32)] =
-            &[$( (stringify!($name), [<$name:snake:upper>]) ),*];
+        /// Enum describing possible GLSL codes.
+        #[allow(missing_docs)]
+        pub enum Codes {
+            $(
+                [<$name:camel>],
+            )*
+        }
+
+        impl Codes {
+            /// The numeric representation of the code.
+            pub const fn value(&self) -> u32 {
+                match self {$(
+                    Self::[<$name:camel>] => include!(concat!("codes/", stringify!($name), ".txt")),
+                )*}
+            }
+
+            /// Conversion from the numeric representation of the code to the code variant.
+            pub const fn from_value(number:u32) -> Option<Self> {
+                $(
+                    if Self::[<$name:camel>].value() == number {
+                        return Some(Self::[<$name:camel>])
+                    }
+                )*
+                return None;
+            }
+
+            /// Name of the code.
+            pub const fn name(&self) -> &'static str {
+                match self {$(
+                    Self::[<$name:camel>] => stringify!($name),
+                )*}
+            }
+
+            /// All registered codes.
+            pub const fn all() -> &'static [Self] {
+                &[$( Self::[<$name:camel>] ),*]
+            }
+        }
     }};
 }
 

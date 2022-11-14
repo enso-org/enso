@@ -167,7 +167,7 @@ impl PointerTargetId {
                 Ok(Self::Symbol { id })
             }
             _ => {
-                let err = if alpha == glsl::codes::ID_ENCODING_OVERFLOW_ERROR {
+                let err = if alpha == glsl::codes::Codes::IdEncodingOverflowError.value() {
                     DecodeError::Overflow
                 } else {
                     DecodeError::WrongAlpha(alpha)

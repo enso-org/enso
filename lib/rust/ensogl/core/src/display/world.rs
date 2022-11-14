@@ -20,6 +20,7 @@ use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
+use crate::display::shape::primitive::glsl;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -299,7 +300,13 @@ impl WorldData {
                     enso_debug_api::save_profile(&profiler::internal::take_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key.starts_with(digit_prefix) {
-                    display_mode.set(key.trim_start_matches(digit_prefix).parse().unwrap_or(0));
+                    let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
+                    if let Some(code) = glsl::Codes::from_value(code_value) {
+                        debug!("Setting display mode to {:?}", code.name());
+                    } else {
+                        warn!("Invalid display mode code: {code_value}.");
+                    }
+                    display_mode.set(code_value as i32);
                 }
             }
         });
