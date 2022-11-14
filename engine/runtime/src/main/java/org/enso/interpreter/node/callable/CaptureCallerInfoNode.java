@@ -66,9 +66,9 @@ public abstract class CaptureCallerInfoNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   ScopeInfo buildUncachedScopeInfo() {
-    RootCallTarget ct = Truffle.getRuntime().iterateFrames(
-        frameInstance -> (RootCallTarget) frameInstance.getCallTarget()
-    );
+    RootCallTarget ct =
+        Truffle.getRuntime()
+            .iterateFrames(frameInstance -> (RootCallTarget) frameInstance.getCallTarget());
     EnsoRootNode rootNode = (EnsoRootNode) ct.getRootNode();
     return new ScopeInfo(rootNode.getLocalScope(), rootNode.getModuleScope());
   }
