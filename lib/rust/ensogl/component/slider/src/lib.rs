@@ -1,7 +1,4 @@
-//! UI component that allows picking a number through mouse interaction. Horizontal mouse movement
-//! changes the value within a set range. Vertical mouse movement changes the precision of the
-//! slider, this influences the response to horizontal mouse movement and the increment steps to
-//! which the value is snapped.
+//! A slider UI component that allows adjusting a value through mouse interaction.
 
 #![recursion_limit = "1024"]
 // === Standard Linter Configuration ===
@@ -45,17 +42,13 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// The slider precision when slider dragging is initiated.
+/// Default slider precision when slider dragging is initiated. The precision indicates both how much the value is changed per pixel dragged and how many digits are displayed after the decimal.
 pub const PRECISION_DEFAULT: f32 = 0.1;
-/// Margin above/below the component within which vertical mouse movement will not result in a
-/// change in slider precision.
+/// Margin above/below the component within which vertical mouse movement will not affect slider precision.
 pub const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
-/// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
+/// The vertical mouse movement (in pixels) needed to change the slider precision by one step. Dragging the mouse upward beyond the margin will decrease the precision by one step for every `STEP_SIZE` pixels and adjust the slider value more quickly. Dragging the mouse downwards will increase the precision and change the value more slowly.
 pub const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
-/// When the precision is adjusted by one step, the slider's precision is changed to the next power
-/// of this `STEP_BASE`. A `STEP_BASE` of 10.0 results in consecutive precision steps being powers
-/// of 10, e.g [0.1, 1.0, 10.0, 100.0, ...] when decreasing the precision, or [0.1, 0.01, 0.001,
-/// ...] when increasing the precision.
+/// The actual slider precision changes exponentially with each adjustment step. When the adjustment is changed by one step, the slider's precision is changed to the next power of `STEP_BASE`. A `STEP_BASE` of 10.0 results in the precision being powers of 10 for consecutive steps, e.g [1.0, 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the precision.
 pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 
 
@@ -64,12 +57,16 @@ pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 // === Slider component ===
 // ========================
 
-/// Slider component structure
+/// A slider UI component that allows adjusting a value through mouse interaction. Dragging the slider in a horizontal direction changes the value, limited to a range between `min_value` and `max_value`. The selected value is displayed, and a track fills the slider proportional to the value within the specified range. Dragging the slider in a vertical direction adjusts the precision of the slider. The precision affects the increments by which the value changes when the mouse is moved.
 #[derive(Debug, Deref)]
 pub struct Slider {
+    /// Public FRP api of the Component.
     #[deref]
     pub frp: Frp,
     model:   Rc<Model>,
+    /// Reference to the application the Component belongs to. Generally required for implementing
+    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
+    /// `Component`.
     pub app: Application,
 }
 
@@ -126,39 +123,39 @@ pub enum LabelPosition {
 
 ensogl_core::define_endpoints_2! {
     Input {
-        /// Set the width of the component
+        /// Set the width of the slider component.
         set_width(f32),
-        /// Set the height of the component
+        /// Set the height of the slider component.
         set_height(f32),
-        /// Set the color of the slider
+        /// Set the color of the slider's track.
         set_slider_track_color(color::Lcha),
-        /// Set the color of the background
+        /// Set the color of the slider's background.
         set_background_color(color::Lcha),
-        /// Set the slider value
+        /// Set the slider value.
         set_value(f32),
-        /// Set the default value to reset a slider to
+        /// Set the default value to reset a slider to when `ctrl` + `click`-ed.
         set_default_value(f32),
-        /// Set the minimum to which the value is clamped
+        /// Set the value's lower limit. The value cannot be dragged lower than this limit. At the lower limit the slider's track will be empty.
         set_min_value(f32),
-        /// Set the maximum to which the value is clamped
+        /// Set the value's upper limit. The value cannot be dragged higher than this limit. At the upper limit the slider's track will be full.
         set_max_value(f32),
-        /// Set the color of the value text display
+        /// Set the color of the text displaying the current value.
         set_value_text_color(color::Lcha),
-        /// Set the default precision at which the slider operates
+        /// Set the default precision at which the slider operates. The slider's precision determines by what increment the value will be changed on mouse movement. It also affects the number of digits after the decimal point displayed.
         set_precision(f32),
-        /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction. The `adjustment_margin` defines a margin above/below the slider within which no precision adjustment will be performed.
         set_precision_adjustment_margin(f32),
-        /// Set the distance of vertical mouse movement needed to increment/decrement the precision to the next step
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction. The `adjustment_step_size` defines the distance the mouse must be moved to increase/decrease the precision by one step.
         set_precision_adjustment_step_size(f32),
-        /// Set a slider label
+        /// Set the slider's label. The label will be displayed to the left of the slider's value display.
         set_label(ImString),
-        /// Set the color of the slider label
+        /// Set the color of the slider's label.
         set_label_color(color::Lcha),
-        /// Set whether the label is displayed
+        /// Set whether the slider's label is displayed.
         set_label_hidden(bool),
-        /// Set whether the label is shown inside the slider, as opposed to left of it
+        /// Set the position of the slider's label.
         set_label_position(LabelPosition),
-        /// Set whether the slider is enabled, when disabled the slider is greyed out and cannot be interacted with
+        /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed and the slider is greyed out.
         set_slider_disabled(bool),
     }
     Output {
@@ -169,7 +166,6 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl Slider {
-    /// Initialise a slider component
     fn init(self) -> Self {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -320,7 +316,7 @@ impl Slider {
         self.init_precision_defaults()
     }
 
-    /// Initiate the precision adjustment areas above/below the slider and the default precision
+    /// Initialize the precision adjustment areas above/below the slider and the default precision
     /// value
     fn init_precision_defaults(self) -> Self {
         self.frp.set_precision(PRECISION_DEFAULT);

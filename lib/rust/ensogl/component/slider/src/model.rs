@@ -43,10 +43,10 @@ impl Background {
     }
 }
 
+    /// Background shape.
 mod background {
     use super::*;
 
-    /// Background shape.
     ensogl_core::shape! {
         (style:Style, color:Vector4) {
             Background::new()
@@ -57,10 +57,10 @@ mod background {
     }
 }
 
+/// Track shape that fills the slider proportional to the slider value.
 mod track {
     use super::*;
 
-    /// Track shape that fills the slider proportional to the slider value.
     ensogl_core::shape! {
         above = [background];
         (style:Style, slider_fraction_filled:f32, color:Vector4) {
@@ -96,7 +96,6 @@ pub struct Model {
     pub value_text_right: text::Text,
     /// Root of the display object.
     pub root:             display::object::Instance,
-    //pub app:              Application,
 }
 
 impl Model {
