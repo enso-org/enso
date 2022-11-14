@@ -9,12 +9,24 @@ public final class EnsoCompiler implements AutoCloseable {
   private final Parser parser;
 
   public EnsoCompiler() {
-    this.parser = Parser.create();
+    Parser p;
+    try {
+      p = Parser.create();
+    } catch (LinkageError err) {
+      p = null;
+    }
+    this.parser = p;
   }
 
   @Override
   public void close() throws Exception {
-    this.parser.close();
+    if (parser != null) {
+      parser.close();
+    }
+  }
+
+  boolean isReady() {
+    return parser != null;
   }
 
   IR.Module compile(Source src) {

@@ -13,6 +13,7 @@ ensogl-example-complex-shape-system = { path = "complex-shape-system" }
 ensogl-example-custom-shape-system = { path = "custom-shape-system" }
 ensogl-example-dom-symbols = { path = "dom-symbols" }
 ensogl-example-drop-manager = { path = "drop-manager" }
+ensogl-example-focus-management = { path = "focus-management" }
 ensogl-example-easing-animator = { path = "easing-animator" }
 ensogl-example-list-view = { path = "list-view" }
 ensogl-example-grid-view = { path = "grid-view" }
