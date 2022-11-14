@@ -467,7 +467,6 @@ mock_data! { Document => EventTarget
     fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
     fn create_text_node(&self, data: &str) -> Text;
-    fn head(&self) -> Option<HtmlHeadElement>;
 }
 
 
@@ -485,11 +484,6 @@ mock_data! { Window => EventTarget
         (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
     fn clear_timeout_with_handle(&self, handle: i32);
     fn clear_interval_with_handle(&self, handle: i32);
-}
-
-
-// === HtmlHeadElement ===
-mock_data! { HtmlHeadElement => HtmlElement
 }
 
 
