@@ -135,7 +135,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the height of the component
         set_height(f32),
         /// Set the color of the slider
-        set_slider_color(color::Lcha),
+        set_slider_track_color(color::Lcha),
         /// Set the color of the background
         set_background_color(color::Lcha),
         /// Set the slider value
@@ -147,7 +147,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the maximum to which the value is clamped
         set_value_max(f32),
         /// Set the color of the value text display
-        set_value_color(color::Lcha),
+        set_value_text_color(color::Lcha),
         /// Set the default precision at which the slider operates
         set_precision(f32),
         /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
@@ -292,10 +292,10 @@ impl Slider {
             background_color <- all2(&input.set_background_color,&input.set_slider_disabled);
             background_color_anim.target <+ background_color.map(desaturate_color);
             eval background_color_anim.value ((color) model.set_background_color(color));
-            track_color <- all2(&input.set_slider_color, &input.set_slider_disabled);
+            track_color <- all2(&input.set_slider_track_color, &input.set_slider_disabled);
             track_color_anim.target <+ track_color.map(desaturate_color);
             eval track_color_anim.value ((color) model.set_track_color(color));
-            value_text_color <- all2(&input.set_value_color, &input.set_slider_disabled);
+            value_text_color <- all2(&input.set_value_text_color, &input.set_slider_disabled);
             value_text_color_anim.target <+ value_text_color.map(desaturate_color);
             eval value_text_color_anim.value ((color) model.set_value_text_property(color));
             label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
