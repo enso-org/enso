@@ -138,12 +138,12 @@ impl Model {
     }
 
     /// Set slider track color
-    pub fn set_track_color(&self, color: color::Lcha) {
+    pub fn set_track_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
     }
 
     /// Set slider background color
-    pub fn set_background_color(&self, color: color::Lcha) {
+    pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
     }
 

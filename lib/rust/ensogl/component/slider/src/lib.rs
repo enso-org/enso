@@ -183,10 +183,10 @@ impl Slider {
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
         let track_pos = Animation::new_non_init(network);
-        let background_color = color::Animation::new(network);
-        let track_color = color::Animation::new(network);
-        let value_color = color::Animation::new(network);
-        let label_color = color::Animation::new(network);
+        let background_color_anim = color::Animation::new(network);
+        let track_color_anim = color::Animation::new(network);
+        let value_text_color_anim = color::Animation::new(network);
+        let label_color_anim = color::Animation::new(network);
 
         frp::extend! { network
 
@@ -287,28 +287,18 @@ impl Slider {
 
             // colors
 
-            background_color.target <+ all2(
-                &input.set_background_color,
-                &input.set_slider_disabled,
-            ).map(
-                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
-            );
-            track_color.target <+ all2(&input.set_slider_color, &input.set_slider_disabled).map(
-                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
-            );
-            value_color.target <+ all2(&input.set_value_color, &input.set_slider_disabled).map(
-                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
-            );
-            label_color.target <+ all2(&input.set_label_color, &input.set_slider_disabled).map(
-                |(color,disabled)| if *disabled { color.to_grayscale() } else { *color }
-            );
-
-            eval background_color.value ((color) model.set_background_color(*color));
-            eval track_color.value ((color) model.set_track_color(*color));
-            eval value_color.value (
-                (color) model.set_value_text_property_default(color);
-            );
-            eval label_color.value ((color) model.label.set_property_default(color));
+            background_color <- all2(&input.set_background_color,&input.set_slider_disabled);
+            background_color_anim.target <+ background_color.map(desaturate_color);
+            eval background_color_anim.value ((color) model.set_background_color(color));
+            track_color <- all2(&input.set_slider_color, &input.set_slider_disabled);
+            track_color_anim.target <+ track_color.map(desaturate_color);
+            eval track_color_anim.value ((color) model.set_track_color(color));
+            value_text_color <- all2(&input.set_value_color, &input.set_slider_disabled);
+            value_text_color_anim.target <+ value_text_color.map(desaturate_color);
+            eval value_text_color_anim.value ((color) model.set_value_text_property_default(color));
+            label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
+            label_color_anim.target <+ label_color.map(desaturate_color);
+            eval label_color_anim.value ((color) model.label.set_property_default(color));
 
 
             // text alignment
@@ -387,3 +377,14 @@ fn value_text_truncate_precision(value: f32, precision: f32) -> (ImString, Optio
         (text_left, None)
     }
 }
+
+
+
+// =========================
+// === Desaturate colors ===
+// =========================
+
+/// Conditionally desaturates an input color. Used when a component is to be grayed out when disabled.
+fn desaturate_color((color,desaturate):&(color::Lcha,bool)) -> color::Lcha {
+    if *desaturate { color.to_grayscale() } else { *color }
+} 
