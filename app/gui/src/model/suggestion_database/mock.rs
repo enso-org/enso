@@ -26,13 +26,13 @@ impl Builder {
         }
     }
 
-    fn add_entry(&mut self, entry: Entry) {
+    fn add_entry(&mut self, entry: Entry, modifier: impl FnOnce(Entry) -> Entry) {
         let id = self.next_id;
         self.next_id += 1;
-        self.result.put_entry(self.next_id, entry);
+        self.result.put_entry(id, modifier(entry));
     }
 
-    pub fn add_and_enter_module<S>(&mut self, segment: S)
+    pub fn add_and_enter_module<S>(&mut self, segment: S, modifier: impl FnOnce(Entry) -> Entry)
     where S: Into<ImString> + TryInto<QualifiedName, Error: Debug> {
         let module_path = if let Some(path) = &mut self.in_module {
             path.push_segment(segment.into());
@@ -42,18 +42,22 @@ impl Builder {
             self.in_module = Some(initial_path.clone());
             initial_path
         };
-        self.add_entry(Entry::new_module(module_path));
+        self.add_entry(Entry::new_module(module_path), modifier);
     }
 
     pub fn add_and_enter_type(
         &mut self,
         type_name: impl Into<String>,
         arguments: Vec<SuggestionEntryArgument>,
+        modifier: impl FnOnce(Entry) -> Entry,
     ) {
         let type_name = type_name.into();
         let defined_in = self.in_module.as_ref().expect("Cannot add type when not in module");
         self.in_type = Some(defined_in.clone().new_child(&type_name));
-        self.add_entry(Entry::new_type(defined_in.clone(), type_name).with_arguments(arguments))
+        self.add_entry(
+            Entry::new_type(defined_in.clone(), type_name).with_arguments(arguments),
+            modifier,
+        )
     }
 
     pub fn leave(&mut self) {
@@ -68,6 +72,7 @@ impl Builder {
         arguments: Vec<SuggestionEntryArgument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         is_static: bool,
+        modifier: impl FnOnce(Entry) -> Entry,
     ) {
         let in_module = self.in_module.as_ref().expect("Cannot add method without context");
         let on_type = self.in_type.as_ref().unwrap_or(in_module);
@@ -75,6 +80,7 @@ impl Builder {
         self.add_entry(
             Entry::new_method(in_module.clone(), on_type.clone(), name, return_type, is_static)
                 .with_arguments(arguments),
+            modifier,
         );
     }
 
@@ -82,9 +88,13 @@ impl Builder {
         &mut self,
         name: impl Into<String>,
         arguments: Vec<SuggestionEntryArgument>,
+        modifier: impl FnOnce(Entry) -> Entry,
     ) {
         let on_type = self.in_type.as_ref().expect("Cannot add constructor when not in type");
-        self.add_entry(Entry::new_constructor(on_type.clone(), name).with_arguments(arguments));
+        self.add_entry(
+            Entry::new_constructor(on_type.clone(), name).with_arguments(arguments),
+            modifier,
+        );
     }
 }
 
@@ -119,32 +129,32 @@ macro_rules! mock_suggestion_database_entry_arguments {
 
 #[macro_export]
 macro_rules! mock_suggestion_database_entries {
-    ([$builder:ident] mod $name:ident { $($content:tt)* } $($rest:tt)*) => {
-        $builder.add_and_enter_module(stringify!{$name});
+    ([$builder:ident] $(#[$($attr_setter:tt)*])* mod $name:ident { $($content:tt)* } $($rest:tt)*) => {
+        $builder.add_and_enter_module(stringify!{$name}, |e| e$(.$($attr_setter)*)*);
         mock_suggestion_database_entries! { [$builder] $($content)* };
         $builder.leave();
         mock_suggestion_database_entries! { [$builder] $($rest)* };
     };
-    ([$builder:ident] type $name:ident $(($($args:tt)*))? { $($content:tt)* } $($rest:tt)*) => {
+    ([$builder:ident] $(#[$($attr_setter:tt)*])* type $name:ident $(($($args:tt)*))? { $($content:tt)* } $($rest:tt)*) => {
         let args = mock_suggestion_database_entry_arguments! {$(($($args)*))?};
-        $builder.add_and_enter_type(stringify!{$name}, args);
+        $builder.add_and_enter_type(stringify!{$name}, args, |e| e$(.$($attr_setter)*)*);
         mock_suggestion_database_entries! { [$builder] $($content)* };
         $builder.leave();
         mock_suggestion_database_entries! { [$builder] $($rest)* };
     };
-    ([$builder:ident] $name:ident $(($($args:tt)*))?; $($rest:tt)*) => {
+    ([$builder:ident] $(#[$($attr_setter:tt)*])* $name:ident $(($($args:tt)*))?; $($rest:tt)*) => {
         let args = mock_suggestion_database_entry_arguments! {$(($($args)*))?};
-        $builder.add_constructor(stringify!{$name}, args);
+        $builder.add_constructor(stringify!{$name}, args, |e| e$(.$($attr_setter)*)*);
         mock_suggestion_database_entries! { [$builder] $($rest)* };
     };
-    ([$builder:ident] fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
+    ([$builder:ident] $(#[$($attr_setter:tt)*])* fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
         let args = mock_suggestion_database_entry_arguments! {$(($($args)*))?};
-        $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, false);
+        $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, false, |e| e$(.$($attr_setter)*)*);
         mock_suggestion_database_entries! { [$builder] $($rest)* };
     };
-    ([$builder:ident] static fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
+    ([$builder:ident] $(#[$($attr_setter:tt)*])* static fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
         let args = mock_suggestion_database_entry_arguments! {$(($($args)*))?};
-        $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, true);
+        $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, true, |e| e$(.$($attr_setter)*)*);
         mock_suggestion_database_entries! { [$builder] $($rest)* };
     };
     ([$builder:ident]) => {}
@@ -152,12 +162,12 @@ macro_rules! mock_suggestion_database_entries {
 
 #[macro_export]
 macro_rules! mock_suggestion_database {
-    ($($ns:ident.$project:ident { $($content:tt)* })*) => {
+    ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
         {
             use $crate::model::suggestion_database::mock::*;
             let mut builder = Builder::new();
             $(
-                builder.add_and_enter_module(stringify!{$ns.$project});
+                builder.add_and_enter_module(stringify!{$ns.$project}, |e| e$(.$($attr_setter)*)*);
                 mock_suggestion_database_entries! { [builder] $($content)* };
                 builder.leave();
             )*
@@ -180,10 +190,12 @@ pub fn standard_db_mock() -> SuggestionDatabase {
         }
         local.Project {
             mod Submodule {
+                #[with_documentation("Some test type")]
                 type TestType (a: Standard.Base.Number, b: Standard.Base.Maybe) {
                     static fn static_method(x) -> Standard.Base.Number;
                 }
 
+                #[with_icon(entry::IconName::from_snake_case("TestIcon"))]
                 static fn module_method() -> local.Project.Submodule.TestType;
             }
         }

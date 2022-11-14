@@ -307,8 +307,8 @@ impl Entry {
         self
     }
 
-    pub fn with_documentation(mut self, html: String) -> Self {
-        self.documentation_html = Some(html);
+    pub fn with_documentation(mut self, html: impl Into<String>) -> Self {
+        self.documentation_html = Some(html.into());
         self
     }
 
@@ -739,6 +739,8 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
 mod test {
     use super::*;
 
+    use crate::mock_suggestion_database;
+    use crate::model::suggestion_database::mock;
     use enso_text::index::Line;
     use enso_text::Utf16CodeUnit;
 
@@ -791,25 +793,69 @@ mod test {
         assert_eq!(module_method.code_to_insert(true), "Project.static_method");
     }
 
-    // #[test]
-    // fn required_imports_of_entry() {
-    //     let db = mock_database! {
-    //         mod local.Project {
-    //             type TestType {}
-    //             mod TopModule {
-    //                 type TestType {
-    //                     Constructor;
-    //                     fn method () -> local.Project.TestType;
-    //                     static fn static_method() -> local.Project.TestType;
-    //                 }
-    //             }
-    //             fn module_method () -> Standard.Base.Any;
-    //         }
-    //         mod Standard.Base {
-    //             type Any {}
-    //         }
-    //     };
-    // }
+    #[test]
+    fn required_imports_of_entry() {
+        let db = mock::standard_db_mock();
+        let expect_import = |entry: Rc<Entry>, expected: &str| {
+            assert_eq!(entry.required_imports(&db).unwrap().to_string(), expected);
+        };
+        let expect_no_import = |entry: Rc<Entry>| assert!(entry.required_imports(&db).is_none());
+
+        let number = db.lookup_by_qualified_name_str("Standard.Base.Number").unwrap();
+        let some = db.lookup_by_qualified_name_str("Standard.Base.Maybe.Some").unwrap();
+        let method = db.lookup_by_qualified_name_str("Standard.Base.Maybe.is_some").unwrap();
+        let static_method = db
+            .lookup_by_qualified_name_str("local.Project.Submodule.TestType.static_method")
+            .unwrap();
+        let module_method =
+            db.lookup_by_qualified_name_str("local.Project.Submodule.module_method").unwrap();
+        let submodule = db.lookup_by_qualified_name_str("local.Project.Submodule").unwrap();
+
+        expect_import(number, "from Standard.Base import Number");
+        expect_import(some, "from Standard.Base import Number");
+        expect_no_import(method);
+        expect_import(static_method, "from local.Project.Submodule import TestType");
+        expect_import(module_method, "import local.Project.Submodule");
+        expect_import(submodule, "import local.Project.Submodule");
+    }
+
+    #[test]
+    fn required_imports_of_reexported_entries() {
+        let db = mock_suggestion_database! {
+            Standard.Base {
+                mod Data {
+                    #[reexported_in("Standard.Base".try_into().unwrap())]
+                    type Type {
+                        Type (a);
+                        static fn static_method() -> Standard.Base.Boolean;
+                    }
+
+                    #[reexported_in("Standard.Base".try_into().unwrap())]
+                    mod Submodule {
+                        static fn module_method() -> local.Project.Submodule.TestType;
+                    }
+                }
+            }
+        };
+        let expect_import = |entry: Rc<Entry>, expected: &str| {
+            assert_eq!(entry.required_imports(&db).unwrap().to_string(), expected);
+        };
+
+        let tp = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe").unwrap();
+        let constructor = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.Some").unwrap();
+        let method = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.is_some").unwrap();
+        let static_method =
+            db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.static_method").unwrap();
+        let module_method =
+            db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule.module_method").unwrap();
+        let submodule = db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule").unwrap();
+
+        expect_import(tp, "from Standard.Base import Type");
+        expect_import(constructor, "from Standard.Base import Type");
+        expect_import(static_method, "from Standard.Base import Type");
+        expect_import(module_method, "from Standard.Base import Submodule");
+        expect_import(submodule, "from Standard.Base import Submodule");
+    }
 
     #[test]
     fn method_id_from_entry() {
