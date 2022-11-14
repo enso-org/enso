@@ -7,6 +7,7 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
+import sbt.internal.util.ManagedLogger
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -1298,6 +1299,73 @@ lazy val `runtime-language-epb` =
       instrumentationSettings
     )
 
+/**
+ * Runs gu (GraalVM updater) command with given `args`.
+ * For example `runGu(Seq("install", "js"))`.
+ * @param logger Logger for the `gu` command.
+ * @param args Arguments for the `gu` command.
+ */
+def runGu(logger: ManagedLogger, args: Seq[String]): String = {
+  val javaHome = new File(
+    System.getProperty("java.home")
+  )
+  val os = {
+    if (Platform.isLinux) DistributionPackage.OS.Linux
+    else if (Platform.isMacOS) DistributionPackage.OS.MacOS
+    else if (Platform.isWindows) DistributionPackage.OS.Windows
+    else throw new RuntimeException("Unknown platform")
+  }
+  packageBuilder.gu(
+    logger,
+    os,
+    javaHome,
+    args:_*
+  )
+}
+
+def installedGuComponents(logger: ManagedLogger): Seq[String] = {
+  val componentList = runGu(
+    logger,
+    Seq("list")
+  )
+  val components = componentList
+    .linesIterator
+    .drop(2)
+    .map { line =>
+      line
+        .split(" ")
+        .head
+    }
+    .toList
+  logger.debug(s"Installed GU components = $components")
+  if (!components.contains("graalvm")) {
+    throw new RuntimeException(s"graalvm components is not in $components")
+  }
+  components
+}
+
+lazy val installGraalJs = Def.task {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("js")) {
+    logger.info("Installing js GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "js")
+    )
+  }
+}
+
+lazy val installNativeImage = Def.task {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("native-image")) {
+    logger.info("Installing native-image GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "native-image")
+    )
+  }
+}
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1376,6 +1444,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1574,15 +1643,17 @@ lazy val `engine-runner` = project
           "io.methvin.watchservice.jna.CarbonAPI",
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
 
-      buildNativeImage := NativeImage
-        .incrementalNativeImageBuild(
-          rebuildNativeImage,
-          "runner"
-        )
-        .value
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "runner"
+      )
+      .dependsOn(installNativeImage)
+      .value
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
@@ -1620,6 +1691,7 @@ lazy val launcher = project
           "org.enso.loggingservice.WSLoggerManager$"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
@@ -1628,6 +1700,7 @@ lazy val launcher = project
         rebuildNativeImage,
         "enso"
       )
+      .dependsOn(installNativeImage)
       .value,
     assembly / test := {},
     assembly / assemblyOutputPath := file("launcher.jar"),
