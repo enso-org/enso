@@ -32,7 +32,7 @@ import org.enso.pkg.QualifiedName;
 public final class AtomConstructor implements TruffleObject {
 
   private final String name;
-  private final @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private final ModuleScope definitionScope;
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
