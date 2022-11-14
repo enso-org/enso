@@ -149,19 +149,28 @@ ensogl_core::define_endpoints_2! {
         set_value(f32),
         /// Set the default value to reset a slider to when `ctrl` + `click`-ed.
         set_default_value(f32),
-        /// Set the value's lower limit. The value cannot be dragged lower than this limit. At the lower limit the slider's track will be empty.
+        /// Set the value's lower limit. The value cannot be dragged lower than this limit. At the 
+        /// lower limit the slider's track will be empty.
         set_min_value(f32),
-        /// Set the value's upper limit. The value cannot be dragged higher than this limit. At the upper limit the slider's track will be full.
+        /// Set the value's upper limit. The value cannot be dragged higher than this limit. At the
+        ///  upper limit the slider's track will be full.
         set_max_value(f32),
         /// Set the color of the text displaying the current value.
         set_value_text_color(color::Lcha),
-        /// Set the default precision at which the slider operates. The slider's precision determines by what increment the value will be changed on mouse movement. It also affects the number of digits after the decimal point displayed.
+        /// Set the default precision at which the slider operates. The slider's precision
+        /// determines by what increment the value will be changed on mouse movement. It also
+        /// affects the number of digits after the decimal point displayed.
         set_precision(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction. The `adjustment_margin` defines a margin above/below the slider within which no precision adjustment will be performed.
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        /// The `adjustment_margin` defines a margin above/below the slider within which no
+        /// precision adjustment will be performed.
         set_precision_adjustment_margin(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction. The `adjustment_step_size` defines the distance the mouse must be moved to increase/decrease the precision by one step.
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        /// The `adjustment_step_size` defines the distance the mouse must be moved to increase or
+        /// decrease the precision by one step.
         set_precision_adjustment_step_size(f32),
-        /// Set the slider's label. The label will be displayed to the left of the slider's value display.
+        /// Set the slider's label. The label will be displayed to the left of the slider's value
+        /// display.
         set_label(ImString),
         /// Set the color of the slider's label.
         set_label_color(color::Lcha),
@@ -169,7 +178,8 @@ ensogl_core::define_endpoints_2! {
         set_label_hidden(bool),
         /// Set the position of the slider's label.
         set_label_position(LabelPosition),
-        /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed and the slider is greyed out.
+        /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
+        /// and the slider is greyed out.
         set_slider_disabled(bool),
     }
     Output {
@@ -237,7 +247,7 @@ impl Slider {
                     let offset = (offset.abs() - margin).max(0.0);
                     // Calculate number of steps and direction to adjust the precision into.
                     let steps = (offset / step_size).ceil() * sign;
-                    // Set the precision to `base` to the power of `steps` (for e.g. power of 10 increments).
+                    // Set the precision to `base` to the power of `steps`.
                     *default * (PRECISION_ADJUSTMENT_STEP_BASE).pow(steps)
                 }
             );
