@@ -217,10 +217,10 @@ type Map
     get_or_else self key ~other =
         go map = case map of
             Tip -> other
-            Bin _ k v l r ->
-                if k == key then v else
-                    if k.is_nothing || (k < key) then @Tail_Call go r else
-                        @Tail_Call go l
+            Bin _ k v l r -> case Internal.compare_allow_nothing key k of
+                Ordering.Equal -> v
+                Ordering.Less -> @Tail_Call go l
+                Ordering.Greater -> @Tail_Call go r
         result = go self
         result
 

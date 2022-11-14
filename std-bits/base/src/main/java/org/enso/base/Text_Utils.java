@@ -157,11 +157,6 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare_normalized(String a, String b) {
-    if (a == null) {
-      return b == null ? 0 : -1;
-    } else if (b == null) {
-      return 1;
-    }
     return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
   }
 
@@ -176,11 +171,6 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare_normalized_ignoring_case(String a, String b, Locale locale) {
-    if (a == null) {
-      return b == null ? 0 : -1;
-    } else if (b == null) {
-      return 1;
-    }
     Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
     return Normalizer.compare(fold.apply(a), fold.apply(b), Normalizer.FOLD_CASE_DEFAULT);
   }
