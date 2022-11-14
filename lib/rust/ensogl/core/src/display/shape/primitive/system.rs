@@ -349,6 +349,7 @@ pub struct ShapeSystemModel {
     pub sprite_system: SpriteSystem,
     pub shape: Rc<RefCell<def::AnyShape>>,
     pub material: Rc<RefCell<Material>>,
+    pub geometry_material: Rc<RefCell<Material>>,
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
     /// have pointer events disabled will be completely transparent for the mouse (they will pass
     /// through all mouse events to shapes behind them).
@@ -366,10 +367,18 @@ impl ShapeSystemModel {
     pub fn new(shape: def::AnyShape, pointer_events: bool) -> Self {
         let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::default_material()));
+        let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
-        Self { sprite_system, shape, material, pointer_events, do_not_use_shape_definition }
+        Self {
+            sprite_system,
+            shape,
+            material,
+            geometry_material,
+            pointer_events,
+            do_not_use_shape_definition,
+        }
     }
 
     fn init(&self) {
@@ -386,6 +395,25 @@ impl ShapeSystemModel {
         material.add_input("time", 0.0);
         material.add_input("display_mode", 0);
         material.add_output("id", Vector4::<f32>::zero());
+        material
+    }
+
+    fn default_geometry_material() -> Material {
+        let mut material = SpriteSystem::default_geometry_material();
+        material.set_main(
+            "
+                vec2 padding = vec2(10.0);//aa_side_padding());
+                vec2 padding2 = 2.0 * padding;
+                vec2 padded_size = input_size + padding2;
+                vec2 uv_scale = padded_size / input_size;
+                vec2 uv_offset = padding / padded_size;
+                input_uv = (vertex_uv - uv_offset) * uv_scale;
+                mat4 model_view_projection = input_view_projection * input_transform;
+                input_local = vec3((input_uv - input_alignment) * padded_size, 0.0);
+                gl_Position = model_view_projection * vec4(input_local,1.0);
+                input_local.z = gl_Position.z;
+                ",
+        );
         material
     }
 
@@ -419,6 +447,7 @@ impl ShapeSystemModel {
     #[profile(Detail)]
     fn reload_material(&self) {
         self.sprite_system.set_material(&*self.material.borrow());
+        self.sprite_system.set_geometry_material(&*self.geometry_material.borrow());
     }
 }
 

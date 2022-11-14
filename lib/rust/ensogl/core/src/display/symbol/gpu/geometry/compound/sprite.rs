@@ -24,6 +24,9 @@ use crate::display::symbol::SymbolInstance;
 
 const DEFAULT_SPRITE_SIZE: (f32, f32) = (10.0, 10.0);
 
+/// Common GLSL functions for all sprite types.
+pub const GLSL_PRELUDE: &str = include_str!("sprite/prelude.glsl");
+
 
 
 // ===================
@@ -310,13 +313,13 @@ impl SpriteSystem {
 
     fn init_shader(&self) {
         let shader = self.symbol.shader();
-        let surface_material = Self::surface_material();
-        let geometry_material = Self::geometry_material();
+        let surface_material = Self::default_surface_material();
+        let geometry_material = Self::default_geometry_material();
         shader.set_geometry_material(&geometry_material);
         shader.set_material(&surface_material);
     }
 
-    fn geometry_material() -> Material {
+    pub fn default_geometry_material() -> Material {
         let mut material = Material::new();
         material.add_input_def::<Vector2<f32>>("size");
         material.add_input_def::<Vector2<f32>>("uv");
@@ -325,10 +328,9 @@ impl SpriteSystem {
         material.add_input_def::<Vector2<f32>>("alignment");
         material.add_input_def::<i32>("global_instance_id");
         material.add_output_def::<Vector3<f32>>("local");
+        material.set_before_main(GLSL_PRELUDE); // FIXME: move to shape
         material.set_main(
             "
-                float zoom = input_z_zoom_1 / input_local.z;
-                float padding = min(1.0, ceil(1.0 / zoom));
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
                 gl_Position = model_view_projection * vec4(input_local,1.0);
@@ -341,7 +343,7 @@ impl SpriteSystem {
         material
     }
 
-    fn surface_material() -> Material {
+    pub fn default_surface_material() -> Material {
         let mut material = Material::new();
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more

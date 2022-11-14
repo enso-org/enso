@@ -27,8 +27,8 @@ macro_rules! include_codes {
 include_codes!(
     display_mode_debug_instance_id,
     display_mode_debug_sdf,
-    display_mode_debug_sprite_aa_span,
-    display_mode_debug_sprite_shape,
+    display_mode_debug_shape_aa_span,
+    display_mode_debug_sprite_uv,
     display_mode_normal,
     id_encoding_overflow_error
 );

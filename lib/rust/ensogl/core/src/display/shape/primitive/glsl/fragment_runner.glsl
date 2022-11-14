@@ -33,6 +33,13 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color      = srgba(unpremultiply(shape.color)).raw;
     output_color.rgb *= alpha;
 
+} else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
+   output_color = srgba(unpremultiply(shape.color)).raw;
+   output_color.rgb *= alpha;
+   if (input_uv.x < 0.0 || input_uv.x > 1.0 || input_uv.y < 0.0 || input_uv.y > 1.0) {
+       output_color = vec4(1.0,0.0,0.0,1.0);
+   }
+
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SDF) {
     float zoom        = zoom();
     float factor      = 200.0/zoom * input_pixel_ratio;
@@ -47,9 +54,17 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
       output_color.rgb  = object_color.raw.rgb;
       output_color.a    = alpha_no_aa;
       output_color.rgb *= alpha_no_aa;
-} else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_SHAPE) {
-       output_color = vec4(input_uv, 0.0, 1.0);
+
+} else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_UV) {
+       float b = 0.0;
+       if (input_uv.x >= 1.0 || input_uv.y >= 1.0) {
+           b= .5;
+       };
+       output_color = vec4(input_uv, b, 1.0);
+
 } else {
-    // Unknown code, display everything red.
+    // Unknown code, display everything in red.
     output_color = vec4(1.0, 0.0, 0.0, 1.0);
 }
+
+// output_color = vec4(1.0, 1.0/zoom(), 0.0, 1.0);

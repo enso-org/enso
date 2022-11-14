@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::glsl::codes;
 use crate::display::shape::primitive::shader::overload;
+use crate::display::symbol::geometry::compound::sprite::GLSL_PRELUDE;
 use crate::display::symbol::shader::builder::CodeTemplate;
 
 use super::canvas;
@@ -44,7 +45,7 @@ impl Builder {
         canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
         canvas.submit_shape_constructor("run");
         let shape_def = overload::allow_overloading(&canvas.to_glsl());
-        let code = [GLSL_PRELUDE.as_str(), "", &shape_header, &shape_def].join("\n\n");
+        let code = [GLSL_BOILERPLATE.as_str(), "", &shape_header, &shape_def].join("\n\n");
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
@@ -69,7 +70,7 @@ fn header(label: &str) -> String {
 
 lazy_static! {
     /// A common preamble used to start every shader program.
-    static ref GLSL_PRELUDE: String = make_glsl_prelude();
+    static ref GLSL_BOILERPLATE: String = gen_glsl_boilerplate();
 }
 
 fn generate_codes_glsl_code() -> String {
@@ -79,7 +80,7 @@ fn generate_codes_glsl_code() -> String {
     format!("{}\n\n{}", header, code)
 }
 
-fn make_glsl_prelude() -> String {
+fn gen_glsl_boilerplate() -> String {
     let redirections = overload::builtin_redirections();
     let math = overload::allow_overloading(MATH);
     let color = overload::allow_overloading(COLOR);
@@ -88,5 +89,16 @@ fn make_glsl_prelude() -> String {
     let err_codes = generate_codes_glsl_code();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
-    [redirections, err_codes, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
+    [
+        &redirections,
+        &err_codes,
+        GLSL_PRELUDE,
+        &math,
+        &color,
+        &debug,
+        &shape,
+        &defs_header,
+        &sdf_defs,
+    ]
+    .join("\n\n")
 }
