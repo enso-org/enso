@@ -11,6 +11,9 @@ import project.Text
 import project.Time
 import project.Vector
 
+## A common entry point for all benchmarks. Usually just one suite is run, but
+   sometimes we want to run all benchmarks to ensure our language changes are
+   not breaking them.
 main =
     Collections.main
     Equality.main
