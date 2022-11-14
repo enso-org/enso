@@ -49,9 +49,9 @@ insert_r key value k v l r =
 insert : Map -> Any -> Any -> Map
 insert map key value = case map of
     Bin s k v l r ->
-        if key > k then @Tail_Call insert_r key value k v l r else
-            if key == k then @Tail_Call Bin s k value l r else
-                @Tail_Call insert_l key value k v l r
+        if key == k then @Tail_Call Bin s k value l r else
+            if key.is_nothing || (key < k) then @Tail_Call insert_l key value k v l r else
+                @Tail_Call insert_r key value k v l r
     _ -> Bin 1 key value Tip Tip
 
 ## PRIVATE

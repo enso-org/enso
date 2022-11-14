@@ -219,7 +219,8 @@ type Map
             Tip -> other
             Bin _ k v l r ->
                 if k == key then v else
-                    if k > key then @Tail_Call go l else @Tail_Call go r
+                    if k.is_nothing || (k < key) then @Tail_Call go r else
+                        @Tail_Call go l
         result = go self
         result
 
