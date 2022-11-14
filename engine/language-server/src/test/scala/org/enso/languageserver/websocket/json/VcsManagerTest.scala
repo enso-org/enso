@@ -513,7 +513,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           barPath,
           "file contents b".getBytes(StandardCharsets.UTF_8)
         )
-        add(testContentRoot.file, fooPath, barPath)
+        add(testContentRoot.file, srcDir)
         commit(testContentRoot.file, "Add missing files")
         Files.write(
           fooPath,
@@ -637,7 +637,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         fooPath,
         "file contents".getBytes(StandardCharsets.UTF_8)
       )
-      add(testContentRoot.file, fooPath)
+      add(testContentRoot.file, srcDir)
       commit(testContentRoot.file, "Add missing files")
       val barPath = srcDir.resolve("Bar.enso")
       barPath.toFile.createNewFile()
@@ -645,13 +645,13 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         barPath,
         "file contents b".getBytes(StandardCharsets.UTF_8)
       )
-      add(testContentRoot.file, barPath)
+      add(testContentRoot.file, srcDir)
       commit(testContentRoot.file, "Release")
       Files.write(
         fooPath,
         "different contents".getBytes(StandardCharsets.UTF_8)
       )
-      add(testContentRoot.file, fooPath)
+      add(testContentRoot.file, srcDir)
       commit(testContentRoot.file, "More changes")
 
       client.send(json"""
