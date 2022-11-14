@@ -59,9 +59,9 @@ public abstract class MethodNodeClassGenerator {
               + ensoTypeName
               + "\", name = \""
               + ensoMethodName
-              + "\", description = \""
+              + "\", description = \"\"\"\n"
               + description
-              + "\")");
+              + "\"\"\")");
       if (isAbstract()) {
         out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
@@ -120,9 +120,9 @@ public abstract class MethodNodeClassGenerator {
             + ensoTypeName
             + "\", name = \""
             + ensoMethodName
-            + "\", description = \""
+            + "\", description = \"\"\"\n"
             + description
-            + "\")");
+            + "\"\"\")");
   }
 
   private static final List<String> methodNecessaryImports =
