@@ -92,14 +92,12 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
 
   @ExportMessage
   public boolean hasScope(Frame frame) {
-    // TODO
-    return true;
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @ExportMessage
   public Object getScope(Frame frame, boolean onEnter) {
-    // TODO
-    return null;
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   /**
