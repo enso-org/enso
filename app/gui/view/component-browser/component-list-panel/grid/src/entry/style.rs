@@ -161,6 +161,8 @@ pub struct Style {
     pub icon_size:                f32,
     #[theme_path = "entry_theme::text::size"]
     pub text_size:                f32,
+    #[theme_path = "entry_theme::text::y_offset"]
+    pub text_y_offset:            f32,
     /// The distance between right edge of the icon and left edge of the caption.
     #[theme_path = "entry_theme::icon::text_padding"]
     pub icon_text_padding:        f32,

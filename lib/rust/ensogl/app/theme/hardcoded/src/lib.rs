@@ -208,6 +208,7 @@ define_themes! { [light:0, dark:1]
                         padding = 16.0, 16.0;
                         text {
                             font = "mplus1p", "mplus1p";
+                            y_offset = 8.0, 8.0;
                             size = 11.5, 11.5;
                             color = 1.0, 1.0;
                             highlight_bold = 0.01, 0.01;
@@ -301,7 +302,8 @@ define_themes! { [light:0, dark:1]
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
                             font = "mplus1p", "mplus1p";
-                            text_padding_left = 7.0, 7.0;
+                            text_y_offset = 8.0, 8.0;
+                            text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
                             selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
                             highlight_corners_radius = 15.0, 15.0;

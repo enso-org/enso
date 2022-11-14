@@ -196,21 +196,23 @@ impl Model {
             let hover_color = style.get_color(theme::entry::hover_color);
             let font = style.get_text(theme::entry::font);
             let text_padding = style.get_number(theme::entry::text_padding_left);
+            let text_y_offset = style.get_number(theme::entry::text_y_offset);
             let text_size = style.get_number(theme::entry::text_size);
             let selected_color = style.get_color(theme::entry::selected_color);
             let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
             let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
             greyed_out_start <- init.constant(None);
-            text_params <- all4(&init, &text_padding,&text_size,&font);
+            text_params <- all5(&init, &text_padding,&text_size,&font,&text_y_offset);
             colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
             params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
                 &greyed_out_start,
                 |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
-                    let (_, text_padding,text_size,font) = text_params;
+                    let (_, text_padding,text_size,font,text_y_offset) = text_params;
                     let (_, hover_color,selected_color,greyed_out_color) = colors;
                     entry::Params {
                         margin,
                         text_padding:      *text_padding,
+                        text_y_offset:     *text_y_offset,
                         text_size:         text::Size::from(*text_size),
                         hover_color:       hover_color.into(),
                         font_name:         font.clone(),

@@ -178,9 +178,15 @@ impl EntryData {
         }
     }
 
-    fn update_layout(&self, contour: Contour, text_size: text::Size, text_padding: f32) {
+    fn update_layout(
+        &self,
+        contour: Contour,
+        text_size: text::Size,
+        text_padding: f32,
+        text_y_offset: f32,
+    ) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, 8.0));
+        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }
@@ -243,6 +249,7 @@ pub struct Params {
     pub margin:                   f32,
     pub hover_color:              color::Lcha,
     pub font_name:                ImString,
+    pub text_y_offset:            f32,
     pub text_padding:             f32,
     pub text_size:                text::Size,
     pub selected_color:           color::Lcha,
@@ -285,6 +292,7 @@ impl ensogl_grid_view::Entry for Entry {
             font <- input.set_params.map(|p| p.font_name.clone_ref()).on_change();
             text_padding <- input.set_params.map(|p| p.text_padding).on_change();
             text_color <- input.set_params.map(|p| p.selected_color).on_change();
+            text_y_offset <- input.set_params.map(|p| p.text_y_offset).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
             greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
@@ -311,8 +319,8 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-            layout <- all(contour, text_size, text_padding);
-            eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
+            layout <- all(contour, text_size, text_padding, text_y_offset);
+            eval layout ((&(c, ts, to, tyo)) data.update_layout(c, ts, to, tyo));
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));

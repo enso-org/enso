@@ -330,8 +330,7 @@ impl Data {
         let icon_y = local_scope_offset;
         self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
         let text_x = Self::text_x_position(kind, style, grid_style);
-        let text_y = style.text_size / 2.0 + local_scope_offset;
-        // let text_y = local_scope_offset;
+        let text_y = style.text_y_offset + local_scope_offset;
         self.label.set_position_xy(Vector2(text_x, text_y));
     }
 
