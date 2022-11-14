@@ -74,122 +74,25 @@ pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 /// the mouse is moved.
 #[derive(Debug, Deref)]
 pub struct Slider {
-    /// Public FRP api of the Component.
+    /// Public FRP api of the component.
     #[deref]
     pub frp: Frp,
     model:   Rc<Model>,
-    /// Reference to the application the Component belongs to. Generally required for implementing
+    /// Reference to the application the component belongs to. Generally required for implementing
     /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// `Component`.
+    /// component.
     pub app: Application,
 }
 
 impl Slider {
-    /// Constructor
+    /// Construct a new slider component.
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app));
         let app = app.clone_ref();
         let frp = Frp::new();
         Self { frp, model, app }.init()
     }
-}
 
-impl display::Object for Slider {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
-impl FrpNetworkProvider for Slider {
-    fn network(&self) -> &enso_frp::Network {
-        self.frp.network()
-    }
-}
-
-impl application::View for Slider {
-    fn label() -> &'static str {
-        "Slider"
-    }
-
-    fn new(app: &Application) -> Self {
-        Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.app
-    }
-}
-
-/// Position of the slider label.
-#[derive(Clone, Copy, Debug, Default)]
-pub enum LabelPosition {
-    #[default]
-    /// Place the label outside the slider component, on its left side..
-    Outside,
-    /// Place the label inside the slider component, on the left side.
-    Inside,
-}
-
-
-// ===========
-// === FRP ===
-// ===========
-
-ensogl_core::define_endpoints_2! {
-    Input {
-        /// Set the width of the slider component.
-        set_width(f32),
-        /// Set the height of the slider component.
-        set_height(f32),
-        /// Set the color of the slider's track.
-        set_slider_track_color(color::Lcha),
-        /// Set the color of the slider's background.
-        set_background_color(color::Lcha),
-        /// Set the slider value.
-        set_value(f32),
-        /// Set the default value to reset a slider to when `ctrl` + `click`-ed.
-        set_default_value(f32),
-        /// Set the value's lower limit. The value cannot be dragged lower than this limit. At the 
-        /// lower limit the slider's track will be empty.
-        set_min_value(f32),
-        /// Set the value's upper limit. The value cannot be dragged higher than this limit. At the
-        ///  upper limit the slider's track will be full.
-        set_max_value(f32),
-        /// Set the color of the text displaying the current value.
-        set_value_text_color(color::Lcha),
-        /// Set the default precision at which the slider operates. The slider's precision
-        /// determines by what increment the value will be changed on mouse movement. It also
-        /// affects the number of digits after the decimal point displayed.
-        set_precision(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
-        /// The `adjustment_margin` defines a margin above/below the slider within which no
-        /// precision adjustment will be performed.
-        set_precision_adjustment_margin(f32),
-        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
-        /// The `adjustment_step_size` defines the distance the mouse must be moved to increase or
-        /// decrease the precision by one step.
-        set_precision_adjustment_step_size(f32),
-        /// Set the slider's label. The label will be displayed to the left of the slider's value
-        /// display.
-        set_label(ImString),
-        /// Set the color of the slider's label.
-        set_label_color(color::Lcha),
-        /// Set whether the slider's label is displayed.
-        set_label_hidden(bool),
-        /// Set the position of the slider's label.
-        set_label_position(LabelPosition),
-        /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
-        /// and the slider is greyed out.
-        set_slider_disabled(bool),
-    }
-    Output {
-        width(f32),
-        height(f32),
-        value(f32),
-    }
-}
-
-impl Slider {
     fn init(self) -> Self {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -347,6 +250,101 @@ impl Slider {
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self
+    }
+}
+
+impl display::Object for Slider {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
+    }
+}
+
+impl FrpNetworkProvider for Slider {
+    fn network(&self) -> &enso_frp::Network {
+        self.frp.network()
+    }
+}
+
+impl application::View for Slider {
+    fn label() -> &'static str {
+        "Slider"
+    }
+
+    fn new(app: &Application) -> Self {
+        Self::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        &self.app
+    }
+}
+
+/// Position of the slider label.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum LabelPosition {
+    #[default]
+    /// Place the label outside the slider component, on its left side..
+    Outside,
+    /// Place the label inside the slider component, on the left side.
+    Inside,
+}
+
+
+// ===========
+// === FRP ===
+// ===========
+
+ensogl_core::define_endpoints_2! {
+    Input {
+        /// Set the width of the slider component.
+        set_width(f32),
+        /// Set the height of the slider component.
+        set_height(f32),
+        /// Set the color of the slider's track.
+        set_slider_track_color(color::Lcha),
+        /// Set the color of the slider's background.
+        set_background_color(color::Lcha),
+        /// Set the slider value.
+        set_value(f32),
+        /// Set the default value to reset a slider to when `ctrl` + `click`-ed.
+        set_default_value(f32),
+        /// Set the value's lower limit. The value cannot be dragged lower than this limit. At the
+        /// lower limit the slider's track will be empty.
+        set_min_value(f32),
+        /// Set the value's upper limit. The value cannot be dragged higher than this limit. At the
+        ///  upper limit the slider's track will be full.
+        set_max_value(f32),
+        /// Set the color of the text displaying the current value.
+        set_value_text_color(color::Lcha),
+        /// Set the default precision at which the slider operates. The slider's precision
+        /// determines by what increment the value will be changed on mouse movement. It also
+        /// affects the number of digits after the decimal point displayed.
+        set_precision(f32),
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        /// The `adjustment_margin` defines a margin above/below the slider within which no
+        /// precision adjustment will be performed.
+        set_precision_adjustment_margin(f32),
+        /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
+        /// The `adjustment_step_size` defines the distance the mouse must be moved to increase or
+        /// decrease the precision by one step.
+        set_precision_adjustment_step_size(f32),
+        /// Set the slider's label. The label will be displayed to the left of the slider's value
+        /// display.
+        set_label(ImString),
+        /// Set the color of the slider's label.
+        set_label_color(color::Lcha),
+        /// Set whether the slider's label is displayed.
+        set_label_hidden(bool),
+        /// Set the position of the slider's label.
+        set_label_position(LabelPosition),
+        /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
+        /// and the slider is greyed out.
+        set_slider_disabled(bool),
+    }
+    Output {
+        width(f32),
+        height(f32),
+        value(f32),
     }
 }
 
