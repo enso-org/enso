@@ -8,7 +8,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
@@ -21,10 +21,10 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(long self, Object that);
+  abstract Object execute(long self, Object that);
 
   @Specialization
-  Atom doLong(long self, long that) {
+  Object doLong(long self, long that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {
@@ -35,12 +35,12 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doBigInt(long self, EnsoBigInteger that) {
+  Object doBigInt(long self, EnsoBigInteger that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(long self, double that) {
+  Object doDecimal(long self, double that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {
@@ -51,11 +51,11 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doOther(long self, Object that) {
+  Object doOther(double self, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
-    throw new PanicException(typeError, this);
+    return DataflowError.withoutTrace(typeError, this);
   }
 
   Ordering getOrdering() {

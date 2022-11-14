@@ -9,7 +9,6 @@ import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "compare_to", description = "Comparison for decimals.")
@@ -19,10 +18,10 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(double self, Object that);
+  abstract Object execute(double self, Object that);
 
   @Specialization
-  Atom doLong(double self, long that) {
+  Object doLong(double self, long that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {
@@ -33,12 +32,12 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doBigInt(double self, EnsoBigInteger that) {
+  Object doBigInt(double self, EnsoBigInteger that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(double self, double that) {
+  Object doDecimal(double self, double that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {
@@ -49,7 +48,7 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  DataflowError doOther(double self, Object that) {
+  Object doOther(double self, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");

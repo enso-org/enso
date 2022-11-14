@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(type = "Boolean", name = "compare_to", description = "Comparison for Booleans.")
 public abstract class CompareToNode extends Node {
@@ -15,10 +15,10 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(Boolean self, Object that);
+  abstract Object execute(Boolean self, Object that);
 
   @Specialization
-  Atom doBoolean(Boolean self, Boolean that) {
+  Object doBoolean(Boolean self, Boolean that) {
     Ordering ordering = Context.get(this).getBuiltins().ordering();
     if (self == that) {
       return ordering.newEqual();
@@ -30,10 +30,10 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doOther(Boolean self, Object that) {
+  Object doOther(double self, Object that) {
     CompilerDirectives.transferToInterpreter();
-    var bool = Context.get(this).getBuiltins().bool().getType();
-    var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, bool, "that");
-    throw new PanicException(typeError, this);
+    var number = Context.get(this).getBuiltins().number().getNumber();
+    var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 }
