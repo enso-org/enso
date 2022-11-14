@@ -573,7 +573,6 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    System.out.println("Begin check")
     context.receiveNIgnorePendingExpressionUpdates(
       5
     ) should contain theSameElementsAs Seq(
@@ -2735,7 +2734,7 @@ class RuntimeVisualizationsTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idRes, s"$moduleName.Newtype.Mk_Newtype"),
+      TestMessages.update(contextId, idRes, s"$moduleName.Newtype"),
       context.executionComplete(contextId)
     )
 

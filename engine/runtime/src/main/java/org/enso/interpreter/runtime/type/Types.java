@@ -123,7 +123,7 @@ public class Types {
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
     } else if (value instanceof Atom atom) {
-      return atom.getConstructor().getQualifiedName().toString();
+      return atom.getConstructor().getQualifiedTypeName().toString();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getQualifiedName().toString();
     } else if (value instanceof Type t) {

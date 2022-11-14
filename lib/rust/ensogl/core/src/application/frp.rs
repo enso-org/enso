@@ -219,13 +219,16 @@ macro_rules! define_endpoints {
             $(<$($param $(:($($constraints)*))?),*>)?
 
             Input { $($([$($input_opts)*])?)?
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
-                focus(),
+                deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
-                defocus(),
+                deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
-                set_focus(bool),
+                deprecated_set_focus(bool),
                 $($($(#[doc=$($in_doc )*])*
                 $in_field ($($in_field_type )*)),*)?
             }
@@ -357,8 +360,8 @@ macro_rules! define_endpoints {
                 let mut command_map : HashMap<String,Command> = default();
                 $crate::frp::extend! { $($($global_opts)*)? $($($output_opts)*)? network
                     $($out_field <- source.$out_field.sampler();)*
-                    focus_events   <- bool(&input.defocus,&input.focus);
-                    focused        <- any(&input.set_focus,&focus_events);
+                    focus_events   <- bool(&input.deprecated_defocus, &input.deprecated_focus);
+                    focused        <- any(&input.deprecated_set_focus, &focus_events);
                     source.focused <+ focused;
                 }
                 $($crate::build_status_map!
@@ -845,13 +848,16 @@ macro_rules! define_endpoints_2 {
             [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>] [<($($($param),*)?)>]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Focus the element. Focused elements are meant to receive shortcut events.
-                focus(),
+                deprecated_focus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
                 /// receive shortcut events.
-                defocus(),
+                deprecated_defocus(),
+                // FIXME[WD]: To be removed, see: https://www.pivotaltracker.com/story/show/183776234
                 /// Wrapper for `focus` and `defocus`.
-                set_focus(bool)
+                deprecated_set_focus(bool)
                 $($(,
                     $(#$in_field_attr)*
                     $in_field $in_field_type
@@ -1113,8 +1119,8 @@ macro_rules! define_endpoints_2_normalized_public {
 
                     $crate::frp::extend! { $output_opts network
                         $( $out_field <- private_output.$out_field.profile().sampler(); )*
-                        focus_events   <- bool(&public_input.defocus,&public_input.focus);
-                        focused        <- any(&public_input.set_focus,&focus_events);
+                        focus_events   <- bool(&public_input.deprecated_defocus, &public_input.deprecated_focus);
+                        focused        <- any(&public_input.deprecated_set_focus, &focus_events);
                         private_output.focused <+ focused;
                     }
                     let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
