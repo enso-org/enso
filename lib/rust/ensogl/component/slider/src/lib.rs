@@ -215,7 +215,7 @@ impl Slider {
                 &input.set_height,
                 &input.set_precision_adjustment_margin,
             ).map(|(h,m)| h / 2.0 + m);
-            precision_adjusted <- all4(
+            precision <- all4(
                 &input.set_precision,
                 &mouse_y_local,
                 &precision_adjustment_margin,
@@ -235,14 +235,14 @@ impl Slider {
             value_reset <- input.set_default_value.sample(&component_ctrl_click);
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset,&value_on_click);
-            value <- all3(&value_on_click,&precision_adjusted,&drag_delta);
+            value <- all3(&value_on_click,&precision,&drag_delta);
             value <- value.map(|(value,precision,delta)| value + delta.x * precision);
             // value is updated only after value_on_click is sampled
             update_value <- bool(&component_release,&value_on_click);
             value <- value.gate(&update_value);
             value <- any2(&input.set_value,&value);
             // Snap value to nearest precision increment
-            value <- all2(&value,&precision_adjusted);
+            value <- all2(&value,&precision);
             value <- value.map(|(value,precision)| (value / precision).round() * precision);
             // Clamp value within slider limits
             value <- all3(&value,&input.set_min_value,&input.set_max_value);
@@ -280,7 +280,9 @@ impl Slider {
             label_color_anim.target <+ label_color.map(desaturate_color);
             eval label_color_anim.value((color) model.label.set_property_default(color));
 
-            value_text_left_right <- all2(&value,&precision_adjusted);
+            value <- value.on_change();
+            precision <- precision.on_change();
+            value_text_left_right <- all2(&value,&precision);
             value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
