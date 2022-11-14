@@ -81,19 +81,19 @@ mod track {
 #[derive(Debug)]
 pub struct Model {
     /// Background element
-    pub background:  background::View,
+    pub background:       background::View,
     /// Slider track element that moves dependent on the value of the slider
-    pub track:       track::View,
+    pub track:            track::View,
     /// Slider label
-    pub label:       text::Text,
+    pub label:            text::Text,
     /// Slider value text left of the decimal point
-    pub value_left:  text::Text,
+    pub value_text_left:  text::Text,
     /// Slider value text decimal point
-    pub value_dot:   text::Text,
+    pub value_text_dot:   text::Text,
     /// Slider value text right of the decimal point
-    pub value_right: text::Text,
-    pub root:        display::object::Instance,
-    pub app:         Application,
+    pub value_text_right: text::Text,
+    pub root:             display::object::Instance,
+    pub app:              Application,
 }
 
 impl Model {
@@ -101,9 +101,9 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
-        let value_left = app.new_view::<text::Text>();
-        let value_dot = app.new_view::<text::Text>();
-        let value_right = app.new_view::<text::Text>();
+        let value_text_left = app.new_view::<text::Text>();
+        let value_text_dot = app.new_view::<text::Text>();
+        let value_text_right = app.new_view::<text::Text>();
         let background = background::View::new();
         let track = track::View::new();
         let app = app.clone_ref();
@@ -112,21 +112,31 @@ impl Model {
         root.add_child(&background);
         root.add_child(&track);
         root.add_child(&label);
-        root.add_child(&value_left);
-        root.add_child(&value_dot);
-        root.add_child(&value_right);
+        root.add_child(&value_text_left);
+        root.add_child(&value_text_dot);
+        root.add_child(&value_text_right);
 
-        value_left.add_to_scene_layer(&scene.layers.label);
-        value_dot.add_to_scene_layer(&scene.layers.label);
-        value_right.add_to_scene_layer(&scene.layers.label);
+        value_text_left.add_to_scene_layer(&scene.layers.label);
+        value_text_dot.add_to_scene_layer(&scene.layers.label);
+        value_text_right.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
-        Self { background, track, label, value_left, value_dot, value_right, root, app }.init()
+        Self {
+            background,
+            track,
+            label,
+            value_text_left,
+            value_text_dot,
+            value_text_right,
+            root,
+            app,
+        }
+        .init()
     }
 
     /// Initialise slider model
     pub fn init(self) -> Self {
-        self.value_dot.set_content(".");
+        self.value_text_dot.set_content(".");
         self
     }
 
@@ -157,21 +167,21 @@ impl Model {
     }
 
     /// Set visibility of value text right of the decimal point
-    pub fn set_value_decimal_visible(&self, enabled: bool) {
+    pub fn set_value_text_right_visible(&self, enabled: bool) {
         if enabled {
-            self.root.add_child(&self.value_dot);
-            self.root.add_child(&self.value_right);
+            self.root.add_child(&self.value_text_dot);
+            self.root.add_child(&self.value_text_right);
         } else {
-            self.root.remove_child(&self.value_dot);
-            self.root.remove_child(&self.value_right);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
         }
     }
 
     /// Set default properties to the group of text elements showing the slider value
     pub fn set_value_text_property(&self, property: impl Into<ResolvedProperty> + Copy) {
-        self.value_left.set_property_default(property.into());
-        self.value_dot.set_property_default(property.into());
-        self.value_right.set_property_default(property.into());
+        self.value_text_left.set_property_default(property.into());
+        self.value_text_dot.set_property_default(property.into());
+        self.value_text_right.set_property_default(property.into());
     }
 }
 

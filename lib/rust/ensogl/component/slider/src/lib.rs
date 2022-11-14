@@ -49,11 +49,14 @@ pub mod model;
 pub const PRECISION_DEFAULT: f32 = 0.1;
 /// Margin above/below the component within which vertical mouse movement will not result in a
 /// change in slider precision.
-pub const PRECISION_ADJUST_MARGIN: f32 = 10.0;
+pub const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
 /// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
-pub const PRECISION_ADJUST_STEP_SIZE: f32 = 50.0;
-/// Base of the exponentiation for precision increment steps of 10^x
-pub const PRECISION_ADJUST_STEP_BASE: f32 = 10.0;
+pub const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
+/// When the precision is adjusted by one step, the slider's precision is changed to the next power
+/// of this `STEP_BASE`. A `STEP_BASE` of 10.0 results in consecutive precision steps being powers
+/// of 10, e.g [0.1, 1.0, 10.0, 100.0, ...] when decreasing the precision, or [0.1, 0.01, 0.001,
+/// ...] when increasing the precision.
+pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 
 
 
@@ -134,19 +137,19 @@ ensogl_core::define_endpoints_2! {
         /// Set the slider value
         set_value(f32),
         /// Set the default value to reset a slider to
-        set_value_default(f32),
+        set_default_value(f32),
         /// Set the minimum to which the value is clamped
-        set_value_min(f32),
+        set_min_value(f32),
         /// Set the maximum to which the value is clamped
-        set_value_max(f32),
+        set_max_value(f32),
         /// Set the color of the value text display
         set_value_text_color(color::Lcha),
         /// Set the default precision at which the slider operates
         set_precision(f32),
         /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
-        set_precision_adjust_margin(f32),
+        set_precision_adjustment_margin(f32),
         /// Set the distance of vertical mouse movement needed to increment/decrement the precision to the next step
-        set_precision_adjust_step_size(f32),
+        set_precision_adjustment_step_size(f32),
         /// Set a slider label
         set_label(ImString),
         /// Set the color of the slider label
@@ -183,145 +186,122 @@ impl Slider {
 
         frp::extend! { network
 
-
-            // User input
+            // === User input ===
 
             background_click <- model.background.events.mouse_down_primary.constant(());
             background_release <- model.background.events.mouse_release_primary.constant(());
             background_drag <- bool(&background_release,&background_click);
-
             track_click <- model.track.events.mouse_down_primary.constant(());
             track_release <- model.track.events.mouse_release_primary.constant(());
             track_drag <- bool(&track_release,&track_click);
-
             component_click <- any2(&background_click,&track_click);
             component_click <- component_click.gate_not(&input.set_slider_disabled);
             component_drag <- any2(&background_drag,&track_drag);
             component_drag <- component_drag.gate_not(&input.set_slider_disabled);
             component_release <- any2(&background_release,&track_release);
-
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
-
-            drag_pos_start <- mouse.position.sample(&component_click);
-            drag_pos_end <- mouse.position.gate(&component_drag);
-            drag_pos_end <- any2(&drag_pos_end,&drag_pos_start);
-            drag_delta <- all2(&drag_pos_end,&drag_pos_start).map(|(end,start)| end - start);
-
+            drag_start_pos <- mouse.position.sample(&component_click);
+            drag_end_pos <- mouse.position.gate(&component_drag);
+            drag_end_pos <- any2(&drag_end_pos,&drag_start_pos);
+            drag_delta <- all2(&drag_end_pos,&drag_start_pos).map(|(end,start)| end - start);
             mouse_y_local <- mouse.position.map(
                 f!([scene,model] (pos) scene.screen_to_object_space(&model.background,*pos).y )
             ).gate(&component_drag);
 
 
+            // === Value calculation ===
 
-            // Componenet size
-
-            output.width <+ input.set_width;
-            output.height <+ input.set_height;
-
-
-            // precision calculation
-
-            precision_adjust_margin <- all2(&input.set_height,&input.set_precision_adjust_margin);
-            // Calculate margin from center of component
-            precision_adjust_margin <- precision_adjust_margin.map(|(h,margin)| h / 2.0 + margin);
+            precision_adjustment_margin <- all2(
+                &input.set_height,
+                &input.set_precision_adjustment_margin,
+            ).map(|(h,m)| h / 2.0 + m);
             precision_adjusted <- all4(
                 &input.set_precision,
                 &mouse_y_local,
-                &precision_adjust_margin,
-                &input.set_precision_adjust_step_size,
+                &precision_adjustment_margin,
+                &input.set_precision_adjustment_step_size,
             ).map(
                 |(default,offset,margin,step_size)| {
                     let sign = offset.signum();
-                    // Calculate y-position offset beyond margin, or 0 if within margin.
+                    // Calculate mouse y-position offset beyond margin, or 0 if within margin.
                     let offset = (offset.abs() - margin).max(0.0);
-                    // Calculate number of steps, rounding up, and apply sign
+                    // Calculate number of steps and direction to adjust the precision into.
                     let steps = (offset / step_size).ceil() * sign;
-                    // Set the precision to base to the power of steps
-                    *default * (PRECISION_ADJUST_STEP_BASE).pow(steps)
+                    // Set the precision to `base` to the power of `steps` (for e.g. power of 10 increments).
+                    *default * (PRECISION_ADJUSTMENT_STEP_BASE).pow(steps)
                 }
             );
 
-
-            // value calculation
-
-            value_reset <- input.set_value_default.sample(&component_ctrl_click);
+            value_reset <- input.set_default_value.sample(&component_ctrl_click);
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset,&value_on_click);
-
-            // value_update is updated only after value_on_click is sampled
-            value_update <- bool(&component_release,&value_on_click);
-            // Update value based on distance dragged and precision
             value <- all3(&value_on_click,&precision_adjusted,&drag_delta);
             value <- value.map(|(value,precision,delta)| value + delta.x * precision);
-            value <- value.gate(&value_update);
+            // value is updated only after value_on_click is sampled
+            update_value <- bool(&component_release,&value_on_click);
+            value <- value.gate(&update_value);
             value <- any2(&input.set_value,&value);
             // Snap value to nearest precision increment
             value <- all2(&value,&precision_adjusted);
             value <- value.map(|(value,precision)| (value / precision).round() * precision);
             // Clamp value within slider limits
-            value <- all3(&value,&input.set_value_min,&input.set_value_max);
+            value <- all3(&value,&input.set_min_value,&input.set_max_value);
             value <- value.map(|(value,min,max)| value.clamp(*min,*max));
             output.value <+ value;
 
-            track_pos <- all3(&value,&input.set_value_min,&input.set_value_max);
-            track_pos_anim.target <+ track_pos.map(|(value,min,max)| (value - min) / (max - min));
 
+            // === Model update ===
 
-            // model update
-
-            eval track_pos_anim.value ((v) model.track.slider_fraction_filled.set(*v));
             component_size <- all2(&input.set_width,&input.set_height).map(|(w,h)| Vector2(*w,*h));
-            eval component_size ((size) model.set_size(*size));
+            eval component_size((size) model.set_size(*size));
+            output.width <+ input.set_width;
+            output.height <+ input.set_height;
 
-            value_is_default <- all2(&value,&input.set_value_default).map(|(val,def)| val==def);
+            track_pos <- all3(&value,&input.set_min_value,&input.set_max_value);
+            track_pos_anim.target <+ track_pos.map(|(value,min,max)| (value - min) / (max - min));
+            eval track_pos_anim.value((v) model.track.slider_fraction_filled.set(*v));
+
+            value_is_default <- all2(&value,&input.set_default_value).map(|(val,def)| val==def);
             value_is_default_true <- value_is_default.on_true();
             value_is_default_false <- value_is_default.on_false();
-            eval_ value_is_default_true (model.set_value_text_property(formatting::Weight::Normal));
-            eval_ value_is_default_false (model.set_value_text_property(formatting::Weight::Bold));
-
-
-            // colors
+            eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
+            eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
 
             background_color <- all2(&input.set_background_color,&input.set_slider_disabled);
             background_color_anim.target <+ background_color.map(desaturate_color);
-            eval background_color_anim.value ((color) model.set_background_color(color));
+            eval background_color_anim.value((color) model.set_background_color(color));
             track_color <- all2(&input.set_slider_track_color, &input.set_slider_disabled);
             track_color_anim.target <+ track_color.map(desaturate_color);
-            eval track_color_anim.value ((color) model.set_track_color(color));
+            eval track_color_anim.value((color) model.set_track_color(color));
             value_text_color <- all2(&input.set_value_text_color, &input.set_slider_disabled);
             value_text_color_anim.target <+ value_text_color.map(desaturate_color);
-            eval value_text_color_anim.value ((color) model.set_value_text_property(color));
+            eval value_text_color_anim.value((color) model.set_value_text_property(color));
             label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
             label_color_anim.target <+ label_color.map(desaturate_color);
-            eval label_color_anim.value ((color) model.label.set_property_default(color));
-
-
-            // text alignment
+            eval label_color_anim.value((color) model.label.set_property_default(color));
 
             value_text_left_right <- all2(&value,&precision_adjusted);
             value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
-            value_text_right_visible <- value_text_right.map(|t| t.is_some());
-            value_text_right <- value_text_right.gate(&value_text_right_visible);
-            model.value_left.set_content <+ value_text_left;
-            model.value_right.set_content <+ value_text_right.unwrap();
-            value_text_right_visibility_change <- value_text_right_visible.on_change();
-            eval value_text_right_visibility_change ((v) model.set_value_decimal_visible(*v));
-
-            value_text_left_pos_x <- all2(&model.value_left.width,&model.value_dot.width);
+            model.value_text_left.set_content <+ value_text_left;
+            value_text_right_is_visible <- value_text_right.map(|t| t.is_some());
+            value_text_right <- value_text_right.gate(&value_text_right_is_visible);
+            model.value_text_right.set_content <+ value_text_right.unwrap();
+            value_text_right_visibility_change <- value_text_right_is_visible.on_change();
+            eval value_text_right_visibility_change((v) model.set_value_text_right_visible(*v));
+            value_text_left_pos_x <- all2(&model.value_text_left.width,&model.value_text_dot.width);
             value_text_left_pos_x <- value_text_left_pos_x.map(|(left,dot)| -*left - *dot / 2.0);
-            eval value_text_left_pos_x ((x) model.value_left.set_position_x(*x));
-            eval model.value_left.height ((h) model.value_left.set_position_y(*h / 2.0));
-            eval model.value_dot.width ((w) model.value_dot.set_position_x(-*w / 2.0));
-            eval model.value_dot.height ((h) model.value_dot.set_position_y(*h / 2.0));
-            eval model.value_dot.width ((w) model.value_right.set_position_x(*w / 2.0));
-            eval model.value_right.height ((h) model.value_right.set_position_y(*h / 2.0));
+            eval value_text_left_pos_x((x) model.value_text_left.set_position_x(*x));
+            eval model.value_text_left.height((h) model.value_text_left.set_position_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_dot.set_position_x(-*w / 2.0));
+            eval model.value_text_dot.height((h) model.value_text_dot.set_position_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_right.set_position_x(*w / 2.0));
+            eval model.value_text_right.height((h) model.value_text_right.set_position_y(*h / 2.0));
 
             model.label.set_content <+ input.set_label;
             eval input.set_label_hidden((v) model.set_label_hidden(*v));
-
-            eval model.label.height ((h) model.label.set_position_y(*h / 2.0));
+            eval model.label.height((h) model.label.set_position_y(*h / 2.0));
             label_pos_x <- all4(
                 &input.set_width,
                 &input.set_height,
@@ -333,7 +313,7 @@ impl Slider {
                     LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
                 }
             );
-            eval label_pos_x ((x) model.label.set_position_x(*x));
+            eval label_pos_x((x) model.label.set_position_x(*x));
         };
         self.init_precision_defaults()
     }
@@ -342,8 +322,8 @@ impl Slider {
     /// value
     fn init_precision_defaults(self) -> Self {
         self.frp.set_precision(PRECISION_DEFAULT);
-        self.frp.set_precision_adjust_margin(PRECISION_ADJUST_MARGIN);
-        self.frp.set_precision_adjust_step_size(PRECISION_ADJUST_STEP_SIZE);
+        self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
+        self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self
     }
 }
