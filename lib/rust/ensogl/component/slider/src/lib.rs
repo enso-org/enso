@@ -201,8 +201,10 @@ impl Slider {
             track_release <- model.track.events.mouse_release_primary.constant(());
             track_drag <- bool(&track_release,&track_click);
 
-            component_click <- any2(&background_click,&track_click).gate_not(&input.set_slider_disabled);
-            component_drag <- any2(&background_drag,&track_drag).gate_not(&input.set_slider_disabled);
+            component_click <- any2(&background_click,&track_click);
+            component_click <- component_click.gate_not(&input.set_slider_disabled);
+            component_drag <- any2(&background_drag,&track_drag);
+            component_drag <- component_drag.gate_not(&input.set_slider_disabled);
             component_release <- any2(&background_release,&track_release);
 
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
@@ -250,26 +252,26 @@ impl Slider {
             // value calculation
 
             value_reset <- input.set_value_default.sample(&component_ctrl_click);
-            value_start <- output.value.sample(&component_click);
-            value_start <- any2(&value_reset,&value_start);
+            value_on_click <- output.value.sample(&component_click);
+            value_on_click <- any2(&value_reset,&value_on_click);
 
-            // value_update is updated only after value_start is sampled
-            value_update <- bool(&component_release,&value_start);
-            value <- all3(&value_start,&precision_adjusted,&drag_delta).map(
-                |(value,precision,delta)| value + delta.x * precision
-            ).gate(&value_update);
+            // value_update is updated only after value_on_click is sampled
+            value_update <- bool(&component_release,&value_on_click);
+            // Update value based on distance dragged and precision
+            value <- all3(&value_on_click,&precision_adjusted,&drag_delta);
+            value <- value.map(|(value,precision,delta)| value + delta.x * precision);
+            value <- value.gate(&value_update);
             value <- any2(&input.set_value,&value);
-            value <- all2(&value,&precision_adjusted).map(
-                |(value,precision)| (value / precision).round() * precision
-            );
-            value <- all3(&value,&input.set_value_min,&input.set_value_max).map(
-                |(value,min,max)| value.clamp(*min,*max)
-            );
+            // Snap value to nearest precision increment
+            value <- all2(&value,&precision_adjusted);
+            value <- value.map(|(value,precision)| (value / precision).round() * precision);
+            // Clamp value within slider limits
+            value <- all3(&value,&input.set_value_min,&input.set_value_max);
+            value <- value.map(|(value,min,max)| value.clamp(*min,*max));
             output.value <+ value;
 
-            track_pos_anim.target <+ all3(&value,&input.set_value_min,&input.set_value_max).map(
-                |(value,min,max)| (value - min) / (max - min)
-            );
+            track_pos <- all3(&value,&input.set_value_min,&input.set_value_max);
+            track_pos_anim.target <+ track_pos.map(|(value,min,max)| (value - min) / (max - min));
 
 
             // model update
@@ -281,12 +283,8 @@ impl Slider {
             value_is_default <- all2(&value,&input.set_value_default).map(|(val,def)| val==def);
             value_is_default_true <- value_is_default.on_true();
             value_is_default_false <- value_is_default.on_false();
-            eval_ value_is_default_true ({
-                model.set_value_text_property_default(formatting::Weight::Normal);
-            });
-            eval_ value_is_default_false ({
-                model.set_value_text_property_default(formatting::Weight::Bold);
-            });
+            eval_ value_is_default_true (model.set_value_text_property(formatting::Weight::Normal));
+            eval_ value_is_default_false (model.set_value_text_property(formatting::Weight::Bold));
 
 
             // colors
@@ -299,7 +297,7 @@ impl Slider {
             eval track_color_anim.value ((color) model.set_track_color(color));
             value_text_color <- all2(&input.set_value_color, &input.set_slider_disabled);
             value_text_color_anim.target <+ value_text_color.map(desaturate_color);
-            eval value_text_color_anim.value ((color) model.set_value_text_property_default(color));
+            eval value_text_color_anim.value ((color) model.set_value_text_property(color));
             label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
             label_color_anim.target <+ label_color.map(desaturate_color);
             eval label_color_anim.value ((color) model.label.set_property_default(color));
@@ -307,7 +305,8 @@ impl Slider {
 
             // text alignment
 
-            value_text_left_right <- all2(&value,&precision_adjusted).map(value_text_truncate_split);
+            value_text_left_right <- all2(&value,&precision_adjusted);
+            value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
             value_text_right_visible <- value_text_right.map(|t| t.is_some());
@@ -317,9 +316,8 @@ impl Slider {
             value_text_right_visibility_change <- value_text_right_visible.on_change();
             eval value_text_right_visibility_change ((v) model.set_value_decimal_visible(*v));
 
-            value_text_left_pos_x <- all2(&model.value_left.width,&model.value_dot.width).map(
-                |(left,dot)| -*left - *dot / 2.0
-            );
+            value_text_left_pos_x <- all2(&model.value_left.width,&model.value_dot.width);
+            value_text_left_pos_x <- value_text_left_pos_x.map(|(left,dot)| -*left - *dot / 2.0);
             eval value_text_left_pos_x ((x) model.value_left.set_position_x(*x));
             eval model.value_left.height ((h) model.value_left.set_position_y(*h / 2.0));
             eval model.value_dot.width ((w) model.value_dot.set_position_x(-*w / 2.0));

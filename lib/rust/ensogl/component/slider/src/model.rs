@@ -168,7 +168,7 @@ impl Model {
     }
 
     /// Set default properties to the group of text elements showing the slider value
-    pub fn set_value_text_property_default(&self, property: impl Into<ResolvedProperty> + Copy) {
+    pub fn set_value_text_property(&self, property: impl Into<ResolvedProperty> + Copy) {
         self.value_left.set_property_default(property.into());
         self.value_dot.set_property_default(property.into());
         self.value_right.set_property_default(property.into());
