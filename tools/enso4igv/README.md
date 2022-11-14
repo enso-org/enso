@@ -55,10 +55,13 @@ to _finish_ the installation.
 
 Build an instance of the Enso runtime engine (see
 [Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using:
+
 ```bash
 enso$ sbt buildEngineDistribution
 ```
+
 and then launch it with special `--dump-graphs` option:
+
 ```bash
 enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run yourprogram.enso
 ```
@@ -96,12 +99,13 @@ and open it as _"project"_ in IGV:
 
 ![Open Project in IGV](https://user-images.githubusercontent.com/26887752/201684275-b3ee7a37-7b55-4290-b426-75df0280ba32.png)
 
-The project directories (not only `runtime`, but also other like `runtime-language-epb`, etc.)
-are recognized only if you have built the Enso engine sources with `sbt buildEngineDistribution`.
+The project directories (not only `runtime`, but also other like
+`runtime-language-epb`, etc.) are recognized only if you have built the Enso
+engine sources with `sbt buildEngineDistribution`.
 
-With such setup let's open graph for one of the
-top-most functions: `TruffleHotSpotCompilation*Primes*next*.bgv`. Choose
-compilation phase _"Before lowering"_:
+With such setup let's open graph for one of the top-most functions:
+`TruffleHotSpotCompilation*Primes*next*.bgv`. Choose compilation phase _"Before
+lowering"_:
 
 ![Before Lowering Graph](https://user-images.githubusercontent.com/26887752/174608397-331a4438-1f12-40b0-9fcd-59eda5e53fb6.png)
 
