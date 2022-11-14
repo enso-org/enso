@@ -1550,34 +1550,8 @@ lazy val `engine-runner` = project
   .settings(
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
-      .value
-  )
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
-  .dependsOn(`library-manager`)
-  .dependsOn(`language-server`)
-  .dependsOn(`polyglot-api`)
-  .dependsOn(`logging-service`)
-
-// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
-// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
-// image of the runner.
-lazy val `engine-runner-native` = project
-  .in(file("engine/runner-native"))
-  .settings(
-    assembly / assemblyExcludedJars := {
-      val cp = (assembly / fullClasspath).value
-      (assembly / assemblyExcludedJars).value ++
-      cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
-    },
-    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
-    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
-    assembly / assemblyJarName := "runner-native.jar",
-    assembly / assemblyOutputPath := file("runner-native.jar"),
-    assembly := assembly
-      .dependsOn(`engine-runner` / assembly)
       .value,
+
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
@@ -1597,20 +1571,26 @@ lazy val `engine-runner-native` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI"
+          "io.methvin.watchservice.jna.CarbonAPI",
         )
       )
       .dependsOn(assembly)
-      .dependsOn(VerifyReflectionSetup.run)
       .value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "runner"
-      )
-      .value
+
+      buildNativeImage := NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "runner"
+        )
+        .value
   )
-  .dependsOn(`engine-runner`)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
+  .dependsOn(cli)
+  .dependsOn(`library-manager`)
+  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
