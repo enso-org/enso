@@ -2968,6 +2968,8 @@ This requests the language server to close the specified file.
 - **Connection:** Protocol
 - **Visibility:** Public
 
+Any pending changes to files will be saved before closing the file.
+
 #### Parameters
 
 ```typescript
@@ -2997,7 +2999,9 @@ This requests for the language server to save the specified file.
 - **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
-that file, or if the client is requesting a save of an outdated version.
+that file, or if the client is requesting a save of an outdated version. Note
+that language-server autosaves changes to the file, making this operation
+obsolete.
 
 #### Parameters
 
