@@ -2052,7 +2052,6 @@ dependencies = [
  "nalgebra 0.26.2",
  "percent-encoding 2.1.0",
  "unicode-segmentation",
- "unidecode",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -2624,6 +2623,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-focus-management"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-grid-view"
 version = "0.1.0"
 dependencies = [
@@ -2770,6 +2777,7 @@ dependencies = [
  "ensogl-example-dom-symbols",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
+ "ensogl-example-focus-management",
  "ensogl-example-grid-view",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
@@ -7165,12 +7173,6 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
-
-[[package]]
-name = "unidecode"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "402bb19d8e03f1d1a7450e2bd613980869438e0666331be3e073089124aa1adc"
 
 [[package]]
 name = "unreachable"

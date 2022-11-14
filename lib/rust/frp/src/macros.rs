@@ -234,7 +234,7 @@ macro_rules! extend_line2 {
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident               ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4         . map (f_!($($args)*)) $($ts)* } };
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident . $tgt5:ident ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4 . $tgt5 . map (f_!($($args)*)) $($ts)* } };
 
-    ([] $net:ident trace $($path:ident).*) => { $net.trace(stringify!($($path).*),&$($path).*); };
+    ([] $net:ident trace $($ts:tt)*) => { $net.trace(stringify!($($ts)*),&$($ts)*); };
     ([] $net:ident $($ts:tt)*) => { $($ts)*; }
 }
 
