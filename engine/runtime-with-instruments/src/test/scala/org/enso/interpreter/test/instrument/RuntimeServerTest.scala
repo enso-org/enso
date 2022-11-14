@@ -286,7 +286,7 @@ class RuntimeServerTest
           |    y = foo x
           |    z = bar y
           |    z
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       )
 
       object Update {
@@ -632,7 +632,7 @@ class RuntimeServerTest
         |    foo self = 11
         |
         |bar = 19
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val aFile = context.writeInSrcDir("A", aCode)
 
     // create context
@@ -839,7 +839,7 @@ class RuntimeServerTest
         |main = IO.println (State.run Number 42 bar)
         |
         |bar = State.get Number
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -904,7 +904,7 @@ class RuntimeServerTest
         |bar =
         |    State.put Number 10
         |    State.get Number
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1269,7 +1269,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaaa")
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1442,7 +1442,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(77, 35, "aaaa")
+    val idMain   = metadata.addItem(77, 34, "aaaa")
     val idMainA  = metadata.addItem(86, 8, "aabb")
     val idMainP  = metadata.addItem(99, 12, "aacc")
     // pie id
@@ -1726,7 +1726,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(122, 88, "aaaa")
+    val idMain   = metadata.addItem(122, 87, "aaaa")
     val id1      = metadata.addItem(131, 15, "aad1")
     val id2      = metadata.addItem(151, 18, "aad2")
     val id3      = metadata.addItem(174, 15, "aad3")
@@ -2023,7 +2023,7 @@ class RuntimeServerTest
       """import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2147,7 +2147,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaa")
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -2262,7 +2262,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2303,7 +2303,7 @@ class RuntimeServerTest
         |Number.lucky = 42
         |
         |main = IO.println "I'm a modified!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
      */
     context.send(
       Api.Request(

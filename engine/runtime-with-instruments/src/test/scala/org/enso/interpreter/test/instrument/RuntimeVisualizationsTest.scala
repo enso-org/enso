@@ -573,7 +573,6 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    System.out.println("Begin check")
     context.receiveNIgnorePendingExpressionUpdates(
       5
     ) should contain theSameElementsAs Seq(
