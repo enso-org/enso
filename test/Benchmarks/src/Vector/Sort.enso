@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Bench
 
-import project.Vector.Vector as Vector_Utils
+import project.Vector.Utils
 
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Time_Utils
@@ -55,7 +55,7 @@ make_partially_sorted_vec n =
 main =
     sorted_vec = make_sorted_ascending_vec vector_size
     partially_sorted_vec = make_partially_sorted_vec vector_size
-    random_vec = Vector_Utils.make_random_vec vector_size
+    random_vec = Utils.make_random_vec vector_size
     projection = x -> x % 10
     comparator = l -> r -> r.compare_to l
 
