@@ -47,13 +47,13 @@ pub mod model;
 
 /// The slider precision when slider dragging is initiated.
 pub const PRECISION_DEFAULT: f32 = 0.1;
-/// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
-pub const PRECISION_STEP_SIZE: f32 = 50.0;
 /// Margin above/below the component within which vertical mouse movement will not result in a
 /// change in slider precision.
-pub const PRECISION_STEP_MARGIN: f32 = 10.0;
+pub const PRECISION_ADJUST_MARGIN: f32 = 10.0;
+/// The vertical mouse movement in px needed to increase/decrease the slider precision by one step.
+pub const PRECISION_ADJUST_STEP_SIZE: f32 = 50.0;
 /// Base of the exponentiation for precision increment steps of 10^x
-pub const PRECISION_STEP_BASE: f32 = 10.0;
+pub const PRECISION_ADJUST_STEP_BASE: f32 = 10.0;
 
 
 
@@ -151,9 +151,9 @@ ensogl_core::define_endpoints_2! {
         /// Set the default precision at which the slider operates
         set_precision(f32),
         /// Set the margin above/below the slider beyond which the precision is adjusted up/downwards
-        set_precision_step_margin(f32),
+        set_precision_adjust_margin(f32),
         /// Set the distance of vertical mouse movement needed to increment/decrement the precision to the next step
-        set_precision_step_size(f32),
+        set_precision_adjust_step_size(f32),
         /// Set a slider label
         set_label(ImString),
         /// Set the color of the slider label
@@ -226,19 +226,23 @@ impl Slider {
 
             // precision calculation
 
-            precision_adjust_margin <- all2(&input.set_height,&input.set_precision_step_margin).map(
-                |(height,margin)| height / 2.0 + margin
-            );
+            precision_adjust_margin <- all2(&input.set_height,&input.set_precision_adjust_margin);
+            // Calculate margin from center of component
+            precision_adjust_margin <- precision_adjust_margin.map(|(h,margin)| h / 2.0 + margin);
             precision_adjusted <- all4(
                 &input.set_precision,
                 &mouse_y_local,
                 &precision_adjust_margin,
-                &input.set_precision_step_size,
+                &input.set_precision_adjust_step_size,
             ).map(
                 |(default,offset,margin,step_size)| {
-                    let steps = ((offset.abs() - margin).max(0.0) / step_size).ceil();
-                    let steps = steps * offset.signum();
-                    *default * (PRECISION_STEP_BASE).pow(steps)
+                    let sign = offset.signum();
+                    // Calculate y-position offset beyond margin, or 0 if within margin.
+                    let offset = (offset.abs() - margin).max(0.0);
+                    // Calculate number of steps, rounding up, and apply sign
+                    let steps = (offset / step_size).ceil() * sign;
+                    // Set the precision to base to the power of steps
+                    *default * (PRECISION_ADJUST_STEP_BASE).pow(steps)
                 }
             );
 
@@ -347,8 +351,8 @@ impl Slider {
     /// value
     fn init_precision_defaults(self) -> Self {
         self.frp.set_precision(PRECISION_DEFAULT);
-        self.frp.set_precision_step_margin(PRECISION_STEP_MARGIN);
-        self.frp.set_precision_step_size(PRECISION_STEP_SIZE);
+        self.frp.set_precision_adjust_margin(PRECISION_ADJUST_MARGIN);
+        self.frp.set_precision_adjust_step_size(PRECISION_ADJUST_STEP_SIZE);
         self
     }
 }
