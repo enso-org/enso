@@ -23,6 +23,7 @@ use json_rpc::expect_call;
 /// Utilities for mocking IDE components.
 pub mod mock {
     use super::*;
+    use double_representation::name::QualifiedName;
 
     /// Data used to create mock IDE components.
     ///
@@ -33,6 +34,7 @@ pub mod mock {
     pub mod data {
         use super::*;
 
+        use double_representation::name::QualifiedName;
         use engine_protocol::language_server::Position;
         use uuid::Uuid;
 
@@ -51,10 +53,10 @@ pub mod mock {
         }
 
         pub fn project_qualified_name() -> project::QualifiedName {
-            project::QualifiedName::from_segments(NAMESPACE_NAME, PROJECT_NAME).unwrap()
+            project::QualifiedName::new(NAMESPACE_NAME, PROJECT_NAME)
         }
 
-        pub fn module_qualified_name() -> module::QualifiedName {
+        pub fn module_qualified_name() -> QualifiedName {
             module_path().qualified_module_name(project_qualified_name())
         }
 
@@ -69,7 +71,7 @@ pub mod mock {
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
                 name:          "self".to_owned(),
-                repr_type:     "Base".to_owned(),
+                repr_type:     "Standard.Base".try_into().unwrap(),
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
@@ -79,7 +81,7 @@ pub mod mock {
         pub fn foo_method_parameter2() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
                 name:          "param1".to_owned(),
-                repr_type:     "Number".to_owned(),
+                repr_type:     "Standard.Base.Number".try_into().unwrap(),
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
@@ -98,34 +100,26 @@ pub mod mock {
 
         pub fn suggestion_entry_foo() -> suggestion_database::Entry {
             let project_name = project::QualifiedName::standard_base_library();
-            suggestion_database::Entry {
-                name:               "foo".to_owned(),
-                defined_in:         module::QualifiedName::from_segments(project_name, &["Main"])
-                    .unwrap(),
-                self_type:          Some("Standard.Base.Main".to_owned().try_into().unwrap()),
-                arguments:          vec![foo_method_parameter(), foo_method_parameter2()],
-                return_type:        "Any".to_owned(),
-                kind:               suggestion_database::entry::Kind::Method,
-                scope:              suggestion_database::entry::Scope::Everywhere,
-                documentation_html: None,
-                icon_name:          None,
-            }
+            let entry = suggestion_database::Entry::new_method(
+                QualifiedName::new_main(project_name),
+                "Standard.Base.Main".try_into().unwrap(),
+                "foo",
+                "Standard.Base.Any".try_into().unwrap(),
+                false,
+            );
+            entry.with_arguments(vec![foo_method_parameter(), foo_method_parameter2()])
         }
 
         pub fn suggestion_entry_bar() -> suggestion_database::Entry {
             let project_name = project::QualifiedName::standard_base_library();
-            suggestion_database::Entry {
-                name:               "bar".to_owned(),
-                defined_in:         module::QualifiedName::from_segments(project_name, &["Other"])
-                    .unwrap(),
-                self_type:          Some("Standard.Base.Other".to_owned().try_into().unwrap()),
-                arguments:          vec![bar_method_parameter()],
-                return_type:        "Any".to_owned(),
-                kind:               suggestion_database::entry::Kind::Method,
-                scope:              suggestion_database::entry::Scope::Everywhere,
-                documentation_html: None,
-                icon_name:          None,
-            }
+            let entry = suggestion_database::Entry::new_method(
+                QualifiedName::new_main(project_name).new_child("Other"),
+                "Standard.Base.Other".try_into().unwrap(),
+                "bar",
+                "Standard.Base.Any".try_into().unwrap(),
+                true,
+            );
+            entry.with_arguments(vec![bar_method_parameter()])
         }
     }
 
@@ -196,7 +190,7 @@ pub mod mock {
             module
         }
 
-        pub fn module_qualified_name(&self) -> module::QualifiedName {
+        pub fn module_qualified_name(&self) -> QualifiedName {
             self.module_path.qualified_module_name(self.project_name.clone())
         }
 
@@ -420,7 +414,7 @@ pub mod mock {
             (model, controller)
         }
 
-        pub fn module_name(&self) -> model::module::QualifiedName {
+        pub fn module_name(&self) -> QualifiedName {
             self.module.path().qualified_module_name(self.project.qualified_name())
         }
     }

@@ -760,7 +760,7 @@ pub mod test {
     fn module_qualified_name() {
         let namespace = "n";
         let project_name = "P";
-        let project_name = project::QualifiedName::from_segments(namespace, project_name).unwrap();
+        let project_name = project::QualifiedName::new(namespace, project_name);
         let root_id = default();
         let file_path = FilePath::new(root_id, &["src", "Foo", "Bar.enso"]);
         let module_path = Path::from_file_path(file_path).unwrap();

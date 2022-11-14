@@ -428,6 +428,7 @@ pub mod test {
     use crate::model::suggestion_database::entry::Scope;
 
     use crate::model::module;
+    use ast::opr::predefined::ACCESS;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
@@ -439,7 +440,6 @@ pub mod test {
     use enso_text::unit::*;
     use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
-    use ast::opr::predefined::ACCESS;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -600,6 +600,7 @@ pub mod test {
                 documentation:      None,
                 documentation_html: None,
                 scope:              None,
+                reexport:           None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -611,7 +612,7 @@ pub mod test {
         assert_eq!(notifications.expect_next(), Notification::Updated);
         notifications.expect_pending();
         assert_eq!(db.lookup(1).unwrap().arguments, vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type, "TestAtom");
+        assert_eq!(db.lookup(1).unwrap().return_type.to_string(), "TestAtom");
         assert_eq!(db.lookup(1).unwrap().documentation_html, None);
         assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
         assert_eq!(db.version.get(), 4);
@@ -636,6 +637,7 @@ pub mod test {
                 })),
                 module:             None,
                 self_type:          None,
+                reexport:           None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -647,7 +649,7 @@ pub mod test {
         assert_eq!(notifications.expect_next(), Notification::Updated);
         notifications.expect_pending();
         assert_eq!(db.lookup(1).unwrap().arguments, vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type, "TestAtom2");
+        assert_eq!(db.lookup(1).unwrap().return_type.to_string(), "TestAtom2");
         assert_eq!(db.lookup(1).unwrap().documentation_html, Some("<p>Blah blah</p>".to_owned()));
         assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
         assert_eq!(db.version.get(), 5);
@@ -674,6 +676,7 @@ pub mod test {
                 })),
                 self_type:          None,
                 module:             None,
+                reexport:           None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -718,6 +721,7 @@ pub mod test {
                 scope:              None,
                 self_type:          None,
                 module:             None,
+                reexport:           None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -744,6 +748,7 @@ pub mod test {
                 scope:              None,
                 self_type:          None,
                 module:             None,
+                reexport:           None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -790,6 +795,7 @@ pub mod test {
             module:                 "TestProject.TestModule".to_string(),
             params:                 vec![],
             parent_type:            Some("Any".to_string()),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -800,6 +806,7 @@ pub mod test {
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
             return_type:            "TestAtom".to_string(),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -811,6 +818,8 @@ pub mod test {
             self_type:              "Standard.Builtins.Main.System".to_string(),
             arguments:              vec![],
             return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            is_static:              false,
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -887,6 +896,7 @@ pub mod test {
             module:                 "Empty.Entry".to_string(),
             arguments:              vec![],
             return_type:            "".to_string(),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -929,6 +939,7 @@ pub mod test {
             module:                 "TestProject.TestModule".to_string(),
             params:                 vec![],
             parent_type:            Some("Any".to_string()),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -939,6 +950,7 @@ pub mod test {
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
             return_type:            "TestAtom".to_string(),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -950,6 +962,8 @@ pub mod test {
             self_type:              "Standard.Builtins.Main.System".to_string(),
             arguments:              vec![],
             return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            is_static:              false,
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -980,6 +994,7 @@ pub mod test {
             documentation:      Some(FieldUpdate::set("New doc".to_string())),
             documentation_html: None,
             scope:              None,
+            reexport:           None,
         });
         let entry1_modification = Box::new(SuggestionsDatabaseModification {
             arguments:          vec![],
@@ -989,6 +1004,7 @@ pub mod test {
             documentation:      None,
             documentation_html: None,
             scope:              None,
+            reexport:           None,
         });
         let entry3 = SuggestionEntry::Module {
             module:                 "local.Unnamed_6.Main".to_string(),
@@ -1036,6 +1052,7 @@ pub mod test {
             module:                 "TestProject.TestModule".to_string(),
             arguments:              vec![],
             return_type:            "TestAtom".to_string(),
+            reexport:               None,
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -1081,7 +1098,7 @@ pub mod test {
     fn replace_value_and_traverse_back_pruning_empty_subtrees() {
         let paths = vec!["A", "A.B"];
         for path in paths {
-            let qualified_name = QualifiedName::from_iter(path.split(ACCESS));
+            let qualified_name = QualifiedName::from_text(path).unwrap();
             let qn_to_id_map: RefCell<QualifiedNameToIdMap> = default();
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
@@ -1112,14 +1129,14 @@ pub mod test {
         let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            let path = QualifiedName::from_iter(path.split(ACCESS));
+            let path = QualifiedName::from_text(path).unwrap();
             assert_eq!(map.get(&path), None);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, *value);
             assert_eq!(result, None);
             assert_eq!(map.get(&path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            let path = QualifiedName::from_iter(path.split(ACCESS));
+            let path = QualifiedName::from_text(path).unwrap();
             assert_eq!(map.get(&path), *value);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, None);
             assert_eq!(result, *value);

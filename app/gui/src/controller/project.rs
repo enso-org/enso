@@ -261,7 +261,7 @@ mod tests {
         let _ctx = TestWithLocalPoolExecutor::set_up();
         let parser = parser_scala::Parser::new_or_panic();
         let mut data = crate::test::mock::Unified::new();
-        let module_name = data.module_path.module_name();
+        let module_name = data.module_path.module_name().to_owned();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);
 
         // Check that module without main gets it after the call.

@@ -177,6 +177,10 @@ impl QualifiedName {
     pub fn push_segment(&mut self, name: impl Into<ImString>) {
         self.path.push(name.into());
     }
+
+    pub fn pop_segment(&mut self) -> Option<ImString> {
+        self.path.pop()
+    }
 }
 
 impl TryFrom<&str> for QualifiedName {
@@ -191,6 +195,14 @@ impl TryFrom<String> for QualifiedName {
     type Error = failure::Error;
 
     fn try_from(text: String) -> Result<Self, Self::Error> {
+        Self::from_text(text)
+    }
+}
+
+impl TryFrom<&String> for QualifiedName {
+    type Error = failure::Error;
+
+    fn try_from(text: &String) -> Result<Self, Self::Error> {
         Self::from_text(text)
     }
 }

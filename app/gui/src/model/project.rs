@@ -239,12 +239,12 @@ pub mod test {
     }
 
     /// Sets up name expectation on the mock project, returning a given name.
-    pub fn expect_name(project: &mut MockAPI, name: impl Into<String>) {
+    pub fn expect_name(project: &mut MockAPI, name: impl Into<ImString>) {
         let name = name.into();
         project.expect_name().returning_st(move || name.clone());
     }
 
-    pub fn expect_qualified_name(project: &mut MockAPI, name: &QualifiedName) {
+    pub fn expect_qualified_name(project: &mut MockAPI, name: &project::QualifiedName) {
         let name = name.clone();
         project.expect_qualified_name().returning_st(move || name.clone());
     }
