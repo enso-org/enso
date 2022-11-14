@@ -402,17 +402,37 @@ impl ShapeSystemModel {
         let mut material = SpriteSystem::default_geometry_material();
         material.set_main(
             "
-                vec2 padding = vec2(10.0);//aa_side_padding());
+                mat4 model_view_projection = input_view_projection * input_transform;
+
+                // First, we are computing the vertex position without shape padding. This is 
+                // required to make the function [`aa_side_padding`] work, as it uses [`zoom`], 
+                // which uses [`input_local.z`]. This method was chosen because it is future-proof.
+                // Consider a sprite rotated around its Y-axis and a camera rotated around its 
+                // X-axis. The correct zoom can be computed only after the [`model_view_projection`]
+                // matrix is applied. See the docs of [`aa_side_padding`] to learn more about shape 
+                // padding.
+                //
+                // Please note that we are first using [`input_uv`] here, and then we are changing
+                // it. It's because first we are using the original, incoming UV in range 0..1, and
+                // then we are scaling it to a bigger range, so the padded area UV is not contained
+                // within 0..1.
+                vec3 input_local_no_padding = vec3((input_uv - input_alignment) * input_size, 0.0);
+                vec4 position_no_padding = model_view_projection * vec4(input_local_no_padding, 1.0);
+                input_local.z = position_no_padding.z;
+
+                // We are now able to compute the padding and grow the canvas by its value.
+                vec2 padding = vec2(aa_side_padding());
                 vec2 padding2 = 2.0 * padding;
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / padded_size;
                 input_uv = (vertex_uv - uv_offset) * uv_scale;
-                mat4 model_view_projection = input_view_projection * input_transform;
+
+                // We need to recompute the vertex position with the padding.
                 input_local = vec3((input_uv - input_alignment) * padded_size, 0.0);
                 gl_Position = model_view_projection * vec4(input_local,1.0);
                 input_local.z = gl_Position.z;
-                ",
+            ",
         );
         material
     }

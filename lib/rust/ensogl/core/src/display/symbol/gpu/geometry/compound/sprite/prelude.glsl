@@ -12,6 +12,5 @@ float zoom() {
 /// Also, the padding depends on the zoom level. When shapes are zoomed out 2 times, the screen
 /// pixel will display 2 pixels of the sprite canvas.
 float aa_side_padding() {
-    // return max(1.0, ceil(pow(1.0 / zoom(), 5.0)));
-    return zoom();
+    return max(1.0, ceil(1.0 / zoom()));
 }
