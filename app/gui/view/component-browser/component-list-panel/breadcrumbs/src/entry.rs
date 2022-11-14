@@ -27,7 +27,7 @@ pub mod separator {
     use super::*;
     use std::f32::consts::PI;
 
-    pub const ICON_WIDTH: f32 = 16.0;
+    pub const ICON_WIDTH: f32 = 30.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
@@ -36,7 +36,8 @@ pub mod separator {
             let width = style.get_number(theme::separator::width);
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
-            let shape = triangle.fill(color);
+            let triangle = triangle.translate_x(1.0.px());
+            let shape = triangle.fill(color::Rgba(0.0, 0.0, 0.0, 0.15));
             shape.into()
         }
     }
@@ -47,7 +48,7 @@ pub mod separator {
 pub mod ellipsis {
     use super::*;
 
-    pub const ICON_WIDTH: f32 = 32.0;
+    pub const ICON_WIDTH: f32 = 28.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];

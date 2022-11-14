@@ -282,7 +282,7 @@ define_themes! { [light:0, dark:1]
                 navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
-                        crop_left = 9.0, 9.0;
+                        crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
                         height = 44.0, 44.0;
                         separator {
