@@ -1585,7 +1585,6 @@ lazy val `engine-runner-native` = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
-          "--allow-incomplete-classpath",
           "--macro:truffle",
           "--language:js",
           //          "-g",
