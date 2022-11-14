@@ -604,6 +604,15 @@ Text.compare_to self that =
         if comparison_result < 0 then Ordering.Less else
             Ordering.Greater
 
+#    case Meta.type_of that of
+#        Text_Matcher.Text_Matcher ->
+#            comparison_result = Text_Utils.compare_normalized self that
+#            if comparison_result == 0 then Ordering.Equal else
+#                if comparison_result < 0 then Ordering.Less else
+#                    Ordering.Greater
+#        _ ->
+#            Panic.throw (Type_Error_Data Text that "that")
+
 ## Compare two texts to discover their ordering.
 
    Arguments:

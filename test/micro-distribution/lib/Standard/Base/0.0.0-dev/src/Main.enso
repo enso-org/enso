@@ -22,6 +22,9 @@ from project.Data.Numbers export Number
 import project.Data.Vector
 from project.Data.Vector export Vector
 
+import project.Nothing
+from project.Nothing export Nothing
+
 import project.Polyglot
 from project.Polyglot export all
 

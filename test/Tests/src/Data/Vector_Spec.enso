@@ -574,6 +574,7 @@ spec = Test.group "Vectors" <|
         ["a", 2].distinct . should_fail_with Incomparable_Values_Error
         [2, "a", Integer, "a", 2].distinct . should_fail_with Incomparable_Values_Error
         [Pair_Data 1 2, Pair_Data 3 4].distinct . should_fail_with Incomparable_Values_Error
+        ["a", Nothing].distinct . should_fail_with Incomparable_Values_Error
 
     Test.specify "should correctly handle distinct with custom types like Atoms that implement compare_to" <|
         [T.Value 1 2, T.Value 3 3, T.Value 1 2].distinct . should_equal [T.Value 1 2, T.Value 3 3]
