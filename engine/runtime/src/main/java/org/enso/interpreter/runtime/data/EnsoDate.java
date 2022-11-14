@@ -42,9 +42,9 @@ public final class EnsoDate implements TruffleObject {
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate parse(Text text, Object noneOrPattern) {
-    var str = text.getContents().toString();
+    var str = text.toString();
     if (noneOrPattern instanceof Text pattern) {
-      var formatter = DateTimeFormatter.ofPattern(pattern.getContents().toString());
+      var formatter = DateTimeFormatter.ofPattern(pattern.toString());
       return new EnsoDate(LocalDate.parse(str, formatter));
     } else {
       return new EnsoDate(LocalDate.parse(str));
