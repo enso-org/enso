@@ -129,8 +129,24 @@ class CollaborativeBuffer(
 
     case CloseFile(clientId, _) =>
       if (clients.contains(clientId)) {
-        removeClient(buffer, clients, lockHolder, clientId, autoSave)
-        sender() ! FileClosed
+        autoSave.get(clientId) match {
+          case Some((contentVersion, cancellable)) =>
+            cancellable.cancel()
+            saveFile(
+              buffer,
+              clients,
+              lockHolder,
+              clientId,
+              contentVersion,
+              autoSave,
+              isAutoSave     = true,
+              onClose        = Some(clientId),
+              reportProgress = Some(sender())
+            )
+          case None =>
+            removeClient(buffer, clients, lockHolder, clientId, autoSave)
+            sender() ! FileClosed
+        }
       } else {
         sender() ! FileNotOpened
       }
@@ -166,7 +182,8 @@ class CollaborativeBuffer(
         clientId,
         ContentVersion(clientVersion),
         autoSave,
-        isAutoSave = false
+        isAutoSave = false,
+        onClose    = None
       )
     case AutoSave(clientId, clientVersion) =>
       saveFile(
@@ -176,7 +193,8 @@ class CollaborativeBuffer(
         clientId,
         clientVersion,
         autoSave.removed(clientId),
-        isAutoSave = true
+        isAutoSave = true,
+        onClose    = None
       )
     case ForceSave(clientId) =>
       autoSave.get(clientId) match {
@@ -190,6 +208,7 @@ class CollaborativeBuffer(
             contentVersion,
             autoSave.removed(clientId),
             isAutoSave     = true,
+            onClose        = None,
             reportProgress = Some(sender())
           )
         case None =>
@@ -203,22 +222,35 @@ class CollaborativeBuffer(
     autoSave: Map[ClientId, (ContentVersion, Cancellable)],
     lockHolder: Option[JsonSession],
     replyTo: Option[ActorRef],
+    onClose: Option[ClientId],
     timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
       replyTo.foreach(_ ! SaveFailed(OperationTimeout))
       unstashAll()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
 
     case WriteFileResult(Left(failure)) =>
       replyTo.foreach(_ ! SaveFailed(failure))
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
 
     case WriteFileResult(Right(())) =>
       replyTo match {
@@ -230,9 +262,15 @@ class CollaborativeBuffer(
       }
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(
-        collaborativeEditing(buffer, clients, lockHolder, autoSave)
-      )
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
 
     case _ =>
       stash()
@@ -246,6 +284,7 @@ class CollaborativeBuffer(
     clientVersion: ContentVersion,
     currentAutoSaves: Map[ClientId, (ContentVersion, Cancellable)],
     isAutoSave: Boolean,
+    onClose: Option[ClientId],
     reportProgress: Option[ActorRef] = None
   ): Unit = {
     val hasLock = lockHolder.exists(_.clientId == clientId)
@@ -266,6 +305,7 @@ class CollaborativeBuffer(
             currentAutoSaves.removed(clientId),
             lockHolder,
             if (isAutoSave) reportProgress else Some(sender()),
+            onClose,
             timeoutCancellable
           )
         )
@@ -542,7 +582,6 @@ class CollaborativeBuffer(
         case holder                                => Some(holder)
       }
 
-    autoSave.get(clientId).foreach(_._2.cancel())
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
       runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
