@@ -318,10 +318,9 @@ pub mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
     use crate::model::execution_context::ComponentGroup;
-    use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use double_representation::name::project;
+    use double_representation::name::{project, QualifiedName};
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;

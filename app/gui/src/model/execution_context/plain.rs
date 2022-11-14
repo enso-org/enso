@@ -259,7 +259,7 @@ pub mod test {
     use super::*;
 
     use double_representation::definition::DefinitionName;
-    use double_representation::name::project;
+    use double_representation::name::{project, QualifiedName};
     use engine_protocol::language_server;
 
     #[derive(Clone, Derivative)]
@@ -291,9 +291,9 @@ pub mod test {
             }
         }
 
-        pub fn module_qualified_name(&self) -> model::module::QualifiedName {
+        pub fn module_qualified_name(&self) -> QualifiedName {
             let project_name =
-                project::QualifiedName::from_segments(&self.namespace, &self.project_name);
+                project::QualifiedName::new(&self.namespace, &self.project_name);
             self.module_path.qualified_module_name(project_name.unwrap())
         }
 

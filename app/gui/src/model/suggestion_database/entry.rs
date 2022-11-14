@@ -740,6 +740,7 @@ mod test {
     use super::*;
 
     use enso_text::unit::*;
+    use crate::mock_database;
 
     #[test]
     fn code_from_entry() {
@@ -784,6 +785,26 @@ mod test {
         assert_eq!(static_method.code_to_insert(true), "Number.static_method");
         assert_eq!(module_method.code_to_insert(false), "module_method");
         assert_eq!(module_method.code_to_insert(true), "Project.static_method");
+    }
+
+    #[test]
+    fn required_imports_of_entry() {
+        let db = mock_database! {
+            mod local.Project {
+                type TestType {}
+                mod TopModule {
+                    type TestType {
+                        Constructor;
+                        fn method () -> local.Project.TestType;
+                        static fn static_method() -> local.Project.TestType;
+                    }
+                }
+                fn module_method () -> Standard.Base.Any;
+            }
+            mod Standard.Base {
+                type Any {}
+            }
+        };
     }
 
     #[test]

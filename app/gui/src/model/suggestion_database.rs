@@ -23,6 +23,8 @@ use language_server::types::SuggestionsDatabaseVersion;
 
 pub mod entry;
 pub mod example;
+#[cfg(test)]
+pub mod mock;
 
 pub use entry::Entry;
 pub use example::Example;
@@ -419,7 +421,7 @@ fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
 // =============
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
@@ -437,145 +439,9 @@ mod test {
     use enso_text::unit::*;
     use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+    use ast::opr::predefined::ACCESS;
 
     wasm_bindgen_test_configure!(run_in_browser);
-
-    #[derive(Debug, Default)]
-    struct MockBuilder {
-        next_id:    entry::Id,
-        pub result: SuggestionDatabase,
-        context:    Option<QualifiedName>,
-    }
-
-    impl MockBuilder {
-        fn add_entry(&mut self, entry: Entry) {
-            let id = self.next_id;
-            self.next_id += 1;
-            self.result.put_entry(self.next_id, entry);
-        }
-
-        pub fn add_and_enter_module<S>(&mut self, segment: S)
-        where S: Into<ImString> + TryInto<QualifiedName> {
-            let module_path = if let Some(path) = &mut self.context {
-                path.push(segment.into());
-                path.clone()
-            } else {
-                let initial_path = segment.try_into().unwrap();
-                self.context = Some(initial_path.clone());
-                initial_path
-            };
-            self.add_entry(Entry::new_module(module_path));
-        }
-
-        pub fn add_and_enter_type(
-            &mut self,
-            type_name: impl Into<String>,
-            arguments: Vec<SuggestionEntryArgument>,
-        ) {
-            let type_name = type_name.into();
-            let defined_in = self.context.take().expect("Cannot add type without module");
-            self.context = Some(defined_in.clone().new_child(&type_name));
-            self.add_entry(Entry::new_type(defined_in, type_name).with_arguments(arguments))
-        }
-
-        pub fn leave(&mut self) {
-            self.context = self.context.and_then(|ctx| ctx.parent()).map(|ctx| ctx.to_owned())
-        }
-
-        pub fn add_method(
-            &mut self,
-            name: impl Into<String>,
-            arguments: Vec<SuggestionEntryArgument>,
-            return_type: impl TryInto<QualifiedName>,
-            is_static: bool,
-        ) {
-            let on_type = self.context.as_ref().expect("Cannot add method without context");
-            let return_type = return_type.try_into().expect("Invalid return type");
-            self.add_entry(
-                Entry::new_nonextension_method(on_type.clone(), name, return_type, is_static)
-                    .with_arguments(arguments),
-            );
-        }
-
-        pub fn add_constructor(
-            &mut self,
-            name: impl Into<String>,
-            arguments: Vec<SuggestionEntryArgument>,
-        ) {
-            let on_type = self.context.as_ref().expect("Cannot add constructor without context");
-            self.add_entry(Entry::new_constructor(on_Type.clone, name).with_arguments(arguments));
-        }
-    }
-
-    macro_rules! mock_database_entry_argument {
-        ($name:ident) => {
-            SuggestionEntryArgument {
-                name: stringify!($name),
-                repr_type: "Any",
-                is_suspended: false,
-                has_default: false,
-                default_value: false,
-            }
-        };
-        ($name:ident: $($path:ident).*) => {
-            SuggestionEntryArgument {
-                name: stringify!($name),
-                repr_type: stringify!($($path).*),
-                is_suspended: false,
-                has_default: false,
-                default_value: false,
-            }
-        }
-    }
-
-    macro_rules! mock_database_entry_arguments {
-        ($(($($arg_name:ident $(:$($arg_type_path:ident).*)?),*))?) => {
-            vec![$($(mock_database_entry_argument!{$arg_name $(:$($arg_type_path).*)?}),*)?]
-        }
-    }
-
-    macro_rules! mock_database_entries {
-        ([$builder:ident] mod $name:ident $(.$name2:ident)? { $($content:tt)* } $($rest:tt)*) => {
-            $builder.add_and_enter_module(stringify!{$name$(.$name2)?});
-            mock_database_entry! { [$builder] $($content)* };
-            $builder.leave;
-            mock_database_entry! { [$builder] $($rest)* };
-        };
-        ([$builder:ident] type $name:ident $(($($args:tt)*))? { $($content:tt)* } $($rest:tt)*) => {
-            let args = mock_database_entry_arguments! {$(($($args)*))?};
-            $builder.add_and_enter_type(stringify!{$name}, args);
-            mock_database_entry! { [$builder] $($content)* };
-            $builder.leave;
-            mock_database_entry! { [$builder] $($rest)* };
-        };
-        ([$builder:ident] $name:ident $(($($args:tt)*))?; $($rest:tt)*) => {
-            let args = mock_database_entry_arguments! {$(($($args)*))?};
-            $builder.add_constructor(stringify!{$name}, args);
-            mock_database_entry! { [$builder] $($rest)* };
-        };
-        ([$builder:ident] fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
-            let args = mock_database_entry_arguments! {$(($($args)*))?};
-            $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, false);
-            mock_database_entry! { [$builder] $($rest)* };
-        };
-        ([$builder:ident] static fn $name:ident $(($($args:tt)*))? -> $($return_type_path:ident).*; $($rest:tt)*) => {
-            let args = mock_database_entry_arguments! {$(($($args)*))?};
-            $builder.add_method(stringify!{$name}, args, stringify!{$($return_type_path).*}, true);
-            mock_database_entry! { [$builder] $($rest)* };
-        };
-        ([$builder:ident]) => {}
-    }
-
-    #[macro_export]
-    macro_rules! mock_database {
-        ($($content:tt)*) => {
-            {
-                let mut builder = MockBuilder::default();
-                mock_database_entries! {[builder] $($content)*};
-                builder.result
-            }
-        }
-    }
 
     const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
 
@@ -1215,7 +1081,7 @@ mod test {
     fn replace_value_and_traverse_back_pruning_empty_subtrees() {
         let paths = vec!["A", "A.B"];
         for path in paths {
-            let qualified_name = entry::QualifiedName::from_iter(path.split(ACCESS));
+            let qualified_name = QualifiedName::from_iter(path.split(ACCESS));
             let qn_to_id_map: RefCell<QualifiedNameToIdMap> = default();
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
@@ -1246,14 +1112,14 @@ mod test {
         let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            let path = entry::QualifiedName::from_iter(path.split(ACCESS));
+            let path = QualifiedName::from_iter(path.split(ACCESS));
             assert_eq!(map.get(&path), None);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, *value);
             assert_eq!(result, None);
             assert_eq!(map.get(&path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            let path = entry::QualifiedName::from_iter(path.split(ACCESS));
+            let path = QualifiedName::from_iter(path.split(ACCESS));
             assert_eq!(map.get(&path), *value);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, None);
             assert_eq!(result, *value);
