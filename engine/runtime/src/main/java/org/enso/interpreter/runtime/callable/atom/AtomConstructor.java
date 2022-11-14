@@ -32,7 +32,7 @@ import org.enso.pkg.QualifiedName;
 public final class AtomConstructor implements TruffleObject {
 
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private final ModuleScope definitionScope;
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
@@ -257,6 +257,12 @@ public final class AtomConstructor implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
+  }
+
+  /** @return the fully qualified name of constructor type. */
+  @CompilerDirectives.TruffleBoundary
+  public QualifiedName getQualifiedTypeName() {
+    return type.getQualifiedName();
   }
 
   /** @return the fields defined by this constructor. */

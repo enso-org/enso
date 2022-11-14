@@ -21,6 +21,7 @@
 #![feature(const_trait_impl)]
 #![feature(slice_as_chunks)]
 #![feature(local_key_cell_methods)]
+#![feature(auto_traits)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -56,6 +57,7 @@ pub mod system;
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
 pub use animation::Easing;
+pub use display::event;
 pub use enso_frp as frp;
 pub use enso_types as types;
 
