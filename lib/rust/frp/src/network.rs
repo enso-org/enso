@@ -63,7 +63,6 @@ pub struct NetworkData {
 impl NetworkData {
     /// Constructor.
     pub fn new(label: String) -> Self {
-        let label = label.into();
         let nodes = default();
         let links = default();
         let bridges = default();
