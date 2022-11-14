@@ -1,12 +1,4 @@
-<li>Redistributions in binary form must reproduce the above copyright notice,
 <p>Copyright (c) 2007, Eclipse Foundation, Inc. and its licensors. </p>
-<p>Copyright (c) 2017:</p>
-<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-<ul><li>Redistributions of source code must retain the above copyright notice,
-<ul><li>The above copyright notice and this permission notice shall be included
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 Copyright (C) 2006, 2007, Robin Rosenberg <robin.rosenberg@dewire.com>
 Copyright (C) 2006, 2008, Robin Rosenberg <robin.rosenberg@dewire.com>
 Copyright (C) 2006, 2022, Shawn O. Pearce <spearce@spearce.org> and others
@@ -331,12 +323,3 @@ Copyright (c) 2020, 2022 Julian Ruppel <julian.ruppel@sap.com> and others
 Copyright (c) 2020, Google LLC  and others
 Copyright (c) 2020, Google LLC and others
 Copyright (c) 2021 Qualcomm Innovation Center, Inc.
-Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow <danshu@microsoft.com>
-Redistributions in binary form must reproduce the above copyright notice,
-Redistributions of source code must retain the above copyright
-Redistributions of source code must retain the above copyright notice, this
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-and other copyright owners as documented in the project's IP log.
-copyright notice, this list of conditions and the following
-other copyright owners as documented in the project's IP log.
