@@ -39,7 +39,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListCode =
     """from Standard.Base.Data.List import all
       |
-      |main = list ->
+      |main = self -> list ->
       |    reverser = acc -> list -> case list of
       |        Cons h t -> @Tail_Call reverser (Cons h acc) t
       |        Nil -> acc
@@ -56,7 +56,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    Cons h t -> @Tail_Call t.rev (Cons h acc)
       |    _ -> acc
       |
-      |main = list ->
+      |main = self -> list ->
       |    res = list.rev Nil
       |    res
       |""".stripMargin
@@ -65,7 +65,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListCode =
     """from Standard.Base.Data.List import all
       |
-      |main = list ->
+      |main = self -> list ->
       |    summator = acc -> list -> case list of
       |        Cons h t -> @Tail_Call summator acc+h t
       |        Nil -> acc
@@ -78,7 +78,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListLeftFoldCode =
     """from Standard.Base.Data.List import all
       |
-      |main = list ->
+      |main = self -> list ->
       |    fold = f -> acc -> list -> case list of
       |        Cons h t -> @Tail_Call fold f (f acc h) t
       |        _ -> acc
@@ -91,7 +91,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListFallbackCode =
     """from Standard.Base.Data.List import all
       |
-      |main = list ->
+      |main = self -> list ->
       |    summator = acc -> list -> case list of
       |        Cons h t -> @Tail_Call summator acc+h t
       |        _ -> acc
@@ -108,7 +108,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    Cons h t -> @Tail_Call t.sum h+acc
       |    _ -> acc
       |
-      |main = list ->
+      |main = self -> list ->
       |    res = list.sum 0
       |    res
       |""".stripMargin
@@ -121,7 +121,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |    _ -> acc
       |
-      |main = list ->
+      |main = self -> list ->
       |    res = list.mapReverse (x -> x + 1) Nil
       |    res
       |""".stripMargin
@@ -134,7 +134,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |    _ -> acc
       |
-      |main = list ->
+      |main = self -> list ->
       |    adder = x -> y -> x + y
       |    res = list.mapReverse (adder 1) Nil
       |    res
