@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 owned_ttf_parser = "0.15.1"
-enso-prelude = { path = "../../../../../../prelude" }
+derive_more = "0.99"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

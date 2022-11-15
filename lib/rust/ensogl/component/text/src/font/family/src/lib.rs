@@ -44,8 +44,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use enso_prelude::*;
-
+use derive_more::Deref;
+use derive_more::Display;
 use std::collections::HashMap;
 
 
