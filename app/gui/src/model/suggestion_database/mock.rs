@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use double_representation::name::QualifiedName;
-use engine_protocol::language_server::SuggestionEntryArgument;
 
 use crate::model::suggestion_database::entry;
+use crate::model::suggestion_database::entry::Argument;
 use crate::model::suggestion_database::Entry;
 use crate::model::SuggestionDatabase;
 
@@ -48,7 +48,7 @@ impl Builder {
     pub fn add_and_enter_type(
         &mut self,
         type_name: impl Into<String>,
-        arguments: Vec<SuggestionEntryArgument>,
+        arguments: Vec<Argument>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
         let type_name = type_name.into();
@@ -69,7 +69,7 @@ impl Builder {
     pub fn add_method(
         &mut self,
         name: impl Into<String>,
-        arguments: Vec<SuggestionEntryArgument>,
+        arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         is_static: bool,
         modifier: impl FnOnce(Entry) -> Entry,
@@ -87,7 +87,7 @@ impl Builder {
     pub fn add_constructor(
         &mut self,
         name: impl Into<String>,
-        arguments: Vec<SuggestionEntryArgument>,
+        arguments: Vec<Argument>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
         let on_type = self.in_type.as_ref().expect("Cannot add constructor when not in type");
@@ -101,7 +101,7 @@ impl Builder {
 #[macro_export]
 macro_rules! mock_suggestion_database_entry_argument {
     ($name:ident) => {
-        SuggestionEntryArgument {
+        Argument {
             name: stringify!($name).to_owned(),
             repr_type: DEFAULT_TYPE.to_owned(),
             is_suspended: false,
@@ -110,7 +110,7 @@ macro_rules! mock_suggestion_database_entry_argument {
         }
     };
     ($name:ident: $($path:ident).*) => {
-        SuggestionEntryArgument {
+        Argument {
             name: stringify!($name).to_owned(),
             repr_type: stringify!($($path).*).to_owned(),
             is_suspended: false,
@@ -164,7 +164,13 @@ macro_rules! mock_suggestion_database_entries {
 macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
         {
-            use $crate::model::suggestion_database::mock::*;
+            use $crate::model::suggestion_database::mock::Builder;
+            use $crate::model::suggestion_database::mock::DEFAULT_TYPE;
+            use $crate::mock_suggestion_database_entries;
+            use $crate::mock_suggestion_database_entry_arguments;
+            use $crate::mock_suggestion_database_entry_argument;
+            use $crate::model::suggestion_database::entry::Argument;
+
             let mut builder = Builder::new();
             $(
                 builder.add_and_enter_module(stringify!{$ns.$project}, |e| e$(.$($attr_setter)*)*);

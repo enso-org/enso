@@ -753,7 +753,6 @@ pub mod test {
         assert!(Path::from_file_path(FilePath::new(default(), &["surce", "Main.enso"])).is_err());
         assert!(Path::from_file_path(FilePath::new(default(), &["src", "Main"])).is_err());
         assert!(Path::from_file_path(FilePath::new(default(), &["src", ""])).is_err());
-        assert!(Path::from_file_path(FilePath::new(default(), &["src", "main.enso"])).is_err());
     }
 
     #[test]

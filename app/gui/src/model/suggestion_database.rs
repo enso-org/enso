@@ -85,16 +85,19 @@ impl QualifiedNameToIdMap {
     ///
     /// The function is optimized to not create new empty nodes if they would be deleted by the
     /// function before it returns.
-    fn replace_value_and_traverse_back_pruning_empty_subtrees(
+    fn replace_value_and_traverse_back_pruning_empty_subtrees<P, I>(
         &mut self,
-        path: &QualifiedName,
+        path: P,
         value: Option<entry::Id>,
-    ) -> Option<entry::Id> {
-        let mut path_iter = path.into_iter();
+    ) -> Option<entry::Id>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<ImString>,
+    {
         let mut swapped_value = value;
         swap_value_and_traverse_back_pruning_empty_subtrees(
             &mut self.tree,
-            &mut path_iter,
+            &mut path.into_iter(),
             &mut swapped_value,
         );
         swapped_value
@@ -427,8 +430,11 @@ pub mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::suggestion_database::entry::Scope;
 
+    use crate::mock_suggestion_database;
     use crate::model::module;
+    use crate::model::suggestion_database::mock::standard_db_mock;
     use ast::opr::predefined::ACCESS;
+    use double_representation::name::NamePath;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
@@ -437,6 +443,7 @@ pub mod test {
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
+    use engine_protocol::language_server::SuggestionsDatabaseUpdate;
     use enso_text::unit::*;
     use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -459,9 +466,9 @@ pub mod test {
         // Non-empty db
         let entry = SuggestionEntry::Constructor {
             name:                   "TextAtom".to_string(),
-            module:                 "TestProject.TestModule".to_string(),
+            module:                 "test.TestProject.TestModule".to_string(),
             arguments:              vec![],
-            return_type:            "TestAtom".to_string(),
+            return_type:            "test.TestProject.TestModule.TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
@@ -479,92 +486,33 @@ pub mod test {
         assert_eq!(db.version.get(), 456);
     }
 
-
-
-    //TODO[ao] this test should be split between various cases of applying modification to single
-    //  entry and here only for testing whole database.
     #[test]
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
-        let entry1 = SuggestionEntry::Constructor {
-            name:                   "Entry1".to_owned(),
-            module:                 "TestProject.TestModule".to_owned(),
+        let db = standard_db_mock();
+        let replaced_entry = QualifiedName::from_text("Standard.Base.Number").unwrap();
+        let (replaced_id, _) = db.lookup_by_qualified_name(replaced_entry.as_ref()).unwrap();
+        let new_entry = SuggestionEntry::Constructor {
+            name:                   "NewEntry".to_owned(),
+            module:                 "test.TestProject.TestModule".to_owned(),
             arguments:              vec![],
-            return_type:            "TestAtom".to_owned(),
+            return_type:            "test.TestProject.TestModule.TestAtom".to_owned(),
             documentation:          None,
             documentation_html:     None,
             documentation_sections: default(),
             external_id:            None,
             reexport:               None,
         };
-        let entry2 = SuggestionEntry::Constructor {
-            name:                   "Entry2".to_owned(),
-            module:                 "TestProject.TestModule".to_owned(),
-            arguments:              vec![],
-            return_type:            "TestAtom".to_owned(),
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            external_id:            None,
-            reexport:               None,
-        };
-        let new_entry2 = SuggestionEntry::Constructor {
-            name:                   "NewEntry2".to_owned(),
-            module:                 "TestProject.TestModule".to_owned(),
-            arguments:              vec![],
-            return_type:            "TestAtom".to_owned(),
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            external_id:            None,
-            reexport:               None,
-        };
-        let arg1 = SuggestionEntryArgument {
-            name:          "Argument1".to_owned(),
-            repr_type:     "Number".to_owned(),
-            is_suspended:  false,
-            has_default:   false,
-            default_value: None,
-        };
-        let arg2 = SuggestionEntryArgument {
-            name:          "Argument2".to_owned(),
-            repr_type:     "TestAtom".to_owned(),
-            is_suspended:  true,
-            has_default:   false,
-            default_value: None,
-        };
-        let arg3 = SuggestionEntryArgument {
-            name:          "Argument3".to_owned(),
-            repr_type:     "Number".to_owned(),
-            is_suspended:  false,
-            has_default:   true,
-            default_value: Some("13".to_owned()),
-        };
-        let entry3 = SuggestionEntry::Function {
-            external_id: None,
-            name:        "entry3".to_string(),
-            module:      "TestProject.TestModule".to_string(),
-            arguments:   vec![arg1, arg2, arg3],
-            return_type: "".to_string(),
-            scope:       SuggestionEntryScope {
-                start: Position { line: 1, character: 2 },
-                end:   Position { line: 2, character: 4 },
-            },
+        let new_entry_modification = SuggestionsDatabaseModification {
+            module: Some(FieldUpdate::set("test.TestProject.TestModule2".to_owned())),
+            ..default()
         };
 
-        let db_entry1 = SuggestionsDatabaseEntry { id: 1, suggestion: entry1 };
-        let db_entry2 = SuggestionsDatabaseEntry { id: 2, suggestion: entry2 };
-        let db_entry3 = SuggestionsDatabaseEntry { id: 3, suggestion: entry3 };
-        let initial_response = language_server::response::GetSuggestionDatabase {
-            entries:         vec![db_entry1, db_entry2, db_entry3],
-            current_version: 1,
-        };
-        let db = SuggestionDatabase::from_ls_response(initial_response);
         let mut notifications = db.subscribe().boxed_local();
         notifications.expect_pending();
 
         // Remove
-        let remove_update = entry::Update::Remove { id: 2 };
+        let remove_update = entry::Update::Remove { id: replaced_id };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![remove_update],
             current_version: 2,
@@ -572,11 +520,11 @@ pub mod test {
         db.apply_update_event(update);
         fixture.run_until_stalled();
         assert_eq!(notifications.expect_next(), Notification::Updated);
-        assert_eq!(db.lookup(2), Err(NoSuchEntry(2)));
+        assert_eq!(db.lookup(replaced_id), Err(NoSuchEntry(replaced_id)));
         assert_eq!(db.version.get(), 2);
 
         // Add
-        let add_update = entry::Update::Add { id: 2, suggestion: new_entry2 };
+        let add_update = entry::Update::Add { id: replaced_id, suggestion: new_entry };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![add_update],
             current_version: 3,
@@ -585,23 +533,14 @@ pub mod test {
         fixture.run_until_stalled();
         assert_eq!(notifications.expect_next(), Notification::Updated);
         notifications.expect_pending();
-        assert_eq!(db.lookup(2).unwrap().name, "NewEntry2");
+        assert_eq!(db.lookup(replaced_id).unwrap().name, "NewEntry");
         assert_eq!(db.version.get(), 3);
 
-        // Empty modify
+        // Modify
         let modify_update = entry::Update::Modify {
-            id:           1,
+            id:           replaced_id,
             external_id:  None,
-            modification: Box::new(SuggestionsDatabaseModification {
-                arguments:          vec![],
-                module:             None,
-                self_type:          None,
-                return_type:        None,
-                documentation:      None,
-                documentation_html: None,
-                scope:              None,
-                reexport:           None,
-            }),
+            modification: Box::new(new_entry_modification),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![modify_update],
@@ -611,166 +550,18 @@ pub mod test {
         fixture.run_until_stalled();
         assert_eq!(notifications.expect_next(), Notification::Updated);
         notifications.expect_pending();
-        assert_eq!(db.lookup(1).unwrap().arguments, vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type.to_string(), "TestAtom");
-        assert_eq!(db.lookup(1).unwrap().documentation_html, None);
-        assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
+        assert_eq!(
+            db.lookup(replaced_id).unwrap().defined_in.to_string(),
+            "test.TestProject.TestModule2"
+        );
         assert_eq!(db.version.get(), 4);
-
-        // Modify with some invalid fields
-        let modify_update = entry::Update::Modify {
-            id:           1,
-            external_id:  None,
-            modification: Box::new(SuggestionsDatabaseModification {
-                // Invalid: the entry does not have any arguments.
-                arguments:          vec![SuggestionArgumentUpdate::Remove { index: 0 }],
-                // Valid.
-                return_type:        Some(FieldUpdate::set("TestAtom2".to_owned())),
-                // Valid.
-                documentation:      Some(FieldUpdate::set("Blah blah".to_owned())),
-                // Valid.
-                documentation_html: Some(FieldUpdate::set("<p>Blah blah</p>".to_owned())),
-                // Invalid: atoms does not have any scope.
-                scope:              Some(FieldUpdate::set(SuggestionEntryScope {
-                    start: Position { line: 4, character: 10 },
-                    end:   Position { line: 8, character: 12 },
-                })),
-                module:             None,
-                self_type:          None,
-                reexport:           None,
-            }),
-        };
-        let update = SuggestionDatabaseUpdatesEvent {
-            updates:         vec![modify_update],
-            current_version: 5,
-        };
-        db.apply_update_event(update);
-        fixture.run_until_stalled();
-        assert_eq!(notifications.expect_next(), Notification::Updated);
-        notifications.expect_pending();
-        assert_eq!(db.lookup(1).unwrap().arguments, vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type.to_string(), "TestAtom2");
-        assert_eq!(db.lookup(1).unwrap().documentation_html, Some("<p>Blah blah</p>".to_owned()));
-        assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
-        assert_eq!(db.version.get(), 5);
-
-        // Modify Argument and Scope
-        let modify_update = entry::Update::Modify {
-            id:           3,
-            external_id:  None,
-            modification: Box::new(SuggestionsDatabaseModification {
-                arguments:          vec![SuggestionArgumentUpdate::Modify {
-                    index:         2,
-                    name:          Some(FieldUpdate::set("NewArg".to_owned())),
-                    repr_type:     Some(FieldUpdate::set("TestAtom".to_owned())),
-                    is_suspended:  Some(FieldUpdate::set(true)),
-                    has_default:   Some(FieldUpdate::set(false)),
-                    default_value: Some(FieldUpdate::remove()),
-                }],
-                return_type:        None,
-                documentation:      None,
-                documentation_html: None,
-                scope:              Some(FieldUpdate::set(SuggestionEntryScope {
-                    start: Position { line: 1, character: 5 },
-                    end:   Position { line: 3, character: 0 },
-                })),
-                self_type:          None,
-                module:             None,
-                reexport:           None,
-            }),
-        };
-        let update = SuggestionDatabaseUpdatesEvent {
-            updates:         vec![modify_update],
-            current_version: 6,
-        };
-        db.apply_update_event(update);
-        fixture.run_until_stalled();
-        assert_eq!(notifications.expect_next(), Notification::Updated);
-        notifications.expect_pending();
-        assert_eq!(db.lookup(3).unwrap().arguments.len(), 3);
-        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg");
-        assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
-        assert!(db.lookup(3).unwrap().arguments[2].is_suspended);
-        assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
-        let range = Location { line: 1.into(), offset: Utf16CodeUnit::from(5) }..=Location {
-            line:   3.into(),
-            offset: Utf16CodeUnit::from(0),
-        };
-        assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule { range });
-        assert_eq!(db.version.get(), 6);
-
-        // Add Argument
-        let new_argument = SuggestionEntryArgument {
-            name:          "NewArg2".to_string(),
-            repr_type:     "Number".to_string(),
-            is_suspended:  false,
-            has_default:   false,
-            default_value: None,
-        };
-        let add_arg_update = entry::Update::Modify {
-            id:           3,
-            external_id:  None,
-            modification: Box::new(SuggestionsDatabaseModification {
-                arguments:          vec![SuggestionArgumentUpdate::Add {
-                    index:    2,
-                    argument: new_argument,
-                }],
-                return_type:        None,
-                documentation:      None,
-                documentation_html: None,
-                scope:              None,
-                self_type:          None,
-                module:             None,
-                reexport:           None,
-            }),
-        };
-        let update = SuggestionDatabaseUpdatesEvent {
-            updates:         vec![add_arg_update],
-            current_version: 7,
-        };
-        db.apply_update_event(update);
-        fixture.run_until_stalled();
-        assert_eq!(notifications.expect_next(), Notification::Updated);
-        notifications.expect_pending();
-        assert_eq!(db.lookup(3).unwrap().arguments.len(), 4);
-        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg2");
-        assert_eq!(db.version.get(), 7);
-
-        // Remove Argument
-        let remove_arg_update = entry::Update::Modify {
-            id:           3,
-            external_id:  None,
-            modification: Box::new(SuggestionsDatabaseModification {
-                arguments:          vec![SuggestionArgumentUpdate::Remove { index: 2 }],
-                return_type:        None,
-                documentation:      None,
-                documentation_html: None,
-                scope:              None,
-                self_type:          None,
-                module:             None,
-                reexport:           None,
-            }),
-        };
-        let update = SuggestionDatabaseUpdatesEvent {
-            updates:         vec![remove_arg_update],
-            current_version: 8,
-        };
-        db.apply_update_event(update);
-        fixture.run_until_stalled();
-        assert_eq!(notifications.expect_next(), Notification::Updated);
-        notifications.expect_pending();
-        assert_eq!(db.lookup(3).unwrap().arguments.len(), 3);
-        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg");
-        assert_eq!(db.version.get(), 8);
     }
 
     /// Looks up an entry at `fully_qualified_name` in the `db` and verifies the name of the
     /// retrieved entry.
     fn lookup_and_verify_result_name(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_qualified_name_str(fully_qualified_name);
-        assert!(lookup.is_some());
-        let name = fully_qualified_name.rsplit(ACCESS).next().unwrap();
-        assert_eq!(lookup.unwrap().name, name);
+        assert_eq!(lookup.unwrap().qualified_name().to_string(), fully_qualified_name);
     }
 
     /// Looks up an entry at `fully_qualified_name` in the `db` and verifies that the lookup result
@@ -791,8 +582,8 @@ pub mod test {
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
         let entry0 = SuggestionEntry::Type {
-            name:                   "TextType".to_string(),
-            module:                 "TestProject.TestModule".to_string(),
+            name:                   "TestType".to_string(),
+            module:                 "test.TestProject.TestModule".to_string(),
             params:                 vec![],
             parent_type:            Some("Any".to_string()),
             reexport:               None,
@@ -802,10 +593,10 @@ pub mod test {
             external_id:            None,
         };
         let entry1 = SuggestionEntry::Constructor {
-            name:                   "TextAtom".to_string(),
-            module:                 "TestProject.TestModule".to_string(),
+            name:                   "TestAtom".to_string(),
+            module:                 "test.TestProject.TestModule".to_string(),
             arguments:              vec![],
-            return_type:            "TestAtom".to_string(),
+            return_type:            "test.TestProject.TestModule.TestType".to_string(),
             reexport:               None,
             documentation:          None,
             documentation_html:     None,
@@ -862,16 +653,16 @@ pub mod test {
 
         // Check that the entries used to initialize the database can be found using the
         // `lookup_by_fully_qualified_name` method.
-        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextType");
-        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextAtom");
-        lookup_and_verify_result_name(&db, "Standard.Builtins.Main.System.create_process");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main.operator1");
+        lookup_and_verify_result_name(&db, "test.TestProject.TestModule.TestType");
+        lookup_and_verify_result_name(&db, "test.TestProject.TestModule.TestType.TestAtom");
+        lookup_and_verify_result_name(&db, "Standard.Builtins.System.create_process");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.operator1");
         lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
 
         // Check that looking up names not added to the database does not return entries.
-        lookup_and_verify_empty_result(&db, "TestProject.TestModule");
-        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.create_process");
+        lookup_and_verify_empty_result(&db, "test.TestProject.TestModule");
+        lookup_and_verify_empty_result(&db, "Standard.Builtins.create_process");
         lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
     }
 
@@ -933,60 +724,20 @@ pub mod test {
     /// [`SuggestionDatabase::lookup_by_fully_qualified_name`] method on that database.
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update() {
-        // Initialize a suggestion database with a few sample entries.
-        let entry0 = SuggestionEntry::Type {
-            name:                   "TextType".to_string(),
-            module:                 "TestProject.TestModule".to_string(),
-            params:                 vec![],
-            parent_type:            Some("Any".to_string()),
-            reexport:               None,
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            external_id:            None,
-        };
-        let entry1 = SuggestionEntry::Constructor {
-            name:                   "TextAtom".to_string(),
-            module:                 "TestProject.TestModule".to_string(),
-            arguments:              vec![],
-            return_type:            "TestAtom".to_string(),
-            reexport:               None,
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            external_id:            None,
-        };
-        let entry2 = SuggestionEntry::Method {
-            name:                   "create_process".to_string(),
-            module:                 "Standard.Builtins.Main".to_string(),
-            self_type:              "Standard.Builtins.Main.System".to_string(),
-            arguments:              vec![],
-            return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
-            is_static:              false,
-            reexport:               None,
-            documentation:          None,
-            documentation_html:     None,
-            documentation_sections: default(),
-            external_id:            None,
-        };
-        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
-            SuggestionsDatabaseEntry { id, suggestion }
-        }
-        let id0 = 0;
-        let id1 = 1;
-        let id2 = 2;
-        let response = language_server::response::GetSuggestionDatabase {
-            entries:         vec![
-                db_entry(id0, entry0),
-                db_entry(id1, entry1),
-                db_entry(id2, entry2),
-            ],
-            current_version: 1,
-        };
-        let db = SuggestionDatabase::from_ls_response(response);
-
+        let db = mock::standard_db_mock();
+        let entry_with_doc_change =
+            QualifiedName::from_text("local.Project.Submodule.TestType").unwrap();
+        let entry_with_mod_change =
+            QualifiedName::from_text("local.Project.Submodule.module_method").unwrap();
+        let entry_removed = QualifiedName::from_text("Standard.Base.Number").unwrap();
+        let (entry_with_doc_change_id, _) =
+            db.lookup_by_qualified_name(entry_with_doc_change.as_ref()).unwrap();
+        let (entry_with_mod_change_id, _) =
+            db.lookup_by_qualified_name(entry_with_mod_change.as_ref()).unwrap();
+        let (entry_removed_id, _) = db.lookup_by_qualified_name(entry_removed.as_ref()).unwrap();
+        let entry_added_id = 123;
         // Modify the database contents by applying an update event.
-        let entry0_modification = Box::new(SuggestionsDatabaseModification {
+        let entry_doc_change = Box::new(SuggestionsDatabaseModification {
             arguments:          vec![],
             module:             None,
             self_type:          None,
@@ -996,9 +747,11 @@ pub mod test {
             scope:              None,
             reexport:           None,
         });
-        let entry1_modification = Box::new(SuggestionsDatabaseModification {
+        let entry_mod_change = Box::new(SuggestionsDatabaseModification {
             arguments:          vec![],
-            module:             Some(FieldUpdate::set("NewProject.NewModule".to_string())),
+            module:             Some(FieldUpdate::set(
+                "new_project.NewProject.NewModule".to_string(),
+            )),
             self_type:          None,
             return_type:        None,
             documentation:      None,
@@ -1006,7 +759,7 @@ pub mod test {
             scope:              None,
             reexport:           None,
         });
-        let entry3 = SuggestionEntry::Module {
+        let new_entry = SuggestionEntry::Module {
             module:                 "local.Unnamed_6.Main".to_string(),
             documentation:          None,
             documentation_html:     None,
@@ -1016,28 +769,28 @@ pub mod test {
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![
                 entry::Update::Modify {
-                    id:           id0,
+                    id:           entry_with_doc_change_id,
                     external_id:  None,
-                    modification: entry0_modification,
+                    modification: entry_doc_change,
                 },
                 entry::Update::Modify {
-                    id:           id1,
+                    id:           entry_with_mod_change_id,
                     external_id:  None,
-                    modification: entry1_modification,
+                    modification: entry_mod_change,
                 },
-                entry::Update::Remove { id: id2 },
-                entry::Update::Add { id: 3, suggestion: entry3 },
+                entry::Update::Remove { id: entry_removed_id },
+                entry::Update::Add { id: entry_added_id, suggestion: new_entry },
             ],
             current_version: 2,
         };
         db.apply_update_event(update);
 
         // Check the results of `lookup_by_fully_qualified_name` after the update.
-        lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
-        lookup_and_verify_result_name(&db, "NewProject.NewModule.TextAtom");
-        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextType");
-        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.System.create_process");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_empty_result(&db, &entry_removed.to_string());
+        lookup_and_verify_result_name(&db, &entry_with_doc_change.to_string());
+        lookup_and_verify_result_name(&db, &entry_with_mod_change.to_string());
+        lookup_and_verify_empty_result(&db, "Standard.Builtins.System.create_process");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6");
     }
 
     /// Initialize a [`SuggestionDatabase`] with a sample entry, then apply an update removing that
@@ -1088,7 +841,7 @@ pub mod test {
 
         // Check that the first entry is not visible in the DB and the second one is visible.
         lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6");
     }
 
     /// Test the [`QualifiedNameToIdMap::replace_value_and_traverse_back_pruning_empty_subtrees`]
@@ -1098,7 +851,7 @@ pub mod test {
     fn replace_value_and_traverse_back_pruning_empty_subtrees() {
         let paths = vec!["A", "A.B"];
         for path in paths {
-            let qualified_name = QualifiedName::from_text(path).unwrap();
+            let qualified_name: NamePath = path.split(".").map(ImString::new).collect();
             let qn_to_id_map: RefCell<QualifiedNameToIdMap> = default();
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
@@ -1129,14 +882,14 @@ pub mod test {
         let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            let path = QualifiedName::from_text(path).unwrap();
+            let path: NamePath = path.split(".").map(ImString::new).collect();
             assert_eq!(map.get(&path), None);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, *value);
             assert_eq!(result, None);
             assert_eq!(map.get(&path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            let path = QualifiedName::from_text(path).unwrap();
+            let path: NamePath = path.split(".").map(ImString::new).collect();
             assert_eq!(map.get(&path), *value);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, None);
             assert_eq!(result, *value);

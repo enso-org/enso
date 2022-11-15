@@ -329,6 +329,7 @@ impl Entry {
             Kind::Method if generate_this =>
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
             Kind::Constructor => self.code_with_static_this().into(),
+            Kind::Module => self.defined_in.alias_name().as_str().into(),
             _ => Cow::from(&self.name),
         }
     }
@@ -738,6 +739,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use engine_protocol::language_server::SuggestionArgumentUpdate;
 
     use crate::mock_suggestion_database;
     use crate::model::suggestion_database::mock;
@@ -766,6 +768,11 @@ mod test {
         );
         let module_method =
             Entry::new_module_method(module_name.clone(), "module_method", return_type.clone());
+        let main_module_method = Entry::new_module_method(
+            main_module_name.clone(),
+            "module_method",
+            return_type.clone(),
+        );
         let function = Entry::new_function(
             module_name.clone(),
             "function",
@@ -782,15 +789,16 @@ mod test {
             assert_eq!(local.code_to_insert(generate_this), "local");
             assert_eq!(module.code_to_insert(generate_this), "Module");
             assert_eq!(main_module.code_to_insert(generate_this), "Project");
+            assert_eq!(constructor.code_to_insert(generate_this), "Test_Type.Constructor");
         }
-        assert_eq!(constructor.code_to_insert(false), "constructor");
-        assert_eq!(constructor.code_to_insert(true), "Test_Type.constructor");
         assert_eq!(method.code_to_insert(false), "method");
         assert_eq!(method.code_to_insert(true), "_.method");
         assert_eq!(static_method.code_to_insert(false), "static_method");
-        assert_eq!(static_method.code_to_insert(true), "Number.static_method");
+        assert_eq!(static_method.code_to_insert(true), "Test_Type.static_method");
         assert_eq!(module_method.code_to_insert(false), "module_method");
-        assert_eq!(module_method.code_to_insert(true), "Project.static_method");
+        assert_eq!(module_method.code_to_insert(true), "Module.module_method");
+        assert_eq!(main_module_method.code_to_insert(false), "module_method");
+        assert_eq!(main_module_method.code_to_insert(true), "Project.module_method");
     }
 
     #[test]
@@ -812,7 +820,7 @@ mod test {
         let submodule = db.lookup_by_qualified_name_str("local.Project.Submodule").unwrap();
 
         expect_import(number, "from Standard.Base import Number");
-        expect_import(some, "from Standard.Base import Number");
+        expect_import(some, "from Standard.Base import Maybe");
         expect_no_import(method);
         expect_import(static_method, "from local.Project.Submodule import TestType");
         expect_import(module_method, "import local.Project.Submodule");
@@ -841,11 +849,10 @@ mod test {
             assert_eq!(entry.required_imports(&db).unwrap().to_string(), expected);
         };
 
-        let tp = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe").unwrap();
-        let constructor = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.Some").unwrap();
-        let method = db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.is_some").unwrap();
+        let tp = db.lookup_by_qualified_name_str("Standard.Base.Data.Type").unwrap();
+        let constructor = db.lookup_by_qualified_name_str("Standard.Base.Data.Type.Type").unwrap();
         let static_method =
-            db.lookup_by_qualified_name_str("Standard.Base.Data.Maybe.static_method").unwrap();
+            db.lookup_by_qualified_name_str("Standard.Base.Data.Type.static_method").unwrap();
         let module_method =
             db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule.module_method").unwrap();
         let submodule = db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule").unwrap();
@@ -887,22 +894,22 @@ mod test {
         let tp = Entry::new_type(defined_in, "TestType");
         expect(tp, "TestProject.TestModule.TestType");
 
-        let of_type = "TextProject.TestModule.TestType".try_into().unwrap();
+        let of_type = "TestProject.TestModule.TestType".try_into().unwrap();
         let constructor = Entry::new_constructor(of_type, "TestConstructor");
         expect(constructor, "TestProject.TestModule.TestType.TestConstructor");
 
         let on_type = "Standard.Builtins.Main.System".try_into().unwrap();
         let return_type = "Standard.Builtins.Main.System_Process_Result".try_into().unwrap();
         let method = Entry::new_nonextension_method(on_type, "create_process", return_type, true);
-        expect(method, "Standard.Builtins.Main.System.create_process");
+        expect(method, "Standard.Builtins.System.create_process");
 
         let module = Entry::new_module("local.Unnamed_6.Main".try_into().unwrap());
-        expect(module, "local.Unnamed_6.Main");
+        expect(module, "local.Unnamed_6");
 
         let defined_in = "local.Unnamed_6.Main".try_into().unwrap();
         let return_type = "Standard.Base.Data.Vector.Vector".try_into().unwrap();
         let local = Entry::new_local(defined_in, "operator1", return_type, default()..=default());
-        expect(local, "local.Unnamed_6.Main.operator1");
+        expect(local, "local.Unnamed_6.operator1");
 
         let defined_in = "NewProject.NewModule".try_into().unwrap();
         let return_type = "Standard.Base.Data.Vector.Vector".try_into().unwrap();
@@ -936,5 +943,146 @@ mod test {
         assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
         assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
         assert_eq!(name_from_mixed_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
+    }
+
+    struct ApplyModificationTest {
+        modified_entry: Entry,
+        expected_entry: Entry,
+    }
+
+    impl ApplyModificationTest {
+        fn new() -> Self {
+            let defined_in = "local.Project.Module".try_into().unwrap();
+            let on_type = "local.Project.Module.Type".try_into().unwrap();
+            let return_type = "Standard.Base.Number".try_into().unwrap();
+            let argument = Argument {
+                name:          "x".to_owned(),
+                repr_type:     "Standard.Base.Any".to_owned(),
+                is_suspended:  false,
+                has_default:   false,
+                default_value: None,
+            };
+            let entry = Entry::new_method(defined_in, on_type, "entry", return_type, true)
+                .with_arguments(vec![argument])
+                .with_documentation("Some docs");
+            Self { modified_entry: entry.clone(), expected_entry: entry }
+        }
+
+        fn check_modification(
+            &mut self,
+            modification: SuggestionsDatabaseModification,
+        ) -> Vec<failure::Error> {
+            let result = self.modified_entry.apply_modifications(modification);
+            assert_eq!(self.modified_entry, self.expected_entry);
+            result
+        }
+    }
+
+
+    #[test]
+    fn applying_empty_modification() {
+        let mut test = ApplyModificationTest::new();
+        assert!(test.check_modification(default()).is_empty());
+    }
+
+    #[test]
+    fn applying_simple_fields_modification() {
+        let mut test = ApplyModificationTest::new();
+        let modification = SuggestionsDatabaseModification {
+            arguments:          vec![],
+            module:             Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            self_type:          Some(FieldUpdate::set(
+                "local.Project.NewModule.NewType".to_owned(),
+            )),
+            return_type:        Some(FieldUpdate::set(
+                "local.Project.NewModule.NewReturnType".to_owned(),
+            )),
+            documentation:      None,
+            documentation_html: Some(FieldUpdate::set("NewDocumentation".to_owned())),
+            scope:              None,
+            reexport:           Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
+        };
+        test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
+        test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
+        test.expected_entry.return_type =
+            "local.Project.NewModule.NewReturnType".try_into().unwrap();
+        test.expected_entry.documentation_html = Some("NewDocumentation".to_owned());
+        test.expected_entry.reexported_in = Some("local.Project.NewReexport".try_into().unwrap());
+        let result = test.check_modification(modification);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn removing_field_values() {
+        let mut test = ApplyModificationTest::new();
+        let modification = SuggestionsDatabaseModification {
+            documentation_html: Some(FieldUpdate::remove()),
+            ..default()
+        };
+        test.expected_entry.documentation_html = None;
+        let result = test.check_modification(modification);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn partially_invalid_update() {
+        let mut test = ApplyModificationTest::new();
+        let new_scope = Location { line: Line(0), offset: Utf16CodeUnit(0) }..=Location {
+            line:   Line(10),
+            offset: Utf16CodeUnit(10),
+        };
+        let modification = SuggestionsDatabaseModification {
+            module: Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            documentation_html: Some(FieldUpdate::remove()),
+            scope: Some(FieldUpdate::set(new_scope.into())),
+            ..default()
+        };
+        test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
+        test.expected_entry.documentation_html = None;
+        let result = test.check_modification(modification);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn adding_and_modifying_argument() {
+        let mut test = ApplyModificationTest::new();
+        let new_argument = Argument {
+            name:          "new_arg".to_string(),
+            repr_type:     "local.Project.NewReturnType".to_string(),
+            is_suspended:  false,
+            has_default:   false,
+            default_value: None,
+        };
+        let add_argument =
+            SuggestionArgumentUpdate::Add { index: 1, argument: new_argument.clone() };
+        let modify_argument = SuggestionArgumentUpdate::Modify {
+            index:         0,
+            name:          Some(FieldUpdate::set("new_name".to_string())),
+            repr_type:     Some(FieldUpdate::set("local.Project.NewReturnType".to_string())),
+            is_suspended:  None,
+            has_default:   None,
+            default_value: None,
+        };
+        test.expected_entry.arguments[0].name = "new_name".to_string();
+        test.expected_entry.arguments[0].repr_type =
+            "local.Project.NewReturnType".try_into().unwrap();
+        test.expected_entry.arguments.push(new_argument);
+        let modification = SuggestionsDatabaseModification {
+            arguments: vec![add_argument, modify_argument],
+            ..default()
+        };
+        let result = test.check_modification(modification);
+        assert!(result.is_empty())
+    }
+
+    #[test]
+    fn remove_argument() {
+        let mut test = ApplyModificationTest::new();
+        let remove_argument = SuggestionArgumentUpdate::Remove { index: 0 };
+        test.expected_entry.arguments.pop();
+        let modification =
+            SuggestionsDatabaseModification { arguments: vec![remove_argument], ..default() };
+        let result = test.check_modification(modification);
+        assert!(result.is_empty());
     }
 }

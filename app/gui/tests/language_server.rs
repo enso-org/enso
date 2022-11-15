@@ -19,6 +19,7 @@ use engine_protocol::types::*;
 use enso_gui::prelude::*;
 
 use double_representation::identifier::Identifier;
+use double_representation::name::QualifiedName;
 use enso_gui::model::execution_context::QualifiedMethodPointer;
 use enso_gui::model::execution_context::Visualization;
 use enso_gui::model::module;
@@ -27,7 +28,6 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
-
 
 
 /// The endpoint at which the Language Server should be accepting WS connections.
@@ -101,7 +101,7 @@ async fn ls_text_protocol_test() {
     let module_path = module::Path::try_from(file.clone()).unwrap();
     let defined_on_type = "Main".to_string();
     let name = "main".to_string();
-    let module = module::QualifiedName::new(project_name, module_path.id());
+    let module = QualifiedName::new_module(project_name, module_path.id());
     let method_pointer = MethodPointer { module: module.into(), defined_on_type, name };
     let positional_arguments_expressions = default();
     let this_argument_expression = default();

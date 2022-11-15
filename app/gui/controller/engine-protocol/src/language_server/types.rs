@@ -1096,7 +1096,7 @@ pub enum SuggestionsDatabaseUpdate {
 }
 
 /// The modification of suggestion database entry.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
 #[serde(tag = "type")]
 pub struct SuggestionsDatabaseModification {
