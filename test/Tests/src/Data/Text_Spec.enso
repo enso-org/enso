@@ -1270,28 +1270,64 @@ spec =
             "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 5 7) "aaa aaa")
             "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (Range_Data 4 6) "aaa aaa")
 
+        Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
+            "abacadae".match_all "a[bc]" . should_equal ["ab", "ac"]
+            "abacadae".match_all "a." . should_equal ["ab", "ac", "ad", "ae"]
+            "abacadae".match_all "a.*" . should_equal ["abacadae"]
+            "abacadae".match_all "a.*?" . should_equal ["ab", "ac", "ad", "ae"]
+
+            "abacadae".match "a[bc]" mode=Matching_Mode.Last . should_equal "ac"
+            "abacadae".match "a." mode=Matching_Mode.Last . should_equal "ae"
+            "abacadae".match "a.*" mode=Matching_Mode.Last . should_equal "abacadae"
+            "abacadae".match "a.*?" mode=Matching_Mode.Last . should_equal "ae"
+
+            "abacadae".match "a[bc]" matcher=Text_Matcher.Case_Sensitive . should_equal Nothing
+            "abABacAC".match "ab" matcher=Text_Matcher.Case_Sensitive mode=Matching_Mode.Last . should_equal "ab"
+            "abABacAC".match "ab" matcher=Text_Matcher.Case_Insensitive mode=Matching_Mode.Last . should_equal "AB"
+
+            "abABacAC".match_all "ab" matcher=Text_Matcher.Case_Sensitive . should_equal ["ab"]
+            "abABacAC".match_all "ab" matcher=Text_Matcher.Case_Insensitive . should_equal ["ab", "AB"]
+            "abacadae".match_all "a[bc]" matcher=Text_Matcher.Case_Sensitive . should_equal []
+
+            "Strasse and Straße".match_all "STRASSE" matcher=Text_Matcher.Case_Sensitive . should_equal []
+            "Strasse and Straße".match_all "STRASSE" matcher=Text_Matcher.Case_Insensitive . should_equal ["Strasse", "Straße"]
+
+        Test.specify "should default to exact matching for locate but regex for match" <|
+            txt = "aba[bc]adacae"
+            "ab".locate "ab" . should_equal (Span_Data (Range_Data 0 2) "ab")
+            "ab".locate "a[bc]" . should_equal Nothing
+            "ab".locate_all "a[bc]" . should_equal Nothing
+
+            txt.locate "a[bc]" . should_equal (Span_Data (Range_Data 2 6) txt)
+            txt.locate_all "a[bc]" . should_equal [Span_Data (Range_Data 2 6) txt]
+
+            "ab".match "a[bc]" . should_equal "ab"
+            "a[bc]".match "a[bc]" . should_equal Nothing
+            "a[bc]".match_all "a[bc]" . should_equal []
+
+            txt.match "a[bc]" . should_equal "ab"
+            txt.match_all "a[bc]" . should_equal ["ab", "ac"]
+
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match_Data
-            match.group 1 . should_equal "Goes Here"
+            match = "My Text: Goes Here".match "^My Text: (.+)$"
+            match. should_equal "Goes Here"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".match "^Korean: (.+)$" mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match_Data
-            match.group 1 . should_equal "건반"
+            match = "maza건반zaa".match "^a..z$"
+            match.should_equal "a건반z"
 
         Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" mode=Regex_Mode.First match_ascii=True
+            match = "İ".match "\w" matcher=(Regex_Matcher.Regex_Matcher_Data match_ascii=True)
             match . should_equal Nothing
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" mode=Regex_Mode.First case_insensitive=True
+            match = "MY".match "my" matcher=(Regex_Matcher.Regex_Matcher_Data case_insensitive=True)
             match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal "MY"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dot_matches_newline=True
+            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Regex_Matcher_Data dot_matches_newline=True)
             match . should_be_a Default_Engine.Match_Data
             match.group 0 . should_equal 'Foo\n'
 
@@ -1312,9 +1348,13 @@ spec =
     Test.group "Text.is_match" <|
         Test.specify "should default to regex" <|
             "My Text: Goes Here".is_match "^My Text: (.+)$" . should_be_true
-            "555-801-1923".is_match "^\\d{3}-\\d{3}-\\d{4}$" . should_be_true
+            "555-801-1923".is_match "^\d{3}-\d{3}-\d{4}$" . should_be_true
             "Hello".is_match "^[a-z]+$" . should_be_false
             "Hello".is_match "^[a-z]+$" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
+
+        Test.specify "should only match whole input" <|
+            "Hello".is_match "[a-z]" . should_be_false
+            "x".is_match "[a-z]" . should_be_true
 
         Test.specify "should allow Text_Matcher too" <|
             "foobar".is_match "foobar" matcher=Text_Matcher.Case_Sensitive . should_be_true
@@ -1355,26 +1395,26 @@ spec =
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".find "^My Text: (.+)$" mode=Regex_Mode.First
+            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Matching_Mode.First
             match . should_be_a Text
             match . should_equal "My Text: Goes Here"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반".find "^Korean: (.+)$" mode=Regex_Mode.First
+            match = "Korean: 건반".match "^Korean: (.+)$" mode=Matching_Mode.First
             match . should_be_a Text
             match . should_equal "Korean: 건반"
 
         Test.specify "should be possible in ascii mode" <|
-            match = "İ".find "\w" mode=Regex_Mode.First match_ascii=True
+            match = "İ".match "\w" matcher=(Regex_Matcher.Regex_Matcher_Data match_ascii=True)
             match . should_equal Nothing
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" mode=Regex_Mode.First case_insensitive=True
+            match = "MY".match "my" matcher=(Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive)
             match . should_be_a Text
             match . should_equal "MY"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            match = 'Foo\n'.find "(....)" mode=Regex_Mode.First dot_matches_newline=True
+            match = 'Foo\n'.match "(....)" matcher=(Regex_Matcher.Regex_Matcher_Data dot_matches_newline=True)
             match . should_be_a Text
             match . should_equal 'Foo\n'
 
@@ -1382,13 +1422,13 @@ spec =
             text = """
                 Foo
                 bar
-            match = text.find "^(...)$" multiline=True
+            match = text.match_all "^(...)$" matcher=(Regex_Matcher.Regex_Matcher_Data multiline=True)
             match.length . should_equal 2
             match.at 0 . should_equal "Foo"
             match.at 1 . should_equal "bar"
 
         Test.specify "should be possible in comments mode" <|
-            match = "abcde".find "(..) # Match two of any character" comments=True mode=Regex_Mode.First
+            match = "abcde".match "(..) # Match two of any character" matcher=(Regex_Matcher.Regex_Matcher_Data comments=True)
             match . should_be_a Text
             match . should_equal "ab"
 

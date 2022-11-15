@@ -87,7 +87,7 @@ type Span
          (Span_Data (Range 1 3) text).to_utf_16_span == (Utf_16_Span_Data (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
     to_utf_16_span self =
-        Utf_16_Span_Data (range_to_char_indices self.text self.range) self.parent
+        Utf_16_Span_Data (range_to_char_indices self.parent self.range) self.parent
 
 # TODO Dubious constructor export
 from project.Data.Text.Span.Utf_16_Span import all
@@ -147,7 +147,7 @@ type Utf_16_Span
          extended == Span_Data (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
          extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
+    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error_Data "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->
