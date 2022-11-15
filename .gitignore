@@ -66,6 +66,8 @@ package-lock.json
 .projections.json
 .nvmrc
 *.iml
+.enso-sources*
+.metals
 
 ############################
 ## Rendered Documentation ##
