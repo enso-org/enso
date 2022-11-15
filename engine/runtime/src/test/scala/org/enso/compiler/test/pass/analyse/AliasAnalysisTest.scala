@@ -905,10 +905,9 @@ class AliasAnalysisTest extends CompilerTest {
         .scope
 
       lambdaScope.allDefinitions.length shouldBe 2
-      val defSymbols = lambdaScope
-        .allDefinitions
+      val defSymbols = lambdaScope.allDefinitions
         .map(definition => definition.symbol)
-      defSymbols should equal (List("self", "x"))
+      defSymbols should equal(List("self", "x"))
     }
   }
 
@@ -1133,10 +1132,9 @@ class AliasAnalysisTest extends CompilerTest {
         .scope
       consBranchScope.allDefinitions.length shouldBe 2
 
-      val defSymbols = consBranchScope
-        .allDefinitions
+      val defSymbols = consBranchScope.allDefinitions
         .map(definition => definition.symbol)
-      defSymbols should equal (List("a", "b"))
+      defSymbols should equal(List("a", "b"))
     }
 
     "correctly link to pattern variables" in {
