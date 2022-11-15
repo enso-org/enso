@@ -56,7 +56,7 @@ public abstract class CompareToNode extends Node {
     var builtins = Context.get(this).getBuiltins();
     var number = builtins.number().getNumber();
     var typeError = builtins.error().makeTypeError(number, that, "that");
-    return that == builtins.nothing() ? DataflowError.withoutTrace(typeError, this) : DataflowError.withTrace(typeError, this);
+    return DataflowError.withoutTrace(typeError, this);
   }
 
   Ordering getOrdering() {

@@ -41,7 +41,7 @@ public abstract class CompareToNode extends Node {
   Object doOther(EnsoBigInteger self, Object that) {
     var builtins = Context.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
-    return that == builtins.nothing() ? DataflowError.withoutTrace(typeError, this) : DataflowError.withTrace(typeError, this);
+    return DataflowError.withoutTrace(typeError, this);
   }
 
   Ordering getOrdering() {
