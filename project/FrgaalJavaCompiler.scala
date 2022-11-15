@@ -20,8 +20,11 @@ import xsbti.compile.{IncToolOptions, Output, JavaCompiler => XJavaCompiler}
 import java.io.File
 import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
+import scala.util.Using
+import java.io.FileWriter
 
 object FrgaalJavaCompiler {
+  private val ENSO_SOURCES = ".enso-sources"
 
   val frgaal = "org.frgaal" % "compiler" % "19.0.0" % "provided"
 
@@ -63,6 +66,54 @@ object FrgaalJavaCompiler {
     val sources = sources0 map {
       case x: PathBasedFile => x.toPath.toAbsolutePath.toString
     }
+    val out = output.getSingleOutputAsPath().get()
+    val shared = sources0.fold(out)((a, b) => {
+      var ap = a match {
+        case p: PathBasedFile => p.toPath
+        case p: Path => p
+      }
+      val bp = b match {
+        case p: PathBasedFile => p.toPath
+        case p: Path => p
+      }
+
+      var i = 0
+      while (i < Math.min(ap.getNameCount(), bp.getNameCount()) && ap.getName(i) == bp.getName(i)) {
+        i += 1;
+      }
+
+      while (ap.getNameCount() > i) {
+        ap = ap.getParent()
+      }
+      ap
+    }).asInstanceOf[Path]
+
+    if (shared.toFile().exists()) {
+      val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
+      val ensoConfig = new File(shared.toFile(), ENSO_SOURCES + "-" + out.getFileName().toString())
+      val ensoProperties = new java.util.Properties()
+
+      def storeArray(name: String, values : Seq[String]) = {
+        values.zipWithIndex.foreach { case (value, idx) => ensoProperties.setProperty(s"$name.$idx", value) }
+      }
+
+      ensoProperties.setProperty("output", out.toString())
+      storeArray("options", options)
+      source.foreach(v => ensoProperties.setProperty("source", v))
+      ensoProperties.setProperty("target", target)
+      javaHome.foreach(v => ensoProperties.setProperty("java.home", v.toString()))
+
+      Using(new FileWriter(ensoConfig)) { w =>
+        ensoProperties.store(w, "# Enso compiler configuration")
+      }
+      Using(new FileWriter(ensoMarker)) { _ =>
+      }
+    } else {
+      throw new IllegalStateException("Cannot write Enso source options to " + shared + " values:\n" +
+        "options: " + options + " sources0: " + sources +" output: " + output
+      )
+    }
+
     val frgaalOptions: Seq[String] = source.map(v => Seq("-source", v)).getOrElse(Seq()) ++ Seq("-target", target)
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 

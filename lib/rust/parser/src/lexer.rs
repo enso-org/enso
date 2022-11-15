@@ -1091,16 +1091,15 @@ impl<'s> Lexer<'s> {
                 self.take_next();
                 expect_len = 6;
             }
-            let mut value: u32 = 0;
+            let mut value: Option<u32> = None;
             for _ in 0..expect_len {
                 if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
-                    value = 16 * value + x as u32;
+                    value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {
                     break;
                 }
             }
-            let value = char::from_u32(value);
             if delimited && self.current_char == Some('}') {
                 self.take_next();
             }
@@ -1108,7 +1107,7 @@ impl<'s> Lexer<'s> {
             let token = self.make_token(
                 backslash_start,
                 sequence_end.clone(),
-                token::Variant::text_escape(value),
+                token::Variant::text_escape(value.and_then(char::from_u32)),
             );
             self.output.push(token);
             sequence_end
