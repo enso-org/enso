@@ -11,30 +11,6 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 type Context
     ## PRIVATE
 
-       A context associated with an SQL query.
-
-       The expressions can only be computed in a context which specifies from where
-       their columns come and set filters and other settings for processing the
-       query.
-
-        Arguments:
-       - from_spec: the sources for the query, see `From_Spec` for more
-         details.
-       - where_filters: a list of expressions for filtering - only the rows
-         for which these expressions evaluate to true are included in the
-         result.
-       - orders: a list of ordering expressions, for each entry an ORDER BY
-         clause is added.
-       - groups: a list of grouping expressions, for each entry a GROUP BY is
-         added, the resulting query can then directly include only the
-         grouped-by columns or aggregate expressions.
-       - meta_index: a list of internal columns to use for joining or grouping.
-       - limit: an optional maximum number of elements that the equery should
-         return.
-    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
-
-    ## PRIVATE
-
        Creates a query context that just fetches data from a table, without any
        additional processing.
 
@@ -65,6 +41,30 @@ type Context
     for_subquery : Sub_Query -> Context
     for_subquery subquery =
         Context.Value subquery [] [] [] [] Nothing
+
+    ## PRIVATE
+
+       A context associated with an SQL query.
+
+       The expressions can only be computed in a context which specifies from where
+       their columns come and set filters and other settings for processing the
+       query.
+
+        Arguments:
+       - from_spec: the sources for the query, see `From_Spec` for more
+         details.
+       - where_filters: a list of expressions for filtering - only the rows
+         for which these expressions evaluate to true are included in the
+         result.
+       - orders: a list of ordering expressions, for each entry an ORDER BY
+         clause is added.
+       - groups: a list of grouping expressions, for each entry a GROUP BY is
+         added, the resulting query can then directly include only the
+         grouped-by columns or aggregate expressions.
+       - meta_index: a list of internal columns to use for joining or grouping.
+       - limit: an optional maximum number of elements that the equery should
+         return.
+    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
 
     ## PRIVATE
 

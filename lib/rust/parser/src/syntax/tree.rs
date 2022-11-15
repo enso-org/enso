@@ -201,14 +201,13 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// A type definition; introduced by a line consisting of the keyword `type`, an identifier
         /// to be used as the name of the type, and zero or more specifications of type parameters.
         /// The following indented block contains two types of lines:
-        /// - First zero or more type constructors, and their subordinate blocks.
-        /// - Then a block of statements, which may define methods or type methods.
+        /// - Type constructors definitions.
+        /// - Bindings, defining either methods or type methods.
         TypeDef {
-            pub keyword:      token::Ident<'s>,
-            pub name:         token::Ident<'s>,
-            pub params:       Vec<ArgumentDefinition<'s>>,
-            pub constructors: Vec<TypeConstructorLine<'s>>,
-            pub block:        Vec<block::Line<'s>>,
+            pub keyword: token::Ident<'s>,
+            pub name:    token::Ident<'s>,
+            pub params:  Vec<ArgumentDefinition<'s>>,
+            pub body:    Vec<TypeDefLine<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -403,24 +402,49 @@ impl<'s> span::Builder<'s> for Error {
 
 // === Type Definitions ===
 
-/// A line within a type definition, containing a type constructor definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeConstructorLine<'s> {
-    /// The token beginning the line.
-    pub newline:    token::Newline<'s>,
-    /// The type constructor definition, unless this is an empty line.
-    pub expression: Option<TypeConstructorDef<'s>>,
+/// A line in a type definition's body block.
+#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeDefLine<'s> {
+    /// Token ending the previous line.
+    pub newline:   token::Newline<'s>,
+    /// Type definition body statement, if any.
+    pub statement: Option<TypeDefStatement<'s>>,
 }
 
-impl<'s> span::Builder<'s> for TypeConstructorLine<'s> {
+impl<'s> span::Builder<'s> for TypeDefLine<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.newline).add(&mut self.expression)
+        span.add(&mut self.newline).add(&mut self.statement)
     }
 }
 
-impl<'s> From<token::Newline<'s>> for TypeConstructorLine<'s> {
+impl<'s> From<token::Newline<'s>> for TypeDefLine<'s> {
     fn from(newline: token::Newline<'s>) -> Self {
-        Self { newline, expression: None }
+        Self { newline, statement: None }
+    }
+}
+
+/// A statement in a type-definition body.
+#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub enum TypeDefStatement<'s> {
+    /// A binding in a type-definition body.
+    Binding {
+        /// The binding statement.
+        statement: Tree<'s>,
+    },
+    /// A constructor definition within a type-definition body.
+    #[reflect(inline)]
+    Constructor {
+        /// The constructor.
+        constructor: TypeConstructorDef<'s>,
+    },
+}
+
+impl<'s> span::Builder<'s> for TypeDefStatement<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        match self {
+            TypeDefStatement::Binding { statement } => span.add(statement),
+            TypeDefStatement::Constructor { constructor } => span.add(constructor),
+        }
     }
 }
 
@@ -445,6 +469,9 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
             .add(&mut self.block)
     }
 }
+
+
+// === Argument blocks ===
 
 /// An argument specification on its own line.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
@@ -867,8 +894,7 @@ pub fn apply_operator<'s>(
             },
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
-                let err = Error::new("`:` operator must be applied to two operands.");
-                Tree::invalid(err, invalid)
+                invalid.with_error("`:` operator must be applied to two operands.")
             }
         };
     }
