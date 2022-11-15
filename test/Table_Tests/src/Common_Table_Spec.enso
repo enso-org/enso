@@ -72,6 +72,10 @@ spec prefix table_builder test_selection pending=Nothing =
 
             table.at 100 . should_fail_with Index_Out_Of_Bounds_Error_Data
 
+    Test.group prefix+"Table.column_names" pending=pending <|
+        Test.specify "should return the names of all columns" <|
+            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+
     Test.group prefix+"Table.column_count" pending=pending <|
         Test.specify "should allow getting the column count" <|
             table.column_count . should_equal 7
@@ -485,6 +489,11 @@ spec prefix table_builder test_selection pending=Nothing =
             map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 table.rename_columns (Column_Name_Mapping.By_Name map (Text_Matcher.Case_Sensitive))
+
+        Test.specify "should work by Map" <|
+            map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
+            expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
+                table.rename_columns map
 
         Test.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
