@@ -909,6 +909,9 @@ final class TreeToIr {
 
   @SuppressWarnings("unchecked")
   private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+    if (block.expressions().isEmpty() && block.returnValue() instanceof IR$Name$Blank) {
+      return pref;
+    }
     if (args.nonEmpty() && args.head() == null) {
         args = (List<IR.CallArgument>) args.tail();
     }

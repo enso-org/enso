@@ -439,6 +439,7 @@
 - [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
 - [Update to GraalVM 22.3.0][3663]
+- [Connecting IGV 4 Enso with Engine sources][3810]
 - [Support VCS for projects in Language Server][3851]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -502,6 +503,7 @@
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3835]: https://github.com/enso-org/enso/pull/3835
 [3663]: https://github.com/enso-org/enso/pull/3663
+[3810]: https://github.com/enso-org/enso/pull/3810
 [3851]: https://github.com/enso-org/enso/pull/3851
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
