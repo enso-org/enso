@@ -406,3 +406,50 @@ fn desaturate_color((color, desaturate): &(color::Lcha, bool)) -> color::Lcha {
         *color
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f32::NAN;
+
+    #[test]
+    fn test_high_precision() {
+        let (left, right) = value_text_truncate_split(&(123.456789, 0.01));
+        assert_eq!(left, "123".to_im_string());
+        assert_eq!(right, Some("46".to_im_string()));
+    }
+
+    #[test]
+    fn test_low_precision() {
+        let (left, right) = value_text_truncate_split(&(123.456789, 10.0));
+        assert_eq!(left, "123".to_im_string());
+        assert_eq!(right, None);
+    }
+
+    #[test]
+    fn test_precision_is_zero() {
+        let (left, right) = value_text_truncate_split(&(123.456789, 0.0));
+        assert_eq!(left, "123".to_im_string());
+        assert_eq!(right, Some("45678711".to_im_string()));
+    }
+
+    #[test]
+    fn test_precision_is_nan() {
+        let (left, right) = value_text_truncate_split(&(123.456789, NAN));
+        assert_eq!(left, "123".to_im_string());
+        assert_eq!(right, None);
+    }
+
+    #[test]
+    fn test_value_is_nan() {
+        let (left, right) = value_text_truncate_split(&(NAN, 0.01));
+        assert_eq!(left, "NaN".to_im_string());
+        assert_eq!(right, None);
+    }
+}
