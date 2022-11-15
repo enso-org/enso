@@ -613,7 +613,7 @@ public class Builtins {
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
     Optional<BuiltinFunction> toFunction(Language language) {
       try {
-        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isStatic, isAutoRegister));
+        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isAutoRegister));
       } catch (Exception e) {
         e.printStackTrace();
         return Optional.empty();

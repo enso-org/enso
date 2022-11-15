@@ -378,12 +378,9 @@ class IrToTruffle(
                 else Left(l)
               )
               .map(fOpt =>
-                // Register builtin iff
-                // - a module method has been implicitly added by the compiler rather than being explicitly declared
-                // In all other cases, a builtin method should already have been registered.
-                fOpt
-                  .filter(_ => methodDef.methodReference.typePointer.isEmpty)
-                  .map(m => m.getFunction)
+                // Register builtin iff it has not been automatically registered at an early stage
+                // of builtins initialization.
+                fOpt.filter(m => !m.isAutoRegister()).map(m => m.getFunction)
               )
           case fn: IR.Function =>
             val bodyBuilder =
