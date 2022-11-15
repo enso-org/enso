@@ -511,12 +511,9 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testVariousKindsOfUnicodeWhitespace() throws Exception {
-    // mimics Text_Spec.enso:1049 and 722
-    // search for: # Disabled in the New Parser
     parseTest("""
-    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}'.trim
     """);
   }
 
@@ -1146,7 +1143,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testSimpleTrippleQuote() throws Exception {
+  public void testSimpleTripleQuote() throws Exception {
     parseTest("""
     expected_response = Json.parse <| '''
         {
