@@ -66,6 +66,7 @@ import org.enso.syntax2.Line;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
+import org.enso.syntax2.TypeDefStatement;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -131,28 +132,31 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
       case Tree.TypeDef def -> {
+        List<IR> irBody = nil();
         var typeName = buildName(def.getName(), true);
-        var translatedBody = translateTypeBody(def.getBlock());
-        var irConstructors = new java.util.ArrayList<IR>();
-        for (var constructorLine : def.getConstructors()) {
-          var definition = constructorLine.getExpression();
-          if (definition == null) {
-            continue;
+        for (var line : def.getBody()) {
+          var definition = line.getStatement();
+          switch (definition) {
+            case null -> {}
+            case TypeDefStatement.Binding bind -> irBody = translateTypeBodyExpression(bind.getStatement(), irBody);
+            case TypeDefStatement.TypeConstructorDef cons -> {
+              if (cons.getDocumentation() != null) {
+                irBody = cons(translateComment(def, cons.getDocumentation()), irBody);
+              }
+              var constructorName = buildName(inputAst, cons.getConstructor());
+              List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
+              var cAt = getIdentifiedLocation(inputAst);
+              var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+              irBody = cons(ir, irBody);
+            }
+            default -> {}
           }
-          if (definition.getDocumentation() != null) {
-            irConstructors.add(translateComment(def, definition.getDocumentation()));
-          }
-          var constructorName = buildName(inputAst, definition.getConstructor());
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(definition.getArguments());
-          var cAt = getIdentifiedLocation(inputAst);
-          irConstructors.add(new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag()));
         }
-        var translatedConstructors = CollectionConverters.asScala(irConstructors.iterator()).toList();
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
-          translatedConstructors.appendedAll(translatedBody),
+          irBody.reverse(),
           getIdentifiedLocation(inputAst),
           meta(), diag()
         );
@@ -235,19 +239,6 @@ final class TreeToIr {
 
   private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> args) {
     return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
-  }
-
-  /** Translates the body of a type expression.
-    *
-    * @param body the body to be translated
-    * @return the [[IR]] representation of `body`
-    */
-  private List<IR> translateTypeBody(java.util.List<Line> block) {
-    List<IR> res = nil();
-    for (var line : block) {
-      res = translateTypeBodyExpression(line.getExpression(), res);
-    }
-    return res.reverse();
   }
 
   /** Translates any expression that can be found in the body of a type

@@ -19,6 +19,18 @@ from project.Data.Statistics.Statistic import all
 from project.Data.Statistics.Statistic export all
 
 type Statistic
+    ## PRIVATE
+       Convert the Enso Statistic into Java equivalent.
+    to_moment_statistic : SingleValue
+    to_moment_statistic self = case self of
+        Sum -> Moments.SUM
+        Mean -> Moments.MEAN
+        Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
+        Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
+        Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
+        Kurtosis -> Moments.KURTOSIS
+        _ -> Nothing
+
     ## Count the number of non-Nothing and non-NaN values.
     Count
 
@@ -76,18 +88,6 @@ type Statistic
        Arguments:
        - predicted: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
-
-    ## PRIVATE
-       Convert the Enso Statistic into Java equivalent.
-    to_moment_statistic : SingleValue
-    to_moment_statistic self = case self of
-        Sum -> Moments.SUM
-        Mean -> Moments.MEAN
-        Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
-        Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
-        Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
-        Kurtosis -> Moments.KURTOSIS
-        _ -> Nothing
 
 
 ## Compute a single statistic on a vector like object.
