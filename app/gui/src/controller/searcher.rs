@@ -1642,7 +1642,8 @@ pub mod test {
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
     use std::assert_matches::assert_matches;
-
+    use crate::mock_suggestion_database;
+    use crate::model::suggestion_database::Entry;
 
 
     #[test]
@@ -1710,11 +1711,7 @@ pub mod test {
         entry2:   Rc<model::suggestion_database::Entry>,
         entry3:   Rc<model::suggestion_database::Entry>,
         entry4:   Rc<model::suggestion_database::Entry>,
-        // The 5th entry is put into database, but not read in any test yet.
-        #[allow(dead_code)]
-        entry5:   Rc<model::suggestion_database::Entry>,
         entry9:   Rc<model::suggestion_database::Entry>,
-        entry10:  Rc<model::suggestion_database::Entry>,
     }
 
     impl Fixture {
@@ -1729,7 +1726,6 @@ pub mod test {
             let start_of_code = enso_text::Location::default();
             let end_of_code = code.location_of_text_end_utf16_code_unit();
             let code_range = start_of_code..=end_of_code;
-            let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
@@ -1737,7 +1733,7 @@ pub mod test {
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
-            let database = suggestion_database_with_mock_entries(module_name, scope);
+            let database = suggestion_database_with_mock_entries(code_range);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1767,13 +1763,11 @@ pub mod test {
                 project: project.clone_ref(),
                 node_edit_guard: node_metadata_guard,
             };
-            let entry1 = searcher.database.lookup(1).unwrap();
-            let entry2 = searcher.database.lookup(2).unwrap();
-            let entry3 = searcher.database.lookup(3).unwrap();
-            let entry4 = searcher.database.lookup(4).unwrap();
-            let entry5 = searcher.database.lookup(5).unwrap();
-            let entry9 = searcher.database.lookup(9).unwrap();
-            let entry10 = searcher.database.lookup(10).unwrap();
+            let (_, entry1) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testFunction1").as_ref()).unwrap();
+            let (_, entry2) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("test_var_1").as_ref()).unwrap();
+            let (_, entry3) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testMethod").as_ref()).unwrap();
+            let entry4 = searcher.database.lookup_by_qualified_name_str("test.Test.Test.testMethod").unwrap();
+            let (_, entry9) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testFunction2").as_ref()).unwrap();
             Fixture {
                 data,
                 test,
@@ -1782,9 +1776,7 @@ pub mod test {
                 entry2,
                 entry3,
                 entry4,
-                entry5,
                 entry9,
-                entry10,
             }
         }
 
@@ -1794,117 +1786,36 @@ pub mod test {
     }
 
     fn suggestion_database_with_mock_entries(
-        module_name: QualifiedName,
-        scope: Scope,
+        scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Rc<SuggestionDatabase> {
-        let database = Rc::new(SuggestionDatabase::new_empty());
-        let entry1 = model::suggestion_database::Entry {
-            name: "testFunction1".to_string(),
-            kind: Kind::Function,
-            defined_in: crate::test::mock::data::module_qualified_name(),
-            arguments: vec![],
-            return_type: "Number".to_string(),
-            documentation_html: default(),
-            self_type: None,
-            scope,
-            icon_name: None,
-            reexported_in: None,
+        let database = mock_suggestion_database! {
+            test.Test {
+                mod Test {
+                    static fn testMethod(this: Standard.Base.Any, arg: Standard.Base.Text) -> Standard.Base.Text;
+                }
+            }
+            mock_namespace.Mock_Project {
+                mod Mock_Module {
+                    static fn test_method(this: Standard.Base.Any, arg: Standard.Base.Number) -> Standard.Base.Number;
+                }
+            }
         };
-        let entry2 = model::suggestion_database::Entry {
-            name: "TestVar1".to_string(),
-            kind: Kind::Local,
-            ..entry1.clone()
-        };
-        let entry3 = model::suggestion_database::Entry {
-            name: "testMethod1".to_string(),
-            kind: Kind::Method,
-            self_type: Some(module_name.into()),
-            scope: Scope::Everywhere,
-            arguments: vec![
-                Argument {
-                    repr_type:     "Any".to_string(),
-                    name:          "self".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-                Argument {
-                    repr_type:     "Number".to_string(),
-                    name:          "num_arg".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-            ],
-            ..entry1.clone()
-        };
-        let entry4 = model::suggestion_database::Entry {
-            self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
-            defined_in: "test.Test.Test".to_owned().try_into().unwrap(),
-            arguments: vec![
-                Argument {
-                    repr_type:     "Any".to_string(),
-                    name:          "self".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-                Argument {
-                    repr_type:     "String".to_string(),
-                    name:          "num_arg".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-            ],
-            ..entry3.clone()
-        };
-        let entry5 = model::suggestion_database::Entry {
-            kind:               Kind::Module,
-            defined_in:         entry1.defined_in.clone(),
-            name:               MODULE_NAME.to_owned(),
-            arguments:          default(),
-            return_type:        entry1.defined_in.to_string(),
-            documentation_html: None,
-            self_type:          None,
-            scope:              Scope::Everywhere,
-            icon_name:          None,
-            reexported_in:      None,
-        };
-        let entry9 = model::suggestion_database::Entry {
-            name: "testFunction2".to_string(),
-            arguments: vec![
-                Argument {
-                    repr_type:     "Text".to_string(),
-                    name:          "text_arg".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-                Argument {
-                    repr_type:     "Number".to_string(),
-                    name:          "num_arg".to_string(),
-                    has_default:   false,
-                    default_value: None,
-                    is_suspended:  false,
-                },
-            ],
-            ..entry1.clone()
-        };
-        let entry10 = model::suggestion_database::Entry {
-            name: "testFunction3".to_string(),
-            defined_in: "test.Test.Other".to_owned().try_into().unwrap(),
-            scope: Scope::Everywhere,
-            ..entry9.clone()
-        };
-        database.put_entry(1, entry1);
-        database.put_entry(2, entry2);
-        database.put_entry(3, entry3);
-        database.put_entry(4, entry4);
-        database.put_entry(5, entry5);
-        database.put_entry(9, entry9);
-        database.put_entry(10, entry10);
-        database
+
+        let module_name = crate::test::mock::data::module_qualified_name();
+        let return_type = QualifiedName::from_text("Standard.Base.Number").unwrap();
+        let function = suggestion_database::Entry::new_function(module_name.clone(), "testFunction1", return_type.clone(), scope.clone());
+        let local = suggestion_database::Entry::new_local(module_name.clone(), "test_var_1", return_type.clone(), scope.clone());
+        let arguments = vec![
+            Argument::new("text_arg", "Standard.Base.Text"),
+            Argument::new("num_arg", "Standard.Base.Number"),
+        ];
+        let function2 = suggestion_database::Entry::new_function(module_name.clone(), "testFunction2", return_type.clone(), scope.clone())
+            .with_arguments(arguments.clone());
+
+        database.put_entry(101, function);
+        database.put_entry(102, local);
+        database.put_entry(103, function2);
+        Rc::new(database)
     }
 
 
@@ -1974,10 +1885,10 @@ pub mod test {
 
             test.run_until_stalled();
             assert!(!searcher.actions().is_loading());
-            searcher.use_suggestion(action::Suggestion::FromDatabase(entry9.clone_ref())).
-    unwrap();         searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.
-    clone_ref())).unwrap();         let expected_input = format!("{} {} ", entry9.name,
-    entry1.name);         assert_eq!(searcher.data.borrow().input.repr(), expected_input);
+            searcher.use_suggestion(action::Suggestion::FromDatabase(entry9.clone_ref())).unwrap();
+            searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.clone_ref())).unwrap();
+            let expected_input = format!("{} {} ", entry9.name, entry1.name);
+            assert_eq!(searcher.data.borrow().input.repr(), expected_input);
         }
     }
 
@@ -2033,8 +1944,8 @@ pub mod test {
     #[wasm_bindgen_test]
     fn non_picked_function_arg_suggestion_ambiguous() {
         fn run_case(input: impl Str, setup: impl FnOnce(&mut Fixture)) {
-            // In each case we expect that we can pick two methods with the same name, but
-    different         // second argument, so the controller should call Engine for each type.
+            // In each case we expect that we can pick two methods with the same name, but different
+            // second argument, so the controller should call Engine for each type.
             const EXPECTED_REQUESTS: usize = 2;
             let requested_types: Rc<RefCell<HashSet<Option<String>>>> = default();
             let requested_types2 = requested_types.clone();
@@ -2086,8 +1997,8 @@ pub mod test {
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
-        // There are 8 entries, because: 2 were returned from `completion` method, two are
-    mocked,     // and all of these are repeated in "All Search Result" category.
+        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
+        // and all of these are repeated in "All Search Result" category.
         assert_eq!(list.len(), 8);
         assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
         assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(entry9)));
@@ -2130,11 +2041,12 @@ pub mod test {
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
             let expected_group_name =
-                format!("{}.{}", entry1.defined_in.project_name.project,
-    entry1.defined_in.name());         assert_eq!(module_group.name, expected_group_name);
+                format!("{}.{}", entry1.defined_in.project().project, entry1.defined_in.name());
+            assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name()
-    == entry9.name);     } else {
+    == entry9.name);
+        } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
         let favorites = &components.favorites;
@@ -2239,13 +2151,12 @@ pub mod test {
                 data.expect_completion(client, None, None, &[]);
                 data.expect_completion(client, None, None, &[]);
             });
-        let frags_borrow = || Ref::map(searcher.data.borrow(), |d|
-    &d.fragments_added_by_picking);
+        let frags_borrow = || Ref::map(searcher.data.borrow(), |d| &d.fragments_added_by_picking);
 
         // Picking first suggestion.
         let new_input =
-            searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.clone_ref())).
-    unwrap();     assert_eq!(new_input, "testFunction1 ");
+            searcher.use_suggestion(action::Suggestion::FromDatabase(entry1.clone_ref())).unwrap();
+        assert_eq!(new_input, "testFunction1 ");
         let (func,) = frags_borrow().iter().cloned().expect_tuple();
         assert_eq!(func.id, CompletedFragmentId::Function);
         assert!(are_same(&func.picked_suggestion, &entry1));
@@ -2258,11 +2169,11 @@ pub mod test {
 
         // Picking argument's suggestion.
         let new_input =
-            searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).
-    unwrap();     assert_eq!(new_input, "testFunction1 some_arg TestVar1 ");
+            searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).unwrap();
+        assert_eq!(new_input, "testFunction1 some_arg TestVar1 ");
         let new_input =
-            searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).
-    unwrap();     assert_eq!(new_input, "testFunction1 some_arg TestVar1 TestVar1 ");
+            searcher.use_suggestion(action::Suggestion::FromDatabase(entry2.clone_ref())).unwrap();
+        assert_eq!(new_input, "testFunction1 some_arg TestVar1 TestVar1 ");
         let (function, arg1, arg2) = frags_borrow().iter().cloned().expect_tuple();
         assert_eq!(function.id, CompletedFragmentId::Function);
         assert!(are_same(&function.picked_suggestion, &entry1));
@@ -2378,8 +2289,8 @@ pub mod test {
             ),
             // Variable names unusable (subpatterns are not yet supported).
             // Don't use "this" argument adjustments at all.
-            Case::new("[x,y] = 2 + 2", &["[x,y] = 2 + 2", "testfunction11 = testFunction1"], |f|
-    {             f.searcher
+            Case::new("[x,y] = 2 + 2", &["[x,y] = 2 + 2", "testfunction11 = testFunction1"], |f| {
+                f.searcher
                     .use_suggestion(action::Suggestion::FromDatabase(f.entry1.clone()))
                     .unwrap();
             }),
@@ -2388,8 +2299,9 @@ pub mod test {
         for case in cases.into_iter() {
             let mut fixture = Fixture::new_custom(|data, client| {
                 data.selected_node = true;
-                data.change_main_body(&[case.line, "Nothing"]); // The last node will be used as
-    searcher target.             data.expect_completion(client, None, None, &[]);
+                // The last node will be used as searcher target.
+                data.change_main_body(&[case.line, "Nothing"]);
+                data.expect_completion(client, None, None, &[]);
             });
             (case.run)(&mut fixture);
             fixture.searcher.commit_node().unwrap();
@@ -2432,12 +2344,11 @@ pub mod test {
             assert_eq!(imported_names, expected_import);
         }
 
-        let Fixture { entry1, entry2, entry3, entry4, entry10, .. } = Fixture::new();
+        let Fixture { entry1, entry2, entry3, entry4, .. } = Fixture::new();
         expect_inserted_import_for(&entry1, vec![]);
         expect_inserted_import_for(&entry2, vec![]);
         expect_inserted_import_for(&entry3, vec![]);
         expect_inserted_import_for(&entry4, vec![&entry4.defined_in]);
-        expect_inserted_import_for(&entry10, vec![&entry10.defined_in]);
     }
 
     #[wasm_bindgen_test]
@@ -2481,12 +2392,12 @@ pub mod test {
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
         searcher.commit_node().unwrap();
-        let expected_code =
-            "import test.Test.Test\nmain =\n    Test.testMethod1\n    operator1 =
-    Test.testMethod1";     let (node1, _) =
-    searcher.graph.graph().nodes().unwrap().expect_tuple();     assert_eq!(node1.metadata.
-    unwrap().intended_method, expected_intended_method);     assert_eq!(module.ast().repr(),
-    expected_code); }
+        let expected_code = "import test.Test.Test\nmain =\n    Test.testMethod1\n    operator1 =
+    Test.testMethod1";
+        let (node1, _) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+        assert_eq!(node1.metadata.unwrap().intended_method, expected_intended_method);
+        assert_eq!(module.ast().repr(), expected_code);
+    }
 
     #[wasm_bindgen_test]
     fn initialized_data_when_editing_node() {

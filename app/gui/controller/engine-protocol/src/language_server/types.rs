@@ -876,6 +876,18 @@ pub struct SuggestionEntryArgument {
     pub default_value: Option<String>,
 }
 
+impl SuggestionEntryArgument {
+    pub fn new(name: impl Into<String>, repr_type: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            repr_type: repr_type.into(),
+            is_suspended: false,
+            has_default: false,
+            default_value: None
+        }
+    }
+}
+
 /// The definition scope. The start and end are chars indices.
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
