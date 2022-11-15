@@ -127,7 +127,7 @@ impl Slider {
             drag_end_pos <- mouse.position.gate(&component_drag);
             drag_end_pos <- any2(&drag_end_pos,&drag_start_pos);
             drag_delta <- all2(&drag_end_pos,&drag_start_pos).map(|(end,start)| end - start);
-            mouse_position_click <- mouse.position.sample(&component_click); 
+            mouse_position_click <- mouse.position.sample(&component_click);
             mouse_position_drag <- mouse.position.gate(&component_drag);
             mouse_position_click_or_drag <- any2(&mouse_position_click,&mouse_position_drag);
             mouse_y_local <- mouse_position_click_or_drag.map(
@@ -141,31 +141,41 @@ impl Slider {
                 &input.set_height,
                 &input.set_precision_adjustment_margin,
             ).map(|(h,m)| h / 2.0 + m);
-            precision <- all4(
-                &input.set_precision,
+            precision_offset_steps <- all3(
                 &mouse_y_local,
                 &precision_adjustment_margin,
                 &input.set_precision_adjustment_step_size,
             ).map(
-                |(default,offset,margin,step_size)| {
+                |(offset,margin,step_size)| {
                     let sign = offset.signum();
                     // Calculate mouse y-position offset beyond margin, or 0 if within margin.
                     let offset = (offset.abs() - margin).max(0.0);
-                    // Calculate number of steps and direction to adjust the precision into.
-                    let steps = (offset / step_size).ceil() * sign;
-                    // Set the precision to `base` to the power of `steps`.
-                    *default * (PRECISION_ADJUSTMENT_STEP_BASE).pow(steps)
+                    // Calculate number of steps and direction of the precision adjustment.
+                    (offset / step_size).ceil() * sign
                 }
             );
+            precision_reset <- input.set_default_precision.sample(&component_ctrl_click);
+            precision_on_click <- output.precision.sample(&component_click);
+            precision_on_click <- all2(&precision_on_click,&input.set_default_precision);
+            precision_on_click <- precision_on_click.map(
+                // A precision of 0.0 is invalid!
+                |(precision,default)| if *precision==0.0 { *default } else {*precision}
+            );
+            precision_on_click <- any2(&precision_reset,&precision_on_click);
+            update_precision <- bool(&component_release,&precision_on_click);
+            precision <- all2(&precision_on_click,&precision_offset_steps).gate(&update_precision);
+            precision <- precision.map(
+                // Adjust the precision by the number of offset steps.
+                |(precision,offset)| *precision * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset)
+            );
+            output.precision <+ precision;
 
             value_reset <- input.set_default_value.sample(&component_ctrl_click);
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset,&value_on_click);
-            value <- all3(&value_on_click,&precision,&drag_delta);
-            value <- value.map(|(value,precision,delta)| value + delta.x * precision);
-            // value is updated only after value_on_click is sampled
             update_value <- bool(&component_release,&value_on_click);
-            value <- value.gate(&update_value);
+            value <- all3(&value_on_click,&precision,&drag_delta).gate(&update_value);
+            value <- value.map(|(value,precision,delta)| value + delta.x * precision);
             value <- any2(&input.set_value,&value);
             // Snap value to nearest precision increment
             value <- all2(&value,&precision);
@@ -249,7 +259,7 @@ impl Slider {
     /// Initialize the precision adjustment areas above/below the slider and the default precision
     /// value
     fn init_precision_defaults(self) -> Self {
-        self.frp.set_precision(PRECISION_DEFAULT);
+        self.frp.set_default_precision(PRECISION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self
@@ -323,7 +333,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the default precision at which the slider operates. The slider's precision
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
-        set_precision(f32),
+        set_default_precision(f32),
         /// The slider's precision can be adjusted by dragging the mouse in the vertical direction.
         /// The `adjustment_margin` defines a margin above/below the slider within which no
         /// precision adjustment will be performed.
@@ -349,6 +359,7 @@ ensogl_core::define_endpoints_2! {
         width(f32),
         height(f32),
         value(f32),
+        precision(f32),
     }
 }
 
