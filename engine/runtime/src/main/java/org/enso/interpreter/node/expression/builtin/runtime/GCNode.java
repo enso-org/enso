@@ -4,14 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 
 @BuiltinMethod(
     type = "Runtime",
     name = "gc",
     description = "Forces garbage collection",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public abstract class GCNode extends Node {
 
   public abstract Object execute();

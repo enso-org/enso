@@ -21,6 +21,6 @@ public @interface BuiltinMethod {
   /** @return a list of aliases (names) of this method */
   String aliases() default "";
 
-  /** @return an owner of the method */
-  Owner owner() default Owner.TYPE;
+  /** @return whether a method should be registered automatically with a type */
+  boolean autoRegister() default true;
 }

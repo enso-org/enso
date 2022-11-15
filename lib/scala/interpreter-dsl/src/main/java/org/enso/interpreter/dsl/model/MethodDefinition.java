@@ -1,7 +1,6 @@
 package org.enso.interpreter.dsl.model;
 
 import org.enso.interpreter.dsl.*;
-import org.enso.interpreter.dsl.Owner;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -207,8 +206,8 @@ public class MethodDefinition {
         .orElseGet(() -> false);
   }
 
-  public Owner owner() {
-    return annotation.owner();
+  public boolean isAutoRegister() {
+    return annotation.autoRegister();
   }
 
   public interface ArgumentDefinition {

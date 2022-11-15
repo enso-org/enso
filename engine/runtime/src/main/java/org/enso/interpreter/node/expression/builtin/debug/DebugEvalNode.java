@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.debug;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectTextNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -14,7 +13,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Debug",
     name = "eval",
     description = "Evaluates an expression passed as a Text argument, in the caller frame.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public class DebugEvalNode extends Node {
   private @Child EvalNode evalNode = EvalNode.build();
   private @Child ExpectTextNode expectTextNode = ExpectTextNode.build();

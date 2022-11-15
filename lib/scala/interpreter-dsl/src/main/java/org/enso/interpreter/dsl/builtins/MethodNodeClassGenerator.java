@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.Owner;
 
 public abstract class MethodNodeClassGenerator {
   ClassName builtinNode;
@@ -40,7 +39,7 @@ public abstract class MethodNodeClassGenerator {
       String methodName,
       String description,
       String ownerMethodName,
-      Owner owner)
+      boolean isAutoRegister)
       throws IOException {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(builtinNode.jvmFriendlyFullyQualifiedName());
@@ -56,8 +55,8 @@ public abstract class MethodNodeClassGenerator {
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
       out.println();
       String moduleOwnerInfo = "";
-      if (owner != Owner.TYPE) {
-        moduleOwnerInfo = ",\n owner = Owner." + owner;
+      if (!isAutoRegister) {
+        moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
       }
       out.println(
           "@BuiltinMethod(type = \""

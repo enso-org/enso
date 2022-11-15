@@ -155,11 +155,11 @@ public @interface Builtin {
     int expandVarargs() default 0;
 
     /**
-     * `owner` property indicates the builtin method's owner. By default a builtin method belongs to
-     * its type. If `Owner.MODULE`, the builtin method must be static i.e. no `self` parameter must
-     * be present.
+     * `autoRegister` property indicates whether the builtin method should be automatically
+     * registered with the underlying type. By default every builtin method is registered with a
+     * type. Auto-registered methods do not have to be declared explicitly.
      */
-    Owner owner() default Owner.TYPE;
+    boolean autoRegister() default true;
   }
 
   /**

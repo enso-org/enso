@@ -6,7 +6,6 @@ import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
@@ -23,7 +22,7 @@ public class System {
   private static final Text WINDOWS = Text.create("windows");
   private static final Text UNKNOWN = Text.create("unknown");
 
-  @Builtin.Method(description = "Get the type of operating system.", owner = Owner.MODULE)
+  @Builtin.Method(description = "Get the type of operating system.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static Text os() {
     if (SystemUtils.IS_OS_LINUX) return LINUX;
@@ -32,13 +31,13 @@ public class System {
     return UNKNOWN;
   }
 
-  @Builtin.Method(description = "Check if the operating system is UNIX.", owner = Owner.MODULE)
+  @Builtin.Method(description = "Check if the operating system is UNIX.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static Boolean is_unix() {
     return SystemUtils.IS_OS_UNIX;
   }
 
-  @Builtin.Method(description = "Gets the nanosecond resolution system time.", owner = Owner.MODULE)
+  @Builtin.Method(description = "Gets the nanosecond resolution system time.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static long nanoTime() {
     return java.lang.System.nanoTime();
@@ -46,7 +45,7 @@ public class System {
 
   @Builtin.Method(
       description = "Exits the process, returning the provided code.",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static void exit(long code) {
     java.lang.System.exit((int) code);
@@ -55,7 +54,7 @@ public class System {
   @Builtin.Specialize
   @Builtin.Method(
       description = "Create a system process, returning the exit code.",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.WrapException(from = IOException.class, to = PanicException.class)
   @Builtin.WrapException(from = InterruptedException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary

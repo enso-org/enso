@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -16,7 +15,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "Polyglot",
     name = "get_executable_name",
     description = "Returns the executable name of a polyglot object.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public class GetExecutableNameNode extends Node {
   private @Child InteropLibrary functionsLibrary =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

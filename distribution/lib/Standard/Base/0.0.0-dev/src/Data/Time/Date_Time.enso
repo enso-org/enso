@@ -89,6 +89,26 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
     Panic.catch_java Any (new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
+## PRIVATE
+
+   Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
+   second, nanosecond and timezone.
+
+   Arguments:
+   - year: The year to represent, any Integer is valid.
+   - month: the month-of-year to represent, from 1 (January) to 12 (December)
+   - day: the day-of-month to represent, from 1 to 31 and must be valid for the
+     year and month
+   - hour: the hour-of-day to represent, from 0 to 23
+   - minute: the minute-of-hour to represent, from 0 to 59
+   - second: the second-of-minute to represent, from 0 to 59
+   - nanosecond: the nano-of-second to represent, from 0 to 999,999,999
+   - zone: the timezone
+
+   Recommended to use `Date_Time.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
+new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
+
 ## ALIAS Time from Text
 
    Obtains an instance of `Time` from a text such as
@@ -173,6 +193,19 @@ parse text pattern=Nothing locale=Locale.default =
         case pattern of
             Nothing -> parse_builtin text
             _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
+
+## PRIVATE
+
+   Obtains an instance of `Time` from a text such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Arguments:
+   - text: The text representing the time to be parsed.
+
+   Recommended to use `Date_Time.parse_builtin` instead which handles potential exceptions
+   and date time formats.
+parse_builtin : Text -> Date_Time
+parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
 
 ## PRIVATE
 

@@ -11,7 +11,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
@@ -24,7 +23,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     type = "IO",
     name = "println",
     description = "Prints its argument to standard out.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public abstract class PrintlnNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode =
       InvokeCallableNode.build(

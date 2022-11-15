@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.Node;
 
 import java.io.IOException;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -15,7 +14,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "IO",
     name = "readln",
     description = "Reads a line from standard in.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public abstract class ReadlnNode extends Node {
   static ReadlnNode build() {
     return ReadlnNodeGen.create();

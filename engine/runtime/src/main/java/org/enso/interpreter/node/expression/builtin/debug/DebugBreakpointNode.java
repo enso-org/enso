@@ -9,7 +9,6 @@ import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.state.State;
@@ -18,7 +17,7 @@ import org.enso.interpreter.runtime.state.State;
     type = "Debug",
     name = "breakpoint",
     description = "Instrumentation marker node.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 @GenerateWrapper
 public abstract class DebugBreakpointNode extends Node implements InstrumentableNode {
   /**

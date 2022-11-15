@@ -18,7 +18,6 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -38,12 +37,12 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(
       name = "epoch_start",
       description = "Return the Enso start of the Epoch",
-      owner = Owner.MODULE)
+      autoRegister = false)
   public static EnsoDateTime epochStart() {
     return epochStart;
   }
 
-  @Builtin.Method(description = "Return current DateTime", owner = Owner.MODULE)
+  @Builtin.Method(description = "Return current DateTime", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
@@ -67,7 +66,7 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(
       name = "parse_builtin",
       description = "Constructs a new DateTime from text with optional pattern",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -84,7 +83,7 @@ public final class EnsoDateTime implements TruffleObject {
   @Builtin.Method(
       name = "new_builtin",
       description = "Constructs a new Date from a year, month, and day",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(

@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.epb.node.CoercePrimitiveNode;
 import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.Context;
@@ -18,7 +17,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     type = "Polyglot",
     name = "read_array_element",
     description = "Read a value from the array specified by the index.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public class ReadArrayElementNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

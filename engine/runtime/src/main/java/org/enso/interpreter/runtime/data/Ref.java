@@ -5,7 +5,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -20,7 +19,7 @@ public final class Ref implements TruffleObject {
    *
    * @param value the initial value to store in the reference.
    */
-  @Builtin.Method(description = "Creates a new Ref", owner = Owner.MODULE)
+  @Builtin.Method(description = "Creates a new Ref", autoRegister = false)
   public Ref(Object value) {
     this.value = value;
   }

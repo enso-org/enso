@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 
@@ -12,7 +11,7 @@ import org.enso.interpreter.runtime.Context;
     type = "Java",
     name = "lookup_class",
     description = "Looks up a Java symbol.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public abstract class LookupClassNode extends Node {
   static LookupClassNode build() {
     return LookupClassNodeGen.create();

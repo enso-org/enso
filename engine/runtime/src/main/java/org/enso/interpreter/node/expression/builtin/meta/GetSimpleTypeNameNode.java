@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
@@ -12,7 +11,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     type = "Meta",
     name = "get_simple_type_name",
     description = "Pretty prints a type.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public class GetSimpleTypeNameNode extends Node {
   @Child @CompilationFinal TypeToDisplayTextNode displayTypeNode = TypeToDisplayTextNode.build();
 

@@ -6,7 +6,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -29,7 +28,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
         "Takes a computation acquiring a resource, a function taking the resource and closing it,"
             + " and a function performing arbitrary operations on the resource. Ensures closing"
             + " the resource, even if an exception is raised in the computation.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public abstract class BracketNode extends Node {
 
   private @Child ThunkExecutorNode invokeConstructorNode = ThunkExecutorNode.build();

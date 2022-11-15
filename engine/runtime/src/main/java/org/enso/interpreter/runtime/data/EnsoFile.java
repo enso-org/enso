@@ -7,7 +7,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -226,7 +225,7 @@ public final class EnsoFile implements TruffleObject {
       name = "get_file",
       description =
           "Takes the text representation of a path and returns a TruffleFile corresponding to it.",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile fromString(Context context, String path) {
@@ -237,7 +236,7 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(
       name = "get_cwd",
       description = "A file corresponding to the current working directory.",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile currentDirectory(Context context) {
@@ -248,7 +247,7 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(
       name = "home",
       description = "Gets the user's system-defined home directory.",
-      owner = Owner.MODULE)
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile userHome(Context context) {

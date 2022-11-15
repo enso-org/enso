@@ -6,14 +6,13 @@ import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
     name = "get_source_location_builtin",
     description = "Returns a textual representation of the location of the callsite.",
-    owner = Owner.MODULE)
+    autoRegister = false)
 public class GetSourceLocationNode extends Node {
 
   Text execute(long frames_to_skip) {

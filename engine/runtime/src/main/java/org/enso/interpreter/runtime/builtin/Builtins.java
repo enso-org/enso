@@ -17,7 +17,6 @@ import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.dsl.Owner;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.Boolean;
@@ -167,12 +166,11 @@ public class Builtins {
       String tpeName = type.getName();
       Map<String, LoadedBuiltinMethod> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
-        // 1. Register non-static methods
-        // 2. Register static methods owned by a type
-        // Such builtins are available on certain values without importing the whole stdlib.
-        // This is important for types such as Any or Number.
+        // Register a builtin method iff it is marked as auto-register.
+        // Methods can only register under a type or, if we deal with a static method, it's eigen-type.
+        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any or Number.
         methods.entrySet().stream().forEach(entry -> {
-          Type tpe = !entry.getValue().isStatic ? type : (!entry.getValue().isModuleOwner() ? type.getEigentype() : null);
+          Type tpe = entry.getValue().isAutoRegister ? (!entry.getValue().isStatic() ? type : type.getEigentype()) : null;
           if (tpe != null) {
             Optional<BuiltinFunction> fun = entry.getValue().toFunction(language);
             fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
@@ -353,14 +351,14 @@ public class Builtins {
                     throw new CompilerError("Invalid builtin metadata in : " + line);
                   }
                   boolean isStatic = builtinMeta.length == 3 ? java.lang.Boolean.valueOf(builtinMeta[2]) : false;
-                  Owner owner = builtinMeta.length == 4 ? Owner.valueOf(builtinMeta[3]) : Owner.TYPE;
+                  boolean isAutoRegister = builtinMeta.length == 4 && java.lang.Boolean.valueOf(builtinMeta[3]);
 
                   try {
                     @SuppressWarnings("unchecked")
                     Class<BuiltinRootNode> clazz =
                             (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
                     Method meth = clazz.getMethod("makeFunction", Language.class);
-                    LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, owner);
+                    LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
                     return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
                   } catch (ClassNotFoundException | NoSuchMethodException e) {
                     e.printStackTrace();
@@ -390,18 +388,6 @@ public class Builtins {
 
   public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, Language language) {
     return getBuiltinFunction(type.getName(), methodName, language);
-  }
-
-  public List<BuiltinFunction> getBuiltinFunctionsForModule(String moduleName, Language language) {
-    Map<String, LoadedBuiltinMethod> atomNodes = builtinMethodNodes.get(moduleName);
-    if (atomNodes == null) return new ArrayList<>();
-    return atomNodes.values()
-      .stream()
-      .filter(m -> m.isModuleOwner())
-      .map(m -> m.toFunction(language))
-      .filter(f -> f.isPresent())
-      .map(f -> f.get())
-      .collect(Collectors.toList());
   }
 
   public <T extends Builtin> T getBuiltinType(Class<T> clazz) {
@@ -624,18 +610,14 @@ public class Builtins {
     return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 
-  private record LoadedBuiltinMethod(Method meth, boolean isStatic, Owner owner) {
+  private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
     Optional<BuiltinFunction> toFunction(Language language) {
       try {
-        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isStatic, owner));
+        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isStatic, isAutoRegister));
       } catch (Exception e) {
         e.printStackTrace();
         return Optional.empty();
       }
-    }
-
-    boolean isModuleOwner() {
-      return owner == Owner.MODULE;
     }
   }
 

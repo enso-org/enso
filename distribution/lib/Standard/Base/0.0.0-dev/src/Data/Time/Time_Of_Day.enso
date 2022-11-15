@@ -50,6 +50,21 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Panic.catch_java Any (new_builtin hour minute second nanosecond) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
+## PRIVATE
+
+   Obtains an instance of `Time_Of_Day` from an hour, minute, second
+   and nanosecond.
+
+   Arguments:
+   - hour: The hour-of-day to represent, from 0 to 23.
+   - minute: The minute-of-hour to represent, from 0 to 59.
+   - second: The second-of-minute to represent, from 0 to 59.
+   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+
+   Recommended to use `Time_Of_Day.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
+new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
+
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
    Arguments:
@@ -117,6 +132,18 @@ parse text pattern=Nothing locale=Locale.default =
         case pattern of
             Nothing -> parse_builtin text
             _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
+
+## PRIVATE
+
+   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   Arguments:
+   - text: The text to parse as a time of day.
+
+   Recommended to use `Time_Of_Day.parse_builtin` instead which handles potential
+   exceptions and different time formats.
+parse_builtin : Text -> Time_Of_Day
+parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
 
 ## PRIVATE
 
