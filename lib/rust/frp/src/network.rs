@@ -107,6 +107,9 @@ impl Network {
     }
 
     /// Store an arbitrary boxed item.
+    ///
+    /// Force the compiler to never inline this function, so the generated code (including two panic
+    /// handlers) can be shared across all registered items independent of their type.
     #[inline(never)]
     fn store_boxed(&self, item: Box<dyn Any>) {
         self.data.storage.borrow_mut().push(item);
@@ -127,6 +130,9 @@ impl Network {
     }
 
     /// Register a boxed node. Non-generic part of registration.
+    ///
+    /// Force the compiler to never inline this function, so the generated code (including two panic
+    /// handlers) can be shared across all registered nodes independent of their type.
     #[inline(never)]
     fn register_boxed(&self, node: Box<dyn Item>) {
         self.data.nodes.borrow_mut().push(node);

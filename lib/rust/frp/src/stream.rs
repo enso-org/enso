@@ -12,16 +12,13 @@ use crate::data::watch;
 // === CallStack ===
 // =================
 
-/// Owned call stack type.
 #[cfg(feature = "stack-trace")]
-pub type OwnedCallStack<'a> = EnabledCallStack<'a>;
-
-/// Owned call stack type.
-#[cfg(not(feature = "stack-trace"))]
-pub type OwnedCallStack<'a> = DisabledCallStack;
-
 /// A call stack trace for FRP events.
-pub type CallStack<'a> = &'a OwnedCallStack<'a>;
+pub type CallStack<'a> = &'a EnabledCallStack<'a>;
+
+#[cfg(not(feature = "stack-trace"))]
+/// A call stack trace for FRP events.
+pub type CallStack<'a> = &'a DisabledCallStack;
 
 
 // === Ops ===
