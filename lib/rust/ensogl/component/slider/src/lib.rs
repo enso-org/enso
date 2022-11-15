@@ -126,7 +126,8 @@ impl Slider {
             drag_start_pos <- mouse.position.sample(&component_click);
             drag_end_pos <- mouse.position.gate(&component_drag);
             drag_end_pos <- any2(&drag_end_pos,&drag_start_pos);
-            drag_delta <- all2(&drag_end_pos,&drag_start_pos).map(|(end,start)| end - start);
+            drag_delta_x <- all2(&drag_end_pos,&drag_start_pos).map(|(end,start)| end.x - start.x);
+            drag_delta_x <- drag_delta_x.on_change();
             mouse_position_click <- mouse.position.sample(&component_click);
             mouse_position_drag <- mouse.position.gate(&component_drag);
             mouse_position_click_or_drag <- any2(&mouse_position_click,&mouse_position_drag);
@@ -153,12 +154,12 @@ impl Slider {
                     // Calculate number of steps and direction of the precision adjustment.
                     (offset / step_size).ceil() * sign
                 }
-            );
+            ).on_change();
             precision_reset <- input.set_default_precision.sample(&component_ctrl_click);
             precision_on_click <- output.precision.sample(&component_click);
             precision_on_click <- all2(&precision_on_click,&input.set_default_precision);
             precision_on_click <- precision_on_click.map(
-                // A precision of 0.0 is invalid!
+                // A precision of 0.0 results in NaN values!
                 |(precision,default)| if *precision==0.0 { *default } else {*precision}
             );
             precision_on_click <- any2(&precision_reset,&precision_on_click);
@@ -174,8 +175,8 @@ impl Slider {
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset,&value_on_click);
             update_value <- bool(&component_release,&value_on_click);
-            value <- all3(&value_on_click,&precision,&drag_delta).gate(&update_value);
-            value <- value.map(|(value,precision,delta)| value + delta.x * precision);
+            value <- all3(&value_on_click,&precision,&drag_delta_x).gate(&update_value);
+            value <- value.map(|(value,precision,delta)| value + delta * precision);
             value <- any2(&input.set_value,&value);
             // Snap value to nearest precision increment
             value <- all2(&value,&precision);
@@ -296,7 +297,7 @@ impl application::View for Slider {
 #[derive(Clone, Copy, Debug, Default)]
 pub enum LabelPosition {
     #[default]
-    /// Place the label outside the slider component, on its left side..
+    /// Place the label outside the slider component, on its left side.
     Outside,
     /// Place the label inside the slider component, on the left side.
     Inside,
