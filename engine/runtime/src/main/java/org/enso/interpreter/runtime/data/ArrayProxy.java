@@ -71,4 +71,14 @@ public final class ArrayProxy implements TruffleObject {
       throw UnsupportedMessageException.create(e);
     }
   }
+
+  @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().array();
+  }
 }
