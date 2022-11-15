@@ -44,21 +44,24 @@ pub mod model;
 
 /// Default slider precision when slider dragging is initiated. The precision indicates both how
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
-pub const PRECISION_DEFAULT: f32 = 0.1;
+const PRECISION_DEFAULT: f32 = 0.1;
 /// Margin above/below the component within which vertical mouse movement will not affect slider
 /// precision.
-pub const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
+const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
 /// The vertical mouse movement (in pixels) needed to change the slider precision by one step.
 /// Dragging the mouse upward beyond the margin will decrease the precision by one step for every
 /// `STEP_SIZE` pixels and adjust the slider value more quickly. Dragging the mouse downwards will
 /// increase the precision and change the value more slowly.
-pub const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
+const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
 /// The actual slider precision changes exponentially with each adjustment step. When the adjustment
 /// is changed by one step, the slider's precision is changed to the next power of `STEP_BASE`. A
 /// `STEP_BASE` of 10.0 results in the precision being powers of 10 for consecutive steps, e.g [1.0,
 /// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
 /// precision.
-pub const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
+const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
+/// The maximum number of digits after the decimal point to be displayed when showing the
+/// component's value.
+const VALUE_DISPLAY_MAX_DIGITS_AFTER_DECIMAL: usize = 8;
 
 
 
@@ -375,6 +378,7 @@ ensogl_core::define_endpoints_2! {
 fn value_text_truncate_split((value, precision): &(f32, f32)) -> (ImString, Option<ImString>) {
     if *precision < 1.0 {
         let digits = (-precision.log10()).ceil() as usize;
+        let digits = digits.min(VALUE_DISPLAY_MAX_DIGITS_AFTER_DECIMAL);
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
         let text_left = text_iter.next().map(|s| s.to_im_string());
