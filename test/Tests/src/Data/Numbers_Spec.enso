@@ -257,12 +257,19 @@ spec =
             almost_max_long_times_three%0.0 . is_nan . should_be_true
 
         Test.specify "should expose comparison operators" <|
+            (1 < 2).should_be_true
             (3 < hundred_factorial).should_be_true
             (hundred_factorial < 3).should_be_false
             (3.0 < hundred_factorial).should_be_true
             (3.0 <= 3.4).should_be_true
             (3.0 >= 2).should_be_true
             (-hundred_factorial > 0).should_be_false
+
+        Test.specify "should handle comparison with Nothing" <|
+            (1 == Nothing) . should_be_false
+            (1.0 != Nothing) . should_be_true
+            1 . compare_to Nothing . should_fail_with Type_Error_Data
+            (1.0 > Nothing) . should_fail_with Type_Error_Data
 
         Test.specify "should expose exponentiation operations" <|
             (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps

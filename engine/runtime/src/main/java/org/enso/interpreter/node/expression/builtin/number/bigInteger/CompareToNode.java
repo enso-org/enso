@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -40,10 +39,9 @@ public abstract class CompareToNode extends Node {
 
   @Fallback
   Object doOther(EnsoBigInteger self, Object that) {
-    CompilerDirectives.transferToInterpreter();
-    var number = Context.get(this).getBuiltins().number().getNumber();
-    var typeError = Context.get(this).getBuiltins().error().makeTypeError(number, that, "that");
-    return DataflowError.withoutTrace(typeError, this);
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return that == builtins.nothing() ? DataflowError.withoutTrace(typeError, this) : DataflowError.withTrace(typeError, this);
   }
 
   Ordering getOrdering() {
