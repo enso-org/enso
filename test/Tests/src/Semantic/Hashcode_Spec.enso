@@ -1,0 +1,34 @@
+from Standard.Test import Test
+
+type My_Type
+    Value foo bar baz
+
+spec =
+    Test.specify "Hashcode and equality contract" <|
+        # TODO: Feed various objects
+        obj1 = ...
+        obj2 = ...
+        if obj1 == obj2 then obj1.hash_code . should_equal obj2.hash_code
+        if obj1.hash_code == obj2.hash_code then obj1 . should_equal obj2
+        if obj1 != obj2 then obj1.hash_code . should_not_equal obj2.hash_code
+        if obj1.hash_code != obj2.hash_code then obj1 . should_not_equal obj2
+
+    Test.specify "Hashcodes are consistent" <|
+        old_hash = obj.hash_code
+        new_hash = obj.hash_code
+        old_hash . should_equal new_hash
+
+    Test.specify "Different hashcodes for different atoms" <|
+        (My_Type.Value 1 2 "blah").hash_code . should_not_equal (My_Type.Value 2 1 "blah").hash_code
+        ([1,2]).hash_code . should_not_equal ([2,1]).hash_code
+        ([1,2]).hash_code . should_not_equal ([1,1]).hash_code
+        ([1,2,3]).hash_code . should_not_equal ([2,1]).hash_code
+        ([1,2,3]).hash_code . should_not_equal ([1,2]).hash_code
+        ([1,2]).hash_code . should_equal ([1,2]).hash_code
+        ([1]).hash_code . should_not_equal 1.hash_code
+        1.hash_code . should_equal 1.hash_code
+
+    Test.specify "Hash codes of interop values" <|
+
+    Test.group "Hash codes of atom constructors" <|
+        ...

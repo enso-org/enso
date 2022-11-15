@@ -94,6 +94,9 @@ type Any
                Therefore, there are no more cases to handle in self method.
             _ -> False
 
+    hash_code : Integer
+    hash_code self = Meta.hash_code self
+
     ## ALIAS Inequality
 
        Checks if `self` is not equal to `that`.

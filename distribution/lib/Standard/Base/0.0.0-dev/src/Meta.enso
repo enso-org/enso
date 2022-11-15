@@ -285,6 +285,13 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
 Any.is_same_object_as : Any -> Boolean
 Any.is_same_object_as self value = is_same_object self value
 
+
+## UNSTABLE
+   ADVANCED
+hash_code : Any -> Integer
+hash_code value = @Builtin_Method "Meta.hash_code"
+
+
 ## UNSTABLE
    ADVANCED
 

@@ -3,6 +3,9 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -10,6 +13,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.utilities.TriState;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -246,6 +250,35 @@ public final class AtomConstructor implements TruffleObject {
       return cachedInstance;
     }
     return newInstance(arguments);
+  }
+
+  @ExportMessage
+  int identityHashCode(
+      @Cached(value = "computeIdentityHashCode(this)", allowUncached = true) int cachedHashCode
+  ) {
+    return cachedHashCode;
+  }
+
+  @ExportMessage
+  static class IsIdenticalOrUndefined {
+    @Specialization(limit = "3")
+    static TriState isIdenticalOrUndefined(
+        AtomConstructor thisAtomCtor,
+        AtomConstructor otherAtomCtor,
+        @Cached(value = "computeIdentityHashCode(thisAtomCtor)", allowUncached = true) int thisHashCode,
+        @Cached(value = "computeIdentityHashCode(otherAtomCtor)", allowUncached = true) int otherHashCode
+    ) {
+      return thisHashCode == otherHashCode ? TriState.TRUE : TriState.FALSE;
+    }
+
+    @Fallback
+    static TriState fallBack(AtomConstructor thisAtomCtor, Object other) {
+      return TriState.FALSE;
+    }
+  }
+
+  static int computeIdentityHashCode(AtomConstructor atomConstructor) {
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @ExportMessage

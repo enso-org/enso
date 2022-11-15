@@ -1,7 +1,12 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
@@ -10,11 +15,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import java.util.Arrays;
+import java.util.Objects;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -189,6 +197,51 @@ public final class Atom implements TruffleObject {
         | UnexpectedResultException e) {
       return Text.create(this.toString(10));
     }
+  }
+
+  @ExportMessage
+  int identityHashCode(
+      @CachedLibrary(limit = "5") InteropLibrary fieldsInterop,
+      @Cached(value = "computeIdentityHashCode(this, fieldsInterop)", allowUncached = true) int cachedHashCode
+  ) {
+    return cachedHashCode;
+  }
+
+  @ExportMessage
+  static class IsIdenticalOrUndefined {
+    @Specialization
+    static TriState isIdenticalOrUndefined(
+        Atom thisAtom,
+        Atom otherAtom,
+        @CachedLibrary(limit = "5") InteropLibrary fieldsInterop,
+        @Cached(value = "computeIdentityHashCode(thisAtom, fieldsInterop)", allowUncached = true) int thisHashCode,
+        @Cached(value = "computeIdentityHashCode(otherAtom, fieldsInterop)", allowUncached = true) int otherHashCode
+    ) {
+      return thisHashCode == otherHashCode ? TriState.TRUE : TriState.FALSE;
+    }
+
+    @Fallback
+    static TriState fallBack(Atom thisAtom, Object other) {
+      return TriState.FALSE;
+    }
+  }
+
+  @ExplodeLoop
+  static int computeIdentityHashCode(Atom atom, InteropLibrary fieldsInterop) {
+    int[] hashCodes = new int[atom.fields.length];
+    for (int i = 0; i < atom.fields.length; i++) {
+      Object field = atom.fields[i];
+      if (fieldsInterop.hasIdentity(field)) {
+        try {
+          hashCodes[i] = fieldsInterop.identityHashCode(field);
+        } catch (UnsupportedMessageException e) {
+          throw new PanicException(atom, fieldsInterop);
+        }
+      } else {
+        hashCodes[i] = field.hashCode();
+      }
+    }
+    return Arrays.hashCode(hashCodes);
   }
 
   @ExportMessage
