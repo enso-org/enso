@@ -65,9 +65,10 @@ impl Drop for SpriteStats {
 /// it without making the sprite appear on the screen.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Size {
-    hidden: Rc<Cell<bool>>,
-    value:  Rc<Cell<Vector2<f32>>>,
-    attr:   Attribute<Vector2<f32>>,
+    hidden:         Rc<Cell<bool>>,
+    value:          Rc<Cell<Vector2<f32>>>,
+    attr:           Attribute<Vector2<f32>>,
+    display_object: display::object::Instance,
 }
 
 // === Setters ===
@@ -85,6 +86,7 @@ impl CellGetter for Size {
 impl CellSetter for Size {
     fn set(&self, v: Vector2) {
         self.value.set(v);
+        self.display_object.set_bounding_box(v);
         if !self.hidden.get() {
             self.attr.set(v)
         }
@@ -98,7 +100,8 @@ impl Size {
     fn new(attr: Attribute<Vector2<f32>>) -> Self {
         let hidden = Rc::new(Cell::new(true));
         let value = Rc::new(Cell::new(zero()));
-        Self { hidden, value, attr }
+        let display_object = display::object::Instance::new();
+        Self { hidden, value, attr, display_object }
     }
 
     fn hide(&self) {
@@ -122,17 +125,56 @@ impl Size {
 /// freely rotated only by their local z-axis. This implementation, however, implements sprites as
 /// full 3D objects. We may want to fork this implementation in the future to create a specialized
 /// 2d representation as well.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Sprite {
-    pub symbol:           Symbol,
+    model: Rc<SpriteModel>,
+}
+
+/// Internal representation of [`Sprite`].
+#[derive(Debug, Deref)]
+#[allow(missing_docs)]
+pub struct SpriteModel {
+    #[deref]
     pub instance:         SymbolInstance,
+    pub symbol:           Symbol,
     pub size:             Size,
-    display_object:       display::object::Instance,
     transform:            Attribute<Matrix4<f32>>,
-    stats:                Rc<SpriteStats>,
-    erase_on_drop:        Rc<EraseOnDrop<Attribute<Vector2<f32>>>>,
-    unset_parent_on_drop: Rc<display::object::UnsetParentOnDrop>,
+    stats:                SpriteStats,
+    erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
+    unset_parent_on_drop: display::object::UnsetParentOnDrop,
+}
+
+impl SpriteModel {
+    /// Constructor.
+    pub fn new(
+        symbol: &Symbol,
+        instance: SymbolInstance,
+        transform: Attribute<Matrix4<f32>>,
+        size: Attribute<Vector2<f32>>,
+        stats: &Stats,
+    ) -> Self {
+        let symbol = symbol.clone_ref();
+        let stats = SpriteStats::new(stats);
+        let erase_on_drop = EraseOnDrop::new(size.clone_ref());
+        let size = Size::new(size);
+        let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
+        let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
+        size.set(default_size);
+        Self { symbol, instance, size, transform, stats, erase_on_drop, unset_parent_on_drop }
+            .init()
+    }
+
+    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// callbacks.
+    fn init(self) -> Self {
+        let size = &self.size;
+        let transform = &self.transform;
+        self.display_object().set_on_updated(f!((t) transform.set(t.matrix())));
+        self.display_object().set_on_hide(f_!(size.hide()));
+        self.display_object().set_on_show(f__!(size.show()));
+        self
+    }
 }
 
 impl Sprite {
@@ -144,37 +186,8 @@ impl Sprite {
         size: Attribute<Vector2<f32>>,
         stats: &Stats,
     ) -> Self {
-        let symbol = symbol.clone_ref();
-        let display_object = display::object::Instance::new();
-        let stats = Rc::new(SpriteStats::new(stats));
-        let erase_on_drop = Rc::new(EraseOnDrop::new(size.clone_ref()));
-        let size = Size::new(size);
-        let unset_parent_on_drop =
-            Rc::new(display::object::UnsetParentOnDrop::new(&display_object));
-        let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
-        size.set(default_size);
-        Self {
-            symbol,
-            instance,
-            size,
-            display_object,
-            transform,
-            stats,
-            erase_on_drop,
-            unset_parent_on_drop,
-        }
-        .init()
-    }
-
-    /// Init display object bindings. In particular defines the behavior of the show and hide
-    /// callbacks.
-    fn init(self) -> Self {
-        let size = &self.size;
-        let transform = &self.transform;
-        self.display_object.set_on_updated(f!((t) transform.set(t.matrix())));
-        self.display_object.set_on_hide(f_!(size.hide()));
-        self.display_object.set_on_show(f__!(size.show()));
-        self
+        let model = SpriteModel::new(symbol, instance, transform, size, stats);
+        Self { model: Rc::new(model) }
     }
 
     /// Get the symbol id.
@@ -191,16 +204,15 @@ impl Sprite {
     }
 }
 
-impl display::Object for Sprite {
+impl display::Object for SpriteModel {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.size.display_object
     }
 }
 
-impl Deref for Sprite {
-    type Target = SymbolInstance;
-    fn deref(&self) -> &Self::Target {
-        &self.instance
+impl display::Object for Sprite {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.model.display_object()
     }
 }
 

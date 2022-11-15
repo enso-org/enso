@@ -18,7 +18,6 @@ use nalgebra::Vector3;
 use transform::CachedTransform;
 
 
-
 // ==================
 // === ParentBind ===
 // ==================
@@ -209,6 +208,7 @@ pub struct Model<Host: 'static = Scene> {
     children:            RefCell<OptVec<WeakInstance<Host>>>,
     transform:           RefCell<CachedTransform>,
     visible:             Cell<bool>,
+    bounding_box:        Cell<Vector2<f32>>,
 }
 
 impl<Host> Default for Model<Host> {
@@ -231,6 +231,7 @@ impl<Host: 'static> Model<Host> {
         let children = default();
         let transform = default();
         let visible = default();
+        let bounding_box = default();
         let capturing_event_fan = frp::Fan::new(&network);
         let bubbling_event_fan = frp::Fan::new(&network);
         frp::extend! { network
@@ -251,7 +252,12 @@ impl<Host: 'static> Model<Host> {
             children,
             transform,
             visible,
+            bounding_box,
         }
+    }
+
+    pub(crate) fn set_bounding_box(&self, bounding_box: Vector2<f32>) {
+        self.bounding_box.set(bounding_box);
     }
 
     /// Checks whether the object is visible.
