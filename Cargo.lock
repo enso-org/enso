@@ -2896,6 +2896,7 @@ dependencies = [
 name = "ensogl-text-font-family"
 version = "0.1.0"
 dependencies = [
+ "derive_more",
  "owned_ttf_parser",
 ]
 

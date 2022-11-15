@@ -44,9 +44,10 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use derive_more::Deref;
+use derive_more::Display;
 use std::collections::HashMap;
 use std::fmt::Formatter;
-
 
 // ==============
 // === Export ===
@@ -66,22 +67,9 @@ pub use owned_ttf_parser::Width;
 /// eliminate accidental mistakes, the same way as it's done in CSS:
 /// https://stackoverflow.com/questions/17967371/are-property-values-in-css-case-sensitive
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Deref, Display, Hash, PartialEq, Eq)]
 pub struct Name {
     pub normalized: String,
-}
-
-impl std::ops::Deref for Name {
-    type Target = str;
-    fn deref(&self) -> &Self::Target {
-        &self.normalized
-    }
-}
-
-impl std::fmt::Display for Name {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.normalized)
-    }
 }
 
 impl From<&Name> for Name {

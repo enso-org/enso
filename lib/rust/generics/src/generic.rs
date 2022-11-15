@@ -123,7 +123,7 @@ where T: HasRepr
 // === HasIndex ===
 // ================
 
-/// Trait for heterogeneous containers like tuples which contain element at index `Ix`.
+/// Trait for heterogeneous containers like tuples which contain element at index `I`.
 pub trait HasItemAt<const I: usize> {
     type Item;
 }
@@ -145,7 +145,7 @@ pub trait HasItemAt13 = HasItemAt<13>;
 pub trait HasItemAt14 = HasItemAt<14>;
 pub trait HasItemAt15 = HasItemAt<15>;
 
-/// Type of element at index `Ix`. Useful for heterogeneous containers like tuples.
+/// Type of element at index `I`. Useful for heterogeneous containers like tuples.
 pub type ItemAt<const I: usize, T> = <T as HasItemAt<I>>::Item;
 pub type ItemAt0<T> = ItemAt<0, T>;
 pub type ItemAt1<T> = ItemAt<1, T>;
@@ -164,7 +164,7 @@ pub type ItemAt13<T> = ItemAt<13, T>;
 pub type ItemAt14<T> = ItemAt<14, T>;
 pub type ItemAt15<T> = ItemAt<15, T>;
 
-/// Accessor for element at index `Ix`.
+/// Accessor for element at index `I`.
 pub trait GetItemAt<const I: usize>: HasItemAt<I> + _GetItemAt {
     fn get_item_at(&self) -> &ItemAt<I, Self>;
 }

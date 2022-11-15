@@ -25,7 +25,7 @@ boolinator = "2.4.0"
 cfg-if = "1.0.0"
 colored = "2.0.0"
 derivative = "2.2.0"
-derive_more = "0.99.2"
+derive_more = "0.99"
 enclose = "1.1.8"
 failure = "0.1.5"
 futures = { version = "0.3.1", optional = true }
