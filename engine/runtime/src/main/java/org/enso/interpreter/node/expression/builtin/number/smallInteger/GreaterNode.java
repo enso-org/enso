@@ -18,12 +18,12 @@ public abstract class GreaterNode extends Node {
   }
 
   @Specialization
-  Object doLong(long self, long that) {
+  boolean doLong(long self, long that) {
     return self > that;
   }
 
   @Specialization
-  Object doDouble(long self, double that) {
+  boolean doDouble(long self, double that) {
     return (double) self > that;
   }
 
@@ -33,7 +33,7 @@ public abstract class GreaterNode extends Node {
   }
 
   @Fallback
-  Object doOther(long self, Object that) {
+  DataflowError doOther(long self, Object that) {
     var builtins = Context.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
     return DataflowError.withoutTrace(typeError, this);

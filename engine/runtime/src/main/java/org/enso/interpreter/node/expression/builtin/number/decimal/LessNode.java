@@ -19,22 +19,22 @@ public abstract class LessNode extends Node {
   }
 
   @Specialization
-  Object doDouble(double self, double that) {
+  boolean doDouble(double self, double that) {
     return self < that;
   }
 
   @Specialization
-  Object doLong(double self, long that) {
+  boolean doLong(double self, long that) {
     return self < (double) that;
   }
 
   @Specialization
-  Object doBigInteger(double self, EnsoBigInteger that) {
+  boolean doBigInteger(double self, EnsoBigInteger that) {
     return self < BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  Object doOther(double self, Object that) {
+  DataflowError doOther(double self, Object that) {
     var builtins = Context.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
     return DataflowError.withoutTrace(typeError, this);

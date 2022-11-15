@@ -374,7 +374,7 @@ spec =
             (hundred_factorial.compare_to 1.5).should_equal Ordering.Greater
             (very_negative.compare_to 1).should_equal Ordering.Less
             (very_negative.compare_to 1.5).should_equal Ordering.Less
-            (hundred_factorial.compare_to very_negative).should_equal Ordering.Less
+            (hundred_factorial.compare_to very_negative).should_equal Ordering.Greater
             (very_negative.compare_to hundred_factorial).should_equal Ordering.Less
             (very_negative.compare_to Nothing).should_fail_with Type_Error_Data
 

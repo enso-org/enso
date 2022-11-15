@@ -20,7 +20,7 @@ public abstract class LessNode extends Node {
   }
 
   @Specialization
-  Object doDouble(EnsoBigInteger self, double that) {
+  boolean doDouble(EnsoBigInteger self, double that) {
     return BigIntegerOps.toDouble(self.getValue()) < that;
   }
 
@@ -30,12 +30,12 @@ public abstract class LessNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
+  boolean doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     return BigIntegerOps.compare(self.getValue(), that.getValue()) < 0;
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger self, Object that) {
+  DataflowError doOther(EnsoBigInteger self, Object that) {
     var builtins = Context.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
     return DataflowError.withoutTrace(typeError, this);
