@@ -127,9 +127,12 @@ impl Slider {
             drag_end_pos <- mouse.position.gate(&component_drag);
             drag_end_pos <- any2(&drag_end_pos,&drag_start_pos);
             drag_delta <- all2(&drag_end_pos,&drag_start_pos).map(|(end,start)| end - start);
-            mouse_y_local <- mouse.position.map(
+            mouse_position_click <- mouse.position.sample(&component_click); 
+            mouse_position_drag <- mouse.position.gate(&component_drag);
+            mouse_position_click_or_drag <- any2(&mouse_position_click,&mouse_position_drag);
+            mouse_y_local <- mouse_position_click_or_drag.map(
                 f!([scene,model] (pos) scene.screen_to_object_space(&model.background,*pos).y )
-            ).gate(&component_drag);
+            );
 
 
             // === Value calculation ===
