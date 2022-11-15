@@ -917,9 +917,7 @@ Text.* self count = self.repeat count
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
 Text.repeat self count=1 =
-    ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
-       https://www.pivotaltracker.com/story/show/181435598
-    0.up_to (count.max 0) . fold "" acc-> _-> acc + self
+    0.up_to count . fold "" acc-> _-> acc + self
 
 ## ALIAS first, last, left, right, mid, substring
    Creates a new Text by selecting the specified range of the input.
