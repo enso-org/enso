@@ -100,7 +100,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testSpacesAtTheEndOfFile() throws Exception {
     var fourSpaces = "    ";
     parseTest("""
@@ -1156,7 +1155,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // problem in Delimited_Write_Spec.enso:172
   public void testQuotedValues() throws Exception {
     parseTest("""
     expected_text = normalize_lines <| \"""
