@@ -96,6 +96,8 @@
   JavaScript DOM events][3863]. The events system implements very similar
   behavior to the one described here:
   https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value with
+  the mouse. The precision of these adjustments can be increased or decreased.
 
 #### Enso Standard Library
 
@@ -380,6 +382,7 @@
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
+[3852]: https://github.com/enso-org/enso/pull/3852
 
 #### Enso Compiler
 
