@@ -302,7 +302,7 @@ object ProgramExecutionSupport {
       val section = Option(ctx.executionService.getSourceLocation(ex))
       val source  = section.flatMap(sec => Option(sec.getSource))
       Api.ExecutionResult.Diagnostic.error(
-        Option(ex.getMessage),
+        ex.getMessage,
         source.flatMap(src => findFileByModuleName(src.getName)),
         section.map(LocationResolver.sectionToRange),
         section
@@ -343,7 +343,7 @@ object ProgramExecutionSupport {
             getDiagnosticOutcome.applyOrElse(
               error,
               (ex: Exception) =>
-                Api.ExecutionResult.Diagnostic.error(Option(ex.getMessage))
+                Api.ExecutionResult.Diagnostic.error(ex.getMessage)
             )
           )
         )

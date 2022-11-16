@@ -878,7 +878,7 @@ object Runtime {
           * @return the instance of an error [[Diagnostic]] message
           */
         def error(
-          message: Option[String],
+          message: String,
           file: Option[File]                 = None,
           location: Option[model.Range]      = None,
           expressionId: Option[ExpressionId] = None,
@@ -886,7 +886,7 @@ object Runtime {
         ): Diagnostic =
           new Diagnostic(
             DiagnosticType.Error(),
-            message,
+            Option(message),
             file,
             location,
             expressionId,
@@ -903,7 +903,7 @@ object Runtime {
           * @return the instance of a warning [[Diagnostic]] message
           */
         def warning(
-          message: Option[String],
+          message: String,
           file: Option[File],
           location: Option[model.Range]      = None,
           expressionId: Option[ExpressionId] = None,
@@ -911,7 +911,7 @@ object Runtime {
         ): Diagnostic =
           new Diagnostic(
             DiagnosticType.Warning(),
-            message,
+            Option(message),
             file,
             location,
             expressionId,
