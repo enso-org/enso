@@ -236,16 +236,7 @@ impl Slider {
                     (offset / step_size).ceil() * sign
                 }
             ).on_change();
-            precision_reset <- input.set_default_precision.sample(&component_ctrl_click);
-            precision_on_click <- output.precision.sample(&component_click);
-            precision_on_click <- all2(&precision_on_click, &input.set_default_precision);
-            precision_on_click <- precision_on_click.map(
-                // A precision of 0.0 results in NaN values!
-                |(precision, default)| if *precision==0.0 { *default } else {*precision}
-            );
-            precision_on_click <- any2(&precision_reset, &precision_on_click);
-            update_precision <- bool(&component_release, &precision_on_click);
-            precision <- all2(&precision_on_click, &precision_offset_steps).gate(&update_precision);
+            precision <- all2(&input.set_default_precision, &precision_offset_steps);
             precision <- precision.map(
                 // Adjust the precision by the number of offset steps.
                 |(precision, offset)| *precision * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset)
