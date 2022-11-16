@@ -27,6 +27,7 @@ import org.enso.compiler.core.IR;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -571,14 +572,14 @@ public final class Module implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String expr = Types.extractArguments(args, String.class);
       Builtins builtins = context.getBuiltins();
-      Function eval =
+      BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       return callOptimiserNode.executeDispatch(
-          eval,
+          eval.getFunction(),
           callerInfo,
           context.emptyState(),
           new Object[] {builtins.debug(), Text.create(expr)});

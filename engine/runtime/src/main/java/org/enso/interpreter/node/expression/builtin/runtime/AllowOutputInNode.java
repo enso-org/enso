@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Runtime",
     name = "allow_output_in",
-    description = "Allows output in the specified scope.")
+    description = "Allows output in the specified scope.",
+    autoRegister = false)
 public class AllowOutputInNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();

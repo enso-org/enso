@@ -26,7 +26,7 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.")
+  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
   public Array(Object... items) {
     this.items = items;
   }
@@ -36,7 +36,7 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.")
+  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -80,7 +80,7 @@ public final class Array implements TruffleObject {
   }
 
   /** @return an empty array */
-  @Builtin.Method(description = "Creates an empty Array")
+  @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Object empty() {
     return new Array();
   }

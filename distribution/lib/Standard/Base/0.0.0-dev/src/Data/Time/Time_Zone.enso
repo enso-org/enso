@@ -60,7 +60,22 @@ utc = parse "UTC"
          example_new = Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Time_Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    Time_Zone.new_builtin hours minutes seconds
+    new_builtin hours minutes seconds
+
+## PRIVATE
+   Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
+   from the UTC zone.
+
+   Arguments:
+   - hours: The timezone offset in hours from UTC, from -18 to +18.
+   - minutes: The timezone offset in minutes from the nearest hour, from 0 to
+     ±59. The sign must match that of the hours argument.
+   - seconds: The timezone offset in seconds from the nearest minute, from 0 to
+     ±59. The sign must match that of the minutes argument.
+
+   Recommended to use `Time_Zone.new` instead which provides defaults.
+new_builtin : Integer -> Integer -> Integer -> Time_Zone
+new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
 
 ## ALIAS Time Zone from Text
 
@@ -96,10 +111,21 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
          from Standard.Base import Time_Zone
 
          example_parse = Time_Zone.parse "+03:02:01"
-parse : Text -> Time_Zone
+parse : Text -> Time_Zone ! Time_Error
 parse text =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
-        Time_Zone.parse_builtin text
+        parse_builtin text
+
+## PRIVATE
+
+   This method parses the ID producing a `Time_Zone`.
+
+   Arguments:
+   - text: The text representing a zone identifier.
+
+   Recommended to use `Time_Zone.parse` instead which handles potential exceptions.
+parse_builtin : Text -> Time_Zone
+parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 
 ## PRIVATE
 

@@ -32,7 +32,8 @@ public final class EnsoTimeOfDay implements TruffleObject {
 
   @Builtin.Method(
       name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern")
+      description = "Constructs a new DateTime from text with optional pattern",
+      autoRegister = false)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -40,7 +41,10 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return new EnsoTimeOfDay(LocalTime.parse(text));
   }
 
-  @Builtin.Method(name = "new_builtin", description = "Constructs a new Time_OF_Day from an hour")
+  @Builtin.Method(
+      name = "new_builtin",
+      description = "Constructs a new Time_OF_Day from an hour",
+      autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
@@ -52,7 +56,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
             Math.toIntExact(nanosecond)));
   }
 
-  @Builtin.Method(description = "Gets a value of hour")
+  @Builtin.Method(description = "Gets a value of hour", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay now() {
     return new EnsoTimeOfDay(LocalTime.now());
@@ -107,7 +111,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "to_time_builtin",
+      name = "to_date_time_builtin",
       description = "Combine this time of day with a date to create a point in time.")
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
