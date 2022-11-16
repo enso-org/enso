@@ -174,6 +174,16 @@ impl Slider {
     }
 
     fn init(self) -> Self {
+        self.init_value_update();
+        self.init_value_display();
+        self.init_component_layout();
+        self.init_component_colors();
+        self.init_precision_defaults();
+        self
+    }
+
+    /// Initialize the slider value update FRP network.
+    fn init_value_update(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
         let output = &self.frp.private.output;
@@ -181,18 +191,12 @@ impl Slider {
         let scene = &self.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
-        let track_pos_anim = Animation::new_non_init(network);
-        let background_color_anim = color::Animation::new(network);
-        let track_color_anim = color::Animation::new(network);
-        let value_text_color_anim = color::Animation::new(network);
-        let label_color_anim = color::Animation::new(network);
         let component_events = &model.background.events;
 
         frp::extend! { network
 
             // === User input ===
 
-        
             component_click <- component_events.mouse_down_primary
                 .gate_not(&input.set_slider_disabled);
             component_release <- component_events.mouse_release_primary
@@ -213,7 +217,7 @@ impl Slider {
             );
 
 
-            // === Value calculation ===
+            // === Precision calculation ===
 
             precision_adjustment_margin <- all2(
                 &input.set_height,
@@ -248,6 +252,9 @@ impl Slider {
             );
             output.precision <+ precision;
 
+
+            // === Value calculation ===
+
             value_reset <- input.set_default_value.sample(&component_ctrl_click);
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset,&value_on_click);
@@ -262,18 +269,19 @@ impl Slider {
             value <- all3(&value,&input.set_min_value,&input.set_max_value);
             value <- value.map(|(value,min,max)| value.clamp(*min,*max));
             output.value <+ value;
+        };
+    }
 
+    /// Initialize the value display FRP network
+    fn init_value_display(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let output = &self.frp.private.output;
+        let model = &self.model;
 
-            // === Model update ===
-
-            component_size <- all2(&input.set_width,&input.set_height).map(|(w,h)| Vector2(*w,*h));
-            eval component_size((size) model.set_size(*size));
-            output.width <+ input.set_width;
-            output.height <+ input.set_height;
-
-            track_pos <- all3(&value,&input.set_min_value,&input.set_max_value);
-            track_pos_anim.target <+ track_pos.map(|(value,min,max)| (value - min) / (max - min));
-            eval track_pos_anim.value((v) model.track.slider_fraction_filled.set(*v));
+        frp::extend! { network
+            value <- output.value.on_change();
+            precision <- output.precision.on_change();
 
             value_is_default <- all2(&value,&input.set_default_value).map(|(val,def)| val==def);
             value_is_default_true <- value_is_default.on_true();
@@ -281,21 +289,6 @@ impl Slider {
             eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
             eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
 
-            background_color <- all2(&input.set_background_color,&input.set_slider_disabled);
-            background_color_anim.target <+ background_color.map(desaturate_color);
-            eval background_color_anim.value((color) model.set_background_color(color));
-            track_color <- all2(&input.set_slider_track_color, &input.set_slider_disabled);
-            track_color_anim.target <+ track_color.map(desaturate_color);
-            eval track_color_anim.value((color) model.set_track_color(color));
-            value_text_color <- all2(&input.set_value_text_color, &input.set_slider_disabled);
-            value_text_color_anim.target <+ value_text_color.map(desaturate_color);
-            eval value_text_color_anim.value((color) model.set_value_text_property(color));
-            label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
-            label_color_anim.target <+ label_color.map(desaturate_color);
-            eval label_color_anim.value((color) model.label.set_property_default(color));
-
-            value <- value.on_change();
-            precision <- precision.on_change();
             value_text_left_right <- all2(&value,&precision);
             value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
@@ -306,6 +299,27 @@ impl Slider {
             model.value_text_right.set_content <+ value_text_right.unwrap();
             value_text_right_visibility_change <- value_text_right_is_visible.on_change();
             eval value_text_right_visibility_change((v) model.set_value_text_right_visible(*v));
+        };
+    }
+
+    /// Initialize the component layout FRP network.
+    fn init_component_layout(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let output = &self.frp.private.output;
+        let model = &self.model;
+        let track_pos_anim = Animation::new_non_init(network);
+
+        frp::extend! { network
+            component_size <- all2(&input.set_width,&input.set_height).map(|(w,h)| Vector2(*w,*h));
+            eval component_size((size) model.set_size(*size));
+            output.width <+ input.set_width;
+            output.height <+ input.set_height;
+
+            track_pos <- all3(&output.value,&input.set_min_value,&input.set_max_value);
+            track_pos_anim.target <+ track_pos.map(|(value,min,max)| (value - min) / (max - min));
+            eval track_pos_anim.value((v) model.track.slider_fraction_filled.set(*v));
+
             value_text_left_pos_x <- all2(&model.value_text_left.width,&model.value_text_dot.width);
             value_text_left_pos_x <- value_text_left_pos_x.map(|(left,dot)| -*left - *dot / 2.0);
             eval value_text_left_pos_x((x) model.value_text_left.set_position_x(*x));
@@ -331,16 +345,40 @@ impl Slider {
             );
             eval label_pos_x((x) model.label.set_position_x(*x));
         };
-        self.init_precision_defaults()
+    }
+
+    /// Initialize the component color FRP network.
+    fn init_component_colors(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let model = &self.model;
+        let background_color_anim = color::Animation::new(network);
+        let track_color_anim = color::Animation::new(network);
+        let value_text_color_anim = color::Animation::new(network);
+        let label_color_anim = color::Animation::new(network);
+
+        frp::extend! { network
+            background_color <- all2(&input.set_background_color,&input.set_slider_disabled);
+            background_color_anim.target <+ background_color.map(desaturate_color);
+            eval background_color_anim.value((color) model.set_background_color(color));
+            track_color <- all2(&input.set_slider_track_color, &input.set_slider_disabled);
+            track_color_anim.target <+ track_color.map(desaturate_color);
+            eval track_color_anim.value((color) model.set_track_color(color));
+            value_text_color <- all2(&input.set_value_text_color, &input.set_slider_disabled);
+            value_text_color_anim.target <+ value_text_color.map(desaturate_color);
+            eval value_text_color_anim.value((color) model.set_value_text_property(color));
+            label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
+            label_color_anim.target <+ label_color.map(desaturate_color);
+            eval label_color_anim.value((color) model.label.set_property_default(color));
+        };
     }
 
     /// Initialize the precision adjustment areas above/below the slider and the default precision
-    /// value
-    fn init_precision_defaults(self) -> Self {
+    /// value.
+    fn init_precision_defaults(&self) {
         self.frp.set_default_precision(PRECISION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
-        self
     }
 }
 
