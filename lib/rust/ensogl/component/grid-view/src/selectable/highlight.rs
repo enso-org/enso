@@ -519,7 +519,6 @@ impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> Ha
                 &connected_header_out.color,
                 |&from_header, &entry, &header| if from_header {header} else {entry}
             );
-            trace out.color;
 
             none_highlighted <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlighted.constant(default());
