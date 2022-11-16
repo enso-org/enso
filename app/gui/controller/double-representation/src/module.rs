@@ -28,6 +28,7 @@ use engine_protocol::language_server;
 
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "Id segment list is empty.")]
+#[allow(missing_docs)]
 pub struct EmptySegments;
 
 #[derive(Clone, Debug, Fail)]
@@ -61,13 +62,20 @@ pub struct NotDirectChild(ast::Crumbs);
 // === Id ===
 // ==========
 
+/// The segments of module name. Allow finding module in the project.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id {
+    /// The last segments being a module name. For project's main module it should be equal
+    /// to [`PROJECTS_MAIN_MODULE`].
     pub name:           ImString,
+    /// The segments of all parent modules, from the top module to the direct parent. Does **not**
+    /// include project name.
     pub parent_modules: Vec<ImString>,
 }
 
 impl Id {
+    /// Create module id from list of segments. The list shall not contain the project name nor
+    /// namespace. Fails if the list is empty (the module name is required).
     pub fn try_from_segments(
         segments: impl IntoIterator<Item: Into<ImString>>,
     ) -> FallibleResult<Self> {
@@ -76,6 +84,7 @@ impl Id {
         Ok(Self { name, parent_modules: segments })
     }
 
+    /// Return the iterator over id's segments.
     pub fn segments(&self) -> impl Iterator<Item = &ImString> {
         self.parent_modules.iter().chain(iter::once(&self.name))
     }

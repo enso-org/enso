@@ -877,6 +877,7 @@ pub struct SuggestionEntryArgument {
 }
 
 impl SuggestionEntryArgument {
+    /// Create a new argument which is not suspended and has no default.
     pub fn new(name: impl Into<String>, repr_type: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -1095,7 +1096,7 @@ pub enum SuggestionsDatabaseUpdateKind {
 #[serde(tag = "type")]
 pub enum SuggestionsDatabaseUpdate {
     #[serde(rename_all = "camelCase")]
-    Add { id: SuggestionId, suggestion: SuggestionEntry },
+    Add { id: SuggestionId, suggestion: Box<SuggestionEntry> },
     #[serde(rename_all = "camelCase")]
     Remove { id: SuggestionId },
     #[serde(rename_all = "camelCase")]
