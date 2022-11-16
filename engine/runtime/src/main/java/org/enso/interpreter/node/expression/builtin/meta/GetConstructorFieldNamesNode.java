@@ -10,7 +10,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Meta",
     name = "get_constructor_fields",
-    description = "Gets the field names of a constructor.")
+    description = "Gets the field names of a constructor.",
+    autoRegister = false)
 public class GetConstructorFieldNamesNode extends Node {
   Array execute(AtomConstructor atom_constructor) {
     ArgumentDefinition[] fields = atom_constructor.getFields();

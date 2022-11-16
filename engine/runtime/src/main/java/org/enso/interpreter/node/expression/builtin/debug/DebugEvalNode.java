@@ -12,7 +12,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Debug",
     name = "eval",
-    description = "Evaluates an expression passed as a Text argument, in the caller frame.")
+    description = "Evaluates an expression passed as a Text argument, in the caller frame.",
+    autoRegister = false)
 public class DebugEvalNode extends Node {
   private @Child EvalNode evalNode = EvalNode.build();
   private @Child ExpectTextNode expectTextNode = ExpectTextNode.build();

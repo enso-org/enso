@@ -9,7 +9,8 @@ import org.enso.interpreter.runtime.Context;
 @BuiltinMethod(
     type = "Meta",
     name = "is_polyglot",
-    description = "Checks if the argument is a polyglot value.")
+    description = "Checks if the argument is a polyglot value.",
+    autoRegister = false)
 public abstract class IsPolyglotNode extends Node {
   static IsPolyglotNode build() {
     return IsPolyglotNodeGen.create();

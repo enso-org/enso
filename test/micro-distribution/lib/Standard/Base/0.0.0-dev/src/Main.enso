@@ -20,10 +20,10 @@ import project.Data.Numbers
 from project.Data.Numbers export Number
 
 import project.Data.Vector
-from project.Data.Vector export Vector
+export project.Data.Vector
 
 import project.Polyglot
-from project.Polyglot export all
+export project.Polyglot
 
 import project.Polyglot.Java
 export project.Polyglot.Java

@@ -2,6 +2,7 @@
 
 from Standard.Base import all
 
+import Standard.Base.Data.Array
 import Standard.Base.Data.Text.Regex
 
 import Standard.Base.Data.Text.Matching_Mode
