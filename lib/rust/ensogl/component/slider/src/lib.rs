@@ -59,9 +59,6 @@ const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
 /// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
 /// precision.
 const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
-/// The maximum number of digits after the decimal point to be displayed when showing the
-/// component's value.
-const VALUE_DISPLAY_MAX_DIGITS_AFTER_DECIMAL: usize = 8;
 
 
 
@@ -131,6 +128,9 @@ ensogl_core::define_endpoints_2! {
         /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
         /// and the slider is greyed out.
         set_slider_disabled(bool),
+        /// The maximum number of digits after the decimal point to be displayed when showing the
+        /// component's value.
+        set_max_disp_decimal_places(usize),
     }
     Output {
         width(f32),
@@ -289,7 +289,7 @@ impl Slider {
             eval_ value_is_default_true(model.set_value_text_property(formatting::Weight::Normal));
             eval_ value_is_default_false(model.set_value_text_property(formatting::Weight::Bold));
 
-            value_text_left_right <- all2(&value,&precision);
+            value_text_left_right <- all3(&value, &precision, &input.set_max_disp_decimal_places);
             value_text_left_right <- value_text_left_right.map(value_text_truncate_split);
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
@@ -416,10 +416,12 @@ impl application::View for Slider {
 
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
-fn value_text_truncate_split((value, precision): &(f32, f32)) -> (ImString, Option<ImString>) {
-    if *precision < 1.0 {
+fn value_text_truncate_split(
+    (value, precision, max_digits): &(f32, f32, usize),
+) -> (ImString, Option<ImString>) {
+    if *precision < 1.0 || *max_digits == 0 {
         let digits = (-precision.log10()).ceil() as usize;
-        let digits = digits.min(VALUE_DISPLAY_MAX_DIGITS_AFTER_DECIMAL);
+        let digits = digits.min(*max_digits);
         let text = format!("{:.prec$}", value, prec = digits);
         let mut text_iter = text.split('.');
         let text_left = text_iter.next().map(|s| s.to_im_string());
@@ -461,36 +463,43 @@ mod tests {
 
     #[test]
     fn test_high_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.01));
+        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("46".to_im_string()));
     }
 
     #[test]
     fn test_low_precision() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 10.0));
+        let (left, right) = value_text_truncate_split(&(123.4567, 10.0, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_precision_is_zero() {
-        let (left, right) = value_text_truncate_split(&(123.4567, 0.0));
+        let (left, right) = value_text_truncate_split(&(123.4567, 0.0, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, Some("45670319".to_im_string()));
     }
 
     #[test]
     fn test_precision_is_nan() {
-        let (left, right) = value_text_truncate_split(&(123.4567, NAN));
+        let (left, right) = value_text_truncate_split(&(123.4567, NAN, 8));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 
     #[test]
     fn test_value_is_nan() {
-        let (left, right) = value_text_truncate_split(&(NAN, 0.01));
+        let (left, right) = value_text_truncate_split(&(NAN, 0.01, 8));
         assert_eq!(left, "NaN".to_im_string());
+        assert_eq!(right, None);
+    }
+
+    #[test]
+    fn test_high_precision() {
+        let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 0));
+        assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
     }
 }

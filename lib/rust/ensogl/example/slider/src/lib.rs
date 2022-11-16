@@ -57,6 +57,7 @@ fn make_slider(app: &Application) -> Leak<slider::Slider> {
     slider.frp.set_max_value(5.0);
     slider.frp.set_default_value(1.0);
     slider.frp.set_value(1.0);
+    slider.frp.set_max_disp_decimal_places(8);
     app.display.add_child(&slider);
     Leak::new(slider)
 }
