@@ -101,10 +101,10 @@ spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
         case random_gen of
-            Polyglot -> Nothing
+            Polyglot.Polyglot -> Nothing
             _ -> Test.fail "Expected a polyglot object to match."
-        case Polyglot of
-            Polyglot -> Nothing
+        case Polyglot.Polyglot of
+            Polyglot.Polyglot -> Nothing
             _ -> Test.fail "Expected the Polyglot constructor to match."
     Test.specify "should be able to match on the Any type" <|
         value_1 = 1.23143

@@ -1431,7 +1431,7 @@ class RuntimeErrorsTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val newline    = System.lineSeparator()
+    val newline    = "\n" // was: System.lineSeparator()
 
     val metadata   = new Metadata
     val xId        = metadata.addItem(15, 20)

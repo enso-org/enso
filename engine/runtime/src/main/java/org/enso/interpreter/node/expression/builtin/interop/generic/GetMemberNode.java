@@ -13,7 +13,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_member",
-    description = "Gets a member by name from a polyglot object.")
+    description = "Gets a member by name from a polyglot object.",
+    autoRegister = false)
 public class GetMemberNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

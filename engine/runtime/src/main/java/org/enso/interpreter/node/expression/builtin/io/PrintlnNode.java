@@ -19,7 +19,11 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
+@BuiltinMethod(
+    type = "IO",
+    name = "println",
+    description = "Prints its argument to standard out.",
+    autoRegister = false)
 public abstract class PrintlnNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode =
       InvokeCallableNode.build(

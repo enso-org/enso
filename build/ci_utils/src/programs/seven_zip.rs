@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-use snafu::Snafu;
-
 
 
 #[derive(Clone, Copy, Debug)]
@@ -26,48 +24,29 @@ impl Program for SevenZip {
         vec![]
     }
 
-    fn handle_exit_status(status: std::process::ExitStatus) -> anyhow::Result<()> {
+    fn handle_exit_status(status: std::process::ExitStatus) -> Result {
         if status.success() {
             Ok(())
         } else if let Some(code) = status.code() {
-            Err(ExecutionError::from_exit_code(code).into())
+            error_from_exit_code(code)
         } else {
-            Err(ExecutionError::Unknown.into())
+            bail!("Unknown execution error.")
         }
     }
 }
 
-// Cf https://7zip.bugaco.com/7zip/MANUAL/cmdline/exit_codes.htm
-#[derive(Snafu, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub enum ExecutionError {
-    #[snafu(display(
-        "Warning (Non fatal error(s)). For example, one or more files were locked by some \
-    other application, so they were not compressed."
-    ))]
-    Warning,
-    #[snafu(display("Fatal error"))]
-    Fatal,
-    #[snafu(display("Command line error"))]
-    CommandLine,
-    #[snafu(display("Not enough memory for operation"))]
-    NotEnoughMemory,
-    #[snafu(display("User stopped the process"))]
-    UserStopped,
-    #[snafu(display("Unrecognized error code"))]
-    Unknown,
-}
-
-impl ExecutionError {
-    fn from_exit_code(code: i32) -> Self {
-        match code {
-            1 => Self::Warning,
-            2 => Self::Fatal,
-            7 => Self::CommandLine,
-            8 => Self::NotEnoughMemory,
-            255 => Self::UserStopped,
-            _ => Self::Unknown,
-        }
-    }
+pub fn error_from_exit_code(code: i32) -> anyhow::Result<()> {
+    let message = match code {
+        1 =>
+            "Warning (Non fatal error(s)). For example, one or more files were locked by some \
+            other application, so they were not compressed.",
+        2 => "Fatal error.",
+        7 => "Command line error.",
+        8 => "Not enough memory for operation.",
+        255 => "User stopped the process.",
+        _ => "Unrecognized error code.",
+    };
+    bail!(message);
 }
 
 impl SevenZip {

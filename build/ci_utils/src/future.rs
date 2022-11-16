@@ -4,6 +4,13 @@ use futures_util::future::OptionFuture;
 
 
 
+pub fn receiver_to_stream<T>(
+    mut receiver: tokio::sync::mpsc::Receiver<T>,
+) -> impl Stream<Item = T> {
+    futures::stream::poll_fn(move |ctx| receiver.poll_recv(ctx))
+}
+
+
 #[derive(Copy, Clone, Debug)]
 pub enum AsyncPolicy {
     Sequential,

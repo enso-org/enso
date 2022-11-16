@@ -278,7 +278,7 @@ impl ProjectName {
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
             eval_ start_editing ({
-                text.set_focus(true);
+                text.deprecated_set_focus(true);
                 text.set_cursor_at_mouse_position()
             });
             frp.source.edit_mode <+ start_editing.to_true();
@@ -317,7 +317,7 @@ impl ProjectName {
 
             set_inactive <- any(&frp.deselect,&on_commit);
             eval_ set_inactive ([text,animations]{
-                text.set_focus(false);
+                text.deprecated_set_focus(false);
                 text.remove_all_cursors();
                 animations.color.set_target_value(deselected_color);
             });

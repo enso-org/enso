@@ -34,12 +34,15 @@ public final class EnsoDateTime implements TruffleObject {
     this.dateTime = dateTime;
   }
 
-  @Builtin.Method(name = "epoch_start", description = "Return the Enso start of the Epoch")
+  @Builtin.Method(
+      name = "epoch_start",
+      description = "Return the Enso start of the Epoch",
+      autoRegister = false)
   public static EnsoDateTime epochStart() {
     return epochStart;
   }
 
-  @Builtin.Method(description = "Return current DateTime")
+  @Builtin.Method(description = "Return current DateTime", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
@@ -62,7 +65,8 @@ public final class EnsoDateTime implements TruffleObject {
    */
   @Builtin.Method(
       name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern")
+      description = "Constructs a new DateTime from text with optional pattern",
+      autoRegister = false)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -78,7 +82,8 @@ public final class EnsoDateTime implements TruffleObject {
 
   @Builtin.Method(
       name = "new_builtin",
-      description = "Constructs a new Date from a year, month, and day")
+      description = "Constructs a new Date from a year, month, and day",
+      autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(
@@ -168,16 +173,14 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(
-      name = "to_localtime_builtin",
+      name = "time_of_day",
       description = "Return the localtime of this date time value.")
   @CompilerDirectives.TruffleBoundary
   public EnsoTimeOfDay toLocalTime() {
     return new EnsoTimeOfDay(dateTime.toLocalTime());
   }
 
-  @Builtin.Method(
-      name = "to_localdate_builtin",
-      description = "Return the localdate of this date time value.")
+  @Builtin.Method(name = "date", description = "Return the localdate of this date time value.")
   @CompilerDirectives.TruffleBoundary
   public EnsoDate toLocalDate() {
     return new EnsoDate(dateTime.toLocalDate());
@@ -187,15 +190,6 @@ public final class EnsoDateTime implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime atZone(EnsoTimeZone zone) {
     return new EnsoDateTime(dateTime.withZoneSameInstant(zone.asTimeZone()));
-  }
-
-  @Builtin.Method(
-      name = "to_time_builtin",
-      description = "Combine this day with time to create a point in time.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoTimeZone zone) {
-    return new EnsoDateTime(
-        dateTime.toLocalDate().atTime(timeOfDay.asTime()).atZone(zone.asTimeZone()));
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")

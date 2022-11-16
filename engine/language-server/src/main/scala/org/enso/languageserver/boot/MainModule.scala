@@ -36,6 +36,7 @@ import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
+import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
@@ -52,7 +53,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
-
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -80,6 +80,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val languageServerConfig = Config(
     contentRoot,
     FileManagerConfig(timeout = 3.seconds),
+    VcsManagerConfig(timeout  = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
@@ -103,6 +104,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
+
+  val git = Git()
+  log.trace("Created git [{}].", git)
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
@@ -187,10 +191,21 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "file-manager"
   )
 
+  lazy val vcsManager = system.actorOf(
+    VcsManager.props(
+      languageServerConfig.vcsManager,
+      git,
+      contentRootManagerWrapper,
+      zioExec
+    ),
+    "vcs-manager"
+  )
+
   lazy val bufferRegistry =
     system.actorOf(
       BufferRegistry.props(
         fileManager,
+        vcsManager,
         runtimeConnector,
         TimingsConfig.default().withAutoSave(6.seconds)
       ),
@@ -355,6 +370,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,
     fileManager            = fileManager,
+    vcsManager             = vcsManager,
     contentRootManager     = contentRootManagerActor,
     contextRegistry        = contextRegistry,
     suggestionsHandler     = suggestionsHandler,

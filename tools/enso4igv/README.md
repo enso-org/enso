@@ -53,9 +53,14 @@ to _finish_ the installation.
 
 ## Using the IGV
 
-Get an instance of the Enso runtime engine (see
-[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) and then launch it with
-special `--dump-graphs` option:
+Build an instance of the Enso runtime engine (see
+[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using:
+
+```bash
+enso$ sbt buildEngineDistribution
+```
+
+and then launch it with special `--dump-graphs` option:
 
 ```bash
 enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run yourprogram.enso
@@ -89,9 +94,18 @@ graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<
 graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<split-717d5bdf>].bgv
 ```
 
-Let's launch IGV with Enso integration and let's open graph for one of the
-top-most functions: `TruffleHotSpotCompilation*Primes*next*.bgv`. Choose
-compilation phase _"Before lowering"_:
+Let's launch IGV with Enso integration. Locate the `engine/runtime` directory
+and open it as _"project"_ in IGV:
+
+![Open Project in IGV](https://user-images.githubusercontent.com/26887752/201684275-b3ee7a37-7b55-4290-b426-75df0280ba32.png)
+
+The project directories (not only `runtime`, but also other like
+`runtime-language-epb`, etc.) are recognized only if you have built the Enso
+engine sources with `sbt buildEngineDistribution`.
+
+With such setup let's open graph for one of the top-most functions:
+`TruffleHotSpotCompilation*Primes*next*.bgv`. Choose compilation phase _"Before
+lowering"_:
 
 ![Before Lowering Graph](https://user-images.githubusercontent.com/26887752/174608397-331a4438-1f12-40b0-9fcd-59eda5e53fb6.png)
 
@@ -102,8 +116,13 @@ it got _inlined_(you can use search box in the top-right corner)
 ![Inlining Stacktrace](https://user-images.githubusercontent.com/26887752/174608478-e7002c43-d746-42c0-b61c-92ceb9d9f124.png)
 
 The stack trace shows what methods of the Enso interpreter and Truffle runtime
-are _"inlined on stack"_ when this node is being compiled. This is all regular
-_IGV_ functionality, but now we can switch to _Enso view_:
+are _"inlined on stack"_ when this node is being compiled. However thanks to
+integration with `engine/runtime` sources one can directly jump to the sources
+of the interpreter that represent certain graph nodes:
+
+![Associated Engine Sources](https://user-images.githubusercontent.com/26887752/201688115-4afdb2ac-9a41-4469-8b7b-d7130f74883e.png)
+
+Not only that, but one we can also switch to _Enso view_:
 
 ![Enso Source](https://user-images.githubusercontent.com/26887752/174608595-4ce80b00-949a-4b28-84a7-60d5988bfc70.png)
 

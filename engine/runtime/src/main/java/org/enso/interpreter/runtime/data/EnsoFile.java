@@ -224,7 +224,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(
       name = "get_file",
       description =
-          "Takes the text representation of a path and returns a TruffleFile corresponding to it.")
+          "Takes the text representation of a path and returns a TruffleFile corresponding to it.",
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile fromString(Context context, String path) {
@@ -234,7 +235,8 @@ public final class EnsoFile implements TruffleObject {
 
   @Builtin.Method(
       name = "get_cwd",
-      description = "A file corresponding to the current working directory.")
+      description = "A file corresponding to the current working directory.",
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile currentDirectory(Context context) {
@@ -242,7 +244,10 @@ public final class EnsoFile implements TruffleObject {
     return new EnsoFile(file);
   }
 
-  @Builtin.Method(name = "home", description = "Gets the user's system-defined home directory.")
+  @Builtin.Method(
+      name = "home",
+      description = "Gets the user's system-defined home directory.",
+      autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile userHome(Context context) {

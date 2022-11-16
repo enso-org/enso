@@ -6,9 +6,9 @@ use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use derivative::Derivative;
+use enso_build_base::extensions::path::display_fmt;
 use ide_ci::cache;
-use ide_ci::extensions::path::display_fmt;
-use ide_ci::models::config::RepoContext;
+use ide_ci::github::Repo;
 use octocrab::models::RunId;
 
 
@@ -38,10 +38,10 @@ pub fn default_repo_path() -> Option<PathBuf> {
     enso_build::repo::deduce_repository_path().ok()
 }
 
-pub fn default_repo_remote() -> RepoContext {
+pub fn default_repo_remote() -> Repo {
     ide_ci::actions::env::GITHUB_REPOSITORY
         .get()
-        .unwrap_or_else(|_| RepoContext::from_str(DEFAULT_REMOTE_REPOSITORY_FALLBACK).unwrap())
+        .unwrap_or_else(|_| Repo::from_str(DEFAULT_REMOTE_REPOSITORY_FALLBACK).unwrap())
 }
 
 pub fn default_cache_path() -> Option<PathBuf> {
@@ -75,6 +75,7 @@ pub trait IsTargetSource {
     const SOURCE_NAME: &'static str;
     const PATH_NAME: &'static str;
     const OUTPUT_PATH_NAME: &'static str;
+    // const UPLOAD_ASSET_NAME: &'static str;
     const RUN_ID_NAME: &'static str;
     const RELEASE_DESIGNATOR_NAME: &'static str;
     const ARTIFACT_NAME_NAME: &'static str;
@@ -94,6 +95,7 @@ macro_rules! source_args_hlp {
             const SOURCE_NAME: &'static str = concat!($prefix, "-", "source");
             const PATH_NAME: &'static str = concat!($prefix, "-", "path");
             const OUTPUT_PATH_NAME: &'static str = concat!($prefix, "-", "output-path");
+            // const UPLOAD_ASSET_NAME: &'static str = concat!($prefix, "-", "upload-asset");
             const RUN_ID_NAME: &'static str = concat!($prefix, "-", "run-id");
             const RELEASE_DESIGNATOR_NAME: &'static str = concat!($prefix, "-", "release");
             const ARTIFACT_NAME_NAME: &'static str = concat!($prefix, "-", "artifact-name");
@@ -156,11 +158,11 @@ pub struct Cli {
     /// released versions to generate a new one, or uploading release assets).
     /// The argument should follow the format `owner/repo_name`.
     #[clap(long, global = true, default_value_t = default_repo_remote(), enso_env())]
-    pub repo_remote: RepoContext,
+    pub repo_remote: Repo,
 
     /// The build kind. Affects the default version generation.
-    #[clap(long, global = true, arg_enum, default_value_t = enso_build::version::BuildKind::Dev, env = crate::BuildKind::NAME)]
-    pub build_kind: enso_build::version::BuildKind,
+    #[clap(long, global = true, arg_enum, default_value_t = enso_build::version::Kind::Dev, env = *crate::ENSO_BUILD_KIND)]
+    pub build_kind: enso_build::version::Kind,
 
     /// Platform to target. Currently cross-compilation is enabled only for GUI/IDE (without
     /// Project Manager) on platforms where Electron Builder supports this.
@@ -222,6 +224,9 @@ pub struct Source<Target: IsTargetSource> {
 
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
+    //
+    // #[clap(name = Target::UPLOAD_ASSET_NAME, long)]
+    // pub upload_asset: bool,
 }
 
 /// Discriminator denoting how some target artifact should be obtained.

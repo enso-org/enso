@@ -9,8 +9,8 @@ use crate::project::ProcessWrapper;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
+use ide_ci::github::RepoRef;
 use ide_ci::io::download_all;
-use ide_ci::models::config::RepoContext;
 use ide_ci::program::command;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
@@ -35,7 +35,7 @@ pub const IDE_ASSETS_URL: &str =
 
 pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
-pub const GOOGLE_FONTS_REPOSITORY: &str = "google/fonts";
+pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
 
 pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
 
@@ -81,6 +81,13 @@ pub mod env {
         /// The app-specific password (not Apple ID password). See:
         /// https://support.apple.com/HT204397
         APPLEIDPASS, String;
+
+        /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
+        /// appropriate identity from your keychain will be automatically used.
+        CSC_IDENTITY_AUTO_DISCOVERY, bool;
+
+        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
+        PYTHON_PATH, PathBuf;
     }
 }
 
@@ -102,9 +109,9 @@ pub async fn download_google_font(
     output_path: impl AsRef<Path>,
 ) -> Result<Vec<Content>> {
     let destination_dir = output_path.as_ref();
-    let repo = RepoContext::from_str(GOOGLE_FONTS_REPOSITORY)?;
+    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
     let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos(octocrab).get_content().path(path).send().await?;
+    let files = repo.repos().get_content().path(path).send().await?;
     let ttf_files =
         files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
     for file in &ttf_files {
@@ -293,8 +300,6 @@ impl IdeDesktop {
         // When watching we expect our artifacts to be served through server, not appear in any
         // specific location on the disk.
         let output_path = TempDir::new()?;
-        // let span = tracing::
-        // let wasm = wasm.inspect()
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
         Span::current().record("wasm", watch_environment.wasm.as_str());
@@ -352,7 +357,7 @@ impl IdeDesktop {
 
         let content_build = self
             .npm()?
-            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env_opt(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, engine_version_to_use)?
@@ -367,12 +372,25 @@ impl IdeDesktop {
         let (icons, _content) = try_join(icons_build, content_build).await?;
 
 
+        let python_path = if TARGET_OS == OS::MacOS {
+            // On macOS electron-builder will fail during DMG creation if there is no python2
+            // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
+            // MacOS versions.
+            // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
+            // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
+            // runners.
+            Some(ide_ci::program::lookup("python2")?)
+        } else {
+            None
+        };
+
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
-            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
+            .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist", EMPTY_ARGS)
