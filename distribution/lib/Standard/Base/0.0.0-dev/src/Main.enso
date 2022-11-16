@@ -1,7 +1,12 @@
+import project.Data.Interval.Bound
+import project.Data.Interval.Interval
+
+export project.Data.Interval.Bound
+export project.Data.Interval.Interval
+
 import project.Data.Any
 import project.Data.Array
 import project.Data.Boolean
-import project.Data.Interval
 import project.Data.Json
 import project.Data.List
 import project.Data.Locale
@@ -57,7 +62,6 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Interval
 export project.Data.Json
 export project.Data.Locale
 export project.Data.Map
