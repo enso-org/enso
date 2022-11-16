@@ -63,6 +63,7 @@ mod track {
 
     ensogl_core::shape! {
         above = [background];
+        pointer_events = false;
         (style:Style, slider_fraction_filled:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
             let track = Rect((&width * &slider_fraction_filled,&height));

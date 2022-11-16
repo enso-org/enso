@@ -109,22 +109,19 @@ impl Slider {
         let track_color_anim = color::Animation::new(network);
         let value_text_color_anim = color::Animation::new(network);
         let label_color_anim = color::Animation::new(network);
+        let component_events = &model.background.events;
 
         frp::extend! { network
 
             // === User input ===
 
-            background_click <- model.background.events.mouse_down_primary.constant(());
-            background_release <- model.background.events.mouse_release_primary.constant(());
-            background_drag <- bool(&background_release,&background_click);
-            track_click <- model.track.events.mouse_down_primary.constant(());
-            track_release <- model.track.events.mouse_release_primary.constant(());
-            track_drag <- bool(&track_release,&track_click);
-            component_click <- any2(&background_click,&track_click);
-            component_click <- component_click.gate_not(&input.set_slider_disabled);
-            component_drag <- any2(&background_drag,&track_drag);
+        
+            component_click <- component_events.mouse_down_primary
+                .gate_not(&input.set_slider_disabled);
+            component_release <- component_events.mouse_release_primary
+                .gate_not(&input.set_slider_disabled);
+            component_drag <- bool(&component_release,&component_click);
             component_drag <- component_drag.gate_not(&input.set_slider_disabled);
-            component_release <- any2(&background_release,&track_release);
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
             drag_start_pos <- mouse.position.sample(&component_click);
             drag_end_pos <- mouse.position.gate(&component_drag);
