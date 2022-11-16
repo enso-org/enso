@@ -147,14 +147,14 @@ type Utf_16_Span
          extended == Span_Data (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
          extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error_Data "Utf_16_Span indices are out of range of the associated text.") else
+    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.parent) then Error.throw (Illegal_State_Error_Data "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->
-                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.text self.start
-                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.text
+                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start
+                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.parent
                 False ->
-                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.text [self.start, self.end - 1].to_array
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1].to_array
                     grapheme_first = grapheme_ixes.at 0
                     grapheme_last = grapheme_ixes.at 1
                     ## We find the grapheme index of the last code unit actually contained within our span and set the
@@ -162,7 +162,7 @@ type Utf_16_Span
                        only a part of a grapheme were contained in our original span, the resulting span will be
                        extended to contain this whole grapheme.
                     grapheme_end = grapheme_last + 1
-                    Span_Data (Range_Data grapheme_first grapheme_end) self.text
+                    Span_Data (Range_Data grapheme_first grapheme_end) self.parent
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
