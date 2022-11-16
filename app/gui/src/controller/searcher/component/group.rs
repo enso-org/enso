@@ -93,12 +93,12 @@ impl Group {
 
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
-        let name: String = if entry.defined_in.is_top_element() {
+        let name = if entry.defined_in.is_top_element() || entry.defined_in.is_main_module() {
             let project = &entry.defined_in.project().project;
             let module = entry.defined_in.name();
             format!("{}.{}", project, module)
         } else {
-            entry.defined_in.name().into()
+            entry.defined_in.name().to_owned()
         };
         let project_name = entry.defined_in.project().clone();
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
@@ -375,8 +375,8 @@ mod tests {
     //     assert_eq!(entry_ids_and_names, expected_ids_and_names);
     // }
     //
-    // // Test constructing a component group from an [`execution_context::ComponentGroup`] containing
-    // // only names not found in the suggestion database.
+    // // Test constructing a component group from an [`execution_context::ComponentGroup`]
+    // containing // only names not found in the suggestion database.
     // #[test]
     // fn constructing_component_group_from_names_not_found_in_db() {
     //     let suggestion_db = Rc::new(mock_suggestion_db());

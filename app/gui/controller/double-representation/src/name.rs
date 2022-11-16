@@ -128,7 +128,7 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
 
     /// Check if the name refers to entity defined/reexported in library's main module.
     pub fn is_top_element(&self) -> bool {
-        self.path.as_ref().is_empty()
+        self.path.as_ref().len() == 1
     }
 
     pub fn sub_path(

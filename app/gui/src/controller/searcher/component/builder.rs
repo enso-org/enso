@@ -65,16 +65,17 @@ impl ModuleGroups {
         component_id: component::Id,
         entry: &suggestion_database::Entry,
     ) -> FallibleResult<Self> {
-        let in_top_module = entry.defined_in.is_top_element();
+        let is_top_module = entry.kind == suggestion_database::entry::Kind::Module
+            && entry.defined_in.is_top_element();
         let qualified_name = entry.qualified_name();
         let qualified_name = QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
             qualified_name,
             content: mk_group(),
-            flattened_content: in_top_module.as_some_from(mk_group),
+            flattened_content: is_top_module.as_some_from(mk_group),
             submodules: default(),
-            is_top_module: in_top_module,
+            is_top_module,
         })
     }
 
@@ -314,8 +315,8 @@ mod tests {
     #[test]
     fn building_component_list() {
         let suggestion_db = mock_suggestion_db();
-        let mut builder = List::new().with_local_scope_module_id(0);
-        let first_part = (0..3).chain(6..11);
+        let mut builder = List::new().with_local_scope_module_id(1);
+        let first_part = (0..3).chain(6..12);
         let second_part = 3..6;
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, first_part);
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
@@ -326,13 +327,13 @@ mod tests {
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
-                component_id: Some(0),
-                entries:      vec![5, 6, 2, 3],
+                component_id: Some(1),
+                entries:      vec![2, 9, 3, 5],
             },
             ComparableGroupData {
                 name:         "Test.TopModule2",
-                component_id: Some(1),
-                entries:      vec![7],
+                component_id: Some(10),
+                entries:      vec![11],
             },
         ];
         assert_eq!(top_modules, expected);
@@ -342,13 +343,13 @@ mod tests {
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
-                component_id: Some(0),
-                entries:      vec![5, 6, 8, 9, 10, 2, 3, 4],
+                component_id: Some(1),
+                entries:      vec![2, 9, 4, 6, 8, 3, 5, 7],
             },
             ComparableGroupData {
                 name:         "Test.TopModule2",
-                component_id: Some(1),
-                entries:      vec![7],
+                component_id: Some(10),
+                entries:      vec![11],
             },
         ];
         assert_eq!(flattened_top_modules, expected);
@@ -360,29 +361,34 @@ mod tests {
             .collect();
         let expected: BTreeMap<component::Id, ComparableGroupData> = [
             (0, ComparableGroupData {
-                name:         "Test.TopModule1",
+                name:         "Test.Main",
                 component_id: Some(0),
-                entries:      vec![5, 6, 2, 3],
+                entries:      vec![1, 10],
             }),
             (1, ComparableGroupData {
-                name:         "Test.TopModule2",
+                name:         "Test.TopModule1",
                 component_id: Some(1),
-                entries:      vec![7],
-            }),
-            (2, ComparableGroupData {
-                name:         "SubModule1",
-                component_id: Some(2),
-                entries:      vec![8],
+                entries:      vec![2, 9, 3, 5],
             }),
             (3, ComparableGroupData {
-                name:         "SubModule2",
+                name:         "SubModule1",
                 component_id: Some(3),
-                entries:      vec![9, 4],
+                entries:      vec![4],
             }),
-            (4, ComparableGroupData {
+            (5, ComparableGroupData {
+                name:         "SubModule2",
+                component_id: Some(5),
+                entries:      vec![6, 7],
+            }),
+            (7, ComparableGroupData {
                 name:         "SubModule3",
-                component_id: Some(4),
-                entries:      vec![10],
+                component_id: Some(7),
+                entries:      vec![8],
+            }),
+            (10, ComparableGroupData {
+                name:         "Test.TopModule2",
+                component_id: Some(10),
+                entries:      vec![11],
             }),
         ]
         .into_iter()
@@ -397,11 +403,12 @@ mod tests {
             })
             .collect();
         let expected: BTreeMap<component::Id, Vec<&str>> = [
-            (0, vec!["SubModule1", "SubModule2"]),
-            (1, vec![]),
-            (2, vec![]),
-            (3, vec!["SubModule3"]),
-            (4, vec![]),
+            (0, vec!["Test.TopModule1", "Test.TopModule2"]),
+            (1, vec!["SubModule1", "SubModule2"]),
+            (3, vec![]),
+            (5, vec!["SubModule3"]),
+            (7, vec![]),
+            (10, vec![]),
         ]
         .into_iter()
         .collect();
@@ -410,7 +417,7 @@ mod tests {
         let local_scope_entries = &list.local_scope.entries;
         let component_id = |c: &Component| c.id().unwrap();
         let local_scope_ids = local_scope_entries.borrow().iter().map(component_id).collect_vec();
-        let expected_ids = vec![5, 6];
+        let expected_ids = vec![2, 9];
         assert_eq!(local_scope_ids, expected_ids);
     }
 
@@ -483,24 +490,24 @@ mod tests {
     fn building_component_list_with_virtual_component_in_existing_favorites_group() {
         let db = mock_suggestion_db();
         let mut builder = List::new();
-        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();
         const GROUP_NAME: &str = "Group";
         let groups = [execution_context::ComponentGroup {
             project:    project.clone(),
             name:       GROUP_NAME.into(),
             color:      None,
-            components: vec![qn_of_db_entry_0],
+            components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
-        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
-        let expected_entry_names = ["test snippet", "TopModule1"];
+        let expected_entry_names = ["test snippet", qn_of_db_entry_1.name()];
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
 
@@ -510,21 +517,21 @@ mod tests {
     fn building_component_list_with_virtual_component_in_new_favorites_group() {
         let db = mock_suggestion_db();
         let mut builder = List::new();
-        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();
         const GROUP_1_NAME: &str = "Group 1";
         let groups = [execution_context::ComponentGroup {
             project:    project.clone(),
             name:       GROUP_1_NAME.into(),
             color:      None,
-            components: vec![qn_of_db_entry_0],
+            components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         const GROUP_2_NAME: &str = "Group 2";
         builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);
-        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {:?}.", favorites);
@@ -533,6 +540,6 @@ mod tests {
         check_names_and_order_of_group_entries(group_at_0, &["test snippet"]);
         let group_at_1 = &favorites[1];
         assert_eq!(group_at_1.name, "Group 1");
-        check_names_and_order_of_group_entries(group_at_1, &["TopModule1"]);
+        check_names_and_order_of_group_entries(group_at_1, &[qn_of_db_entry_1.name()]);
     }
 }

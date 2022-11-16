@@ -360,6 +360,8 @@ impl Model {
                 DEBUG!("{indent}[{node.payload.index},{node.payload.length}] \
                 {skipped} {node.kind.variant_name():?} (tp: {node.tp():?}) (id: {node.ast_id:?})");
             }
+            // tracing::warn!("{indent}[{node.payload.index},{node.payload.length}] \
+            //     {skipped} {node.kind.variant_name():?} (tp: {node.tp():?}) (id: {node.ast_id:?})");
 
             if is_a_port {
                 let port   = &mut node;
@@ -417,6 +419,7 @@ impl Model {
         if DEBUG {
             DEBUG!("\n\n=====================\nSET EXPR: {new_expression:?}")
         }
+        warn!("\n\n=====================\nSET EXPR: {new_expression:?}");
 
         self.set_label_on_new_expression(&new_expression);
         *self.expression.borrow_mut() = new_expression;
