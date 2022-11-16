@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 # Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
 # If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
 # where plausible.

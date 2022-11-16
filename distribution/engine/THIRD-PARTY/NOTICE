@@ -91,6 +91,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-1.3`.
 
 
+'JavaEWAH', licensed under the Apache 2, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.googlecode.javaewah.JavaEWAH-1.1.13`.
+
+
 'icu4j', licensed under the Unicode/ICU License, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-71.1`.
@@ -324,6 +329,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'checker-qual', licensed under the The MIT License, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.12.0`.
+
+
+'org.eclipse.jgit', licensed under the Eclipse Distribution License (New BSD License), is distributed with the engine.
+The license file can be found at `licenses/Eclipse_Distribution_License_(New_BSD_License)`.
+Copyright notices related to this dependency can be found in the directory `org.eclipse.jgit.org.eclipse.jgit-6.3.0.202209071007-r`.
 
 
 'jline', licensed under the The BSD License, is distributed with the engine.

@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Runtime",
     name = "no_inline",
-    description = "Runs its argument without the possibility of getting inlined.")
+    description = "Runs its argument without the possibility of getting inlined.",
+    autoRegister = false)
 public class NoInlineNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 

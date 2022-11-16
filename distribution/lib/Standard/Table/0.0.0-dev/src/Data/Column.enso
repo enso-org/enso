@@ -15,14 +15,6 @@ polyglot java import org.enso.table.operations.OrderBuilder
 from project.Data.Column.Column import Column_Data
 
 type Column
-    ## PRIVATE
-
-       A representation of a column in a Table.
-
-       Arguments:
-       - java_column: The internal representation of the column.
-    Column_Data java_column
-
     ## Creates a new column given a name and a vector of elements.
 
        Arguments:
@@ -38,6 +30,14 @@ type Column
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
     from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
+
+    ## PRIVATE
+
+       A representation of a column in a Table.
+
+       Arguments:
+       - java_column: The internal representation of the column.
+    Column_Data java_column
 
     ## Returns a text containing an ASCII-art table displaying this data.
 

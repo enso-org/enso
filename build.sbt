@@ -464,6 +464,8 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
+val jgitVersion             = "6.3.0.202209071007-r"
+val diffsonVersion          = "4.1.1"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.12"
 val newtypeVersion          = "0.4.4"
@@ -1047,7 +1049,8 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-literal" % circeVersion,
       akkaTestkit,
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion,
+      "org.gnieh"     %% "diffson-circe" % diffsonVersion
     )
   )
   .dependsOn(`json-rpc-server`)
@@ -1168,7 +1171,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),

@@ -68,13 +68,13 @@ import org.enso.languageserver.session.SessionApi.{
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
-
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -85,6 +85,7 @@ import scala.concurrent.duration._
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
+  * @param vcsManager performs operations with VCS
   * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
@@ -99,6 +100,7 @@ class JsonConnectionController(
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
+  val vcsManager: ActorRef,
   val contentRootManager: ActorRef,
   val contextRegistry: ActorRef,
   val suggestionsHandler: ActorRef,
@@ -463,6 +465,16 @@ class JsonConnectionController(
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ChecksumFile -> file.ChecksumFileHandler
         .props(requestTimeout, fileManager),
+      InitVcs -> vcs.InitVcsHandler
+        .props(requestTimeout, bufferRegistry, rpcSession),
+      SaveVcs -> vcs.SaveVcsHandler
+        .props(requestTimeout, bufferRegistry, rpcSession),
+      StatusVcs -> vcs.StatusVcsHandler
+        .props(requestTimeout, vcsManager, rpcSession),
+      RestoreVcs -> vcs.RestoreVcsHandler
+        .props(requestTimeout, bufferRegistry, rpcSession),
+      ListVcs -> vcs.ListVcsHandler
+        .props(requestTimeout, vcsManager, rpcSession),
       ExecutionContextCreate -> executioncontext.CreateHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
@@ -585,6 +597,7 @@ object JsonConnectionController {
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
+    * @param vcsManager performs operations with VCS
     * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
@@ -598,6 +611,7 @@ object JsonConnectionController {
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
+    vcsManager: ActorRef,
     contentRootManager: ActorRef,
     contextRegistry: ActorRef,
     suggestionsHandler: ActorRef,
@@ -618,6 +632,7 @@ object JsonConnectionController {
         bufferRegistry         = bufferRegistry,
         capabilityRouter       = capabilityRouter,
         fileManager            = fileManager,
+        vcsManager             = vcsManager,
         contentRootManager     = contentRootManager,
         contextRegistry        = contextRegistry,
         suggestionsHandler     = suggestionsHandler,

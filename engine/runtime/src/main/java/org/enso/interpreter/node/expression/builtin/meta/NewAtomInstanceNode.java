@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 @BuiltinMethod(
     type = "Meta",
     name = "new_atom",
-    description = "Creates a new atom with given constructor and fields.")
+    description = "Creates a new atom with given constructor and fields.",
+    autoRegister = false)
 public abstract class NewAtomInstanceNode extends Node {
 
   static NewAtomInstanceNode build() {

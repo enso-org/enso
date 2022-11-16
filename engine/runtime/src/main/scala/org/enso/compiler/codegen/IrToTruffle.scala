@@ -331,8 +331,10 @@ class IrToTruffle(
       }
 
       consOpt.foreach { cons =>
+        val fullMethodDefName =
+          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
         val expressionProcessor = new ExpressionProcessor(
-          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+          fullMethodDefName,
           scopeInfo.graph,
           scopeInfo.graph.rootScope,
           dataflowInfo
@@ -375,7 +377,11 @@ class IrToTruffle(
                 ) Right(None)
                 else Left(l)
               )
-              .map(_.filterNot(_ => cons.isBuiltin))
+              .map(fOpt =>
+                // Register builtin iff it has not been automatically registered at an early stage
+                // of builtins initialization.
+                fOpt.filter(m => !m.isAutoRegister()).map(m => m.getFunction)
+              )
           case fn: IR.Function =>
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(

@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Uninitialized_State_Error", name = "to_display_text")
+@BuiltinMethod(type = "Uninitialized_State", name = "to_display_text")
 public abstract class UninitializedStateErrorToDisplayTextNode extends Node {
   static UninitializedStateErrorToDisplayTextNode build() {
     return UninitializedStateErrorToDisplayTextNodeGen.create();

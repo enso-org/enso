@@ -36,6 +36,7 @@ today = now
 ## Constructs a new Date from a year, month, and day.
 
    Arguments
+   - year: The year to represent.
    - month: The month-of-year to represent, from 1 (January) to 12 (December).
    - day: The day-of-month to represent, from 1 to 31. It must be valid for the
      year and month.
@@ -63,9 +64,22 @@ new year (month = 1) (day = 1) =
        instead of Enso format. Hopefully this will be fixed with
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
+    Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
         Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
         ex -> ex
+
+## PRIVATE
+   Constructs a new Date from a year, month, and day.
+
+   Arguments
+   - year: The year to represent.
+   - month: The month-of-year to represent, from 1 (January) to 12 (December).
+   - day: The day-of-month to represent, from 1 to 31. It must be valid for the
+     year and month.
+
+   Recommended to use `Date.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Date
+new_builtin year month day = @Builtin_Method "Date.new_builtin"
 
 ## ALIAS Date from Text
 
@@ -132,13 +146,42 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> Date.internal_parse text 0
-        _ : Text -> Date.internal_parse text pattern
+        Nothing -> parse_builtin text 0
+        _ : Text -> parse_builtin text pattern
         _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error_Data err -> Time_Error_Data err.getMessage
         ex -> ex
 
+## PRIVATE
+   Converts text containing a date into a Date object.
+
+   Arguments:
+   - text: The text to try and parse as a date.
+   - pattern: An optional pattern describing how to parse the text.
+
+   Recommended to use `Date.parse` instead which handles potential exceptions.
+
+   ? Pattern Syntax
+     Patterns are based on a simple sequence of letters and symbols. For
+     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+   ? Default Date Formatting
+     Unless you provide a custom format, the text must represent a valid date
+     that can be parsed using the ISO-8601 extended local date format. The
+     format consists of:
+
+     - Four digits or more for the year. Years in the range 0000 to 9999
+       will be pre-padded by zero to ensure four digits. Years outside
+       that range will have a prefixed positive or negative symbol.
+     - A dash
+     - Two digits for the month-of-year. This is pre-padded by zero to ensure
+       two digits.
+     - A dash
+     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+       digits.
+parse_builtin : Text -> Any -> Date
+parse_builtin text pattern = @Builtin_Method "Date.parse_builtin"
 
 ## This type represents a date, often viewed as year-month-day.
 
@@ -483,7 +526,6 @@ type Date
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
-
 
     ## A Date to Json conversion.
 
