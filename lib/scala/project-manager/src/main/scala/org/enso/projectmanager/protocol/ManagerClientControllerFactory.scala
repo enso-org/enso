@@ -50,7 +50,7 @@ class ManagerClientControllerFactory[
           loggingServiceDescriptor,
           timeoutConfig
         ),
-      s"jsonrpc-connection-controller-$clientId"
+      s"manager-client-controller-$clientId"
     )
 
 }
