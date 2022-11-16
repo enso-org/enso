@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Array
+import project.Data.Array.Array
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
 
@@ -569,7 +569,7 @@ type Vector a
         _ : Vector ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
-        _ : Array.Array ->
+        _ : Array ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ -> False

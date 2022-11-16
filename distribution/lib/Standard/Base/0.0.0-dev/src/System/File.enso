@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Array
+import Standard.Base.Data.Array.Array
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Error.Common import Unsupported_File_Type
 from Standard.Base.Error.Problem_Behavior import Report_Warning

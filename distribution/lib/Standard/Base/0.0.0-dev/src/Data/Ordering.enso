@@ -1,19 +1,4 @@
-## Converts a sign-based representation of ordering to Enso's native ordering.
-
-   Arguments:
-   - sign: The number representing the relative ordering of two entities.
-
-   > Example
-     Convert the number 0 to an Enso ordering.
-
-         Ordering.from_sign 0
-from_sign : Integer -> Ordering
-from_sign sign = if sign == 0 then Equal else
-    if sign > 0 then Greater else Less
-
-# TODO Dubious constructor export
-from project.Data.Ordering.Ordering import all
-from project.Data.Ordering.Ordering export all
+import project.Data.Numbers.Integer
 
 ## Types representing the ordering of values.
 
@@ -24,7 +9,6 @@ from project.Data.Ordering.Ordering export all
    `that`. So, if `self` is greater than `that`, you should return `Greater.`
 @Builtin_Type
 type Ordering
-
     ## A representation that the first value orders as less than the second.
     Less
 
@@ -44,7 +28,19 @@ type Ordering
              example_to_sign = Ordering.Equal.to_sign
     to_sign : Integer
     to_sign self = case self of
-        Less -> -1
-        Greater -> 1
-        Equal -> 0
+        Ordering.Less -> -1
+        Ordering.Greater -> 1
+        Ordering.Equal -> 0
 
+    ## Converts a sign-based representation of ordering to Enso's native ordering.
+
+       Arguments:
+       - sign: The number representing the relative ordering of two entities.
+
+       > Example
+         Convert the number 0 to an Enso ordering.
+
+             Ordering.from_sign 0
+    from_sign : Integer -> Ordering
+    from_sign sign = if sign == 0 then Ordering.Equal else
+        if sign > 0 then Ordering.Greater else Ordering.Less

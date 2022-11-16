@@ -1,17 +1,27 @@
 import project.Data.Any.Any
+import project.Data.Array.Array
 import project.Data.Boolean
-
-import project.Data.Interval.Bound
-import project.Data.Interval.Interval
+import project.Nothing.Nothing
 
 export project.Data.Any.Any
+export project.Data.Array.Array
+export project.Nothing.Nothing
 from project.Data.Boolean export all
 
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Interval.Bound
+import project.Data.Interval.Interval
+import project.Data.Ordering.Ordering
+import project.Data.Text.Line_Ending_Style.Line_Ending_Style
+
+export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Ordering.Ordering
+export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 
 
-import project.Data.Array
+
 import project.Data.Json
 import project.Data.List
 import project.Data.Locale
@@ -19,8 +29,7 @@ import project.Data.Map
 import project.Data.Maybe
 import project.Data.Noise
 import project.Data.Numbers
-import project.Data.Filter_Condition
-import project.Data.Ordering
+
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
@@ -51,7 +60,7 @@ import project.Error.Common
 import project.Error.Problem_Behavior
 import project.Function
 import project.IO
-import project.Nothing
+
 import project.Math
 import project.Meta
 import project.Polyglot
@@ -71,7 +80,6 @@ export project.Data.Json
 export project.Data.Locale
 export project.Data.Map
 export project.Data.Maybe
-export project.Data.Ordering
 
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
@@ -105,8 +113,6 @@ export project.System.File
 export project.System.File.Existing_File_Behavior
 export project.Warning
 
-from project.Data.Array export Array
-from project.Data.Filter_Condition export Filter_Condition
 from project.Data.List export Nil, Cons, List
 from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
 from project.Data.Noise export all hiding Noise
@@ -119,14 +125,13 @@ from project.Data.Range export all
    Relevant issues:
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
-from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location, Matching_Mode
+from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
 from project.Data.Text export all hiding Encoding, Span
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Span export all
 from project.Error.Common export all
 from project.Function export all
-from project.Nothing export all
 from project.Runtime.Extensions export all
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
 from project.Data.Index_Sub_Range export First, Last

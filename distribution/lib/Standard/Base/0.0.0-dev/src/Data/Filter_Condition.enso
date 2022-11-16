@@ -1,6 +1,10 @@
-from Standard.Base import all
-
-from Standard.Base.Data.Filter_Condition.Filter_Condition import all
+import project.Data.Any.Any
+import project.Data.Text.Extensions
+import project.Data.Text.Regex
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+from project.Data.Boolean import all
 
 polyglot java import org.enso.base.Regex_Utils
 
@@ -142,43 +146,43 @@ type Filter_Condition
        element and returning a value indicating whether the element should be
        accepted by the filter.
     to_predicate self = case self of
-        Less value -> <value
-        Equal_Or_Less value -> <=value
-        Equal value -> ==value
-        Equal_Or_Greater value -> >=value
-        Greater value -> >value
-        Not_Equal value -> !=value
-        Between lower upper -> elem ->
+        Filter_Condition.Less value -> <value
+        Filter_Condition.Equal_Or_Less value -> <=value
+        Filter_Condition.Equal value -> ==value
+        Filter_Condition.Equal_Or_Greater value -> >=value
+        Filter_Condition.Greater value -> >value
+        Filter_Condition.Not_Equal value -> !=value
+        Filter_Condition.Between lower upper -> elem ->
             (lower <= elem) && (elem <= upper)
-        Starts_With prefix -> _.starts_with prefix
-        Ends_With suffix -> _.ends_with suffix
-        Contains substring -> _.contains substring
-        Is_Nothing -> elem -> case elem of
+        Filter_Condition.Starts_With prefix -> _.starts_with prefix
+        Filter_Condition.Ends_With suffix -> _.ends_with suffix
+        Filter_Condition.Contains substring -> _.contains substring
+        Filter_Condition.Is_Nothing -> elem -> case elem of
             Nothing -> True
             _ -> False
-        Not_Nothing -> elem -> case elem of
+        Filter_Condition.Not_Nothing -> elem -> case elem of
             Nothing -> False
             _ -> True
-        Is_True -> ==True
-        Is_False -> ==False
-        Is_Empty -> elem -> case elem of
+        Filter_Condition.Is_True -> ==True
+        Filter_Condition.Is_False -> ==False
+        Filter_Condition.Is_Empty -> elem -> case elem of
             Nothing -> True
             "" -> True
             _ -> False
-        Not_Empty -> elem -> case elem of
+        Filter_Condition.Not_Empty -> elem -> case elem of
             Nothing -> False
             "" -> False
             _ -> True
-        Like sql_pattern ->
+        Filter_Condition.Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
             regex.matches
-        Not_Like sql_pattern ->
+        Filter_Condition.Not_Like sql_pattern ->
             regex = sql_like_to_regex sql_pattern
             elem -> regex.matches elem . not
         ## TODO once we have proper hashing we could create a hashmap and
            answer quicker, currently we need to do a full scan for each element.
-        Is_In values -> values.contains
-        Not_In values -> elem -> values.contains elem . not
+        Filter_Condition.Is_In values -> values.contains
+        Filter_Condition.Not_In values -> elem -> values.contains elem . not
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =
