@@ -491,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn test_high_precision() {
+    fn test_zero_decimal_places() {
         let (left, right) = value_text_truncate_split(&(123.4567, 0.01, 0));
         assert_eq!(left, "123".to_im_string());
         assert_eq!(right, None);
