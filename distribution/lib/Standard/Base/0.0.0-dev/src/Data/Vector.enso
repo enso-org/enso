@@ -1107,8 +1107,9 @@ handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
     handle ClassCastException <|
         handle No_Such_Method_Error_Data <|
-            handle Unsupported_Argument_Types_Data <|
-                function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
+            handle Type_Error_Data <|
+                handle Unsupported_Argument_Types_Data <|
+                    function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

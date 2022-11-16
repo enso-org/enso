@@ -10,6 +10,7 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -44,6 +45,10 @@ public class ComparatorNode extends Node {
       return 1;
     } else {
       CompilerDirectives.transferToInterpreter();
+      if (atom instanceof DataflowError error) {
+        throw new PanicException(error.getPayload(), error.getLocation());
+      }
+
       var ordering = getOrdering().getType();
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeTypeError(ordering, atom, "comparator"),

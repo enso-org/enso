@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -97,6 +98,10 @@ public abstract class SortNode extends Node {
         return 1;
       } else {
         resultProfile.enter();
+        if (res instanceof DataflowError error) {
+          throw new PanicException(error.getPayload(), error.getLocation());
+        }
+
         var ordering = context.getBuiltins().ordering().getType();
         throw new PanicException(
             context.getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
