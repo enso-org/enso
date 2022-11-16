@@ -1274,12 +1274,12 @@ spec =
             "abacadae".match_all "a[bc]" . should_equal ["ab", "ac"]
             "abacadae".match_all "a." . should_equal ["ab", "ac", "ad", "ae"]
             "abacadae".match_all "a.*" . should_equal ["abacadae"]
-            "abacadae".match_all "a.*?" . should_equal ["ab", "ac", "ad", "ae"]
+            "abacadae".match_all "a.+?" . should_equal ["ab", "ac", "ad", "ae"]
 
             "abacadae".match "a[bc]" mode=Matching_Mode.Last . should_equal "ac"
             "abacadae".match "a." mode=Matching_Mode.Last . should_equal "ae"
             "abacadae".match "a.*" mode=Matching_Mode.Last . should_equal "abacadae"
-            "abacadae".match "a.*?" mode=Matching_Mode.Last . should_equal "ae"
+            "abacadae".match "a.+?" mode=Matching_Mode.Last . should_equal "ae"
 
             "abacadae".match "a[bc]" matcher=Text_Matcher.Case_Sensitive . should_equal Nothing
             "abABacAC".match "ab" matcher=Text_Matcher.Case_Sensitive mode=Matching_Mode.Last . should_equal "ab"
@@ -1314,8 +1314,10 @@ spec =
             match.should_equal "My Text: Goes Here"
 
         Test.specify "should be possible on unicode text" <|
-            match = "maza건반zaa".match "^a..z$"
-            match.should_equal "a건반z"
+            txt = "maza건반zaa"
+            txt.match "^a..z$" . should_equal Nothing
+            txt.match "^m..a..z.a$" . should_equal txt
+            txt.match "a..z" . should_equal "a건반z"
 
         Test.specify "should be possible in ascii mode" <|
             match = "İ".match "\w" matcher=(Regex_Matcher.Regex_Matcher_Data match_ascii=True)
