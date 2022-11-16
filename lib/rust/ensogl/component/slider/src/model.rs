@@ -49,10 +49,9 @@ mod background {
 
     ensogl_core::shape! {
         (style:Style, color:Vector4) {
-            Background::new()
-                .shape
-                .fill(color)
-                .into()
+            let shape = Background::new().shape;
+            let shape = shape.fill(color);
+            shape.into()
         }
     }
 }
@@ -123,8 +122,16 @@ impl Model {
         value_text_right.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
-        Self { background, track, label, value_text_left, value_text_dot, value_text_right, root }
-            .init()
+        let model = Self {
+            background,
+            track,
+            label,
+            value_text_left,
+            value_text_dot,
+            value_text_right,
+            root,
+        };
+        model.init()
     }
 
     /// Initialise slider model.
