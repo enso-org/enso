@@ -86,8 +86,28 @@ now = @Builtin_Method "Date_Time.now"
          example_new = Date_Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
-    Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
+    Panic.catch_java Any (new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
+
+## PRIVATE
+
+   Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
+   second, nanosecond and timezone.
+
+   Arguments:
+   - year: The year to represent, any Integer is valid.
+   - month: the month-of-year to represent, from 1 (January) to 12 (December)
+   - day: the day-of-month to represent, from 1 to 31 and must be valid for the
+     year and month
+   - hour: the hour-of-day to represent, from 0 to 23
+   - minute: the minute-of-hour to represent, from 0 to 59
+   - second: the second-of-minute to represent, from 0 to 59
+   - nanosecond: the nano-of-second to represent, from 0 to 999,999,999
+   - zone: the timezone
+
+   Recommended to use `Date_Time.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
+new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
 
 ## ALIAS Time from Text
 
@@ -171,9 +191,21 @@ parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
-            Nothing -> Date_Time.parse_builtin text
+            Nothing -> parse_builtin text
             _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
+## PRIVATE
+
+   Obtains an instance of `Time` from a text such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   Arguments:
+   - text: The text representing the time to be parsed.
+
+   Recommended to use `Date_Time.parse_builtin` instead which handles potential exceptions
+   and date time formats.
+parse_builtin : Text -> Date_Time
+parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
 
 ## PRIVATE
 
@@ -330,7 +362,7 @@ type Date_Time
 
              example_time_of_day = Date_Time.now.time_of_day
     time_of_day : Time_Of_Day
-    time_of_day self = self.to_localtime_builtin
+    time_of_day self = @Builtin_Method "Date_Time.time_of_day"
 
     ## Returns the number of week of year this date falls into.
 
@@ -420,7 +452,7 @@ type Date_Time
 
              example_date = Date_Time.now.date
     date : Date
-    date self = self.to_localdate_builtin
+    date self = @Builtin_Method "Date_Time.date"
 
     ## ALIAS Change Time Zone
 

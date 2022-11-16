@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Data.Array
 
 from Standard.Test import Test, Test_Suite
 
 polyglot java import java.util.LinkedHashSet
 
-Array.method self = 0
+Array.Array.method self = 0
 
 ## Returns an array with the same contents as the given vector, surely backed by
    the Enso Array primitive.

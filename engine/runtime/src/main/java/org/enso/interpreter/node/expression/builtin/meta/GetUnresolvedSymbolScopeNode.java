@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @BuiltinMethod(
     type = "Meta",
     name = "get_unresolved_symbol_scope",
-    description = "Gets the scope of an unresolved symbol")
+    description = "Gets the scope of an unresolved symbol",
+    autoRegister = false)
 public abstract class GetUnresolvedSymbolScopeNode extends Node {
   static GetUnresolvedSymbolScopeNode build() {
     return GetUnresolvedSymbolScopeNodeGen.create();

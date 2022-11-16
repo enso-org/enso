@@ -47,8 +47,23 @@ now = @Builtin_Method "Time_Of_Day.now"
          example_epoch = Time_Of_Day.new hour=9 minute=30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.catch_java Any (Time_Of_Day.new_builtin hour minute second nanosecond) java_exception->
+    Panic.catch_java Any (new_builtin hour minute second nanosecond) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
+
+## PRIVATE
+
+   Obtains an instance of `Time_Of_Day` from an hour, minute, second
+   and nanosecond.
+
+   Arguments:
+   - hour: The hour-of-day to represent, from 0 to 23.
+   - minute: The minute-of-hour to represent, from 0 to 59.
+   - second: The second-of-minute to represent, from 0 to 59.
+   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+
+   Recommended to use `Time_Of_Day.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
+new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -115,8 +130,20 @@ parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
     Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
         case pattern of
-            Nothing -> Time_Of_Day.parse_builtin text
+            Nothing -> parse_builtin text
             _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
+
+## PRIVATE
+
+   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   Arguments:
+   - text: The text to parse as a time of day.
+
+   Recommended to use `Time_Of_Day.parse_builtin` instead which handles potential
+   exceptions and different time formats.
+parse_builtin : Text -> Time_Of_Day
+parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
 
 ## PRIVATE
 
@@ -204,7 +231,7 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
-    to_date_time self date (zone=Time_Zone.system) = self.to_time_builtin date zone
+    to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
 
     ## Add the specified amount of time to this instant to get a new instant.
 
