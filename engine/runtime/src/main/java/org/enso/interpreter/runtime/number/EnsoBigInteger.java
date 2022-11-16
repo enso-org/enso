@@ -25,7 +25,7 @@ public final class EnsoBigInteger implements TruffleObject {
    * @param value the value to wrap.
    */
   public EnsoBigInteger(BigInteger value) {
-    assert(value.bitLength() > 63);
+    assert (value.bitLength() > 63);
     this.value = value;
   }
 
