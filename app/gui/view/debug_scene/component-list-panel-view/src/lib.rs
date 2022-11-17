@@ -57,12 +57,17 @@ use ide_view_component_list_panel::grid::entry::icon;
 const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
     // ("long sample entry with text overflowing the width", icon::Id::Star),
     ("convert", icon::Id::Convert),
-    ("table input", icon::Id::DataInput),
-    ("text input", icon::Id::TextInput),
-    ("number input", icon::Id::NumberInput),
-    ("table output", icon::Id::TableEdit),
-    ("dataframe clean", icon::Id::DataframeClean),
     ("data input", icon::Id::DataInput),
+    ("data output", icon::Id::DataOutput),
+    ("table input", icon::Id::TableEdit),
+    ("number input", icon::Id::NumberInput),
+    ("text input", icon::Id::TextInput),
+    ("add column", icon::Id::AddColumn),
+    ("select column", icon::Id::SelectColumn),
+    ("clean", icon::Id::DataframeClean),
+    ("add row", icon::Id::AddRow),
+    ("map row", icon::Id::DataframeMapRow),
+    ("map column", icon::Id::DataframeMapColumn),
 ];
 
 const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid::content::Group {
@@ -74,6 +79,18 @@ const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid
         color:           None,
     }
 }
+
+/// Use this groups setup to compare to Figma design.
+#[allow(dead_code)]
+const GROUPS_AS_IN_DESIGN: &[grid::content::Group] = &[
+    make_group(grid::SectionId::Popular, 0, 7),
+    make_group(grid::SectionId::Popular, 1, 7),
+    make_group(grid::SectionId::Popular, 2, 5),
+    make_group(grid::SectionId::SubModules, 3, 10),
+    make_group(grid::SectionId::SubModules, 4, 3),
+    make_group(grid::SectionId::SubModules, 5, 10),
+    make_group(grid::SectionId::SubModules, 6, 10),
+];
 
 const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 1, 3),
@@ -110,16 +127,24 @@ const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
-        groups:                  GROUPS.into(),
+        groups:                  GROUPS_AS_IN_DESIGN.into(),
         local_scope_entry_count: LOCAL_SCOPE_GROUP_SIZE,
     }
 }
 
+const GROUP_NAMES: &[&str] = &[
+    "Input / Output",
+    "Preparation",
+    "Join",
+    "Text",
+    "Date and Time",
+    "Transform",
+    "Machine Learning",
+];
+
 fn get_header_model(group: grid::GroupId) -> Option<(grid::GroupId, grid::HeaderModel)> {
-    let model = grid::HeaderModel {
-        caption:        format!("Group {}", group.index).into(),
-        can_be_entered: false,
-    };
+    let caption = GROUP_NAMES.get(group.index % GROUP_NAMES.len()).copied().unwrap_or("");
+    let model = grid::HeaderModel { caption: caption.into(), can_be_entered: false };
     Some((group, model))
 }
 
