@@ -44,7 +44,7 @@ public class SimpleHTTPBin {
 
   public static void main(String[] args) {
     if (args.length != 2) {
-      System.err.println("Usage: SimpleHTTPServer <host> <port>");
+      System.err.println("Usage: SimpleHTTPBin <host> <port>");
       System.exit(1);
     }
 
