@@ -9,6 +9,7 @@ use ensogl_core::display;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ensogl_text::formatting::ResolvedProperty;
+use ensogl_tooltip::Tooltip;
 
 
 
@@ -99,6 +100,8 @@ pub struct Model {
     pub value_text_dot:   text::Text,
     /// Textual representation of the slider value, only part right of the decimal point.
     pub value_text_right: text::Text,
+    /// Tooltip component showing either a tooltip message or slider precision changes.
+    pub tooltip:          Tooltip,
     /// Root of the display object.
     pub root:             display::object::Instance,
 }
@@ -111,6 +114,7 @@ impl Model {
         let value_text_left = app.new_view::<text::Text>();
         let value_text_dot = app.new_view::<text::Text>();
         let value_text_right = app.new_view::<text::Text>();
+        let tooltip = Tooltip::new(app);
         let background = background::View::new();
         let track = track::View::new();
         let scene = &app.display.default_scene;
@@ -122,6 +126,7 @@ impl Model {
         root.add_child(&value_text_left);
         root.add_child(&value_text_dot);
         root.add_child(&value_text_right);
+        app.display.default_scene.add_child(&tooltip);
 
         value_text_left.add_to_scene_layer(&scene.layers.label);
         value_text_dot.add_to_scene_layer(&scene.layers.label);
@@ -135,6 +140,7 @@ impl Model {
             value_text_left,
             value_text_dot,
             value_text_right,
+            tooltip,
             root,
         };
         model.init(style)

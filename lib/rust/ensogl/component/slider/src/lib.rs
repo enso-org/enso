@@ -22,7 +22,9 @@
 use crate::model::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application;
+use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
@@ -63,6 +65,9 @@ const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
 /// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
 /// precision.
 const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
+/// A tooltip is displayed whenever the slider's precision is changed. This is the duration for
+/// which the tooltip is visible.
+const PRECISION_ADJUSTMENT_TOOLTIP_DURATION: f32 = 1000.0;
 
 
 
@@ -180,6 +185,7 @@ impl Slider {
     fn init(self) -> Self {
         self.init_value_update();
         self.init_value_display();
+        self.init_precision_tooltip();
         self.init_component_layout();
         self.init_component_colors();
         self.init_precision_defaults();
@@ -294,6 +300,34 @@ impl Slider {
             model.value_text_right.set_content <+ value_text_right.unwrap();
             value_text_right_visibility_change <- value_text_right_is_visible.on_change();
             eval value_text_right_visibility_change((v) model.set_value_text_right_visible(*v));
+        };
+    }
+
+    /// Initialize precision tooltip FRP network.
+    fn init_precision_tooltip(&self) {
+        let network = self.frp.network();
+        let output = &self.frp.private.output;
+        let model = &self.model;
+        let component_events = &model.background.events;
+        let tooltip_anim = DelayedAnimation::new(&network);
+        tooltip_anim.set_duration(PRECISION_ADJUSTMENT_TOOLTIP_DURATION);
+
+        frp::extend! { network
+            component_drag <- bool(
+                &component_events.mouse_release_primary,
+                &component_events.mouse_down_primary
+            );
+            precision <- output.precision.on_change().gate(&component_drag);
+            model.tooltip.frp.set_style <+ precision.map(|precision| {
+                tooltip::Style::set_label(format!("Precision: {}", precision))
+            });
+            precision_changed <- precision.constant(());
+            tooltip_anim.reset <+ precision_changed;
+            tooltip_anim.start <+ precision_changed;
+            tooltip_hide <- any2(&tooltip_anim.on_end, &component_events.mouse_release_primary);
+            model.tooltip.frp.set_style <+ tooltip_hide.map(|_|
+                tooltip::Style::unset_label()
+            );
         };
     }
 
