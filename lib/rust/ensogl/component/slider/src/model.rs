@@ -6,6 +6,7 @@ use ensogl_core::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ensogl_text::formatting::ResolvedProperty;
 
@@ -109,6 +110,7 @@ impl Model {
         let background = background::View::new();
         let track = track::View::new();
         let scene = &app.display.default_scene;
+        let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
         root.add_child(&background);
         root.add_child(&track);
@@ -131,11 +133,15 @@ impl Model {
             value_text_right,
             root,
         };
-        model.init()
+        model.init(style)
     }
 
     /// Initialise slider model.
-    pub fn init(self) -> Self {
+    pub fn init(self, style: StyleWatch) -> Self {
+        let background_color = style.get_color(theme::component::slider::background::color);
+        let track_color = style.get_color(theme::component::slider::track::color);
+        self.background.color.set(background_color.into());
+        self.track.color.set(track_color.into());
         self.value_text_dot.set_content(".");
         self
     }
