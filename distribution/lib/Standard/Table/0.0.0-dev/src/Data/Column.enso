@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Table.Table
 import project.Data.Storage.Storage
@@ -1167,7 +1167,7 @@ type Column
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
-        Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
     ## Creates a new Column from the input with the specified range of rows
        removed.
@@ -1176,7 +1176,7 @@ type Column
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length self.at self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
@@ -1371,5 +1371,5 @@ get_item_string column ix =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Column_Data (column.java_column.slice normalized.to_array)

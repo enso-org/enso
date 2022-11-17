@@ -503,7 +503,7 @@ type File
         name = self.name
         last_dot = name.location_of "." mode=Matching_Mode.Last
         if last_dot.is_nothing then "" else
-            extension = name.drop (Text_Sub_Range.First last_dot.start)
+            extension = name.drop (Index_Sub_Range.First last_dot.start)
             if extension == "." then "" else extension
 
     ## Converts this file to an equivalent file represented with an absolute

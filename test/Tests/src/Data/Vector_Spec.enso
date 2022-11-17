@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
 from Standard.Test import Test, Test_Suite
 

@@ -1,8 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
@@ -904,7 +904,7 @@ type Table
              table.take (While row-> row.to_vector.sum == 10)
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        Index_Sub_Range.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
@@ -926,7 +926,7 @@ type Table
              table.drop (While row-> row.to_vector.sum == 10)
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 
@@ -1339,5 +1339,5 @@ print_table header rows indices_count format_term =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)

@@ -9,7 +9,7 @@ import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Text.Text_Sub_Range
 
 from Standard.Base.Error.Problem_Behavior import Report_Warning
@@ -880,7 +880,7 @@ Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
-            self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
+            self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
@@ -915,7 +915,7 @@ Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
-            self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
+            self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
@@ -1077,7 +1077,7 @@ Text.take self range=(First 1) =
     case ranges of
         Range_Data start end _ ->
             Text_Utils.substring self start end
-        Text_Sub_Range.Codepoint_Ranges_Data char_ranges _ ->
+        Text_Sub_Range.Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
 
 ## ALIAS skip, remove
@@ -1126,10 +1126,10 @@ Text.drop self range=(First 1) =
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else
                     prefix + Text_Utils.drop_first self end
-        Text_Sub_Range.Codepoint_Ranges_Data _ _ ->
+        _ : Text_Sub_Range.Codepoint_Ranges ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Index_Sub_Range.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
 ## ALIAS lower, upper, title, proper
@@ -1203,9 +1203,9 @@ Text.pad self length=0 with_pad=' ' at=Location.End =
             remainder = pad_size % with_pad_length
             case at of
                 Location.Start ->
-                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
+                    with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
                 Location.End ->
-                    self + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
+                    self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
 ## This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.

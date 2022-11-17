@@ -1,6 +1,6 @@
 from Standard.Base import all
 import project.Data.Array.Array
-import Standard.Base.Data.Index_Sub_Range
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Random
 
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -667,7 +667,7 @@ type Vector a
             rng = Random.new seed
             Random.sample self count rng
         _ ->
-            Index_Sub_Range.take_helper self.length (self.at _) self.slice (slice_ranges self) range
+            Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## Creates a new vector, removing any elements from the specified range.
 
@@ -678,7 +678,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
