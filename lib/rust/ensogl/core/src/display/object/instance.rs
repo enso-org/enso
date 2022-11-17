@@ -627,12 +627,12 @@ impl Model {
         self.with_mut_borrowed_transform(|t| t.mod_scale(f));
     }
 
-    /// Sets a callback which will be called with a reference to the display object when the object
-    /// will be updated.
-    pub fn set_on_updated<F>(&self, f: F)
-    where F: Fn(&Model) + 'static {
-        self.callbacks.on_updated.set(Box::new(f))
-    }
+    // /// Sets a callback which will be called with a reference to the display object when the
+    // object /// will be updated.
+    // pub fn set_on_updated<F>(&self, f: F)
+    // where F: Fn(&Model) + 'static {
+    //     self.callbacks.on_updated.set(Box::new(f))
+    // }
 
     /// Sets a callback which will be called with a reference to scene when the object will be
     /// shown (attached to visible display object graph).

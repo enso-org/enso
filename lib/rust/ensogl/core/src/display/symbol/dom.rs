@@ -117,13 +117,14 @@ impl DomSymbol {
         dom.set_style_or_warn("width", "0px");
         dom.set_style_or_warn("height", "0px");
         dom.append_or_warn(content);
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_with_callbacks()
+            .on_updated(f!([dom] (t: &display::object::Model) {
+                let mut transform = inverse_y_translation(t.matrix());
+                transform.iter_mut().for_each(|a| *a = eps(*a));
+                set_object_transform(&dom,&transform);
+            }))
+            .build();
         let guard = Rc::new(Guard::new(&display_object, &dom));
-        display_object.set_on_updated(enclose!((dom) move |t| {
-            let mut transform = inverse_y_translation(t.matrix());
-            transform.iter_mut().for_each(|a| *a = eps(*a));
-            set_object_transform(&dom,&transform);
-        }));
 
         Self { dom, display_object, size, guard }
     }

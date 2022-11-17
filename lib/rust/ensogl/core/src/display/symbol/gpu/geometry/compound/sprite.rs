@@ -97,10 +97,12 @@ impl CellSetter for Size {
 // === Private API ===
 
 impl Size {
-    fn new(attr: Attribute<Vector2<f32>>) -> Self {
+    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let hidden = Rc::new(Cell::new(true));
         let value = Rc::new(Cell::new(zero()));
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_with_callbacks()
+            .on_updated(f!((t: &display::object::Model) transform.set(t.matrix())))
+            .build();
         Self { hidden, value, attr, display_object }
     }
 
@@ -157,7 +159,7 @@ impl SpriteModel {
         let symbol = symbol.clone_ref();
         let stats = SpriteStats::new(stats);
         let erase_on_drop = EraseOnDrop::new(size.clone_ref());
-        let size = Size::new(size);
+        let size = Size::new(size, &transform);
         let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
@@ -170,7 +172,6 @@ impl SpriteModel {
     fn init(self) -> Self {
         let size = &self.size;
         let transform = &self.transform;
-        self.display_object().set_on_updated(f!((t) transform.set(t.matrix())));
         self.display_object().set_on_hide(f_!(size.hide()));
         self.display_object().set_on_show(f__!(size.show()));
         self
