@@ -129,10 +129,13 @@ pub async fn setup_octocrab() -> Result<Octocrab> {
     let builder = octocrab::OctocrabBuilder::new();
     let octocrab = if let Ok(access_token) = retrieve_github_access_token() {
         let octocrab = builder.personal_token(access_token).build()?;
-        info!(
-            "Using GitHub API with personal access token. Authenticated as {}.",
-            octocrab.current().user().await?.login
-        );
+        let username = octocrab
+            .current()
+            .user()
+            .await
+            .inspect_err(|e| warn!("Failed to retrieve GitHub username: {e}"))
+            .map_or_else(|_| "N/A".to_string(), |user| user.login);
+        info!("Using GitHub API with personal access token. Authenticated as {username}.",);
         octocrab
     } else {
         info!("No GitHub Personal Access Token found. Will use anonymous API access.");
