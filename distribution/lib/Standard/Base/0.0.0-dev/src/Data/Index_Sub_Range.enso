@@ -1,16 +1,11 @@
 import project.Data.Any.Any
 import project.Data.Numbers.Integer
-
-## Imported this way as then imports the extension methods.
-from project.Data.Range import Range
-
 import project.Data.Vector.Vector
-
+import project.Math
 import project.Random
 import project.Runtime.Ref
-
-import project.Math
-
+## Imported this way as then imports the extension methods.
+from project.Data.Range import Range
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data
 

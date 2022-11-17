@@ -5,7 +5,6 @@ import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
@@ -49,7 +48,7 @@ public class VectorBenchmarks {
       .allowAllAccess(true)
       .build();
     var module = ctx.eval("enso", "\n" +
-      "import Standard.Base.Data.Vector\n" +
+      "import Standard.Base.Data.Vector.Vector\n" +
       "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
       "\n" +
       "avg arr =\n" +
