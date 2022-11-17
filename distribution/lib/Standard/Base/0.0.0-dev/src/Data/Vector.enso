@@ -906,13 +906,13 @@ type Vector a
 
         handle_incomparable_value <|
             builder = new_builder
-            self.fold Map.empty existing->
+            result = self.fold Map.empty existing->
                 item->
                     key = on item
                     if (existing.get_or_else key False) then existing else
                         builder.append item
                         existing.insert key True
-            builder.to_vector
+            if result.is_error then result else builder.to_vector
 
 
     ## UNSTABLE
@@ -1109,7 +1109,7 @@ handle_incomparable_value ~function =
         handle No_Such_Method_Error_Data <|
             handle Type_Error_Data <|
                 handle Unsupported_Argument_Types_Data <|
-                    function
+                    function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the
