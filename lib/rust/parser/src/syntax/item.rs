@@ -18,8 +18,17 @@ use crate::syntax::*;
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
-    Block(Vec<Item<'s>>),
+    Block(Vec<Line<'s>>),
     Tree(Tree<'s>),
+}
+
+/// A line.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Line<'s> {
+    /// The line-beginning token.
+    pub newline: token::Newline<'s>,
+    /// The line's contents.
+    pub items:   Vec<Item<'s>>,
 }
 
 impl<'s> Item<'s> {
@@ -37,7 +46,7 @@ impl<'s> Item<'s> {
         match self {
             Self::Token(t) => t.span().left_offset.visible,
             Self::Tree(t) => t.span.left_offset.visible,
-            Self::Block(t) => t.first().map(|t| t.left_visible_offset()).unwrap_or_default(),
+            Self::Block(_) => default(),
         }
     }
 
@@ -79,12 +88,13 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
     }
 }
 
-/// Given a sequence of [`Item`]s belonging to one block, create an AST block node, of a type
+/// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
-fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
+fn build_block<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     let mut block_builder = tree::block::Builder::new();
-    for tree::block::Line { newline, expression } in tree::block::lines(items) {
-        block_builder.push(newline, expression);
+    let mut precedence = operator::Precedence::new();
+    for Line { newline, items } in lines {
+        block_builder.push(newline, items, &mut precedence);
     }
     block_builder.build()
 }

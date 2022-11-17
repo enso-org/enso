@@ -233,7 +233,7 @@ impl<'s> TryAsRef<PartiallyMatchedMacro<'s>> for ItemOrPartiallyMatchedMacro<'s>
 pub struct Resolver<'s> {
     macro_stack: Vec<PartiallyMatchedMacro<'s>>,
     scopes:      Vec<Scope>,
-    open_blocks: Vec<syntax::Item<'s>>,
+    open_blocks: Vec<syntax::item::Line<'s>>,
     context:     Context,
 }
 
@@ -261,7 +261,8 @@ impl<'s> Resolver<'s> {
     pub fn new_root() -> Self {
         let macro_stack = default();
         let scopes = default();
-        let open_blocks = vec![Token("", "", token::Variant::newline()).into()];
+        let newline = token::newline("", "");
+        let open_blocks = vec![syntax::item::Line { newline, items: default() }];
         let context = Context::Statement;
         Self { macro_stack, scopes, open_blocks, context }
     }
@@ -286,7 +287,10 @@ impl<'s> Resolver<'s> {
     pub fn run(mut self, root_macro_map: &MacroMap, tokens: Vec<Token<'s>>) -> syntax::Tree<'s> {
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
         self.finish_current_line();
-        let lines = syntax::tree::block::lines(self.open_blocks.into_iter());
+        let mut precedence = syntax::operator::Precedence::new();
+        let lines = self.open_blocks.into_iter().map(|syntax::item::Line { newline, items }| {
+            syntax::tree::block::Line { newline, expression: precedence.resolve(items) }
+        });
         syntax::tree::block::body_from_lines(lines)
     }
 
@@ -295,7 +299,8 @@ impl<'s> Resolver<'s> {
         match token.variant {
             token::Variant::Newline(_) => {
                 self.finish_current_line();
-                self.open_blocks.push(token.into());
+                let newline = token::newline(token.left_offset, token.code);
+                self.open_blocks.push(syntax::item::Line { newline, items: default() });
                 self.context = Context::Statement;
             }
             token::Variant::BlockStart(_) => {
@@ -345,8 +350,8 @@ impl<'s> Resolver<'s> {
                 mac = mac_;
             }
             let (resolved, extra) = Self::resolve(mac);
-            self.open_blocks.push(resolved.into());
-            self.open_blocks.extend(extra);
+            self.open_blocks.last_mut().unwrap().items.push(resolved.into());
+            self.open_blocks.last_mut().unwrap().items.extend(extra);
         }
     }
 
@@ -355,7 +360,7 @@ impl<'s> Resolver<'s> {
         if let Some(mac) = self.macro_stack[i..].last_mut() {
             mac.push(item);
         } else {
-            self.open_blocks.push(item);
+            self.open_blocks.last_mut().unwrap().items.push(item);
         }
     }
 

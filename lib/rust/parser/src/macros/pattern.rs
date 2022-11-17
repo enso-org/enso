@@ -51,16 +51,12 @@ pub enum PatternData {
     Many(Pattern),
     /// Consume an identifier.
     Identifier,
-    /// Consume a block and run the provided pattern in its body.
-    Block(Pattern),
     /// Indicator of an error. The provided pattern is used to consume input when an error occurs.
     /// For example, if you want to consume an identifier, but the identifier is not found, you can
     /// use this pattern to consume any token instead and mark it as invalid.
     Expected(String, Pattern),
     /// Named pattern. Mainly used for splicing the code in the macro definition body.
     Named(String, Pattern),
-    /// Anything that is not a block.
-    NotBlock,
 }
 
 /// Constructor.
@@ -71,11 +67,6 @@ pub fn everything() -> Pattern {
 /// Constructor.
 pub fn identifier() -> Pattern {
     Pattern::new(PatternData::Identifier, false)
-}
-
-/// Constructor.
-pub fn not_block() -> Pattern {
-    Pattern::new(PatternData::NotBlock, false)
 }
 
 /// Constructor.
@@ -101,11 +92,6 @@ pub fn many(item: Pattern) -> Pattern {
 }
 
 /// Constructor.
-pub fn block(body: Pattern) -> Pattern {
-    Pattern::new(PatternData::Block(body), false)
-}
-
-/// Constructor.
 pub fn expected(message: impl Into<String>, item: Pattern) -> Pattern {
     let matches_empty_input = item.matches_empty_input;
     Pattern::new(PatternData::Expected(message.into(), item), matches_empty_input)
@@ -123,9 +109,9 @@ impl Pattern {
         many(self)
     }
 
-    /// Match self or consume any token that is not a block and mark it as invalid.
+    /// Match self or consume any token and mark it as invalid.
     pub fn expect(self, message: impl Into<String>) -> Self {
-        self | expected(message, not_block() | nothing())
+        self | expected(message, everything())
     }
 
     /// Match self or consume any token that is not a block and mark it as invalid.
@@ -354,22 +340,6 @@ impl Pattern {
                         input.push_front(t);
                         Err(input)
                     },
-            },
-            PatternData::Block(body) => match input.pop_front() {
-                Some(syntax::Item::Block(tokens)) => body.resolve(tokens.into()),
-                Some(t) => {
-                    input.push_front(t);
-                    Err(input)
-                }
-                None => Err(default()),
-            },
-            PatternData::NotBlock => match input.pop_front() {
-                Some(t @ syntax::Item::Block(_)) => {
-                    input.push_front(t);
-                    Err(input)
-                }
-                None => Err(default()),
-                Some(t) => Ok(MatchResult::new(Match::NotBlock(t), input)),
             },
         }
     }
