@@ -24,7 +24,20 @@ polyglot java import java.lang.ArithmeticException
          example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
 between : Date_Time -> Date_Time -> Boolean -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
-    Duration.between_builtin start_inclusive end_exclusive timezone_aware
+    between_builtin start_inclusive end_exclusive timezone_aware
+
+## PRIVATE
+   Create an interval representing the duration between two points in time.
+
+   Arguments:
+   - start_inclusive: The start datetime of the duration, included.
+   - end_exclusive: The end datetime of the duration, excluded.
+   - timezone_aware: Whether the duration between two given times should be
+     aware of the timezone, that can be set for start or end times.
+
+   Recommended to use `Duration.between` instead which provides defaults.
+between_builtin : Date_Time -> Date_Time -> Boolean -> Duration
+between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "Duration.between_builtin"
 
 ## Create a duration from time units.
 
@@ -43,7 +56,21 @@ between start_inclusive end_exclusive timezone_aware=True =
          example_duration = Duration.new hours=2
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
-    Duration.new_builtin hours minutes seconds milliseconds nanoseconds
+    new_builtin hours minutes seconds milliseconds nanoseconds
+
+## PRIVATE
+   Create a duration from time units.
+
+   Arguments:
+   - hours: hours
+   - minutes: minutes
+   - seconds: seconds
+   - milliseconds: milliseconds
+   - nanoseconds: nanoseconds
+
+   Recommended to use `Duration.new` instead which provides defaults.
+new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
 
 ## Create a Duration from hours.
 hours : Integer -> Duration

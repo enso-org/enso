@@ -8,7 +8,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "Meta",
     name = "is_atom_constructor",
-    description = "Checks if the argument is a constructor.")
+    description = "Checks if the argument is a constructor.",
+    autoRegister = false)
 public class IsAtomConstructorNode extends Node {
   boolean execute(@AcceptsError Object value) {
     return TypesGen.isAtomConstructor(value);

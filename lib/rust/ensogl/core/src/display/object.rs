@@ -10,6 +10,7 @@ use crate::display::scene::layer::Layer;
 // ==============
 
 pub mod class;
+pub mod event;
 pub mod transform;
 
 pub use class::Any;

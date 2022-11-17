@@ -10,7 +10,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(
     type = "Meta",
     name = "is_same_object",
-    description = "Checks if the two arguments share an underlying reference.")
+    description = "Checks if the two arguments share an underlying reference.",
+    autoRegister = false)
 public abstract class IsSameObjectNode extends Node {
 
   public static IsSameObjectNode build() {

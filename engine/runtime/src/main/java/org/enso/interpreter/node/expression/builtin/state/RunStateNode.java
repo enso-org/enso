@@ -15,7 +15,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "State",
     name = "run",
-    description = "Runs a stateful computation in a local state environment.")
+    description = "Runs a stateful computation in a local state environment.",
+    autoRegister = false)
 @ReportPolymorphism
 public abstract class RunStateNode extends Node {
   static RunStateNode build() {

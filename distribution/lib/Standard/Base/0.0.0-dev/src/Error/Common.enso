@@ -766,6 +766,8 @@ type Time_Error
     epoch_start : Time_Error
     epoch_start = Time_Error_Data "Epoch start underflow"
 
+    to_display_text : Text
+    to_display_text self = self.error_message
 
 ## TODO Dubious constructor export
 from project.Error.Common.Unsupported_File_Type import all

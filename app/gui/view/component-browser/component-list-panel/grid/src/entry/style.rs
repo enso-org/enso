@@ -30,7 +30,7 @@ pub enum Color {
 
 impl Default for Color {
     fn default() -> Self {
-        Self::ComponentGroup { alpha_multiplier: 1.0 }
+        Self::Arbitrary(color::Lcha::black())
     }
 }
 
@@ -39,10 +39,7 @@ impl Color {
     /// specified transparency from [`Self::MainColorWithAlpha`] to [`main`] color.
     fn resolve(&self, main: &color::Lcha) -> color::Lcha {
         match self {
-            Self::ComponentGroup { alpha_multiplier } => {
-                let alpha = main.alpha * alpha_multiplier;
-                color::Lcha::new(main.lightness, main.chroma, main.hue, alpha)
-            }
+            Self::ComponentGroup { alpha_multiplier } => main.multiply_alpha(*alpha_multiplier),
             Self::Arbitrary(color) => *color,
         }
     }
@@ -69,7 +66,7 @@ impl Color {
                     let alpha_multiplier = match data.number() {
                         Some(number) => number,
                         None => {
-                            error!("Neither color nor alpha defined ({path}).");
+                            error!("Neither color nor alpha defined for {path}.");
                             0.0
                         }
                     };
@@ -208,26 +205,26 @@ impl ResolvedColors {
         colors: &frp::Stream<Colors>,
         is_dimmed: &frp::Stream<bool>,
     ) -> Self {
-        let bg = style_watch.get_color(panel_theme::background_color);
+        let panel_background = style_watch.get_color(panel_theme::background_color);
         let colors = colors.clone_ref();
         let color_anim = color::Animation::new(network);
 
         frp::extend! { network
             init <- source_();
 
-            bg_intensity <- colors.map(|c| c.background_intensity);
-            bg <- all_with(&bg, &init, |col, ()| color::Lcha::from(col));
-            bg_and_main <- all(&bg, &color_anim.value);
             let is_dimmed = is_dimmed.clone_ref();
             dimmed <- all_with3(&init, main_color, &colors,
                 |_, main, colors| colors.dimmed.resolve(main)
             );
             color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
 
-            // Component list panel does not support semi-transparent background. Instead, we mix
+            // We do not support semi-transparent background of entries. Instead, we mix
             // the color of the component browser's background and the main color of the
             // component group.
-            background <- all_with(&bg_and_main, &bg_intensity,
+            panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
+            panel_bg_and_main <- all(&panel_bg, &color_anim.value);
+            bg_intensity <- colors.map(|c| c.background_intensity);
+            background <- all_with(&panel_bg_and_main, &bg_intensity,
                 |(bg, main), intensity| color::mix(*bg, *main, *intensity)
             ).sampler();
             hover_highlight <- all_with(&color_anim.value, &colors,

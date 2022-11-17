@@ -17,7 +17,7 @@ type Any
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Any.catch_primitive"
+    catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.

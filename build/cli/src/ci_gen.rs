@@ -5,6 +5,7 @@ use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
 
+use enso_build::version;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
@@ -51,6 +52,8 @@ pub const TARGETED_SYSTEMS: [OS; 3] = [OS::Windows, OS::Linux, OS::MacOS];
 
 pub const DEFAULT_BRANCH_NAME: &str = "develop";
 
+pub const RELEASE_CONCURRENCY_GROUP: &str = "release";
+
 /// Secrets set up in our organization.
 ///
 /// To manage, see: https://github.com/organizations/enso-org/settings/secrets/actions
@@ -71,7 +74,6 @@ pub mod secret {
     pub const APPLE_NOTARIZATION_USERNAME: &str = "APPLE_NOTARIZATION_USERNAME";
     pub const APPLE_NOTARIZATION_PASSWORD: &str = "APPLE_NOTARIZATION_PASSWORD";
 
-
     // === Windows Code Signing ===
     /// Name of the GitHub Actions secret that stores path to the Windows code signing certificate
     /// within the runner.
@@ -80,8 +82,15 @@ pub mod secret {
     /// Name of the GitHub Actions secret that stores password to the Windows code signing
     /// certificate.
     pub const WINDOWS_CERT_PASSWORD: &str = "MICROSOFT_CODE_SIGNING_CERT_PASSWORD";
+
+    // === Github Token ===
+    /// A token created for the `enso-ci` user.
+    pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+pub fn release_concurrency() -> Concurrency {
+    Concurrency::new(RELEASE_CONCURRENCY_GROUP)
+}
 
 impl RunsOn for DeluxeRunner {
     fn runs_on(&self) -> Vec<RunnerLabel> {
@@ -247,23 +256,24 @@ pub fn nightly() -> Result<Workflow> {
         ..default()
     };
 
-    let linux_only = OS::Linux;
-
-    let concurrency_group = "release";
     let mut workflow = Workflow {
         on,
         name: "Nightly Release".into(),
-        concurrency: Some(Concurrency::new(concurrency_group)),
+        concurrency: Some(release_concurrency()),
         ..default()
     };
 
-    let prepare_job_id = workflow.add::<DraftRelease>(linux_only);
-    let build_wasm_job_id = workflow.add::<job::BuildWasm>(linux_only);
+    add_release_steps(&mut workflow, version::Kind::Nightly)?;
+    Ok(workflow)
+}
+
+fn add_release_steps(workflow: &mut Workflow, kind: version::Kind) -> Result {
+    let prepare_job_id = workflow.add::<DraftRelease>(PRIMARY_OS);
+    let build_wasm_job_id = workflow.add::<job::BuildWasm>(PRIMARY_OS);
     let mut packaging_job_ids = vec![];
 
     // Assumed, because Linux is necessary to deploy ECR runtime image.
     assert!(TARGETED_SYSTEMS.contains(&OS::Linux));
-
     for os in TARGETED_SYSTEMS {
         let backend_job_id = workflow.add_dependent::<job::UploadBackend>(os, [&prepare_job_id]);
         let build_ide_job_id = workflow.add_dependent::<UploadIde>(os, [
@@ -271,12 +281,20 @@ pub fn nightly() -> Result<Workflow> {
             &backend_job_id,
             &build_wasm_job_id,
         ]);
-        packaging_job_ids.push(build_ide_job_id);
+        packaging_job_ids.push(build_ide_job_id.clone());
 
+        // Deploying our release to cloud needs to be done only once.
+        // We could do this on any platform, but we choose Linux, because it's most easily
+        // available and performant.
         if os == OS::Linux {
-            let upload_runtime_job_id = workflow
-                .add_dependent::<job::UploadRuntimeToEcr>(os, [&prepare_job_id, &backend_job_id]);
+            let runtime_requirements = [&prepare_job_id, &backend_job_id];
+            let upload_runtime_job_id =
+                workflow.add_dependent::<job::DeployRuntime>(os, runtime_requirements);
             packaging_job_ids.push(upload_runtime_job_id);
+
+            let gui_requirements = [build_ide_job_id];
+            let deploy_gui_job_id = workflow.add_dependent::<job::DeployGui>(os, gui_requirements);
+            packaging_job_ids.push(deploy_gui_job_id);
         }
     }
 
@@ -285,11 +303,28 @@ pub fn nightly() -> Result<Workflow> {
         packaging_job_ids
     };
 
-    let _publish_job_id = workflow.add_dependent::<PublishRelease>(linux_only, publish_deps);
-    let global_env = [("ENSO_BUILD_KIND", "nightly"), ("RUST_BACKTRACE", "full")];
+
+    let _publish_job_id = workflow.add_dependent::<PublishRelease>(PRIMARY_OS, publish_deps);
+
+    let global_env = [(*crate::ENSO_BUILD_KIND, kind.as_ref()), ("RUST_BACKTRACE", "full")];
     for (var_name, value) in global_env {
         workflow.env(var_name, value);
     }
+
+    Ok(())
+}
+
+pub fn release_candidate() -> Result<Workflow> {
+    let on = Event { workflow_dispatch: Some(default()), ..default() };
+
+    let mut workflow = Workflow {
+        on,
+        name: "Release Candidate".into(),
+        concurrency: Some(release_concurrency()),
+        ..default()
+    };
+
+    add_release_steps(&mut workflow, version::Kind::Rc)?;
     Ok(workflow)
 }
 
@@ -378,5 +413,6 @@ pub fn generate(repo_root: &enso_build::paths::generated::RepoRootGithubWorkflow
     repo_root.scala_new_yml.write_as_yaml(&backend()?)?;
     repo_root.gui_yml.write_as_yaml(&gui()?)?;
     repo_root.benchmark_yml.write_as_yaml(&benchmark()?)?;
+    repo_root.release_yml.write_as_yaml(&release_candidate()?)?;
     Ok(())
 }

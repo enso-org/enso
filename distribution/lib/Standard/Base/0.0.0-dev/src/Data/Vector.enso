@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array
 import Standard.Base.Data.Index_Sub_Range
 import Standard.Base.Random
 
@@ -26,7 +27,7 @@ polyglot java import java.lang.ClassCastException
 
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector Any
-new length constructor = @Builtin_Method "Vector.new_builtin"
+new length constructor = @Builtin_Method "Vector.new"
 
 ## ADVANCED
 
@@ -453,7 +454,7 @@ type Vector a
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        Vector.from_polyglot_array arr
+        from_polyglot_array arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -568,7 +569,7 @@ type Vector a
         _ : Vector ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
-        _ : Array ->
+        _ : Array.Array ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ -> False
@@ -589,7 +590,7 @@ type Vector a
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        Vector.from_polyglot_array arr
+        from_polyglot_array arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -867,7 +868,7 @@ type Vector a
 
         handle_incomparable_value <|
             new_vec_arr.sort compare
-            Vector.from_polyglot_array new_vec_arr
+            from_polyglot_array new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.

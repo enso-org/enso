@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::path::trie::Trie;
 use crate::program::command::Manipulator;
-use crate::programs::Git;
+use crate::programs::git;
 
 use std::path::Component;
 
@@ -14,7 +14,7 @@ pub struct DirectoryToClear<'a> {
     pub trie:   &'a Trie<'a>,
 }
 
-/// Run ``git clean -xfd`` but preserve the given paths.
+/// Run `git clean -xfd` but preserve the given paths.
 ///
 /// This may involve multiple git clean calls on different subtrees.
 /// Given paths can be either absolute or relative. If relative, they are relative to the
@@ -22,6 +22,7 @@ pub struct DirectoryToClear<'a> {
 pub async fn clean_except_for(
     repo_root: impl AsRef<Path>,
     paths: impl IntoIterator<Item: AsRef<Path>>,
+    dry_run: bool,
 ) -> Result {
     let root = repo_root.as_ref().canonicalize()?;
 
@@ -40,26 +41,16 @@ pub async fn clean_except_for(
         })
         .collect_vec();
 
-    let trie = Trie::from_iter(relative_exclusions.iter());
+    let exclusions = relative_exclusions.into_iter().map(Clean::exclude).collect_vec();
 
-    let mut directories_to_clear = vec![DirectoryToClear { prefix: vec![], trie: &trie }];
-    while let Some(DirectoryToClear { prefix, trie }) = directories_to_clear.pop() {
-        let current_dir = root.join_iter(&prefix);
-        let exclusions_in_current_dir =
-            trie.children.keys().map(|c| Clean::Exclude(c.as_os_str().to_string_lossy().into()));
-        let git = Git::new(&current_dir).await?;
-        git.cmd()?.clean().apply_iter(exclusions_in_current_dir).run_ok().await?;
-
-        for (child_name, child_trie) in trie.children.iter() {
-            if !child_trie.is_leaf() {
-                let mut prefix = prefix.clone();
-                prefix.push(*child_name);
-                directories_to_clear.push(DirectoryToClear { prefix, trie: child_trie });
-            }
-        }
-    }
-
-    Ok(())
+    git::Context::new(root)
+        .await?
+        .cmd()?
+        .nice_clean()
+        .apply_iter(exclusions)
+        .apply_opt(dry_run.then_some(&Clean::DryRun))
+        .run_ok()
+        .await
 }
 
 #[derive(Clone, Debug)]
@@ -97,6 +88,17 @@ pub enum Clean {
     OnlyIgnored,
 }
 
+impl Clean {
+    pub fn exclude(path: impl AsRef<Path>) -> Self {
+        let mut ret = String::new();
+        for component in path.as_ref().components() {
+            ret.push('/');
+            ret.push_str(&component.as_os_str().to_string_lossy());
+        }
+        Clean::Exclude(ret)
+    }
+}
+
 impl Manipulator for Clean {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
         // fn apply<'a, C: IsCommandWrapper + ?Sized>(&self, c: &'a mut C) -> &'a mut C {
@@ -110,5 +112,33 @@ impl Manipulator for Clean {
             Clean::OnlyIgnored => vec!["-X"],
         };
         command.args(args);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::programs::Git;
+
+    #[tokio::test]
+    async fn test_cleaning() -> Result {
+        setup_logging()?;
+        let dir = PathBuf::from(r"C:\temp\test_cleaning");
+        crate::fs::tokio::reset_dir(&dir).await?;
+        Git.init(&dir)?.run_ok().await?;
+
+        let foo = dir.join("foo");
+        let foo_target = foo.join("target");
+        crate::fs::tokio::write(&foo_target, "target in foo").await?;
+
+        let target = dir.join("target");
+        let target_foo = target.join("foo");
+        crate::fs::tokio::write(&target_foo, "foo in target").await?;
+
+        clean_except_for(&dir, vec!["target/foo"], false).await?;
+
+
+
+        Ok(())
     }
 }

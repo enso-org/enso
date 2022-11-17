@@ -1,12 +1,13 @@
 from Standard.Base import all
 
-import Standard.Base.System.File.Option
-import Standard.Base.System.File.File_Permissions
+import Standard.Base.Data.Array
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Error.Common import Unsupported_File_Type
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
-from Standard.Base.Error.Common import Unsupported_File_Type
+import Standard.Base.System.File.Option
+import Standard.Base.System.File.File_Permissions
 
 polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
@@ -391,14 +392,6 @@ type File
     creation_time self =
         handle_java_exceptions self <| self.creation_time_builtin
 
-    ## PRIVATE
-
-       Builtin method that gets this file's creation time.
-       Recommended to use `File.creation_time` instead which handles potential
-       exceptions.
-    creation_time_builtin : File -> ZonedDateTime
-    creation_time_builtin self = @Builtin_Method "File.creation_time_builtin"
-
     ## Gets the last modified time of a file.
 
        > Example
@@ -411,14 +404,6 @@ type File
     last_modified_time self =
         handle_java_exceptions self <| self.last_modified_time_builtin
 
-    ## PRIVATE
-
-       Builtin method that gets this file's last modified time.
-       Recommended to use `File.last_modified_time` instead which handles
-       potential exceptions.
-    last_modified_time_builtin : ZonedDateTime
-    last_modified_time_builtin self = @Builtin_Method "File.last_modified_time_builtin"
-
     ## Gets the POSIX permissions associated with the file.
 
        > Example
@@ -430,15 +415,6 @@ type File
     posix_permissions : File_Permissions
     posix_permissions self =
         File_Permissions.from_java_set self.posix_permissions_builtin
-
-    ## PRIVATE
-
-       Builtin method that gets this file's POSIX permissions as a Java Set.
-       Recommended to use `File.posix_permissions` instead which handles
-       potential exceptions and converts an Enso representation of the
-       permissions.
-    posix_permissions_builtin : Set
-    posix_permissions_builtin self = @Builtin_Method "File.posix_permissions_builtin"
 
     ## Checks whether the file exists and is a directory.
 
@@ -593,13 +569,6 @@ type File
     delete self =
         handle_java_exceptions self self.delete_builtin
 
-    ## PRIVATE
-
-       Builtin method that deletes the file.
-       Recommended to use `File.delete` instead which handles potential exceptions.
-    delete_builtin : Nothing
-    delete_builtin self = @Builtin_Method "File.delete_builtin"
-
     ## Moves the file to the specified destination.
 
        Arguments:
@@ -614,13 +583,6 @@ type File
               self.copy_builtin destination copy_options
             False -> self.copy_builtin destination Array.empty
 
-    ## PRIVATE
-
-       Builtin method that copies this file to a new destination.
-       Recommended to use `File.copy_to` instead which handles potential exceptions.
-    copy_builtin : File -> Array Any -> Nothing
-    copy_builtin self destination copy_options = @Builtin_Method "File.copy_builtin"
-
     ## Moves the file to the specified destination.
 
        Arguments:
@@ -634,13 +596,6 @@ type File
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
               self.move_builtin destination copy_options
             False -> self.move_builtin destination Array.empty
-
-    ## PRIVATE
-
-       Builtin method that moves this file to a new destination.
-       Recommended to use `File.move_to` instead which handles potential exceptions.
-    move_builtin : File -> Array Any -> Nothing
-    move_builtin self destination copy_options = @Builtin_Method "File.move_builtin"
 
     ## Deletes the file if it exists on disk.
 
@@ -699,10 +654,6 @@ type File
     read_last_bytes self n =
         handle_java_exceptions self <|
             Vector.from_polyglot_array (self.read_last_bytes_builtin n)
-
-    ## PRIVATE
-    read_last_bytes_builtin : Integer -> Array
-    read_last_bytes_builtin self n = @Builtin_Method "File.read_last_bytes_builtin"
 
     ## Lists files contained in the directory denoted by this file.
 
@@ -789,12 +740,6 @@ type File
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
-
-    ## PRIVATE
-
-       Utility function that lists immediate children of a directory.
-    list_immediate_children_array : Array File
-    list_immediate_children_array self = @Builtin_Method "File.list_immediate_children_array"
 
     ## PRIVATE
 

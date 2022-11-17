@@ -217,7 +217,7 @@ define_themes! { [light:0, dark:1]
                             size = 16.0, 16.0;
                             text_padding = 8.0, 8.0;
                             color = 1.0, 1.0;
-                            dull_color_alpha = 0.4, 0.4;
+                            dull_color_alpha = 0.25, 0.25;
                         }
                         special_icons {
                             join.intersection_alpha = 0.7, 0.7;

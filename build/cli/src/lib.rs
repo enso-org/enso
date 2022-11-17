@@ -33,8 +33,6 @@ pub mod prelude {
 use crate::prelude::*;
 use std::future::join;
 
-use ide_ci::env::Variable;
-
 use crate::arg::java_gen;
 use crate::arg::release::Action;
 use crate::arg::BuildJob;
@@ -80,10 +78,9 @@ use enso_build::source::WithDestination;
 use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
+use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
-use ide_ci::github::release::upload_asset;
 use ide_ci::global;
-use ide_ci::log::setup_logging;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git::clean;
@@ -99,11 +96,8 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
     input.unwrap_or_else(|| project.artifact_name())
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct BuildKind;
-impl Variable for BuildKind {
-    const NAME: &'static str = "ENSO_BUILD_KIND";
-    type Value = enso_build::version::BuildKind;
+define_env_var! {
+    ENSO_BUILD_KIND, enso_build::version::Kind;
 }
 
 /// The basic, common information available in this application.
@@ -125,22 +119,18 @@ impl Processor {
     /// Setup common build environment information based on command line input and local
     /// environment.
     pub async fn new(cli: &Cli) -> Result<Self> {
-        // let build_kind = match &cli.target {
-        //     Target::Release(release) => release.kind,
-        //     _ => enso_build::version::BuildKind::Dev,
-        // };
         let absolute_repo_path = cli.repo_path.absolutize()?;
         let octocrab = setup_octocrab().await?;
-        let versions = enso_build::version::deduce_versions(
-            &octocrab,
+        let remote_repo = cli.repo_remote.handle(&octocrab);
+        let versions = enso_build::version::deduce_or_generate(
+            Ok(&remote_repo),
             cli.build_kind,
-            Ok(&cli.repo_remote),
             &absolute_repo_path,
         )
         .await?;
         let mut triple = TargetTriple::new(versions);
         triple.os = cli.target_os;
-        triple.versions.publish()?;
+        triple.versions.publish().await?;
         let context = BuildContext {
             inner: project::Context {
                 cache: Cache::new(&cli.cache_path).await?,
@@ -215,16 +205,8 @@ impl Processor {
         let release = self.resolve_release_designator(designator);
         release
             .and_then_sync(move |release| {
-                Ok(ReleaseSource {
-                    repository,
-                    asset_id: target
-                        .find_asset(release.assets)
-                        .context(format!(
-                            "Failed to find a relevant asset in the release '{}'.",
-                            release.tag_name
-                        ))?
-                        .id,
-                })
+                let asset = target.find_asset(&release)?;
+                Ok(ReleaseSource { repository, asset_id: asset.id })
             })
             .boxed()
     }
@@ -487,13 +469,15 @@ impl Processor {
             arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
                 let build_job = self.build_ide(params);
-                let remote_repo = self.remote_repo.clone();
-                let client = self.octocrab.client.clone();
+                let release = ide_ci::github::release::ReleaseHandle::new(
+                    &self.octocrab,
+                    self.remote_repo.clone(),
+                    release_id,
+                );
                 async move {
                     let artifacts = build_job.await?;
-                    upload_asset(&remote_repo, &client, release_id, &artifacts.image).await?;
-                    upload_asset(&remote_repo, &client, release_id, &artifacts.image_checksum)
-                        .await?;
+                    release.upload_asset_file(&artifacts.image).await?;
+                    release.upload_asset_file(&artifacts.image_checksum).await?;
                     Ok(())
                 }
                 .boxed()
@@ -764,21 +748,32 @@ impl WatchResolvable for Gui {
     }
 }
 
-#[tracing::instrument(err)]
-pub async fn main_internal(config: enso_build::config::Config) -> Result {
-    setup_logging()?;
+#[tracing::instrument(err, skip(config))]
+pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result {
+    trace!("Starting the build process.");
+    let config = config.unwrap_or_else(|| {
+        warn!("No config provided, using default config.");
+        enso_build::config::Config::default()
+    });
 
+    trace!("Creating the build context.");
     // Setup that affects Cli parser construction.
     if let Some(wasm_size_limit) = config.wasm_size_limit {
         crate::arg::wasm::initialize_default_wasm_size_limit(wasm_size_limit)?;
     }
+
+    debug!("Initial configuration for the CLI driver: {config:#?}");
 
     let cli = Cli::parse();
 
     debug!("Parsed CLI arguments: {cli:#?}");
 
     if !cli.skip_version_check {
-        config.check_programs().await?;
+        // Let's be helpful!
+        let error_message = "Program requirements were not fulfilled. Please do one of the \
+        following:\n * Install the tools in the required versions.\n * Update the requirements in \
+        `build-config.yaml`.\n * Run the build with `--skip-version-check` flag.";
+        config.check_programs().await.context(error_message)?;
     }
 
     // TRANSITION: Previous Engine CI job used to clone these both repositories side-by-side.
@@ -800,15 +795,17 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
         // TODO: consider if out-of-source ./dist should be removed
         Target::GitClean(options) => {
+            let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
-            if !options.build_script {
+            if !build_script {
                 exclusions.push("target/enso-build");
             }
 
-            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions);
+            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
             let clean_cache = async {
-                if options.cache {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
+                if cache {
+                    ide_ci::fs::tokio::perhaps_remove_dir_if_exists(dry_run, ctx.cache.path())
+                        .await?;
                 }
                 Result::Ok(())
             };
@@ -842,23 +839,25 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
             let prettier = prettier::write(&ctx.repo_root);
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
-            // our_formatter.await?;
-            // prettier.await?;
             let (r1, r2) = join!(prettier, our_formatter).await;
             r1?;
             r2?;
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
-                enso_build::release::create_release(&ctx).await?;
+                enso_build::release::draft_a_new_release(&ctx).await?;
             }
-            Action::DeployToEcr(args) => {
+            Action::DeployRuntime(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
-                enso_build::release::dispatch_cloud_image_build_action(
+                enso_build::repo::cloud::build_image_workflow_dispatch_input(
                     &ctx.octocrab,
                     &ctx.triple.versions.version,
                 )
                 .await?;
+            }
+            Action::DeployGui(args) => {
+                let crate::arg::release::DeployGui {} = args;
+                enso_build::release::upload_gui_to_cloud_good(&ctx).await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
@@ -893,39 +892,12 @@ pub async fn main_internal(config: enso_build::config::Config) -> Result {
     Ok(())
 }
 
-pub fn lib_main(config: enso_build::config::Config) -> Result {
+pub fn lib_main(config: Option<enso_build::config::Config>) -> Result {
+    trace!("Starting the tokio runtime.");
     let rt = tokio::runtime::Runtime::new()?;
+    trace!("Entering main.");
     rt.block_on(async { main_internal(config).await })?;
     rt.shutdown_timeout(Duration::from_secs(60 * 30));
     info!("Successfully ending.");
     Ok(())
 }
-
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use enso_build::version::Versions;
-//     use ide_ci::models::config::RepoContext;
-//
-//     #[tokio::test]
-//     async fn resolving_release() -> Result {
-//         setup_logging()?;
-//         let octocrab = Octocrab::default();
-//         let context = Processor {
-//             context: BuildContext {
-//                 remote_repo: RepoContext::from_str("enso-org/enso")?,
-//                 triple: TargetTriple::new(Versions::new(Version::new(2022, 1, 1))),
-//                 source_root: r"H:/NBO/enso5".into(),
-//                 octocrab,
-//                 cache: Cache::new_default().await?,
-//             },
-//         };
-//
-//         dbg!(
-//             context.resolve_release_source(Backend { target_os: TARGET_OS },
-//     "latest".into()).await     )?;
-//
-//         Ok(())
-//     }
-// }

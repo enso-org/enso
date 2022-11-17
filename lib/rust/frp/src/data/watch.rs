@@ -11,21 +11,20 @@ use crate::prelude::*;
 /// Handle for the `Counter`. When created increases, and when dropped decreases the counter.
 #[derive(Debug)]
 pub struct Handle {
-    counter: Counter,
+    _count: Weak<()>,
 }
 
 impl Handle {
-    /// Constructor.
+    /// Constructor. The constructed `Handle` increases the Counter count by one until it is
+    /// dropped.
     pub fn new(counter: &Counter) -> Self {
-        let counter = counter.clone_ref();
-        counter.increase();
-        Self { counter }
+        Self { _count: Rc::downgrade(&counter.count) }
     }
-}
 
-impl Drop for Handle {
-    fn drop(&mut self) {
-        self.counter.decrease()
+    /// Create a placeholder handle that doesn't correspond to any live counter. Creating or
+    /// dropping this handle has no effect.
+    pub fn null() -> Self {
+        Self { _count: Weak::new() }
     }
 }
 
@@ -39,7 +38,7 @@ impl Drop for Handle {
 /// `new_watch` method.
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Counter {
-    count: Rc<Cell<usize>>,
+    count: Rc<()>,
 }
 
 impl Counter {
@@ -50,20 +49,12 @@ impl Counter {
 
     /// Checks whether the counter is zero.
     pub fn is_zero(&self) -> bool {
-        self.count.get() == 0
+        Rc::weak_count(&self.count) == 0
     }
 
     /// Creates a new watch and returns a handle.
     pub fn new_watch(&self) -> Handle {
         Handle::new(self)
-    }
-
-    fn increase(&self) {
-        self.count.set(self.count.get() + 1);
-    }
-
-    fn decrease(&self) {
-        self.count.set(self.count.get() - 1);
     }
 }
 

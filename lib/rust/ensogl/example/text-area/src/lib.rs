@@ -178,7 +178,7 @@ fn init(app: Application) {
     area.set_content(content);
     area.set_font("mplus1p");
     area.set_property_default(color::Rgba::black());
-    area.focus();
+    area.deprecated_focus();
     area.hover();
 
     let borders = Borders::default();

@@ -14,7 +14,6 @@ use crate::source::WithDestination;
 
 use derivative::Derivative;
 use ide_ci::cache;
-use ide_ci::env::Variable;
 use ide_ci::fs::compressed_size;
 use ide_ci::fs::copy_file_if_different;
 use ide_ci::programs::cargo;
@@ -208,7 +207,7 @@ impl IsTarget for Wasm {
             command
                 .current_dir(&repo_root)
                 .kill_on_drop(true)
-                .env_remove(ide_ci::programs::rustup::env::Toolchain::NAME)
+                .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
                 .set_env(env::ENSO_ENABLE_PROC_MACRO_SPAN, &true)?
                 .build()
                 .arg(wasm_pack::Profile::from(*profile))

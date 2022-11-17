@@ -489,12 +489,13 @@ impl grid_view::Entry for View {
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
-            is_header <- label_updated.filter(|(m, (), ())| m.kind == Kind::Header);
-            is_not_header <- label_updated.filter(|(m, (), ())| m.kind != Kind::Header);
-            data.label.set_property <+ is_header.map2(&style, |_, s| {
+            is_header <- label_updated.map(|(m, (), ())| m.kind == Kind::Header);
+            is_not_header <- is_header.on_false();
+            is_header <- is_header.on_true();
+            data.label.set_property <+ is_header.map(|_| {
                 ((..).into(), Some(text::Weight::ExtraBold.into()))
             });
-            data.label.set_property <+ is_not_header.map2(&style, |_, s| {
+            data.label.set_property <+ is_not_header.map(|_| {
                 ((..).into(), Some(text::Weight::Medium.into()))
             });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();

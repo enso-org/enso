@@ -8,13 +8,6 @@
 use super::hlist;
 
 
-// ==============
-// === Export ===
-// ==============
-
-pub use nalgebra::base::dimension::*;
-
-
 
 // ==============
 // === Traits ===
@@ -131,154 +124,155 @@ where T: HasRepr
 // === HasIndex ===
 // ================
 
-/// Trait for heterogeneous containers like tuples which contain element at index `Ix`.
-pub trait HasItemAt<Ix> {
+/// Trait for heterogeneous containers like tuples which contain element at index `I`.
+pub trait HasItemAt<const I: usize> {
     type Item;
 }
-pub trait HasItemAt0 = HasItemAt<U0>;
-pub trait HasItemAt1 = HasItemAt<U1>;
-pub trait HasItemAt2 = HasItemAt<U2>;
-pub trait HasItemAt3 = HasItemAt<U3>;
-pub trait HasItemAt4 = HasItemAt<U4>;
-pub trait HasItemAt5 = HasItemAt<U5>;
-pub trait HasItemAt6 = HasItemAt<U6>;
-pub trait HasItemAt7 = HasItemAt<U7>;
-pub trait HasItemAt8 = HasItemAt<U8>;
-pub trait HasItemAt9 = HasItemAt<U9>;
-pub trait HasItemAt10 = HasItemAt<U10>;
-pub trait HasItemAt11 = HasItemAt<U11>;
-pub trait HasItemAt12 = HasItemAt<U12>;
-pub trait HasItemAt13 = HasItemAt<U13>;
-pub trait HasItemAt14 = HasItemAt<U14>;
-pub trait HasItemAt15 = HasItemAt<U15>;
 
-/// Type of element at index `Ix`. Useful for heterogeneous containers like tuples.
-pub type ItemAt<Ix, T> = <T as HasItemAt<Ix>>::Item;
-pub type ItemAt0<T> = ItemAt<U0, T>;
-pub type ItemAt1<T> = ItemAt<U1, T>;
-pub type ItemAt2<T> = ItemAt<U2, T>;
-pub type ItemAt3<T> = ItemAt<U3, T>;
-pub type ItemAt4<T> = ItemAt<U4, T>;
-pub type ItemAt5<T> = ItemAt<U5, T>;
-pub type ItemAt6<T> = ItemAt<U6, T>;
-pub type ItemAt7<T> = ItemAt<U7, T>;
-pub type ItemAt8<T> = ItemAt<U8, T>;
-pub type ItemAt9<T> = ItemAt<U9, T>;
-pub type ItemAt10<T> = ItemAt<U10, T>;
-pub type ItemAt11<T> = ItemAt<U11, T>;
-pub type ItemAt12<T> = ItemAt<U12, T>;
-pub type ItemAt13<T> = ItemAt<U13, T>;
-pub type ItemAt14<T> = ItemAt<U14, T>;
-pub type ItemAt15<T> = ItemAt<U15, T>;
+pub trait HasItemAt0 = HasItemAt<0>;
+pub trait HasItemAt1 = HasItemAt<1>;
+pub trait HasItemAt2 = HasItemAt<2>;
+pub trait HasItemAt3 = HasItemAt<3>;
+pub trait HasItemAt4 = HasItemAt<4>;
+pub trait HasItemAt5 = HasItemAt<5>;
+pub trait HasItemAt6 = HasItemAt<6>;
+pub trait HasItemAt7 = HasItemAt<7>;
+pub trait HasItemAt8 = HasItemAt<8>;
+pub trait HasItemAt9 = HasItemAt<9>;
+pub trait HasItemAt10 = HasItemAt<10>;
+pub trait HasItemAt11 = HasItemAt<11>;
+pub trait HasItemAt12 = HasItemAt<12>;
+pub trait HasItemAt13 = HasItemAt<13>;
+pub trait HasItemAt14 = HasItemAt<14>;
+pub trait HasItemAt15 = HasItemAt<15>;
 
-/// Accessor for element at index `Ix`.
-pub trait GetItemAt<Ix>: HasItemAt<Ix> + _GetItemAt {
-    fn get_item_at(&self) -> &ItemAt<Ix, Self>;
+/// Type of element at index `I`. Useful for heterogeneous containers like tuples.
+pub type ItemAt<const I: usize, T> = <T as HasItemAt<I>>::Item;
+pub type ItemAt0<T> = ItemAt<0, T>;
+pub type ItemAt1<T> = ItemAt<1, T>;
+pub type ItemAt2<T> = ItemAt<2, T>;
+pub type ItemAt3<T> = ItemAt<3, T>;
+pub type ItemAt4<T> = ItemAt<4, T>;
+pub type ItemAt5<T> = ItemAt<5, T>;
+pub type ItemAt6<T> = ItemAt<6, T>;
+pub type ItemAt7<T> = ItemAt<7, T>;
+pub type ItemAt8<T> = ItemAt<8, T>;
+pub type ItemAt9<T> = ItemAt<9, T>;
+pub type ItemAt10<T> = ItemAt<10, T>;
+pub type ItemAt11<T> = ItemAt<11, T>;
+pub type ItemAt12<T> = ItemAt<12, T>;
+pub type ItemAt13<T> = ItemAt<13, T>;
+pub type ItemAt14<T> = ItemAt<14, T>;
+pub type ItemAt15<T> = ItemAt<15, T>;
+
+/// Accessor for element at index `I`.
+pub trait GetItemAt<const I: usize>: HasItemAt<I> + _GetItemAt {
+    fn get_item_at(&self) -> &ItemAt<I, Self>;
 }
 
 /// Smart wrapper for `GetItemAt`. Enables syntax `lst.item_at::<U0>()`.
 impl<T> _GetItemAt for T {}
 pub trait _GetItemAt {
-    fn item_at<Ix>(&self) -> &ItemAt<Ix, Self>
-    where Self: GetItemAt<Ix> {
-        GetItemAt::<Ix>::get_item_at(self)
+    fn item_at<const I: usize>(&self) -> &ItemAt<I, Self>
+    where Self: GetItemAt<I> {
+        GetItemAt::<I>::get_item_at(self)
     }
 }
 
-pub trait GetItemAt0: GetItemAt<U0> {
+pub trait GetItemAt0: GetItemAt<0> {
     fn _0(&self) -> &ItemAt0<Self> {
-        self.item_at::<U0>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt1: GetItemAt<U1> {
+pub trait GetItemAt1: GetItemAt<1> {
     fn _1(&self) -> &ItemAt1<Self> {
-        self.item_at::<U1>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt2: GetItemAt<U2> {
+pub trait GetItemAt2: GetItemAt<2> {
     fn _2(&self) -> &ItemAt2<Self> {
-        self.item_at::<U2>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt3: GetItemAt<U3> {
+pub trait GetItemAt3: GetItemAt<3> {
     fn _3(&self) -> &ItemAt3<Self> {
-        self.item_at::<U3>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt4: GetItemAt<U4> {
+pub trait GetItemAt4: GetItemAt<4> {
     fn _4(&self) -> &ItemAt4<Self> {
-        self.item_at::<U4>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt5: GetItemAt<U5> {
+pub trait GetItemAt5: GetItemAt<5> {
     fn _5(&self) -> &ItemAt5<Self> {
-        self.item_at::<U5>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt6: GetItemAt<U6> {
+pub trait GetItemAt6: GetItemAt<6> {
     fn _6(&self) -> &ItemAt6<Self> {
-        self.item_at::<U6>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt7: GetItemAt<U7> {
+pub trait GetItemAt7: GetItemAt<7> {
     fn _7(&self) -> &ItemAt7<Self> {
-        self.item_at::<U7>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt8: GetItemAt<U8> {
+pub trait GetItemAt8: GetItemAt<8> {
     fn _8(&self) -> &ItemAt8<Self> {
-        self.item_at::<U8>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt9: GetItemAt<U9> {
+pub trait GetItemAt9: GetItemAt<9> {
     fn _9(&self) -> &ItemAt9<Self> {
-        self.item_at::<U9>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt10: GetItemAt<U10> {
+pub trait GetItemAt10: GetItemAt<10> {
     fn _10(&self) -> &ItemAt10<Self> {
-        self.item_at::<U10>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt11: GetItemAt<U11> {
+pub trait GetItemAt11: GetItemAt<11> {
     fn _11(&self) -> &ItemAt11<Self> {
-        self.item_at::<U11>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt12: GetItemAt<U12> {
+pub trait GetItemAt12: GetItemAt<12> {
     fn _12(&self) -> &ItemAt12<Self> {
-        self.item_at::<U12>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt13: GetItemAt<U13> {
+pub trait GetItemAt13: GetItemAt<13> {
     fn _13(&self) -> &ItemAt13<Self> {
-        self.item_at::<U13>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt14: GetItemAt<U14> {
+pub trait GetItemAt14: GetItemAt<14> {
     fn _14(&self) -> &ItemAt14<Self> {
-        self.item_at::<U14>()
+        self.get_item_at()
     }
 }
-pub trait GetItemAt15: GetItemAt<U15> {
+pub trait GetItemAt15: GetItemAt<15> {
     fn _15(&self) -> &ItemAt15<Self> {
-        self.item_at::<U15>()
+        self.get_item_at()
     }
 }
 
-impl<T: GetItemAt<U0>> GetItemAt0 for T {}
-impl<T: GetItemAt<U1>> GetItemAt1 for T {}
-impl<T: GetItemAt<U2>> GetItemAt2 for T {}
-impl<T: GetItemAt<U3>> GetItemAt3 for T {}
-impl<T: GetItemAt<U4>> GetItemAt4 for T {}
-impl<T: GetItemAt<U5>> GetItemAt5 for T {}
-impl<T: GetItemAt<U6>> GetItemAt6 for T {}
-impl<T: GetItemAt<U7>> GetItemAt7 for T {}
-impl<T: GetItemAt<U8>> GetItemAt8 for T {}
-impl<T: GetItemAt<U9>> GetItemAt9 for T {}
-impl<T: GetItemAt<U10>> GetItemAt10 for T {}
-impl<T: GetItemAt<U11>> GetItemAt11 for T {}
-impl<T: GetItemAt<U12>> GetItemAt12 for T {}
-impl<T: GetItemAt<U13>> GetItemAt13 for T {}
-impl<T: GetItemAt<U14>> GetItemAt14 for T {}
-impl<T: GetItemAt<U15>> GetItemAt15 for T {}
+impl<T: GetItemAt<0>> GetItemAt0 for T {}
+impl<T: GetItemAt<1>> GetItemAt1 for T {}
+impl<T: GetItemAt<2>> GetItemAt2 for T {}
+impl<T: GetItemAt<3>> GetItemAt3 for T {}
+impl<T: GetItemAt<4>> GetItemAt4 for T {}
+impl<T: GetItemAt<5>> GetItemAt5 for T {}
+impl<T: GetItemAt<6>> GetItemAt6 for T {}
+impl<T: GetItemAt<7>> GetItemAt7 for T {}
+impl<T: GetItemAt<8>> GetItemAt8 for T {}
+impl<T: GetItemAt<9>> GetItemAt9 for T {}
+impl<T: GetItemAt<10>> GetItemAt10 for T {}
+impl<T: GetItemAt<11>> GetItemAt11 for T {}
+impl<T: GetItemAt<12>> GetItemAt12 for T {}
+impl<T: GetItemAt<13>> GetItemAt13 for T {}
+impl<T: GetItemAt<14>> GetItemAt14 for T {}
+impl<T: GetItemAt<15>> GetItemAt15 for T {}

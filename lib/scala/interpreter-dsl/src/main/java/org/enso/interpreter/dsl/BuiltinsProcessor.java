@@ -9,14 +9,10 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
-import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
-import javax.tools.StandardLocation;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -173,7 +169,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                         processingEnv,
                         methodName,
                         annotation.description(),
-                        method.getSimpleName().toString());
+                        method.getSimpleName().toString(),
+                        annotation.autoRegister());
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                   }
@@ -226,7 +223,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 processingEnv,
                 builtinMethodName,
                 annotation.description(),
-                method.getSimpleName().toString());
+                method.getSimpleName().toString(),
+                annotation.autoRegister());
           } else {
             return;
           }
@@ -239,7 +237,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
               processingEnv,
               builtinMethodName,
               annotation.description(),
-              method.getSimpleName().toString());
+              method.getSimpleName().toString(),
+              annotation.autoRegister());
         }
       }
     } else {

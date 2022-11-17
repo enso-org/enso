@@ -92,6 +92,10 @@
 - [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
   way. Also, additional fine-tuning is performed per font and per host operating
   system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
 
 #### Enso Standard Library
 
@@ -375,6 +379,7 @@
 [3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
 
 #### Enso Compiler
 
@@ -407,6 +412,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Using parser written in Rust.][3611]
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
@@ -425,6 +431,7 @@
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
 - [Fix performance of method calls on polyglot arrays][3781]
+- [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
 - [Made Vector performance to be on par with Array][3811]
 - [Introduced IO Permission Contexts][3828]
@@ -432,6 +439,8 @@
 - [Initialize Builtins at Native Image build time][3821]
 - [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Connecting IGV 4 Enso with Engine sources][3810]
+- [Support VCS for projects in Language Server][3851]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -467,6 +476,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3611]: https://github.com/enso-org/enso/pull/3611
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
@@ -485,6 +495,7 @@
 [3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
 [3781]: https://github.com/enso-org/enso/pull/3781
+[3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
 [3811]: https://github.com/enso-org/enso/pull/3811
 [3828]: https://github.com/enso-org/enso/pull/3828
@@ -492,6 +503,8 @@
 [3821]: https://github.com/enso-org/enso/pull/3821
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3810]: https://github.com/enso-org/enso/pull/3810
+[3851]: https://github.com/enso-org/enso/pull/3851
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

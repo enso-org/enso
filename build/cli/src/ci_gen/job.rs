@@ -149,11 +149,12 @@ impl JobArchetype for UploadBackend {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct UploadRuntimeToEcr;
-impl JobArchetype for UploadRuntimeToEcr {
+pub struct DeployRuntime;
+impl JobArchetype for DeployRuntime {
     fn job(os: OS) -> Job {
-        plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-to-ecr", |step| {
+        plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-runtime", |step| {
             let step = step
+                .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
                 .with_env("ENSO_BUILD_ECR_REPOSITORY", enso_build::aws::ecr::runtime::NAME)
                 .with_secret_exposed_as(secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
                 .with_secret_exposed_as(
@@ -161,6 +162,23 @@ impl JobArchetype for UploadRuntimeToEcr {
                     "AWS_SECRET_ACCESS_KEY",
                 )
                 .with_env("AWS_DEFAULT_REGION", enso_build::aws::ecr::runtime::REGION);
+            vec![step]
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct DeployGui;
+impl JobArchetype for DeployGui {
+    fn job(os: OS) -> Job {
+        plain_job_customized(&os, "Upload GUI to S3", "release deploy-gui", |step| {
+            let step = step
+                .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
+                .with_secret_exposed_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
+                .with_secret_exposed_as(
+                    secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
+                    "AWS_SECRET_ACCESS_KEY",
+                );
             vec![step]
         })
     }
@@ -178,11 +196,23 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 &enso_build::ide::web::env::WIN_CSC_KEY_PASSWORD,
             ),
         OS::MacOS => step
-            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, "CSC_LINK")
-            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT_PASSWORD, "CSC_KEY_PASSWORD")
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, "APPLEID")
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_PASSWORD, "APPLEIDPASS")
-            .with_env("CSC_IDENTITY_AUTO_DISCOVERY", "true"),
+            .with_secret_exposed_as(
+                secret::APPLE_CODE_SIGNING_CERT,
+                &enso_build::ide::web::env::CSC_LINK,
+            )
+            .with_secret_exposed_as(
+                secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
+                &enso_build::ide::web::env::CSC_KEY_PASSWORD,
+            )
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_USERNAME,
+                &enso_build::ide::web::env::APPLEID,
+            )
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_PASSWORD,
+                &enso_build::ide::web::env::APPLEIDPASS,
+            )
+            .with_env(&enso_build::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true"),
         _ => step,
     }
 }
