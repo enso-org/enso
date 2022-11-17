@@ -315,10 +315,12 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
-    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         _ : Vector.Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ : Map.Map ->
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
             if new_names.is_error then new_names else
@@ -522,6 +524,12 @@ type Table
        Returns the vector of columns contained in this table.
     columns : Vector Column
     columns self = self.internal_columns . map self.make_column
+
+    ## UNSTABLE
+
+       Returns the vector of column names contained in this table.
+    column_names : Vector Text
+    column_names self = self.internal_columns . map _.name
 
     ## Returns a vector of rows contained in this table.
 

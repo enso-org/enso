@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Runtime",
     name = "allow_input_in",
-    description = "Allows input in the specified scope.")
+    description = "Allows input in the specified scope.",
+    autoRegister = false)
 public class AllowInputInNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();

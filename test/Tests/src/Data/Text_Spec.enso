@@ -104,6 +104,13 @@ spec =
             accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
             accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
 
+            # Handling of Nothing
+            (accent_1 == Nothing) . should_be_false
+            (accent_1 != Nothing) . should_be_true
+            accent_1 . compare_to Nothing . should_fail_with Type_Error_Data
+            (accent_1 > Nothing) . should_fail_with Type_Error_Data
+            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error_Data
+
             earlier_suffix = "aooooz"
             later_suffix = "bo"
             common_prefix+complex_letter_1+earlier_suffix . compare_to common_prefix+complex_letter_2+later_suffix . should_equal Ordering.Less

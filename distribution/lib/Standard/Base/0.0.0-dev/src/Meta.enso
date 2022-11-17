@@ -330,8 +330,8 @@ is_a value typ = if is_same_object value typ then True else
                 _ : Duration.Duration -> typ.is_same_object_as Duration.Duration
                 _ : Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
                 _ : Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
-                Base.Polyglot ->
-                    typ==Base.Polyglot || java_instance_check value typ
+                Base.Polyglot.Polyglot ->
+                    typ==Base.Polyglot.Polyglot || java_instance_check value typ
                 _ ->
                     meta_val = meta value
                     case meta_val of
@@ -361,7 +361,7 @@ java_instance_check value typ =
    Arguments:
    - value: the value to get the type of.
 type_of : Any -> Any
-type_of value = @Builtin_Method "Meta.type_of_builtin"
+type_of value = @Builtin_Method "Meta.type_of"
 
 # TODO Dubious constructor export
 from project.Meta.Language import all
@@ -433,17 +433,6 @@ is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
    the call.
 
    Arguments:
-   - frames_to_skip: how many frames on the stack to skip. Called with 0
-     will return exact location of the call.
-get_source_location_builtin : Integer -> Text
-get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
-
-## PRIVATE
-
-   Returns a Text representing the source location of a stack frame above
-   the call.
-
-   Arguments:
    - skip_frames: how many frames on the stack to skip.
 
    If the function is called with 0 it will return the location of that call.
@@ -454,6 +443,17 @@ get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_lo
 get_source_location : Integer -> Text
 get_source_location skip_frames =
     get_source_location_builtin skip_frames+1
+
+## PRIVATE
+
+   Returns a Text representing the source location of a stack frame above
+   the call.
+
+   Arguments:
+   - frames_to_skip: how many frames on the stack to skip. Called with 0
+     will return exact location of the call.
+get_source_location_builtin : Integer -> Text
+get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
 
 ## PRIVATE
 
