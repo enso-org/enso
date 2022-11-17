@@ -79,7 +79,7 @@ fn init(app: &Application) {
     slider1.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider1.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
     slider1.inner().frp.set_label_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
-    slider1.inner().frp.set_label("Color label".to_im_string());
+    slider1.inner().frp.set_label("Color label");
 
     let slider2 = make_slider(app);
     slider2.inner().frp.set_width(400.0);
@@ -88,7 +88,7 @@ fn init(app: &Application) {
     slider2.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.2, 1.0));
     slider2.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.7, 1.0));
     slider2.inner().frp.set_slider_disabled(true);
-    slider2.inner().frp.set_label("Disabled slider".to_im_string());
+    slider2.inner().frp.set_label("Disabled slider");
 
     let slider3 = make_slider(app);
     slider3.inner().frp.set_width(400.0);
@@ -96,7 +96,7 @@ fn init(app: &Application) {
     slider3.inner().set_position_y(120.0);
     slider3.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider3.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
-    slider3.inner().frp.set_label("Inner label".to_im_string());
+    slider3.inner().frp.set_label("Inner label");
     slider3.inner().frp.set_label_position(slider::LabelPosition::Inside);
 
     let slider4 = make_slider(app);
@@ -105,6 +105,6 @@ fn init(app: &Application) {
     slider4.inner().set_position_y(180.0);
     slider4.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.2, 1.0));
     slider4.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.7, 1.0));
-    slider4.inner().frp.set_label("Disabled label".to_im_string());
+    slider4.inner().frp.set_label("Disabled label");
     slider4.inner().frp.set_label_hidden(true);
 }
