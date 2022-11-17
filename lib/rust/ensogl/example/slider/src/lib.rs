@@ -1,6 +1,5 @@
 //! A debug scene which shows the slider component
 
-#![recursion_limit = "1024"]
 // === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
