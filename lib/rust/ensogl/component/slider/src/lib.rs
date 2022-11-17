@@ -309,7 +309,7 @@ impl Slider {
         let output = &self.frp.private.output;
         let model = &self.model;
         let component_events = &model.background.events;
-        let tooltip_anim = DelayedAnimation::new(&network);
+        let tooltip_anim = DelayedAnimation::new(network);
         tooltip_anim.set_duration(PRECISION_ADJUSTMENT_TOOLTIP_DURATION);
 
         frp::extend! { network
