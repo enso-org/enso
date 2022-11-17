@@ -391,7 +391,7 @@ mod tests {
     use ast::crumbs::Crumb;
 
     struct Case {
-        module_name:         ReferentName,
+        module_name:         String,
         refactored_name:     DefinitionName,
         introduced_name:     Identifier,
         initial_method_code: &'static str,
@@ -444,7 +444,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_collapse() {
         let parser = Parser::new_or_panic();
-        let module_name = ReferentName::new("Main".to_owned()).unwrap();
+        let module_name = "Main".to_owned();
         let introduced_name = Identifier::try_from("custom_new").unwrap();
         let refactored_name = DefinitionName::new_plain("custom_old");
         let initial_method_code = r"custom_old =

@@ -235,7 +235,7 @@ mod tests {
     fn qualified_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(ImString::new).collect(),
             imported: ImportedNames::Module { alias: None },
         };
 

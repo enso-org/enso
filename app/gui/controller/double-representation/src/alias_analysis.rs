@@ -379,7 +379,7 @@ mod tests {
         name: impl Str,
         ast: &Ast,
         expected: Vec<Range<usize>>,
-        actual: &[LocatedName],
+        actual: &[Located<String>],
     ) {
         let mut checker = IdentifierValidator::new(name, ast, expected);
         checker.validate_identifiers(actual);

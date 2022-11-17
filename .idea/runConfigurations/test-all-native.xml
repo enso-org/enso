@@ -1,13 +1,6 @@
-
-<component name="#ProjectRunConfigurationManager">
-  <configuration 
-    default="false" 
-    name="test [native]"
-    type="CargoCommandRunConfiguration" 
-    factoryName="Cargo Command"
-    folderName="🌎 World"
-  >
-    <option name="command" value="test --all-targets  --target-dir dist/intellij_native " />
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="test [native]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" folderName="🌎 World">
+    <option name="command" value="test --workspace --all-targets  --target-dir dist/intellij_native " />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
@@ -24,4 +17,3 @@
     </method>
   </configuration>
 </component>
-    
