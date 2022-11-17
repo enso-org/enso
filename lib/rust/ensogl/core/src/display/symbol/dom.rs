@@ -116,6 +116,7 @@ impl DomSymbol {
         dom.set_style_or_warn("position", "absolute");
         dom.set_style_or_warn("width", "0px");
         dom.set_style_or_warn("height", "0px");
+        dom.set_style_or_warn("display", "none");
         dom.append_or_warn(content);
         let display_object = display::object::Instance::new_with_callbacks()
             .on_updated(f!([dom] (t) {
@@ -124,6 +125,11 @@ impl DomSymbol {
                 set_object_transform(&dom,&transform);
             }))
             .build();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_show (dom.set_style_or_warn("display", ""));
+            eval_ display_object.on_hide (dom.set_style_or_warn("display", "none"));
+        }
         let guard = Rc::new(Guard::new(&display_object, &dom));
 
         Self { dom, display_object, size, guard }

@@ -238,12 +238,13 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Model {
-    network:             frp::Network,
+    pub network:         frp::Network,
     /// Source for events. See the documentation of [`event::Event`] to learn more about events.
     pub event_source:    frp::Source<event::SomeEvent>,
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
-    on_show:             frp::Source<(Option<Scene>, Option<WeakLayer>)>,
+    pub on_show:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
+    pub on_hide:         frp::Source<Option<Scene>>,
     focused_descendant:  RefCell<Option<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer:      RefCell<Option<WeakLayer>>,
@@ -282,6 +283,7 @@ impl Model {
         let bubbling_event_fan = frp::Fan::new(&network);
         frp::extend! { network
             on_show <- source();
+            on_hide <- source();
             event_source <- source();
         }
         Self {
@@ -290,6 +292,7 @@ impl Model {
             capturing_event_fan,
             bubbling_event_fan,
             on_show,
+            on_hide,
             focused_descendant,
             assigned_layer,
             layer,
@@ -526,6 +529,7 @@ impl Model {
             trace!("Hiding.");
             self.visible.set(false);
             self.callbacks.on_hide(scene);
+            self.on_hide.emit(Some(scene.clone_ref()));
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_false(scene));
             });

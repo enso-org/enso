@@ -50,18 +50,25 @@ pub fn main() {
     let dom_back_layer = &scene.dom.layers.back;
 
     let mut sprites: Vec<Sprite> = default();
-    let mut css3d_objects: Vec<DomSymbol> = default();
+    let mut dom_symbols: Vec<DomSymbol> = default();
+    let screen_width = 1400.0;
+    let screen_height = 500.0;
+    let offset = -50.0;
     let count = 10;
     for i in 0..count {
-        let x = i as f32;
-        let width = screen.width * 1.5 / count as f32;
-        let height = screen.height;
-        let y = height / 2.0;
+        let fi = i as f32;
+        // let width = screen.width * 1.5 / count as f32;
+        // let height = screen.height;
+        let width = screen_width / count as f32 - offset;
+        let height = screen_height;
+        let y = 0.0;
+        let x = -screen_width / 2.0 + width / 2.0 + (width + offset) * fi;
         if i % 2 == 0 {
             let height = height * 0.75;
             let size = Vector2::new(width, height);
-            let position = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
+            let position = Vector3::new(x, y, 0.0);
             let sprite = sprite_system.new_instance();
+            warn!("size: {size:?}, position: {position:?}");
             sprite.size.set(size);
             sprite.mod_position(|t| *t = position);
             sprites.push(sprite);
@@ -69,23 +76,31 @@ pub fn main() {
             let div = web::document.create_div_or_panic();
             div.set_style_or_warn("width", "100%");
             div.set_style_or_warn("height", "100%");
-            div.set_inner_html("top-left");
+            div.set_inner_html(
+                "This is a dom element.<br/>\
+                Black boxes are WebGL sprites.<br/><br/>\
+                Try zooming and moving the scene!",
+            );
 
-            let size = Vector2::new(width, height);
-            let position = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
+            let size = Vector2::new(width, height * 0.9);
+            // let position = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
+            let position = Vector3::new(x, y, 0.0);
             let object = DomSymbol::new(&div);
+            warn!("----");
             dom_front_layer.manage(&object);
+            warn!("----");
             world.add_child(&object);
-            let r = ((x + 0.0) * 16.0) as u8;
-            let g = ((x + 2.0) * 32.0) as u8;
-            let b = ((x + 4.0) * 64.0) as u8;
+            warn!("?: {:?}", object.is_visible());
+            let r = ((fi + 0.0) * 16.0) as u8;
+            let g = ((fi + 2.0) * 32.0) as u8;
+            let b = ((fi + 4.0) * 64.0) as u8;
             let color = iformat!("rgb({r},{g},{b})");
             div.set_style_or_warn("background-color", color);
 
             object.dom().append_or_warn(&div);
             object.set_size(size);
             object.mod_position(|t| *t = position);
-            css3d_objects.push(object);
+            dom_symbols.push(object);
         }
     }
     let layers = vec![dom_front_layer.clone_ref(), dom_back_layer.clone_ref()];
@@ -100,15 +115,17 @@ pub fn main() {
             let _keep_alive = &navigator;
             let _keep_alive = &sprites;
             let _keep_alive = &sprite_system;
+            let _keep_alive = &dom_symbols;
 
-            if iter_to_change == 0 {
-                iter_to_change = 50;
-                i = (i + 1) % 2;
-                for (j, object) in css3d_objects.iter_mut().enumerate() {
-                    layers[(i + j) % 2].manage(object);
-                }
-            }
-            iter_to_change -= 1;
+            // if iter_to_change == 0 {
+            //     iter_to_change = 50;
+            //     i = (i + 1) % 2;
+            //     for (j, object) in dom_symbols.iter_mut().enumerate() {
+            //         // layers[(i + j) % 2].manage(object);
+            //         warn!("?: {:?}", object.is_visible());
+            //     }
+            // }
+            // iter_to_change -= 1;
         })
         .forget();
 }
