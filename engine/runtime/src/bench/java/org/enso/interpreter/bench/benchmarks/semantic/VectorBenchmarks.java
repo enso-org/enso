@@ -49,7 +49,7 @@ public class VectorBenchmarks {
       .build();
     var module = ctx.eval("enso", "\n" +
       "import Standard.Base.Data.Vector.Vector\n" +
-      "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
+      "import Standard.Base.Data.Array_Proxy.Array_Proxy\n" +
       "\n" +
       "avg arr =\n" +
       "    sum acc i = if i == arr.length then acc else\n" +
