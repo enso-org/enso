@@ -11,7 +11,7 @@ export project.Nothing.Nothing
 from project.Data.Boolean export all
 
 import project.Data.Filter_Condition.Filter_Condition
-import project.Data.Index_Sub_Range
+import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Maybe.Maybe
@@ -20,6 +20,7 @@ import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
 export project.Data.Filter_Condition.Filter_Condition
+export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
 export project.Data.Maybe.Maybe
@@ -27,7 +28,8 @@ export project.Data.Ordering.Ordering
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
-from project.Data.Index_Sub_Range export Index_Sub_Range, First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 
 
 
