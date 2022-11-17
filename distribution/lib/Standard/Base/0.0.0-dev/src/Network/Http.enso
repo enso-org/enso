@@ -63,7 +63,7 @@ new (timeout = (Duration.seconds 10)) (follow_redirects = True) (proxy = Proxy.S
          import Standard.Base.Network.Http
 
          example_options = Http.options "http://httpbin.org"
-options : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+options : (Text | URI) -> Vector -> Response ! Request_Error
 options uri (headers = []) = new.options uri headers
 
 ## ALIAS GET Request
@@ -102,7 +102,7 @@ options uri (headers = []) = new.options uri headers
              out_file = Examples.scratch_file
              res = Http.get "http://httpbin.org/bytes/1024"
              res.body.to_file out_file
-get : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+get : (Text | URI) -> Vector -> Response ! Request_Error
 get uri (headers = []) = new.get uri headers
 
 ## ALIAS Fetch Data
@@ -141,7 +141,7 @@ get uri (headers = []) = new.get uri headers
          example_fetch =
              out_file = Examples.scratch_file
              res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
-fetch : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+fetch : (Text | URI) -> Vector -> Response ! Request_Error
 fetch uri (headers = []) =
     new.get uri headers . body
 
@@ -157,7 +157,7 @@ fetch uri (headers = []) =
          import Standard.Base.Network.Http
 
          example_head = Http.head "http://httpbin.org"
-head : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+head : (Text | URI) -> Vector -> Response ! Request_Error
 head uri (headers = []) = new.options uri headers
 
 ## ALIAS POST Request
@@ -181,7 +181,7 @@ head uri (headers = []) = new.options uri headers
              body = Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.post "http://httpbin.org/post" body [header_binary]
-post : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+post : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
 post uri body (headers = []) = new.post uri body headers
 
 ## Send a Post request with the form. By default it will be encoded as
@@ -215,7 +215,7 @@ post uri body (headers = []) = new.post uri body headers
          example_post_form =
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
              Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-post_form : (Text | URI) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
+post_form : (Text | URI) -> (Vector | Form) -> Vector -> Response ! Request_Error
 post_form uri parts (headers = []) = new.post_form uri parts headers
 
 ## Send a Post request with body with content-type "application/json".
@@ -234,7 +234,7 @@ post_form uri parts (headers = []) = new.post_form uri parts headers
          example_post_json =
              json = Json.parse '{"key":"val"}'
              Http.post_json "http://httpbin.org/post" json
-post_json : (Text | URI) -> Json -> Vector.Vector -> Response ! Request_Error
+post_json : (Text | URI) -> Json -> Vector -> Response ! Request_Error
 post_json uri body_json (headers = []) = new.post_json uri body_json headers
 
 ## ALIAS PUT Request
@@ -258,7 +258,7 @@ post_json uri body_json (headers = []) = new.post_json uri body_json headers
              body = Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.put "http://httpbin.org/put" body [header_binary]
-put : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+put : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
 put uri body (headers = []) = new.put uri body headers
 
 ## Send a Put request with body with content-type "application/json".
@@ -277,7 +277,7 @@ put uri body (headers = []) = new.put uri body headers
          example_post_json =
              json = Json.parse '{"key":"val"}'
              HTTP.put_json "http://httpbin.org/put" json
-put_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+put_json : (Text | URI) -> (Text | Json) -> Vector -> Response ! Request_Error
 put_json uri body_json (headers = []) = new.put_json uri body_json headers
 
 ## TODO Dubious constructor export
@@ -310,7 +310,7 @@ type Http
              import Standard.Examples
 
              example_options = Examples.http_client.options "http://httpbin.org"
-    options : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+    options : (Text | URI) -> Vector -> Response ! Request_Error
     options self uri (headers = []) =
         req = Request.options uri headers
         self.request req
@@ -348,7 +348,7 @@ type Http
                  out_file = Examples.scratch_file
                  res = Examples.http_client.get "http://httpbin.org/bytes/1024"
                  res.body.to_file out_file
-    get : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+    get : (Text | URI) -> Vector -> Response ! Request_Error
     get self uri (headers = []) =
         req = Request.get uri headers
         self.request req
@@ -366,7 +366,7 @@ type Http
              import Standard.Examples
 
              example_head = Examples.http_client.head "http://httpbin.org"
-    head : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+    head : (Text | URI) -> Vector -> Response ! Request_Error
     head self uri (headers = []) =
         req = Request.head uri headers
         self.request req
@@ -390,7 +390,7 @@ type Http
              example_post =
                  body = Body.Bytes "Hello".utf_8
                  Examples.http_client.post "http://httpbin.org/post" body [header_binary]
-    post : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+    post : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
     post self uri body (headers = []) =
         req = Request.post uri body headers
         self.request req
@@ -427,7 +427,7 @@ type Http
              example_post_form =
                  form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-    post_form : (Text | URI) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
+    post_form : (Text | URI) -> (Vector | Form) -> Vector -> Response ! Request_Error
     post_form self uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
         req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
@@ -450,7 +450,7 @@ type Http
              example_post_json =
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.post_json "http://httpbin.org/post" json
-    post_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+    post_json : (Text | URI) -> (Text | Json) -> Vector -> Response ! Request_Error
     post_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -473,7 +473,7 @@ type Http
              example_put =
                  body = Body.Bytes "contents".utf_8
                  Examples.http_client.put "http://httpbin.org/post" body [header_binary]
-    put : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+    put : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
     put self uri body (headers = []) =
         req = Request.put uri body headers
         self.request req
@@ -494,7 +494,7 @@ type Http
              example_post_json =
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.put_json "http://httpbin.org/post" json
-    put_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+    put_json : (Text | URI) -> (Text | Json) -> Vector -> Response ! Request_Error
     put_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -512,7 +512,7 @@ type Http
              import Standard.Examples
 
              example_delete = Examples.http_client.delete "http://httpbin.org/delete"
-    delete : (Text | URI) -> Vector.Vector -> Response ! Request_Error
+    delete : (Text | URI) -> Vector -> Response ! Request_Error
     delete self uri (headers = []) =
         req = Request.delete uri headers
         self.request req

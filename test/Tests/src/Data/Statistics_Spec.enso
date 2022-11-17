@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Statistics import all
+from Standard.Base.Data.Vector import Empty_Error
 
 from Standard.Test import Test, Test_Suite
 
@@ -122,8 +123,8 @@ spec =
             [].compute Sum . should_equal 0
 
         Test.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
-            [].compute Minimum . should_fail_with Vector.Empty_Error
-            [].compute Maximum . should_fail_with Vector.Empty_Error
+            [].compute Minimum . should_fail_with Empty_Error
+            [].compute Maximum . should_fail_with Empty_Error
 
         Test.specify "should be NaN for other statistics sum on empty Vector" <|
             [].compute Mean . is_nan . should_equal True

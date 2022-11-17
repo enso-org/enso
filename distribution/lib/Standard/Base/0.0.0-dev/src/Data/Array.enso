@@ -1,5 +1,5 @@
 import project.Data.Any.Any
-import project.Data.Vector
+import project.Data.Vector.Vector
 import project.Error.Common.Panic
 from project.Data.Boolean import Boolean, False
 from project.Data.Range import all

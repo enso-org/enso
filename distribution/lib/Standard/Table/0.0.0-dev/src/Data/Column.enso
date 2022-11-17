@@ -796,7 +796,7 @@ type Column
                     Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
-                    _ : Vector.Vector -> vector
+                    _ : Vector -> vector
                     column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
@@ -808,7 +808,7 @@ type Column
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
-                    _ : Vector.Vector -> vector
+                    _ : Vector -> vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
                     column : Column -> column.to_vector
@@ -1282,7 +1282,7 @@ type Empty_Error
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
 run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
     case operands of
-        _ : Vector.Vector ->
+        _ : Vector ->
             folded = operands.fold column.java_column.getStorage current-> operand->
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls

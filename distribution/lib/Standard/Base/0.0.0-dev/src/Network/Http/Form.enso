@@ -11,7 +11,7 @@ from Standard.Base import all
          import Standard.Base.Network.Http.Form
 
          example_form_new = Form.new (Form.text_field "foo" "bar")
-new : Vector.Vector -> Form
+new : Vector -> Form
 new parts = Form_Data parts
 
 # Helpers for creating different parts of the form.
@@ -83,7 +83,7 @@ type Form
              part_1 = Form.text_field "Foo" "bar"
              part_2 = Form.text_field "Baz" "quux"
              [part_1, part_2].to_form
-Vector.Vector.to_form self = Form_Data self
+Vector.to_form self = Form_Data self
 
 ## TODO Dubious constructor export
 from project.Network.Http.Form.Part import all

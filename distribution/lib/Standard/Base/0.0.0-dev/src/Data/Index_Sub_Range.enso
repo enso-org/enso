@@ -1,12 +1,10 @@
 import project.Data.Any.Any
 import project.Data.Numbers.Integer
 
+## Imported this way as then imports the extension methods.
 from project.Data.Range import Range
 
 import project.Data.Vector.Vector
-
-## Until new_builder in Vector type
-from project.Data.Vector import new_builder
 
 import project.Random
 import project.Runtime.Ref
@@ -125,7 +123,7 @@ sort_and_merge_ranges ranges =
     sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
     if sorted.is_empty then [] else
         current_ref = Ref.new sorted.first
-        builder = new_builder
+        builder = Vector.new_builder
         sorted.tail.each range->
             current = current_ref.get
             case range.start <= current.end of

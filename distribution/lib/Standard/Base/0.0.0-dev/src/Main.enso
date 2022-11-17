@@ -1,10 +1,12 @@
 import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 export project.Data.Any.Any
 export project.Data.Array.Array
+export project.Data.Vector.Vector
 export project.Nothing.Nothing
 from project.Data.Boolean export all
 
@@ -14,12 +16,14 @@ import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Ordering.Ordering
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
 export project.Data.Ordering.Ordering
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
+export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
 from project.Data.Index_Sub_Range export Index_Sub_Range, First, Last
 
@@ -57,7 +61,7 @@ import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Zone
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
-import project.Data.Vector
+
 import project.Error.Common
 import project.Error.Problem_Behavior
 import project.Function
@@ -101,7 +105,6 @@ export project.Data.Time.Time_Of_Day
 export project.Data.Time.Time_Zone
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
-export project.Data.Vector
 export project.Error.Problem_Behavior
 export project.IO
 export project.Math

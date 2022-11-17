@@ -149,7 +149,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -265,7 +265,7 @@ type Caught_Panic
     convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -335,7 +335,7 @@ type Panic
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic_Data _ internal_original_exception -> internal_original_exception
@@ -464,10 +464,10 @@ type Panic
          Converting one of many expected panic types to a dataflow error.
 
              Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
-    recover : (Vector.Vector Any | Any) -> Any -> Any
+    recover : (Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            _ : Vector.Vector -> expected_types
+            _ : Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->
