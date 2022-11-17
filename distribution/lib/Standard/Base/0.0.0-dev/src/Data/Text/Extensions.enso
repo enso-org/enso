@@ -584,10 +584,11 @@ Text.to_case_insensitive_key self locale=Locale.default =
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
 Text.compare_to self that =
-    comparison_result = Text_Utils.compare_normalized self that
-    if comparison_result == 0 then Ordering.Equal else
-        if comparison_result < 0 then Ordering.Less else
-            Ordering.Greater
+    if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+        comparison_result = Text_Utils.compare_normalized self that
+        if comparison_result == 0 then Ordering.Equal else
+            if comparison_result < 0 then Ordering.Less else
+                Ordering.Greater
 
 ## Compare two texts to discover their ordering.
 
@@ -600,10 +601,11 @@ Text.compare_to self that =
          "a".compare_to_ignore_case "b"
 Text.compare_to_ignore_case : Text -> Locale -> Ordering
 Text.compare_to_ignore_case self that locale=Locale.default =
-    comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
-    if comparison_result == 0 then Ordering.Equal else
-        if comparison_result < 0 then Ordering.Less else
-            Ordering.Greater
+    if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+        comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
+        if comparison_result == 0 then Ordering.Equal else
+            if comparison_result < 0 then Ordering.Less else
+                Ordering.Greater
 
 ## ALIAS Check Emptiness
 

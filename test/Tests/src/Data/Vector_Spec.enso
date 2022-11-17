@@ -484,6 +484,7 @@ spec = Test.group "Vectors" <|
         [2, Date.new 1999].sort . should_fail_with Incomparable_Values_Error
         [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values_Error
         [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values_Error
+        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error_Data
 
     Test.specify "should leave the original vector unchanged" <|
         non_empty_vec = [2, 4, 2, 3, 2, 3]

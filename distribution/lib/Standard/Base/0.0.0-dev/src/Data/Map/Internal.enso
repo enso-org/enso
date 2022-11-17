@@ -3,6 +3,14 @@ from Standard.Base import all
 from Standard.Base.Data.Map import all
 
 ## PRIVATE
+   Compares keys allowing for the possibility that one or both keys are Nothing.
+compare_allow_nothing : Any -> Any -> Ordering
+compare_allow_nothing x y = if x == y then Ordering.Equal else
+    if x.is_nothing then Ordering.Less else
+        if y.is_nothing then Ordering.Greater else
+            x.compare_to y
+
+## PRIVATE
 
    A helper used in the insert operation to insert into the left subtree.
 
@@ -48,10 +56,10 @@ insert_r key value k v l r =
    Haskell's `Data.Map.Strict` as implemented in the `containers` package.
 insert : Map -> Any -> Any -> Map
 insert map key value = case map of
-    Bin s k v l r ->
-        if key > k then @Tail_Call insert_r key value k v l r else
-            if key == k then @Tail_Call Bin s k value l r else
-                @Tail_Call insert_l key value k v l r
+    Bin s k v l r -> case compare_allow_nothing key k of
+        Ordering.Less -> @Tail_Call insert_l key value k v l r
+        Ordering.Greater -> @Tail_Call insert_r key value k v l r
+        Ordering.Equal -> Bin s key value l r
     _ -> Bin 1 key value Tip Tip
 
 ## PRIVATE
