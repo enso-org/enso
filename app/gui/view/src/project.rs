@@ -241,7 +241,7 @@ impl SearcherVariant {
 }
 
 impl display::Object for SearcherVariant {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         match self {
             SearcherVariant::ComponentBrowser(view) => view.display_object(),
             SearcherVariant::OldNodeSearcher(view) => view.display_object(),

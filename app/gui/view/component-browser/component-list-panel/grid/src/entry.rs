@@ -267,7 +267,7 @@ impl CurrentIcon {
 }
 
 impl display::Object for CurrentIcon {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }
@@ -517,7 +517,7 @@ impl grid_view::Entry for View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }
 }

@@ -50,7 +50,7 @@ pub struct PopupLabel {
 }
 
 impl display::Object for PopupLabel {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         self.label.display_object()
     }
 }
@@ -198,7 +198,7 @@ impl View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
     }
 }

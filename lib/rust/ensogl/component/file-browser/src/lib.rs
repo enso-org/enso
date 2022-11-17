@@ -108,7 +108,7 @@ impl Default for FileBrowser {
 }
 
 impl display::Object for FileBrowser {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }

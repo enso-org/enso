@@ -452,7 +452,11 @@ pub struct NodeModel {
 impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+    pub fn new(
+        app: &Application,
+        registry: visualization::Registry,
+        on_updated: impl display::object::OnUpdatedCallback,
+    ) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
                 //TODO[ao] The two lines below should not be needed - the ordering should be
@@ -486,7 +490,8 @@ impl NodeModel {
         let background = background::View::new();
         let drag_area = drag_area::View::new();
         let vcs_indicator = vcs::StatusIndicator::new(app);
-        let display_object = display::object::Instance::new();
+        let display_object =
+            display::object::Instance::new_with_callbacks().on_updated(on_updated).build();
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
@@ -686,7 +691,11 @@ impl Node {
         let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
-        let model = Rc::new(NodeModel::new(app, registry));
+        let model = Rc::new(NodeModel::new(
+            app,
+            registry,
+            f!((p: &display::object::Model) out.position.emit(p.position().xy())),
+        ));
         let selection = Animation::<f32>::new(network);
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
@@ -696,9 +705,9 @@ impl Node {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let style_frp = &model.style;
         let action_bar = &model.action_bar.frp;
-        // Hook up the display object position updates to the node's FRP. Required to calculate the
-        // bounding box.
-        model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
+        // // Hook up the display object position updates to the node's FRP. Required to calculate
+        // the // bounding box.
+        // model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
 
         frp::extend! { network
 

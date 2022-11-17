@@ -51,19 +51,23 @@ impl Drop for ParentBind {
 // === Callbacks ===
 // =================
 
+pub trait OnUpdatedCallback = Fn(&Model) + 'static;
+pub trait OnShowCallback = Fn(&Scene, Option<&WeakLayer>) + 'static;
+pub trait OnHideCallback = Fn(&Scene) + 'static;
+pub trait OnSceneLayerChangedCallback =
+    Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static;
+
 /// Callbacks manager for display objects. Callbacks can be set only once. The implementation panics
 /// if you try setting a callback to field with an already assigned one. This design was chosen
 /// because it is very lightweight and is not confusing (setting a callback unregistering
 /// previous one is error-prone, while allowing to set multiple callbacks is not needed currently).
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-#[allow(clippy::type_complexity)]
 pub struct Callbacks {
-    on_updated:             RefCell<Option<Box<dyn Fn(&Model)>>>,
-    on_show:                RefCell<Option<Box<dyn Fn(&Scene, Option<&WeakLayer>)>>>,
-    on_hide:                RefCell<Option<Box<dyn Fn(&Scene)>>>,
-    on_scene_layer_changed:
-        RefCell<Option<Box<dyn Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>)>>>,
+    on_updated:             RefCell<Option<Box<dyn OnUpdatedCallback>>>,
+    on_show:                RefCell<Option<Box<dyn OnShowCallback>>>,
+    on_hide:                RefCell<Option<Box<dyn OnHideCallback>>>,
+    on_scene_layer_changed: RefCell<Option<Box<dyn OnSceneLayerChangedCallback>>>,
 }
 
 impl Callbacks {
@@ -100,6 +104,35 @@ impl Callbacks {
 impl Debug for Callbacks {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Callbacks")
+    }
+}
+
+
+#[derive(Default)]
+pub struct InstanceBuilder {
+    on_updated:             Option<Box<dyn OnUpdatedCallback>>,
+    on_show:                Option<Box<dyn OnShowCallback>>,
+    on_hide:                Option<Box<dyn OnHideCallback>>,
+    on_scene_layer_changed: Option<Box<dyn OnSceneLayerChangedCallback>>,
+}
+
+impl InstanceBuilder {
+    pub fn new() -> Self {
+        default()
+    }
+
+    pub fn on_updated(mut self, f: impl OnUpdatedCallback) -> Self {
+        self.on_updated = Some(Box::new(f));
+        self
+    }
+
+    pub fn build(self) -> Instance {
+        let instance = Instance::new();
+        *instance.callbacks.on_updated.borrow_mut() = self.on_updated;
+        *instance.callbacks.on_show.borrow_mut() = self.on_show;
+        *instance.callbacks.on_hide.borrow_mut() = self.on_hide;
+        *instance.callbacks.on_scene_layer_changed.borrow_mut() = self.on_scene_layer_changed;
+        instance
     }
 }
 
@@ -684,6 +717,15 @@ pub struct InstanceDef {
 impl Instance {
     /// Constructor.
     pub fn new() -> Self {
+        default()
+    }
+
+    // pub trait OnUpdatedCallback = Fn(&Model);
+    // pub trait OnShowCallback = Fn(&Scene, Option<&WeakLayer>);
+    // pub trait OnHideCallback = Fn(&Scene);
+    // pub trait OnSceneLayerChanged = Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>);
+
+    pub fn new_with_callbacks() -> InstanceBuilder {
         default()
     }
 }
