@@ -81,8 +81,8 @@ impl<T> PlainArtifact<T> {
 pub struct Context {
     /// GitHub API client.
     ///
-    /// If authorized, it will count API rate limits against our identity and allow operations like
-    /// managing releases or downloading CI run artifacts.
+    /// If authenticated, it will count API rate limits against our identity and allow operations
+    /// like managing releases or downloading CI run artifacts.
     #[derivative(Debug = "ignore")]
     pub octocrab: Octocrab,
 

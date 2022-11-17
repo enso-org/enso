@@ -111,6 +111,8 @@ pub mod prelude {
     pub use crate::env::new::TypedVariable as _;
     pub use crate::extensions::clap::ArgExt as _;
     pub use crate::extensions::command::CommandExt as _;
+    pub use crate::extensions::version::PrereleaseExt as _;
+    pub use crate::extensions::version::VersionExt as _;
     pub use crate::github::release::IsReleaseExt as _;
     pub use crate::program::command::provider::CommandProviderExt as _;
     pub use crate::program::version::IsVersion as _;

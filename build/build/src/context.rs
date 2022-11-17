@@ -28,6 +28,10 @@ pub struct BuildContext {
 }
 
 impl BuildContext {
+    /// Get the current commit hash.
+    ///
+    /// If there is GITHUB_SHA environment variable, it is used. Otherwise, the current commit hash
+    /// is determined using `git` command.
     pub fn commit(&self) -> BoxFuture<'static, Result<String>> {
         let git = self.git();
         async move {
@@ -56,11 +60,9 @@ impl BuildContext {
                     tag => repository.find_release_by_text(tag).await?,
                 }
             };
-            Ok(release)
+            Result::Ok(release)
         }
-        .map_err(move |e: anyhow::Error| {
-            e.context(format!("Failed to resolve release designator `{designator_cp}`."))
-        })
+        .with_context(move || format!("Failed to resolve release designator `{}`", designator_cp))
         .boxed()
     }
 

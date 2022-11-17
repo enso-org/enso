@@ -5,8 +5,8 @@ use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
 
-use enso_build::release::Designation;
 use enso_build::version;
+use enso_build::version::promote::Designation;
 use enso_build::version::ENSO_EDITION;
 use enso_build::version::ENSO_RELEASE_MODE;
 use enso_build::version::ENSO_VERSION;

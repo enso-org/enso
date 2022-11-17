@@ -15,11 +15,11 @@ pub struct DeployRuntime {
 pub struct DeployGui {}
 
 /// Structure that represents `promote` subcommand arguments.
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Copy, Debug)]
 pub struct Promote {
-    /// Version that the commit will be published as.
-    #[clap()]
-    pub version: String,
+    /// What kind of version is to be created.
+    #[clap(arg_enum)]
+    pub designation: enso_build::version::promote::Designation,
 }
 
 #[derive(Subcommand, Clone, Debug)]

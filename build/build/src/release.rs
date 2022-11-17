@@ -11,13 +11,12 @@ use crate::project::IsTarget;
 use crate::source::ExternalSource;
 use crate::source::FetchTargetJob;
 use crate::version;
+use crate::version::promote::Designation;
 use crate::version::Versions;
 
 use ide_ci::github;
 use ide_ci::github::release::ReleaseHandle;
 use ide_ci::io::web::handle_error_response;
-use ide_ci::programs::git;
-use ide_ci::programs::git::Ref;
 use ide_ci::programs::Docker;
 use ide_ci::programs::SevenZip;
 use octocrab::models::repos::Release;
@@ -257,112 +256,18 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     handle_error_response(response).await
 }
 
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    strum::EnumString,
-    strum::EnumIter,
-    strum::AsRefStr
-)]
-#[strum(serialize_all = "lowercase")]
-pub enum Designation {
-    /// Create a new stable release.
-    Stable,
-    /// Create a new patch release.
-    Patch,
-    /// Create a new RC release.
-    Rc,
-}
-
 pub async fn resolve_version_designation(
     context: &BuildContext,
     designation: Designation,
 ) -> Result<Version> {
     let git = context.git().await?;
-    let version_set = VersionSet::from_remote(&git).await?;
+    let version_set = version::promote::Releases::from_remote(&git).await?;
     version_set.generate_version(designation)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VersionSet {
-    pub versions:     BTreeSet<Version>,
-    pub current_year: u64,
-}
-
-impl VersionSet {
-    pub fn new(versions: impl IntoIterator<Item = Version>, current_year: u64) -> Result<Self> {
-        let versions: BTreeSet<_> = versions.into_iter().collect();
-        for version in &versions {
-            ensure!(version.major <= current_year, "Found version from the future: {}.", version);
-        }
-        Ok(Self { versions, current_year })
-    }
-
-    pub async fn from_remote(git: &git::Context) -> Result<Self> {
-        let remote_tags = git.list_remote_tags().await?;
-        let versions = remote_tags.into_iter().filter_map(|entry| match entry.r#ref {
-            Ref::Tag { name, .. } => Version::from_str(&name).ok(),
-            _ => None,
-        });
-        let current_year = version::current_year();
-        Self::new(versions, current_year)
-    }
-
-    pub fn of_kind(&self, kind: version::Kind) -> impl Iterator<Item = &Version> {
-        self.versions.iter().filter(move |version| kind.matches(version))
-    }
-
-    pub fn latest_of_kind(&self, kind: version::Kind) -> Option<&Version> {
-        self.of_kind(kind).max()
-    }
-
-    pub fn generate_version(&self, designation: Designation) -> Result<Version> {
-        let latest_stable = self.latest_of_kind(version::Kind::Stable);
-        let next_stable = if let Some(latest_stable) = latest_stable {
-            version::suggest_next_version(latest_stable)
-        } else {
-            version::generate_initial_version()
-        };
-
-        let ret = match designation {
-            Designation::Stable => next_stable,
-            Designation::Patch => {
-                let latest_stable = latest_stable.with_context(|| {
-                    "No stable releases found. There must be some stable release before creating \
-            a patch release."
-                })?;
-                Version::new(latest_stable.major, latest_stable.minor, latest_stable.patch + 1)
-            }
-            Designation::Rc => {
-                let last_relevant_rc = self
-                    .of_kind(version::Kind::Rc)
-                    .filter(|version| version::same_core_version(version, &next_stable))
-                    .max();
-                if let Some(last_relevant_rc) = last_relevant_rc {
-                    version::increment_rc_version(last_relevant_rc)?
-                } else {
-                    Version { pre: version::generate_rc_prerelease(1)?, ..next_stable }
-                }
-            }
-        };
-        Ok(ret)
-    }
-}
-
 #[instrument]
-pub async fn promote_release(context: &BuildContext, version_designation: String) -> Result {
-    let version = Version::from_str(&version_designation)
-        .or_else_async(async move |_| {
-            trace!("Version designation {} is not a valid version literal.", version_designation);
-            resolve_version_designation(context, Designation::from_str(&version_designation)?).await
-        })
-        .await?;
-
+pub async fn promote_release(context: &BuildContext, version_designation: Designation) -> Result {
+    let version = resolve_version_designation(context, version_designation).await?;
     let versions = Versions::new(version);
     versions.publish().await?;
     Ok(())

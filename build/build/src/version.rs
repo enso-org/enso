@@ -14,11 +14,18 @@ use ide_ci::env::new::TypedVariable;
 use ide_ci::github;
 use octocrab::models::repos::Release;
 use semver::Prerelease;
-use std::collections::BTreeSet;
 use strum::EnumIter;
 use strum::EnumString;
 use strum::IntoEnumIterator;
 use tracing::instrument;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod nightly;
+pub mod promote;
 
 
 
@@ -113,74 +120,6 @@ impl Versions {
         Prerelease::new(LOCAL_BUILD_PREFIX).anyhow_err()
     }
 
-    pub async fn nightly_prerelease(
-        repo: &github::repo::Handle<impl IsRepo>,
-    ) -> Result<Prerelease> {
-        let date = chrono::Utc::now();
-        let date = date.format("%F").to_string();
-
-        let todays_pre_text = format!("{}.{}", NIGHTLY_BUILD_PREFIX, date);
-        let generate_ith = |index: u32| -> Result<Prerelease> {
-            let pre = if index == 0 {
-                Prerelease::from_str(&todays_pre_text)?
-            } else {
-                Prerelease::from_str(&format!("{}.{}", todays_pre_text, index))?
-            };
-            Ok(pre)
-        };
-
-        let relevant_nightly_versions = releases_of_kind(repo, Kind::Nightly)
-            .await?
-            .filter_map(|release| {
-                if release.tag_name.contains(&todays_pre_text) {
-                    let version = Version::parse(&release.tag_name).ok()?;
-                    Some(version.pre)
-                } else {
-                    None
-                }
-            })
-            .collect::<BTreeSet<_>>();
-
-        // Generate subsequent tonight nightly subreleases, until a free one is found.
-        // Should happen rarely.
-        for index in 0.. {
-            let pre = generate_ith(index)?;
-            if !relevant_nightly_versions.contains(&pre) {
-                return Ok(pre);
-            }
-        }
-        unreachable!("After infinite loop.")
-    }
-
-    /// Generate prerelease string for the "release candidate" release.
-    ///
-    /// We list all the RC releases in the repository, and increment the number of the latest one.
-    pub async fn rc_prerelease(
-        version: &Version,
-        repo: &github::repo::Handle<impl IsRepo>,
-    ) -> Result<Prerelease> {
-        let relevant_rc_versions = releases_of_kind(repo, Kind::Rc)
-            .await?
-            .filter_map(|release| {
-                let release_version = Version::parse(&release.tag_name).ok()?;
-                let version_matches = release_version.major == version.major
-                    && release_version.minor == version.minor
-                    && release_version.patch == version.patch;
-                version_matches.then_some(release_version.pre)
-            })
-            .collect::<BTreeSet<_>>();
-
-        // Generate subsequent RC sub-releases, until a free one is found.
-        // Should happen rarely.
-        for index in 0.. {
-            let pre = Prerelease::from_str(&format!("{}.{}", RC_BUILD_PREFIX, index))?;
-            if !relevant_rc_versions.contains(&pre) {
-                return Ok(pre);
-            }
-        }
-        unreachable!("After infinite loop.")
-    }
-
     /// Get a git tag that should be applied to a commit released as this version.
     pub fn tag(&self) -> String {
         self.version.to_string()
@@ -222,12 +161,13 @@ pub fn base_version(changelog_path: impl AsRef<Path>) -> Result<Version> {
         .iterate_headers()
         .map(|h| Version::find_in_text(h.text));
 
+    let year = current_year();
     let version = match headers.next() {
-        None => generate_initial_version(),
+        None => generate_initial_version(year),
         Some(Ok(top_version)) => top_version,
         Some(Err(_top_non_version_thingy)) => match headers.next() {
-            Some(Ok(version)) => suggest_next_version(&version),
-            None => generate_initial_version(),
+            Some(Ok(version)) => suggest_next_version(&version, year),
+            None => generate_initial_version(year),
             Some(Err(_)) => bail!("Two leading release headers have no version number in them."),
         },
     };
@@ -238,16 +178,15 @@ pub fn current_year() -> u64 {
     chrono::Utc::today().year() as u64
 }
 
-pub fn generate_initial_version() -> Version {
-    Version::new(current_year(), 1, 1)
+pub fn generate_initial_version(current_year: u64) -> Version {
+    Version::new(current_year, 1, 1)
 }
 
-pub fn suggest_next_version(previous: &Version) -> Version {
-    let year = current_year();
-    if previous.major == year {
-        Version::new(year, previous.minor + 1, 1)
+pub fn suggest_next_version(previous: &Version, current_year: u64) -> Version {
+    if previous.major == current_year {
+        Version::new(current_year, previous.minor + 1, 1)
     } else {
-        generate_initial_version()
+        generate_initial_version(current_year)
     }
 }
 
@@ -298,7 +237,7 @@ pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
 }
 
 #[instrument(ret)]
-pub fn versions_from_env(expected_build_kind: Option<Kind>) -> Result<Option<Versions>> {
+pub fn versions_from_env() -> Result<Option<Versions>> {
     if let Ok(version) = ENSO_VERSION.get() {
         // The currently adopted version scheme uses same string for version and edition name,
         // so we enforce it here. There are no fundamental reasons for this requirement.
@@ -310,15 +249,6 @@ pub fn versions_from_env(expected_build_kind: Option<Kind>) -> Result<Option<Ver
                 ENSO_EDITION.name
             );
         }
-        if let Some(expected_build_kind) = expected_build_kind {
-            let found_build_kind = Kind::deduce(&version)?;
-            ensure!(
-                found_build_kind == expected_build_kind,
-                "Build kind mismatch. Found: {}, expected: {}.",
-                found_build_kind,
-                expected_build_kind
-            )
-        }
         let versions = Versions::new(version);
         Ok(Some(versions))
     } else {
@@ -327,27 +257,19 @@ pub fn versions_from_env(expected_build_kind: Option<Kind>) -> Result<Option<Ver
 }
 
 #[instrument(skip_all, ret)]
-pub async fn deduce_or_generate(
-    repo: Result<&github::repo::Handle<impl IsRepo>>,
-    kind: Kind,
-    root_path: impl AsRef<Path>,
-) -> Result<Versions> {
+pub async fn deduce_or_generate<P, F>(release_provider: P) -> Result<Versions>
+where
+    P: FnOnce() -> F,
+    F: Future<Output = Result<Vec<Version>>>, {
     debug!("Deciding on version to target.");
-    if let Some(versions) = versions_from_env(Some(kind))? {
+    if let Some(versions) = versions_from_env()? {
         Ok(versions)
     } else {
-        let changelog_path = crate::paths::root_to_changelog(&root_path);
-        let base_version = base_version(&changelog_path)?;
-        let version = Version {
-            pre: match kind {
-                Kind::Dev => Versions::local_prerelease()?,
-                Kind::Nightly => Versions::nightly_prerelease(repo?).await?,
-                Kind::Rc => Versions::rc_prerelease(&base_version, repo?).await?,
-                Kind::Stable => todo!(), //Versions::stable(repo?).await?,
-            },
-            ..base_version
-        };
-        Ok(Versions::new(version))
+        let releases = release_provider().await?;
+        let releases = promote::Releases::new_now(releases)?;
+        let next_stable = releases.generate_version(promote::Designation::Stable)?;
+        let dev_version = Version { pre: Prerelease::from_str(LOCAL_BUILD_PREFIX)?, ..next_stable };
+        Ok(Versions::new(dev_version))
     }
 }
 
