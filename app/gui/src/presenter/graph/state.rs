@@ -377,9 +377,9 @@ impl State {
 
     /// Checks if the node should be synced with its AST automatically.
     pub fn should_receive_expression_auto_updates(&self, node: ast::Id) -> bool {
-        // When node is in process of being added, it is not yet added to the state. In that case
-        // the initial expression update needs to be processed. Otherwise the node would be created
-        // without any expression.
+        // When node is in process of being created, it is not yet present in the state. In that
+        // case the initial expression update needs to be processed. Otherwise the node would be
+        // created without any expression.
         self.nodes.borrow().get(node).map_or(true, |node| node.expression_auto_update)
     }
 
