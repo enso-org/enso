@@ -389,12 +389,7 @@ pub fn promote() -> Result<Workflow> {
     let workflow_dispatch =
         WorkflowDispatch::default().with_input(DESIGNATOR_INPUT_NAME, designator);
     let on = Event { workflow_dispatch: Some(workflow_dispatch), ..default() };
-    let mut workflow = Workflow {
-        on,
-        name: "Promote Release".into(),
-        concurrency: Some(release_concurrency()),
-        ..default()
-    };
+    let mut workflow = Workflow { on, name: "Promote Release".into(), ..default() };
 
 
     let promote_job_id = workflow.add::<PromoteReleaseJob>(PRIMARY_OS);

@@ -88,4 +88,3 @@ jobs:
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
-concurrency: release
