@@ -1,3 +1,5 @@
+//! The structures related to the project name in the code.
+
 use crate::prelude::*;
 
 use crate::name::InvalidQualifiedName;
@@ -24,8 +26,13 @@ pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", 
 
 
 
+// =====================
+// === QualifiedName ===
+// =====================
+
 /// The project qualified name has a form of `<namespace_name>.<project_name>`. It serves as
 /// a prefix for qualified names of other entities (modules, types, etc.).
+#[allow(missing_docs)]
 #[derive(
     Clone,
     CloneRef,
@@ -47,14 +54,9 @@ pub struct QualifiedName {
 }
 
 impl QualifiedName {
-    /// Create qualified name from typed components.
+    /// Create qualified name from components.
     pub fn new(namespace: impl Into<ImString>, project: impl Into<ImString>) -> Self {
         Self { namespace: namespace.into(), project: project.into() }
-    }
-
-    /// The iterator over name's segments: the namespace and project name.
-    pub fn segments(&self) -> impl Iterator<Item = &ImString> {
-        iter::once(&self.namespace).chain(iter::once(&self.project))
     }
 
     /// Create from a text representation. May fail if the text is not valid project Qualified Name.
@@ -69,12 +71,20 @@ impl QualifiedName {
         }
     }
 
+    /// The iterator over name's segments: the namespace and project name.
+    pub fn segments(&self) -> impl Iterator<Item = &ImString> {
+        iter::once(&self.namespace).chain(iter::once(&self.project))
+    }
+
     /// Return the fully qualified name of the [`BASE_LIBRARY_NAME`] project in the
     /// [`STANDARD_NAMESPACE`].
     pub fn standard_base_library() -> Self {
         Self::new(STANDARD_NAMESPACE, BASE_LIBRARY_NAME)
     }
 }
+
+
+// === Conversions From and Into String ===
 
 impl TryFrom<&str> for QualifiedName {
     type Error = failure::Error;
@@ -109,6 +119,9 @@ impl Display for QualifiedName {
         write!(f, "{}.{}", self.namespace, self.project)
     }
 }
+
+
+// === Comparing with NamePath ===
 
 impl<'a> PartialEq<NamePathRef<'a>> for QualifiedName {
     fn eq(&self, other: &NamePathRef<'a>) -> bool {

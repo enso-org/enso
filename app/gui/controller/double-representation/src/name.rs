@@ -1,4 +1,4 @@
-/// The structures representing the name paths which may appear in Enso code.
+//! The structures representing the name paths which may appear in Enso code.
 
 use crate::prelude::*;
 
@@ -77,6 +77,9 @@ pub type QualifiedNameRef<'a> = QualifiedNameTemplate<NamePathRef<'a>>;
 
 impl_clone_ref_as_clone!(['a] QualifiedNameRef<'a>);
 
+
+// === Construction ===
+
 impl<Segments> QualifiedNameTemplate<Segments> {
     fn new(project: project::QualifiedName, path: Segments) -> Self {
         Self { project, path }
@@ -145,6 +148,9 @@ impl QualifiedName {
     }
 }
 
+
+// === Methods Shared By QualifiedName and QualifiedNameRef ===
+
 impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     /// The project name segments.
     pub fn project(&self) -> &project::QualifiedName {
@@ -212,6 +218,13 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     }
 
     /// Returns an iterator over all parent entities. The `self` is not included.
+    ///
+    /// ```rust
+    /// use double_representation::name::QualifiedName;
+    /// let name = QualifiedName::from_text("ns.Project.Module.Type");
+    /// let parents: Vec<String> = name.parents().map(|qn| qn.to_string()).collect();
+    /// assert_eq!(parents, vec!["ns.Project.Module", "ns.Project"]);
+    /// ```
     pub fn parents(&self) -> impl Iterator<Item = QualifiedNameRef> {
         let mut path_upper_bounds = (0..self.path.as_ref().len()).rev();
         iter::from_fn(move || {
@@ -231,27 +244,37 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     }
 }
 
+
+// === Owned QualifiedName only Methods ===
+
 impl QualifiedName {
     /// Add a segment to this qualified name.
     ///
-    /// ```
-    /// # use double_representation::identifier::ReferentName;
-    /// # use double_representation::module::QualifiedName;
-    ///
+    /// ```rust
+    /// use double_representation::name::QualifiedName;
     /// let mut name = QualifiedName::from_text("ns.Proj.Foo").unwrap();
-    /// let bar_segment = ReferentName::new("Bar").unwrap();
-    ///
-    /// name.push_segment(bar_segment);
+    /// name.push_segment("Bar");
     /// assert_eq!(name.to_string(), "ns.Proj.Foo.Bar");
     /// ```
     pub fn push_segment(&mut self, name: impl Into<ImString>) {
         self.path.push(name.into());
     }
 
+    /// Remove a segment to this qualified name.
+    ///
+    /// ```rust
+    /// use double_representation::name::QualifiedName;
+    /// let mut name = QualifiedName::from_text("ns.Proj.Foo").unwrap();
+    /// assert_eq!(name.pop_segment(), Some("Foo"));
+    /// assert_eq!(name.pop_segment(), None);
+    /// ```
     pub fn pop_segment(&mut self) -> Option<ImString> {
         self.path.pop()
     }
 }
+
+
+// === Conversions From and Into String ===
 
 impl TryFrom<&str> for QualifiedName {
     type Error = failure::Error;
@@ -277,26 +300,6 @@ impl TryFrom<&String> for QualifiedName {
     }
 }
 
-#[cfg(test)]
-impl From<&str> for QualifiedName {
-    fn from(text: &str) -> Self {
-        Self::from_text(text).unwrap()
-    }
-}
-
-#[cfg(test)]
-impl From<String> for QualifiedName {
-    fn from(text: String) -> Self {
-        Self::from_text(text).unwrap()
-    }
-}
-
-
-impl From<project::QualifiedName> for QualifiedName {
-    fn from(project: project::QualifiedName) -> Self {
-        Self::new_main(project)
-    }
-}
 
 impl From<QualifiedName> for String {
     fn from(name: QualifiedName) -> Self {
@@ -307,6 +310,21 @@ impl From<QualifiedName> for String {
 impl From<&QualifiedName> for String {
     fn from(name: &QualifiedName) -> Self {
         name.to_string()
+    }
+}
+
+impl<Segments: AsRef<[ImString]>> Display for QualifiedNameTemplate<Segments> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.segments().format(ACCESS))
+    }
+}
+
+
+// === Conversion Between Name Representations
+
+impl From<project::QualifiedName> for QualifiedName {
+    fn from(project: project::QualifiedName) -> Self {
+        Self::new_main(project)
     }
 }
 
@@ -327,6 +345,9 @@ impl<'a, 'b> From<&'a QualifiedNameRef<'b>> for NamePath {
         qualified.segments().cloned().collect()
     }
 }
+
+
+// === Conversion Into Iterator ===
 
 impl<'a, 'b> IntoIterator for &'a QualifiedNameRef<'b> {
     type Item = &'a ImString;
@@ -352,11 +373,8 @@ impl IntoIterator for QualifiedName {
     }
 }
 
-impl<Segments: AsRef<[ImString]>> Display for QualifiedNameTemplate<Segments> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.segments().format(ACCESS))
-    }
-}
+
+// === Comparing with project::QualifiedName ===
 
 impl PartialEq<project::QualifiedName> for QualifiedName {
     fn eq(&self, other: &project::QualifiedName) -> bool {

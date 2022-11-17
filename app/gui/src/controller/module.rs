@@ -134,7 +134,7 @@ impl Handle {
 
     /// Get the module's qualified name.
     pub fn qualified_name(&self, project_name: project::QualifiedName) -> QualifiedName {
-        QualifiedName::new(project_name, self.model.id().into())
+        QualifiedName::new_module(project_name, self.model.id())
     }
 
     /// Modify module by modifying its `Info` description (which is a wrapper directly over module's

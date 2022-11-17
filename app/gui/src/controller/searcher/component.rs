@@ -306,12 +306,8 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
-    use crate::model::suggestion_database::entry::Kind;
-
     use crate::mock_suggestion_database;
-    use double_representation::module;
     use double_representation::name::project;
-    use engine_protocol::language_server;
 
     pub fn mock_suggestion_db() -> model::SuggestionDatabase {
         mock_suggestion_database! {

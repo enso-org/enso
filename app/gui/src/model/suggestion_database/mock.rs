@@ -164,11 +164,17 @@ macro_rules! mock_suggestion_database_entries {
 macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
         {
+            #[allow(unused_imports)]
             use $crate::model::suggestion_database::mock::Builder;
+            #[allow(unused_imports)]
             use $crate::model::suggestion_database::mock::DEFAULT_TYPE;
+            #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entries;
+            #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entry_arguments;
+            #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entry_argument;
+            #[allow(unused_imports)]
             use $crate::model::suggestion_database::entry::Argument;
 
             let mut builder = Builder::new();

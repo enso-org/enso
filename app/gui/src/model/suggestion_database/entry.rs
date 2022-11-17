@@ -152,16 +152,6 @@ pub enum Scope {
     InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
 }
 
-/// Represents code snippet and the imports needed for it to work.
-/// Typically is module-specific, as different modules may require different imports.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodeToInsert<'a> {
-    /// Code to be inserted.
-    pub code:   Cow<'a, str>,
-    /// An import which should be added to have the code working.
-    pub import: Option<import::Info>,
-}
-
 /// The Suggestion Database Entry.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry {
@@ -344,10 +334,12 @@ impl Entry {
 
     pub fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
         match self.kind {
-            //TODO[ao] extension methods.
             Kind::Method if self.is_static => self.import_for_static_self(db),
+            Kind::Method => {
+                let self_module =
+                if self.defined_in != self.self_type
+            }
             Kind::Constructor => self.import_for_static_self(db),
-            Kind::Method => None,
             Kind::Module =>
                 if let Some(reexport) = &self.reexported_in {
                     Some(import::Info::new_single_name(reexport, self.name.clone()))

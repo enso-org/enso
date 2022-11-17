@@ -493,8 +493,6 @@ impl Manager {
 mod tests {
     use super::*;
 
-    use crate::model::module;
-
     use double_representation::identifier::Identifier;
     use double_representation::name::QualifiedName;
     use futures::future::ready;

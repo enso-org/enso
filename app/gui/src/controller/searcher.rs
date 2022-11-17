@@ -1629,10 +1629,8 @@ pub mod test {
 
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::model::module;
+    use crate::mock_suggestion_database;
     use crate::model::suggestion_database::entry::Argument;
-    use crate::model::suggestion_database::entry::Kind;
-    use crate::model::suggestion_database::entry::Scope;
     use crate::model::SuggestionDatabase;
     use crate::test::mock::data::project_qualified_name;
     use crate::test::mock::data::MAIN_FINISH;
@@ -1642,8 +1640,6 @@ pub mod test {
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
     use std::assert_matches::assert_matches;
-    use crate::mock_suggestion_database;
-    use crate::model::suggestion_database::Entry;
 
 
     #[test]
@@ -1763,21 +1759,27 @@ pub mod test {
                 project: project.clone_ref(),
                 node_edit_guard: node_metadata_guard,
             };
-            let (_, entry1) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testFunction1").as_ref()).unwrap();
-            let (_, entry2) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("test_var_1").as_ref()).unwrap();
-            let (_, entry3) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testMethod").as_ref()).unwrap();
-            let entry4 = searcher.database.lookup_by_qualified_name_str("test.Test.Test.testMethod").unwrap();
-            let (_, entry9) = searcher.database.lookup_by_qualified_name(module_name.clone().new_child("testFunction2").as_ref()).unwrap();
-            Fixture {
-                data,
-                test,
-                searcher,
-                entry1,
-                entry2,
-                entry3,
-                entry4,
-                entry9,
-            }
+            let (_, entry1) = searcher
+                .database
+                .lookup_by_qualified_name(module_name.clone().new_child("testFunction1").as_ref())
+                .unwrap();
+            let (_, entry2) = searcher
+                .database
+                .lookup_by_qualified_name(module_name.clone().new_child("test_var_1").as_ref())
+                .unwrap();
+            let (_, entry3) = searcher
+                .database
+                .lookup_by_qualified_name(module_name.clone().new_child("testMethod").as_ref())
+                .unwrap();
+            let entry4 = searcher
+                .database
+                .lookup_by_qualified_name_str("test.Test.Test.testMethod")
+                .unwrap();
+            let (_, entry9) = searcher
+                .database
+                .lookup_by_qualified_name(module_name.clone().new_child("testFunction2").as_ref())
+                .unwrap();
+            Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9 }
         }
 
         fn new() -> Self {
@@ -1803,14 +1805,29 @@ pub mod test {
 
         let module_name = crate::test::mock::data::module_qualified_name();
         let return_type = QualifiedName::from_text("Standard.Base.Number").unwrap();
-        let function = suggestion_database::Entry::new_function(module_name.clone(), "testFunction1", return_type.clone(), scope.clone());
-        let local = suggestion_database::Entry::new_local(module_name.clone(), "test_var_1", return_type.clone(), scope.clone());
+        let function = suggestion_database::Entry::new_function(
+            module_name.clone(),
+            "testFunction1",
+            return_type.clone(),
+            scope.clone(),
+        );
+        let local = suggestion_database::Entry::new_local(
+            module_name.clone(),
+            "test_var_1",
+            return_type.clone(),
+            scope.clone(),
+        );
         let arguments = vec![
             Argument::new("text_arg", "Standard.Base.Text"),
             Argument::new("num_arg", "Standard.Base.Number"),
         ];
-        let function2 = suggestion_database::Entry::new_function(module_name.clone(), "testFunction2", return_type.clone(), scope.clone())
-            .with_arguments(arguments.clone());
+        let function2 = suggestion_database::Entry::new_function(
+            module_name.clone(),
+            "testFunction2",
+            return_type.clone(),
+            scope.clone(),
+        )
+        .with_arguments(arguments.clone());
 
         database.put_entry(101, function);
         database.put_entry(102, local);

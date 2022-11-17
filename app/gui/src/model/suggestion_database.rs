@@ -222,7 +222,7 @@ impl SuggestionDatabase {
             let mut entries = self.entries.borrow_mut();
             let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
             match update {
-                entry::Update::Add { id, suggestion } => match suggestion.try_into() {
+                entry::Update::Add { id, suggestion } => match (*suggestion).try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
                         entries.insert(id, Rc::new(entry));
@@ -524,7 +524,8 @@ pub mod test {
         assert_eq!(db.version.get(), 2);
 
         // Add
-        let add_update = entry::Update::Add { id: replaced_id, suggestion: new_entry };
+        let add_update =
+            entry::Update::Add { id: replaced_id, suggestion: Box::new(new_entry) };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![add_update],
             current_version: 3,
@@ -779,7 +780,7 @@ pub mod test {
                     modification: entry_mod_change,
                 },
                 entry::Update::Remove { id: entry_removed_id },
-                entry::Update::Add { id: entry_added_id, suggestion: new_entry },
+                entry::Update::Add { id: entry_added_id, suggestion: Box::new(new_entry) },
             ],
             current_version: 2,
         };
@@ -834,7 +835,7 @@ pub mod test {
             reexport:               None,
         };
         let update = SuggestionDatabaseUpdatesEvent {
-            updates:         vec![entry::Update::Add { id, suggestion: entry2 }],
+            updates:         vec![entry::Update::Add { id, suggestion: Box::new(entry2) }],
             current_version: 3,
         };
         db.apply_update_event(update);

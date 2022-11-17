@@ -8,7 +8,6 @@ use crate::executor::test_utils::TestWithLocalPoolExecutor;
 use crate::model::suggestion_database;
 use crate::model::undo_redo;
 
-use double_representation::module;
 use double_representation::name::project;
 use engine_protocol::binary;
 use engine_protocol::language_server;
