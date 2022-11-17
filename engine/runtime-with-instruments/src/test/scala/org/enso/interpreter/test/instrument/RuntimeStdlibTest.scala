@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.docs.generator.DocsGenerator
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
@@ -19,6 +19,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -161,6 +162,31 @@ class RuntimeStdlibTest
 
   }
 
+  def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
+    val arguments = suggestion match {
+      case tpe: Suggestion.Type =>
+        tpe.params
+      case constructor: Suggestion.Constructor =>
+        constructor.arguments
+      case method: Suggestion.Method =>
+        method.arguments
+      case conversion: Suggestion.Conversion =>
+        conversion.arguments
+      case function: Suggestion.Function =>
+        function.arguments
+      case _ =>
+        Seq()
+    }
+    val argTypes = arguments.map(_.reprType)
+    val selfType = Suggestion.SelfType(suggestion)
+    val returnType = suggestion.returnType
+
+    (argTypes ++ selfType :+ returnType).map(QualifiedName.fromString)
+}
+
+  def isQualified(name: QualifiedName): Boolean =
+    name.path.nonEmpty
+
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -231,14 +257,40 @@ class RuntimeStdlibTest
     )
 
     // check that the suggestion notifications are received
+    val unqualifiedTypes: mutable.Map[String, Vector[Suggestion]] =
+      mutable.Map()
     val suggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(
+              module,
+              _,
+              actions,
+              _,
+              updates
+            )
           ) =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
+        (actions.nonEmpty || updates.nonEmpty) shouldBe true
+        updates.toVector.foreach { update =>
+          val types = extractTypes(update.suggestion)
+          if (!types.forall(isQualified)) {
+            unqualifiedTypes.updateWith(module) {
+              case Some(values) => Some(values :+ update.suggestion)
+              case None         => Some(Vector(update.suggestion))
+            }
+          }
+        }
     }
     suggestions.isEmpty shouldBe false
+    if (unqualifiedTypes.nonEmpty) {
+      val unqualified = unqualifiedTypes
+        .map { case (module, suggestions) =>
+          val names = suggestions.map(_.name)
+          s"$module: ${names.mkString(",")}"
+        }
+        .mkString(System.lineSeparator())
+      fail(s"Found definitions with unqualified types:\n $unqualified")
+    }
 
     // check that the Standard.Base library is indexed
     val stdlibSuggestions = responses.collect {
