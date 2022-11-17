@@ -13,7 +13,7 @@ import Standard.Base.Network.Http.Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.lang.System
 
@@ -336,3 +336,5 @@ spec =
             res = Http.new.request req_with_body
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+
+main = Test_Suite.run_main spec
