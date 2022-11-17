@@ -1,6 +1,6 @@
 //! A slider UI component that allows adjusting a value through mouse interaction.
 
-#![recursion_limit = "1024"]
+#![recursion_limit = "256"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
