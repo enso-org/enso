@@ -253,10 +253,10 @@ impl Slider {
             value <- all3(&value_on_click, &precision, &drag_delta_x).gate(&update_value);
             value <- value.map(|(value, precision, delta)| value + delta * precision);
             value <- any2(&input.set_value, &value);
-            // Snap value to nearest precision increment
+            // Snap the slider's value to the nearest precision increment.
             value <- all2(&value, &precision);
             value <- value.map(|(value, precision)| (value / precision).round() * precision);
-            // Clamp value within slider limits
+            // Clamp the slider's value to within the slider's min/max limits.
             value <- all3(&value, &input.set_min_value, &input.set_max_value);
             value <- value.map(|(value, min, max)| value.clamp(*min, *max));
             output.value <+ value;
