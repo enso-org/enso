@@ -312,7 +312,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         .build()
     }
 
-    val vcs = Git()
+    val vcs = Git.withEmptyUserConfig()
 
     def listCommits(repoDir: Path): List[RevCommit] = {
       listCommits(testRepo(repoDir))
