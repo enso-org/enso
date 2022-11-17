@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-
 use crate::ci_gen::job::expose_os_specific_signing_secret;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
@@ -29,7 +28,6 @@ use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
-use ide_ci::actions::workflow::definition::RunnerLabel::X64;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
@@ -246,7 +244,8 @@ impl JobArchetype for UploadIde {
 pub struct PromoteReleaseJob;
 impl JobArchetype for PromoteReleaseJob {
     fn job(os: OS) -> Job {
-        let mut job = plain_job_customized(&os, "Promote release", "release promote", |step| {
+        let command = format!("release promote {}", wrap_expression("inputs.designation"));
+        let mut job = plain_job_customized(&os, "Promote release", command, |step| {
             vec![step.with_id(Self::PROMOTE_STEP_ID)]
         });
         Self::expose_outputs(&mut job);

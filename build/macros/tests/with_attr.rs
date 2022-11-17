@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 
 
-#[derive(0enso_build_macros::Arg)]
+#[derive(enso_build_macros::Arg)]
 pub enum Foo {
     Bar,
     #[arg(format = ToString::to_string)]

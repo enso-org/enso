@@ -11,8 +11,8 @@ use crate::project::IsTarget;
 use crate::source::ExternalSource;
 use crate::source::FetchTargetJob;
 use crate::version;
-
 use crate::version::Versions;
+
 use ide_ci::github;
 use ide_ci::github::release::ReleaseHandle;
 use ide_ci::io::web::handle_error_response;
@@ -25,6 +25,7 @@ use octocrab::params::repos::Reference;
 use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
+
 
 
 pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {

@@ -1,6 +1,7 @@
 //! Extension methods for [`Result`].
 
 use crate::prelude::*;
+
 use futures::future::Either;
 use std::future::Ready;
 
