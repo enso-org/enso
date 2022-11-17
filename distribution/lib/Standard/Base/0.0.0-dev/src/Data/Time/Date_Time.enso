@@ -66,7 +66,9 @@ now = @Builtin_Method "Date_Time.now"
    - hour: the hour-of-day to represent, from 0 to 23
    - minute: the minute-of-hour to represent, from 0 to 59
    - second: the second-of-minute to represent, from 0 to 59
-   - nanosecond: the nano-of-second to represent, from 0 to 999,999,999
+   - millisecond: the millisecond-of-second to represent, from 0 to 999.
+   - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
+   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
    - zone: the timezone
 
    Returns a `Time_Error` if the provided time cannot be represented.
@@ -84,9 +86,10 @@ now = @Builtin_Method "Date_Time.now"
          from Standard.Base import Date_Time, Time_Zone
 
          example_new = Date_Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
-new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Time_Zone.system) =
-    Panic.catch_java Any (new_builtin year month day hour minute second nanosecond zone) java_exception->
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
+new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
+    total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
+    Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## PRIVATE

@@ -28,6 +28,8 @@ now = @Builtin_Method "Time_Of_Day.now"
    - hour: The hour-of-day to represent, from 0 to 23.
    - minute: The minute-of-hour to represent, from 0 to 59.
    - second: The second-of-minute to represent, from 0 to 59.
+   - millisecond: the millisecond-of-second to represent, from 0 to 999.
+   - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
    - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
 
    Returns a `Time_Error` if the provided time is not a valid time.
@@ -45,9 +47,10 @@ now = @Builtin_Method "Time_Of_Day.now"
          from Standard.Base import Time_Of_Day
 
          example_epoch = Time_Of_Day.new hour=9 minute=30
-new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
-new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.catch_java Any (new_builtin hour minute second nanosecond) java_exception->
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
+new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
+    total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
+    Panic.catch_java Any (new_builtin hour minute second total_nanoseconds) java_exception->
         Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## PRIVATE

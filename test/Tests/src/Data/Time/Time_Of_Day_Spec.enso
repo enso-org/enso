@@ -129,37 +129,37 @@ specWith name create_new_time parse_time =
         Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|
             d1 = create_new_time 15 37 58 123456789
             d1.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d1.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d1.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 0 0 0)
-            d1.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 59 59 max_nanos)
+            d1.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 15 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 0 0)
-            d1.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 59 max_nanos)
+            d1.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 0)
-            d1.end_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 max_nanos)
+            d1.end_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 nanosecond=max_nanos)
 
             d2 = create_new_time 0 0 0
             d2.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d2.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d2.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 0 0 0)
-            d2.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 59 59 max_nanos)
+            d2.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 0 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 0 0)
-            d2.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 59 max_nanos)
+            d2.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 0)
-            d2.end_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 max_nanos)
+            d2.end_of Time_Period.Second . should_equal (Time_Of_Day.new 0 0 0 nanosecond=max_nanos)
 
             d3 = create_new_time 23 59 59 max_nanos
             d3.start_of Time_Period.Day . should_equal (Time_Of_Day.new)
-            d3.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.end_of Time_Period.Day . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 0 0 0)
-            d3.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.end_of Time_Period.Hour . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 0 0)
-            d3.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 0)
-            d3.end_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 max_nanos)
+            d3.end_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
 
 
 enso_time hour minute=0 second=0 nanoOfSecond=0 =
-    Time_Of_Day.new hour minute second nanoOfSecond
+    Time_Of_Day.new hour minute second nanosecond=nanoOfSecond
 
 java_time hour minute=0 second=0 nanoOfSecond=0 =
     Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
