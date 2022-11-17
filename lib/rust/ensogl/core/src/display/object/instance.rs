@@ -18,28 +18,30 @@ use nalgebra::Vector3;
 use transform::CachedTransform;
 
 
+/// The host of a display object, in most cases, this is the [`Scene`].
+pub trait Host = where Self: 'static;
+
+
 // ==================
 // === ParentBind ===
 // ==================
 
-/// Description of parent-child relation. It contains reference to parent node and information
-/// about the child index there. It is used when a child is reconnected to different parent to
-/// update the old parent with the information that the child was removed.
+/// A parent-child binding. It contains reference to parent node and information about the child
+/// index. When dropped, it removes the child from its parent.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-#[allow(missing_docs)]
-pub struct ParentBind<Host: 'static> {
-    pub parent: WeakInstance<Host>,
-    pub index:  usize,
+pub struct ParentBind<H: Host> {
+    parent: WeakInstance<H>,
+    index:  usize,
 }
 
-impl<Host> ParentBind<Host> {
-    fn parent(&self) -> Option<Instance<Host>> {
+impl<H: Host> ParentBind<H> {
+    fn parent(&self) -> Option<Instance<H>> {
         self.parent.upgrade()
     }
 }
 
-impl<Host: 'static> Drop for ParentBind<Host> {
+impl<H: Host> Drop for ParentBind<H> {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
             parent.remove_child_by_index(self.index)
@@ -357,8 +359,7 @@ impl<Host> Model<Host> {
         let layer_changed = if assigned_layers_changed {
             // We might as well check here if assigned layers were not removed and accidentally the
             // inherited layers are not the same as previously assigned ones, but this is so rare
-            // situation that we are not checking it to optimize the performance of this case in
-            // most popular cases.
+            // situation that we are not checking it to optimize the performance of this case.
             true
         } else if has_assigned_layer {
             false
@@ -506,12 +507,6 @@ impl<Host> Model<Host> {
 // === Register / Unregister ===
 
 impl<Host: 'static> Model<Host> {
-    fn register_child<T: Object<Host>>(&self, child: &T) -> usize {
-        let index = self.children.borrow_mut().insert(child.weak_display_object());
-        self.dirty.children.set(index);
-        index
-    }
-
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind<Host>> {
@@ -530,7 +525,7 @@ impl<Host: 'static> Model<Host> {
         trace!("Adding new parent bind.");
         if let Some(focus_instance) = &*self.focused_descendant.borrow() {
             if let Some(parent) = bind.parent.upgrade() {
-                parent._blur_tree();
+                parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
         }
@@ -697,22 +692,39 @@ pub struct Id(usize);
 /// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
 /// management.
 #[derive(Derivative)]
+#[derive(CloneRef, Deref, From)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
+#[derivative(Default(bound = ""))]
+#[repr(transparent)]
+pub struct Instance<Host: 'static = Scene> {
+    def: InstanceDef<Host>,
+}
+
+/// Internal representation of [`Instance`]. It exists only to make the implementation less
+/// error-prone. [`Instance`] implements [`Object`]. The [`ObjectOps`] trait defines the public API
+/// of display objects, such as the [`add_child`] method. Without this struct, it would need to be
+/// implemented as [`self.display_object().add_child(child)`]. However, if then we rename the
+/// function in [`Instance`], the [`ObjectOps`] trait would still compile, but its function will
+/// loop infinitely. This struct allows the implementation to be written as
+/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile after
+/// renaming the function in [`InstanceDef`].
+#[derive(Derivative)]
 #[derive(CloneRef, Deref)]
 #[derivative(Clone(bound = ""))]
-pub struct Instance<Host: 'static = Scene> {
+#[repr(transparent)]
+pub struct InstanceDef<Host: 'static = Scene> {
     rc: Rc<Model<Host>>,
 }
 
-
-impl<Host> Instance<Host> {
-    /// Create a new weak pointer to this display object instance.
-    pub fn downgrade(&self) -> WeakInstance<Host> {
-        let weak = Rc::downgrade(&self.rc);
-        WeakInstance { weak }
+impl<Host: 'static> Instance<Host> {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
     }
 }
 
-impl<Host: 'static> Instance<Host> {
+impl<Host: 'static> InstanceDef<Host> {
     /// Constructor.
     pub fn new() -> Self {
         Self { rc: Rc::new(Model::new()) }.init()
@@ -782,52 +794,52 @@ impl<Host: 'static> Instance<Host> {
         }
     }
 
-    fn _new_event<T>(&self, payload: T) -> event::SomeEvent
+    fn new_event<T>(&self, payload: T) -> event::SomeEvent
     where T: 'static {
-        event::SomeEvent::new(Some(self), payload)
+        event::SomeEvent::new(Some(self.downgrade()), payload)
     }
 
-    fn _emit_event<T>(&self, payload: T)
+    fn emit_event<T>(&self, payload: T)
     where T: 'static {
-        self.event_source.emit(event::SomeEvent::new(Some(self), payload));
+        self.event_source.emit(event::SomeEvent::new(Some(self.downgrade()), payload));
     }
 
     fn focused_descendant(&self) -> Option<Instance<Host>> {
         self.focused_descendant.borrow().as_ref().and_then(|t| t.upgrade())
     }
 
-    fn _focused_instance(&self) -> Option<Instance<Host>> {
+    fn focused_instance(&self) -> Option<Instance<Host>> {
         if let Some(child) = self.focused_descendant() {
             Some(child)
         } else {
-            self.parent().and_then(|parent| parent._focused_instance())
+            self.parent().and_then(|parent| parent.focused_instance())
         }
     }
 
-    fn _is_focused(&self) -> bool {
-        self.focused_descendant().as_ref() == Some(self)
+    fn is_focused(&self) -> bool {
+        self.focused_descendant().as_ref().map(|t| &t.def) == Some(self)
     }
 
-    fn _focus(&self) {
-        self._blur_tree();
+    fn focus(&self) {
+        self.blur_tree();
         self.propagate_up_new_focus_instance(&self.downgrade());
-        let focus_event = self._new_event(event::Focus);
-        let focus_in_event = self._new_event(event::FocusIn);
+        let focus_event = self.new_event(event::Focus);
+        let focus_in_event = self.new_event(event::FocusIn);
         focus_event.bubbles.set(false);
         self.event_source.emit(focus_event);
         self.event_source.emit(focus_in_event);
     }
 
-    fn _blur(&self) {
-        if self._is_focused() {
+    fn blur(&self) {
+        if self.is_focused() {
             self.blur_unchecked();
         }
     }
 
     /// Blur the display object tree this object belongs to. If any tree node (any node directly or
     /// indirectly connected with each other) was focused, it will be blurred.
-    fn _blur_tree(&self) {
-        if let Some(instance) = self._focused_instance() {
+    fn blur_tree(&self) {
+        if let Some(instance) = self.focused_instance() {
             instance.blur_unchecked();
         }
     }
@@ -837,8 +849,8 @@ impl<Host: 'static> Instance<Host> {
     /// objects will erase information about the currently focused object.
     fn blur_unchecked(&self) {
         self.propagate_up_no_focus_instance();
-        let blur_event = self._new_event(event::Blur);
-        let focus_out_event = self._new_event(event::FocusOut);
+        let blur_event = self.new_event(event::Blur);
+        let focus_out_event = self.new_event(event::FocusOut);
         blur_event.bubbles.set(false);
         self.event_source.emit(blur_event);
         self.event_source.emit(focus_out_event);
@@ -861,7 +873,7 @@ impl<Host: 'static> Instance<Host> {
     }
 }
 
-impl<Host: 'static> Default for Instance<Host> {
+impl<Host: 'static> Default for InstanceDef<Host> {
     fn default() -> Self {
         Self::new()
     }
@@ -870,17 +882,64 @@ impl<Host: 'static> Default for Instance<Host> {
 
 // === Public API ==
 
-impl<Host> Instance<Host> {
+impl<Host> InstanceDef<Host> {
     /// ID getter of this display object.
-    pub fn _id(&self) -> Id {
+    pub fn id(&self) -> Id {
         Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
     }
 }
 
-impl<Host: 'static> Instance<Host> {
+
+// ============================
+// === Hierarchy Management ===
+// ============================
+
+impl<Host: 'static> InstanceDef<Host> {
+    /// Adds a new `Object` as a child to the current one.
+    pub fn add_child(&self, child: &InstanceDef<Host>) {
+        child.unset_parent();
+        let index = self.register_child(child);
+        trace!("Adding a new child at index {index}.");
+        let parent_bind = ParentBind { parent: self.downgrade(), index };
+        child.set_parent_bind(parent_bind);
+    }
+
+    fn register_child(&self, child: &InstanceDef<Host>) -> usize {
+        let index = self.children.borrow_mut().insert(child.downgrade());
+        self.dirty.children.set(index);
+        index
+    }
+
+    /// Removes the provided object reference from child list of this object. Does nothing if the
+    /// reference was not a child of this object.
+    pub fn remove_child<T: Object<Host>>(&self, child: &T) {
+        let child = child.display_object();
+        if self.has_child(child) {
+            child.unset_parent()
+        }
+    }
+
+    /// Replaces the parent binding with a new parent.
+    pub fn set_parent(&self, parent: &InstanceDef<Host>) {
+        parent.add_child(self);
+    }
+
+    /// Removes the current parent binding.
+    pub fn unset_parent(&self) {
+        self.take_parent_bind();
+    }
+}
+
+
+
+// =============================
+// === Hierarchy Management ====
+// =============================
+
+impl<Host: 'static> InstanceDef<Host> {
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
-    pub fn _display_layers(&self) -> Option<WeakLayer> {
+    pub fn display_layers(&self) -> Option<WeakLayer> {
         self.layer.borrow().as_ref().cloned()
     }
 
@@ -906,35 +965,7 @@ impl<Host: 'static> Instance<Host> {
         }
     }
 
-    /// Adds a new `Object` as a child to the current one.
-    pub fn _add_child<T: Object<Host>>(&self, child: &T) {
-        trace!("Adding new child.");
-        let child = child.display_object();
-        child.unset_parent();
-        let index = self.register_child(child);
-        trace!("Child index is {index}.");
-        let parent_bind = ParentBind { parent: self.downgrade(), index };
-        child.set_parent_bind(parent_bind);
-    }
 
-    /// Removes the provided object reference from child list of this object. Does nothing if the
-    /// reference was not a child of this object.
-    pub fn _remove_child<T: Object<Host>>(&self, child: &T) {
-        let child = child.display_object();
-        if self.has_child(child) {
-            child.unset_parent()
-        }
-    }
-
-    /// Replaces the parent binding with a new parent.
-    pub fn set_parent<T: Object<Host>>(&self, parent: &T) {
-        parent.display_object().add_child(self);
-    }
-
-    /// Removes the current parent binding.
-    pub fn _unset_parent(&self) {
-        self.take_parent_bind();
-    }
 
     /// Checks if the provided object is child of the current one.
     pub fn has_child<T: Object<Host>>(&self, child: &T) -> bool {
@@ -942,7 +973,7 @@ impl<Host: 'static> Instance<Host> {
     }
 
     /// Checks if the object has a parent.
-    pub fn _has_parent(&self) -> bool {
+    pub fn has_parent(&self) -> bool {
         self.rc.parent_bind.borrow().is_some()
     }
 
@@ -950,7 +981,7 @@ impl<Host: 'static> Instance<Host> {
     pub fn child_index<T: Object<Host>>(&self, child: &T) -> Option<usize> {
         let child = child.display_object();
         child.parent_bind.borrow().as_ref().and_then(|bind| {
-            if bind.parent().as_ref() == Some(self) {
+            if bind.parent().as_ref().map(|t| &t.def) == Some(self) {
                 Some(bind.index)
             } else {
                 None
@@ -976,9 +1007,15 @@ impl<Host> Instance<Host> {
 
 // === Instances ===
 
-impl<Host> PartialEq for Instance<Host> {
+impl<Host> PartialEq for InstanceDef<Host> {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.rc, &other.rc)
+    }
+}
+
+impl<Host> PartialEq for Instance<Host> {
+    fn eq(&self, other: &Self) -> bool {
+        self.def.eq(&other.def)
     }
 }
 
@@ -988,7 +1025,13 @@ impl<Host> Display for Instance<Host> {
     }
 }
 
-impl<Host> Debug for Instance<Host> {
+impl<Host> Display for InstanceDef<Host> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Instance")
+    }
+}
+
+impl<Host> Debug for InstanceDef<Host> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "DisplayObject")
     }
@@ -1011,12 +1054,20 @@ pub struct WeakInstance<Host: 'static> {
 impl<Host> WeakInstance<Host> {
     /// Upgrade the weak instance to strong one if it was not yet dropped.
     pub fn upgrade(&self) -> Option<Instance<Host>> {
-        self.weak.upgrade().map(|rc| Instance { rc })
+        self.weak.upgrade().map(|rc| InstanceDef { rc }.into())
     }
 
     /// Checks whether this weak instance still exists (its strong instance was not dropped yet).
     pub fn exists(&self) -> bool {
         self.upgrade().is_some()
+    }
+}
+
+impl<Host> InstanceDef<Host> {
+    /// Create a new weak pointer to this display object instance.
+    pub fn downgrade(&self) -> WeakInstance<Host> {
+        let weak = Rc::downgrade(&self.rc);
+        WeakInstance { weak }
     }
 }
 
@@ -1064,384 +1115,6 @@ impl<Host, T: Object<Host>> Object<Host> for &T {
     fn display_object(&self) -> &Instance<Host> {
         let t: &T = self;
         t.display_object()
-    }
-}
-
-
-
-// =================
-// === ObjectOps ===
-// =================
-
-impl<Host: 'static, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
-
-/// Implementation of operations available for every struct which implements `display::Object`.
-/// To learn more about the design, please refer to the documentation of [`Instance`].
-//
-// HOTFIX[WD]: We are using names with underscores in order to fix this bug:
-// https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
-#[allow(missing_docs)]
-pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
-    // === Information ===
-
-    /// Globally unique identifier of this display object.
-    fn id(&self) -> Id {
-        self.display_object()._id()
-    }
-
-
-    // === Hierarchy ===
-
-    /// Get the layers where this object is displayed. May be equal to layers it was explicitly
-    /// assigned, or layers inherited from the parent.
-    fn display_layer(&self) -> Option<WeakLayer> {
-        self.display_object()._display_layers()
-    }
-
-    /// Add another display object as a child to this display object. Children will inherit all
-    /// transformations of their parents.
-    fn add_child<T: Object<Host> + ?Sized>(&self, child: &T) {
-        self.display_object()._add_child(child.display_object());
-    }
-
-    /// Remove the display object from the children list of this display object. Does nothing if
-    /// the child was not registered.
-    fn remove_child<T: Object<Host>>(&self, child: &T) {
-        self.display_object()._remove_child(child.display_object());
-    }
-
-    /// Removes this display object from its parent's children list.
-    fn unset_parent(&self) {
-        self.display_object()._unset_parent();
-    }
-
-    /// Check whether this display object is attached to a parent.
-    fn has_parent(&self) -> bool {
-        self.display_object()._has_parent()
-    }
-
-    /// Checks whether the object is visible.
-    fn is_visible(&self) -> bool {
-        self.display_object().rc.is_visible()
-    }
-
-    /// Checks whether the object is orphan (do not have parent object attached).
-    fn is_orphan(&self) -> bool {
-        self.display_object().rc.is_orphan()
-    }
-
-
-    // === Events ===
-
-    /// Emit a new event. See docs of [`event::Event`] to learn more.
-    fn emit_event<T>(&self, event: T)
-    where T: 'static {
-        self.display_object()._emit_event(event)
-    }
-
-    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
-    fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
-    where T: frp::Data {
-        self.display_object().rc.on_event()
-    }
-
-    /// Get event stream for capturing events. You should rather not need this function. Use
-    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
-    where T: frp::Data {
-        self.display_object().rc.on_event_capturing()
-    }
-
-    /// Creates a new event with this object set to target.
-    fn new_event<T: 'static>(&self, payload: T) -> event::SomeEvent {
-        self.display_object()._new_event(payload)
-    }
-
-
-    // === Focus ===
-
-    /// Check whether this object is focused.
-    fn is_focused(&self) -> bool {
-        self.display_object()._is_focused()
-    }
-
-    /// Focus this object. See docs of [`Event::Focus`] to learn more.
-    fn focus(&self) {
-        self.display_object()._focus()
-    }
-
-    /// Blur ("unfocus") this object. See docs of [`Event::Blur`] to learn more.
-    fn blur(&self) {
-        self.display_object()._blur()
-    }
-
-    /// Blur the display object tree this object belongs to. If any tree node (any node directly or
-    /// indirectly connected with each other) was focused, it will be blurred.
-    fn blur_tree(&self) {
-        self.display_object()._blur_tree()
-    }
-
-    /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
-    fn focused_instance(&self) -> Option<Instance<Host>> {
-        self.display_object()._focused_instance()
-    }
-
-
-    // === Transform ===
-
-    fn transform_matrix(&self) -> Matrix4<f32> {
-        self.display_object().rc.matrix()
-    }
-
-    fn global_position(&self) -> Vector3<f32> {
-        self.display_object().rc.global_position()
-    }
-
-
-    // === Position ===
-
-    fn position(&self) -> Vector3<f32> {
-        self.display_object().rc.position()
-    }
-
-    fn x(&self) -> f32 {
-        self.position().x
-    }
-
-    fn y(&self) -> f32 {
-        self.position().y
-    }
-
-    fn z(&self) -> f32 {
-        self.position().z
-    }
-
-    fn xy(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.x, position.y)
-    }
-
-    fn xz(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.x, position.z)
-    }
-
-    fn yz(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.y, position.z)
-    }
-
-    fn xyz(&self) -> Vector3<f32> {
-        self.position()
-    }
-
-    fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().rc.mod_position(f)
-    }
-
-    fn mod_position_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_xy(f(self.position().xy()));
-    }
-
-    fn mod_position_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_xz(f(self.position().xz()));
-    }
-
-    fn mod_position_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_yz(f(self.position().yz()));
-    }
-
-    fn mod_position_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_x(f(self.position().x));
-    }
-
-    fn mod_position_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_y(f(self.position().y));
-    }
-
-    fn mod_position_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_z(f(self.position().z));
-    }
-
-    fn set_position(&self, t: Vector3<f32>) {
-        self.display_object().rc.set_position(t);
-    }
-
-    fn set_position_xy(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_position_xz(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_position_yz(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_position_x(&self, t: f32) {
-        self.mod_position(|p| p.x = t)
-    }
-
-    fn set_position_y(&self, t: f32) {
-        self.mod_position(|p| p.y = t)
-    }
-
-    fn set_position_z(&self, t: f32) {
-        self.mod_position(|p| p.z = t)
-    }
-
-
-    // === Scale ===
-
-    fn scale(&self) -> Vector3<f32> {
-        self.display_object().rc.scale()
-    }
-
-    fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().rc.mod_scale(f)
-    }
-
-    fn mod_scale_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_xy(f(self.scale().xy()));
-    }
-
-    fn mod_scale_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_xz(f(self.scale().xz()));
-    }
-
-    fn mod_scale_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_yz(f(self.scale().yz()));
-    }
-
-    fn mod_scale_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_x(f(self.scale().x));
-    }
-
-    fn mod_scale_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_y(f(self.scale().y));
-    }
-
-    fn mod_scale_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_z(f(self.scale().z));
-    }
-
-    fn set_scale(&self, t: Vector3<f32>) {
-        self.display_object().rc.set_scale(t);
-    }
-
-    fn set_scale_xy(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_scale_xz(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_scale_yz(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_scale_x(&self, t: f32) {
-        self.mod_scale(|p| p.x = t)
-    }
-
-    fn set_scale_y(&self, t: f32) {
-        self.mod_scale(|p| p.y = t)
-    }
-
-    fn set_scale_z(&self, t: f32) {
-        self.mod_scale(|p| p.z = t)
-    }
-
-
-    // === Rotation ===
-
-    fn rotation(&self) -> Vector3<f32> {
-        self.display_object().rc.rotation()
-    }
-
-    fn mod_rotation<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().rc.mod_rotation(f)
-    }
-
-    fn mod_rotation_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_xy(f(self.rotation().xy()));
-    }
-
-    fn mod_rotation_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_xz(f(self.rotation().xz()));
-    }
-
-    fn mod_rotation_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_yz(f(self.rotation().yz()));
-    }
-
-    fn mod_rotation_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_x(f(self.rotation().x));
-    }
-
-    fn mod_rotation_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_y(f(self.rotation().y));
-    }
-
-    fn mod_rotation_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_z(f(self.rotation().z));
-    }
-
-    fn set_rotation(&self, t: Vector3<f32>) {
-        self.display_object().rc.set_rotation(t);
-    }
-
-    fn set_rotation_xy(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_rotation_xz(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_rotation_yz(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_rotation_x(&self, t: f32) {
-        self.mod_rotation(|p| p.x = t)
-    }
-
-    fn set_rotation_y(&self, t: f32) {
-        self.mod_rotation(|p| p.y = t)
-    }
-
-    fn set_rotation_z(&self, t: f32) {
-        self.mod_rotation(|p| p.z = t)
     }
 }
 
@@ -1508,6 +1181,384 @@ impl Drop for UnsetParentOnDrop {
 
 
 
+// =================
+// === ObjectOps ===
+// =================
+
+impl<Host: 'static, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
+
+/// Implementation of operations available for every struct which implements `display::Object`.
+/// To learn more about the design, please refer to the documentation of [`Instance`].
+//
+// HOTFIX[WD]: We are using names with underscores in order to fix this bug:
+// https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
+#[allow(missing_docs)]
+pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
+    // === Information ===
+
+    /// Globally unique identifier of this display object.
+    fn id(&self) -> Id {
+        self.display_object().def.id()
+    }
+
+
+    // === Hierarchy ===
+
+    /// Get the layers where this object is displayed. May be equal to layers it was explicitly
+    /// assigned, or layers inherited from the parent.
+    fn display_layer(&self) -> Option<WeakLayer> {
+        self.display_object().def.display_layers()
+    }
+
+    /// Add another display object as a child to this display object. Children will inherit all
+    /// transformations of their parents.
+    fn add_child<T: Object<Host> + ?Sized>(&self, child: &T) {
+        self.display_object().def.add_child(child.display_object());
+    }
+
+    /// Remove the display object from the children list of this display object. Does nothing if
+    /// the child was not registered.
+    fn remove_child<T: Object<Host>>(&self, child: &T) {
+        self.display_object().def.remove_child(child.display_object());
+    }
+
+    /// Removes this display object from its parent's children list.
+    fn unset_parent(&self) {
+        self.display_object().def.unset_parent();
+    }
+
+    /// Check whether this display object is attached to a parent.
+    fn has_parent(&self) -> bool {
+        self.display_object().def.has_parent()
+    }
+
+    /// Checks whether the object is visible.
+    fn is_visible(&self) -> bool {
+        self.display_object().def.rc.is_visible()
+    }
+
+    /// Checks whether the object is orphan (do not have parent object attached).
+    fn is_orphan(&self) -> bool {
+        self.display_object().def.rc.is_orphan()
+    }
+
+
+    // === Events ===
+
+    /// Emit a new event. See docs of [`event::Event`] to learn more.
+    fn emit_event<T>(&self, event: T)
+    where T: 'static {
+        self.display_object().def.emit_event(event)
+    }
+
+    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
+    fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    where T: frp::Data {
+        self.display_object().def.rc.on_event()
+    }
+
+    /// Get event stream for capturing events. You should rather not need this function. Use
+    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
+    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    where T: frp::Data {
+        self.display_object().def.rc.on_event_capturing()
+    }
+
+    /// Creates a new event with this object set to target.
+    fn new_event<T: 'static>(&self, payload: T) -> event::SomeEvent {
+        self.display_object().def.new_event(payload)
+    }
+
+
+    // === Focus ===
+
+    /// Check whether this object is focused.
+    fn is_focused(&self) -> bool {
+        self.display_object().def.is_focused()
+    }
+
+    /// Focus this object. See docs of [`Event::Focus`] to learn more.
+    fn focus(&self) {
+        self.display_object().def.focus()
+    }
+
+    /// Blur ("unfocus") this object. See docs of [`Event::Blur`] to learn more.
+    fn blur(&self) {
+        self.display_object().def.blur()
+    }
+
+    /// Blur the display object tree this object belongs to. If any tree node (any node directly or
+    /// indirectly connected with each other) was focused, it will be blurred.
+    fn blur_tree(&self) {
+        self.display_object().def.blur_tree()
+    }
+
+    /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
+    fn focused_instance(&self) -> Option<Instance<Host>> {
+        InstanceDef::focused_instance(self.display_object())
+    }
+
+
+    // === Transform ===
+
+    fn transform_matrix(&self) -> Matrix4<f32> {
+        self.display_object().def.rc.matrix()
+    }
+
+    fn global_position(&self) -> Vector3<f32> {
+        self.display_object().def.rc.global_position()
+    }
+
+
+    // === Position ===
+
+    fn position(&self) -> Vector3<f32> {
+        self.display_object().def.rc.position()
+    }
+
+    fn x(&self) -> f32 {
+        self.position().x
+    }
+
+    fn y(&self) -> f32 {
+        self.position().y
+    }
+
+    fn z(&self) -> f32 {
+        self.position().z
+    }
+
+    fn xy(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.y)
+    }
+
+    fn xz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.x, position.z)
+    }
+
+    fn yz(&self) -> Vector2<f32> {
+        let position = self.position();
+        Vector2(position.y, position.z)
+    }
+
+    fn xyz(&self) -> Vector3<f32> {
+        self.position()
+    }
+
+    fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+        self.display_object().def.rc.mod_position(f)
+    }
+
+    fn mod_position_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_position_xy(f(self.position().xy()));
+    }
+
+    fn mod_position_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_position_xz(f(self.position().xz()));
+    }
+
+    fn mod_position_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_position_yz(f(self.position().yz()));
+    }
+
+    fn mod_position_x<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_position_x(f(self.position().x));
+    }
+
+    fn mod_position_y<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_position_y(f(self.position().y));
+    }
+
+    fn mod_position_z<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_position_z(f(self.position().z));
+    }
+
+    fn set_position(&self, t: Vector3<f32>) {
+        self.display_object().def.rc.set_position(t);
+    }
+
+    fn set_position_xy(&self, t: Vector2<f32>) {
+        self.mod_position(|p| {
+            p.x = t.x;
+            p.y = t.y;
+        })
+    }
+
+    fn set_position_xz(&self, t: Vector2<f32>) {
+        self.mod_position(|p| {
+            p.x = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_position_yz(&self, t: Vector2<f32>) {
+        self.mod_position(|p| {
+            p.y = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_position_x(&self, t: f32) {
+        self.mod_position(|p| p.x = t)
+    }
+
+    fn set_position_y(&self, t: f32) {
+        self.mod_position(|p| p.y = t)
+    }
+
+    fn set_position_z(&self, t: f32) {
+        self.mod_position(|p| p.z = t)
+    }
+
+
+    // === Scale ===
+
+    fn scale(&self) -> Vector3<f32> {
+        self.display_object().def.rc.scale()
+    }
+
+    fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+        self.display_object().def.rc.mod_scale(f)
+    }
+
+    fn mod_scale_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_scale_xy(f(self.scale().xy()));
+    }
+
+    fn mod_scale_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_scale_xz(f(self.scale().xz()));
+    }
+
+    fn mod_scale_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_scale_yz(f(self.scale().yz()));
+    }
+
+    fn mod_scale_x<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_scale_x(f(self.scale().x));
+    }
+
+    fn mod_scale_y<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_scale_y(f(self.scale().y));
+    }
+
+    fn mod_scale_z<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_scale_z(f(self.scale().z));
+    }
+
+    fn set_scale(&self, t: Vector3<f32>) {
+        self.display_object().def.rc.set_scale(t);
+    }
+
+    fn set_scale_xy(&self, t: Vector2<f32>) {
+        self.mod_scale(|p| {
+            p.x = t.x;
+            p.y = t.y;
+        })
+    }
+
+    fn set_scale_xz(&self, t: Vector2<f32>) {
+        self.mod_scale(|p| {
+            p.x = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_scale_yz(&self, t: Vector2<f32>) {
+        self.mod_scale(|p| {
+            p.y = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_scale_x(&self, t: f32) {
+        self.mod_scale(|p| p.x = t)
+    }
+
+    fn set_scale_y(&self, t: f32) {
+        self.mod_scale(|p| p.y = t)
+    }
+
+    fn set_scale_z(&self, t: f32) {
+        self.mod_scale(|p| p.z = t)
+    }
+
+
+    // === Rotation ===
+
+    fn rotation(&self) -> Vector3<f32> {
+        self.display_object().def.rc.rotation()
+    }
+
+    fn mod_rotation<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+        self.display_object().def.rc.mod_rotation(f)
+    }
+
+    fn mod_rotation_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_rotation_xy(f(self.rotation().xy()));
+    }
+
+    fn mod_rotation_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_rotation_xz(f(self.rotation().xz()));
+    }
+
+    fn mod_rotation_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+        self.set_rotation_yz(f(self.rotation().yz()));
+    }
+
+    fn mod_rotation_x<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_rotation_x(f(self.rotation().x));
+    }
+
+    fn mod_rotation_y<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_rotation_y(f(self.rotation().y));
+    }
+
+    fn mod_rotation_z<F: FnOnce(f32) -> f32>(&self, f: F) {
+        self.set_rotation_z(f(self.rotation().z));
+    }
+
+    fn set_rotation(&self, t: Vector3<f32>) {
+        self.display_object().def.rc.set_rotation(t);
+    }
+
+    fn set_rotation_xy(&self, t: Vector2<f32>) {
+        self.mod_rotation(|p| {
+            p.x = t.x;
+            p.y = t.y;
+        })
+    }
+
+    fn set_rotation_xz(&self, t: Vector2<f32>) {
+        self.mod_rotation(|p| {
+            p.x = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_rotation_yz(&self, t: Vector2<f32>) {
+        self.mod_rotation(|p| {
+            p.y = t.x;
+            p.z = t.y;
+        })
+    }
+
+    fn set_rotation_x(&self, t: f32) {
+        self.mod_rotation(|p| p.x = t)
+    }
+
+    fn set_rotation_y(&self, t: f32) {
+        self.mod_rotation(|p| p.y = t)
+    }
+
+    fn set_rotation_z(&self, t: f32) {
+        self.mod_rotation(|p| p.z = t)
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============
@@ -1515,13 +1566,14 @@ impl Drop for UnsetParentOnDrop {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::display::world::World;
     use std::f32::consts::PI;
 
     #[test]
     fn hierarchy_test() {
-        let node1 = Instance::<()>::new();
-        let node2 = Instance::<()>::new();
-        let node3 = Instance::<()>::new();
+        let node1 = Instance::<Scene>::new();
+        let node2 = Instance::<Scene>::new();
+        let node3 = Instance::<Scene>::new();
         node1.add_child(&node2);
         assert_eq!(node2.parent_index(), Some(0));
 
@@ -1537,9 +1589,12 @@ mod tests {
 
     #[test]
     fn transformation_test() {
-        let node1 = Instance::<()>::new();
-        let node2 = Instance::<()>::new();
-        let node3 = Instance::<()>::new();
+        let world = World::new();
+        let scene = &world.default_scene;
+
+        let node1 = Instance::<Scene>::new();
+        let node2 = Instance::<Scene>::new();
+        let node3 = Instance::<Scene>::new();
         assert_eq!(node1.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1557,7 +1612,7 @@ mod tests {
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(0.0, 0.0, 0.0));
 
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1566,47 +1621,47 @@ mod tests {
         assert_eq!(node3.global_position(), Vector3::new(7.0, 0.0, 0.0));
 
         node2.mod_position(|t| t.y += 5.0);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 5.0, 0.0));
 
         node3.mod_position(|t| t.x += 1.0);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(8.0, 5.0, 0.0));
 
         node2.mod_rotation(|t| t.z += PI / 2.0);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(8.0, 0.0, 0.0));
 
         node1.remove_child(&node3);
-        node3.update(&());
+        node3.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(1.0, 0.0, 0.0));
 
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
 
         node1.remove_child(&node3);
-        node1.update(&());
-        node2.update(&());
-        node3.update(&());
+        node1.update(scene);
+        node2.update(scene);
+        node3.update(scene);
         assert_eq!(node3.global_position(), Vector3::new(7.0, 6.0, 0.0));
     }
 
     #[test]
     fn parent_test() {
-        let node1 = Instance::<()>::new();
-        let node2 = Instance::<()>::new();
-        let node3 = Instance::<()>::new();
+        let node1 = Instance::<Scene>::new();
+        let node2 = Instance::<Scene>::new();
+        let node3 = Instance::<Scene>::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node2.unset_parent();
@@ -1615,29 +1670,23 @@ mod tests {
     }
 
     /// A utility to test display object instances' visibility.
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, Deref)]
     struct TestedNode {
-        node:         Instance<()>,
+        #[deref]
+        node:         Instance<Scene>,
         show_counter: Rc<Cell<usize>>,
         hide_counter: Rc<Cell<usize>>,
     }
 
-    impl Deref for TestedNode {
-        type Target = Instance<()>;
-        fn deref(&self) -> &Self::Target {
-            &self.node
-        }
-    }
-
-    impl Object<()> for TestedNode {
-        fn display_object(&self) -> &Instance<()> {
+    impl Object<Scene> for TestedNode {
+        fn display_object(&self) -> &Instance<Scene> {
             &self.node
         }
     }
 
     impl TestedNode {
         fn new() -> Self {
-            let node = Instance::<()>::new();
+            let node = Instance::<Scene>::new();
             let show_counter = Rc::<Cell<usize>>::default();
             let hide_counter = Rc::<Cell<usize>>::default();
             node.set_on_show(f__!(show_counter.set(show_counter.get() + 1)));
@@ -1680,80 +1729,92 @@ mod tests {
 
     #[test]
     fn visibility_test() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node3.check_if_still_hidden();
-        node3.update(&());
+        node3.update(scene);
         node3.check_if_still_hidden();
 
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.check_if_still_shown();
 
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_was_hidden();
 
         node1.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_was_shown();
 
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_still_shown();
 
         node3.unset_parent();
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node3.check_if_was_shown();
     }
 
     #[test]
     fn visibility_test2() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         node1.check_if_still_hidden();
-        node1.update(&());
+        node1.update(scene);
         node1.check_if_still_hidden();
         node1.force_set_visibility(true);
-        node1.update(&());
+        node1.update(scene);
         node1.check_if_still_shown();
 
         node1.add_child(&node2);
-        node1.update(&());
+        node1.update(scene);
         node1.check_if_still_shown();
         node2.check_if_was_shown();
     }
 
     #[test]
     fn visibility_test3() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
 
         node3.unset_parent();
         node3.add_child(&node2);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
     }
 
     #[test]
     fn visibility_test4() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
@@ -1761,21 +1822,21 @@ mod tests {
         node1.force_set_visibility(true);
         node1.add_child(&node2);
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_was_shown();
         node3.check_if_was_shown();
         node4.check_if_still_hidden();
 
         node2.unset_parent();
         node1.add_child(&node2);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_still_shown();
         node3.check_if_still_shown();
         node4.check_if_still_hidden();
 
         node1.add_child(&node4);
         node4.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_still_shown();
         // TODO[ao]: This assertion fails, see https://github.com/enso-org/ide/issues/1405
         // node3.check_if_still_shown();
@@ -1784,13 +1845,13 @@ mod tests {
 
         node4.unset_parent();
         node2.unset_parent();
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_was_hidden();
         node3.check_if_was_hidden();
         node4.check_if_was_hidden();
 
         node2.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         node2.check_if_still_hidden();
         node3.check_if_still_hidden();
         node4.check_if_still_hidden();
@@ -1800,18 +1861,20 @@ mod tests {
     #[test]
     fn deep_hierarchy_test() {
         // === Init ===
+        let world = World::new();
+        let scene = &world.default_scene;
 
-        let world = Instance::<()>::new();
-        let node1 = Instance::<()>::new();
-        let node2 = Instance::<()>::new();
-        let node3 = Instance::<()>::new();
-        let node4 = Instance::<()>::new();
-        let node5 = Instance::<()>::new();
-        let node6 = Instance::<()>::new();
+        let root = Instance::<Scene>::new();
+        let node1 = Instance::<Scene>::new();
+        let node2 = Instance::<Scene>::new();
+        let node3 = Instance::<Scene>::new();
+        let node4 = Instance::<Scene>::new();
+        let node5 = Instance::<Scene>::new();
+        let node6 = Instance::<Scene>::new();
 
-        world.force_set_visibility(true);
+        root.force_set_visibility(true);
 
-        world.add_child(&node1);
+        root.add_child(&node1);
         node1.add_child(&node2);
         node2.add_child(&node3);
         node3.add_child(&node4);
@@ -1826,7 +1889,7 @@ mod tests {
 
         // === Init Update ===
 
-        world.update(&());
+        root.update(scene);
 
         assert!(node3.is_visible());
         assert!(node4.is_visible());
@@ -1848,7 +1911,7 @@ mod tests {
         node5.mod_position(|t| t.x += 5.0);
         node6.mod_position(|t| t.x += 7.0);
 
-        world.update(&());
+        root.update(scene);
 
         assert_eq!(node1.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1862,7 +1925,7 @@ mod tests {
 
         node4.unset_parent();
         node3.unset_parent();
-        world.update(&());
+        root.update(scene);
 
         assert!(!node3.is_visible());
         assert!(!node4.is_visible());
@@ -1872,26 +1935,29 @@ mod tests {
 
     #[test]
     fn layers_test() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
         let layer1 = Layer::new("0");
         let layer2 = Layer::new("1");
-        let node1 = Instance::<()>::new();
-        let node2 = Instance::<()>::new();
-        let node3 = Instance::<()>::new();
+        let node1 = Instance::<Scene>::new();
+        let node2 = Instance::<Scene>::new();
+        let node3 = Instance::<Scene>::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.display_layer(), None);
         assert_eq!(node2.display_layer(), None);
         assert_eq!(node3.display_layer(), None);
 
         node1.add_to_display_layer(&layer1);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
         assert_eq!(node2.display_layer(), Some(layer1.downgrade()));
         assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
 
         node2.add_to_display_layer(&layer2);
-        node1.update(&());
+        node1.update(scene);
         assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
         assert_eq!(node2.display_layer(), Some(layer2.downgrade()));
         assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
@@ -1904,17 +1970,17 @@ mod tests {
         // obj_left_1     obj_right_1
         //     |               |
         // obj_left_2     obj_right_2
-        let obj_root = Instance::<()>::new();
-        let obj_left_1 = Instance::<()>::new();
-        let obj_left_2 = Instance::<()>::new();
-        let obj_right_1 = Instance::<()>::new();
-        let obj_right_2 = Instance::<()>::new();
+        let obj_root = Instance::<Scene>::new();
+        let obj_left_1 = Instance::<Scene>::new();
+        let obj_left_2 = Instance::<Scene>::new();
+        let obj_right_1 = Instance::<Scene>::new();
+        let obj_right_2 = Instance::<Scene>::new();
         obj_root.add_child(&obj_left_1);
         obj_root.add_child(&obj_right_1);
         obj_left_1.add_child(&obj_left_2);
         obj_right_1.add_child(&obj_right_2);
 
-        let check_focus_consistency = |focused: Option<&Instance<()>>| {
+        let check_focus_consistency = |focused: Option<&Instance<Scene>>| {
             // Check that at most one object is focused and if so, that it is the correct one.
             assert_eq!(obj_root.is_focused(), focused == Some(&obj_root));
             assert_eq!(obj_left_1.is_focused(), focused == Some(&obj_left_1));
@@ -2026,9 +2092,12 @@ mod tests {
 
     #[test]
     fn focus_event_propagation_test() {
-        let obj_1 = Instance::<()>::new();
-        let obj_2 = Instance::<()>::new();
-        let obj_3 = Instance::<()>::new();
+        let world = World::new();
+        let scene = &world.default_scene;
+
+        let obj_1 = Instance::<Scene>::new();
+        let obj_2 = Instance::<Scene>::new();
+        let obj_3 = Instance::<Scene>::new();
         obj_1.add_child(&obj_2);
         obj_2.add_child(&obj_3);
 

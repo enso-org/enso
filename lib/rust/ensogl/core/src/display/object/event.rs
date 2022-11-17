@@ -5,8 +5,8 @@
 
 use crate::prelude::*;
 
-use crate::display::object::class::Instance;
-use crate::display::object::class::WeakInstance;
+use crate::display::object::instance::Instance;
+use crate::display::object::instance::WeakInstance;
 
 
 
@@ -47,8 +47,8 @@ pub struct SomeEvent {
 
 impl SomeEvent {
     /// Constructor.
-    pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
-        let event = Event::new(target.map(|t| t.downgrade()), payload);
+    pub fn new<Host: 'static, T: 'static>(target: Option<WeakInstance<Host>>, payload: T) -> Self {
+        let event = Event::new(target, payload);
         let state = event.state.clone_ref();
         let captures = Rc::new(Cell::new(true));
         let bubbles = Rc::new(Cell::new(true));

@@ -9,12 +9,12 @@ use crate::display::scene::layer::Layer;
 // === Export ===
 // ==============
 
-pub mod class;
 pub mod event;
+pub mod instance;
 pub mod transform;
 
-pub use class::Any;
-pub use class::*;
+pub use instance::Any;
+pub use instance::*;
 
 
 
