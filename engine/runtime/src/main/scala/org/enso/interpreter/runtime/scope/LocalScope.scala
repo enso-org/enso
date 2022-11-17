@@ -89,17 +89,14 @@ class LocalScope(
     * @return
     */
   def monadicStateSlotIdx: Int = {
-    for {
-      (_, name) <- internalSlots
-      idx       <- internalSlots.indices
-    } {
-      if (name == "<<monadic_state>>") {
-        return idx
-      }
-    }
-    throw new IllegalStateException(
-      "<<monadic_state>> slot should be present in every frame descriptor"
-    )
+    internalSlots.zipWithIndex
+      .find { case ((_, name), _) => name == "<<monadic_state>>" }
+      .map(_._2)
+      .getOrElse(
+        throw new IllegalStateException(
+          "<<monadic_state>> slot should be present in every frame descriptor"
+        )
+      )
   }
 
   /** Get a frame slot index for a given identifier.
@@ -177,7 +174,7 @@ class LocalScope(
   }
 
   /** Gather local variables from the alias scope information.
-    * Does not include any vairables from the parent scopes.
+    * Does not include any variables from the parent scopes.
     * @return
     */
   private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
