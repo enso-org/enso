@@ -428,24 +428,12 @@ pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::model::suggestion_database::entry::Scope;
 
-    use crate::mock_suggestion_database;
-    use crate::model::module;
-    use crate::model::suggestion_database::mock::standard_db_mock;
-    use ast::opr::predefined::ACCESS;
     use double_representation::name::NamePath;
     use engine_protocol::language_server::FieldUpdate;
-    use engine_protocol::language_server::Position;
-    use engine_protocol::language_server::SuggestionArgumentUpdate;
     use engine_protocol::language_server::SuggestionEntry;
-    use engine_protocol::language_server::SuggestionEntryArgument;
-    use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
-    use engine_protocol::language_server::SuggestionsDatabaseUpdate;
-    use enso_text::unit::*;
-    use enso_text::Location;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -489,7 +477,7 @@ pub mod test {
     #[test]
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
-        let db = standard_db_mock();
+        let db = mock::standard_db_mock();
         let replaced_entry = QualifiedName::from_text("Standard.Base.Number").unwrap();
         let (replaced_id, _) = db.lookup_by_qualified_name(replaced_entry.as_ref()).unwrap();
         let new_entry = SuggestionEntry::Constructor {
@@ -852,7 +840,7 @@ pub mod test {
     fn replace_value_and_traverse_back_pruning_empty_subtrees() {
         let paths = vec!["A", "A.B"];
         for path in paths {
-            let qualified_name: NamePath = path.split(".").map(ImString::new).collect();
+            let qualified_name: NamePath = path.split('.').map(ImString::new).collect();
             let qn_to_id_map: RefCell<QualifiedNameToIdMap> = default();
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
@@ -883,14 +871,14 @@ pub mod test {
         let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            let path: NamePath = path.split(".").map(ImString::new).collect();
+            let path: NamePath = path.split('.').map(ImString::new).collect();
             assert_eq!(map.get(&path), None);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, *value);
             assert_eq!(result, None);
             assert_eq!(map.get(&path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            let path: NamePath = path.split(".").map(ImString::new).collect();
+            let path: NamePath = path.split('.').map(ImString::new).collect();
             assert_eq!(map.get(&path), *value);
             let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, None);
             assert_eq!(result, *value);

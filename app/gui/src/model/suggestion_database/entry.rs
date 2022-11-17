@@ -116,9 +116,71 @@ impl IconName {
 
 
 
+// ==============
+// === Import ===
+// ==============
+
+/// An import of a single name.
+///
+/// The import added by inserting [entries](Entry) always imports single name.
+///
+/// This can be thought of as a special case of [`import::Info`], which allows us simpler checking
+/// if given entity was already imported.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Import {
+    /// `import <module>`. Only module entries can be imported using this import.
+    Qualified { module: QualifiedName },
+    /// `from <module> import <name>`.
+    Unqualified { module: QualifiedName, name: ImString },
+}
+
+impl Import {
+    /// Check if the imported entity is also imported by the `existing_import`.
+    pub fn covered_by(&self, existing_import: &import::Info) -> bool {
+        let parent_module = || match self {
+            Import::Qualified { module } => module.parent(),
+            Import::Unqualified { module, .. } => Some(module.as_ref()),
+        };
+        let name = || match self {
+            Import::Qualified { module } => module.alias_name(),
+            Import::Unqualified { name, .. } => name,
+        };
+        match &existing_import.imported {
+            import::ImportedNames::Module { alias: None } => match self {
+                Self::Qualified { module } => *module == existing_import.module,
+                Self::Unqualified { module, name } => match existing_import.module.as_slice() {
+                    [parent @ .., existing_name] => *module == parent && name == existing_name,
+                    _ => false,
+                },
+            },
+            import::ImportedNames::All => parent_module().contains(&existing_import.module),
+            import::ImportedNames::List { names } =>
+                parent_module().contains(&existing_import.module) && names.contains(&**name()),
+            import::ImportedNames::AllExcept { not_imported } =>
+                parent_module().contains(&existing_import.module)
+                    && !not_imported.contains(&**name()),
+            _ => false,
+        }
+    }
+}
+
+impl From<Import> for import::Info {
+    fn from(import: Import) -> Self {
+        match import {
+            Import::Qualified { module } => Self::new_qualified(module),
+            Import::Unqualified { module, name } => Self::new_single_name(module, name),
+        }
+    }
+}
+
+
+
 // =============
 // === Entry ===
 // =============
+
+// === Kind ===
 
 /// A type of suggestion entry.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]
@@ -131,6 +193,9 @@ pub enum Kind {
     Method,
     Module,
 }
+
+
+// === Scope ===
 
 /// Describes the visibility range of some entry (i.e. identifier available as suggestion).
 ///
@@ -151,6 +216,9 @@ pub enum Scope {
     #[allow(missing_docs)]
     InModule { range: RangeInclusive<Location<enso_text::Utf16CodeUnit>> },
 }
+
+
+// === Entry ===
 
 /// The Suggestion Database Entry.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -180,7 +248,14 @@ pub struct Entry {
     pub icon_name:          Option<IconName>,
 }
 
+
+// === Entry Construction ===
+
 impl Entry {
+    /// Create new entry with required parameters only.
+    ///
+    /// The entry will be flagget as non-static, with [`Scope::Everywhere`] and all optional fields
+    /// will be [`None`].
     pub fn new(
         kind: Kind,
         defined_in: impl Into<QualifiedName>,
@@ -202,6 +277,10 @@ impl Entry {
         }
     }
 
+    /// Create new non-extension, non-module method.
+    ///
+    /// As the method is not an extension, its assumed it's defined in the parent module of
+    /// `on_type`.
     pub fn new_nonextension_method(
         on_type: QualifiedName,
         name: impl Into<String>,
@@ -216,6 +295,9 @@ impl Entry {
         }
     }
 
+    /// Create new module method.
+    ///
+    /// The module method has self_type equal to module where it's defined, and is always static.
     pub fn new_module_method(
         defined_in: QualifiedName,
         name: impl Into<String>,
@@ -228,6 +310,7 @@ impl Entry {
         }
     }
 
+    /// Create new method entry.
     pub fn new_method(
         defined_in: QualifiedName,
         on_type: QualifiedName,
@@ -242,12 +325,14 @@ impl Entry {
         }
     }
 
+    /// Create new type entry.
     pub fn new_type(defined_in: QualifiedName, name: impl Into<String>) -> Self {
         let name = name.into();
         let return_type = defined_in.clone().new_child(&name);
         Self::new(Kind::Type, defined_in, name, return_type)
     }
 
+    /// Create new constructor entry.
     pub fn new_constructor(of_type: QualifiedName, name: impl Into<String>) -> Self {
         let defined_in_module = of_type.parent().unwrap_or(of_type.as_ref()).to_owned();
         Self {
@@ -257,6 +342,7 @@ impl Entry {
         }
     }
 
+    /// Create new local function entry.
     pub fn new_function(
         defined_in: QualifiedName,
         name: impl Into<String>,
@@ -269,6 +355,7 @@ impl Entry {
         }
     }
 
+    /// Create new local variable entry.
     pub fn new_local(
         defined_in: QualifiedName,
         name: impl Into<String>,
@@ -281,38 +368,49 @@ impl Entry {
         }
     }
 
+    /// Create new module entry.
     pub fn new_module(full_name: QualifiedName) -> Self {
         let name = full_name.name().to_owned();
         let return_type = full_name.clone();
         Self::new(Kind::Module, full_name, name, return_type)
     }
 
+    /// Takes self and returns it with new argument list set.
     pub fn with_arguments(mut self, arguments: impl IntoIterator<Item = Argument>) -> Self {
         self.arguments = arguments.into_iter().collect();
         self
     }
 
+    /// Takes self and returns it with new [`reexported_in`] value.
     pub fn reexported_in(mut self, module: QualifiedName) -> Self {
         self.reexported_in = Some(module);
         self
     }
 
+    /// Takes self and returns it with new [`documentation_html`] value.
     pub fn with_documentation(mut self, html: impl Into<String>) -> Self {
         self.documentation_html = Some(html.into());
         self
     }
 
+    /// Takes self and returns it with new [`icon_name`] value.
     pub fn with_icon(mut self, icon_name: IconName) -> Self {
         self.icon_name = Some(icon_name);
         self
     }
+}
 
+
+// === Inserting Code and Imports ===
+
+impl Entry {
     /// Check if this entry has self type same as the given identifier.
     pub fn has_self_type<TypeName>(&self, self_type: &TypeName) -> bool
     where TypeName: PartialEq<QualifiedName> {
         self.self_type.contains(self_type)
     }
 
+    /// Returns the code which is inserted by picking this entry as suggestion.
     pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self.kind {
             Kind::Method if generate_this && self.is_static => self.code_with_static_this().into(),
@@ -332,46 +430,70 @@ impl Entry {
         }
     }
 
-    pub fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
+    /// Return the list of required imports to have the code inserted by picking this entry working.
+    pub fn required_imports(&self, db: &SuggestionDatabase) -> SmallVec<[Import; 2]> {
         match self.kind {
-            Kind::Method if self.is_static => self.import_for_static_self(db),
             Kind::Method => {
-                let self_module =
-                if self.defined_in != self.self_type
+                let self_type_entry = self.self_type_entry(db);
+                let self_type_module = self_type_entry.as_ref().map(|st| &st.defined_in);
+                let is_extension_method =
+                    self_type_module.map_or(false, |stm| *stm != self.defined_in);
+                let extension_method_import = is_extension_method
+                    .and_option_from(|| self.defined_in_entry(db).map(|e| e.required_imports(db)));
+                let self_type_import = self
+                    .is_static
+                    .and_option_from(|| self_type_entry.map(|e| e.required_imports(db)));
+                extension_method_import
+                    .into_iter()
+                    .chain(self_type_import.into_iter())
+                    .flatten()
+                    .collect()
             }
-            Kind::Constructor => self.import_for_static_self(db),
-            Kind::Module =>
-                if let Some(reexport) = &self.reexported_in {
-                    Some(import::Info::new_single_name(reexport, self.name.clone()))
+            Kind::Constructor => self
+                .self_type_entry(db)
+                .map(|e| e.required_imports(db))
+                .into_iter()
+                .flatten()
+                .collect(),
+            Kind::Module => {
+                let import = if let Some(reexport) = &self.reexported_in {
+                    Import::Unqualified {
+                        module: reexport.clone(),
+                        name:   self.name.as_str().into(),
+                    }
                 } else {
-                    Some(import::Info::new_qualified(&self.defined_in))
-                },
+                    Import::Qualified { module: self.defined_in.clone() }
+                };
+                iter::once(import).collect()
+            }
             Kind::Type => {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
-                Some(import::Info::new_single_name(imported_from, self.name.clone()))
+                iter::once(Import::Unqualified {
+                    module: imported_from.clone(),
+                    name:   self.name.as_str().into(),
+                })
+                .collect()
             }
-            Kind::Function | Kind::Local => None,
+            Kind::Function | Kind::Local => default(),
         }
     }
 
-    /// Returns the code which should be inserted to Searcher input when suggestion is picked,
-    /// omitting module name.
-    pub fn code_to_insert_skip_module(&self) -> String {
-        self.name.clone()
+    fn self_type_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
+        let self_type_ref = self.self_type.as_ref();
+        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp.as_ref()));
+        lookup.map(|(_, entry)| entry)
     }
 
-    pub fn import_for_static_self(&self, db: &SuggestionDatabase) -> Option<import::Info> {
-        let self_type_entry =
-            self.self_type.as_ref().and_then(|tp| db.lookup_by_qualified_name(tp.as_ref()));
-        if let Some((_, entry)) = self_type_entry {
-            entry.required_imports(db)
-        } else {
-            self.self_type
-                .as_ref()
-                .and_then(|t| Some(import::Info::new_single_name(&t.parent()?, t.name())))
-        }
+    fn defined_in_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
+        let lookup = db.lookup_by_qualified_name(self.defined_in.as_ref());
+        lookup.map(|(_, entry)| entry)
     }
+}
 
+
+// === Other Properties ===
+
+impl Entry {
     /// Return the Method Id of suggested method.
     ///
     /// Returns none, if this is not suggestion for a method.
@@ -731,6 +853,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
 #[cfg(test)]
 mod test {
     use super::*;
+
     use engine_protocol::language_server::SuggestionArgumentUpdate;
 
     use crate::mock_suggestion_database;
@@ -752,12 +875,8 @@ mod test {
         let constructor = Entry::new_constructor(tp_name.clone(), "Constructor");
         let method =
             Entry::new_nonextension_method(tp_name.clone(), "method", return_type.clone(), false);
-        let static_method = Entry::new_nonextension_method(
-            tp_name.clone(),
-            "static_method",
-            return_type.clone(),
-            true,
-        );
+        let static_method =
+            Entry::new_nonextension_method(tp_name, "static_method", return_type.clone(), true);
         let module_method =
             Entry::new_module_method(module_name.clone(), "module_method", return_type.clone());
         let main_module_method = Entry::new_module_method(
@@ -796,10 +915,15 @@ mod test {
     #[test]
     fn required_imports_of_entry() {
         let db = mock::standard_db_mock();
-        let expect_import = |entry: Rc<Entry>, expected: &str| {
-            assert_eq!(entry.required_imports(&db).unwrap().to_string(), expected);
+        let expect_imports = |entry: Rc<Entry>, expected: &[&str]| {
+            let entry_imports = entry.required_imports(&db).into_iter();
+            let imports_as_strings = entry_imports.map(|entry_import| {
+                let import: import::Info = entry_import.into();
+                import.to_string()
+            });
+            assert_eq!(imports_as_strings.collect_vec().as_slice(), expected);
         };
-        let expect_no_import = |entry: Rc<Entry>| assert!(entry.required_imports(&db).is_none());
+        let expect_no_import = |entry: Rc<Entry>| assert!(entry.required_imports(&db).is_empty());
 
         let number = db.lookup_by_qualified_name_str("Standard.Base.Number").unwrap();
         let some = db.lookup_by_qualified_name_str("Standard.Base.Maybe.Some").unwrap();
@@ -811,12 +935,22 @@ mod test {
             db.lookup_by_qualified_name_str("local.Project.Submodule.module_method").unwrap();
         let submodule = db.lookup_by_qualified_name_str("local.Project.Submodule").unwrap();
 
-        expect_import(number, "from Standard.Base import Number");
-        expect_import(some, "from Standard.Base import Maybe");
+        let defined_in = "local.Project.Submodule".try_into().unwrap();
+        let on_type = "Standard.Base.Number".try_into().unwrap();
+        let return_type = "Standard.Base.Boolean".try_into().unwrap();
+        let extension_method =
+            Rc::new(Entry::new_method(defined_in, on_type, "extension_method", return_type, true));
+
+        expect_imports(number, &["from Standard.Base import Number"]);
+        expect_imports(some, &["from Standard.Base import Maybe"]);
         expect_no_import(method);
-        expect_import(static_method, "from local.Project.Submodule import TestType");
-        expect_import(module_method, "import local.Project.Submodule");
-        expect_import(submodule, "import local.Project.Submodule");
+        expect_imports(static_method, &["from local.Project.Submodule import TestType"]);
+        expect_imports(module_method, &["import local.Project.Submodule"]);
+        expect_imports(submodule, &["import local.Project.Submodule"]);
+        expect_imports(extension_method, &[
+            "import local.Project.Submodule",
+            "from Standard.Base import Number",
+        ]);
     }
 
     #[test]
@@ -837,8 +971,13 @@ mod test {
                 }
             }
         };
-        let expect_import = |entry: Rc<Entry>, expected: &str| {
-            assert_eq!(entry.required_imports(&db).unwrap().to_string(), expected);
+        let expect_imports = |entry: Rc<Entry>, expected: &[&str]| {
+            let entry_imports = entry.required_imports(&db).into_iter();
+            let imports_as_strings = entry_imports.map(|entry_import| {
+                let import: import::Info = entry_import.into();
+                import.to_string()
+            });
+            assert_eq!(imports_as_strings.collect_vec().as_slice(), expected);
         };
 
         let tp = db.lookup_by_qualified_name_str("Standard.Base.Data.Type").unwrap();
@@ -849,11 +988,11 @@ mod test {
             db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule.module_method").unwrap();
         let submodule = db.lookup_by_qualified_name_str("Standard.Base.Data.Submodule").unwrap();
 
-        expect_import(tp, "from Standard.Base import Type");
-        expect_import(constructor, "from Standard.Base import Type");
-        expect_import(static_method, "from Standard.Base import Type");
-        expect_import(module_method, "from Standard.Base import Submodule");
-        expect_import(submodule, "from Standard.Base import Submodule");
+        expect_imports(tp, &["from Standard.Base import Type"]);
+        expect_imports(constructor, &["from Standard.Base import Type"]);
+        expect_imports(static_method, &["from Standard.Base import Type"]);
+        expect_imports(module_method, &["from Standard.Base import Submodule"]);
+        expect_imports(submodule, &["from Standard.Base import Submodule"]);
     }
 
     #[test]

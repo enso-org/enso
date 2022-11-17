@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use crate::model::SuggestionDatabase;
-use double_representation::import;
 
 
 
@@ -39,10 +38,13 @@ impl Suggestion {
         }
     }
 
-    pub(crate) fn required_imports(&self, db: &SuggestionDatabase) -> Option<import::Info> {
+    pub(crate) fn required_imports(
+        &self,
+        db: &SuggestionDatabase,
+    ) -> impl IntoIterator<Item = model::suggestion_database::entry::Import> {
         match self {
             Suggestion::FromDatabase(s) => s.required_imports(db),
-            Suggestion::Hardcoded(_) => None,
+            Suggestion::Hardcoded(_) => default(),
         }
     }
 

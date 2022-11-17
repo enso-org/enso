@@ -556,7 +556,7 @@ mod tests {
             let qualified_module = inner.project.qualified_module_name(inner.module.path());
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
-                defined_on_type: qualified_module.into(),
+                defined_on_type: qualified_module,
                 name:            Identifier::from_text("faux").unwrap(),
             };
             let arguments = vec!["foo".to_owned()];

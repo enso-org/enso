@@ -374,16 +374,32 @@ impl IntoIterator for QualifiedName {
 }
 
 
-// === Comparing with project::QualifiedName ===
+// === Comparing Various Name Representations ===
 
-impl PartialEq<project::QualifiedName> for QualifiedName {
+impl<Segments: AsRef<[ImString]>> PartialEq<project::QualifiedName>
+    for QualifiedNameTemplate<Segments>
+{
     fn eq(&self, other: &project::QualifiedName) -> bool {
-        self.as_ref() == *other
+        self.project == *other && self.path.as_ref().is_empty()
     }
 }
 
-impl<'a> PartialEq<project::QualifiedName> for QualifiedNameRef<'a> {
-    fn eq(&self, other: &project::QualifiedName) -> bool {
-        self.project == *other && self.path.is_empty()
+impl<Segments: AsRef<[ImString]>> PartialEq<NamePath> for QualifiedNameTemplate<Segments> {
+    fn eq(&self, other: &NamePath) -> bool {
+        self.segments().eq(other.iter())
+    }
+}
+
+impl<Segments: AsRef<[ImString]>> PartialEq<QualifiedNameTemplate<Segments>> for NamePath {
+    fn eq(&self, other: &QualifiedNameTemplate<Segments>) -> bool {
+        other == self
+    }
+}
+
+impl<'a, Segments: AsRef<[ImString]>> PartialEq<NamePathRef<'a>>
+    for QualifiedNameTemplate<Segments>
+{
+    fn eq(&self, other: &NamePathRef<'a>) -> bool {
+        self.segments().eq(other.iter())
     }
 }

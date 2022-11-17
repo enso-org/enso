@@ -172,27 +172,6 @@ impl Info {
     pub fn module_qualified_name(&self) -> FallibleResult<QualifiedName> {
         QualifiedName::from_all_segments(self.module.iter())
     }
-
-    // pub fn contains(&self, rhs: &Self) -> bool {
-    //     use ImportedNames::*;
-    //     let lhs_module = self.normalized_module();
-    //     let rhs_module = rhs.normalized_module();
-    //     let module_matches = lhs_module == rhs_module;
-    //     let imported_scope_contains = match (&self.imported, &rhs.imported) {
-    //         (Module { alias: lhs_alias }, Module { alias: rhs_alias }) => lhs_alias == rhs_alias,
-    //         (All, All) => true,
-    //         (All, List { .. }) => true,
-    //         (All, AllExcept { .. }) => true,
-    //         (List { names: lhs_list }, List { names: rhs_list }) =>
-    //             rhs_list.iter().all(|element| lhs_list.contains(element)),
-    //         (AllExcept { not_imported: lhs_list }, AllExcept { not_imported: rhs_list }) =>
-    //             lhs_list.iter().all(|element| rhs_list.contains(element)),
-    //         (AllExcept { not_imported: lhs_list }, List { names: rhs_list }) =>
-    //             rhs_list.iter().all(|element| !lhs_list.contains(element)),
-    //         _ => false,
-    //     };
-    //     module_matches && imported_scope_contains
-    // }
 }
 
 impl Display for Info {

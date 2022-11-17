@@ -418,7 +418,10 @@ impl FragmentAddedByPickingSuggestion {
         self.picked_suggestion.code_to_insert(generate_this)
     }
 
-    fn required_imports(&self, db: &model::SuggestionDatabase) -> Option<import::Info> {
+    fn required_imports(
+        &self,
+        db: &model::SuggestionDatabase,
+    ) -> impl IntoIterator<Item = suggestion_database::entry::Import> {
         self.picked_suggestion.required_imports(db)
     }
 }
@@ -446,13 +449,11 @@ impl Data {
     /// to suggest arguments.
     #[profile(Debug)]
     fn new_with_edited_node(
-        project_name: project::QualifiedName,
         graph: &controller::Graph,
         database: &model::SuggestionDatabase,
         edited_node_id: ast::Id,
     ) -> FallibleResult<Self> {
         let edited_node = graph.node(edited_node_id)?;
-        let current_module = graph.module.path().qualified_module_name(project_name);
         let input = ParsedInput::new_from_ast(edited_node.info.expression());
         let actions = default();
         let components = default();
@@ -598,12 +599,7 @@ impl Searcher {
         let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
-            Data::new_with_edited_node(
-                project.qualified_name(),
-                &graph.graph(),
-                &database,
-                node_id,
-            )?
+            Data::new_with_edited_node(&graph.graph(), &database, node_id)?
         } else {
             default()
         };
@@ -1037,7 +1033,6 @@ impl Searcher {
         let mut data = self.data.borrow_mut();
         let data = data.deref_mut();
         let input = &data.input;
-        let current_module = self.module_qualified_name();
         data.fragments_added_by_picking.drain_filter(|frag| !frag.is_still_unmodified(input));
     }
 
@@ -1049,24 +1044,32 @@ impl Searcher {
     ) -> FallibleResult {
         let imports = fragments.flat_map(|frag| frag.required_imports(&self.database));
         let mut module = self.module();
-        let here = self.module_qualified_name();
         // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
         //     documentation.
-        let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
-        for mut import in without_enso_project {
-            // TODO[ao]
-            // import.remove_main_module_segment();
+        let enso_project_special_import = suggestion_database::entry::Import::Qualified {
+            module: ENSO_PROJECT_SPECIAL_MODULE.try_into().unwrap(),
+        };
+        let without_enso_project = imports.filter(|i| *i != enso_project_special_import);
+        for entry_import in without_enso_project {
+            let already_imported =
+                module.iter_imports().any(|existing| entry_import.covered_by(&existing));
+            let import: import::Info = entry_import.into();
             let import_id = import.id();
-            let already_imported = module.iter_imports().any(|existing| existing.contains(&import));
-            if !already_imported {
+            let already_inserted = module.iter_imports().any(|existing| existing.id() == import_id);
+            let need_to_insert = !already_imported;
+            let old_import_became_permanent = permanent && already_inserted;
+            let need_to_update_md = need_to_insert || old_import_became_permanent;
+            if need_to_insert {
                 module.add_import(self.ide.parser(), import);
             }
-            self.graph.graph().module.with_import_metadata(
-                import_id,
-                Box::new(|import_metadata| {
-                    import_metadata.is_temporary = !permanent;
-                }),
-            )?;
+            if need_to_update_md {
+                self.graph.graph().module.with_import_metadata(
+                    import_id,
+                    Box::new(|import_metadata| {
+                        import_metadata.is_temporary = !permanent;
+                    }),
+                )?;
+            }
         }
         self.graph.graph().module.update_ast(module.ast)
     }
@@ -1777,7 +1780,7 @@ pub mod test {
                 .unwrap();
             let (_, entry9) = searcher
                 .database
-                .lookup_by_qualified_name(module_name.clone().new_child("testFunction2").as_ref())
+                .lookup_by_qualified_name(module_name.new_child("testFunction2").as_ref())
                 .unwrap();
             Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9 }
         }
@@ -1822,12 +1825,12 @@ pub mod test {
             Argument::new("num_arg", "Standard.Base.Number"),
         ];
         let function2 = suggestion_database::Entry::new_function(
-            module_name.clone(),
+            module_name,
             "testFunction2",
-            return_type.clone(),
-            scope.clone(),
+            return_type,
+            scope,
         )
-        .with_arguments(arguments.clone());
+        .with_arguments(arguments);
 
         database.put_entry(101, function);
         database.put_entry(102, local);
@@ -2426,9 +2429,7 @@ pub mod test {
         let database = searcher.database;
 
         // Node had not intended method.
-        let searcher_data =
-            Data::new_with_edited_node(project_qualified_name(), &graph, &database, node_id)
-                .unwrap();
+        let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.actions.is_loading());
@@ -2448,9 +2449,7 @@ pub mod test {
                 }),
             )
             .unwrap();
-        let searcher_data =
-            Data::new_with_edited_node(project_qualified_name(), &graph, &database, node_id)
-                .unwrap();
+        let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.actions.is_loading());
@@ -2458,9 +2457,7 @@ pub mod test {
         // Node had up-to-date intended method.
         graph.set_expression(node_id, "Test.testMethod1 12").unwrap();
         // We set metadata in previous section.
-        let searcher_data =
-            Data::new_with_edited_node(project_qualified_name(), &graph, &database, node_id)
-                .unwrap();
+        let searcher_data = Data::new_with_edited_node(&graph, &database, node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), "Test.testMethod1 12");
         assert!(searcher_data.actions.is_loading());
         let (initial_fragment,) = searcher_data.fragments_added_by_picking.expect_tuple();
