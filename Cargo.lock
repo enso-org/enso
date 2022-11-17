@@ -2861,6 +2861,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "ensogl-text",
 ]
 
