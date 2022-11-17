@@ -298,7 +298,7 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
 }
 
 impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }
 }

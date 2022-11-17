@@ -18,10 +18,6 @@ use nalgebra::Vector3;
 use transform::CachedTransform;
 
 
-/// The host of a display object, in most cases, this is the [`Scene`].
-pub trait Host = where Self: 'static;
-
-
 // ==================
 // === ParentBind ===
 // ==================
@@ -30,18 +26,18 @@ pub trait Host = where Self: 'static;
 /// index. When dropped, it removes the child from its parent.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct ParentBind<H: Host> {
-    parent: WeakInstance<H>,
+pub struct ParentBind {
+    parent: WeakInstance,
     index:  usize,
 }
 
-impl<H: Host> ParentBind<H> {
-    fn parent(&self) -> Option<Instance<H>> {
+impl ParentBind {
+    fn parent(&self) -> Option<Instance> {
         self.parent.upgrade()
     }
 }
 
-impl<H: Host> Drop for ParentBind<H> {
+impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
             parent.remove_child_by_index(self.index)
@@ -64,46 +60,46 @@ impl<H: Host> Drop for ParentBind<H> {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
-pub struct Callbacks<Host: 'static> {
-    on_updated:             RefCell<Option<Box<dyn Fn(&Model<Host>)>>>,
-    on_show:                RefCell<Option<Box<dyn Fn(&Host, Option<&WeakLayer>)>>>,
-    on_hide:                RefCell<Option<Box<dyn Fn(&Host)>>>,
+pub struct Callbacks {
+    on_updated:             RefCell<Option<Box<dyn Fn(&Model)>>>,
+    on_show:                RefCell<Option<Box<dyn Fn(&Scene, Option<&WeakLayer>)>>>,
+    on_hide:                RefCell<Option<Box<dyn Fn(&Scene)>>>,
     on_scene_layer_changed:
-        RefCell<Option<Box<dyn Fn(&Host, Option<&WeakLayer>, Option<&WeakLayer>)>>>,
+        RefCell<Option<Box<dyn Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>)>>>,
 }
 
-impl<Host> Callbacks<Host> {
-    fn on_updated(&self, model: &Model<Host>) {
+impl Callbacks {
+    fn on_updated(&self, model: &Model) {
         if let Some(f) = &*self.on_updated.borrow() {
             f(model)
         }
     }
 
-    fn on_show(&self, host: &Host, layer: Option<&WeakLayer>) {
+    fn on_show(&self, scene: &Scene, layer: Option<&WeakLayer>) {
         if let Some(f) = &*self.on_show.borrow() {
-            f(host, layer)
+            f(scene, layer)
         }
     }
 
-    fn on_hide(&self, host: &Host) {
+    fn on_hide(&self, scene: &Scene) {
         if let Some(f) = &*self.on_hide.borrow() {
-            f(host)
+            f(scene)
         }
     }
 
     fn on_scene_layer_changed(
         &self,
-        host: &Host,
+        scene: &Scene,
         old_layer: Option<&WeakLayer>,
         new_layer: Option<&WeakLayer>,
     ) {
         if let Some(f) = &*self.on_scene_layer_changed.borrow() {
-            f(host, old_layer, new_layer)
+            f(scene, old_layer, new_layer)
         }
     }
 }
 
-impl<Host> Debug for Callbacks<Host> {
+impl Debug for Callbacks {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Callbacks")
     }
@@ -119,7 +115,7 @@ impl<Host> Debug for Callbacks<Host> {
 
 type NewParentDirty = dirty::SharedBool<()>;
 type ChildrenDirty = dirty::SharedSet<usize, OnDirtyCallback>;
-type RemovedChildren<Host> = dirty::SharedVector<WeakInstance<Host>, OnDirtyCallback>;
+type RemovedChildren = dirty::SharedVector<WeakInstance, OnDirtyCallback>;
 type TransformDirty = dirty::SharedBool<OnDirtyCallback>;
 type SceneLayerDirty = dirty::SharedBool<OnDirtyCallback>;
 
@@ -133,24 +129,24 @@ type SceneLayerDirty = dirty::SharedBool<OnDirtyCallback>;
 /// the hierarchy is updated after calling the `update` method.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct DirtyFlags<Host: 'static> {
+pub struct DirtyFlags {
     parent:           NewParentDirty,
     children:         ChildrenDirty,
-    removed_children: RemovedChildren<Host>,
+    removed_children: RemovedChildren,
     transform:        TransformDirty,
     scene_layer:      SceneLayerDirty,
     #[derivative(Debug = "ignore")]
     on_dirty:         Rc<RefCell<Box<dyn Fn()>>>,
 }
 
-impl<Host> Default for DirtyFlags<Host> {
+impl Default for DirtyFlags {
     fn default() -> Self {
         Self::new()
     }
 }
 
 
-impl<Host> DirtyFlags<Host> {
+impl DirtyFlags {
     #![allow(trivial_casts)]
     fn new() -> Self {
         let on_dirty = Rc::new(RefCell::new(Box::new(|| {}) as Box<dyn Fn()>));
@@ -192,38 +188,36 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 /// See the documentation of [`Instance`] to learn more.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct Model<Host: 'static = Scene> {
+pub struct Model {
     network:             frp::Network,
     /// Source for events. See the documentation of [`event::Event`] to learn more about events.
     pub event_source:    frp::Source<event::SomeEvent>,
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
-    host:                PhantomData<Host>,
-    focused_descendant:  RefCell<Option<WeakInstance<Host>>>,
+    focused_descendant:  RefCell<Option<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer:      RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
     layer:               RefCell<Option<WeakLayer>>,
-    dirty:               DirtyFlags<Host>,
-    callbacks:           Callbacks<Host>,
-    parent_bind:         Rc<RefCell<Option<ParentBind<Host>>>>,
-    children:            RefCell<OptVec<WeakInstance<Host>>>,
+    dirty:               DirtyFlags,
+    callbacks:           Callbacks,
+    parent_bind:         Rc<RefCell<Option<ParentBind>>>,
+    children:            RefCell<OptVec<WeakInstance>>,
     transform:           RefCell<CachedTransform>,
     visible:             Cell<bool>,
     bounding_box:        Cell<Vector2<f32>>,
 }
 
-impl<Host> Default for Model<Host> {
+impl Default for Model {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<Host: 'static> Model<Host> {
+impl Model {
     /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new("display_object");
-        let host = default();
         let focused_descendant = default();
         let assigned_layer = default();
         let layer = default();
@@ -244,7 +238,6 @@ impl<Host: 'static> Model<Host> {
             event_source,
             capturing_event_fan,
             bubbling_event_fan,
-            host,
             focused_descendant,
             assigned_layer,
             layer,
@@ -273,7 +266,7 @@ impl<Host: 'static> Model<Host> {
     }
 
     /// Parent object getter.
-    pub fn parent(&self) -> Option<Instance<Host>> {
+    pub fn parent(&self) -> Option<Instance> {
         self.parent_bind.borrow().as_ref().and_then(|t| t.parent())
     }
 
@@ -283,9 +276,9 @@ impl<Host: 'static> Model<Host> {
     }
 
     /// Recompute the transformation matrix of this object and update all of its dirty children.
-    pub fn update(&self, host: &Host) {
+    pub fn update(&self, scene: &Scene) {
         let origin0 = Matrix4::identity();
-        self.update_with_origin(host, origin0, false, false, None)
+        self.update_with_origin(scene, origin0, false, false, None)
     }
 
     /// The default visibility of a new [`Instance`] is false. You can use this function to override
@@ -306,8 +299,8 @@ impl<Host: 'static> Model<Host> {
     }
 
     /// Removes all children of this display object and returns them.
-    pub fn remove_all_children(&self) -> Vec<Instance<Host>> {
-        let children: Vec<Instance<Host>> =
+    pub fn remove_all_children(&self) -> Vec<Instance> {
+        let children: Vec<Instance> =
             self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
         for child in &children {
             child.unset_parent();
@@ -323,28 +316,28 @@ impl<Host: 'static> Model<Host> {
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
-    pub fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    pub fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
-        self.bubbling_event_fan.output::<event::Event<Host, T>>()
+        self.bubbling_event_fan.output::<event::Event<T>>()
     }
 
     /// Get event stream for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
-        self.capturing_event_fan.output::<event::Event<Host, T>>()
+        self.capturing_event_fan.output::<event::Event<T>>()
     }
 }
 
 
 // === Update API ===
 
-impl<Host> Model<Host> {
+impl Model {
     /// Updates object transformations by providing a new origin location. See docs of `update` to
     /// learn more.
     fn update_with_origin(
         &self,
-        host: &Host,
+        scene: &Scene,
         parent_origin: Matrix4<f32>,
         parent_origin_changed: bool,
         parent_layers_changed: bool,
@@ -380,7 +373,7 @@ impl<Host> Model<Host> {
         if let Some(new_layer) = new_layer_opt {
             debug_span!("Scene layer changed.").in_scope(|| {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
-                self.callbacks.on_scene_layer_changed(host, old_layer.as_ref(), new_layer);
+                self.callbacks.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer);
             });
         }
 
@@ -390,7 +383,7 @@ impl<Host> Model<Host> {
 
         // === Origin & Visibility Update ===
 
-        self.update_visibility(host, parent_layer);
+        self.update_visibility(scene, parent_layer);
         let is_origin_dirty = has_new_parent || parent_origin_changed || layer_changed;
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
@@ -410,7 +403,7 @@ impl<Host> Model<Host> {
                         children.iter().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child| {
                                 child.update_with_origin(
-                                    host,
+                                    scene,
                                     new_origin,
                                     true,
                                     layer_changed,
@@ -431,7 +424,7 @@ impl<Host> Model<Host> {
                                 .and_then(|t| t.upgrade())
                                 .for_each(|child| {
                                     child.update_with_origin(
-                                        host,
+                                        scene,
                                         new_origin,
                                         false,
                                         layer_changed,
@@ -449,45 +442,45 @@ impl<Host> Model<Host> {
     }
 
     /// Hide all removed children and show this display object if it was attached to a new parent.
-    fn update_visibility(&self, host: &Host, parent_layer: Option<&WeakLayer>) {
-        self.take_removed_children_and_update_their_visibility(host);
+    fn update_visibility(&self, scene: &Scene, parent_layer: Option<&WeakLayer>) {
+        self.take_removed_children_and_update_their_visibility(scene);
         let parent_changed = self.dirty.parent.check();
         if parent_changed && !self.is_orphan() {
-            self.set_vis_true(host, parent_layer)
+            self.set_vis_true(scene, parent_layer)
         }
     }
 
-    fn take_removed_children_and_update_their_visibility(&self, host: &Host) {
+    fn take_removed_children_and_update_their_visibility(&self, scene: &Scene) {
         if self.dirty.removed_children.check_all() {
             debug_span!("Updating removed children.").in_scope(|| {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
                         if !child.has_visible_parent() {
-                            child.set_vis_false(host);
+                            child.set_vis_false(scene);
                         }
                         // Even if the child is visible at this point, it does not mean that it
                         // should be visible after the entire update. Therefore, we must ensure that
                         // "removed children" lists in its subtree will be managed.
                         // See also test `visibility_test3`.
-                        child.take_removed_children_and_update_their_visibility(host);
+                        child.take_removed_children_and_update_their_visibility(scene);
                     }
                 }
             })
         }
     }
 
-    fn set_vis_false(&self, host: &Host) {
+    fn set_vis_false(&self, scene: &Scene) {
         if self.visible.get() {
             trace!("Hiding.");
             self.visible.set(false);
-            self.callbacks.on_hide(host);
+            self.callbacks.on_hide(scene);
             self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_false(host));
+                child.upgrade().for_each(|t| t.set_vis_false(scene));
             });
         }
     }
 
-    fn set_vis_true(&self, host: &Host, parent_layer: Option<&WeakLayer>) {
+    fn set_vis_true(&self, scene: &Scene, parent_layer: Option<&WeakLayer>) {
         if !self.visible.get() {
             trace!("Showing.");
             let this_scene_layer = self.assigned_layer.borrow();
@@ -495,9 +488,9 @@ impl<Host> Model<Host> {
             let layer =
                 if this_scene_layers_ref.is_none() { parent_layer } else { this_scene_layers_ref };
             self.visible.set(true);
-            self.callbacks.on_show(host, layer);
+            self.callbacks.on_show(scene, layer);
             self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_true(host, layer));
+                child.upgrade().for_each(|t| t.set_vis_true(scene, layer));
             });
         }
     }
@@ -506,10 +499,10 @@ impl<Host> Model<Host> {
 
 // === Register / Unregister ===
 
-impl<Host: 'static> Model<Host> {
+impl Model {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
-    fn take_parent_bind(&self) -> Option<ParentBind<Host>> {
+    fn take_parent_bind(&self) -> Option<ParentBind> {
         let parent_bind = self.parent_bind.borrow_mut().take();
         if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
             let is_focused = self.focused_descendant.borrow().is_some();
@@ -521,7 +514,7 @@ impl<Host: 'static> Model<Host> {
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
-    fn set_parent_bind(&self, bind: ParentBind<Host>) {
+    fn set_parent_bind(&self, bind: ParentBind) {
         trace!("Adding new parent bind.");
         if let Some(focus_instance) = &*self.focused_descendant.borrow() {
             if let Some(parent) = bind.parent.upgrade() {
@@ -542,7 +535,7 @@ impl<Host: 'static> Model<Host> {
 
 // === Getters ===
 
-impl<Host> Model<Host> {
+impl Model {
     /// Position of the object in the global coordinate space.
     pub fn global_position(&self) -> Vector3<f32> {
         self.transform.borrow().global_position()
@@ -572,7 +565,7 @@ impl<Host> Model<Host> {
 
 // === Setters ===
 
-impl<Host> Model<Host> {
+impl Model {
     fn with_mut_borrowed_transform<F, T>(&self, f: F) -> T
     where F: FnOnce(&mut CachedTransform) -> T {
         self.dirty.transform.set();
@@ -606,21 +599,21 @@ impl<Host> Model<Host> {
     /// Sets a callback which will be called with a reference to the display object when the object
     /// will be updated.
     pub fn set_on_updated<F>(&self, f: F)
-    where F: Fn(&Model<Host>) + 'static {
+    where F: Fn(&Model) + 'static {
         self.callbacks.on_updated.set(Box::new(f))
     }
 
     /// Sets a callback which will be called with a reference to scene when the object will be
     /// shown (attached to visible display object graph).
     pub fn set_on_show<F>(&self, f: F)
-    where F: Fn(&Host, Option<&WeakLayer>) + 'static {
+    where F: Fn(&Scene, Option<&WeakLayer>) + 'static {
         self.callbacks.on_show.set(Box::new(f))
     }
 
     /// Sets a callback which will be called with a reference to scene when the object will be
     /// hidden (detached from display object graph).
     pub fn set_on_hide<F>(&self, f: F)
-    where F: Fn(&Host) + 'static {
+    where F: Fn(&Scene) + 'static {
         self.callbacks.on_hide.set(Box::new(f))
     }
 
@@ -628,7 +621,7 @@ impl<Host> Model<Host> {
     /// will be provided with a reference to scene and two lists of layers this object was
     /// previously and is currently attached to .
     pub fn set_on_scene_layer_changed<F>(&self, f: F)
-    where F: Fn(&Host, Option<&WeakLayer>, Option<&WeakLayer>) + 'static {
+    where F: Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static {
         self.callbacks.on_scene_layer_changed.set_if_empty_or_warn(Box::new(f))
     }
 }
@@ -652,42 +645,15 @@ pub struct Id(usize);
 // === Instance ===
 // ================
 
+// TODO: add information how Scene works and that moving objects between scenes is not supported.
+
 /// A hierarchical representation of object containing information about transformation in 3D space,
 /// list of children, and set of utils for dirty flag propagation.
-///
-/// ## Host
-/// The model is parametrized with a `Host`. In real life use cases, host is **ALWAYS** instantiated
-/// with `Scene`. For the needs of tests, its often instantiated with empty tuple for simplicity.
-/// Host has a very important role in decoupling the architecture. You need to provide the `update`
-/// method with a reference to the host, which is then passed to `on_show` and `on_hide` callbacks
-/// when a particular display objects gets shown or hidden respectively.
-///
-/// This can be used for a dynamic management of GPU-side rendering. After adding a display object
-/// to a scene, a new sprite can be created to display it visually. After removing the object and
-/// adding it to a different scene (another GPU context), the sprite in the first context can be
-/// trashed, and a new sprite in the new context can be created instead. This mechanism is currently
-/// also used for sprites layer management, but this functionality is inherently connected to the
-/// sprites creation in a given context (moving object to a different layer of the same [`Scene`] is
-/// similar to moving it to a layer of a different [`Scene`].
-///
-/// Thus, abstracting over `Host` allows users of this library to define a view model (like few
-/// sliders in a box) without the need to contain reference to a particular renderer, and attach the
-/// renderer on-demand, when the objects will be placed on the stage.
-///
-/// Please note, that moving an object between two Scenes (two WebGL contexts) is not implemented
-/// yet.
-///
-/// ## Possible changes to the Host parametrization design
-/// Instead of parametrizing the Display Object, the [`Host`] could be implemented as dyn trait
-/// object exposing a few options to registering sprites in Scene layers. This is a way less generic
-/// solution than the one implemented currently, but it would allow [`Scene`] parametrization. For
-/// example, if we would like to implement [`Scene<Context>`], where the [`Context`] is either a
-/// WebGL or an OpenGL context (currently contexts are implemented as dyn traits instead).
 ///
 /// ## Scene Layers
 /// Each display object instance contains an optional list of [`scene::LayerId`]. During object
 /// update, the list is passed from parent display objects to their children as long as the child
-/// does not override it (is assigned with [`None`]). Similar to [`Host`], the scene layers list
+/// does not override it (is assigned with [`None`]). Similar to [`Scene`], the scene layers list
 /// plays a very important role in decoupling the architecture. It allows objects and their children
 /// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
 /// management.
@@ -697,8 +663,8 @@ pub struct Id(usize);
 #[derivative(Debug(bound = ""))]
 #[derivative(Default(bound = ""))]
 #[repr(transparent)]
-pub struct Instance<Host: 'static = Scene> {
-    def: InstanceDef<Host>,
+pub struct Instance {
+    def: InstanceDef,
 }
 
 /// Internal representation of [`Instance`]. It exists only to make the implementation less
@@ -713,18 +679,18 @@ pub struct Instance<Host: 'static = Scene> {
 #[derive(CloneRef, Deref)]
 #[derivative(Clone(bound = ""))]
 #[repr(transparent)]
-pub struct InstanceDef<Host: 'static = Scene> {
-    rc: Rc<Model<Host>>,
+pub struct InstanceDef {
+    rc: Rc<Model>,
 }
 
-impl<Host: 'static> Instance<Host> {
+impl Instance {
     /// Constructor.
     pub fn new() -> Self {
         default()
     }
 }
 
-impl<Host: 'static> InstanceDef<Host> {
+impl InstanceDef {
     /// Constructor.
     pub fn new() -> Self {
         Self { rc: Rc::new(Model::new()) }.init()
@@ -748,7 +714,7 @@ impl<Host: 'static> InstanceDef<Host> {
 
     fn emit_event_impl(
         event: &event::SomeEvent,
-        parent: Option<Instance<Host>>,
+        parent: Option<Instance>,
         capturing_event_fan: &frp::Fan,
         bubbling_event_fan: &frp::Fan,
     ) {
@@ -781,13 +747,13 @@ impl<Host: 'static> InstanceDef<Host> {
 
     /// Get reversed parent chain of this display object (`[root, child_of root, ...,
     /// parent]`). The last item is the argument passed to this function.
-    fn rev_parent_chain(parent: Option<Instance<Host>>) -> Vec<Instance<Host>> {
+    fn rev_parent_chain(parent: Option<Instance>) -> Vec<Instance> {
         let mut vec = default();
         Self::build_rev_parent_chain(&mut vec, parent);
         vec
     }
 
-    fn build_rev_parent_chain(vec: &mut Vec<Instance<Host>>, parent: Option<Instance<Host>>) {
+    fn build_rev_parent_chain(vec: &mut Vec<Instance>, parent: Option<Instance>) {
         if let Some(parent) = parent {
             Self::build_rev_parent_chain(vec, parent.parent());
             vec.push(parent);
@@ -804,11 +770,11 @@ impl<Host: 'static> InstanceDef<Host> {
         self.event_source.emit(event::SomeEvent::new(Some(self.downgrade()), payload));
     }
 
-    fn focused_descendant(&self) -> Option<Instance<Host>> {
+    fn focused_descendant(&self) -> Option<Instance> {
         self.focused_descendant.borrow().as_ref().and_then(|t| t.upgrade())
     }
 
-    fn focused_instance(&self) -> Option<Instance<Host>> {
+    fn focused_instance(&self) -> Option<Instance> {
         if let Some(child) = self.focused_descendant() {
             Some(child)
         } else {
@@ -866,14 +832,14 @@ impl<Host: 'static> InstanceDef<Host> {
 
     /// Set the focus instance to the provided one here and in all instances on the path to the
     /// root.
-    fn propagate_up_new_focus_instance(&self, instance: &WeakInstance<Host>) {
+    fn propagate_up_new_focus_instance(&self, instance: &WeakInstance) {
         debug_assert!(self.focused_descendant.borrow().is_none());
         *self.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
     }
 }
 
-impl<Host: 'static> Default for InstanceDef<Host> {
+impl Default for InstanceDef {
     fn default() -> Self {
         Self::new()
     }
@@ -882,7 +848,7 @@ impl<Host: 'static> Default for InstanceDef<Host> {
 
 // === Public API ==
 
-impl<Host> InstanceDef<Host> {
+impl InstanceDef {
     /// ID getter of this display object.
     pub fn id(&self) -> Id {
         Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
@@ -894,9 +860,9 @@ impl<Host> InstanceDef<Host> {
 // === Hierarchy Management ===
 // ============================
 
-impl<Host: 'static> InstanceDef<Host> {
+impl InstanceDef {
     /// Adds a new `Object` as a child to the current one.
-    pub fn add_child(&self, child: &InstanceDef<Host>) {
+    pub fn add_child(&self, child: &InstanceDef) {
         child.unset_parent();
         let index = self.register_child(child);
         trace!("Adding a new child at index {index}.");
@@ -904,7 +870,7 @@ impl<Host: 'static> InstanceDef<Host> {
         child.set_parent_bind(parent_bind);
     }
 
-    fn register_child(&self, child: &InstanceDef<Host>) -> usize {
+    fn register_child(&self, child: &InstanceDef) -> usize {
         let index = self.children.borrow_mut().insert(child.downgrade());
         self.dirty.children.set(index);
         index
@@ -912,7 +878,7 @@ impl<Host: 'static> InstanceDef<Host> {
 
     /// Removes the provided object reference from child list of this object. Does nothing if the
     /// reference was not a child of this object.
-    pub fn remove_child<T: Object<Host>>(&self, child: &T) {
+    pub fn remove_child<T: Object>(&self, child: &T) {
         let child = child.display_object();
         if self.has_child(child) {
             child.unset_parent()
@@ -920,7 +886,7 @@ impl<Host: 'static> InstanceDef<Host> {
     }
 
     /// Replaces the parent binding with a new parent.
-    pub fn set_parent(&self, parent: &InstanceDef<Host>) {
+    pub fn set_parent(&self, parent: &InstanceDef) {
         parent.add_child(self);
     }
 
@@ -936,7 +902,7 @@ impl<Host: 'static> InstanceDef<Host> {
 // === Hierarchy Management ====
 // =============================
 
-impl<Host: 'static> InstanceDef<Host> {
+impl InstanceDef {
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
     pub fn display_layers(&self) -> Option<WeakLayer> {
@@ -968,7 +934,7 @@ impl<Host: 'static> InstanceDef<Host> {
 
 
     /// Checks if the provided object is child of the current one.
-    pub fn has_child<T: Object<Host>>(&self, child: &T) -> bool {
+    pub fn has_child<T: Object>(&self, child: &T) -> bool {
         self.child_index(child).is_some()
     }
 
@@ -978,7 +944,7 @@ impl<Host: 'static> InstanceDef<Host> {
     }
 
     /// Returns the index of the provided object if it was a child of the current one.
-    pub fn child_index<T: Object<Host>>(&self, child: &T) -> Option<usize> {
+    pub fn child_index<T: Object>(&self, child: &T) -> Option<usize> {
         let child = child.display_object();
         child.parent_bind.borrow().as_ref().and_then(|bind| {
             if bind.parent().as_ref().map(|t| &t.def) == Some(self) {
@@ -993,7 +959,7 @@ impl<Host: 'static> InstanceDef<Host> {
 
 // === Private API ===
 
-impl<Host> Instance<Host> {
+impl Instance {
     fn parent_index(&self) -> Option<usize> {
         self.parent_bind.borrow().as_ref().map(|t| t.index)
     }
@@ -1007,31 +973,31 @@ impl<Host> Instance<Host> {
 
 // === Instances ===
 
-impl<Host> PartialEq for InstanceDef<Host> {
+impl PartialEq for InstanceDef {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.rc, &other.rc)
     }
 }
 
-impl<Host> PartialEq for Instance<Host> {
+impl PartialEq for Instance {
     fn eq(&self, other: &Self) -> bool {
         self.def.eq(&other.def)
     }
 }
 
-impl<Host> Display for Instance<Host> {
+impl Display for Instance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Instance")
     }
 }
 
-impl<Host> Display for InstanceDef<Host> {
+impl Display for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Instance")
     }
 }
 
-impl<Host> Debug for InstanceDef<Host> {
+impl Debug for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "DisplayObject")
     }
@@ -1047,13 +1013,13 @@ impl<Host> Debug for InstanceDef<Host> {
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-pub struct WeakInstance<Host: 'static> {
-    weak: Weak<Model<Host>>,
+pub struct WeakInstance {
+    weak: Weak<Model>,
 }
 
-impl<Host> WeakInstance<Host> {
+impl WeakInstance {
     /// Upgrade the weak instance to strong one if it was not yet dropped.
-    pub fn upgrade(&self) -> Option<Instance<Host>> {
+    pub fn upgrade(&self) -> Option<Instance> {
         self.weak.upgrade().map(|rc| InstanceDef { rc }.into())
     }
 
@@ -1063,15 +1029,15 @@ impl<Host> WeakInstance<Host> {
     }
 }
 
-impl<Host> InstanceDef<Host> {
+impl InstanceDef {
     /// Create a new weak pointer to this display object instance.
-    pub fn downgrade(&self) -> WeakInstance<Host> {
+    pub fn downgrade(&self) -> WeakInstance {
         let weak = Rc::downgrade(&self.rc);
         WeakInstance { weak }
     }
 }
 
-impl<Host> PartialEq for WeakInstance<Host> {
+impl PartialEq for WeakInstance {
     fn eq(&self, other: &Self) -> bool {
         if self.exists() && other.exists() {
             self.weak.ptr_eq(&other.weak)
@@ -1092,27 +1058,27 @@ impl<Host> PartialEq for WeakInstance<Host> {
 /// implements it, automatically implements the `display::object::ObjectOps`, and thus gets a lot
 /// of methods implemented automatically.
 #[allow(missing_docs)]
-pub trait Object<Host = Scene> {
-    fn display_object(&self) -> &Instance<Host>;
-    fn weak_display_object(&self) -> WeakInstance<Host> {
+pub trait Object {
+    fn display_object(&self) -> &Instance;
+    fn weak_display_object(&self) -> WeakInstance {
         self.display_object().downgrade()
     }
 
     /// See `Any` description.
-    fn into_any(self) -> Any<Host>
+    fn into_any(self) -> Any
     where Self: Sized + 'static {
         Any { wrapped: Rc::new(self) }
     }
 }
 
-impl<Host> Object<Host> for Instance<Host> {
-    fn display_object(&self) -> &Instance<Host> {
+impl Object for Instance {
+    fn display_object(&self) -> &Instance {
         self
     }
 }
 
-impl<Host, T: Object<Host>> Object<Host> for &T {
-    fn display_object(&self) -> &Instance<Host> {
+impl<T: Object> Object for &T {
+    fn display_object(&self) -> &Instance {
         let t: &T = self;
         t.display_object()
     }
@@ -1130,24 +1096,24 @@ impl<Host, T: Object<Host>> Object<Host> for &T {
 /// to make general `From` implementation, because `Any` itself would use it as well, and it clashes
 /// with base implementation `From<T> for T`.
 #[derive(CloneRef)]
-pub struct Any<Host = Scene> {
-    wrapped: Rc<dyn Object<Host>>,
+pub struct Any {
+    wrapped: Rc<dyn Object>,
 }
 
-impl<Host> Clone for Any<Host> {
+impl Clone for Any {
     fn clone(&self) -> Self {
         Self { wrapped: self.wrapped.clone() }
     }
 }
 
-impl<Host> Debug for Any<Host> {
+impl Debug for Any {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "display::object::Any")
     }
 }
 
-impl<Host> Object<Host> for Any<Host> {
-    fn display_object(&self) -> &Instance<Host> {
+impl Object for Any {
+    fn display_object(&self) -> &Instance {
         self.wrapped.display_object()
     }
 }
@@ -1185,7 +1151,7 @@ impl Drop for UnsetParentOnDrop {
 // === ObjectOps ===
 // =================
 
-impl<Host: 'static, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
+impl<T: Object + ?Sized> ObjectOps for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
@@ -1193,7 +1159,7 @@ impl<Host: 'static, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 // HOTFIX[WD]: We are using names with underscores in order to fix this bug:
 // https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
-pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
+pub trait ObjectOps: Object {
     // === Information ===
 
     /// Globally unique identifier of this display object.
@@ -1212,13 +1178,13 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
 
     /// Add another display object as a child to this display object. Children will inherit all
     /// transformations of their parents.
-    fn add_child<T: Object<Host> + ?Sized>(&self, child: &T) {
+    fn add_child<T: Object + ?Sized>(&self, child: &T) {
         self.display_object().def.add_child(child.display_object());
     }
 
     /// Remove the display object from the children list of this display object. Does nothing if
     /// the child was not registered.
-    fn remove_child<T: Object<Host>>(&self, child: &T) {
+    fn remove_child<T: Object>(&self, child: &T) {
         self.display_object().def.remove_child(child.display_object());
     }
 
@@ -1252,14 +1218,14 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
-    fn on_event<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
         self.display_object().def.rc.on_event()
     }
 
     /// Get event stream for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<Host, T>>
+    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
         self.display_object().def.rc.on_event_capturing()
     }
@@ -1294,7 +1260,7 @@ pub trait ObjectOps<Host: 'static = Scene>: Object<Host> {
     }
 
     /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
-    fn focused_instance(&self) -> Option<Instance<Host>> {
+    fn focused_instance(&self) -> Option<Instance> {
         InstanceDef::focused_instance(self.display_object())
     }
 
@@ -1571,9 +1537,9 @@ mod tests {
 
     #[test]
     fn hierarchy_test() {
-        let node1 = Instance::<Scene>::new();
-        let node2 = Instance::<Scene>::new();
-        let node3 = Instance::<Scene>::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        let node3 = Instance::new();
         node1.add_child(&node2);
         assert_eq!(node2.parent_index(), Some(0));
 
@@ -1592,9 +1558,9 @@ mod tests {
         let world = World::new();
         let scene = &world.default_scene;
 
-        let node1 = Instance::<Scene>::new();
-        let node2 = Instance::<Scene>::new();
-        let node3 = Instance::<Scene>::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        let node3 = Instance::new();
         assert_eq!(node1.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node2.position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.position(), Vector3::new(0.0, 0.0, 0.0));
@@ -1659,9 +1625,9 @@ mod tests {
 
     #[test]
     fn parent_test() {
-        let node1 = Instance::<Scene>::new();
-        let node2 = Instance::<Scene>::new();
-        let node3 = Instance::<Scene>::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        let node3 = Instance::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node2.unset_parent();
@@ -1673,20 +1639,20 @@ mod tests {
     #[derive(Clone, CloneRef, Debug, Deref)]
     struct TestedNode {
         #[deref]
-        node:         Instance<Scene>,
+        node:         Instance,
         show_counter: Rc<Cell<usize>>,
         hide_counter: Rc<Cell<usize>>,
     }
 
-    impl Object<Scene> for TestedNode {
-        fn display_object(&self) -> &Instance<Scene> {
+    impl Object for TestedNode {
+        fn display_object(&self) -> &Instance {
             &self.node
         }
     }
 
     impl TestedNode {
         fn new() -> Self {
-            let node = Instance::<Scene>::new();
+            let node = Instance::new();
             let show_counter = Rc::<Cell<usize>>::default();
             let hide_counter = Rc::<Cell<usize>>::default();
             node.set_on_show(f__!(show_counter.set(show_counter.get() + 1)));
@@ -1864,13 +1830,13 @@ mod tests {
         let world = World::new();
         let scene = &world.default_scene;
 
-        let root = Instance::<Scene>::new();
-        let node1 = Instance::<Scene>::new();
-        let node2 = Instance::<Scene>::new();
-        let node3 = Instance::<Scene>::new();
-        let node4 = Instance::<Scene>::new();
-        let node5 = Instance::<Scene>::new();
-        let node6 = Instance::<Scene>::new();
+        let root = Instance::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        let node3 = Instance::new();
+        let node4 = Instance::new();
+        let node5 = Instance::new();
+        let node6 = Instance::new();
 
         root.force_set_visibility(true);
 
@@ -1940,9 +1906,9 @@ mod tests {
 
         let layer1 = Layer::new("0");
         let layer2 = Layer::new("1");
-        let node1 = Instance::<Scene>::new();
-        let node2 = Instance::<Scene>::new();
-        let node3 = Instance::<Scene>::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        let node3 = Instance::new();
         node1.add_child(&node2);
         node1.add_child(&node3);
         node1.update(scene);
@@ -1970,17 +1936,17 @@ mod tests {
         // obj_left_1     obj_right_1
         //     |               |
         // obj_left_2     obj_right_2
-        let obj_root = Instance::<Scene>::new();
-        let obj_left_1 = Instance::<Scene>::new();
-        let obj_left_2 = Instance::<Scene>::new();
-        let obj_right_1 = Instance::<Scene>::new();
-        let obj_right_2 = Instance::<Scene>::new();
+        let obj_root = Instance::new();
+        let obj_left_1 = Instance::new();
+        let obj_left_2 = Instance::new();
+        let obj_right_1 = Instance::new();
+        let obj_right_2 = Instance::new();
         obj_root.add_child(&obj_left_1);
         obj_root.add_child(&obj_right_1);
         obj_left_1.add_child(&obj_left_2);
         obj_right_1.add_child(&obj_right_2);
 
-        let check_focus_consistency = |focused: Option<&Instance<Scene>>| {
+        let check_focus_consistency = |focused: Option<&Instance>| {
             // Check that at most one object is focused and if so, that it is the correct one.
             assert_eq!(obj_root.is_focused(), focused == Some(&obj_root));
             assert_eq!(obj_left_1.is_focused(), focused == Some(&obj_left_1));
@@ -2095,9 +2061,9 @@ mod tests {
         let world = World::new();
         let scene = &world.default_scene;
 
-        let obj_1 = Instance::<Scene>::new();
-        let obj_2 = Instance::<Scene>::new();
-        let obj_3 = Instance::<Scene>::new();
+        let obj_1 = Instance::new();
+        let obj_2 = Instance::new();
+        let obj_3 = Instance::new();
         obj_1.add_child(&obj_2);
         obj_2.add_child(&obj_3);
 
