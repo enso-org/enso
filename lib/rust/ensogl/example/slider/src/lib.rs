@@ -51,13 +51,10 @@ pub fn main() {
 
 fn make_slider(app: &Application) -> Leak<slider::Slider> {
     let slider = app.new_view::<slider::Slider>();
-    slider.frp.set_width(200.0);
-    slider.frp.set_height(50.0);
     slider.frp.set_background_color(color::Lcha(0.8, 0.0, 0.0, 1.0));
     slider.frp.set_max_value(5.0);
     slider.frp.set_default_value(1.0);
     slider.frp.set_value(1.0);
-    slider.frp.set_max_disp_decimal_places(8);
     app.display.add_child(&slider);
     Leak::new(slider)
 }

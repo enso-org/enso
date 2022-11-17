@@ -45,6 +45,10 @@ pub mod model;
 /// Default slider precision when slider dragging is initiated. The precision indicates both how
 /// much the value is changed per pixel dragged and how many digits are displayed after the decimal.
 const PRECISION_DEFAULT: f32 = 0.1;
+/// Default upper limit of the slider value.
+const MAX_VALUE_DEFAULT: f32 = 1.0;
+/// Default for the maximum number of digits after the decimal point that is displayed.
+const MAX_DISP_DECIMAL_PLACES_DEFAULT: usize = 8;
 /// Margin above/below the component within which vertical mouse movement will not affect slider
 /// precision.
 const PRECISION_ADJUSTMENT_MARGIN: f32 = 10.0;
@@ -373,6 +377,8 @@ impl Slider {
         self.frp.set_default_precision(PRECISION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
+        self.frp.set_max_value(MAX_VALUE_DEFAULT);
+        self.frp.set_max_disp_decimal_places(MAX_DISP_DECIMAL_PLACES_DEFAULT);
     }
 }
 

@@ -18,6 +18,10 @@ use ensogl_text::formatting::ResolvedProperty;
 
 /// Size of the margin around the component's shapes for proper anti-aliasing.
 const COMPONENT_MARGIN: f32 = 4.0;
+/// Default component width on initialization.
+const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
+/// Default component height on initialization.
+const COMPONENT_HEIGHT_DEFAULT: f32 = 50.0;
 
 
 
@@ -142,6 +146,7 @@ impl Model {
         let track_color = style.get_color(theme::component::slider::track::color);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
+        self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
     }
