@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
       - id: promote
-        run: ./run release promote ${{ inputs.designation }}
+        run: ./run release promote ${{ inputs.designator }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360

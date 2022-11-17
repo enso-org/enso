@@ -61,6 +61,8 @@ pub const DEFAULT_BRANCH_NAME: &str = "develop";
 
 pub const RELEASE_CONCURRENCY_GROUP: &str = "release";
 
+pub const DESIGNATOR_INPUT_NAME: &str = "designator";
+
 /// Secrets set up in our organization.
 ///
 /// To manage, see: https://github.com/organizations/enso-org/settings/secrets/actions
@@ -244,7 +246,7 @@ impl JobArchetype for UploadIde {
 pub struct PromoteReleaseJob;
 impl JobArchetype for PromoteReleaseJob {
     fn job(os: OS) -> Job {
-        let command = format!("release promote {}", wrap_expression("inputs.designation"));
+        let command = format!("release promote {}", get_input_expression(DESIGNATOR_INPUT_NAME));
         let mut job = plain_job_customized(&os, "Promote release", command, |step| {
             vec![step.with_id(Self::PROMOTE_STEP_ID)]
         });
@@ -384,7 +386,8 @@ pub fn promote() -> Result<Workflow> {
         Designation::iter().map(|d| d.as_ref().to_string()),
         None::<String>,
     )?;
-    let workflow_dispatch = WorkflowDispatch::default().with_input("designator", designator);
+    let workflow_dispatch =
+        WorkflowDispatch::default().with_input(DESIGNATOR_INPUT_NAME, designator);
     let on = Event { workflow_dispatch: Some(workflow_dispatch), ..default() };
     let mut workflow = Workflow {
         on,
