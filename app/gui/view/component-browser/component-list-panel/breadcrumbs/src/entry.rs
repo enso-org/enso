@@ -38,7 +38,8 @@ pub mod separator {
             let width = style.get_number(theme::separator::width);
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
-            let triangle = triangle.translate_x(1.0.px());
+            let offset_x = style.get_number(theme::separator::offset_x).px();
+            let triangle = triangle.translate_x(offset_x);
             let shape = triangle.fill(color);
             shape.into()
         }

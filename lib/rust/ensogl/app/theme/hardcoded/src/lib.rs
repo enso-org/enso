@@ -289,13 +289,14 @@ define_themes! { [light:0, dark:1]
                             width = 8.0, 8.0;
                             height = 6.0, 6.0;
                             color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            offset_x = 1.0, 1.0;
                         }
                         ellipsis {
                             background_width = 28.0, 28.0;
                             background_height = 16.0, 16.0;
                             background_corners_radius = 100.0, 100.0;
-                            background_color = Rgba(0.0, 0.0, 0.0, 0.04), Rgb(0.89, 0.89, 0.9);
-                            circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgb(0.74, 0.74, 0.75);
+                            background_color = Rgba(0.0, 0.0, 0.0, 0.04), Rgba(0.0, 0.0, 0.0, 0.04);
+                            circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgba(0.0, 0.0, 0.0, 0.17);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;
                         }
@@ -306,9 +307,9 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 8.0, 8.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
-                            selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.5, 0.5, 0.51, 1.0);
+                            selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.0, 0.0, 0.0, 0.46);
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.79, 0.79, 0.8, 1.0);
+                            greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                         }
                     }
                 }
