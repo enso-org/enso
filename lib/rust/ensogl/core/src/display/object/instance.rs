@@ -27,8 +27,8 @@ use transform::CachedTransform;
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct ParentBind {
-    parent: WeakInstance,
-    index:  usize,
+    parent:      WeakInstance,
+    child_index: usize,
 }
 
 impl ParentBind {
@@ -40,7 +40,7 @@ impl ParentBind {
 impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
-            parent.remove_child_by_index(self.index)
+            parent.remove_child_by_index(self.child_index)
         }
     }
 }
@@ -51,12 +51,10 @@ impl Drop for ParentBind {
 // === Callbacks ===
 // =================
 
-/// Callbacks manager for display objects. Callbacks can be set only once. Panics if you try set
-/// another callback to field with an already assigned callback. This design was chosen because it
-/// is very lightweight and is not confusing (setting a callback unregistering previous one will be
-/// confusing, while allowing to set multiple callbacks will use more resources). We may
-/// want to switch to a real callback registry in the future if there will be suitable use cases for
-/// it.
+/// Callbacks manager for display objects. Callbacks can be set only once. The implementation panics
+/// if you try setting a callback to field with an already assigned one. This design was chosen
+/// because it is very lightweight and is not confusing (setting a callback unregistering
+/// previous one is error-prone, while allowing to set multiple callbacks is not needed currently).
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
@@ -523,7 +521,7 @@ impl Model {
             }
         }
         if let Some(parent) = bind.parent() {
-            let index = bind.index;
+            let index = bind.child_index;
             let dirty = parent.dirty.children.clone_ref();
             self.dirty.set_on_dirty(move || dirty.set(index));
             self.dirty.parent.set();
@@ -864,9 +862,9 @@ impl InstanceDef {
     /// Adds a new `Object` as a child to the current one.
     pub fn add_child(&self, child: &InstanceDef) {
         child.unset_parent();
-        let index = self.register_child(child);
-        trace!("Adding a new child at index {index}.");
-        let parent_bind = ParentBind { parent: self.downgrade(), index };
+        let child_index = self.register_child(child);
+        trace!("Adding a new child at index {child_index}.");
+        let parent_bind = ParentBind { parent: self.downgrade(), child_index };
         child.set_parent_bind(parent_bind);
     }
 
@@ -948,7 +946,7 @@ impl InstanceDef {
         let child = child.display_object();
         child.parent_bind.borrow().as_ref().and_then(|bind| {
             if bind.parent().as_ref().map(|t| &t.def) == Some(self) {
-                Some(bind.index)
+                Some(bind.child_index)
             } else {
                 None
             }
@@ -961,7 +959,7 @@ impl InstanceDef {
 
 impl Instance {
     fn parent_index(&self) -> Option<usize> {
-        self.parent_bind.borrow().as_ref().map(|t| t.index)
+        self.parent_bind.borrow().as_ref().map(|t| t.child_index)
     }
 
     fn has_visible_parent(&self) -> bool {
