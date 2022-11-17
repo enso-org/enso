@@ -121,8 +121,26 @@ impl InstanceBuilder {
         default()
     }
 
-    pub fn on_updated(mut self, f: impl OnUpdatedCallback) -> Self {
+    pub fn on_updated(mut self, f: impl Fn(&Model) + 'static) -> Self {
         self.on_updated = Some(Box::new(f));
+        self
+    }
+
+    pub fn on_show(mut self, f: impl Fn(&Scene, Option<&WeakLayer>) + 'static) -> Self {
+        self.on_show = Some(Box::new(f));
+        self
+    }
+
+    pub fn on_hide(mut self, f: impl Fn(&Scene) + 'static) -> Self {
+        self.on_hide = Some(Box::new(f));
+        self
+    }
+
+    pub fn on_scene_layer_changed(
+        mut self,
+        f: impl Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static,
+    ) -> Self {
+        self.on_scene_layer_changed = Some(Box::new(f));
         self
     }
 
@@ -225,6 +243,7 @@ pub struct Model {
     pub event_source:    frp::Source<event::SomeEvent>,
     capturing_event_fan: frp::Fan,
     bubbling_event_fan:  frp::Fan,
+    on_show:             frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     focused_descendant:  RefCell<Option<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer:      RefCell<Option<WeakLayer>>,
@@ -262,6 +281,7 @@ impl Model {
         let capturing_event_fan = frp::Fan::new(&network);
         let bubbling_event_fan = frp::Fan::new(&network);
         frp::extend! { network
+            on_show <- source();
             event_source <- source();
         }
         Self {
@@ -269,6 +289,7 @@ impl Model {
             event_source,
             capturing_event_fan,
             bubbling_event_fan,
+            on_show,
             focused_descendant,
             assigned_layer,
             layer,
@@ -520,6 +541,7 @@ impl Model {
                 if this_scene_layers_ref.is_none() { parent_layer } else { this_scene_layers_ref };
             self.visible.set(true);
             self.callbacks.on_show(scene, layer);
+            self.on_show.emit((Some(scene.clone_ref()), layer.cloned()));
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_true(scene, layer));
             });
@@ -719,11 +741,6 @@ impl Instance {
     pub fn new() -> Self {
         default()
     }
-
-    // pub trait OnUpdatedCallback = Fn(&Model);
-    // pub trait OnShowCallback = Fn(&Scene, Option<&WeakLayer>);
-    // pub trait OnHideCallback = Fn(&Scene);
-    // pub trait OnSceneLayerChanged = Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>);
 
     pub fn new_with_callbacks() -> InstanceBuilder {
         default()

@@ -65,6 +65,7 @@ use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::scene::Scene;
+use crate::display::shape::builder::GLSL_PRELUDE;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
 use crate::display::symbol::geometry::compound::sprite;
@@ -400,6 +401,7 @@ impl ShapeSystemModel {
 
     fn default_geometry_material() -> Material {
         let mut material = SpriteSystem::default_geometry_material();
+        material.set_before_main(GLSL_PRELUDE);
         // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
         // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
         //

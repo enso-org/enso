@@ -118,7 +118,7 @@ impl DomSymbol {
         dom.set_style_or_warn("height", "0px");
         dom.append_or_warn(content);
         let display_object = display::object::Instance::new_with_callbacks()
-            .on_updated(f!([dom] (t: &display::object::Model) {
+            .on_updated(f!([dom] (t) {
                 let mut transform = inverse_y_translation(t.matrix());
                 transform.iter_mut().for_each(|a| *a = eps(*a));
                 set_object_transform(&dom,&transform);

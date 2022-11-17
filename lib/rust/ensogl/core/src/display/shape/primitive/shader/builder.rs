@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::glsl::Codes;
 use crate::display::shape::primitive::shader::overload;
-use crate::display::symbol::geometry::compound::sprite::GLSL_PRELUDE;
 use crate::display::symbol::shader::builder::CodeTemplate;
 
 use super::canvas;
@@ -20,6 +19,8 @@ use super::canvas::Canvas;
 
 // === GLSL Sources ===
 
+/// Common GLSL functions for all sprite types.
+pub const GLSL_PRELUDE: &str = include_str!("../glsl/prelude.glsl");
 const MATH: &str = include_str!("../glsl/math.glsl");
 const COLOR: &str = include_str!("../glsl/color.glsl");
 const DEBUG: &str = include_str!("../glsl/debug.glsl");
@@ -66,7 +67,7 @@ fn header(label: &str) -> String {
 }
 
 
-// == GLSL_PRELUDE ==
+// == GLSL Boilerplate ==
 
 lazy_static! {
     /// A common preamble used to start every shader program.

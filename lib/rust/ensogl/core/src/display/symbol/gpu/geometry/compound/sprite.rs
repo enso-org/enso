@@ -24,9 +24,6 @@ use crate::display::symbol::SymbolInstance;
 
 const DEFAULT_SPRITE_SIZE: (f32, f32) = (10.0, 10.0);
 
-/// Common GLSL functions for all sprite types.
-pub const GLSL_PRELUDE: &str = include_str!("sprite/prelude.glsl");
-
 
 
 // ===================
@@ -101,7 +98,7 @@ impl Size {
         let hidden = Rc::new(Cell::new(true));
         let value = Rc::new(Cell::new(zero()));
         let display_object = display::object::Instance::new_with_callbacks()
-            .on_updated(f!((t: &display::object::Model) transform.set(t.matrix())))
+            .on_updated(f!((t) transform.set(t.matrix())))
             .build();
         Self { hidden, value, attr, display_object }
     }
@@ -341,7 +338,6 @@ impl SpriteSystem {
         material.add_input_def::<Vector2<f32>>("alignment");
         material.add_input_def::<i32>("global_instance_id");
         material.add_output_def::<Vector3<f32>>("local");
-        material.set_before_main(GLSL_PRELUDE); // FIXME: move to shape
         material.set_main(
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
