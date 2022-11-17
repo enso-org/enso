@@ -16,6 +16,7 @@ use ide_ci::actions::artifacts;
 use ide_ci::cache;
 use ide_ci::cache::Cache;
 use ide_ci::ok_ready_boxed;
+use ide_ci::programs::git;
 use octocrab::models::repos::Asset;
 
 
@@ -97,6 +98,14 @@ pub struct Context {
     /// as well.
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repo_root: crate::paths::generated::RepoRoot,
+}
+
+impl Context {
+    /// Get a `git` program handle for the repository.
+    pub fn git(&self) -> impl Future<Output = Result<git::Context>> + 'static {
+        let root = self.repo_root.to_path_buf();
+        git::new(root)
+    }
 }
 
 /// Build targets, like GUI or Project Manager.

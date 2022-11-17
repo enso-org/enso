@@ -1,11 +1,16 @@
 use crate::prelude::*;
 
+
 use crate::ci_gen::job::expose_os_specific_signing_secret;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
 
+use enso_build::release::Designation;
 use enso_build::version;
+use enso_build::version::ENSO_EDITION;
+use enso_build::version::ENSO_RELEASE_MODE;
+use enso_build::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
@@ -19,16 +24,20 @@ use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
+use ide_ci::actions::workflow::definition::JobSecrets;
 use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::RunnerLabel::X64;
 use ide_ci::actions::workflow::definition::Schedule;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
+use ide_ci::actions::workflow::definition::WorkflowCall;
 use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
+use strum::IntoEnumIterator;
 
 
 // ==============
@@ -90,6 +99,12 @@ pub mod secret {
 
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
+}
+
+/// Get expression that gets input from the workflow dispatch. See:
+/// <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs>
+pub fn get_input_expression(name: impl Into<String>) -> String {
+    wrap_expression(format!("inputs.{}", name.into()))
 }
 
 impl RunsOn for DeluxeRunner {
@@ -180,10 +195,9 @@ pub fn setup_script_and_steps(command_line: impl AsRef<str>) -> Vec<Step> {
 pub struct DraftRelease;
 impl JobArchetype for DraftRelease {
     fn job(os: OS) -> Job {
-        let name = "Create release draft".into();
+        let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
-
         let mut steps = setup_script_steps();
         steps.push(prepare_step);
 
@@ -228,6 +242,31 @@ impl JobArchetype for UploadIde {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct PromoteReleaseJob;
+impl JobArchetype for PromoteReleaseJob {
+    fn job(os: OS) -> Job {
+        let mut job = plain_job_customized(&os, "Promote release", "release promote", |step| {
+            vec![step.with_id(Self::PROMOTE_STEP_ID)]
+        });
+        Self::expose_outputs(&mut job);
+        job
+    }
+
+    fn outputs() -> BTreeMap<String, Vec<String>> {
+        let mut ret = BTreeMap::new();
+        ret.insert(Self::PROMOTE_STEP_ID.into(), vec![
+            ENSO_VERSION.name.to_string(),
+            ENSO_EDITION.name.to_string(),
+            ENSO_RELEASE_MODE.name.to_string(),
+        ]);
+        ret
+    }
+}
+impl PromoteReleaseJob {
+    pub const PROMOTE_STEP_ID: &'static str = "promote";
+}
+
 /// Generate a workflow that checks if the changelog has been updated (if needed).
 pub fn changelog() -> Result<Workflow> {
     use PullRequestActivityType::*;
@@ -263,11 +302,12 @@ pub fn nightly() -> Result<Workflow> {
         ..default()
     };
 
-    add_release_steps(&mut workflow, version::Kind::Nightly)?;
+    add_release_steps(&mut workflow)?;
+    workflow.env(*crate::ENSO_BUILD_KIND, version::Kind::Nightly.to_string());
     Ok(workflow)
 }
 
-fn add_release_steps(workflow: &mut Workflow, kind: version::Kind) -> Result {
+fn add_release_steps(workflow: &mut Workflow) -> Result {
     let prepare_job_id = workflow.add::<DraftRelease>(PRIMARY_OS);
     let build_wasm_job_id = workflow.add::<job::BuildWasm>(PRIMARY_OS);
     let mut packaging_job_ids = vec![];
@@ -305,26 +345,67 @@ fn add_release_steps(workflow: &mut Workflow, kind: version::Kind) -> Result {
 
 
     let _publish_job_id = workflow.add_dependent::<PublishRelease>(PRIMARY_OS, publish_deps);
-
-    let global_env = [(*crate::ENSO_BUILD_KIND, kind.as_ref()), ("RUST_BACKTRACE", "full")];
-    for (var_name, value) in global_env {
-        workflow.env(var_name, value);
-    }
-
+    workflow.env("RUST_BACKTRACE", "full");
     Ok(())
 }
 
-pub fn release_candidate() -> Result<Workflow> {
-    let on = Event { workflow_dispatch: Some(default()), ..default() };
+pub fn release() -> Result<Workflow> {
+    let version_input = WorkflowDispatchInput::new_string(
+        "What version number this release should get.",
+        true,
+        None::<String>,
+    );
+    let workflow_dispatch = WorkflowDispatch::default().with_input("version", version_input);
+    let workflow_call = WorkflowCall::try_from(workflow_dispatch.clone())?;
+    let on = Event {
+        workflow_dispatch: Some(workflow_dispatch),
+        workflow_call: Some(workflow_call),
+        ..default()
+    };
 
     let mut workflow = Workflow {
         on,
-        name: "Release Candidate".into(),
+        name: "Release".into(),
         concurrency: Some(release_concurrency()),
         ..default()
     };
 
-    add_release_steps(&mut workflow, version::Kind::Rc)?;
+    add_release_steps(&mut workflow)?;
+    let version_input_expression = get_input_expression("version");
+    workflow.env(ENSO_EDITION.name, &version_input_expression);
+    workflow.env(ENSO_VERSION.name, &version_input_expression);
+    Ok(workflow)
+}
+
+
+pub fn promote() -> Result<Workflow> {
+    let designator = WorkflowDispatchInput::new_choice(
+        "What kind of release should be promoted.",
+        true,
+        Designation::iter().map(|d| d.as_ref().to_string()),
+        None::<String>,
+    )?;
+    let workflow_dispatch = WorkflowDispatch::default().with_input("designator", designator);
+    let on = Event { workflow_dispatch: Some(workflow_dispatch), ..default() };
+    let mut workflow = Workflow {
+        on,
+        name: "Promote Release".into(),
+        concurrency: Some(release_concurrency()),
+        ..default()
+    };
+
+
+    let promote_job_id = workflow.add::<PromoteReleaseJob>(PRIMARY_OS);
+
+    let mut release_job = Job::new("Release");
+    release_job.timeout_minutes = None;
+    release_job.needs(&promote_job_id);
+    release_job.uses = Some("./.github/workflows/release.yml".into());
+    release_job
+        .with("version", wrap_expression(format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}")));
+    release_job.secrets = Some(JobSecrets::Inherit);
+    workflow.add_job(release_job);
+
     Ok(workflow)
 }
 
@@ -413,6 +494,7 @@ pub fn generate(repo_root: &enso_build::paths::generated::RepoRootGithubWorkflow
     repo_root.scala_new_yml.write_as_yaml(&backend()?)?;
     repo_root.gui_yml.write_as_yaml(&gui()?)?;
     repo_root.benchmark_yml.write_as_yaml(&benchmark()?)?;
-    repo_root.release_yml.write_as_yaml(&release_candidate()?)?;
+    repo_root.release_yml.write_as_yaml(&release()?)?;
+    repo_root.promote_yml.write_as_yaml(&promote()?)?;
     Ok(())
 }

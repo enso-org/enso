@@ -137,6 +137,8 @@ pub const USER_AGENT: &str = "enso-build";
 
 pub const UNREGISTERED_PORTS: Range<u16> = 49152..65535;
 
+pub const RECORD_SEPARATOR: &str = "\u{1E}";
+
 /// Looks up a free port in the IANA private or dynamic port range.
 pub fn get_free_port() -> Result<u16> {
     let port_range = UNREGISTERED_PORTS;

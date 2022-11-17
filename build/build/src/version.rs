@@ -1,4 +1,8 @@
 //! Code that deals with the version of Enso.
+//!
+//! Enso uses [Semantic Versioning 2.0.0](https://semver.org/). By the convention the major version
+//! number is fixed to the year of the release. The minor version number is incremented for each
+//! (backwards incompatible) release.
 
 use crate::prelude::*;
 
@@ -19,9 +23,11 @@ use tracing::instrument;
 
 
 // Variable that stores Enso Engine version.
+// They are also used by the SBT part of the build.
 define_env_var! {
     /// The version of Enso (shared by GUI and Engine).
     ENSO_VERSION, Version;
+
     /// Edition name for the build.
     ///
     /// By convention, this is the same as the version.
@@ -31,18 +37,14 @@ define_env_var! {
     ENSO_RELEASE_MODE, bool;
 }
 
+
 pub const LOCAL_BUILD_PREFIX: &str = "dev";
 pub const NIGHTLY_BUILD_PREFIX: &str = "nightly";
 pub const RC_BUILD_PREFIX: &str = "rc";
 
 /// Check if the given GitHub release matches the provided kind.
 pub fn is_release_of_kind(release: &Release, kind: Kind) -> bool {
-    match kind {
-        Kind::Dev => release.tag_name.contains(LOCAL_BUILD_PREFIX),
-        Kind::Nightly => release.tag_name.contains(NIGHTLY_BUILD_PREFIX),
-        Kind::Rc => release.tag_name.contains(RC_BUILD_PREFIX),
-        Kind::Stable => !release.prerelease,
-    }
+    matches!(release.tag_name.parse2(), Ok(version) if kind.matches(&version))
 }
 
 /// List all releases in the GitHub repository that are of a given kind.
@@ -54,6 +56,7 @@ pub async fn releases_of_kind(
 }
 
 /// Get the latest nightly release in the GitHub repository.
+#[context("Failed to get the latest nightly release in {repo}.")]
 pub async fn latest_nightly_release(repo: &github::repo::Handle<impl IsRepo>) -> Result<Release> {
     // TODO: this assumes that releases are returned in date order, to be confirmed
     //       (but having to download all the pages to see which is latest wouldn't be nice)
@@ -248,6 +251,52 @@ pub fn suggest_next_version(previous: &Version) -> Version {
     }
 }
 
+/// Generate a next RC version for the given version.
+///
+/// ```
+/// use enso_build::prelude::*;
+/// use enso_build::version::increment_rc_version;
+/// let rc_version = Version::from_str("0.2.3-rc.1").unwrap();
+/// assert_eq!(increment_rc_version(&rc_version).unwrap().to_string(), "0.2.3-rc.2");
+/// ```
+pub fn increment_rc_version(version: &Version) -> Result<Version> {
+    ensure!(Kind::Rc.matches(version), "Version is not an RC version: {}.", version);
+    match version.pre.split('.').collect_vec().as_slice() {
+        [RC_BUILD_PREFIX, index] => {
+            let index = index.parse2::<u32>().context("Parsing RC index.")?;
+            let pre = generate_rc_prerelease(index + 1)?;
+            Ok(Version { pre, ..version.clone() })
+        }
+        _ => bail!("RC version has an unexpected prerelease: {}.", version),
+    }
+}
+
+/// Compare version core, i.e. the part that is not a prerelease/build.
+///
+/// This is used to determine if a version is a prerelease of another version.
+///
+/// # Example
+/// ```
+/// use enso_build::prelude::*;
+/// use enso_build::version::same_core_version;
+///
+/// let version = Version::from_str("1.2.3").unwrap();
+/// assert!(same_core_version(&version, &version));
+/// let version_beta = Version::from_str("1.2.3-beta").unwrap();
+/// assert!(same_core_version(&version, &version_beta));
+/// let version_build = Version::from_str("1.2.3+build").unwrap();
+/// assert!(same_core_version(&version, &version_build));
+/// let other_version = Version::from_str("1.2.4").unwrap();
+/// assert!(!same_core_version(&version, &other_version));
+/// ```
+pub fn same_core_version(a: &Version, b: &Version) -> bool {
+    a.major == b.major && a.minor == b.minor && a.patch == b.patch
+}
+
+pub fn generate_rc_prerelease(index: u32) -> Result<Prerelease> {
+    Prerelease::from_str(&format!("{}.{}", RC_BUILD_PREFIX, index))
+}
+
 #[instrument(ret)]
 pub fn versions_from_env(expected_build_kind: Option<Kind>) -> Result<Option<Versions>> {
     if let Ok(version) = ENSO_VERSION.get() {
@@ -302,30 +351,6 @@ pub async fn deduce_or_generate(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_nightly_test() {
-        let is_nightly = |text: &str| Kind::Nightly.matches(&Version::parse(text).unwrap());
-        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
-        assert!(is_nightly("2022.1.1-nightly"));
-        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
-        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
-
-        let version = Version::parse("2022.1.1-nightly.2022-06-06.3").unwrap();
-        assert!(Kind::deduce(&version).contains(&Kind::Nightly));
-    }
-
-    #[test]
-    #[ignore]
-    fn iii() -> Result {
-        dbg!(base_version(r"H:\nbo\enso\app\gui\changelog.md")?);
-        Ok(())
-    }
-}
-
 #[derive(
     clap::ArgEnum,
     Clone,
@@ -347,22 +372,74 @@ pub enum Kind {
 }
 
 impl Kind {
-    pub fn prerelease_prefix(self) -> &'static str {
+    /// Get the first piece of prerelease identifier that is used to designate this kind of version.
+    ///
+    /// Returns `None` if this kind of version requires empty prerelease.
+    pub fn prerelease_prefix(self) -> Option<&'static str> {
         match self {
-            Kind::Dev => LOCAL_BUILD_PREFIX,
-            Kind::Nightly => NIGHTLY_BUILD_PREFIX,
-            Kind::Rc => RC_BUILD_PREFIX,
-            Kind::Stable => "",
+            Kind::Dev => Some(LOCAL_BUILD_PREFIX),
+            Kind::Nightly => Some(NIGHTLY_BUILD_PREFIX),
+            Kind::Rc => Some(RC_BUILD_PREFIX),
+            Kind::Stable => None,
         }
     }
 
+    /// Check if the given version number matches this kind.
+    ///
+    /// ```
+    /// use enso_build::version::Kind;
+    /// use semver::Version;
+    ///
+    /// assert!(Kind::Nightly.matches(&Version::parse("2022.1.1-nightly.2022.1.1").unwrap()));
+    /// assert!(Kind::Nightly.matches(&Version::parse("2022.1.1-nightly").unwrap()));
+    /// assert!(Kind::Rc.matches(&Version::parse("2022.1.1-rc.1").unwrap()));
+    /// assert!(!Kind::Nightly.matches(&Version::parse("2022.1.1-rc.1").unwrap()));
+    /// assert!(!Kind::Stable.matches(&Version::parse("2022.1.1-rc.1").unwrap()));
+    /// assert!(!Kind::Stable.matches(&Version::parse("2022.1.1-nightly").unwrap()));
+    /// assert!(Kind::Stable.matches(&Version::parse("2022.1.1").unwrap()));
+    /// ```
     pub fn matches(self, version: &Version) -> bool {
-        version.pre.as_str().starts_with(self.prerelease_prefix())
+        if let Some(prefix) = self.prerelease_prefix() {
+            version.pre.starts_with(prefix)
+        } else {
+            version.pre.is_empty()
+        }
     }
 
+    /// Deduce the kind of the version.
+    ///
+    /// ```
+    /// use enso_build::prelude::*;
+    /// use enso_build::version::Kind;
+    ///
+    /// fn main() -> Result {
+    ///     assert_eq!(Kind::deduce(&Version::parse("2022.1.1-dev")?)?, Kind::Dev);
+    ///     assert_eq!(Kind::deduce(&Version::parse("2022.1.1-nightly.2022.1.1")?)?, Kind::Nightly);
+    ///     assert_eq!(Kind::deduce(&Version::parse("2022.1.1-rc.1")?)?, Kind::Rc);
+    ///     assert_eq!(Kind::deduce(&Version::parse("2022.1.1")?)?, Kind::Stable);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn deduce(version: &Version) -> Result<Self> {
         Kind::iter()
             .find(|kind| kind.matches(version))
-            .context(format!("Failed to deduce build kind for version {version}"))
+            .with_context(|| format!("Failed to deduce build kind for version {version}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_nightly_test() {
+        let is_nightly = |text: &str| Kind::Nightly.matches(&Version::parse(text).unwrap());
+        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
+        assert!(is_nightly("2022.1.1-nightly"));
+        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
+        assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
+
+        let version = Version::parse("2022.1.1-nightly.2022-06-06.3").unwrap();
+        assert!(Kind::deduce(&version).contains(&Kind::Nightly));
     }
 }

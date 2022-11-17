@@ -223,6 +223,12 @@ pub mod new {
         }
     }
 
+    impl<Value, Borrowed: ?Sized> Display for SimpleVariable<Value, Borrowed> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.name)
+        }
+    }
+
     #[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
     pub struct PathLike(pub &'static str);
 

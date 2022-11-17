@@ -4,7 +4,6 @@ use crate::paths::TargetTriple;
 
 use derivative::Derivative;
 use ide_ci::github;
-use ide_ci::programs::git;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 
@@ -30,11 +29,11 @@ pub struct BuildContext {
 
 impl BuildContext {
     pub fn commit(&self) -> BoxFuture<'static, Result<String>> {
-        let root = self.repo_root.to_path_buf();
+        let git = self.git();
         async move {
             match ide_ci::actions::env::GITHUB_SHA.get() {
                 Ok(commit) => Ok(commit),
-                Err(_e) => git::Context::new(root).await?.head_hash().await,
+                Err(_e) => git.await?.head_hash().await,
             }
         }
         .boxed()

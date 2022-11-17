@@ -1,17 +1,22 @@
-name: Changelog
+name: Promote Release
 on:
-  pull_request:
-    types:
-    - labeled
-    - unlabeled
-    - synchronize
-    - opened
-    - reopened
+  workflow_dispatch:
+    inputs:
+      designator:
+        description: What kind of release should be promoted.
+        required: true
+        type: choice
+        options:
+        - stable
+        - patch
+        - rc
 jobs:
-  changelog:
-    name: Changelog
+  enso-build-cli-ci-gen-promote-release-job-linux:
+    name: Promote release (linux)
     runs-on:
-    - X64
+    - self-hosted
+    - Linux
+    - engine
     steps:
     - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
       name: Setup conda (GH runners only)
@@ -52,7 +57,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
-    - run: ./run changelog-check
+    - id: promote
+      run: ./run release promote
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
@@ -68,5 +74,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
+    outputs:
+      ENSO_EDITION: ${{ steps.promote.outputs.ENSO_EDITION }}
+      ENSO_RELEASE_MODE: ${{ steps.promote.outputs.ENSO_RELEASE_MODE }}
+      ENSO_VERSION: ${{ steps.promote.outputs.ENSO_VERSION }}
+  release:
+    name: Release
+    needs:
+    - enso-build-cli-ci-gen-promote-release-job-linux
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.enso-build-cli-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
+    secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: 'true'
+concurrency: release

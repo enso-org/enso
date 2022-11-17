@@ -845,7 +845,8 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
-                enso_build::release::draft_a_new_release(&ctx).await?;
+                let commit = ide_ci::actions::env::GITHUB_SHA.get()?;
+                enso_build::release::draft_a_new_release(&ctx, &commit).await?;
             }
             Action::DeployRuntime(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
@@ -861,6 +862,10 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
+            }
+            Action::Promote(args) => {
+                let crate::arg::release::Promote { version } = args;
+                enso_build::release::promote_release(&ctx, version).await?;
             }
         },
         Target::CiGen => ci_gen::generate(

@@ -125,7 +125,7 @@ mod tests {
         setup_logging()?;
         let dir = PathBuf::from(r"C:\temp\test_cleaning");
         crate::fs::tokio::reset_dir(&dir).await?;
-        Git.init(&dir)?.run_ok().await?;
+        Git.init(&dir).await?;
 
         let foo = dir.join("foo");
         let foo_target = foo.join("target");
