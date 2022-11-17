@@ -10,6 +10,7 @@ on:
         - stable
         - patch
         - rc
+  push:
 jobs:
   enso-build-cli-ci-gen-promote-release-job-linux:
     name: Promote release (linux)
