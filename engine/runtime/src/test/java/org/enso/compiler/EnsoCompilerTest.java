@@ -948,6 +948,15 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore // Crashes old parser
+  public void testAlternationTypes() throws Exception {
+    parseTest("""
+    foo : [Integer | Text] -> (Integer | Text)
+    foo v = v.at 0
+    """);
+  }
+
+  @Test
   public void testGroupOfPatterns() throws Exception {
     parseTest("""
     sum self = case self of
