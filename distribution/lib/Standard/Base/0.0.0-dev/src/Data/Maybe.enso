@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-# TODO Dubious constructor export
-from project.Data.Maybe.Maybe import all
-from project.Data.Maybe.Maybe export all
-
 ## A type representing computations that may fail.
 type Maybe
 
@@ -40,8 +36,8 @@ type Maybe
              example_maybe = Maybe.Some 2 . maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
     maybe self ~default function = case self of
-        None -> default
-        Some val -> function val
+        Maybe.None -> default
+        Maybe.Some val -> function val
 
     ## Check if the maybe value is `Some`.
 
@@ -53,8 +49,8 @@ type Maybe
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
     is_some self = case self of
-        None -> False
-        Some _ -> True
+        Maybe.None -> False
+        Maybe.Some _ -> True
 
     is_none : Boolean
     is_none self = self.is_some.not

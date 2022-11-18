@@ -218,8 +218,8 @@ calculate_correlation_statistics_matrix data =
 
    Arguments:
    - statistic: Statistic to calculate.
-Vector.Vector.compute : Statistic -> Any
-Vector.Vector.compute self statistic=Count =
+Vector.compute : Statistic -> Any
+Vector.compute self statistic=Count =
     self.compute_bulk [statistic] . first
 
 
@@ -227,8 +227,8 @@ Vector.Vector.compute self statistic=Count =
 
    Arguments:
    - statistics: Set of statistics to calculate.
-Vector.Vector.compute_bulk : [Statistic] -> [Any]
-Vector.Vector.compute_bulk self statistics=[Count, Sum] =
+Vector.compute_bulk : [Statistic] -> [Any]
+Vector.compute_bulk self statistics=[Count, Sum] =
     compute_bulk self statistics
 
 

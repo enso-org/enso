@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+from Standard.Base.Data.Vector import handle_incomparable_value
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Report_Warning
-from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
@@ -62,7 +63,7 @@ type Table
     new columns =
         cols = columns.map c->
             case c of
-                _ : Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
+                _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Column_Data java_col -> java_col
         Table.Table_Data (Java_Table.new cols.to_array)
 
@@ -86,7 +87,7 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
-    from_rows : Vector.Vector -> Vector.Vector -> Table
+    from_rows : Vector -> Vector -> Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
@@ -446,7 +447,7 @@ type Table
               table.rename_columns ["FirstColumn"]
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
         _ : Map.Map ->
             self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
@@ -622,7 +623,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument_Error.handle_java_exception <| Vector.handle_incomparable_value <|
+            java_table = Illegal_Argument_Error.handle_java_exception <| handle_incomparable_value <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -904,7 +905,7 @@ type Table
              table.take (While row-> row.to_vector.sum == 10)
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        Index_Sub_Range.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
@@ -926,7 +927,7 @@ type Table
              table.drop (While row-> row.to_vector.sum == 10)
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 
@@ -953,13 +954,13 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
                  table.set "total_stock_expr" "2 * [total_stock]"
-    set : Text -> Column | Vector.Vector | Text -> Problem_Behavior -> Table
+    set : Text -> Column | Vector | Text -> Problem_Behavior -> Table
     set self name column on_problems=Report_Warning = case column of
         _ : Text ->
             expression = self.evaluate column
             if expression.is_error.not then self.set name expression on_problems else
                 on_problems.handle_errors expression fallback=self
-        _ : Vector.Vector -> self.set name (Column.from_vector name column)
+        _ : Vector -> self.set name (Column.from_vector name column)
         _ : Column ->
             Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
@@ -1071,7 +1072,7 @@ type Table
     join : Vector Table | Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
-            _ : Vector.Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
+            _ : Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table.Table_Data t ->
                 Table.Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
@@ -1140,7 +1141,7 @@ type Table
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table | Vector Table -> Table
     concat self other = case other of
-        _ : Vector.Vector ->
+        _ : Vector ->
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
             Table.Table_Data (Java_Table.concat java_tables.to_array)
         Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
@@ -1339,5 +1340,5 @@ print_table header rows indices_count format_term =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)
