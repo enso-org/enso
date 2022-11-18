@@ -19,6 +19,7 @@ import project.Data.Interval.Interval
 import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
+import project.Data.Noise
 import project.Data.Ordering.Ordering
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
@@ -34,15 +35,14 @@ export project.Data.Ordering.Ordering
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
+
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
 
 
 
-
-
 import project.Data.Map
-import project.Data.Noise
 import project.Data.Numbers
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
@@ -122,7 +122,6 @@ export project.System.File.Existing_File_Behavior
 export project.Warning
 
 from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
-from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair, Pair_Data
 from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
