@@ -12,3 +12,4 @@ debug-scene-component-list-panel-view = { path = "component-list-panel-view" }
 debug-scene-icons = { path = "icons" }
 debug-scene-interface = { path = "interface" }
 debug-scene-visualization = { path = "visualization" }
+debug-scene-text-grid-visualization = { path = "text-grid-visualization" }
