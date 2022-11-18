@@ -40,11 +40,11 @@ class ExpressionIdTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = (2-2 == 0).if_then_else (Cons 5 6) 0
+          |main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
-      val id1  = meta.addItem(38, 36)
-      val id2  = meta.addItem(63, 8)
+      val id1  = meta.addItem(38, 41)
+      val id2  = meta.addItem(63, 13)
 
       instrumenter.assertNodeExists(id1, "Cons 5 6")
       instrumenter.assertNodeExists(id2, "Cons 5 6")
@@ -102,10 +102,10 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
-      val id1  = meta.addItem(126, 108, "1111")
-      val id2  = meta.addItem(172, 7)
-      val id3  = meta.addItem(192, 9)
-      val id4  = meta.addItem(229, 5)
+      val id1  = meta.addItem(127, 113, "1111")
+      val id2  = meta.addItem(178, 7)
+      val id3  = meta.addItem(198, 9)
+      val id4  = meta.addItem(235, 5)
 
       instrumenter.assertNodeExists(id1, "9")
       instrumenter.assertNodeExists(id2, "3")

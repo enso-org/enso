@@ -31,7 +31,9 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """type My_Atom
+        """import Standard.Base.Data.List.List
+          |
+          |type My_Atom
           |    Mk a
           |
           |main =
@@ -39,7 +41,7 @@ class PatternMatchTest extends InterpreterTest {
           |        My_Atom.Mk a -> a
           |        _ -> -100
           |
-          |    f (My_Atom.Mk 50) + f Nil
+          |    f (My_Atom.Mk 50) + f List.Nil
           |""".stripMargin
 
       eval(code) shouldEqual -50
