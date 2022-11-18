@@ -246,7 +246,7 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
         "versionType": "Ide"
     });
     let response = reqwest::Client::new()
-        .post("https://nngmxi3zr4.execute-api.eu-west-1.amazonaws.com/versions")
+        .post("https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/versions")
         .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
         .header("Content-Type", "application/json")
         .json(&body)

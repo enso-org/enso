@@ -1,4 +1,4 @@
-name: Promote Release
+name: Generate a new version
 on:
   workflow_dispatch:
     inputs:

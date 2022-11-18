@@ -350,6 +350,15 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     Ok(())
 }
 
+pub fn call_release_job(version_input_expr: &str) -> Result<Job> {
+    let mut release_job = Job::new("Release");
+    release_job.timeout_minutes = None;
+    release_job.uses = Some("./.github/workflows/release.yml".into());
+    release_job.with("version", version_input_expr);
+    release_job.secrets = Some(JobSecrets::Inherit);
+    Ok(release_job)
+}
+
 pub fn release() -> Result<Workflow> {
     let version_input = WorkflowDispatchInput::new_string(
         "What version number this release should get.",
@@ -389,18 +398,12 @@ pub fn promote() -> Result<Workflow> {
     let workflow_dispatch =
         WorkflowDispatch::default().with_input(DESIGNATOR_INPUT_NAME, designator);
     let on = Event { workflow_dispatch: Some(workflow_dispatch), ..default() };
-    let mut workflow = Workflow { on, name: "Promote Release".into(), ..default() };
-
-
+    let mut workflow = Workflow { on, name: "Generate a new version".into(), ..default() };
     let promote_job_id = workflow.add::<PromoteReleaseJob>(PRIMARY_OS);
 
-    let mut release_job = Job::new("Release");
-    release_job.timeout_minutes = None;
+    let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
+    let mut release_job = call_release_job(&wrap_expression(&version_input))?;
     release_job.needs(&promote_job_id);
-    release_job.uses = Some("./.github/workflows/release.yml".into());
-    release_job
-        .with("version", wrap_expression(format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}")));
-    release_job.secrets = Some(JobSecrets::Inherit);
     workflow.add_job(release_job);
 
     Ok(workflow)
