@@ -12,13 +12,14 @@ export project.Data.List.List
 export project.Data.Map.Map
 export project.Data.Vector.Vector
 export project.Nothing.Nothing
+
 from project.Data.Boolean export all
 
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
-import project.Data.Json.Json
+import project.Data.Json
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
@@ -37,6 +38,7 @@ export project.Data.Ordering.Ordering
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
+from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
 
 from project.Data.Index_Sub_Range import First, Last

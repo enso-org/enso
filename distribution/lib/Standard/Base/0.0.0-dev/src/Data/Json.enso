@@ -261,6 +261,15 @@ Any.to_json self =
         Meta.Polyglot_Data _ -> Json.Null
         Meta.Primitive_Data _ -> Json.Null
 
+## Text to JSON conversion.
+
+   > Example
+     Convert the text "cześć" to JSON.
+
+         "cześć".to_json
+Text.to_json : Json
+Text.to_json self = Json.String self
+
 ## Method used by object builders to convert a value into a valid JSON key.
 
    > Example
