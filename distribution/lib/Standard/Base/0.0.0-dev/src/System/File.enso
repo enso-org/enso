@@ -500,7 +500,7 @@ type File
     extension : Text
     extension self =
         name = self.name
-        last_dot = name.location_of "." mode=Matching_Mode.Last
+        last_dot = name.locate "." mode=Matching_Mode.Last
         if last_dot.is_nothing then "" else
             extension = name.drop (First last_dot.start)
             if extension == "." then "" else extension
