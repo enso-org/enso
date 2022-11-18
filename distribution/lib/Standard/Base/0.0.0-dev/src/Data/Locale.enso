@@ -416,5 +416,5 @@ type Locale
     ## Compares two locales for equality.
     == : Any -> Boolean
     == self other = case other of
-        Locale_Data other_java_locale -> self.java_locale.equals other_java_locale
+        Locale.Value other_java_locale -> self.java_locale.equals other_java_locale
         _ -> False
