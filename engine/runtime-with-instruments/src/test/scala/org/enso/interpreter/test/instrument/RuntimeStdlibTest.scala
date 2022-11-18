@@ -32,6 +32,8 @@ class RuntimeStdlibTest
     with BeforeAndAfterAll
     with OsSpec {
 
+  import RuntimeStdlibTest._
+
   override val timeLimit = 5.minutes
 
   final val ContextPathSeparator: String = File.pathSeparator
@@ -163,29 +165,16 @@ class RuntimeStdlibTest
   }
 
   def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
-    val arguments = suggestion match {
-      case tpe: Suggestion.Type =>
-        tpe.params
-      case constructor: Suggestion.Constructor =>
-        constructor.arguments
-      case method: Suggestion.Method =>
-        method.arguments
-      case conversion: Suggestion.Conversion =>
-        conversion.arguments
-      case function: Suggestion.Function =>
-        function.arguments
-      case _ =>
-        Seq()
-    }
-    val argTypes = arguments.map(_.reprType)
-    val selfType = Suggestion.SelfType(suggestion)
+    val arguments  = Suggestion.Arguments(suggestion)
+    val argTypes   = arguments.map(_.reprType)
+    val selfType   = Suggestion.SelfType(suggestion)
     val returnType = suggestion.returnType
 
     (argTypes ++ selfType :+ returnType).map(QualifiedName.fromString)
-}
+  }
 
   def isQualified(name: QualifiedName): Boolean =
-    name.path.nonEmpty
+    name.path.size > 1
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
@@ -257,7 +246,7 @@ class RuntimeStdlibTest
     )
 
     // check that the suggestion notifications are received
-    val unqualifiedTypes: mutable.Map[String, Vector[Suggestion]] =
+    val errors: mutable.Map[String, Vector[ErrorEntry]] =
       mutable.Map()
     val suggestions = responses.collect {
       case Api.Response(
@@ -272,24 +261,35 @@ class RuntimeStdlibTest
           ) =>
         (actions.nonEmpty || updates.nonEmpty) shouldBe true
         updates.toVector.foreach { update =>
-          val types = extractTypes(update.suggestion)
-          if (!types.forall(isQualified)) {
-            unqualifiedTypes.updateWith(module) {
-              case Some(values) => Some(values :+ update.suggestion)
-              case None         => Some(Vector(update.suggestion))
+          val types            = extractTypes(update.suggestion).toSet
+          val unqualifiedTypes = types.filterNot(isQualified)
+          if (unqualifiedTypes.nonEmpty) {
+            errors.updateWith(module) {
+              case Some(values) =>
+                Some(values :+ ErrorEntry(update.suggestion, unqualifiedTypes))
+              case None =>
+                Some(Vector(ErrorEntry(update.suggestion, unqualifiedTypes)))
             }
           }
         }
     }
     suggestions.isEmpty shouldBe false
-    if (unqualifiedTypes.nonEmpty) {
-      val unqualified = unqualifiedTypes
-        .map { case (module, suggestions) =>
-          val names = suggestions.map(_.name)
-          s"$module: ${names.mkString(",")}"
-        }
-        .mkString(System.lineSeparator())
-      fail(s"Found definitions with unqualified types:\n $unqualified")
+
+    // check that types are qualified
+    if (errors.nonEmpty) {
+      val numberOfErrors = errors.size
+      val report =
+        errors
+          .map { case (module, entries) =>
+            val suggestions = entries.map(entry =>
+              s"${entry.suggestion.name}(${entry.unqualifiedTypes.mkString(",")})"
+            )
+            s"$module: ${suggestions.mkString(",")}"
+          }
+          .mkString("\n")
+      fail(
+        s"Found $numberOfErrors modules with unqualified types:\n$report"
+      )
     }
 
     // check that the Standard.Base library is indexed
@@ -364,4 +364,12 @@ class RuntimeStdlibTest
     context.consumeOut shouldEqual List("Hello World!")
   }
 
+}
+
+object RuntimeStdlibTest {
+
+  case class ErrorEntry(
+    suggestion: Suggestion,
+    unqualifiedTypes: Set[QualifiedName] = Set()
+  )
 }

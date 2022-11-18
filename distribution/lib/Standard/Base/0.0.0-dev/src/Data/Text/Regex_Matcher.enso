@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex.Engine.Pattern
 from Standard.Base.Data.Text.Matching import match_criteria_implementation
 
 # TODO Dubious constructor export

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
+from Standard.Base.System.File import Input_Stream
 from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
 
 import project.Data.Table.Table
