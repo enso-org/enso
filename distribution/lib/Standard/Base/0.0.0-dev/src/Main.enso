@@ -2,6 +2,7 @@ import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
 import project.Data.List.List
+import project.Data.Numbers
 import project.Data.Map.Map
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
@@ -13,7 +14,8 @@ export project.Data.Map.Map
 export project.Data.Vector.Vector
 export project.Nothing.Nothing
 
-from project.Data.Boolean export all
+from project.Data.Boolean export Boolean, True, False
+from project.Data.Numbers export Number, Integer, Decimal
 
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -47,7 +49,7 @@ from project.Data.Index_Sub_Range export First, Last
 
 
 
-import project.Data.Numbers
+
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
@@ -124,7 +126,7 @@ export project.System.File
 export project.System.File.Existing_File_Behavior
 export project.Warning
 
-from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
+
 from project.Data.Pair export Pair, Pair_Data
 from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
