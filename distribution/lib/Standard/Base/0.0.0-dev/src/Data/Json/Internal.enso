@@ -102,7 +102,7 @@ type Consumer
        Arguments:
        - n: The long value to process.
     on_long : Integer -> Nothing
-    on_long self n = self.on_value (Number n)
+    on_long self n = self.on_value (Json.Number n)
 
     ## PRIVATE
 
@@ -111,7 +111,7 @@ type Consumer
        Arguments:
        - n: The double value to process.
     on_double : Decimal -> Nothing
-    on_double self n = self.on_value (Number n)
+    on_double self n = self.on_value (Json.Number n)
 
     ## PRIVATE
 
@@ -120,25 +120,25 @@ type Consumer
        Arguments:
        - s: The string value to process.
     on_string : Text -> Nothing
-    on_string self s = self.on_value (String s)
+    on_string self s = self.on_value (Json.String s)
 
     ## PRIVATE
 
        Consumes the `true` event.
     on_true : Nothing
-    on_true self = self.on_value (Boolean True)
+    on_true self = self.on_value (Json.Boolean True)
 
     ## PRIVATE
 
        Consumes the `false` event.
     on_false : Nothing
-    on_false self = self.on_value (Boolean False)
+    on_false self = self.on_value (Json.Boolean False)
 
     ## PRIVATE
 
        Consumes the `null` event.
     on_null : Nothing
-    on_null self = self.on_value Null
+    on_null self = self.on_value Json.Null
 
 ## PRIVATE
 
@@ -175,10 +175,10 @@ type Array_Consumer
     ## PRIVATE
 
        Returns the final value built by this consumer.
-    seal : Array
+    seal : Json
     seal self =
         vec = self.builder.to_vector
-        Array vec
+        Json.Array vec
 
 ## PRIVATE
 
@@ -231,10 +231,10 @@ type Object_Consumer
     ## PRIVATE
 
        Returns the final value built by this consumer.
-    seal : Object
+    seal : Json
     seal self =
         m = self.map . get
-        Object m
+        Json.Object m
 
 ## PRIVATE
 

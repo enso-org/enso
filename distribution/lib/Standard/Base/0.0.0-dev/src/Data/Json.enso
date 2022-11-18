@@ -1,4 +1,5 @@
 from Standard.Base import all
+import project.Data.Map.No_Value_For_Key
 
 import project.Data.Json.Internal
 
@@ -153,7 +154,7 @@ type Json
     get : Text -> Json ! No_Such_Field
     get self field = case self of
         Json.Object _ -> self.fields.get field . map_error case _ of
-            Map.No_Value_For_Key_Error_Data _ -> No_Such_Field.Error field
+            No_Value_For_Key.Error _ -> No_Such_Field.Error field
             x -> x
         _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
 
@@ -250,15 +251,15 @@ Any.to_json self =
             fnames = cons.fields
             json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
                 m.insert (fnames.at i) (fs.at i . to_json)
-            with_tp = json_fs . insert "type" (String cons.name)
-            Object with_tp
+            with_tp = json_fs . insert "type" (Json.String cons.name)
+            Json.Object with_tp
         Meta.Constructor_Data _ ->
-            Object (Map.empty . insert "type" (String m.name))
+            Json.Object (Map.empty . insert "type" (Json.String m.name))
 
         ## The following two cases cannot be handled generically and should
            instead define their own `to_json` implementations.
-        Meta.Polyglot_Data _ -> Null
-        Meta.Primitive_Data _ -> Null
+        Meta.Polyglot_Data _ -> Json.Null
+        Meta.Primitive_Data _ -> Json.Null
 
 ## Method used by object builders to convert a value into a valid JSON key.
 
