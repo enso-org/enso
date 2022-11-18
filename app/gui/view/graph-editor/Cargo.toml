@@ -37,4 +37,4 @@ wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 
 [dependencies.web-sys]
 version = "0.3.4"
-features = []
+features = ["TextMetrics", 'CanvasRenderingContext2d', 'HtmlHeadElement']
