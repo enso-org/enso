@@ -299,7 +299,8 @@ lazy val enso = (project in file("."))
     `std-database`,
     `std-google-api`,
     `std-image`,
-    `std-table`
+    `std-table`,
+    `simple-httpbin`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -2081,6 +2082,17 @@ val stdBitsProjects =
   List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val `simple-httpbin` = project
+  .in(file("tools") / "simple-httpbin")
+  .settings(
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions ++= Seq("-XDignore.symbol.file", "-Xlint:all"),
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-text" % commonsTextVersion
+    )
+  )
+  .configs(Test)
 
 lazy val buildStdLib =
   inputKey[Unit]("Build an individual standard library package")
