@@ -3,9 +3,11 @@ package org.enso.shttp;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class SimpleHTTPBin {
 
@@ -57,18 +59,14 @@ public class SimpleHTTPBin {
       server.addHandler("/post", new DummyHandler());
 
       final SimpleHTTPBin server1 = server;
-      Signal.handle(
-          new Signal("TERM"),
+      SignalHandler stopServerHandler =
           (Signal sig) -> {
             System.out.println("Stopping server...");
             server1.stop();
-          });
-      Signal.handle(
-          new Signal("INT"),
-          (Signal sig) -> {
-            System.out.println("Stopping server...");
-            server1.stop();
-          });
+          };
+      for (String signalName : List.of("TERM", "INT")) {
+        Signal.handle(new Signal(signalName), stopServerHandler);
+      }
       server.start();
     } catch (IOException e) {
       e.printStackTrace();
