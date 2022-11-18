@@ -47,115 +47,6 @@ impl Drop for ParentBind {
 
 
 
-// =================
-// === Callbacks ===
-// =================
-
-pub trait OnUpdatedCallback = Fn(&Model) + 'static;
-pub trait OnShowCallback = Fn(&Scene, Option<&WeakLayer>) + 'static;
-pub trait OnHideCallback = Fn(&Scene) + 'static;
-pub trait OnSceneLayerChangedCallback =
-    Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static;
-
-/// Callbacks manager for display objects. Callbacks can be set only once. The implementation panics
-/// if you try setting a callback to field with an already assigned one. This design was chosen
-/// because it is very lightweight and is not confusing (setting a callback unregistering
-/// previous one is error-prone, while allowing to set multiple callbacks is not needed currently).
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
-pub struct Callbacks {
-    on_updated:             RefCell<Option<Box<dyn OnUpdatedCallback>>>,
-    on_show:                RefCell<Option<Box<dyn OnShowCallback>>>,
-    on_hide:                RefCell<Option<Box<dyn OnHideCallback>>>,
-    on_scene_layer_changed: RefCell<Option<Box<dyn OnSceneLayerChangedCallback>>>,
-}
-
-impl Callbacks {
-    fn on_updated(&self, model: &Model) {
-        if let Some(f) = &*self.on_updated.borrow() {
-            f(model)
-        }
-    }
-
-    fn on_show(&self, scene: &Scene, layer: Option<&WeakLayer>) {
-        if let Some(f) = &*self.on_show.borrow() {
-            f(scene, layer)
-        }
-    }
-
-    fn on_hide(&self, scene: &Scene) {
-        if let Some(f) = &*self.on_hide.borrow() {
-            f(scene)
-        }
-    }
-
-    fn on_scene_layer_changed(
-        &self,
-        scene: &Scene,
-        old_layer: Option<&WeakLayer>,
-        new_layer: Option<&WeakLayer>,
-    ) {
-        if let Some(f) = &*self.on_scene_layer_changed.borrow() {
-            f(scene, old_layer, new_layer)
-        }
-    }
-}
-
-impl Debug for Callbacks {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Callbacks")
-    }
-}
-
-
-#[derive(Default)]
-pub struct InstanceBuilder {
-    on_updated:             Option<Box<dyn OnUpdatedCallback>>,
-    on_show:                Option<Box<dyn OnShowCallback>>,
-    on_hide:                Option<Box<dyn OnHideCallback>>,
-    on_scene_layer_changed: Option<Box<dyn OnSceneLayerChangedCallback>>,
-}
-
-impl InstanceBuilder {
-    pub fn new() -> Self {
-        default()
-    }
-
-    pub fn on_updated(mut self, f: impl Fn(&Model) + 'static) -> Self {
-        self.on_updated = Some(Box::new(f));
-        self
-    }
-
-    pub fn on_show(mut self, f: impl Fn(&Scene, Option<&WeakLayer>) + 'static) -> Self {
-        self.on_show = Some(Box::new(f));
-        self
-    }
-
-    pub fn on_hide(mut self, f: impl Fn(&Scene) + 'static) -> Self {
-        self.on_hide = Some(Box::new(f));
-        self
-    }
-
-    pub fn on_scene_layer_changed(
-        mut self,
-        f: impl Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static,
-    ) -> Self {
-        self.on_scene_layer_changed = Some(Box::new(f));
-        self
-    }
-
-    pub fn build(self) -> Instance {
-        let instance = Instance::new();
-        *instance.callbacks.on_updated.borrow_mut() = self.on_updated;
-        *instance.callbacks.on_show.borrow_mut() = self.on_show;
-        *instance.callbacks.on_hide.borrow_mut() = self.on_hide;
-        *instance.callbacks.on_scene_layer_changed.borrow_mut() = self.on_scene_layer_changed;
-        instance
-    }
-}
-
-
-
 // ==================
 // === DirtyFlags ===
 // ==================
@@ -238,25 +129,31 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct Model {
-    pub network:         frp::Network,
+    /// This is the [`Instance`]'s FRP network. Feel free to create new FRP nodes here as long as
+    /// they are inherently bound with this display object. For example, a sprite, which owns a
+    /// display object instance can extend this network to perform computations. However, you
+    /// should not extend it from other places, as this will cause memory leak. See docs of FRP
+    /// to learn more.
+    pub network: frp::Network,
     /// Source for events. See the documentation of [`event::Event`] to learn more about events.
-    pub event_source:    frp::Source<event::SomeEvent>,
+    pub event_source: frp::Source<event::SomeEvent>,
     capturing_event_fan: frp::Fan,
-    bubbling_event_fan:  frp::Fan,
-    pub on_show:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
-    pub on_hide:         frp::Source<Option<Scene>>,
-    focused_descendant:  RefCell<Option<WeakInstance>>,
+    bubbling_event_fan: frp::Fan,
+    pub on_show: frp::Source<(Option<Scene>, Option<WeakLayer>)>,
+    pub on_hide: frp::Source<Option<Scene>>,
+    pub on_scene_layer_changed: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    pub on_updated: frp::Source<()>,
+    focused_descendant: RefCell<Option<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
-    assigned_layer:      RefCell<Option<WeakLayer>>,
+    assigned_layer: RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer:               RefCell<Option<WeakLayer>>,
-    dirty:               DirtyFlags,
-    callbacks:           Callbacks,
-    parent_bind:         Rc<RefCell<Option<ParentBind>>>,
-    children:            RefCell<OptVec<WeakInstance>>,
-    transform:           RefCell<CachedTransform>,
-    visible:             Cell<bool>,
-    bounding_box:        Cell<Vector2<f32>>,
+    layer: RefCell<Option<WeakLayer>>,
+    dirty: DirtyFlags,
+    parent_bind: Rc<RefCell<Option<ParentBind>>>,
+    children: RefCell<OptVec<WeakInstance>>,
+    transform: RefCell<CachedTransform>,
+    visible: Cell<bool>,
+    bounding_box: Cell<Vector2<f32>>,
 }
 
 impl Default for Model {
@@ -273,7 +170,6 @@ impl Model {
         let assigned_layer = default();
         let layer = default();
         let dirty = default();
-        let callbacks = default();
         let parent_bind = default();
         let children = default();
         let transform = default();
@@ -284,6 +180,8 @@ impl Model {
         frp::extend! { network
             on_show <- source();
             on_hide <- source();
+            on_scene_layer_changed <- source();
+            on_updated <- source();
             event_source <- source();
         }
         Self {
@@ -293,11 +191,12 @@ impl Model {
             bubbling_event_fan,
             on_show,
             on_hide,
+            on_scene_layer_changed,
+            on_updated,
             focused_descendant,
             assigned_layer,
             layer,
             dirty,
-            callbacks,
             parent_bind,
             children,
             transform,
@@ -428,7 +327,11 @@ impl Model {
         if let Some(new_layer) = new_layer_opt {
             debug_span!("Scene layer changed.").in_scope(|| {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
-                self.callbacks.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer);
+                self.on_scene_layer_changed.emit((
+                    Some(scene.clone_ref()),
+                    old_layer,
+                    new_layer.cloned(),
+                ));
             });
         }
 
@@ -451,7 +354,7 @@ impl Model {
                 } else {
                     trace!("Self origin did not change, but the layers changed");
                 }
-                self.callbacks.on_updated(self);
+                self.on_updated.emit(());
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
                         let children = self.children.borrow().clone();
@@ -528,7 +431,6 @@ impl Model {
         if self.visible.get() {
             trace!("Hiding.");
             self.visible.set(false);
-            self.callbacks.on_hide(scene);
             self.on_hide.emit(Some(scene.clone_ref()));
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_false(scene));
@@ -544,7 +446,6 @@ impl Model {
             let layer =
                 if this_scene_layers_ref.is_none() { parent_layer } else { this_scene_layers_ref };
             self.visible.set(true);
-            self.callbacks.on_show(scene, layer);
             self.on_show.emit((Some(scene.clone_ref()), layer.cloned()));
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_true(scene, layer));
@@ -652,35 +553,6 @@ impl Model {
     fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
         self.with_mut_borrowed_transform(|t| t.mod_scale(f));
     }
-
-    // /// Sets a callback which will be called with a reference to the display object when the
-    // object /// will be updated.
-    // pub fn set_on_updated<F>(&self, f: F)
-    // where F: Fn(&Model) + 'static {
-    //     self.callbacks.on_updated.set(Box::new(f))
-    // }
-
-    /// Sets a callback which will be called with a reference to scene when the object will be
-    /// shown (attached to visible display object graph).
-    pub fn set_on_show<F>(&self, f: F)
-    where F: Fn(&Scene, Option<&WeakLayer>) + 'static {
-        self.callbacks.on_show.set(Box::new(f))
-    }
-
-    /// Sets a callback which will be called with a reference to scene when the object will be
-    /// hidden (detached from display object graph).
-    pub fn set_on_hide<F>(&self, f: F)
-    where F: Fn(&Scene) + 'static {
-        self.callbacks.on_hide.set(Box::new(f))
-    }
-
-    /// Sets a callback which will be called on every change to the layers assignment. The callback
-    /// will be provided with a reference to scene and two lists of layers this object was
-    /// previously and is currently attached to .
-    pub fn set_on_scene_layer_changed<F>(&self, f: F)
-    where F: Fn(&Scene, Option<&WeakLayer>, Option<&WeakLayer>) + 'static {
-        self.callbacks.on_scene_layer_changed.set_if_empty_or_warn(Box::new(f))
-    }
 }
 
 
@@ -743,10 +615,6 @@ pub struct InstanceDef {
 impl Instance {
     /// Constructor.
     pub fn new() -> Self {
-        default()
-    }
-
-    pub fn new_with_callbacks() -> InstanceBuilder {
         default()
     }
 }
@@ -1716,8 +1584,11 @@ mod tests {
             let node = Instance::new();
             let show_counter = Rc::<Cell<usize>>::default();
             let hide_counter = Rc::<Cell<usize>>::default();
-            node.set_on_show(f__!(show_counter.set(show_counter.get() + 1)));
-            node.set_on_hide(f_!(hide_counter.set(hide_counter.get() + 1)));
+            let network = &node.network;
+            frp::extend! { network
+                eval_ node.on_show(show_counter.set(show_counter.get() + 1));
+                eval_ node.on_hide(hide_counter.set(hide_counter.get() + 1));
+            }
             Self { node, show_counter, hide_counter }
         }
 

@@ -205,9 +205,7 @@ impl Camera2dData {
         let z_zoom_1 = 1.0;
         let matrix = default();
         let dirty = Dirty::new();
-        let display_object = display::object::Instance::new_with_callbacks()
-            .on_updated(f_!(dirty.transform.set()))
-            .build();
+        let display_object = display::object::Instance::new();
         let zoom_update_registry = default();
         let screen_update_registry = default();
         display_object.mod_position(|p| p.z = 1.0);
@@ -217,6 +215,7 @@ impl Camera2dData {
             frp_position <- source();
             frp_zoom <- source();
             frp_screen <- source();
+            eval_ display_object.on_updated (dirty.transform.set());
         }
         let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {

@@ -97,9 +97,16 @@ impl Size {
     fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let hidden = Rc::new(Cell::new(true));
         let value = Rc::new(Cell::new(zero()));
-        let display_object = display::object::Instance::new_with_callbacks()
-            .on_updated(f!((t) transform.set(t.matrix())))
-            .build();
+        let display_object = display::object::Instance::new();
+        let weak_display_object = display_object.downgrade();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_updated ([transform] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    transform.set(display_object.matrix())
+                }
+            });
+        }
         Self { hidden, value, attr, display_object }
     }
 
@@ -168,9 +175,13 @@ impl SpriteModel {
     /// callbacks.
     fn init(self) -> Self {
         let size = &self.size;
-        let transform = &self.transform;
-        self.display_object().set_on_hide(f_!(size.hide()));
-        self.display_object().set_on_show(f__!(size.show()));
+        let display_object = &self.size.display_object;
+        let network = &display_object.network;
+        frp::extend! { network
+            // FIXME: memory leak here.
+            eval_ display_object.on_show(size.show());
+            eval_ display_object.on_hide(size.hide());
+        }
         self
     }
 }

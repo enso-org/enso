@@ -452,11 +452,7 @@ pub struct NodeModel {
 impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(
-        app: &Application,
-        registry: visualization::Registry,
-        on_updated: impl display::object::OnUpdatedCallback,
-    ) -> Self {
+    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
                 //TODO[ao] The two lines below should not be needed - the ordering should be
@@ -490,8 +486,7 @@ impl NodeModel {
         let background = background::View::new();
         let drag_area = drag_area::View::new();
         let vcs_indicator = vcs::StatusIndicator::new(app);
-        let display_object =
-            display::object::Instance::new_with_callbacks().on_updated(on_updated).build();
+        let display_object = display::object::Instance::new();
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
@@ -691,12 +686,9 @@ impl Node {
         let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
-        let model = Rc::new(NodeModel::new(
-            app,
-            registry,
-            f!((p: &display::object::Model) out.position.emit(p.position().xy())),
-        ));
+        let model = Rc::new(NodeModel::new(app, registry));
         let selection = Animation::<f32>::new(network);
+        let display_object = &model.display_object;
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
         //      in https://github.com/enso-org/ide/issues/1031
@@ -705,11 +697,12 @@ impl Node {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let style_frp = &model.style;
         let action_bar = &model.action_bar.frp;
-        // // Hook up the display object position updates to the node's FRP. Required to calculate
-        // the // bounding box.
-        // model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
 
         frp::extend! { network
+
+            // Hook up the display object position updates to the node's FRP. Required to calculate
+            // the bounding box.
+            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether

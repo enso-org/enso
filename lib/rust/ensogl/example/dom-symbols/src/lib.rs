@@ -30,7 +30,6 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::DomSymbol;
 use ensogl_core::system::web;
 use nalgebra::Vector2;
-use nalgebra::Vector3;
 
 pub use ensogl_core::system::web::dom::Shape;
 

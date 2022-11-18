@@ -118,20 +118,21 @@ impl DomSymbol {
         dom.set_style_or_warn("height", "0px");
         dom.set_style_or_warn("display", "none");
         dom.append_or_warn(content);
-        let display_object = display::object::Instance::new_with_callbacks()
-            .on_updated(f!([dom] (t) {
-                let mut transform = inverse_y_translation(t.matrix());
-                transform.iter_mut().for_each(|a| *a = eps(*a));
-                set_object_transform(&dom,&transform);
-            }))
-            .build();
+        let display_object = display::object::Instance::new();
+        let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network
             eval_ display_object.on_show (dom.set_style_or_warn("display", ""));
             eval_ display_object.on_hide (dom.set_style_or_warn("display", "none"));
+            eval_ display_object.on_updated ([dom] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    let mut transform = inverse_y_translation(display_object.matrix());
+                    transform.iter_mut().for_each(|a| *a = eps(*a));
+                    set_object_transform(&dom, &transform);
+                }
+            });
         }
         let guard = Rc::new(Guard::new(&display_object, &dom));
-
         Self { dom, display_object, size, guard }
     }
 
