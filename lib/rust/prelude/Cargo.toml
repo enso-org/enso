@@ -53,20 +53,30 @@ wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
+  "TextMetrics",
+  'AddEventListenerOptions',
   'CanvasRenderingContext2d',
   'CssStyleDeclaration',
   'Document',
+  'DomRect',
   'Element',
+  'Event',
   'EventTarget',
-  'KeyboardEvent',
+  'EventTarget',
+  'FontFaceSet',
   'HtmlCanvasElement',
   'HtmlCollection',
   'HtmlDivElement',
   'HtmlElement',
+  'HtmlHeadElement',
   'HtmlImageElement',
+  'KeyboardEvent',
   'Location',
+  'MouseEvent',
   'Node',
+  'Performance',
   'Url',
+  'WebGl2RenderingContext',
   'WebGlBuffer',
   'WebGlFramebuffer',
   'WebGlProgram',
@@ -74,19 +84,13 @@ features = [
   'WebGlShader',
   'WebGlSync',
   'WebGlTexture',
-  'WebGl2RenderingContext',
   'WebGlUniformLocation',
   'WebGlUniformLocation',
   'WebGlVertexArrayObject',
+  'WheelEvent',
   'Window',
   'console',
-  'EventTarget',
-  'Event',
-  'MouseEvent',
-  'Performance',
-  'WheelEvent',
-  'DomRect',
-  'AddEventListenerOptions'
+  'FontFace'
 ]
 
 [dev-dependencies]
