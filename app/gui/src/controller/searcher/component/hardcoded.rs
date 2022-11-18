@@ -6,8 +6,8 @@
 //! [`crate::controller::searcher::component::List::favorites`].
 
 use crate::prelude::*;
-use double_representation::name::QualifiedName;
 
+use double_representation::name::QualifiedName;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 

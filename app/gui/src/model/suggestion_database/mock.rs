@@ -1,10 +1,13 @@
 use crate::prelude::*;
-use double_representation::name::QualifiedName;
 
 use crate::model::suggestion_database::entry;
 use crate::model::suggestion_database::entry::Argument;
 use crate::model::suggestion_database::Entry;
 use crate::model::SuggestionDatabase;
+
+use double_representation::name::QualifiedName;
+
+
 
 pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 

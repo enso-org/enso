@@ -2,10 +2,10 @@
 
 use crate::model::traits::*;
 use crate::prelude::*;
-use double_representation::import;
 
 use crate::controller::ide::StatusNotificationPublisher;
 
+use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
@@ -126,7 +126,7 @@ impl Project {
         let mut info = main_module_model.info();
         let visualization_module = QualifiedName::from_text("Standard.Visualization").unwrap();
         let visualization_import = import::Info::new_qualified(visualization_module);
-        info.add_import(&project.parser(), visualization_import);
+        info.add_import_if_missing(&project.parser(), visualization_import);
         main_module_model.update_ast(info.ast)?;
 
         // Here, we should be relatively certain (except race conditions in case of multiple

@@ -3,10 +3,16 @@
 use crate::prelude::*;
 
 use crate::module;
+
 use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::opr::predefined::ACCESS;
 use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod project;
 
@@ -50,7 +56,7 @@ pub type NamePathRef<'a> = &'a [ImString];
 /// A QualifiedName template without specified type of segment's list container.
 ///
 /// Designed to not be used direct
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Hash, Serialize)]
 #[serde(into = "String")]
 #[serde(try_from = "String")]
 #[serde(bound(
@@ -94,7 +100,8 @@ impl QualifiedName {
 
     /// Create a qualified name for module in `project` identified by `id`.
     pub fn new_module(project: project::QualifiedName, id: module::Id) -> Self {
-        Self::new(project, id.into())
+        let without_main = id.into_iter().skip_while(|s| s == PROJECTS_MAIN_MODULE);
+        Self::new(project, without_main.collect_vec())
     }
 
     /// Create a qualified name with new segment pushed at end of the path.
@@ -184,6 +191,13 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
         self.project.segments().chain(self.path.as_ref())
     }
 
+    /// The iterator over name's segments (including project namespace and name) with added
+    /// [`PROJECTS_MAIN_MODULE`] segment in case of the main module.
+    pub fn segments_with_main_segment(&self) -> impl Iterator<Item = &str> {
+        let main_segment = self.is_main_module().then_some(PROJECTS_MAIN_MODULE);
+        self.segments().map(|s| s.as_str()).chain(main_segment)
+    }
+
     /// Return the module identifier pointed by this qualified name.
     pub fn module_id(&self) -> module::Id {
         let module_path = self.path.as_ref();
@@ -242,6 +256,18 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     pub fn to_owned(&self) -> QualifiedName {
         QualifiedName { project: self.project.clone_ref(), path: self.path.as_ref().into() }
     }
+
+    /// Convert qualified name to [`String`] adding the [`PROJECTS_MAIN_SEGMENT`] at the end in case
+    /// of main module.
+    ///
+    /// ```rust
+    /// use double_representation::name::project::QualifiedName;
+    /// let name = QualifiedName::from_text("ns.Project");
+    /// assert_eq!(name.to_string_with_main_segment(), "ns.Project.Main");
+    /// ```
+    pub fn to_string_with_main_segment(&self) -> String {
+        self.segments_with_main_segment().join(ACCESS)
+    }
 }
 
 
@@ -250,14 +276,24 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
 impl QualifiedName {
     /// Add a segment to this qualified name.
     ///
+    /// Because the [`QualifiedName`] always omit the "Main" module name in its path, this function
+    /// may result in leaving exactly the same name as before (see an example).
+    ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
     /// let mut name = QualifiedName::from_text("ns.Proj.Foo").unwrap();
     /// name.push_segment("Bar");
     /// assert_eq!(name.to_string(), "ns.Proj.Foo.Bar");
+    ///
+    /// let mut name = QualifiedName::from_text("ns.Proj").unwrap();
+    /// name.push_segment("Main");
+    /// assert_eq!(name.to_string(), "ns.Proj");
     /// ```
     pub fn push_segment(&mut self, name: impl Into<ImString>) {
-        self.path.push(name.into());
+        let name = name.into();
+        if name != PROJECTS_MAIN_MODULE || !self.path.is_empty() {
+            self.path.push(name);
+        }
     }
 
     /// Remove a segment to this qualified name.
@@ -375,6 +411,16 @@ impl IntoIterator for QualifiedName {
 
 
 // === Comparing Various Name Representations ===
+
+impl<S1: AsRef<[ImString]>, S2: AsRef<[ImString]>> PartialEq<QualifiedNameTemplate<S1>>
+    for QualifiedNameTemplate<S2>
+{
+    fn eq(&self, other: &QualifiedNameTemplate<S1>) -> bool {
+        self.project == other.project && self.path.as_ref() == other.path.as_ref()
+    }
+}
+
+impl<Segments: AsRef<[ImString]>> Eq for QualifiedNameTemplate<Segments> {}
 
 impl<Segments: AsRef<[ImString]>> PartialEq<project::QualifiedName>
     for QualifiedNameTemplate<Segments>

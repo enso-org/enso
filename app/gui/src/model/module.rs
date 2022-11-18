@@ -208,7 +208,7 @@ impl Path {
         project_name: project::QualifiedName,
         method_name: impl Str,
     ) -> MethodPointer {
-        let module = String::from(self.qualified_module_name(project_name));
+        let module = self.qualified_module_name(project_name).to_string_with_main_segment();
         let defined_on_type = module.clone();
         let name = method_name.into();
         MethodPointer { module, defined_on_type, name }

@@ -184,15 +184,9 @@ impl SuggestionDatabase {
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
-            match Entry::from_ls_entry(ls_entry.suggestion) {
-                Ok(entry) => {
-                    qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
-                    entries.insert(id, Rc::new(entry));
-                }
-                Err(err) => {
-                    error!("Discarded invalid entry {id}: {err}");
-                }
-            }
+            let entry = Entry::from_ls_entry(ls_entry.suggestion);
+            qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
+            entries.insert(id, Rc::new(entry));
         }
         //TODO[ao]: This is a temporary solution. Eventually, we should gather examples from the
         //          available modules documentation. (https://github.com/enso-org/ide/issues/1011)

@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 use enso_text::index::*;
-use std::fmt::Formatter;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -11,15 +10,17 @@ use crate::definition::EmptyDefinitionId;
 use crate::identifier;
 use crate::identifier::Identifier;
 use crate::import;
-
 use crate::name::NamePath;
 use crate::name::QualifiedName;
+
 use ast::crumbs::ChildAst;
 use ast::crumbs::Located;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
+use std::fmt::Formatter;
+
 
 
 // ==============
@@ -90,6 +91,15 @@ impl Id {
     }
 }
 
+impl IntoIterator for Id {
+    type Item = ImString;
+    type IntoIter = impl Iterator<Item = Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.parent_modules.into_iter().chain(iter::once(self.name))
+    }
+}
+
 impl From<Id> for NamePath {
     fn from(id: Id) -> Self {
         id.parent_modules.into_iter().chain(iter::once(id.name)).collect()
@@ -144,6 +154,10 @@ impl Info {
     /// If the caller wants to know *where* the declarations are, use `enumerate_imports`.
     pub fn iter_imports(&self) -> impl Iterator<Item = import::Info> + '_ {
         self.enumerate_imports().map(|(_, import)| import)
+    }
+
+    pub fn contains_import(&self, id: import::Id) -> bool {
+        self.iter_imports().any(|import| import.id() == id)
     }
 
     /// Add a new line to the module's block.
@@ -202,6 +216,17 @@ impl Info {
         let import_ast = parser.parse_line_ast(to_add.to_string()).unwrap();
         self.add_line(index_to_place_at, Some(import_ast));
         index_to_place_at
+    }
+
+    /// Add a new import declaration to a module.
+    ///
+    /// For more details the mechanics see [`add_import`] documentation.
+    pub fn add_import_if_missing(
+        &mut self,
+        parser: &parser_scala::Parser,
+        to_add: import::Info,
+    ) -> Option<usize> {
+        (!self.contains_import(to_add.id())).then(|| self.add_import(parser, to_add))
     }
 
     /// Place the line with given AST in the module's body.

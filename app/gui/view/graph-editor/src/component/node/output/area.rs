@@ -419,7 +419,6 @@ impl Model {
         if DEBUG {
             DEBUG!("\n\n=====================\nSET EXPR: {new_expression:?}")
         }
-        warn!("\n\n=====================\nSET EXPR: {new_expression:?}");
 
         self.set_label_on_new_expression(&new_expression);
         *self.expression.borrow_mut() = new_expression;

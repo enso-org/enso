@@ -3,11 +3,13 @@
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
+use crate::model::SuggestionDatabase;
 
 use ast::opr;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::import;
+use double_representation::name;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
@@ -17,15 +19,14 @@ use enso_text::Location;
 use language_server::types::FieldAction;
 
 
-
 // ==============
 // === Export ===
 // ==============
 
-use crate::model::SuggestionDatabase;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
+
 
 
 // =================
@@ -431,18 +432,24 @@ impl Entry {
     }
 
     /// Return the list of required imports to have the code inserted by picking this entry working.
-    pub fn required_imports(&self, db: &SuggestionDatabase) -> SmallVec<[Import; 2]> {
+    pub fn required_imports(
+        &self,
+        db: &SuggestionDatabase,
+        in_module: QualifiedNameRef,
+    ) -> SmallVec<[Import; 2]> {
+        let defined_in_same_module = self.defined_in == in_module;
         match self.kind {
             Kind::Method => {
                 let self_type_entry = self.self_type_entry(db);
                 let self_type_module = self_type_entry.as_ref().map(|st| &st.defined_in);
                 let is_extension_method =
                     self_type_module.map_or(false, |stm| *stm != self.defined_in);
-                let extension_method_import = is_extension_method
-                    .and_option_from(|| self.defined_in_entry(db).map(|e| e.required_imports(db)));
+                let extension_method_import = is_extension_method.and_option_from(|| {
+                    self.defined_in_entry(db).map(|e| e.required_imports(db, in_module.clone_ref()))
+                });
                 let self_type_import = self
                     .is_static
-                    .and_option_from(|| self_type_entry.map(|e| e.required_imports(db)));
+                    .and_option_from(|| self_type_entry.map(|e| e.required_imports(db, in_module)));
                 extension_method_import
                     .into_iter()
                     .chain(self_type_import.into_iter())
@@ -451,10 +458,11 @@ impl Entry {
             }
             Kind::Constructor => self
                 .self_type_entry(db)
-                .map(|e| e.required_imports(db))
+                .map(|e| e.required_imports(db, in_module))
                 .into_iter()
                 .flatten()
                 .collect(),
+            Kind::Module | Kind::Type if defined_in_same_module => default(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
                     Import::Unqualified {
@@ -566,10 +574,16 @@ impl Entry {
 
 impl Entry {
     /// Create entry from the structure deserialized from the Language Server responses.
-    pub fn from_ls_entry(
-        mut entry: language_server::types::SuggestionEntry,
-    ) -> FallibleResult<Self> {
+    pub fn from_ls_entry(mut entry: language_server::types::SuggestionEntry) -> Self {
         use language_server::types::SuggestionEntry::*;
+
+        fn to_qualified_name(s: String) -> QualifiedName {
+            s.as_str().try_into().unwrap_or_else(|_| {
+                error!("Invalid qualified name received from the Engine in SuggestionEntry. Assuming an entinty in Standard.Base project");
+                QualifiedName::new_child(name::project::QualifiedName::standard_base_library().into(), s)
+            })
+        }
+
         let (documentation, icon_name) = match &mut entry {
             Type { documentation, documentation_html, documentation_sections, .. }
             | Constructor { documentation, documentation_html, documentation_sections, .. }
@@ -586,33 +600,43 @@ impl Entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }
             | Method { reexport: Some(reexport), .. }
-            | Module { reexport: Some(reexport), .. } => Some(mem::take(reexport).try_into()?),
+            | Module { reexport: Some(reexport), .. } =>
+                Some(to_qualified_name(mem::take(reexport))),
             _ => None,
         };
         let mut this = match entry {
             Type { name, module, params, .. } =>
-                Self::new_type(module.try_into()?, name).with_arguments(params),
+                Self::new_type(to_qualified_name(module), name).with_arguments(params),
             Constructor { name, arguments, return_type, .. } =>
-                Self::new_constructor(return_type.try_into()?, name).with_arguments(arguments),
+                Self::new_constructor(to_qualified_name(return_type), name)
+                    .with_arguments(arguments),
             Method { name, module, self_type, return_type, is_static, arguments, .. } =>
                 Self::new_method(
-                    module.try_into()?,
-                    self_type.try_into()?,
+                    to_qualified_name(module),
+                    to_qualified_name(self_type),
                     name,
-                    return_type.try_into()?,
+                    to_qualified_name(return_type),
                     is_static,
                 )
                 .with_arguments(arguments),
-            Function { name, module, return_type, scope, .. } =>
-                Self::new_function(module.try_into()?, name, return_type.try_into()?, scope.into()),
-            Local { name, module, return_type, scope, .. } =>
-                Self::new_local(module.try_into()?, name, return_type.try_into()?, scope.into()),
-            Module { module, .. } => Self::new_module(module.try_into()?),
+            Function { name, module, return_type, scope, .. } => Self::new_function(
+                to_qualified_name(module),
+                name,
+                to_qualified_name(return_type),
+                scope.into(),
+            ),
+            Local { name, module, return_type, scope, .. } => Self::new_local(
+                to_qualified_name(module),
+                name,
+                to_qualified_name(return_type),
+                scope.into(),
+            ),
+            Module { module, .. } => Self::new_module(to_qualified_name(module)),
         };
         this.documentation_html = documentation;
         this.icon_name = icon_name;
         this.reexported_in = reexported_in;
-        Ok(this)
+        this
     }
 
     /// Returns the documentation in html depending on the information received from the Engine.
@@ -766,9 +790,8 @@ impl Entry {
     }
 }
 
-impl TryFrom<language_server::types::SuggestionEntry> for Entry {
-    type Error = failure::Error;
-    fn try_from(entry: language_server::types::SuggestionEntry) -> FallibleResult<Self> {
+impl From<language_server::types::SuggestionEntry> for Entry {
+    fn from(entry: language_server::types::SuggestionEntry) -> Self {
         Self::from_ls_entry(entry)
     }
 }
@@ -915,15 +938,22 @@ mod test {
     #[test]
     fn required_imports_of_entry() {
         let db = mock::standard_db_mock();
-        let expect_imports = |entry: Rc<Entry>, expected: &[&str]| {
-            let entry_imports = entry.required_imports(&db).into_iter();
+        const CURRENT_MODULE_VARIANTS: [&str; 2] =
+            ["local.Project.Submodule", "local.Another_Project"];
+        let current_modules =
+            CURRENT_MODULE_VARIANTS.map(|txt| QualifiedName::try_from(txt).unwrap());
+
+        let expect_imports = |entry: &Entry, current_module: &QualifiedName, expected: &[&str]| {
+            let entry_imports = entry.required_imports(&db, current_module.as_ref()).into_iter();
             let imports_as_strings = entry_imports.map(|entry_import| {
                 let import: import::Info = entry_import.into();
                 import.to_string()
             });
             assert_eq!(imports_as_strings.collect_vec().as_slice(), expected);
         };
-        let expect_no_import = |entry: Rc<Entry>| assert!(entry.required_imports(&db).is_empty());
+        let expect_no_import = |entry: &Entry, current_module: &QualifiedName| {
+            assert!(entry.required_imports(&db, current_module.as_ref()).is_empty())
+        };
 
         let number = db.lookup_by_qualified_name_str("Standard.Base.Number").unwrap();
         let some = db.lookup_by_qualified_name_str("Standard.Base.Maybe.Some").unwrap();
@@ -941,13 +971,25 @@ mod test {
         let extension_method =
             Rc::new(Entry::new_method(defined_in, on_type, "extension_method", return_type, true));
 
-        expect_imports(number, &["from Standard.Base import Number"]);
-        expect_imports(some, &["from Standard.Base import Maybe"]);
-        expect_no_import(method);
-        expect_imports(static_method, &["from local.Project.Submodule import TestType"]);
-        expect_imports(module_method, &["import local.Project.Submodule"]);
-        expect_imports(submodule, &["import local.Project.Submodule"]);
-        expect_imports(extension_method, &[
+        for cm in &current_modules {
+            expect_imports(&number, cm, &["from Standard.Base import Number"]);
+            expect_imports(&some, cm, &["from Standard.Base import Maybe"]);
+            expect_no_import(&method, cm);
+        }
+
+        expect_imports(&static_method, &current_modules[0], &[]);
+        expect_imports(&module_method, &current_modules[0], &[]);
+        expect_imports(&submodule, &current_modules[0], &[]);
+        expect_imports(&extension_method, &current_modules[0], &[
+            "from Standard.Base import Number",
+        ]);
+
+        expect_imports(&static_method, &current_modules[1], &[
+            "from local.Project.Submodule import TestType",
+        ]);
+        expect_imports(&module_method, &current_modules[1], &["import local.Project.Submodule"]);
+        expect_imports(&submodule, &current_modules[1], &["import local.Project.Submodule"]);
+        expect_imports(&extension_method, &current_modules[1], &[
             "import local.Project.Submodule",
             "from Standard.Base import Number",
         ]);
@@ -971,8 +1013,9 @@ mod test {
                 }
             }
         };
+        let current_module = QualifiedName::from_text("local.Project").unwrap();
         let expect_imports = |entry: Rc<Entry>, expected: &[&str]| {
-            let entry_imports = entry.required_imports(&db).into_iter();
+            let entry_imports = entry.required_imports(&db, current_module.as_ref()).into_iter();
             let imports_as_strings = entry_imports.map(|entry_import| {
                 let import: import::Info = entry_import.into();
                 import.to_string()

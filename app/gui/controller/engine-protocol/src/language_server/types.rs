@@ -880,11 +880,11 @@ impl SuggestionEntryArgument {
     /// Create a new argument which is not suspended and has no default.
     pub fn new(name: impl Into<String>, repr_type: impl Into<String>) -> Self {
         Self {
-            name: name.into(),
-            repr_type: repr_type.into(),
-            is_suspended: false,
-            has_default: false,
-            default_value: None
+            name:          name.into(),
+            repr_type:     repr_type.into(),
+            is_suspended:  false,
+            has_default:   false,
+            default_value: None,
         }
     }
 }

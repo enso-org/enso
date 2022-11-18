@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
-
 use crate::model::SuggestionDatabase;
 
+use double_representation::name::QualifiedNameRef;
 
 
 // ==============
@@ -41,9 +41,10 @@ impl Suggestion {
     pub(crate) fn required_imports(
         &self,
         db: &SuggestionDatabase,
+        current_module: QualifiedNameRef,
     ) -> impl IntoIterator<Item = model::suggestion_database::entry::Import> {
         match self {
-            Suggestion::FromDatabase(s) => s.required_imports(db),
+            Suggestion::FromDatabase(s) => s.required_imports(db, current_module),
             Suggestion::Hardcoded(_) => default(),
         }
     }
