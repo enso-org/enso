@@ -1,105 +1,11 @@
 from Standard.Base import all
-import Standard.Base.Data.Array
-import Standard.Base.Data.Index_Sub_Range
-import Standard.Base.Random
+import project.Data.Array.Array
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+import project.Random
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
 polyglot java import java.lang.ClassCastException
-
-## Creates a new vector of the given length, initializing elements using
-   the provided constructor function.
-
-   Arguments:
-   - length: The length of the vector (>= 0).
-   - constructor: A function taking the index in the vector and returning an
-     item for that index in the vector.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-
-   > Example
-     Create a vector containing the numbers 1 through 50.
-         Vector.new 50 (ix -> ix + 1)
-
-   > Example
-     Create a copy of the given vector (`my_vec`).
-
-         Vector.new my_vec.length (ix -> my_vec.at ix)
-new : Number -> (Number -> Any) -> Vector Any
-new length constructor = @Builtin_Method "Vector.new"
-
-## ADVANCED
-
-   Converts an array into a vector by copying content of the array.
-
-   Arguments:
-   - array: The array with content to copy into the new vector.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-from_array : Array -> Vector
-from_array array = @Builtin_Method "Vector.from_array"
-
-## Creates a new vector of the given length, filling the elements with
-   the provided constant.
-
-   Arguments:
-   - length: The length of the vector (>= 0).
-   - constructor: A value fo be placed into each element of the vector.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-
-   > Example
-     Create a vector containing 50 elements, each being the number `42`.
-
-         Vector.fill length=50 item=42
-fill : Number -> Any -> Vector Any
-fill length ~item =
-    builder = (0.up_to length).fold (new_builder length) builder-> _->
-        builder.append item
-    builder.to_vector
-
-## Creates a new vector builder instance.
-
-   A vector builder is a mutable data structure, that allows for gathering
-   a number of elements and then converting them into a vector. This is
-   particularly useful when the number of elements is not known upfront.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-
-   Arguments:
-   - capacity: Initial capacity of the Vector.Builder
-
-   > Example
-     Construct a vector using a builder that contains the items 1 to 5.
-
-         example_new_builder =
-              builder = Vector.new_builder 5
-              do_build start stop =
-                  builder.append start
-                  if start >= stop then Nothing else
-                      @Tail_Call do_build start+1 stop
-              do_build 1 5
-              builder.to_vector
-new_builder : Integer -> Builder
-new_builder (capacity=10) = Builder.new capacity
-
-## ADVANCED
-
-   Converts a polyglot value representing an array into a vector.
-
-   Arguments:
-   - arr: The polyglot array value to wrap into a vector.
-
-   This is useful when wrapping polyglot APIs for further use in Enso.
-
-   A vector allows to store an arbitrary number of elements in linear memory. It
-   is the recommended data structure for most applications.
-from_polyglot_array : Any -> Vector Any
-from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -116,6 +22,99 @@ from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
 @Builtin_Type
 type Vector a
+    ## Creates a new vector of the given length, initializing elements using
+       the provided constructor function.
+
+       Arguments:
+       - length: The length of the vector (>= 0).
+       - constructor: A function taking the index in the vector and returning an
+         item for that index in the vector.
+
+       A vector allows to store an arbitrary number of elements in linear memory. It
+       is the recommended data structure for most applications.
+
+       > Example
+         Create a vector containing the numbers 1 through 50.
+             Vector.new 50 (ix -> ix + 1)
+
+       > Example
+         Create a copy of the given vector (`my_vec`).
+
+             Vector.new my_vec.length (ix -> my_vec.at ix)
+    new : Integer -> (Integer -> Any) -> Vector Any
+    new length constructor = @Builtin_Method "Vector.new"
+
+    ## ADVANCED
+
+       Converts an array into a vector by copying content of the array.
+
+       Arguments:
+       - array: The array with content to copy into the new vector.
+
+       A vector allows to store an arbitrary number of elements in linear memory. It
+       is the recommended data structure for most applications.
+    from_array : Array -> Vector
+    from_array array = @Builtin_Method "Vector.from_array"
+
+    ## Creates a new vector of the given length, filling the elements with
+       the provided constant.
+
+       Arguments:
+       - length: The length of the vector (>= 0).
+       - constructor: A value fo be placed into each element of the vector.
+
+       A vector allows to store an arbitrary number of elements in linear memory. It
+       is the recommended data structure for most applications.
+
+       > Example
+         Create a vector containing 50 elements, each being the number `42`.
+
+             Vector.fill length=50 item=42
+    fill : Integer -> Any -> Vector Any
+    fill length ~item =
+        builder = (0.up_to length).fold (Vector.new_builder length) builder-> _->
+            builder.append item
+        builder.to_vector
+
+    ## Creates a new vector builder instance.
+
+       A vector builder is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       A vector allows to store an arbitrary number of elements in linear memory. It
+       is the recommended data structure for most applications.
+
+       Arguments:
+       - capacity: Initial capacity of the Vector.Builder
+
+       > Example
+         Construct a vector using a builder that contains the items 1 to 5.
+
+             example_new_builder =
+                  builder = Vector.new_builder 5
+                  do_build start stop =
+                      builder.append start
+                      if start >= stop then Nothing else
+                          @Tail_Call do_build start+1 stop
+                  do_build 1 5
+                  builder.to_vector
+    new_builder : Integer -> Builder
+    new_builder (capacity=10) = Builder.new capacity
+
+    ## ADVANCED
+
+       Converts a polyglot value representing an array into a vector.
+
+       Arguments:
+       - arr: The polyglot array value to wrap into a vector.
+
+       This is useful when wrapping polyglot APIs for further use in Enso.
+
+       A vector allows to store an arbitrary number of elements in linear memory. It
+       is the recommended data structure for most applications.
+    from_polyglot_array : Any -> Vector Any
+    from_polyglot_array array = @Builtin_Method "Vector.from_polyglot_array"
 
     ## ADVANCED
        Copies content of a vector into an Array.
@@ -127,7 +126,7 @@ type Vector a
          Checking the length of a vector.
 
              [1, 2, 3, 4].length
-    length : Number
+    length : Integer
     length self = @Builtin_Method "Vector.length"
 
     ## Gets an element from the vector at a specified index (0-based).
@@ -335,7 +334,7 @@ type Vector a
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
-            builder = self.fold new_builder builder-> elem->
+            builder = self.fold Vector.new_builder builder-> elem->
                 if predicate elem then builder.append elem else builder
             builder.to_vector
 
@@ -352,7 +351,7 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        builder = self.fold_with_index new_builder builder-> ix-> elem->
+        builder = self.fold_with_index Vector.new_builder builder-> ix-> elem->
             if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
@@ -376,7 +375,7 @@ type Vector a
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition self predicate =
-        pair = self.fold (Pair_Data new_builder new_builder) acc-> elem->
+        pair = self.fold (Pair_Data Vector.new_builder Vector.new_builder) acc-> elem->
             case predicate elem of
                 True ->
                     Pair_Data (acc.first.append elem) acc.second
@@ -404,7 +403,7 @@ type Vector a
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair_Data new_builder new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair_Data Vector.new_builder Vector.new_builder) acc-> ix-> elem->
             case predicate ix elem of
                 True -> Pair_Data (acc.first.append elem) acc.second
                 False -> Pair_Data acc.first (acc.second.append elem)
@@ -423,7 +422,7 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Vector Any
     map self function =
-        new self.length i-> function (self.at i)
+        Vector.new self.length i-> function (self.at i)
 
     ## Applies a function to each element of the vector, returning the vector
        that contains all results concatenated.
@@ -454,7 +453,7 @@ type Vector a
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        from_polyglot_array arr
+        Vector.from_polyglot_array arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -471,7 +470,7 @@ type Vector a
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index self function = new self.length i-> function i (self.at i)
+    map_with_index self function = Vector.new self.length i-> function i (self.at i)
 
     ## Applies a function to each element of the vector.
 
@@ -518,7 +517,7 @@ type Vector a
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse self = new self.length (i -> self.at (self.length - (1 + i)))
+    reverse self = Vector.new self.length (i -> self.at (self.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -569,7 +568,7 @@ type Vector a
         _ : Vector ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
-        _ : Array.Array ->
+        _ : Array ->
             eq_at i = self.at i == that.at i
             if self.length == that.length then 0.up_to self.length . all eq_at else False
         _ -> False
@@ -590,7 +589,7 @@ type Vector a
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        from_polyglot_array arr
+        Vector.from_polyglot_array arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -667,7 +666,7 @@ type Vector a
             rng = Random.new seed
             Random.sample self count rng
         _ ->
-            Index_Sub_Range.take_helper self.length (self.at _) self.slice (slice_ranges self) range
+            Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## Creates a new vector, removing any elements from the specified range.
 
@@ -678,7 +677,7 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
@@ -704,7 +703,7 @@ type Vector a
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that function=[_,_] =
         len = Math.min self.length that.length
-        new len i-> function (self.at i) (that.at i)
+        Vector.new len i-> function (self.at i) (that.at i)
 
     ## Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
@@ -728,7 +727,7 @@ type Vector a
     pad : Integer -> Any -> Vector Any
     pad self n elem =
         if self.length >= n then self else
-            self + (fill n-self.length elem)
+            self + (Vector.fill n-self.length elem)
 
     ## Vector to JSON conversion.
 
@@ -868,7 +867,7 @@ type Vector a
 
         handle_incomparable_value <|
             new_vec_arr.sort compare
-            from_polyglot_array new_vec_arr
+            Vector.from_polyglot_array new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
@@ -905,7 +904,7 @@ type Vector a
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
         handle_incomparable_value <|
-            builder = new_builder
+            builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->
                     key = on item
@@ -929,10 +928,6 @@ type Vector a
     to_list : List
     to_list self =
         self.reverse.fold Nil acc-> elem-> Cons elem acc
-
-# TODO Dubious constructor export
-from project.Data.Vector.Builder import all
-from project.Data.Vector.Builder export all
 
 type Builder
 
@@ -968,7 +963,7 @@ type Builder
          and get wrong error propagation. Instead we may want to have a `Ref`
          inside of the Builder. Any error detected during `append` could set
          that `Ref` and then `to_vector` could propagate that error.
-    Builder_Data java_builder
+    Value java_builder
 
     ## Creates a new builder.
 
@@ -980,7 +975,7 @@ type Builder
 
              Vector.new_builder
     new : Integer -> Builder
-    new (capacity=10) = Builder_Data (Array_Builder.newBuilder capacity)
+    new (capacity=10) = Builder.Value (Array_Builder.newBuilder capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
@@ -1087,7 +1082,7 @@ type Builder
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
         new_array = self.java_builder.toArray
-        from_polyglot_array new_array
+        Vector.from_polyglot_array new_array
 
 ## UNSTABLE
 
@@ -1132,7 +1127,7 @@ slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         _ : Integer -> acc+1
         Range_Data _ _ _ -> acc+descriptor.length
-    builder = new_builder new_length
+    builder = Vector.new_builder new_length
     ranges.each descriptor-> case descriptor of
         _ : Integer ->
             builder.append (vector.at descriptor)

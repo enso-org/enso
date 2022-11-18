@@ -1,12 +1,105 @@
-import Standard.Base.Data.Vector
-import Standard.Base.Data.Range
-from Standard.Base.Data.Boolean import False, Boolean
-import Standard.Base.Error.Common
-import Standard.Base.Meta
+import project.Data.Any.Any
+import project.Data.Vector.Vector
+import project.Error.Common.Panic
+from project.Data.Boolean import Boolean, False
+from project.Data.Range import all
+import project.Meta
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
 type Array
+    ## Creates an array with length 0.
+
+       > Example
+         Create an empty array.
+
+             Array.empty
+    empty : Array
+    empty = @Builtin_Method "Array.empty"
+
+    ## Creates a new array of length size, with all elements uninitialized.
+
+       Arguments:
+       - size: The size of the array to create.
+
+       > Example
+         Create a new array of size 10.
+
+             Array.new 10
+    new : Integer -> Array
+    new size = @Builtin_Method "Array.new"
+
+    ## PRIVATE
+
+       Create an array with one element provided.
+
+       Arguments:
+       - item_1: The one element in the array.
+    new_1 : Any -> Array
+    new_1 item_1 = @Builtin_Method "Array.new_1"
+
+    ## PRIVATE
+
+       Create an array with two elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+    new_2 : Any -> Any -> Array
+    new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
+
+    ## PRIVATE
+
+       Create an array with three elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+       - item_3: The third element.
+    new_3 : Any -> Any -> Any -> Array
+    new_3 item_1 item_2 item_3 = @Builtin_Method "Array.new_3"
+
+    ## PRIVATE
+
+       Create an array with four elements provided.
+
+       Arguments:
+       - item_1: The first element.
+       - item_2: The second element.
+       - item_3: The third element.
+       - item_4: The fourth element.
+    new_4 : Any -> Any -> Any -> Any -> Array
+    new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
+
+    ## Copies from the source array, beginning at the specified position, to the
+       specified position in the destination array.
+
+       Arguments:
+       - src: The source array.
+       - source_index: The start position in the src array.
+       - dest: The desination array.
+       - dest_index: The start position in the that array.
+
+       A subsequence of array elements are copied from the src array to the
+       dest array. The number of components copied is equal to count. The
+       components at positions source_index through source_index + count - 1
+       in the strc array are copied into positions dest_index through
+       dest_index + count - 1, respectively, of the destination array.
+
+       If the src and dest arguments refer to the same array, then the copy
+       is performed as if the components at positions source_index through
+       source_index + count - 1 are first copied to a temporary array with
+       length count, and then the contents of the temporary array are copied
+       into positions dest_index through dest_index + count - 1 of the
+       destination array.
+
+       > Example
+         Copying elements from one array to another.
+
+             Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
+    copy : Array -> Integer -> Array -> Integer -> Integer -> Nothing
+    copy src source_index dest dest_index count = @Builtin_Method "Array.copy"
+
     ## Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -68,7 +161,7 @@ type Array
     == self that =
         if Meta.is_same_object Array self then Meta.is_same_object Array that else
             eq_at i = self.at i == that.at i
-            Common.Panic.catch_primitive handler=(_ -> False)
+            Panic.catch_primitive handler=(_ -> False)
                 if self.length == that.length then 0.up_to self.length . all eq_at else False
 
     ## UNSTABLE
@@ -87,95 +180,3 @@ type Array
     to_default_visualization_data : Text
     to_default_visualization_data self =
         Vector.from_polyglot_array self . to_default_visualization_data
-
-## Creates an array with length 0.
-
-   > Example
-     Create an empty array.
-
-         Array.empty
-empty : Array
-empty = @Builtin_Method "Array.empty"
-
-## Creates a new array of length size, with all elements uninitialized.
-
-   Arguments:
-   - size: The size of the array to create.
-
-   > Example
-     Create a new array of size 10.
-
-         Array.new 10
-new : Integer -> Array
-new size = @Builtin_Method "Array.new"
-
-## PRIVATE
-
-   Create an array with one element provided.
-
-   Arguments:
-   - item_1: The one element in the array.
-new_1 : Any -> Array
-new_1 item_1 = @Builtin_Method "Array.new_1"
-
-## PRIVATE
-
-   Create an array with two elements provided.
-
-   Arguments:
-   - item_1: The first element.
-   - item_2: The second element.
-new_2 : Any -> Any -> Array
-new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
-
-## PRIVATE
-
-   Create an array with three elements provided.
-
-   Arguments:
-   - item_1: The first element.
-   - item_2: The second element.
-   - item_3: The third element.
-new_3 : Any -> Any -> Any -> Array
-new_3 item_1 item_2 item_3 = @Builtin_Method "Array.new_3"
-
-## PRIVATE
-
-   Create an array with four elements provided.
-
-   Arguments:
-   - item_1: The first element.
-   - item_2: The second element.
-   - item_3: The third element.
-   - item_4: The fourth element.
-new_4 : Any -> Any -> Any -> Any -> Array
-new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
-
-## Copies from the source array, beginning at the specified position, to the
-   specified position in the destination array.
-
-   Arguments:
-   - src: The source array.
-   - source_index: The start position in the src array.
-   - dest: The desination array.
-   - dest_index: The start position in the that array.
-
-   A subsequence of array elements are copied from the src array to the
-   dest array. The number of components copied is equal to count. The
-   components at positions source_index through source_index + count - 1
-   in the strc array are copied into positions dest_index through
-   dest_index + count - 1, respectively, of the destination array.
-
-   If the src and dest arguments refer to the same array, then the copy
-   is performed as if the components at positions source_index through
-   source_index + count - 1 are first copied to a temporary array with
-   length count, and then the contents of the temporary array are copied
-   into positions dest_index through dest_index + count - 1 of the
-   destination array.
-
-   > Example
-     Copying elements from one array to another.
-
-         Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
-copy : Array -> Integer -> Array -> Integer -> Integer -> Nothing
-copy src source_index dest dest_index count = @Builtin_Method "Array.copy"

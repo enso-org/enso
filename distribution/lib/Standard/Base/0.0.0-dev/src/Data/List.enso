@@ -2,7 +2,7 @@ from Standard.Base.Data.Numbers import all
 from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Data.Filter_Condition.Filter_Condition
-import Standard.Base.Data.Vector
+import Standard.Base.Data.Vector.Vector
 import Standard.Base.Function.Function
 import Standard.Base.Nothing
 import Standard.Base.Runtime.Unsafe

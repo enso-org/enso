@@ -10,7 +10,7 @@ polyglot java import java.time.LocalDateTime as Java_DateTime
 
 
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
-    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
     Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data err.payload.cause))

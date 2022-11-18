@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Array
-import Standard.Base.Data.Text.Text_Sub_Range
+import Standard.Base.Data.Array.Array
 from Standard.Base.Error.Common import Unsupported_File_Type
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
@@ -82,7 +81,7 @@ read path (format=Auto_Detect) (on_problems=Report_Warning) =
          import Standard.Examples
 
          example_read_bytes = File.read_bytes Examples.csv
-read_bytes : (Text | File) -> Vector.Vector ! File_Error
+read_bytes : (Text | File) -> Vector ! File_Error
 read_bytes path =
     file = new path
     file.read_bytes
@@ -193,7 +192,7 @@ home = @Builtin_Method "File.home"
 
          example_list_files =
              File.list Examples.data_dir name_filter="**.md" recursive=True
-list : (File | Text) -> Text -> Boolean -> Vector.Vector File
+list : (File | Text) -> Text -> Boolean -> Vector File
 list directory name_filter=Nothing recursive=False =
     new directory . list name_filter=name_filter recursive=recursive
 
@@ -222,7 +221,7 @@ type File
                  file = Examples.scratch_file
                  action = stream -> stream.write_bytes "hello".utf_8
                  file.with_output_stream [Option.Create, Option.Write] action
-    with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_output_stream : Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self open_options action =
         Resource.bracket (self.new_output_stream open_options) (_.close) action
 
@@ -234,7 +233,7 @@ type File
        Arguments:
        - options: A vector of `File.Option` objects determining how to open
          the stream. These options set the access properties of the stream.
-    output_stream : Vector.Vector -> Output_Stream
+    output_stream : Vector -> Output_Stream
     output_stream self options = @Builtin_Method "File.output_stream"
 
     ## PRIVATE
@@ -245,7 +244,7 @@ type File
        Arguments:
        - open_options: A vector of `File.Option` objects determining how to open
          the stream. These options set the access properties of the stream.
-    input_stream : Vector.Vector -> Input_Stream
+    input_stream : Vector -> Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
@@ -270,7 +269,7 @@ type File
                  file = Examples.csv
                  action = stream -> stream.read_all_bytes
                  file.with_input_stream [Option.Create, Option.Read] action
-    with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_input_stream : Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
         Resource.bracket (self.new_input_stream open_options) (_.close) action
 
@@ -315,7 +314,7 @@ type File
              import Standard.Examples
 
              example_read_bytes = Examples.csv.read_bytes
-    read_bytes : Vector.Vector ! File_Error
+    read_bytes : Vector ! File_Error
     read_bytes self =
         opts = [Option.Read]
         self.with_input_stream opts (_.read_all_bytes)
@@ -503,7 +502,7 @@ type File
         name = self.name
         last_dot = name.location_of "." mode=Matching_Mode.Last
         if last_dot.is_nothing then "" else
-            extension = name.drop (Text_Sub_Range.First last_dot.start)
+            extension = name.drop (First last_dot.start)
             if extension == "." then "" else extension
 
     ## Converts this file to an equivalent file represented with an absolute
@@ -621,7 +620,7 @@ type File
 
        The returned stream should be closed as soon as it is not used anymore.
        The `with_input_stream` method should be preferred whenever possible.
-    new_input_stream : Vector.Vector -> Input_Stream ! File_Error
+    new_input_stream : Vector -> Input_Stream ! File_Error
     new_input_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self (self.input_stream opts)
@@ -638,7 +637,7 @@ type File
 
        The returned stream should be closed as soon as it is not used anymore.
        The `with_output_stream` method should be preferred whenever possible.
-    new_output_stream : Vector.Vector -> Output_Stream ! File_Error
+    new_output_stream : Vector -> Output_Stream ! File_Error
     new_output_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self <|
@@ -707,7 +706,7 @@ type File
 
              example_list_md_files =
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
-    list : Text -> Boolean -> Vector.Vector File
+    list : Text -> Boolean -> Vector File
     list self name_filter=Nothing recursive=False =
         all_files = case recursive of
             True -> list_descendants self
@@ -738,7 +737,7 @@ type File
     ## PRIVATE
 
        Utility function that lists immediate children of a directory.
-    list_immediate_children : Vector.Vector File
+    list_immediate_children : Vector File
     list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
 
     ## PRIVATE
@@ -784,7 +783,7 @@ type Output_Stream
                  out_stream = file.new_output_stream [Option.Create, Option.Write]
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
-    write_bytes : Vector.Vector -> Nothing ! File_Error
+    write_bytes : Vector -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             java_stream.write contents.to_array
@@ -876,7 +875,7 @@ type Input_Stream
                  bytes = in_stream.read_all_bytes
                  in_stream.close
                  bytes
-    read_all_bytes : Vector.Vector ! File_Error
+    read_all_bytes : Vector ! File_Error
     read_all_bytes self = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             Vector.from_polyglot_array java_stream.readAllBytes
@@ -906,7 +905,7 @@ type Input_Stream
                  bytes = in_stream.read_n_bytes 10
                  in_stream.close
                  bytes
-    read_n_bytes : Integer -> Vector.Vector ! File_Error
+    read_n_bytes : Integer -> Vector ! File_Error
     read_n_bytes self n = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
@@ -1042,7 +1041,7 @@ type File_Error
    Utility function that returns all descendants of the provided file, including
    that file itself. If the file is not a directory, a list containing only
    itself is returned.
-list_descendants : File -> Vector.Vector File
+list_descendants : File -> Vector File
 list_descendants file =
     builder = Vector.new_builder
     go file =
@@ -1123,8 +1122,8 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
-Vector.Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
+Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
+Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types_Data handler=(_ -> Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Builder.ensureByteArray self.to_array

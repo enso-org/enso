@@ -1,6 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import While, Sample, Every
-import Standard.Base.Data.Index_Sub_Range
+from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Every
 from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector, Position, Column_Selector

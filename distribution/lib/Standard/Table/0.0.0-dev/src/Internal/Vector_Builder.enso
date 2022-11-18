@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Array
+import Standard.Base.Data.Array.Array
 
 from project.Internal.Vector_Builder.Vector_Builder import Leaf, Append
 
@@ -48,7 +48,7 @@ type Vector_Builder
     ## PRIVATE
 
        Materializes the actual vector from this builder.
-    build : Vector.Vector Any
+    build : Vector Any
     build self =
        array = Array.new self.length
        go ix elem = case elem of
@@ -70,13 +70,13 @@ type Vector_Builder
 
        It returns a new builder that will yield a vector that is a concatenation
        of `self` and the argument.
-    ++ : Vector_Builder Any | Vector.Vector Any -> Vector_Builder Any
+    ++ : Vector_Builder Any | Vector Any -> Vector_Builder Any
     ++ self other = if other.is_empty then self else
         len = self.length + other.length
         case other of
             Leaf _ -> Append self other len
             Append _ _ _ -> Append self other len
-            _ : Vector.Vector -> Append self (Leaf other) len
+            _ : Vector -> Append self (Leaf other) len
 
     ## PRIVATE
 
@@ -90,6 +90,6 @@ type Vector_Builder
 
        Arguments:
        - vec: The vector to create a vector builder from.
-    from_vector : Vector.Vector Any -> Vector_Builder Any
+    from_vector : Vector Any -> Vector_Builder Any
     from_vector vec = Leaf vec
 
