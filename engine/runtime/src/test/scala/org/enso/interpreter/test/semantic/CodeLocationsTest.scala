@@ -246,7 +246,7 @@ class CodeLocationsTest extends InterpreterTest {
       eval(code)
     }
 
-    "be correct in the presence of comments" ignore
+    "be correct in the presence of comments" in
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
