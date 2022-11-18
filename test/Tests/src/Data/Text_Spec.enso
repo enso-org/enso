@@ -726,8 +726,7 @@ spec =
             'AB'.is_whitespace . should_be_false
             '  A   '.is_whitespace . should_be_false
 
-            # Disabled in the New Parser
-            # '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.is_whitespace . should_be_true
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}'.is_whitespace . should_be_true
             # The Unicode Zero Width Space is not considered whitespace
             '\u{200b}'.is_whitespace . should_be_false
 
@@ -1075,8 +1074,7 @@ spec =
             ' \t\n\r'.trim . should_equal ''
             '\t\t  Test\nFoo\r\n'.trim . should_equal 'Test\nFoo'
             # Check various kinds of Unicode whitespace
-            # Disabled in the New Parser
-            # '\v\f\u{200a}\u{202f}\u{205F}\u{3000}\u{feff}'.trim . should_equal ''
+            '\v\f\u{200a}\u{202f}\u{205F}\u{3000}'.trim . should_equal ''
 
             # A whitespace with an accent is not treated as whitespace anymore
             '      \u{301}   '.trim . should_equal ' \u{301}'
