@@ -983,6 +983,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         initializeAtRuntime = Seq("scala.util.Random")
       )
       .dependsOn(VerifyReflectionSetup.run)
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1358,8 +1359,9 @@ lazy val installGraalJs = Def.task {
     )
   }
 }
+lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM compoent")
 
-lazy val installNativeImage = Def.task {
+ThisBuild / installNativeImage := {
   val logger = streams.value.log
   if (!installedGuComponents(logger).contains("native-image")) {
     logger.info("Installing native-image GraalVM component")
@@ -1368,6 +1370,10 @@ lazy val installNativeImage = Def.task {
       Seq("install", "native-image")
     )
   }
+}
+
+ThisBuild / installNativeImage := {
+  (ThisBuild / installNativeImage).result.value
 }
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1644,7 +1650,7 @@ lazy val `engine-runner` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI",
+          "io.methvin.watchservice.jna.CarbonAPI"
         )
       )
       .dependsOn(installNativeImage)
@@ -1656,7 +1662,6 @@ lazy val `engine-runner` = project
         rebuildNativeImage,
         "runner"
       )
-      .dependsOn(installNativeImage)
       .value
   )
   .dependsOn(`version-output`)
@@ -1704,7 +1709,6 @@ lazy val launcher = project
         rebuildNativeImage,
         "enso"
       )
-      .dependsOn(installNativeImage)
       .value,
     assembly / test := {},
     assembly / assemblyOutputPath := file("launcher.jar"),
