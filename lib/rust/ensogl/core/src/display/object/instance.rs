@@ -24,8 +24,7 @@ use transform::CachedTransform;
 
 /// A parent-child binding. It contains reference to parent node and information about the child
 /// index. When dropped, it removes the child from its parent.
-#[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+#[derive(Debug)]
 pub struct ParentBind {
     parent:      WeakInstance,
     child_index: usize,
@@ -47,6 +46,48 @@ impl Drop for ParentBind {
 
 
 
+// ========================
+// === SharedParentBind ===
+// ========================
+
+/// A shared version of [`Option<ParentBind>`].
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct SharedParentBind {
+    data: Rc<RefCell<Option<ParentBind>>>,
+}
+
+impl SharedParentBind {
+    fn is_none(&self) -> bool {
+        self.data.borrow().is_none()
+    }
+
+    fn is_some(&self) -> bool {
+        self.data.borrow().is_some()
+    }
+
+    fn set_bind(&self, bind: ParentBind) {
+        *self.data.borrow_mut() = Some(bind)
+    }
+
+    fn parent(&self) -> Option<Instance> {
+        self.data.borrow().as_ref().and_then(|t| t.parent())
+    }
+
+    fn parent_and_child_index(&self) -> Option<(Instance, usize)> {
+        self.data.borrow().as_ref().and_then(|t| t.parent().map(|s| (s, t.child_index)))
+    }
+
+    fn child_index(&self) -> Option<usize> {
+        self.data.borrow().as_ref().map(|t| t.child_index)
+    }
+
+    fn take(&self) -> Option<ParentBind> {
+        self.data.borrow_mut().take()
+    }
+}
+
+
+
 // ==================
 // === DirtyFlags ===
 // ==================
@@ -62,7 +103,7 @@ type SceneLayerDirty = dirty::SharedBool<OnDirtyCallback>;
 
 // === Definition ===
 
-/// Set of dirty flags indicating whether some display object properties are not up to date.
+/// Set of dirty flags indicating whether some display object properties are not up-to-date.
 ///
 /// In order to achieve high performance, display object hierarchy is not updated immediately after
 /// a change. Instead, dirty flags are set and propagated in the hierarchy and the needed subset of
@@ -149,7 +190,7 @@ pub struct Model {
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
     layer: RefCell<Option<WeakLayer>>,
     dirty: DirtyFlags,
-    parent_bind: Rc<RefCell<Option<ParentBind>>>,
+    parent_bind: SharedParentBind,
     children: RefCell<OptVec<WeakInstance>>,
     transform: RefCell<CachedTransform>,
     visible: Cell<bool>,
@@ -216,12 +257,12 @@ impl Model {
 
     /// Checks whether the object is orphan (do not have parent object attached).
     pub fn is_orphan(&self) -> bool {
-        self.parent_bind.borrow().is_none()
+        self.parent_bind.is_none()
     }
 
     /// Parent object getter.
     pub fn parent(&self) -> Option<Instance> {
-        self.parent_bind.borrow().as_ref().and_then(|t| t.parent())
+        self.parent_bind.parent()
     }
 
     /// Count of children objects.
@@ -461,7 +502,7 @@ impl Model {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind> {
-        let parent_bind = self.parent_bind.borrow_mut().take();
+        let parent_bind = self.parent_bind.take();
         if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
             let is_focused = self.focused_descendant.borrow().is_some();
             if is_focused {
@@ -485,7 +526,7 @@ impl Model {
             let dirty = parent.dirty.children.clone_ref();
             self.dirty.set_on_dirty(move || dirty.set(index));
             self.dirty.parent.set();
-            *self.parent_bind.borrow_mut() = Some(bind);
+            self.parent_bind.set_bind(bind);
         }
     }
 }
@@ -634,7 +675,7 @@ impl InstanceDef {
         let bubbling_event_fan = &self.bubbling_event_fan;
         frp::extend! { network
             eval self.event_source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
-                let parent = parent_bind.borrow().as_ref().and_then(|t| t.parent());
+                let parent = parent_bind.parent();
                 Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
             });
         }
@@ -869,15 +910,15 @@ impl InstanceDef {
 
     /// Checks if the object has a parent.
     pub fn has_parent(&self) -> bool {
-        self.rc.parent_bind.borrow().is_some()
+        self.rc.parent_bind.is_some()
     }
 
     /// Returns the index of the provided object if it was a child of the current one.
     pub fn child_index<T: Object>(&self, child: &T) -> Option<usize> {
         let child = child.display_object();
-        child.parent_bind.borrow().as_ref().and_then(|bind| {
-            if bind.parent().as_ref().map(|t| &t.def) == Some(self) {
-                Some(bind.child_index)
+        child.parent_bind.parent_and_child_index().and_then(|(parent, index)| {
+            if &parent.def == self {
+                Some(index)
             } else {
                 None
             }
@@ -890,12 +931,11 @@ impl InstanceDef {
 
 impl Instance {
     fn parent_index(&self) -> Option<usize> {
-        self.parent_bind.borrow().as_ref().map(|t| t.child_index)
+        self.parent_bind.child_index()
     }
 
     fn has_visible_parent(&self) -> bool {
-        let parent = self.parent_bind.borrow().as_ref().and_then(|b| b.parent.upgrade());
-        parent.map_or(false, |parent| parent.is_visible())
+        self.parent_bind.parent().map_or(false, |parent| parent.is_visible())
     }
 }
 

@@ -4,9 +4,6 @@
 //! a set of changed indexes and bulk-update the GPU-buffers every animation frame. You can think
 //! of dirty flags like about a way to introduce laziness to the program evaluation mechanisms.
 
-// === Non-Standard Linter Configuration ===
-#![allow(missing_docs)]
-
 use crate::data::function::traits::*;
 use crate::prelude::*;
 
@@ -77,18 +74,18 @@ pub mod traits {
     }
 
     // === Type Aliases ===
-    pub trait DirtyFlagOps = Debug + HasCheckAll + HasUnsetAll;
-    pub trait DirtyFlagOps0 = DirtyFlagOps + HasCheck0 + HasSet0;
-    pub trait DirtyFlagOps1 = DirtyFlagOps + HasCheck1 + HasSet1 where Arg<Self>: Debug;
+    pub trait FlagOps = Debug + HasCheckAll + HasUnsetAll;
+    pub trait FlagOps0 = FlagOps + HasCheck0 + HasSet0;
+    pub trait FlagOps1 = FlagOps + HasCheck1 + HasSet1 where Arg<Self>: Debug;
 }
 
 pub use traits::*;
 
 
 
-// =================
-// === DirtyFlag ===
-// =================
+// ============
+// === Flag ===
+// ============
 
 // === Definition ===
 
@@ -97,7 +94,7 @@ pub use traits::*;
 /// implements public API for working with dirty flags.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
-pub struct DirtyFlag<T, OnMut> {
+pub struct Flag<T, OnMut> {
     pub data: T,
     #[derivative(Debug = "ignore")]
     on_set:   OnMut,
@@ -106,7 +103,7 @@ pub struct DirtyFlag<T, OnMut> {
 
 // === Basics ===
 
-impl<OnMut, T: Default> DirtyFlag<T, OnMut> {
+impl<OnMut, T: Default> Flag<T, OnMut> {
     pub fn new(on_set: OnMut) -> Self {
         let data = default();
         Self { data, on_set }
@@ -120,20 +117,20 @@ impl<OnMut, T: Default> DirtyFlag<T, OnMut> {
 
 // === Arguments ===
 
-impl<T: HasArg, OnMut> HasArg for DirtyFlag<T, OnMut> {
+impl<T: HasArg, OnMut> HasArg for Flag<T, OnMut> {
     type Arg = Arg<T>;
 }
 
 
 // === Global Operations ===
 
-impl<T: HasCheckAll, OnMut> HasCheckAll for DirtyFlag<T, OnMut> {
+impl<T: HasCheckAll, OnMut> HasCheckAll for Flag<T, OnMut> {
     fn check_all(&self) -> bool {
         self.data.check_all()
     }
 }
 
-impl<T: HasUnsetAll, OnMut> HasUnsetAll for DirtyFlag<T, OnMut> {
+impl<T: HasUnsetAll, OnMut> HasUnsetAll for Flag<T, OnMut> {
     fn unset_all(&mut self) {
         self.data.unset_all()
     }
@@ -142,13 +139,13 @@ impl<T: HasUnsetAll, OnMut> HasUnsetAll for DirtyFlag<T, OnMut> {
 
 // === Check ===
 
-impl<T: DirtyFlagOps0, OnMut> HasCheck0 for DirtyFlag<T, OnMut> {
+impl<T: FlagOps0, OnMut> HasCheck0 for Flag<T, OnMut> {
     fn check(&self) -> bool {
         self.data.check()
     }
 }
 
-impl<T: DirtyFlagOps1, OnMut> HasCheck1 for DirtyFlag<T, OnMut> {
+impl<T: FlagOps1, OnMut> HasCheck1 for Flag<T, OnMut> {
     fn check(&self, arg: &Self::Arg) -> bool {
         self.data.check(arg)
     }
@@ -157,7 +154,7 @@ impl<T: DirtyFlagOps1, OnMut> HasCheck1 for DirtyFlag<T, OnMut> {
 
 // === Set ===
 
-impl<T: DirtyFlagOps0, OnMut: FnMut0> HasSet0 for DirtyFlag<T, OnMut> {
+impl<T: FlagOps0, OnMut: FnMut0> HasSet0 for Flag<T, OnMut> {
     fn set(&mut self) {
         let is_set = self.data.check_all();
         if !is_set {
@@ -169,7 +166,7 @@ impl<T: DirtyFlagOps0, OnMut: FnMut0> HasSet0 for DirtyFlag<T, OnMut> {
     }
 }
 
-impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
+impl<T: FlagOps1, OnMut: FnMut0> HasSet1 for Flag<T, OnMut> {
     fn set(&mut self, arg: Self::Arg) {
         let first_set = !self.check_all();
         let is_set = self.data.check(&arg);
@@ -187,14 +184,14 @@ impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
 
 // === Unset ===
 
-impl<T: HasUnset0, OnMut> HasUnset0 for DirtyFlag<T, OnMut> {
+impl<T: HasUnset0, OnMut> HasUnset0 for Flag<T, OnMut> {
     fn unset(&mut self) {
         trace!("Unsetting.");
         self.data.unset()
     }
 }
 
-impl<T: HasUnset1, OnMut> HasUnset1 for DirtyFlag<T, OnMut>
+impl<T: HasUnset1, OnMut> HasUnset1 for Flag<T, OnMut>
 where Arg<T>: Display
 {
     fn unset(&mut self, arg: &Self::Arg) {
@@ -205,181 +202,295 @@ where Arg<T>: Display
 
 
 
-// =======================
-// === SharedDirtyFlag ===
-// =======================
+// ==================
+// === RefCellFlag ===
+// ==================
 
 // === Definition ===
 
-/// A version of `DirtyFlag` which uses internal mutability pattern. It is meant to expose the same
+/// A version of `Flag` which uses internal mutability pattern. It is meant to expose the same
 /// API but without requiring `self` reference to be mutable.
-#[derive(Derivative)]
+#[derive(Derivative, From)]
 #[derivative(Debug(bound = "T:Debug"))]
-#[derivative(Clone(bound = ""))]
-pub struct SharedDirtyFlag<T, OnMut> {
-    rc: Rc<RefCell<DirtyFlag<T, OnMut>>>,
+#[repr(transparent)]
+pub struct RefCellFlag<T, OnMut> {
+    data: RefCell<Flag<T, OnMut>>,
 }
 
 
 // === API ===
 
-impl<T: Default, OnMut> SharedDirtyFlag<T, OnMut> {
+impl<T: Default, OnMut> RefCellFlag<T, OnMut> {
     pub fn new(on_set: OnMut) -> Self {
-        Self { rc: Rc::new(RefCell::new(DirtyFlag::new(on_set))) }
+        Self { data: RefCell::new(Flag::new(on_set)) }
     }
 
     pub fn take(&self) -> T {
-        self.rc.borrow_mut().take()
+        self.data.borrow_mut().take()
     }
 }
 
-impl<T, OnMut> SharedDirtyFlag<T, OnMut> {
-    pub fn clone_ref(&self) -> Self {
-        self.clone()
-    }
-}
-
-impl<T, OnMut> SharedDirtyFlag<T, OnMut> {
+impl<T, OnMut> RefCellFlag<T, OnMut> {
     pub fn set_callback(&self, on_set: OnMut) {
-        self.rc.borrow_mut().on_set = on_set;
-    }
-}
-
-impl<T, OnMut> From<Rc<RefCell<DirtyFlag<T, OnMut>>>> for SharedDirtyFlag<T, OnMut> {
-    fn from(rc: Rc<RefCell<DirtyFlag<T, OnMut>>>) -> Self {
-        Self { rc }
+        self.data.borrow_mut().on_set = on_set;
     }
 }
 
 
 // === Arg ===
 
-impl<T: HasArg, OnMut> HasArg for SharedDirtyFlag<T, OnMut> {
+impl<T: HasArg, OnMut> HasArg for RefCellFlag<T, OnMut> {
     type Arg = Arg<T>;
 }
 
 
 // === Global Operations ===
 
-impl<T: HasUnsetAll, OnMut> SharedHasUnsetAll for SharedDirtyFlag<T, OnMut> {
+impl<T: HasUnsetAll, OnMut> SharedHasUnsetAll for RefCellFlag<T, OnMut> {
     fn unset_all(&self) {
-        self.rc.borrow_mut().unset_all()
+        self.data.borrow_mut().unset_all()
     }
 }
 
-impl<T: HasCheckAll, OnMut> HasCheckAll for SharedDirtyFlag<T, OnMut> {
+impl<T: HasCheckAll, OnMut> HasCheckAll for RefCellFlag<T, OnMut> {
     fn check_all(&self) -> bool {
-        self.rc.borrow().check_all()
+        self.data.borrow().check_all()
     }
 }
 
 // === Check ===
 
-impl<T: DirtyFlagOps0, OnMut> HasCheck0 for SharedDirtyFlag<T, OnMut> {
+impl<T: FlagOps0, OnMut> HasCheck0 for RefCellFlag<T, OnMut> {
     fn check(&self) -> bool {
-        self.rc.borrow().check()
+        self.data.borrow().check()
     }
 }
 
-impl<T: DirtyFlagOps1, OnMut> HasCheck1 for SharedDirtyFlag<T, OnMut> {
+impl<T: FlagOps1, OnMut> HasCheck1 for RefCellFlag<T, OnMut> {
     fn check(&self, arg: &Arg<T>) -> bool {
-        self.rc.borrow().check(arg)
+        self.data.borrow().check(arg)
     }
 }
 
 // === Set ===
 
-impl<T: DirtyFlagOps0, OnMut: FnMut0> SharedHasSet0 for SharedDirtyFlag<T, OnMut> {
+impl<T: FlagOps0, OnMut: FnMut0> SharedHasSet0 for RefCellFlag<T, OnMut> {
     fn set(&self) {
-        self.rc.borrow_mut().set()
+        self.data.borrow_mut().set()
     }
 }
 
-impl<T: DirtyFlagOps1, OnMut: FnMut0> SharedHasSet1 for SharedDirtyFlag<T, OnMut> {
+impl<T: FlagOps1, OnMut: FnMut0> SharedHasSet1 for RefCellFlag<T, OnMut> {
     fn set(&self, arg: Arg<T>) {
-        self.rc.borrow_mut().set(arg)
+        self.data.borrow_mut().set(arg)
     }
 }
 
 // === Unset ===
 
-impl<T: HasUnset0, OnMut> SharedHasUnset0 for SharedDirtyFlag<T, OnMut> {
+impl<T: HasUnset0, OnMut> SharedHasUnset0 for RefCellFlag<T, OnMut> {
     fn unset(&self) {
-        self.rc.borrow_mut().unset()
+        self.data.borrow_mut().unset()
     }
 }
 
-impl<T: HasUnset1, OnMut> SharedHasUnset1 for SharedDirtyFlag<T, OnMut>
+impl<T: HasUnset1, OnMut> SharedHasUnset1 for RefCellFlag<T, OnMut>
 where Arg<T>: Display
 {
     fn unset(&self, arg: &Self::Arg) {
-        self.rc.borrow_mut().unset(arg)
+        self.data.borrow_mut().unset(arg)
     }
 }
 
 
-// === Weak References ===
+
+// ==================
+// === SharedFlag ===
+// ==================
+
+// === Definition ===
+
+/// A version of `Flag` which uses internal mutability pattern. It is meant to expose the same
+/// API but without requiring `self` reference to be mutable.
+#[derive(Derivative, CloneRef, From, Deref)]
+#[derivative(Debug(bound = "T:Debug"))]
+#[derivative(Clone(bound = ""))]
+#[repr(transparent)]
+pub struct SharedFlag<T, OnMut> {
+    rc: Rc<RefCellFlag<T, OnMut>>,
+}
+
+
+// === API ===
+
+impl<T: Default, OnMut> SharedFlag<T, OnMut> {
+    pub fn new(on_set: OnMut) -> Self {
+        Self { rc: Rc::new(RefCellFlag::new(on_set)) }
+    }
+}
+
+
+// === Arg ===
+
+impl<T: HasArg, OnMut> HasArg for SharedFlag<T, OnMut> {
+    type Arg = Arg<T>;
+}
+
+
+// === Global Operations ===
+
+impl<T: HasUnsetAll, OnMut> SharedHasUnsetAll for SharedFlag<T, OnMut> {
+    fn unset_all(&self) {
+        self.rc.unset_all()
+    }
+}
+
+impl<T: HasCheckAll, OnMut> HasCheckAll for SharedFlag<T, OnMut> {
+    fn check_all(&self) -> bool {
+        self.rc.check_all()
+    }
+}
+
+// === Check ===
+
+impl<T: FlagOps0, OnMut> HasCheck0 for SharedFlag<T, OnMut> {
+    fn check(&self) -> bool {
+        self.rc.check()
+    }
+}
+
+impl<T: FlagOps1, OnMut> HasCheck1 for SharedFlag<T, OnMut> {
+    fn check(&self, arg: &Arg<T>) -> bool {
+        self.rc.check(arg)
+    }
+}
+
+// === Set ===
+
+impl<T: FlagOps0, OnMut: FnMut0> SharedHasSet0 for SharedFlag<T, OnMut> {
+    fn set(&self) {
+        self.rc.set()
+    }
+}
+
+impl<T: FlagOps1, OnMut: FnMut0> SharedHasSet1 for SharedFlag<T, OnMut> {
+    fn set(&self, arg: Arg<T>) {
+        self.rc.set(arg)
+    }
+}
+
+// === Unset ===
+
+impl<T: HasUnset0, OnMut> SharedHasUnset0 for SharedFlag<T, OnMut> {
+    fn unset(&self) {
+        self.rc.unset()
+    }
+}
+
+impl<T: HasUnset1, OnMut> SharedHasUnset1 for SharedFlag<T, OnMut>
+where Arg<T>: Display
+{
+    fn unset(&self, arg: &Self::Arg) {
+        self.rc.unset(arg)
+    }
+}
+
+
+
+// ======================
+// === WeakSharedFlag ===
+// ======================
 
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
 #[derivative(Clone(bound = ""))]
-pub struct WeakSharedDirtyFlag<T, OnMut> {
-    weak: Weak<RefCell<DirtyFlag<T, OnMut>>>,
+#[repr(transparent)]
+pub struct WeakSharedFlag<T, OnMut> {
+    weak: Weak<RefCellFlag<T, OnMut>>,
 }
-impl<T, OnMut> SharedDirtyFlag<T, OnMut> {
-    pub fn downgrade(&self) -> WeakSharedDirtyFlag<T, OnMut> {
+impl<T, OnMut> SharedFlag<T, OnMut> {
+    pub fn downgrade(&self) -> WeakSharedFlag<T, OnMut> {
         let weak = self.rc.downgrade();
-        WeakSharedDirtyFlag { weak }
+        WeakSharedFlag { weak }
     }
 }
-impl<T, OnMut> WeakSharedDirtyFlag<T, OnMut> {
-    pub fn upgrade(&self) -> Option<SharedDirtyFlag<T, OnMut>> {
-        self.weak.upgrade().map(|rc| SharedDirtyFlag { rc })
+impl<T, OnMut> WeakSharedFlag<T, OnMut> {
+    pub fn upgrade(&self) -> Option<SharedFlag<T, OnMut>> {
+        self.weak.upgrade().map(|rc| SharedFlag { rc })
     }
 }
 
 
 
-// =============================================================================
-// === Flags ===================================================================
-// =============================================================================
+// =================================================================================================
+// === Flag Definitions ============================================================================
+// =================================================================================================
+
+macro_rules! define_flag {
+    ($(#$meta:tt)* $name:ident $(< $($param:tt),* $(,)? >)?) => { paste! {
+        $(#$meta)*
+        pub type $name< $($($param,)*)? OnMut = ()> =
+            Flag<[<$name Data>] $(<$($param,)*>)?, OnMut>;
+
+        /// A version with an internal mutability pattern.
+        $(#$meta)*
+        pub type [<RefCell $name>]< $($($param,)*)? OnMut = ()> =
+            RefCellFlag<[<$name Data>] $(<$($param,)*>)?, OnMut>;
+
+        /// A version with an internal mutability pattern and a reference counting mechanism.
+        /// Can be cloned and downgraded to a weak reference.
+        $(#$meta)*
+        pub type [<Shared $name>]< $($($param,)*)? OnMut = ()> =
+            SharedFlag<[<$name Data>] $(<$($param,)*>)?, OnMut>;
+
+        /// A weak version of the shared flag.
+        $(#$meta)*
+        pub type [<WeakShared $name>]< $($($param,)*)? OnMut = ()> =
+            WeakSharedFlag<[<$name Data>] $(<$($param,)*>)?, OnMut>;
+    }};
+}
+
+
 
 // ============
 // === Bool ===
 // ============
 
-/// The on / off dirty flag. If you need a simple dirty / clean switch, this one
-/// is the right choice.
-
-pub type Bool<OnMut = ()> = DirtyFlag<BoolData, OnMut>;
-pub type SharedBool<OnMut = ()> = SharedDirtyFlag<BoolData, OnMut>;
-pub type WeakSharedBool<OnMut = ()> = WeakSharedDirtyFlag<BoolData, OnMut>;
-pub trait BoolCtx<OnMut> = where OnMut: FnMut0;
+define_flag! {
+    /// The on / off dirty flag. If you need a simple dirty / clean switch, this one
+    /// is the right choice.
+    Bool
+}
 
 #[derive(Clone, Copy, Debug, Display, Default)]
 pub struct BoolData {
     is_dirty: bool,
 }
+
 impl HasCheckAll for BoolData {
     fn check_all(&self) -> bool {
         self.is_dirty
     }
 }
+
 impl HasUnsetAll for BoolData {
     fn unset_all(&mut self) {
         self.is_dirty = false
     }
 }
+
 impl HasCheck0 for BoolData {
     fn check(&self) -> bool {
         self.is_dirty
     }
 }
+
 impl HasSet0 for BoolData {
     fn set(&mut self) {
         self.is_dirty = true
     }
 }
+
 impl HasUnset0 for BoolData {
     fn unset(&mut self) {
         self.is_dirty = false
@@ -392,12 +503,12 @@ impl HasUnset0 for BoolData {
 // === Range ===
 // =============
 
-/// Dirty flag which keeps information about a range of dirty items. It does not track items
-/// separately, nor you are allowed to keep multiple ranges in it. Just a single value range.
+define_flag! {
+    /// Dirty flag which keeps information about a range of dirty items. It does not track items
+    /// separately, nor you are allowed to keep multiple ranges in it. Just a single value range.
+    Range<Ix>
+}
 
-pub type Range<Ix, OnMut> = DirtyFlag<RangeData<Ix>, OnMut>;
-pub type SharedRange<Ix, OnMut> = SharedDirtyFlag<RangeData<Ix>, OnMut>;
-pub trait RangeCtx<OnMut> = where OnMut: FnMut0;
 pub trait RangeIx = PartialOrd + Copy + Debug;
 
 #[derive(Debug, Default)]
@@ -408,11 +519,13 @@ pub struct RangeData<Ix = usize> {
 impl<Ix> HasArg for RangeData<Ix> {
     type Arg = Ix;
 }
+
 impl<Ix> HasCheckAll for RangeData<Ix> {
     fn check_all(&self) -> bool {
         self.range.is_some()
     }
 }
+
 impl<Ix> HasUnsetAll for RangeData<Ix> {
     fn unset_all(&mut self) {
         self.range = None
@@ -464,13 +577,13 @@ impl<Ix: RangeIx> Display for RangeData<Ix> {
 // === Set ===
 // ===========
 
-/// Dirty flag which keeps a set of dirty values. The `HashSet` dirty flag
-/// counterpart. Please note that it uses `FxHashSet` under the hood, so there
-/// are no guarantees regarding attack-proof hashing algorithm here.
+define_flag! {
+    /// Dirty flag which keeps a set of dirty values. The `HashSet` dirty flag counterpart. Please
+    /// note that it uses `FxHashSet` under the hood, so there are no guarantees regarding
+    /// attack-proof hashing algorithm here.
+    Set<Ix>
+}
 
-pub type Set<Ix, OnMut = ()> = DirtyFlag<SetData<Ix>, OnMut>;
-pub type SharedSet<Ix, OnMut = ()> = SharedDirtyFlag<SetData<Ix>, OnMut>;
-pub trait SetCtx<OnMut> = where OnMut: FnMut0;
 pub trait SetItem = Eq + Hash + Debug;
 
 #[derive(Derivative, Shrinkwrap)]
@@ -534,9 +647,11 @@ impl<'t, Item: SetItem> IntoIterator for &'t SetData<Item> {
 // === Vector ===
 // ==============
 
-/// Dirty flag which keeps a vector of dirty values.
-pub type Vector<Item, OnMut = ()> = DirtyFlag<VectorData<Item>, OnMut>;
-pub type SharedVector<Item, OnMut = ()> = SharedDirtyFlag<VectorData<Item>, OnMut>;
+define_flag! {
+    /// Dirty flag which keeps a vector of dirty values.
+    Vector<Item>
+}
+
 pub trait VectorItem = Debug + PartialEq;
 
 #[derive(Derivative, Debug, Shrinkwrap)]
@@ -548,11 +663,13 @@ pub struct VectorData<Item> {
 impl<Item> HasArg for VectorData<Item> {
     type Arg = Item;
 }
+
 impl<Item> HasCheckAll for VectorData<Item> {
     fn check_all(&self) -> bool {
         !self.vec.is_empty()
     }
 }
+
 impl<Item> HasUnsetAll for VectorData<Item> {
     fn unset_all(&mut self) {
         self.vec.clear();
@@ -599,18 +716,17 @@ impl<'t, Item> IntoIterator for &'t VectorData<Item> {
 
 use bit_field::BitField as BF;
 
-/// Dirty flag which keeps information about a set of enumerator values. The
-/// items must be a plain enumerator implementing `Into<usize>`. The data is
-/// stored as an efficient `BitField` under the hood.
+define_flag! {
+    /// Dirty flag which keeps information about a set of enumerator values. The items must be a
+    /// plain enumerators implementing `Into<usize>`. The data is stored as an efficient `BitField`
+    /// under the hood.
+    Enum<Prim, T>
+}
 
-pub type Enum<Prim, T, OnMut> = DirtyFlag<EnumData<Prim, T>, OnMut>;
-pub type SharedEnum<Prim, T, OnMut> = SharedDirtyFlag<EnumData<Prim, T>, OnMut>;
-pub trait EnumCtx<OnMut> = where OnMut: FnMut0;
 pub trait EnumBase = Default + PartialEq + Copy + BF;
 pub trait EnumElem = Copy + Into<usize>;
 
 /// Dirty flag which keeps dirty indexes in a `BitField` under the hood.
-
 pub type BitField<Prim, OnMut> = Enum<Prim, usize, OnMut>;
 pub type SharedBitField<Prim, OnMut> = SharedEnum<Prim, usize, OnMut>;
 
