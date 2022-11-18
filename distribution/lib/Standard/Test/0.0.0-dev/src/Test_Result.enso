@@ -9,7 +9,7 @@ type Test_Result
        Arguments:
        - message: The reason why the test failed.
        - details: Additional context of the error, for example the stack trace.
-    Failure message details
+    Failure message details=Nothing
 
     ## Represents a pending behavioral test.
 
