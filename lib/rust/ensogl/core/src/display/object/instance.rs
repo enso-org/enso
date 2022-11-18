@@ -17,6 +17,57 @@ use nalgebra::Vector3;
 use transform::CachedTransform;
 
 
+
+// ==========
+// === Id ===
+// ==========
+
+/// Globally unique identifier of a display object.
+#[derive(
+    Clone, CloneRef, Copy, Debug, Default, Display, Eq, From, Hash, Into, PartialEq, Ord,
+    PartialOrd
+)]
+pub struct Id(usize);
+
+
+
+// =============
+// === Model ===
+// =============
+
+/// A display object model. See the documentation of [`Instance`] to learn more.
+#[derive(Debug, Deref)]
+pub struct Model {
+    /// This is the display object's FRP network. Feel free to extend it with new FRP nodes as long
+    /// as they are inherently bound with this display object. For example, a sprite, which owns a
+    /// display object instance can extend this network to perform computations. However, you
+    /// should not extend it from other places, as this will cause memory leak. See docs of FRP to
+    /// learn more.
+    pub network: frp::Network,
+
+    #[deref]
+    hierarchy:    HierarchyModel,
+    event:        EventModel,
+    bounding_box: Cell<Vector2<f32>>,
+}
+
+impl Model {
+    /// Constructor.
+    pub fn new() -> Self {
+        let network = frp::Network::new("display_object");
+        let hierarchy = HierarchyModel::new(&network);
+        let event = EventModel::new(&network);
+        let bounding_box = default();
+        Self { network, hierarchy, event, bounding_box }
+    }
+}
+
+
+
+// =================================================================================================
+// === Hierarchy ===================================================================================
+// =================================================================================================
+
 // ==================
 // === ParentBind ===
 // ==================
@@ -40,7 +91,13 @@ impl ParentBind {
 impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
-            parent.remove_child_by_index(self.child_index)
+            if let Some(weak_child) = parent.children.borrow_mut().remove(self.child_index) {
+                parent.dirty.modified_children.unset(&self.child_index);
+                if let Some(child) = weak_child.upgrade() {
+                    child.dirty.new_parent.set();
+                    parent.dirty.removed_children.set(weak_child);
+                }
+            }
         }
     }
 }
@@ -152,152 +209,111 @@ pub mod dirty {
 
 
 
-// ===========
-// === Frp ===
-// ===========
+// =====================
+// === Hierarchy FRP ===
+// =====================
 
 #[derive(Debug)]
-pub struct Frp {
-    /// This is the [`Instance`]'s FRP network. Feel free to create new FRP nodes here as long as
-    /// they are inherently bound with this display object. For example, a sprite, which owns a
-    /// display object instance can extend this network to perform computations. However, you
-    /// should not extend it from other places, as this will cause memory leak. See docs of FRP
-    /// to learn more.
-    pub network: frp::Network,
-
-    // === Hierarchy ===
-    pub on_show:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
-    pub on_hide:         frp::Source<Option<Scene>>,
-    pub on_layer_change: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
-    pub on_updated:      frp::Source<()>,
-
-    // === Events ===
-    // See the documentation of [`event::Event`] to learn more about events.
-    event_source:        frp::Source<event::SomeEvent>,
-    capturing_event_fan: frp::Fan,
-    bubbling_event_fan:  frp::Fan,
+pub struct HierarchyFrp {
+    /// Fires when the display object is shown. It will fire during the first scene refresh after
+    /// this object is added as a child to a visible parent.
+    pub on_show:            frp::Stream<(Option<Scene>, Option<WeakLayer>)>,
+    /// Fires when the display object is hidden. This can happen for example after detaching it
+    /// from a visible parent.
+    pub on_hide:            frp::Stream<Option<Scene>>,
+    /// Fires when the display object is moved between scene layers.
+    pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    /// Fires after the display object is updated. Please note that display objects that were not
+    /// modified will not perform the update stage.
+    pub on_updated:         frp::Stream<()>,
+    on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
+    on_hide_source:         frp::Source<Option<Scene>>,
+    on_layer_change_source: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    on_updated_source:      frp::Source<()>,
 }
 
-impl Frp {
-    pub fn new() -> Self {
-        let network = frp::Network::new("display_object");
-        let capturing_event_fan = frp::Fan::new(&network);
-        let bubbling_event_fan = frp::Fan::new(&network);
+impl HierarchyFrp {
+    fn new(network: &frp::Network) -> Self {
         frp::extend! { network
-            on_show <- source();
-            on_hide <- source();
-            on_layer_change <- source();
-            on_updated <- source();
-            event_source <- source();
+            on_show_source <- source();
+            on_hide_source <- source();
+            on_layer_change_source <- source();
+            on_updated_source <- source();
         }
+        let on_show = on_show_source.clone_ref().into();
+        let on_hide = on_hide_source.clone_ref().into();
+        let on_layer_change = on_layer_change_source.clone_ref().into();
+        let on_updated = on_updated_source.clone_ref().into();
         Self {
-            network,
+            on_show_source,
+            on_hide_source,
+            on_layer_change_source,
+            on_updated_source,
             on_show,
             on_hide,
             on_layer_change,
             on_updated,
-            event_source,
-            capturing_event_fan,
-            bubbling_event_fan,
         }
     }
 }
 
-impl Default for Frp {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 
+// =======================
+// === Hierarchy Model ===
+// =======================
 
-// =============
-// === Model ===
-// =============
-
-/// A display object model. See the documentation of [`Instance`] to learn more.
 #[derive(Debug, Deref)]
-pub struct Model {
+pub struct HierarchyModel {
     #[deref]
-    frp: Frp,
-
-    // === Focus ===
-    focused_descendant: RefCell<Option<WeakInstance>>,
-
-    // === Dirty ===
-    dirty: dirty::Flags,
-
-    // === Hierarchy ===
+    frp:            HierarchyFrp,
+    visible:        Cell<bool>,
+    transform:      RefCell<CachedTransform>,
     parent_bind:    SharedParentBind,
     children:       RefCell<OptVec<WeakInstance>>,
-    visible:        Cell<bool>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer: RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
     layer:          RefCell<Option<WeakLayer>>,
-
-    // === TX ===
-    transform: RefCell<CachedTransform>,
-
-    // === Layout ===
-    bounding_box: Cell<Vector2<f32>>,
+    dirty:          dirty::Flags,
 }
 
-impl Default for Model {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Model {
-    /// Constructor.
-    pub fn new() -> Self {
-        let frp = default();
-        let focused_descendant = default();
+impl HierarchyModel {
+    fn new(network: &frp::Network) -> Self {
+        let frp = HierarchyFrp::new(network);
+        let visible = default();
+        let transform = default();
+        let parent_bind = default();
+        let children = default();
         let assigned_layer = default();
         let layer = default();
-        let parent_bind = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        let children = default();
-        let transform = default();
-        let visible = default();
-        let bounding_box = default();
-        Self {
-            frp,
-            focused_descendant,
-            assigned_layer,
-            layer,
-            dirty,
-            parent_bind,
-            children,
-            transform,
-            visible,
-            bounding_box,
-        }
+        Self { frp, visible, transform, parent_bind, children, assigned_layer, layer, dirty }
     }
+}
 
-    pub(crate) fn set_bounding_box(&self, bounding_box: Vector2<f32>) {
-        self.bounding_box.set(bounding_box);
-    }
 
+// =======================
+// === Hierarchy Logic ===
+// =======================
+
+
+// === Updates and Visibility ===
+
+impl Model {
     /// Checks whether the object is visible.
     pub fn is_visible(&self) -> bool {
         self.visible.get()
     }
 
-    /// Checks whether the object is orphan (do not have parent object attached).
-    pub fn is_orphan(&self) -> bool {
-        self.parent_bind.is_none()
+    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
+    fn hide(&self) {
+        self.set_vis_false(None)
     }
 
-    /// Parent object getter.
-    pub fn parent(&self) -> Option<Instance> {
-        self.parent_bind.parent()
-    }
-
-    /// Count of children objects.
-    pub fn children_count(&self) -> usize {
-        self.children.borrow().len()
+    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
+    fn show(&self) {
+        self.set_vis_true(None, None)
     }
 
     /// Recompute the transformation matrix of this object and update all of its dirty children.
@@ -306,57 +322,6 @@ impl Model {
         self.update_with_origin(scene, origin0, false, false, None)
     }
 
-    /// The default visibility of a new [`Instance`] is false. You can use this function to override
-    /// it. It is mainly used for a special 'root' element if such exists.
-    pub fn force_set_visibility(&self, visibility: bool) {
-        self.visible.set(visibility);
-        // TODO[ao] this function should make the next update call on_show or on_hide
-        //     https://github.com/enso-org/ide/issues/1406
-    }
-
-    /// Removes child by a given index. Does nothing if the index was incorrect.
-    fn remove_child_by_index(&self, index: usize) {
-        self.children.borrow_mut().remove(index).for_each(|child| {
-            child.upgrade().for_each(|child| child.unsafe_unset_parent_without_update());
-            self.dirty.modified_children.unset(&index);
-            self.dirty.removed_children.set(child);
-        });
-    }
-
-    /// Removes all children of this display object and returns them.
-    pub fn remove_all_children(&self) -> Vec<Instance> {
-        let children: Vec<Instance> =
-            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
-        for child in &children {
-            child.unset_parent();
-        }
-        children
-    }
-
-    /// Removes the binding to the parent object. Parent is not updated.
-    fn unsafe_unset_parent_without_update(&self) {
-        trace!("Removing parent bind.");
-        self.dirty.new_parent.set();
-    }
-
-    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
-    pub fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
-    where T: frp::Data {
-        self.bubbling_event_fan.output::<event::Event<T>>()
-    }
-
-    /// Get event stream for capturing events. You should rather not need this function. Use
-    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
-    where T: frp::Data {
-        self.capturing_event_fan.output::<event::Event<T>>()
-    }
-}
-
-
-// === Update API ===
-
-impl Model {
     /// Updates object transformations by providing a new origin location. See docs of `update` to
     /// learn more.
     fn update_with_origin(
@@ -397,7 +362,11 @@ impl Model {
         if let Some(new_layer) = new_layer_opt {
             debug_span!("Scene layer changed.").in_scope(|| {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
-                self.on_layer_change.emit((Some(scene.clone_ref()), old_layer, new_layer.cloned()));
+                self.on_layer_change_source.emit((
+                    Some(scene.clone_ref()),
+                    old_layer,
+                    new_layer.cloned(),
+                ));
             });
         }
 
@@ -420,7 +389,7 @@ impl Model {
                 } else {
                     trace!("Self origin did not change, but the layers changed");
                 }
-                self.on_updated.emit(());
+                self.on_updated_source.emit(());
                 if !self.children.borrow().is_empty() {
                     debug_span!("Updating all children.").in_scope(|| {
                         let children = self.children.borrow().clone();
@@ -469,8 +438,8 @@ impl Model {
     fn update_visibility(&self, scene: &Scene, parent_layer: Option<&WeakLayer>) {
         self.take_removed_children_and_update_their_visibility(scene);
         let parent_changed = self.dirty.new_parent.check();
-        if parent_changed && !self.is_orphan() {
-            self.set_vis_true(scene, parent_layer)
+        if parent_changed && self.has_parent() {
+            self.set_vis_true(Some(scene), parent_layer)
         }
     }
 
@@ -480,7 +449,7 @@ impl Model {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
                         if !child.has_visible_parent() {
-                            child.set_vis_false(scene);
+                            child.set_vis_false(Some(scene));
                         }
                         // Even if the child is visible at this point, it does not mean that it
                         // should be visible after the entire update. Therefore, we must ensure that
@@ -493,18 +462,18 @@ impl Model {
         }
     }
 
-    fn set_vis_false(&self, scene: &Scene) {
+    fn set_vis_false(&self, scene: Option<&Scene>) {
         if self.visible.get() {
             trace!("Hiding.");
             self.visible.set(false);
-            self.on_hide.emit(Some(scene.clone_ref()));
+            self.on_hide_source.emit(scene.cloned());
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_false(scene));
             });
         }
     }
 
-    fn set_vis_true(&self, scene: &Scene, parent_layer: Option<&WeakLayer>) {
+    fn set_vis_true(&self, scene: Option<&Scene>, parent_layer: Option<&WeakLayer>) {
         if !self.visible.get() {
             trace!("Showing.");
             let this_scene_layer = self.assigned_layer.borrow();
@@ -512,7 +481,7 @@ impl Model {
             let layer =
                 if this_scene_layers_ref.is_none() { parent_layer } else { this_scene_layers_ref };
             self.visible.set(true);
-            self.on_show.emit((Some(scene.clone_ref()), layer.cloned()));
+            self.on_show_source.emit((scene.cloned(), layer.cloned()));
             self.children.borrow().iter().for_each(|child| {
                 child.upgrade().for_each(|t| t.set_vis_true(scene, layer));
             });
@@ -520,16 +489,83 @@ impl Model {
     }
 }
 
+// === Parent / Child Management ===
 
-// === Register / Unregister ===
+impl InstanceDef {
+    /// Checks if the provided object is child of the current one.
+    pub fn has_child<T: Object>(&self, child: &T) -> bool {
+        self.child_index(child).is_some()
+    }
+
+    /// Returns the index of the provided object if it was a child of the current one.
+    pub fn child_index<T: Object>(&self, child: &T) -> Option<usize> {
+        let child = child.display_object();
+        child.parent_bind.parent_and_child_index().and_then(|(parent, index)| {
+            if &parent.def == self {
+                Some(index)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Replaces the parent binding with a new parent.
+    fn set_parent(&self, parent: &InstanceDef) {
+        parent.add_child(self);
+    }
+
+    /// Removes the current parent binding.
+    fn unset_parent(&self) {
+        self.take_parent_bind();
+    }
+
+    /// Attaches the provided display object as a child to this one.
+    fn add_child(&self, child: &InstanceDef) {
+        child.unset_parent();
+        let child_index = self.register_child(child);
+        trace!("Adding a new child at index {child_index}.");
+        let parent_bind = ParentBind { parent: self.downgrade(), child_index };
+        child.set_parent_bind(parent_bind);
+    }
+
+    fn register_child(&self, child: &InstanceDef) -> usize {
+        let index = self.children.borrow_mut().insert(child.downgrade());
+        self.dirty.modified_children.set(index);
+        index
+    }
+
+    /// Removes the provided object reference from child list of this object. Does nothing if the
+    /// reference was not a child of this object.
+    fn remove_child<T: Object>(&self, child: &T) {
+        let child = child.display_object();
+        if self.has_child(child) {
+            child.unset_parent()
+        }
+    }
+}
 
 impl Model {
+    /// Checks whether the object is orphan (do not have parent object attached).
+    pub fn has_parent(&self) -> bool {
+        self.parent_bind.is_some()
+    }
+
+    /// Get reference to the parent object if any.
+    pub fn parent(&self) -> Option<Instance> {
+        self.parent_bind.parent()
+    }
+
+    /// Number of children of this object.
+    pub fn children_count(&self) -> usize {
+        self.children.borrow().len()
+    }
+
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind> {
         let parent_bind = self.parent_bind.take_bind();
         if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
-            let is_focused = self.focused_descendant.borrow().is_some();
+            let is_focused = self.event.focused_descendant.borrow().is_some();
             if is_focused {
                 parent.propagate_up_no_focus_instance();
             }
@@ -540,7 +576,7 @@ impl Model {
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind: ParentBind) {
         trace!("Adding new parent bind.");
-        if let Some(focus_instance) = &*self.focused_descendant.borrow() {
+        if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
             if let Some(parent) = bind.parent.upgrade() {
                 parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
@@ -552,10 +588,21 @@ impl Model {
             self.parent_bind.set_bind(bind);
         }
     }
+
+    /// Removes all children of this display object and returns them.
+    pub fn remove_all_children(&self) -> Vec<Instance> {
+        let children: Vec<Instance> =
+            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+        for child in &children {
+            child.unset_parent();
+        }
+        children
+    }
 }
 
 
-// === Getters ===
+
+// === Transformation Getters ===
 
 impl Model {
     /// Position of the object in the global coordinate space.
@@ -585,7 +632,7 @@ impl Model {
 }
 
 
-// === Setters ===
+// === Transformation Setters ===
 
 impl Model {
     fn with_mut_borrowed_transform<F, T>(&self, f: F) -> T
@@ -621,16 +668,50 @@ impl Model {
 
 
 
-// ==========
-// === Id ===
-// ==========
+// ======================
+// === Events & Focus ===
+// ======================
+// See the documentation of [`event::Event`] to learn more about events.
 
-/// Globally unique identifier of a display object.
-#[derive(
-    Clone, CloneRef, Copy, Debug, Default, Display, Eq, From, Hash, Into, PartialEq, Ord,
-    PartialOrd
-)]
-pub struct Id(usize);
+#[derive(Debug)]
+pub struct EventModel {
+    source:             frp::Source<event::SomeEvent>,
+    capturing_fan:      frp::Fan,
+    bubbling_fan:       frp::Fan,
+    focused_descendant: RefCell<Option<WeakInstance>>,
+}
+
+impl EventModel {
+    fn new(network: &frp::Network) -> Self {
+        let capturing_fan = frp::Fan::new(&network);
+        let bubbling_fan = frp::Fan::new(&network);
+        let focused_descendant = default();
+        frp::extend! { network
+            source <- source();
+        }
+        Self { source, capturing_fan, bubbling_fan, focused_descendant }
+    }
+}
+
+impl Model {
+    // FIXME: wrong place
+    pub(crate) fn set_bounding_box(&self, bounding_box: Vector2<f32>) {
+        self.bounding_box.set(bounding_box);
+    }
+
+    /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
+    pub fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
+    where T: frp::Data {
+        self.event.bubbling_fan.output::<event::Event<T>>()
+    }
+
+    /// Get event stream for capturing events. You should rather not need this function. Use
+    /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
+    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
+    where T: frp::Data {
+        self.event.capturing_fan.output::<event::Event<T>>()
+    }
+}
 
 
 
@@ -694,10 +775,10 @@ impl InstanceDef {
         // closure in order to avoid a memory leak.
         let network = &self.network;
         let parent_bind = &self.parent_bind;
-        let capturing_event_fan = &self.capturing_event_fan;
-        let bubbling_event_fan = &self.bubbling_event_fan;
+        let capturing_event_fan = &self.event.capturing_fan;
+        let bubbling_event_fan = &self.event.bubbling_fan;
         frp::extend! { network
-            eval self.event_source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
+            eval self.event.source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
                 let parent = parent_bind.parent();
                 Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
             });
@@ -715,7 +796,7 @@ impl InstanceDef {
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
-                    object.capturing_event_fan.emit(&event.data);
+                    object.event.capturing_fan.emit(&event.data);
                 } else {
                     break;
                 }
@@ -730,7 +811,7 @@ impl InstanceDef {
         if event.bubbles.get() {
             for object in rev_parent_chain.iter().rev() {
                 if !event.is_cancelled() {
-                    object.bubbling_event_fan.emit(&event.data);
+                    object.event.bubbling_fan.emit(&event.data);
                 } else {
                     break;
                 }
@@ -760,11 +841,11 @@ impl InstanceDef {
 
     fn emit_event<T>(&self, payload: T)
     where T: 'static {
-        self.event_source.emit(event::SomeEvent::new(Some(self.downgrade()), payload));
+        self.event.source.emit(event::SomeEvent::new(Some(self.downgrade()), payload));
     }
 
     fn focused_descendant(&self) -> Option<Instance> {
-        self.focused_descendant.borrow().as_ref().and_then(|t| t.upgrade())
+        self.event.focused_descendant.borrow().as_ref().and_then(|t| t.upgrade())
     }
 
     fn focused_instance(&self) -> Option<Instance> {
@@ -785,8 +866,8 @@ impl InstanceDef {
         let focus_event = self.new_event(event::Focus);
         let focus_in_event = self.new_event(event::FocusIn);
         focus_event.bubbles.set(false);
-        self.event_source.emit(focus_event);
-        self.event_source.emit(focus_in_event);
+        self.event.source.emit(focus_event);
+        self.event.source.emit(focus_in_event);
     }
 
     fn blur(&self) {
@@ -811,23 +892,23 @@ impl InstanceDef {
         let blur_event = self.new_event(event::Blur);
         let focus_out_event = self.new_event(event::FocusOut);
         blur_event.bubbles.set(false);
-        self.event_source.emit(blur_event);
-        self.event_source.emit(focus_out_event);
+        self.event.source.emit(blur_event);
+        self.event.source.emit(focus_out_event);
     }
 
     /// Clears the focus info in this instance and all parent instances. In order to work properly,
     /// this should be called on the focused instance. Otherwise, it may clear the information
     /// only partially.
     fn propagate_up_no_focus_instance(&self) {
-        *self.focused_descendant.borrow_mut() = None;
+        *self.event.focused_descendant.borrow_mut() = None;
         self.parent().for_each(|parent| parent.propagate_up_no_focus_instance());
     }
 
     /// Set the focus instance to the provided one here and in all instances on the path to the
     /// root.
     fn propagate_up_new_focus_instance(&self, instance: &WeakInstance) {
-        debug_assert!(self.focused_descendant.borrow().is_none());
-        *self.focused_descendant.borrow_mut() = Some(instance.clone());
+        debug_assert!(self.event.focused_descendant.borrow().is_none());
+        *self.event.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
     }
 }
@@ -845,47 +926,6 @@ impl InstanceDef {
     /// ID getter of this display object.
     pub fn id(&self) -> Id {
         Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
-    }
-}
-
-
-// ============================
-// === Hierarchy Management ===
-// ============================
-
-impl InstanceDef {
-    /// Adds a new `Object` as a child to the current one.
-    pub fn add_child(&self, child: &InstanceDef) {
-        child.unset_parent();
-        let child_index = self.register_child(child);
-        trace!("Adding a new child at index {child_index}.");
-        let parent_bind = ParentBind { parent: self.downgrade(), child_index };
-        child.set_parent_bind(parent_bind);
-    }
-
-    fn register_child(&self, child: &InstanceDef) -> usize {
-        let index = self.children.borrow_mut().insert(child.downgrade());
-        self.dirty.modified_children.set(index);
-        index
-    }
-
-    /// Removes the provided object reference from child list of this object. Does nothing if the
-    /// reference was not a child of this object.
-    pub fn remove_child<T: Object>(&self, child: &T) {
-        let child = child.display_object();
-        if self.has_child(child) {
-            child.unset_parent()
-        }
-    }
-
-    /// Replaces the parent binding with a new parent.
-    pub fn set_parent(&self, parent: &InstanceDef) {
-        parent.add_child(self);
-    }
-
-    /// Removes the current parent binding.
-    pub fn unset_parent(&self) {
-        self.take_parent_bind();
     }
 }
 
@@ -922,30 +962,6 @@ impl InstanceDef {
             self.dirty.new_layer.set();
             *assigned_layer = None;
         }
-    }
-
-
-
-    /// Checks if the provided object is child of the current one.
-    pub fn has_child<T: Object>(&self, child: &T) -> bool {
-        self.child_index(child).is_some()
-    }
-
-    /// Checks if the object has a parent.
-    pub fn has_parent(&self) -> bool {
-        self.rc.parent_bind.is_some()
-    }
-
-    /// Returns the index of the provided object if it was a child of the current one.
-    pub fn child_index<T: Object>(&self, child: &T) -> Option<usize> {
-        let child = child.display_object();
-        child.parent_bind.parent_and_child_index().and_then(|(parent, index)| {
-            if &parent.def == self {
-                Some(index)
-            } else {
-                None
-            }
-        })
     }
 }
 
@@ -1036,6 +1052,47 @@ impl PartialEq for WeakInstance {
         } else {
             false
         }
+    }
+}
+
+
+
+// ============
+// === Root ===
+// ============
+
+/// A root element of a display object hierarchy. Unlike [`Instance`], [`Root`] is visible by
+/// default and has explicit methods to hide and show it.
+#[derive(Clone, CloneRef, Debug, Deref)]
+#[repr(transparent)]
+pub struct Root {
+    def: Instance,
+}
+
+impl Root {
+    /// Constructor.
+    pub fn new() -> Self {
+        let def = default();
+        Self { def }.init()
+    }
+
+    fn init(self) -> Self {
+        self.show();
+        self
+    }
+
+    pub fn hide(&self) {
+        self.def.hide()
+    }
+
+    pub fn show(&self) {
+        self.def.show()
+    }
+}
+
+impl Object for Root {
+    fn display_object(&self) -> &Instance {
+        &self.def
     }
 }
 
@@ -1195,13 +1252,8 @@ pub trait ObjectOps: Object {
         self.display_object().def.rc.is_visible()
     }
 
-    /// Checks whether the object is orphan (do not have parent object attached).
-    fn is_orphan(&self) -> bool {
-        self.display_object().def.rc.is_orphan()
-    }
 
-
-    // === Events ===
+    // === EventModel ===
 
     /// Emit a new event. See docs of [`event::Event`] to learn more.
     fn emit_event<T>(&self, event: T)
@@ -1696,7 +1748,7 @@ mod tests {
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
-        node1.force_set_visibility(true);
+        node1.show();
         node3.check_if_still_hidden();
         node3.update(scene);
         node3.check_if_still_hidden();
@@ -1739,9 +1791,9 @@ mod tests {
         node1.check_if_still_hidden();
         node1.update(scene);
         node1.check_if_still_hidden();
-        node1.force_set_visibility(true);
+        node1.show();
         node1.update(scene);
-        node1.check_if_still_shown();
+        node1.check_if_was_shown();
 
         node1.add_child(&node2);
         node1.update(scene);
@@ -1757,7 +1809,7 @@ mod tests {
         let node1 = TestedNode::new();
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
-        node1.force_set_visibility(true);
+        node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
         node1.update(scene);
@@ -1780,7 +1832,7 @@ mod tests {
         let node2 = TestedNode::new();
         let node3 = TestedNode::new();
         let node4 = TestedNode::new();
-        node1.force_set_visibility(true);
+        node1.show();
         node1.add_child(&node2);
         node2.add_child(&node3);
         node1.update(scene);
@@ -1833,7 +1885,7 @@ mod tests {
         let node5 = Instance::new();
         let node6 = Instance::new();
 
-        root.force_set_visibility(true);
+        root.show();
 
         root.add_child(&node1);
         node1.add_child(&node2);
@@ -2133,7 +2185,7 @@ mod tests {
         }
 
         let event = obj_3.new_event::<f32>(0.0);
-        obj_3.event_source.emit(&event);
+        obj_3.event.source.emit(&event);
         assert_eq!(&*out.borrow(), &[
             "capturing_1",
             "capturing_2",

@@ -688,7 +688,7 @@ pub struct UpdateStatus {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object: display::object::Instance,
+    pub display_object: display::object::Root,
     pub dom: Dom,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
@@ -719,8 +719,7 @@ impl SceneData {
     pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
         debug!("Initializing.");
         let dom = Dom::new();
-        let display_object = display::object::Instance::new();
-        display_object.force_set_visibility(true);
+        let display_object = display::object::Root::new();
         let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
