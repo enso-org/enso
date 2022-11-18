@@ -93,7 +93,7 @@ pub enum LabelPosition {
 
 /// The behavior of the slider when the value is adjusted beyond the slider's limits. This can be
 /// set independently for the upper and the lower limits.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SliderLimit {
     #[default]
     /// The hard limit behavior clamps the value to always be within the slider's limits.
