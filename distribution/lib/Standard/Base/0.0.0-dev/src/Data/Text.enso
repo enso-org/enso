@@ -67,9 +67,7 @@ type Text
     compare_to self that =
         if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
             comparison_result = Text_Utils.compare_normalized self that
-            if comparison_result == 0 then Ordering.Equal else
-                if comparison_result < 0 then Ordering.Less else
-                    Ordering.Greater
+            Ordering.from_sign comparison_result
 
     ## ALIAS Check Emptiness
 

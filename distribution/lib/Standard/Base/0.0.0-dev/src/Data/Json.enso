@@ -264,6 +264,10 @@ Any.to_json self =
 ## Text to JSON conversion.
 
    > Example
+     Convert the text "Hello World!" to JSON.
+
+         "Hello World!".to_json
+   > Example
      Convert the text "cześć" to JSON.
 
          "cześć".to_json
