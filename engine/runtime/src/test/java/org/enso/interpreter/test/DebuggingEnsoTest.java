@@ -1,12 +1,18 @@
 package org.enso.interpreter.test;
 
+import com.oracle.truffle.api.debug.Breakpoint;
 import com.oracle.truffle.api.debug.DebugException;
+import com.oracle.truffle.api.debug.DebugStackFrame;
 import com.oracle.truffle.api.debug.DebugValue;
 import com.oracle.truffle.api.debug.Debugger;
+import com.oracle.truffle.api.debug.DebuggerSession;
 import com.oracle.truffle.api.debug.SuspendedEvent;
+import com.oracle.truffle.tck.DebuggerTester;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -15,15 +21,75 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
+  private Context context;
+  private Engine engine;
+  private Debugger debugger;
+  private DebuggerTester debuggerTester;
+
+  @Before
+  public void initTester() {
+    engine = Engine.newBuilder()
+        .allowExperimentalOptions(true)
+        .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
+        ).build();
+
+    debuggerTester = new DebuggerTester(
+        Context.newBuilder()
+            .engine(engine)
+            .allowIO(true)
+    );
+  }
+
+  @After
+  public void disposeContext() {
+    context.close();
+    engine.close();
+  }
+
   @Test
-  @Ignore
+  public void callerVariablesAreVisibleOnPreviousStackFrame() {
+    Source fooSource = Source.create("enso", """
+        bar arg_bar =
+            loc_bar = arg_bar + 1  # BreakPoint
+            loc_bar
+            
+        foo =
+            loc_foo = 1
+            bar loc_foo
+        """);
+
+    Value module = context.eval(fooSource);
+    Value fooFunc = module.invokeMember("eval_expression", "foo");
+
+    try (DebuggerSession session = debuggerTester.startSession()) {
+      debuggerTester.startEval(fooSource);
+      var breakpoint = Breakpoint
+          .newBuilder(DebuggerTester.getSourceImpl(fooSource))
+          .lineIs(2)
+          .build();
+      session.install(breakpoint);
+
+      debuggerTester.expectSuspended((SuspendedEvent event) -> {
+        List<DebugStackFrame> stackFrames = new ArrayList<>();
+        event.getStackFrames().forEach(stackFrames::add);
+      });
+    }
+  }
+
+  @Test
   public void evaluation() throws Exception {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
@@ -71,6 +137,7 @@ public class DebuggingEnsoTest {
     assertEquals("Accumulator gets following values one by one", Set.of(1, 5, 20, 60, 120), values);
   }
 
+  // TODO: Re-enable
   @Test
   @Ignore
   public void unsafeRecursiveAtom() throws Exception {
@@ -134,6 +201,9 @@ public class DebuggingEnsoTest {
   }
 
   private static DebugValue findDebugValue(SuspendedEvent event, final String n) throws DebugException {
+    var stackFrames = event.getStackFrames();
+    var debugScope = event.getTopStackFrame().getScope();
+    var declaredValues = debugScope.getDeclaredValues();
     for (var v : event.getTopStackFrame().getScope().getDeclaredValues()) {
       if (v.getName().contains(n)) {
         return v;

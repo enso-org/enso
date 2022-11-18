@@ -62,6 +62,7 @@ import org.graalvm.options.OptionType;
   StandardTags.ExpressionTag.class,
   StandardTags.StatementTag.class,
   StandardTags.RootTag.class,
+  StandardTags.RootBodyTag.class,
   StandardTags.TryBlockTag.class,
   IdentifiedTag.class,
   AvoidIdInstrumentationTag.class,

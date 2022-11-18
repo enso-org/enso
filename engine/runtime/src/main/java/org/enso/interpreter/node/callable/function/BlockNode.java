@@ -1,19 +1,27 @@
 package org.enso.interpreter.node.callable.function;
 
+import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
+import com.oracle.truffle.api.interop.NodeLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Set;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.scope.DebugLocalScope;
 
 /**
  * This node defines the body of a function for execution, as well as the protocol for executing the
  * function body.
  */
 @NodeInfo(shortName = "Block")
+@ExportLibrary(NodeLibrary.class)
 public class BlockNode extends ExpressionNode {
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;
@@ -53,16 +61,29 @@ public class BlockNode extends ExpressionNode {
     return returnExpr.executeGeneric(frame);
   }
 
+  /**
+   * Wrap all the statements inside this block node in {@link StatementNode}.
+   * Care is taken not for wrapping expression twice.
+   * @return This BlockNode with all the statements wrapped.
+   */
   @Override
   public InstrumentableNode materializeInstrumentableNodes(
       Set<Class<? extends Tag>> materializedTags) {
     if (materializedTags.contains(StandardTags.StatementTag.class)) {
       for (int i = 0; i < statements.length; i++) {
-        statements[i] = insert(StatementNode.wrap(statements[i]));
+        if (!isNodeWrapped(statements[i])) {
+          statements[i] = insert(StatementNode.wrap(statements[i]));
+        }
       }
-      this.returnExpr = insert(StatementNode.wrap(returnExpr));
+      if (!isNodeWrapped(returnExpr)) {
+        returnExpr = insert(StatementNode.wrap(returnExpr));
+      }
     }
     return this;
+  }
+
+  private static boolean isNodeWrapped(ExpressionNode node) {
+    return node instanceof StatementNode || ExpressionNode.isWrapper(node);
   }
 
   @Override
@@ -70,5 +91,20 @@ public class BlockNode extends ExpressionNode {
     return super.hasTag(tag)
         || tag == StandardTags.RootBodyTag.class
         || tag == StandardTags.RootTag.class;
+  }
+
+  @ExportMessage
+  boolean hasScope(Frame frame) {
+    return true;
+  }
+
+  @ExportMessage
+  Object getScope(Frame frame, boolean nodeEnter) {
+    RootNode rootNode = getRootNode();
+    if (rootNode == null) {
+      return null;
+    } else {
+      return DebugLocalScope.createFromFrame((EnsoRootNode) rootNode, frame.materialize());
+    }
   }
 }
