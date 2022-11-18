@@ -118,7 +118,7 @@ fn init(app: &Application) {
         .iter()
         .find(|class| &*class.signature.name == "Graph")
         .expect("Couldn't find Graph class.");
-    let visualization = vis_class.new_instance(scene).expect("Couldn't create visualiser.");
+    let visualization = vis_class.new_instance(app).expect("Couldn't create visualiser.");
     visualization.activate.emit(());
 
     let network = enso_frp::Network::new("VisualizationExample");
