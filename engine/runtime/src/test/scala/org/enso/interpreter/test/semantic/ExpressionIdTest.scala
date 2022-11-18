@@ -84,16 +84,16 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |from Standard.Base.Data.List.List import all
+          |import Standard.Base.Data.List.List
           |
           |main =
-          |    x = Cons 1 2
-          |    y = Nil
+          |    x = List.Cons 1 2
+          |    y = List.Nil
           |
           |    add = a -> b -> a + b
           |
           |    foo = x -> case x of
-          |        Cons a b ->
+          |        List.Cons a b ->
           |            z = add a b
           |            x = z * z
           |            x
