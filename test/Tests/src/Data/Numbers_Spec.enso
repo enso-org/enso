@@ -218,7 +218,7 @@ spec =
             Decimal.parse "-98.5" . should_equal -98.5
             Decimal.parse "000000" . should_equal 0
             Decimal.parse "000000.0001" . should_equal 0.0001
-            Decimal.parse "aaaa" . should_fail_with Parse_Error_Data
+            Decimal.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
     Test.group "Numbers" <|
 
