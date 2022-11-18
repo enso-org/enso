@@ -2,12 +2,14 @@ import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
 import project.Data.List.List
+import project.Data.Map.Map
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 export project.Data.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
+export project.Data.Map.Map
 export project.Data.Vector.Vector
 export project.Nothing.Nothing
 from project.Data.Boolean export all
@@ -42,7 +44,7 @@ from project.Data.Index_Sub_Range export First, Last
 
 
 
-import project.Data.Map
+
 import project.Data.Numbers
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
@@ -89,7 +91,6 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Map
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Regression

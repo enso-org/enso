@@ -110,7 +110,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         n_2 . should_equal_type Decimal
         n_2 . should_not_equal_type Integer
 
-        n_3 = Meta.type_of (Long.MAX_VALUE * 2)
+        n_3 = Meta.type_of (JLong.MAX_VALUE * 2)
         n_3 . should_equal_type Integer
         n_3 . should_not_equal_type Decimal
 
