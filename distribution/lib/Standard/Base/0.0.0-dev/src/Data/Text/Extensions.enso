@@ -126,119 +126,64 @@ Text.characters self =
     self.each bldr.append
     bldr.to_vector
 
-## ALIAS Match Text
+## ALIAS find
 
-   Matches the text in `self` against the provided regex `pattern`, returning
-   the match(es) if present or `Nothing` if there are no matches.
+   Matches the text in `self` against the provided `term`, returning the first
+   or last match if present or `Nothing` if there are no matches.
 
    Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
+   - term: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
-   - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Regex_Mode.First` or `Regex_Mode.Full`,
-     this method will return either a single `Match` or `Nothing`. If set to an
-     `Integer` or `Regex_Mode.All`, this method will return either
-     a `Vector Match` or `Nothing`.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII then you can enable this for a
-     performance boost on some regex engines.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it will match all
-     characters _except_ newlines.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as well as the start and end of the input respectively.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a
-       character class or when preceded by an unescaped backslash, or within
-       grouping constructs (e.g. `(?...)`).
-     - When a line contains a `#`, that is not in a character class and is not
-       preceded by an unescaped backslash, all characters from the leftmost
-       such `#` to the end of the line are ignored. That is to say, they act
-       as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. This allows options
-     to be supplied and computed without having to break them out into arguments
-     to the function. Where these overlap with one of the flags (`match_ascii`,
-     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
-     flags take precedence.
-
-   ! Boolean Flags and Extra Options
-     This function contains a number of arguments that are boolean flags that
-     enable or disable common options for the regex. At the same time, it also
-     provides the ability to specify options in the `extra_opts` argument.
-
-     Where one of the flags is _set_ (has the value `True` or `False`), the
-     value of the flag takes precedence over the value in `extra_opts` when
-     merging the options to the engine. The flags are _unset_ (have value
-     `Nothing`) by default.
+   - mode: This argument specifies whether the first or last match should be
+     returned.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
 
    > Example
-     Find matches for a basic email regex in some text. NOTE: This regex is
-     _not_ compliant with RFC 5322.
+     Find the first substring matching the regex.
 
          example_match =
-             regex = ".+@.+"
-             "contact@enso.org".match regex
-Text.match : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Match | Vector Match | Nothing ! Regex.Compile_Error
-Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.match self mode
+             regex = "a[ab]c"
+             "aabbbbccccaabcaaaa".match regex == "abc"
+Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Text | Nothing
+Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
+    case self.locate term mode matcher of
+        Nothing -> Nothing
+        span -> span.text
+
+## ALIAS find_all
+
+   Matches all occurrences text in `self` against the provided `term`, returning
+   a vector of matches.
+
+   Arguments:
+   - term: The pattern to match `self` against. We recommend using _raw text_
+     to write your patterns.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
+
+   > Example
+     Find all substrings matching the regex.
+
+         example_match =
+             regex = "a[ab]c"
+             "aabcbbccaacaa".match regex == ["abc", "aac"]
+Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
+Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
+    self.locate_all term matcher . map .text
 
 ## ALIAS Check Matches
 
-   Matches the text in `self` against the provided regex `pattern`, returning
-   `True` if the text matches at least once, and `False` otherwise.
+   Checks if the whole text in `self` matches a provided `pattern`.
 
    Arguments:
    - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
-   - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Regex_Mode.First` or `Regex_Mode.Full`,
-     this method will return either a single `Match` or `Nothing`. If set to an
-     `Integer` or `Regex_Mode.All`, this method will return either
-     a `Vector Match` or `Nothing`.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII then you can enable this for a
-     performance boost on some regex engines.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it will match all
-     characters _except_ newlines.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as well as the start and end of the input respectively.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
-       grouping constructs (e.g. `(?...)`).
-     - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
-       such `#` to the end of the line are ignored. That is to say, they act
-       as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. This allows options
-     to be supplied and computed without having to break them out into arguments
-     to the function. Where these overlap with one of the flags (`match_ascii`,
-     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
-     flags take precedence.
-
-   ! Boolean Flags and Extra Options
-     This function contains a number of arguments that are boolean flags that
-     enable or disable common options for the regex. At the same time, it also
-     provides the ability to specify options in the `extra_opts` argument.
-
-     Where one of the flags is _set_ (has the value `True` or `False`), the
-     value of the flag takes precedence over the value in `extra_opts` when
-     merging the options to the engine. The flags are _unset_ (have value
-     `Nothing`) by default.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
 
    > Example
      Checks if some text matches a basic email regex. NOTE: This regex is _not_
@@ -246,73 +191,14 @@ Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive
 
          example_match =
              regex = ".+@.+"
-             "contact@enso.org".matches regex
-Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Boolean ! Regex.Compile_Error
-Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.matches self
-
-## ALIAS Find Text
-
-   Finds all occurrences of `pattern` in the text `self`, returning the text(s)
-   if present, or `Nothing` if there are no matches.
-
-   Arguments:
-   - pattern: The pattern to match `self` against. We recommend using _raw text_
-     to write your patterns.
-   - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Regex_Mode.First` or `Regex_Mode.Full`,
-     this method will return either a single `Text` or `Nothing`. If set to an
-     `Integer` or `Regex_Mode.All`, this method will return either
-     a `Vector Text` or `Nothing`.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII then you can enable this for a
-     performance boost on some regex engines.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it will match all
-     characters _except_ newlines.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as well as the start and end of the input respectively.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
-       grouping constructs (e.g. `(?...)`).
-     - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
-       such `#` to the end of the line are ignored. That is to say, they act
-       as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. This allows options
-     to be supplied and computed without having to break them out into arguments
-     to the function. Where these overlap with one of the flags (`match_ascii`,
-     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
-     flags take precedence.
-
-   ! Boolean Flags and Extra Options
-     This function contains a number of arguments that are boolean flags that
-     enable or disable common options for the regex. At the same time, it also
-     provides the ability to specify options in the `extra_opts` argument.
-
-     Where one of the flags is _set_ (has the value `True` or `False`), the
-     value of the flag takes precedence over the value in `extra_opts` when
-     merging the options to the engine. The flags are _unset_ (have value
-     `Nothing`) by default.
-
-   > Example
-     Find words that contain three or less letters in text`"\w{1,3}"`
-
-         example_find =
-             text = "Now I know my ABCs"
-             text.find "\w{1,3}"
-Text.find : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Text | Vector Text | Nothing
-Text.find self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.find self mode
+             "contact@enso.org".is_match regex
+Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
+Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
+    Text_Matcher.Case_Sensitive -> self == pattern
+    Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
+    _ : Regex_Matcher.Regex_Matcher ->
+        compiled_pattern = matcher.compile pattern
+        compiled_pattern.matches self
 
 ## ALIAS Split Text
 
@@ -343,8 +229,8 @@ Text.find self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=
          'abc  def\tghi'.split '\\s+' Regex_Matcher.Regex_Matcher_Data == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument_Error_Data "The delimiter cannot be empty.") else
-    case Meta.type_of matcher of
-        Text_Matcher.Text_Matcher ->
+    case matcher of
+        _ : Text_Matcher.Text_Matcher ->
             delimiters = Vector.from_polyglot_array <| case matcher of
                 Text_Matcher.Case_Sensitive ->
                     Text_Utils.span_of_all self delimiter
@@ -356,7 +242,7 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
                 end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring self start end
-        Regex_Matcher.Regex_Matcher ->
+        _ : Regex_Matcher.Regex_Matcher ->
             compiled_pattern = matcher.compile delimiter
             compiled_pattern.split self mode=Regex_Mode.All
 
@@ -438,8 +324,8 @@ Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive = if term.is_empty then self else
-    case Meta.type_of matcher of
-        Text_Matcher.Text_Matcher ->
+    case matcher of
+        _ : Text_Matcher.Text_Matcher ->
             array_from_single_result result = case result of
                 Nothing -> Array.empty
                 _ -> Array.new_1 result
@@ -463,7 +349,7 @@ Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.C
                             Text_Utils.span_of_case_insensitive self term locale.java_locale True
                     _ -> Error.throw (Illegal_Argument_Error_Data "Invalid mode.")
             Text_Utils.replace_spans self spans_array new_text
-        Regex_Matcher.Regex_Matcher ->
+        _ : Regex_Matcher.Regex_Matcher ->
             compiled_pattern = matcher.compile term
             compiled_pattern.replace self new_text mode=mode
 
@@ -882,7 +768,7 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
@@ -917,7 +803,7 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
@@ -979,7 +865,7 @@ Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
     Text_Matcher.Case_Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         compiled_pattern = matcher.compile term
         match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
@@ -1031,9 +917,7 @@ Text.* self count = self.repeat count
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
 Text.repeat self count=1 =
-    ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
-       https://www.pivotaltracker.com/story/show/181435598
-    0.up_to (count.max 0) . fold "" acc-> _-> acc + self
+    0.up_to count . fold "" acc-> _-> acc + self
 
 ## ALIAS first, last, left, right, mid, substring
    Creates a new Text by selecting the specified range of the input.
@@ -1262,7 +1146,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 
-## ALIAS find, index_of, position_of, span_of
+## ALIAS index_of, position_of, span_of
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1286,9 +1170,9 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    > Example
      Finding location of a substring.
 
-         "Hello World!".location_of "J" == Nothing
-         "Hello World!".location_of "o" == Span (Range 4 5) "Hello World!"
-         "Hello World!".location_of "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
+         "Hello World!".locate "J" == Nothing
+         "Hello World!".locate "o" == Span (Range 4 5) "Hello World!"
+         "Hello World!".locate "o" mode=Matching_Mode.Last == Span (Range 7 8) "Hello World!"
 
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
@@ -1308,7 +1192,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
+         match = text . locate term matcher=(Text_Matcher Case_Insensitive)
          term.length == 6
          match.length == 7
 
@@ -1329,11 +1213,11 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
-         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate term_1 matcher=(Text_Matcher Case_Insensitive)
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate term_2 matcher=(Text_Matcher Case_Insensitive)
          term_2.length == 6
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
@@ -1349,13 +1233,13 @@ Text.trim self where=Location.Both what=_.is_whitespace =
    > Example
      Comparing Matching in Last Mode in Regex and Text mode
 
-         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
-         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
+         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
+         "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
 
-         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
-         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
+         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
+         "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
+Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_span = case mode of
             Matching_Mode.First -> Text_Utils.span_of self term
@@ -1391,7 +1275,7 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
                 Nothing -> Nothing
                 matches -> matches.last.span 0 . to_grapheme_span
 
-## ALIAS find_all, index_of_all, position_of_all, span_of_all
+## ALIAS index_of_all, position_of_all, span_of_all
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1411,8 +1295,8 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
    > Example
      Finding locations of all occurrences of a substring.
 
-         "Hello World!".location_of_all "J" == []
-         "Hello World!".location_of_all "o" . map .start == [4, 7]
+         "Hello World!".locate_all "J" == []
+         "Hello World!".locate_all "o" . map .start == [4, 7]
 
    ! Match Length
      The  function returns not only the index of the match but a `Span` instance
@@ -1432,7 +1316,7 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
-         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
+         match = text . locate_all term matcher=(Text_Matcher Case_Insensitive)
          term.length == 7
          match . map .length == [7, 6]
 
@@ -1452,12 +1336,12 @@ Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case
 
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
-         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
+         match_1 = ligatures . locate_all "IFF" matcher=(Text_Matcher Case_Insensitive)
          match_1 . map .length == [2, 3]
-         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
+         match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
-Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
+Text.locate_all : Text -> Matcher -> [Span]
+Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
@@ -1472,7 +1356,7 @@ Text.location_of_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.
         grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
         grapheme_spans.map grapheme_span->
             Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
-    Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
+    _ : Regex_Matcher.Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span

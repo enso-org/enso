@@ -241,6 +241,7 @@
   create derived Columns.][3782]
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
+- [Aligned `Text.match`/`Text.locate` API][3841]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -383,6 +384,7 @@
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
 [3874]: https://github.com/enso-org/enso/pull/3874
+[3841]: https://github.com/enso-org/enso/pull/3841
 
 #### Enso Compiler
 
