@@ -119,12 +119,10 @@ fn adapt_upper_limit(
         let range = max_ext - min;
         let extend = value > max_ext;
         let shrink = value < min + range * 0.5; // TODO: Threshold probably needs hysteresis.
-        let max_ext = if extend {
-            min + range * 2.0
-        } else if shrink {
-            min + range * 0.5
-        } else {
-            max_ext
+        let max_ext = match (extend, shrink) {
+            (true, _) => min + range * 2.0,
+            (_, true) => min + range * 0.5,
+            _ => max_ext,
         };
         max_ext.max(max) // Do no set extended limit below `max`.
     } else {
@@ -140,12 +138,10 @@ fn adapt_lower_limit(
         let range = max - min_ext;
         let extend = value < min_ext;
         let shrink = value > max - range * 0.5; // TODO: Threshold probably needs hysteresis.
-        let min_ext = if extend {
-            max - range * 2.0
-        } else if shrink {
-            max - range * 0.5
-        } else {
-            min_ext
+        let min_ext = match (extend, shrink) {
+            (true, _) => max - range * 2.0,
+            (_, true) => max - range * 0.5,
+            _ => min_ext,
         };
         min_ext.min(min) // Do no set extended limit above `min`.
     } else {
