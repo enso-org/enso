@@ -1,11 +1,11 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
-import Standard.Base.Data.Time.Date_Period
+import project.Data.Time.Duration
+import project.Data.Time.Period
+import project.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Time_Error_Data, unimplemented
+from Standard.Base.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Polyglot_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -241,7 +241,7 @@ type Date
          other hand, the first day of the week is Monday, and week 1 is the week
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
-    week_of_year : (Locale.Locale | Nothing) -> Integer
+    week_of_year : (Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
         Date_Time.ensure_in_epoch self <|
             if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else

@@ -3,7 +3,8 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error_Data
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
-from Standard.Base.Data.Text.Text_Sub_Range import all
+from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
+from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
 from Standard.Test import Test, Test_Suite
 

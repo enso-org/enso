@@ -39,7 +39,7 @@ singleton key value = Bin 1 key value Tip Tip
          import Standard.Base.Data.Map.Internal
 
          example_from_vector = Map.from_vector [[1, 2], [3, 4]]
-from_vector : Vector.Vector Any -> Map
+from_vector : Vector Any -> Map
 from_vector vec = vec.fold empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
 # TODO Dubious constructor export
@@ -118,7 +118,7 @@ type Map
              import Standard.Examples
 
              example_to_vector = Examples.map.to_vector
-    to_vector : Vector.Vector Any
+    to_vector : Vector Any
     to_vector self =
         builder = Vector.new_builder
         to_vector_with_builder m = case m of

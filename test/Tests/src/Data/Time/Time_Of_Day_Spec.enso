@@ -162,7 +162,7 @@ enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanosecond=nanoOfSecond
 
 java_time hour minute=0 second=0 nanoOfSecond=0 =
-    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
 
 java_parse time_text pattern=Nothing =
     Panic.catch Polyglot_Error_Data handler=(err -> Error.throw (Time_Error_Data err.payload.cause.getMessage)) <|

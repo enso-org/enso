@@ -1,6 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Array as ArrayMod
-import Standard.Base.Data.Text as TextMod
+import Standard.Base.Data.Array as Array_Module
+import Standard.Base.Data.Text as Text_Module
+import Standard.Base.Data.Vector as Vector_Module
 
 polyglot java import java.lang.Class
 polyglot java import java.lang.Object as JObject
@@ -75,13 +76,13 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected a text type to match."
         case Text of
             _ : Text -> Nothing
-            TextMod -> Test.fail "Expected the Text constructor to match4."
+            Text_Module -> Test.fail "Expected the Text constructor to match4."
             Text -> Test.fail "Expected the Text constructor to match4."
             _ -> Test.fail "Expected the Text constructor to matc5h."
-        case TextMod of
+        case Text_Module of
             _ : Text -> Test.fail "Expected the Text module to match4."
             Text -> Test.fail "Expected the Text module to match4."
-            TextMod -> Nothing
+            Text_Module -> Nothing
             _ -> Test.fail "Expected the Text module to matc5h."
     Test.specify "should be able to match on the Array type" <|
         case [].to_array of
@@ -89,14 +90,14 @@ spec = Test.group "Pattern Matches" <|
             _ : Array -> Nothing
             _ -> Test.fail "Expected an array type  to match."
         case Array of
-            ArrayMod -> Test.fail "Expected the Array type to match."
+            Array_Module -> Test.fail "Expected the Array type to match."
             _ : Array -> Nothing
             Array -> Test.fail "Expected the Array type to match."
             _ -> Test.fail "Expected the Array Type to match."
-        case ArrayMod of
+        case Array_Module of
             _ : Array -> Test.fail "Expected the Array module to match."
             Array -> Test.fail "Expected the Array module to match."
-            ArrayMod -> Nothing
+            Array_Module -> Nothing
             _ -> Test.fail "Expected the Array module to match."
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
@@ -217,18 +218,18 @@ spec = Test.group "Pattern Matches" <|
             _                     -> Test.fail "Expected value to match constant."
 
     Test.specify "should be able to match on module rather than a type" <|
-        case Vector of
-            _ : Vector.Vector -> Test.fail "Expected to match on module."
-            Vector.Vector     -> Test.fail "Expected to match on module."
-            Vector            -> Nothing
+        case Vector_Module of
+            _ : Vector        -> Test.fail "Expected to match on module."
+            Vector            -> Test.fail "Expected to match on module."
+            Vector_Module     -> Nothing
             _                 -> Test.fail "Expected to match on module."
 
     Test.specify "should be able to match on a type of a value rather tha module" <|
         case [1,2,3] of
-            Vector          -> Test.fail "Expected to match on a type."
-            Vector.Vector   -> Test.fail "Expected to match on a type."
-            _ : Vector.Vector -> Nothing
-            _               -> Test.fail "Expected to match on a type."
+            Vector_Module -> Test.fail "Expected to match on a type."
+            Vector        -> Test.fail "Expected to match on a type."
+            _ : Vector    -> Nothing
+            _             -> Test.fail "Expected to match on a type."
 
     Test.specify "should correctly pattern match on array-like polyglot values" <|
         list = ArrayList.new
@@ -236,26 +237,26 @@ spec = Test.group "Pattern Matches" <|
         list.add 2
 
         case list of
-            _ : Vector.Vector -> Test.fail "Expected to match on Array type."
+            _ : Vector -> Test.fail "Expected to match on Array type."
             _ : Array -> Nothing
             _ : ArrayList -> Test.fail "Expected to match on Array type."
             _ -> Test.fail "Expected to match on Array type."
 
         case list of
-            _ : Vector.Vector -> Test.fail "Expected to match on ArrayList type."
+            _ : Vector -> Test.fail "Expected to match on ArrayList type."
             _ : ArrayList -> Nothing
             _ : Array -> Test.fail "Expected to match on ArrayList type."
             _ -> Test.fail "Expected to match on ArrayList type."
 
         case Meta.type_of list of
-            _ : Vector.Vector -> Test.fail "Expected to match in java.lang.Class case."
+            _ : Vector -> Test.fail "Expected to match in java.lang.Class case."
             _ : Array -> Test.fail "Expected to match in java.lang.Class case."
             _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
             _ : Class -> Nothing
             _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
 
         case Meta.type_of list of
-            Vector.Vector -> Test.fail "Expected to match on a polyglot symbol."
+            Vector -> Test.fail "Expected to match on a polyglot symbol."
             Array -> Test.fail "Expected to match on a polyglot symbol."
             ArrayList -> Nothing
             Class -> Test.fail "Expected to match on a polyglot symbol."

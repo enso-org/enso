@@ -300,7 +300,7 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    _ : Base.Vector.Vector -> case json of
+    _ : Base.Vector -> case json of
         Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     _ : Base.Boolean -> case json of
