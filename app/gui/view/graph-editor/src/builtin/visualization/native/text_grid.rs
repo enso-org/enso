@@ -5,6 +5,7 @@ use ensogl::system::web::traits::*;
 
 use crate::component::visualization;
 use crate::StyleWatchFrp;
+
 use enso_frp as frp;
 use ensogl::application::command::FrpNetworkProvider;
 use ensogl::application::frp::API;
