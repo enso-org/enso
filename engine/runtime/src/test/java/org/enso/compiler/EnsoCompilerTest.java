@@ -511,12 +511,9 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testVariousKindsOfUnicodeWhitespace() throws Exception {
-    // mimics Text_Spec.enso:1049 and 722
-    // search for: # Disabled in the New Parser
     parseTest("""
-    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}'.trim
     """);
   }
 
@@ -1034,14 +1031,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
-  public void testConstructorMultipleNamedArgs2() throws Exception {
-    parseTest("""
-    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
-    """);
-  }
-
-  @Test
   public void testDocAtEndOfBlock() throws Exception {
     parseTest("""
     x =
@@ -1163,7 +1152,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testSimpleTrippleQuote() throws Exception {
+  public void testSimpleTripleQuote() throws Exception {
     parseTest("""
     expected_response = Json.parse <| '''
         {
@@ -1189,7 +1178,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
     # this is a comment

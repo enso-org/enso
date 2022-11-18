@@ -107,7 +107,9 @@ fn else_block() {
 
 #[test]
 fn plain_comments() {
-    test("# a b c", block![()]);
+    test!("# a b c", ());
+    test!("main = # define main\n 4",
+        (Function (Ident main) #() "=" (BodyBlock #(() (Number () "4" ())))));
 }
 
 #[test]
