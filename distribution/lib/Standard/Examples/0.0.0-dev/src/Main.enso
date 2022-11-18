@@ -107,7 +107,7 @@ json_object = json.items.head
 
 ## An example cons-list.
 list : List
-list = Cons 1 (Cons 2 (Cons 3 Nil))
+list = List.Cons 1 (List.Cons 2 (List.Cons 3 List.Nil))
 
 ## A simple map that contains some numbers mapped to their word equivalents.
 map : Map

@@ -38,7 +38,7 @@ type Consumer
        - v: The value to act upon.
     on_value : Any -> Nothing
     on_value self v = case self.child_consumer . get of
-        Nil -> self.value . put v
+        List.Nil -> self.value . put v
         cons -> cons.on_value v
 
     ## PRIVATE
@@ -50,7 +50,7 @@ type Consumer
         child = self.child_consumer.get
         val = child.seal
         case child.parent of
-            Nil ->
+            List.Nil ->
                 self.value . put val
             p ->
                 self.child_consumer . put p
@@ -248,7 +248,7 @@ mk_array_consumer parent =
    Creates a new top-level consumer.
 mk_consumer : Consumer
 mk_consumer =
-    child = Ref.new Nil
+    child = Ref.new List.Nil
     val = Ref.new Nothing
     Consumer_Data child val
 

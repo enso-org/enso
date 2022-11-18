@@ -927,7 +927,7 @@ type Vector a
        Converts the vector to a list with the same elements.
     to_list : List
     to_list self =
-        self.reverse.fold Nil acc-> elem-> Cons elem acc
+        self.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
 
 type Builder
 
