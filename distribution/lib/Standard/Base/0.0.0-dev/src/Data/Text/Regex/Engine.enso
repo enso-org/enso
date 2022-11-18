@@ -65,7 +65,7 @@ type Pattern
          return type is either a single `Match` object. When asked to match in a
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
-    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector.Vector Match | Nothing
+    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector Match | Nothing
     match self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -95,7 +95,7 @@ type Pattern
          return type is either a single `Match` object. When asked to match in a
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
-    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector.Vector Text | Nothing
+    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector Text | Nothing
     find self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -108,7 +108,7 @@ type Pattern
 
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element.
-    split : Text -> (Regex_Mode.First | Integer | Regex_Mode.All) -> Vector.Vector Text
+    split : Text -> (Regex_Mode.First | Integer | Regex_Mode.All) -> Vector Text
     split self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
@@ -165,7 +165,7 @@ type Match
        ? Named Groups by Index
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
-    groups : (a : Any) -> Vector.Vector (Text | a)
+    groups : (a : Any) -> Vector (Text | a)
     groups self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE

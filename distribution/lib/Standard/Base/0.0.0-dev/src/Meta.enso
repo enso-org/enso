@@ -135,7 +135,7 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
    ADVANCED
 
    Returns a vector of field values of the given atom.
-Atom.fields : Vector.Vector
+Atom.fields : Vector
 Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
 ## UNSTABLE
@@ -226,7 +226,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
    ADVANCED
 
    Returns a vector of field names defined by a constructor.
-Constructor.fields : Vector.Vector
+Constructor.fields : Vector
 Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
 
 ## UNSTABLE
@@ -244,7 +244,7 @@ Constructor.name self = get_constructor_name self.value
    Arguments:
    - fields: A vector of arguments to pass to the constructor when creating the
      new atom.
-Constructor.new : Vector.Vector -> Any
+Constructor.new : Vector -> Any
 Constructor.new self fields = new_atom self.value fields.to_array
 
 
@@ -318,7 +318,7 @@ is_a value typ = if is_same_object value typ then True else
     if typ == Any then True else
         if is_error value then typ == Base.Error else
             case value of
-                _ : Vector.Vector -> typ.is_same_object_as Vector.Vector
+                _ : Vector -> typ.is_same_object_as Vector
                 _ : Array -> typ == Array
                 _ : Boolean -> if typ == Boolean then True else value == typ
                 _ : Text -> typ == Text

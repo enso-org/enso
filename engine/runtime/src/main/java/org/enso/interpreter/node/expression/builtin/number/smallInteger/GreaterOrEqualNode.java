@@ -5,14 +5,13 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = ">=", description = "Comparison of numbers.")
 public abstract class GreaterOrEqualNode extends Node {
 
-  abstract boolean execute(long self, Object that);
+  abstract Object execute(long self, Object that);
 
   static GreaterOrEqualNode build() {
     return GreaterOrEqualNodeGen.create();
@@ -34,9 +33,9 @@ public abstract class GreaterOrEqualNode extends Node {
   }
 
   @Fallback
-  boolean doOther(long self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
-    var number = builtins.number().getNumber();
-    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
+  DataflowError doOther(long self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 }

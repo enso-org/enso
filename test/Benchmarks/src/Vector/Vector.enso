@@ -13,7 +13,7 @@ vector_size = 1000000
 iter_size = 100
 num_iterations = 10
 
-make_random_vec : Integer -> Base.Vector.Vector
+make_random_vec : Integer -> Base.Vector
 make_random_vec n =
     random_gen = Random.new n
     Base.Vector.fill n random_gen.nextLong

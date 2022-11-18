@@ -302,7 +302,7 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_to_vec = (Duration.nanoseconds 800)).to_vector
-    to_vector : Vector.Vector Integer
+    to_vector : Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
     ## A Duration to Json conversion.

@@ -6,7 +6,7 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Get all available character sets from Java as Encodings.
    Used to provide auto completion in the UI.
-all_character_sets : Vector.Vector Text
+all_character_sets : Vector Text
 all_character_sets =
     java_array = Charset.availableCharsets.keySet.toArray
     Vector.from_polyglot_array java_array

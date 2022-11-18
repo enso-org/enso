@@ -36,14 +36,11 @@ class JsonRpcServer(
   implicit val ec: ExecutionContext = system.dispatcher
 
   private def newUser(): Flow[Message, Message, NotUsed] = {
-    val clientId    = UUID.randomUUID()
-    val clientActor = clientControllerFactory.createClientController(clientId)
-
     val messageHandler =
       system.actorOf(
-        Props(new MessageHandler(protocol, clientActor))
+        Props(new MessageHandlerSupervisor(clientControllerFactory, protocol)),
+        s"message-handler-supervisor-${UUID.randomUUID()}"
       )
-    clientActor ! JsonRpcServer.WebConnect(messageHandler)
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message]

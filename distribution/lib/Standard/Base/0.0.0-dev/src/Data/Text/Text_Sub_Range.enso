@@ -1,18 +1,13 @@
 from Standard.Base import all
-from Standard.Base.Error.Common import Index_Out_Of_Bounds_Error
-from Standard.Base.Data.Text.Span import Span, range_to_char_indices
-import Standard.Base.Data.Index_Sub_Range
-from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
-import Standard.Base.Random
 
-from Standard.Base.Data.Index_Sub_Range export First, Last, While, By_Index, Sample, Every
+from project.Error.Common import Error, Index_Out_Of_Bounds_Error, Illegal_Argument_Error_Data
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+import project.Random
+
+from Standard.Base.Data.Text.Span import range_to_char_indices
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
-
-# TODO Dubious constructor export
-from project.Data.Text.Text_Sub_Range.Text_Sub_Range import all
-from project.Data.Text.Text_Sub_Range.Text_Sub_Range export all
 
 ## Type defining a substring of a Text
 type Text_Sub_Range
@@ -44,71 +39,67 @@ type Text_Sub_Range
    While the input ranges may have varying steps, they are processed and split
    in such a way that the ranges returned by this method always have a step
    equal to 1.
-find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range_Data | Codepoint_Ranges)
+find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
 find_codepoint_ranges text subrange =
     case subrange of
-        Before delimiter ->
-            if delimiter.is_empty then (Range_Data 0 0) else
+        Text_Sub_Range.Before delimiter ->
+            if delimiter.is_empty then (Range.Range_Data 0 0) else
                 span = Text_Utils.span_of text delimiter
-                if span.is_nothing then (Range_Data 0 (Text_Utils.char_length text)) else
-                    (Range_Data 0 span.codeunit_start)
-        Before_Last delimiter ->
-            if delimiter.is_empty then (Range_Data 0 (Text_Utils.char_length text)) else
+                if span.is_nothing then (Range.Range_Data 0 (Text_Utils.char_length text)) else
+                    (Range.Range_Data 0 span.codeunit_start)
+        Text_Sub_Range.Before_Last delimiter ->
+            if delimiter.is_empty then (Range.Range_Data 0 (Text_Utils.char_length text)) else
                 span = Text_Utils.last_span_of text delimiter
-                if span.is_nothing then (Range_Data 0 (Text_Utils.char_length text)) else
-                    (Range_Data 0 span.codeunit_start)
-        After delimiter ->
-            if delimiter.is_empty then (Range_Data 0 (Text_Utils.char_length text)) else
+                if span.is_nothing then (Range.Range_Data 0 (Text_Utils.char_length text)) else
+                    (Range.Range_Data 0 span.codeunit_start)
+        Text_Sub_Range.After delimiter ->
+            if delimiter.is_empty then (Range.Range_Data 0 (Text_Utils.char_length text)) else
                 span = Text_Utils.span_of text delimiter
-                if span.is_nothing then (Range_Data 0 0) else
-                    (Range_Data span.codeunit_end (Text_Utils.char_length text))
-        After_Last delimiter ->
-            if delimiter.is_empty then (Range_Data 0 0) else
+                if span.is_nothing then (Range.Range_Data 0 0) else
+                    (Range.Range_Data span.codeunit_end (Text_Utils.char_length text))
+        Text_Sub_Range.After_Last delimiter ->
+            if delimiter.is_empty then (Range.Range_Data 0 0) else
                 span = Text_Utils.last_span_of text delimiter
-                if span.is_nothing then (Range_Data 0 0) else
-                    (Range_Data span.codeunit_end (Text_Utils.char_length text))
-        First count ->
-            if count <= 0 then (Range_Data 0 0) else
+                if span.is_nothing then (Range.Range_Data 0 0) else
+                    (Range.Range_Data span.codeunit_end (Text_Utils.char_length text))
+        Index_Sub_Range.First count ->
+            if count <= 0 then (Range.Range_Data 0 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
                 start_index = iterator.next count
-                Range_Data 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
-        Last count ->
-            if count <= 0 then (Range_Data 0 0) else
+                Range.Range_Data 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
+        Index_Sub_Range.Last count ->
+            if count <= 0 then (Range.Range_Data 0 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
                 iterator.last
                 start_index = iterator.next -count
-                Range_Data (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
-        While predicate ->
+                Range.Range_Data (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
+        Index_Sub_Range.While predicate ->
             indices = find_sub_range_end text _-> start-> end->
                 predicate (Text_Utils.substring text start end) . not
-            if indices.first.is_nothing then (Range_Data 0 indices.second) else
-                Range_Data 0 indices.first
-        By_Index indices ->
+            if indices.first.is_nothing then (Range.Range_Data 0 indices.second) else
+                Range.Range_Data 0 indices.first
+        Index_Sub_Range.By_Index indices ->
             case indices of
-                _ : Vector.Vector ->
+                _ : Vector ->
                     if indices.length == 1 then resolve_index_or_range text indices.first else
                         batch_resolve_indices_or_ranges text indices
                 _ -> resolve_index_or_range text indices
-        Sample count seed ->
+        Index_Sub_Range.Sample count seed ->
             rng = Random.new seed
             indices = Random.random_indices text.length count rng
-            find_codepoint_ranges text (By_Index indices)
-        Every step start ->
+            find_codepoint_ranges text (Index_Sub_Range.By_Index indices)
+        Index_Sub_Range.Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 len = text.length
-                if start >= len then Range_Data 0 0 else
-                    range = Range_Data start text.length step
-                    find_codepoint_ranges text (By_Index range)
-        Range_Data _ _ _ ->
-            find_codepoint_ranges text (By_Index subrange)
+                if start >= len then Range.Range_Data 0 0 else
+                    range = Range.Range_Data start text.length step
+                    find_codepoint_ranges text (Index_Sub_Range.By_Index range)
+        _ : Range ->
+            find_codepoint_ranges text (Index_Sub_Range.By_Index subrange)
         _ : Integer ->
-            find_codepoint_ranges text (First subrange)
-
-# TODO Dubious constructor export
-from project.Data.Text.Text_Sub_Range.Codepoint_Ranges import all
-from project.Data.Text.Text_Sub_Range.Codepoint_Ranges export all
+            find_codepoint_ranges text (Index_Sub_Range.First subrange)
 
 type Codepoint_Ranges
     ## PRIVATE
@@ -119,7 +110,7 @@ type Codepoint_Ranges
        - ranges: the list of ranges. Each `Range` has `step` equal to 1.
        - is_sorted_and_distinct: A helper value specifying if the ranges are
          already sorted and non-intersecting.
-    Codepoint_Ranges_Data (ranges : Vector Range) (is_sorted_and_distinct : Boolean)
+    Value (ranges : Vector Range) (is_sorted_and_distinct : Boolean)
 
     ## PRIVATE
        Returns a new sorted list of ranges where intersecting ranges have been
@@ -128,7 +119,7 @@ type Codepoint_Ranges
        Empty subranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        Index_Sub_Range.sort_and_merge_ranges self.ranges
+        Index_Sub_Range_Module.sort_and_merge_ranges self.ranges
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.
@@ -146,8 +137,8 @@ find_sub_range_end text predicate =
     iterator.setText text
 
     loop index start end =
-        if end == -1 then (Pair_Data Nothing start) else
-            if predicate index start end then (Pair_Data start end) else
+        if end == -1 then (Pair.Pair_Data Nothing start) else
+            if predicate index start end then (Pair.Pair_Data start end) else
                 @Tail_Call loop (index + 1) end iterator.next
 
     loop 0 0 iterator.next
@@ -163,11 +154,11 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
             start = iterator.next descriptor
             end = iterator.next
             if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds_Error_Data descriptor text.length) else
-                Range_Data start end
-        Range_Data _ _ _ ->
+                Range.Range_Data start end
+        _ : Range ->
             len = text.length
             true_range = normalize_range descriptor len
-            if descriptor.is_empty then Range_Data 0 0 else
+            if descriptor.is_empty then Range.Range_Data 0 0 else
                 case true_range.step == 1 of
                     True -> range_to_char_indices text true_range
                     False ->
@@ -176,14 +167,14 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
                         go start_index current_grapheme =
                             end_index = iterator.next
                             if (start_index == -1) || (end_index == -1) || (current_grapheme >= true_range.end) then Nothing else
-                                ranges.append (Range_Data start_index end_index)
+                                ranges.append (Range.Range_Data start_index end_index)
                                 ## We advance by step-1, because we already advanced by
                                    one grapheme when looking for the end of the previous
                                    one.
                                 @Tail_Call go (iterator.next true_range.step-1) current_grapheme+true_range.step
 
                         go (iterator.next true_range.start) true_range.start
-                        Codepoint_Ranges_Data ranges.to_vector is_sorted_and_distinct=True
+                        Codepoint_Ranges.Value ranges.to_vector is_sorted_and_distinct=True
 
 ## PRIVATE
    Returns an array of UTF-16 code-unit indices corresponding to the beginning
@@ -195,7 +186,7 @@ character_ranges text =
     iterator.setText text
     ranges = Vector.new_builder
     go prev nxt = if nxt == -1 then Nothing else
-        ranges.append (Range_Data prev nxt)
+        ranges.append (Range.Range_Data prev nxt)
         @Tail_Call go nxt iterator.next
     go iterator.first iterator.next
     ranges.to_vector
@@ -214,20 +205,20 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
         case descriptor of
             _ : Integer ->
                 ranges.append (Panic.rethrow <| characters.at descriptor)
-            Range_Data _ _ _ ->
-                if descriptor.is_empty then Range_Data 0 0 else
+            _ : Range ->
+                if descriptor.is_empty then Range.Range_Data 0 0 else
                     true_range = normalize_range descriptor characters.length
                     case true_range.step == 1 of
                         True ->
                             first_grapheme = Panic.rethrow <| characters.at true_range.start
                             last_grapheme = Panic.rethrow <| characters.at true_range.end-1
-                            ranges.append (Range_Data first_grapheme.start last_grapheme.end)
+                            ranges.append (Range.Range_Data first_grapheme.start last_grapheme.end)
                         False ->
                             if true_range.start >= characters.length then
                                 Panic.throw (Index_Out_Of_Bounds_Error_Data true_range.start characters.length)
                             true_range.to_vector.each ix->
                                 ranges.append (Panic.rethrow <| characters.at ix)
-    Codepoint_Ranges_Data ranges.to_vector is_sorted_and_distinct=False
+    Codepoint_Ranges.Value ranges.to_vector is_sorted_and_distinct=False
 
 ## PRIVATE
 panic_on_non_positive_step =
@@ -242,5 +233,5 @@ normalize_range range length =
         Panic.throw (Illegal_Argument_Error_Data "Ranges with negative indices are not supported for indexing.")
     if (range.start >= length) then
         Panic.throw (Index_Out_Of_Bounds_Error_Data range.start length)
-    if range.end >= length then Range_Data range.start length range.step else
+    if range.end >= length then Range.Range_Data range.start length range.step else
         range

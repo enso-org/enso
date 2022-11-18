@@ -1,5 +1,7 @@
-from project.Data.Boolean.Boolean import all
-from project.Data.Boolean.Boolean export all
+import project.Data.Ordering.Ordering
+
+from project.Data.Boolean.Boolean import True, False
+from project.Data.Boolean.Boolean export True, False
 
 ## A type with only two possible values.
 
