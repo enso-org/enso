@@ -443,7 +443,7 @@ java_parse date_text pattern=Nothing =
             LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =
-    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
 
 foreign js js_date_impl year month=1 day=1 = """
     if (month > 12) {
