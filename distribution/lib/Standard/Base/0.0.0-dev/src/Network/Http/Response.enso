@@ -68,6 +68,6 @@ type Response
              import Standard.Examples
 
              example_to_json = Examples.get_response.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
 

@@ -16,6 +16,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
+import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Ordering.Ordering
@@ -26,6 +27,7 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Json.Json
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Ordering
@@ -38,7 +40,6 @@ from project.Data.Index_Sub_Range export First, Last
 
 
 
-import project.Data.Json
 
 import project.Data.Map
 import project.Data.Noise
@@ -88,7 +89,6 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Json
 export project.Data.Map
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction

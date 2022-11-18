@@ -4,7 +4,7 @@ polyglot java import java.lang.String
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 
-import Standard.Base.Data.Json
+import project.Data.Json.Json
 from Standard.Base.Data.Boolean import all
 from Standard.Base.Data.Range import all
 from Standard.Base.Error.Common import Panic,Error,Illegal_Argument_Error
@@ -326,7 +326,7 @@ type Number
          Convert the number 8 to JSON.
 
              8.to_json
-    to_json : Json.Number
+    to_json : Json
     to_json self = Json.Number self
 
     ## A constant holding the floating-point positive infinity.

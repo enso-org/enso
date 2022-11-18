@@ -404,7 +404,7 @@ type Locale
              import Standard.Base.Data.Locale
 
              example_to_json = Locale.default.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self =
         b = Vector.new_builder
         b.append ["type", "Locale"]

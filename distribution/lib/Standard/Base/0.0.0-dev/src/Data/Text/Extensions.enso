@@ -990,7 +990,7 @@ Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
      Convert the text "cześć" to JSON.
 
          "cześć".to_json
-Text.to_json : Json.String
+Text.to_json : Json
 Text.to_json self = Json.String self
 
 
