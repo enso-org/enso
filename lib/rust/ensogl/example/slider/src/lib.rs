@@ -78,6 +78,7 @@ fn init(app: &Application) {
     slider1.inner().frp.set_label("Color label");
     slider1.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
     slider1.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
+    slider1.inner().frp.set_tooltip("Slider information tooltip.");
 
     let slider2 = make_slider(app);
     slider2.inner().frp.set_width(400.0);

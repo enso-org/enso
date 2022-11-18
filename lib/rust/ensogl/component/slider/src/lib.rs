@@ -68,6 +68,8 @@ const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 /// A tooltip is displayed whenever the slider's precision is changed. This is the duration for
 /// which the tooltip is visible.
 const PRECISION_ADJUSTMENT_TOOLTIP_DURATION: f32 = 1000.0;
+/// The delay before an information tooltip is displayed when hovering over a slider component.
+const INFORMATION_TOOLTIP_DELAY: f32 = 1000.0;
 
 
 
@@ -210,6 +212,8 @@ ensogl_core::define_endpoints_2! {
         set_label_hidden(bool),
         /// Set the position of the slider's label.
         set_label_position(LabelPosition),
+        /// Set a tooltip that pops up when the mose hovers over the component.
+        set_tooltip(ImString),
         /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
         /// and the slider is greyed out.
         set_slider_disabled(bool),
@@ -271,6 +275,7 @@ impl Slider {
         self.init_limit_handling();
         self.init_value_display();
         self.init_precision_tooltip();
+        self.init_information_tooltip();
         self.init_component_layout();
         self.init_component_colors();
         self.init_precision_defaults();
@@ -424,7 +429,7 @@ impl Slider {
         };
     }
 
-    /// Initialize precision tooltip FRP network.
+    /// Initialize the precision tooltip FRP network.
     fn init_precision_tooltip(&self) {
         let network = self.frp.network();
         let output = &self.frp.private.output;
@@ -446,6 +451,29 @@ impl Slider {
             tooltip_anim.reset <+ precision_changed;
             tooltip_anim.start <+ precision_changed;
             tooltip_hide <- any2(&tooltip_anim.on_end, &component_events.mouse_release_primary);
+            model.tooltip.frp.set_style <+ tooltip_hide.map(|_|
+                tooltip::Style::unset_label()
+            );
+        };
+    }
+
+    /// Initialize the information tooltip FRP network.
+    fn init_information_tooltip(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let model = &self.model;
+        let component_events = &model.background.events;
+        let tooltip_anim = DelayedAnimation::new(network);
+        tooltip_anim.set_delay(INFORMATION_TOOLTIP_DELAY);
+
+        frp::extend! { network
+            tooltip_anim.start <+ component_events.mouse_over;
+            tooltip_anim.reset <+ component_events.mouse_out;
+            tooltip_show <- input.set_tooltip.sample(&tooltip_anim.on_end);
+            model.tooltip.frp.set_style <+ tooltip_show.map(|tooltip| {
+                tooltip::Style::set_label(format!("{}", tooltip))
+            });
+            tooltip_hide <- any2(&tooltip_anim.on_reset, &component_events.mouse_down_primary);
             model.tooltip.frp.set_style <+ tooltip_hide.map(|_|
                 tooltip::Style::unset_label()
             );
