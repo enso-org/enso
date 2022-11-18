@@ -595,7 +595,7 @@ impl SymbolData {
         frp::extend! { network
             eval_ self.display_object.on_hide(is_hidden.set(true));
             eval_ self.display_object.on_show(is_hidden.set(false));
-            eval self.display_object.on_scene_layer_changed([] ((_, old_layers, new_layers)) {
+            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers)) {
                 for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
                     layer.remove_symbol(id)
                 }

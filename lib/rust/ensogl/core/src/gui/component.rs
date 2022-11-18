@@ -62,7 +62,7 @@ impl<S: Shape> ShapeView<S> {
         let display_object = self.display_object();
         let network = &display_object.network;
         frp::extend! { network
-            eval display_object.on_scene_layer_changed([] ((scene, old_layer, new_layer)) {
+            eval display_object.on_layer_change([] ((scene, old_layer, new_layer)) {
                 let scene = scene.as_ref().unwrap();
                 if let Some(model) = weak_model.upgrade() {
                     model.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer.as_ref());

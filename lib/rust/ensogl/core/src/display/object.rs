@@ -66,7 +66,7 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     pub fn new(instance: Instance, layer: L) -> Self {
         let network = &instance.network;
         frp::extend! { network
-            eval instance.on_scene_layer_changed ([layer] ((_, source, destination)) {
+            eval instance.on_layer_change ([layer] ((_, source, destination)) {
                 if let Some(src_layer) = source {
                     src_layer.remove_sublayer(layer.as_ref());
                 }

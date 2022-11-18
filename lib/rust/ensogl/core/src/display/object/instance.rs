@@ -5,7 +5,6 @@
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
-use crate::data::dirty;
 use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
@@ -26,8 +25,10 @@ use transform::CachedTransform;
 /// index. When dropped, it removes the child from its parent.
 #[derive(Debug)]
 pub struct ParentBind {
-    parent:      WeakInstance,
+    /// The parent's child index. If this is a binding stored by [`Instance`], this will be the
+    /// instance index in the parent's instance vector.
     child_index: usize,
+    parent:      WeakInstance,
 }
 
 impl ParentBind {
@@ -69,6 +70,10 @@ impl SharedParentBind {
         *self.data.borrow_mut() = Some(bind)
     }
 
+    fn take_bind(&self) -> Option<ParentBind> {
+        self.data.borrow_mut().take()
+    }
+
     fn parent(&self) -> Option<Instance> {
         self.data.borrow().as_ref().and_then(|t| t.parent())
     }
@@ -80,81 +85,128 @@ impl SharedParentBind {
     fn child_index(&self) -> Option<usize> {
         self.data.borrow().as_ref().map(|t| t.child_index)
     }
+}
 
-    fn take(&self) -> Option<ParentBind> {
-        self.data.borrow_mut().take()
+
+
+// ===================
+// === Dirty Flags ===
+// ===================
+
+pub mod dirty {
+    pub use super::*;
+
+    // === Types ===
+
+    type NewParent = crate::data::dirty::RefCellBool<()>;
+    type ModifiedChildren = crate::data::dirty::RefCellSet<usize, OnDirtyCallback>;
+    type RemovedChildren = crate::data::dirty::RefCellVector<WeakInstance, OnDirtyCallback>;
+    type Transform = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+
+
+    // === Definition ===
+
+    /// For performance reasons, the display object hierarchy is updated lazily. This struct
+    /// contains information about which properties changed and need to be updated.
+    ///
+    /// # Performance
+    /// Let's consider a tree of objects. To render an object, we need its position in the
+    /// world-space (global-space). Thus, when the tree root object moves, all of its children,
+    /// their sub-children, etc., need to be updated. As there might be hundreds or thousands of
+    /// such sub-children, this might be very costly. Even worse, if the user of this library moves
+    /// the root object, and then moves its child, all the sub-children of that child would be
+    /// recomputed twice if not updated lazily.
+    #[derive(Debug)]
+    #[allow(missing_docs)]
+    pub struct Flags {
+        pub new_parent:        NewParent,
+        pub modified_children: ModifiedChildren,
+        pub removed_children:  RemovedChildren,
+        pub transform:         Transform,
+        pub new_layer:         SceneLayer,
+    }
+
+    impl Flags {
+        /// Constructor.
+        pub fn new(parent_bind: &SharedParentBind) -> Self {
+            let new_parent = NewParent::new(());
+            let modified_children = ModifiedChildren::new(on_dirty_callback(parent_bind));
+            let removed_children = RemovedChildren::new(on_dirty_callback(parent_bind));
+            let transform = Transform::new(on_dirty_callback(parent_bind));
+            let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
+            Self { new_parent, modified_children, removed_children, transform, new_layer }
+        }
+    }
+
+    type OnDirtyCallback = impl Fn();
+    fn on_dirty_callback(parent_bind: &SharedParentBind) -> OnDirtyCallback {
+        let parent_bind = parent_bind.clone_ref();
+        move || {
+            if let Some((parent, index)) = parent_bind.parent_and_child_index() {
+                parent.dirty.modified_children.set(index);
+            }
+        }
     }
 }
 
 
 
-// ==================
-// === DirtyFlags ===
-// ==================
+// ===========
+// === Frp ===
+// ===========
 
-// === Types ===
+#[derive(Debug)]
+pub struct Frp {
+    /// This is the [`Instance`]'s FRP network. Feel free to create new FRP nodes here as long as
+    /// they are inherently bound with this display object. For example, a sprite, which owns a
+    /// display object instance can extend this network to perform computations. However, you
+    /// should not extend it from other places, as this will cause memory leak. See docs of FRP
+    /// to learn more.
+    pub network: frp::Network,
 
-type NewParentDirty = dirty::SharedBool<()>;
-type ChildrenDirty = dirty::SharedSet<usize, OnDirtyCallback>;
-type RemovedChildren = dirty::SharedVector<WeakInstance, OnDirtyCallback>;
-type TransformDirty = dirty::SharedBool<OnDirtyCallback>;
-type SceneLayerDirty = dirty::SharedBool<OnDirtyCallback>;
+    // === Hierarchy ===
+    pub on_show:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
+    pub on_hide:         frp::Source<Option<Scene>>,
+    pub on_layer_change: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
+    pub on_updated:      frp::Source<()>,
 
-
-// === Definition ===
-
-/// Set of dirty flags indicating whether some display object properties are not up-to-date.
-///
-/// In order to achieve high performance, display object hierarchy is not updated immediately after
-/// a change. Instead, dirty flags are set and propagated in the hierarchy and the needed subset of
-/// the hierarchy is updated after calling the `update` method.
-#[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
-pub struct DirtyFlags {
-    parent:           NewParentDirty,
-    children:         ChildrenDirty,
-    removed_children: RemovedChildren,
-    transform:        TransformDirty,
-    scene_layer:      SceneLayerDirty,
-    #[derivative(Debug = "ignore")]
-    on_dirty:         Rc<RefCell<Box<dyn Fn()>>>,
+    // === Events ===
+    // See the documentation of [`event::Event`] to learn more about events.
+    event_source:        frp::Source<event::SomeEvent>,
+    capturing_event_fan: frp::Fan,
+    bubbling_event_fan:  frp::Fan,
 }
 
-impl Default for DirtyFlags {
+impl Frp {
+    pub fn new() -> Self {
+        let network = frp::Network::new("display_object");
+        let capturing_event_fan = frp::Fan::new(&network);
+        let bubbling_event_fan = frp::Fan::new(&network);
+        frp::extend! { network
+            on_show <- source();
+            on_hide <- source();
+            on_layer_change <- source();
+            on_updated <- source();
+            event_source <- source();
+        }
+        Self {
+            network,
+            on_show,
+            on_hide,
+            on_layer_change,
+            on_updated,
+            event_source,
+            capturing_event_fan,
+            bubbling_event_fan,
+        }
+    }
+}
+
+impl Default for Frp {
     fn default() -> Self {
         Self::new()
     }
-}
-
-
-impl DirtyFlags {
-    #![allow(trivial_casts)]
-    fn new() -> Self {
-        let on_dirty = Rc::new(RefCell::new(Box::new(|| {}) as Box<dyn Fn()>));
-        let parent = NewParentDirty::new(());
-        let children = ChildrenDirty::new(on_dirty_callback(&on_dirty));
-        let removed_children = RemovedChildren::new(on_dirty_callback(&on_dirty));
-        let transform = TransformDirty::new(on_dirty_callback(&on_dirty));
-        let scene_layer = SceneLayerDirty::new(on_dirty_callback(&on_dirty));
-        Self { parent, children, removed_children, transform, scene_layer, on_dirty }
-    }
-
-    fn set_on_dirty<F: 'static + Fn()>(&self, f: F) {
-        *self.on_dirty.borrow_mut() = Box::new(f);
-    }
-
-    fn unset_on_dirty(&self) {
-        *self.on_dirty.borrow_mut() = Box::new(|| {});
-    }
-}
-
-
-// === Callback ===
-
-type OnDirtyCallback = impl Fn();
-fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
-    let f = f.clone();
-    move || (f.borrow())()
 }
 
 
@@ -163,37 +215,31 @@ fn on_dirty_callback(f: &Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 // === Model ===
 // =============
 
-/// A hierarchical representation of object containing information about transformation in 3D space,
-/// list of children, and set of utils for dirty flag propagation.
-///
-/// See the documentation of [`Instance`] to learn more.
-#[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+/// A display object model. See the documentation of [`Instance`] to learn more.
+#[derive(Debug, Deref)]
 pub struct Model {
-    /// This is the [`Instance`]'s FRP network. Feel free to create new FRP nodes here as long as
-    /// they are inherently bound with this display object. For example, a sprite, which owns a
-    /// display object instance can extend this network to perform computations. However, you
-    /// should not extend it from other places, as this will cause memory leak. See docs of FRP
-    /// to learn more.
-    pub network: frp::Network,
-    /// Source for events. See the documentation of [`event::Event`] to learn more about events.
-    pub event_source: frp::Source<event::SomeEvent>,
-    capturing_event_fan: frp::Fan,
-    bubbling_event_fan: frp::Fan,
-    pub on_show: frp::Source<(Option<Scene>, Option<WeakLayer>)>,
-    pub on_hide: frp::Source<Option<Scene>>,
-    pub on_scene_layer_changed: frp::Source<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
-    pub on_updated: frp::Source<()>,
+    #[deref]
+    frp: Frp,
+
+    // === Focus ===
     focused_descendant: RefCell<Option<WeakInstance>>,
+
+    // === Dirty ===
+    dirty: dirty::Flags,
+
+    // === Hierarchy ===
+    parent_bind:    SharedParentBind,
+    children:       RefCell<OptVec<WeakInstance>>,
+    visible:        Cell<bool>,
     /// Layer the object was explicitly assigned to by the user, if any.
     assigned_layer: RefCell<Option<WeakLayer>>,
     /// Layer where the object is displayed. It may be set to by user or inherited from the parent.
-    layer: RefCell<Option<WeakLayer>>,
-    dirty: DirtyFlags,
-    parent_bind: SharedParentBind,
-    children: RefCell<OptVec<WeakInstance>>,
+    layer:          RefCell<Option<WeakLayer>>,
+
+    // === TX ===
     transform: RefCell<CachedTransform>,
-    visible: Cell<bool>,
+
+    // === Layout ===
     bounding_box: Cell<Vector2<f32>>,
 }
 
@@ -206,34 +252,18 @@ impl Default for Model {
 impl Model {
     /// Constructor.
     pub fn new() -> Self {
-        let network = frp::Network::new("display_object");
+        let frp = default();
         let focused_descendant = default();
         let assigned_layer = default();
         let layer = default();
-        let dirty = default();
         let parent_bind = default();
+        let dirty = dirty::Flags::new(&parent_bind);
         let children = default();
         let transform = default();
         let visible = default();
         let bounding_box = default();
-        let capturing_event_fan = frp::Fan::new(&network);
-        let bubbling_event_fan = frp::Fan::new(&network);
-        frp::extend! { network
-            on_show <- source();
-            on_hide <- source();
-            on_scene_layer_changed <- source();
-            on_updated <- source();
-            event_source <- source();
-        }
         Self {
-            network,
-            event_source,
-            capturing_event_fan,
-            bubbling_event_fan,
-            on_show,
-            on_hide,
-            on_scene_layer_changed,
-            on_updated,
+            frp,
             focused_descendant,
             assigned_layer,
             layer,
@@ -288,7 +318,7 @@ impl Model {
     fn remove_child_by_index(&self, index: usize) {
         self.children.borrow_mut().remove(index).for_each(|child| {
             child.upgrade().for_each(|child| child.unsafe_unset_parent_without_update());
-            self.dirty.children.unset(&index);
+            self.dirty.modified_children.unset(&index);
             self.dirty.removed_children.set(child);
         });
     }
@@ -306,8 +336,7 @@ impl Model {
     /// Removes the binding to the parent object. Parent is not updated.
     fn unsafe_unset_parent_without_update(&self) {
         trace!("Removing parent bind.");
-        self.dirty.unset_on_dirty();
-        self.dirty.parent.set();
+        self.dirty.new_parent.set();
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
@@ -339,10 +368,10 @@ impl Model {
         parent_layer: Option<&WeakLayer>,
     ) {
         // === Scene Layers Update ===
-        let has_new_parent = self.dirty.parent.check();
+        let has_new_parent = self.dirty.new_parent.check();
         let assigned_layer_ref = self.assigned_layer.borrow();
         let assigned_layer = assigned_layer_ref.as_ref();
-        let assigned_layers_changed = self.dirty.scene_layer.take().check();
+        let assigned_layers_changed = self.dirty.new_layer.take().check();
         let has_assigned_layer = assigned_layer.is_some();
         let layer_changed = if assigned_layers_changed {
             // We might as well check here if assigned layers were not removed and accidentally the
@@ -368,11 +397,7 @@ impl Model {
         if let Some(new_layer) = new_layer_opt {
             debug_span!("Scene layer changed.").in_scope(|| {
                 let old_layer = mem::replace(&mut *self.layer.borrow_mut(), new_layer.cloned());
-                self.on_scene_layer_changed.emit((
-                    Some(scene.clone_ref()),
-                    old_layer,
-                    new_layer.cloned(),
-                ));
+                self.on_layer_change.emit((Some(scene.clone_ref()), old_layer, new_layer.cloned()));
             });
         }
 
@@ -414,9 +439,9 @@ impl Model {
                 }
             } else {
                 trace!("Self origin and layers did not change.");
-                if self.dirty.children.check_all() {
+                if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
-                        self.dirty.children.take().iter().for_each(|ix| {
+                        self.dirty.modified_children.take().iter().for_each(|ix| {
                             self.children
                                 .borrow()
                                 .safe_index(*ix)
@@ -434,16 +459,16 @@ impl Model {
                     })
                 }
             }
-            self.dirty.children.unset_all();
+            self.dirty.modified_children.unset_all();
         });
         self.dirty.transform.unset();
-        self.dirty.parent.unset();
+        self.dirty.new_parent.unset();
     }
 
     /// Hide all removed children and show this display object if it was attached to a new parent.
     fn update_visibility(&self, scene: &Scene, parent_layer: Option<&WeakLayer>) {
         self.take_removed_children_and_update_their_visibility(scene);
-        let parent_changed = self.dirty.parent.check();
+        let parent_changed = self.dirty.new_parent.check();
         if parent_changed && !self.is_orphan() {
             self.set_vis_true(scene, parent_layer)
         }
@@ -502,7 +527,7 @@ impl Model {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind> {
-        let parent_bind = self.parent_bind.take();
+        let parent_bind = self.parent_bind.take_bind();
         if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
             let is_focused = self.focused_descendant.borrow().is_some();
             if is_focused {
@@ -523,9 +548,7 @@ impl Model {
         }
         if let Some(parent) = bind.parent() {
             let index = bind.child_index;
-            let dirty = parent.dirty.children.clone_ref();
-            self.dirty.set_on_dirty(move || dirty.set(index));
-            self.dirty.parent.set();
+            self.dirty.new_parent.set();
             self.parent_bind.set_bind(bind);
         }
     }
@@ -842,7 +865,7 @@ impl InstanceDef {
 
     fn register_child(&self, child: &InstanceDef) -> usize {
         let index = self.children.borrow_mut().insert(child.downgrade());
-        self.dirty.children.set(index);
+        self.dirty.modified_children.set(index);
         index
     }
 
@@ -883,7 +906,7 @@ impl InstanceDef {
     /// Do not use this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
-        self.dirty.scene_layer.set();
+        self.dirty.new_layer.set();
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
             *assigned_layer = Some(layer);
@@ -896,7 +919,7 @@ impl InstanceDef {
         let layer = layer.downgrade();
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() == Some(&layer) {
-            self.dirty.scene_layer.set();
+            self.dirty.new_layer.set();
             *assigned_layer = None;
         }
     }
