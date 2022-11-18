@@ -42,7 +42,7 @@ impl component::Model for Model {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let list = app.new_view::<component_list_panel::View>();
-        let documentation = documentation::View::new(&app.display.default_scene);
+        let documentation = documentation::View::new(app);
         app.display.default_scene.layers.node_searcher.add(&display_object);
         display_object.add_child(&list);
         display_object.add_child(&documentation);

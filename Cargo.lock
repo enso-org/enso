@@ -1582,6 +1582,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-text-grid-visualization"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf",
+ "ide-view",
+ "js-sys",
+ "nalgebra 0.26.2",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "debug-scene-visualization"
 version = "0.1.0"
 dependencies = [
@@ -1956,6 +1974,7 @@ dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
+ "debug-scene-text-grid-visualization",
  "debug-scene-visualization",
 ]
 

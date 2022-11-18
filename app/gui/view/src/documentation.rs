@@ -7,6 +7,7 @@ use ensogl::system::web::traits::*;
 use crate::graph_editor::component::visualization;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -267,12 +268,13 @@ impl View {
         let path = visualization::Path::builtin("Documentation View");
         visualization::Definition::new(
             visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |scene| Ok(Self::new(scene).into()),
+            |app| Ok(Self::new(app).into()),
         )
     }
 
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);
