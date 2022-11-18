@@ -156,6 +156,7 @@ impl Info {
         self.enumerate_imports().map(|(_, import)| import)
     }
 
+    /// Check if module contains import with given id.
     pub fn contains_import(&self, id: import::Id) -> bool {
         self.iter_imports().any(|import| import.id() == id)
     }

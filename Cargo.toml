@@ -1,4 +1,3 @@
-
 [workspace]
 resolver = "2"
 # Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
