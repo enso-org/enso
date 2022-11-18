@@ -235,7 +235,7 @@ mod tests {
     fn qualified_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
-            module:   module.iter().map(ImString::new).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::Module { alias: None },
         };
 
@@ -256,7 +256,7 @@ mod tests {
     fn unrestricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::All,
         };
 
@@ -273,7 +273,7 @@ mod tests {
     fn restricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], names: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::List { names: names.iter().map(|&s| s.to_owned()).collect() },
         };
 
@@ -294,7 +294,7 @@ mod tests {
     fn hiding_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], hidden_names: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::AllExcept {
                 not_imported: hidden_names.iter().map(|&s| s.to_owned()).collect(),
             },

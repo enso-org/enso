@@ -116,7 +116,7 @@ enum HasBeenValidated {
 pub struct IdentifierValidator<'a> {
     ast:         &'a Ast,
     name:        String,
-    validations: HashMap<NormalizedName, HasBeenValidated>,
+    validations: HashMap<String, HasBeenValidated>,
 }
 
 impl<'a> IdentifierValidator<'a> {
@@ -127,14 +127,14 @@ impl<'a> IdentifierValidator<'a> {
         let repr = ast.repr();
         let mut validations = HashMap::default();
         for span in spans {
-            let name = NormalizedName::new(&repr[span]);
+            let name = repr[span].to_owned();
             validations.insert(name, HasBeenValidated::No);
         }
         IdentifierValidator { ast, name, validations }
     }
 
     /// Marks given identifier as checked.
-    pub fn validate_identifier(&mut self, name: &NormalizedName) {
+    pub fn validate_identifier(&mut self, name: &str) {
         let err = iformat!("{self.name}: unexpected identifier `{name}` validated");
         let used = self.validations.get_mut(name).expect(&err);
         *used = HasBeenValidated::Yes;

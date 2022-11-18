@@ -469,18 +469,6 @@ mod tests {
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
-    #[test]
-    fn qualified_name_validation() {
-        assert!(QualifiedName::try_from("namespace.project.Name").is_err());
-        assert!(QualifiedName::try_from("namespace.Project.name").is_err());
-        assert!(QualifiedName::try_from("namespace.").is_err());
-        assert!(QualifiedName::try_from(".Name").is_err());
-        assert!(QualifiedName::try_from(".").is_err());
-        assert!(QualifiedName::try_from("").is_err());
-        assert!(QualifiedName::try_from("namespace.Project.Name").is_ok());
-        assert!(QualifiedName::try_from("namespace.Project.Name.Sub").is_ok());
-    }
-
     #[wasm_bindgen_test]
     fn import_listing() {
         let parser = parser_scala::Parser::new_or_panic();
@@ -537,7 +525,7 @@ mod tests {
     fn implicit_method_resolution() {
         let parser = parser_scala::Parser::new_or_panic();
         let module_name =
-            QualifiedName::from_all_segments(&["local", "ProjectName", "Main"]).unwrap();
+            QualifiedName::from_all_segments(["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
             let module = parser.parse_module(code, default()).unwrap();
             let result = lookup_method(&module_name, &module, method);

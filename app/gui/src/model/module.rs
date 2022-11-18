@@ -218,7 +218,6 @@ impl Path {
     ///
     /// ```
     /// use enso_gui::model::module::Path;
-    /// use enso_gui::model::module::QualifiedName;
     /// use enso_gui::prelude::*;
     ///
     /// let path = Path::from_name_segments(default(), &["Main"]).unwrap();
