@@ -76,6 +76,8 @@ fn init(app: &Application) {
     slider1.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
     slider1.inner().frp.set_label_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
     slider1.inner().frp.set_label("Color label");
+    slider1.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
+    slider1.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
 
     let slider2 = make_slider(app);
     slider2.inner().frp.set_width(400.0);
@@ -94,6 +96,7 @@ fn init(app: &Application) {
     slider3.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.2, 1.0));
     slider3.inner().frp.set_label("Inner label");
     slider3.inner().frp.set_label_position(slider::LabelPosition::Inside);
+    slider3.inner().frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
 
     let slider4 = make_slider(app);
     slider4.inner().frp.set_width(400.0);
@@ -103,4 +106,5 @@ fn init(app: &Application) {
     slider4.inner().frp.set_value_text_color(color::Lcha(0.2, 0.7, 0.7, 1.0));
     slider4.inner().frp.set_label("Disabled label");
     slider4.inner().frp.set_label_hidden(true);
+    slider4.inner().frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
 }

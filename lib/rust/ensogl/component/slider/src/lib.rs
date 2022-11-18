@@ -71,9 +71,9 @@ const PRECISION_ADJUSTMENT_TOOLTIP_DURATION: f32 = 1000.0;
 
 
 
-// ===========================
-// === Label position enum ===
-// ===========================
+// ======================
+// === Label position ===
+// ======================
 
 /// Position of the slider label.
 #[derive(Clone, Copy, Debug, Default)]
@@ -83,6 +83,86 @@ pub enum LabelPosition {
     Outside,
     /// Place the label inside the slider component, on the left side.
     Inside,
+}
+
+
+
+// =============================
+// === Slider limit behavior ===
+// =============================
+
+/// The behavior of the slider when the value is adjusted beyond the slider's limits. This can be
+/// set independently for the upper and the lower limits.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum SliderLimit {
+    #[default]
+    /// The hard limit behavior clamps the value to always be within the slider's limits.
+    Hard,
+    /// The soft limit behavior allows the value to exceed the slider's limits. If the the slider
+    /// value is beyond either limit then an overflow indicator is displayed. In this case the
+    /// slider's track does not indicate the value adjustments.
+    Soft,
+    /// The adaptive limit behavior extends the slider's range when the originally set limit is
+    /// reached. Specifically, when a limit is exceeded the slider range is doubled in that
+    /// direction. This happens iteratively so that the slider's value is always contained within
+    /// the extended range. If the slider's range is extended and the value is able to fit in a
+    /// range that is half of the current range, then the slider's range will be shrunk by half.
+    /// This again happens iteratively until the slider is at its original range.
+    Adaptive,
+}
+
+/// Adaptive upper limit adjustment.
+fn adapt_upper_limit(
+    &(value, min, max, max_ext, upper_limit): &(f32, f32, f32, f32, SliderLimit),
+) -> f32 {
+    if upper_limit == SliderLimit::Adaptive {
+        let range = max_ext - min;
+        let extend = value > max_ext;
+        let shrink = value < min + range * 0.5; // TODO: Threshold probably needs hysteresis.
+        let max_ext = if extend {
+            min + range * 2.0
+        } else if shrink {
+            min + range * 0.5
+        } else {
+            max_ext
+        };
+        max_ext.max(max) // Do no set extended limit below `max`.
+    } else {
+        max
+    }
+}
+
+/// Adaptive lower limit adjustment.
+fn adapt_lower_limit(
+    &(value, min, max, min_ext, lower_limit): &(f32, f32, f32, f32, SliderLimit),
+) -> f32 {
+    if lower_limit == SliderLimit::Adaptive {
+        let range = max - min_ext;
+        let extend = value < min_ext;
+        let shrink = value > max - range * 0.5; // TODO: Threshold probably needs hysteresis.
+        let min_ext = if extend {
+            max - range * 2.0
+        } else if shrink {
+            max - range * 0.5
+        } else {
+            min_ext
+        };
+        min_ext.min(min) // Do no set extended limit above `min`.
+    } else {
+        min
+    }
+}
+
+/// Clamp the slider's value if the limits are set to `SliderLimit::Hard`.
+fn value_limit_clamp(
+    &(value, min, max, lower_limit, upper_limit): &(f32, f32, f32, SliderLimit, SliderLimit),
+) -> f32 {
+    match (lower_limit, upper_limit) {
+        (SliderLimit::Hard, SliderLimit::Hard) => value.clamp(min, max),
+        (SliderLimit::Hard, _) => value.max(min),
+        (_, SliderLimit::Hard) => value.min(max),
+        _ => value,
+    }
 }
 
 
@@ -140,12 +220,20 @@ ensogl_core::define_endpoints_2! {
         /// The maximum number of digits after the decimal point to be displayed when showing the
         /// component's value.
         set_max_disp_decimal_places(usize),
+        /// Set the behavior of the slider when its value is adjusted to below the `min_value`.
+        set_lower_limit_type(SliderLimit),
+        /// Set the behavior of the slider when its value is adjusted to above the `max_value`.
+        set_upper_limit_type(SliderLimit),
     }
     Output {
         width(f32),
         height(f32),
         value(f32),
         precision(f32),
+        /// The slider value's lower limit. This takes into account limit extension if an adaptive slider limit is set.
+        min_value(f32),
+        /// The slider value's upper limit. This takes into account limit extension if an adaptive slider limit is set.
+        max_value(f32),
     }
 }
 
@@ -184,6 +272,7 @@ impl Slider {
 
     fn init(self) -> Self {
         self.init_value_update();
+        self.init_adaptive_limits();
         self.init_value_display();
         self.init_precision_tooltip();
         self.init_component_layout();
@@ -266,10 +355,38 @@ impl Slider {
             // Snap the slider's value to the nearest precision increment.
             value <- all2(&value, &precision);
             value <- value.map(|(value, precision)| (value / precision).round() * precision);
-            // Clamp the slider's value to within the slider's min/max limits.
-            value <- all3(&value, &input.set_min_value, &input.set_max_value);
-            value <- value.map(|(value, min, max)| value.clamp(*min, *max));
+            value <- all5(
+                &value,
+                &input.set_min_value,
+                &input.set_max_value,
+                &input.set_lower_limit_type,
+                &input.set_upper_limit_type,
+            ).map(value_limit_clamp);
             output.value <+ value;
+        };
+    }
+
+    /// Initialize the adaptive slider limits FRP network
+    fn init_adaptive_limits(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let output = &self.frp.private.output;
+
+        frp::extend! { network
+            output.min_value <+ all5(
+                &output.value,
+                &input.set_min_value,
+                &input.set_max_value,
+                &output.min_value,
+                &input.set_lower_limit_type,
+            ).map(adapt_lower_limit);
+            output.max_value <+ all5(
+                &output.value,
+                &input.set_min_value,
+                &input.set_max_value,
+                &output.max_value,
+                &input.set_upper_limit_type,
+            ).map(adapt_upper_limit);
         };
     }
 
@@ -344,8 +461,7 @@ impl Slider {
             eval comp_size((size) model.set_size(*size));
             output.width <+ input.set_width;
             output.height <+ input.set_height;
-
-            track_pos <- all3(&output.value, &input.set_min_value, &input.set_max_value);
+            track_pos <- all3(&output.value, &output.min_value, &output.max_value);
             track_pos_anim.target <+ track_pos.map(|(value, min, max)| (value - min) / (max - min));
             eval track_pos_anim.value((v) model.track.slider_fraction_filled.set(*v));
 
