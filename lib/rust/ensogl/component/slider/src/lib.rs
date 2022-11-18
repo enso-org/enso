@@ -268,7 +268,7 @@ impl Slider {
 
     fn init(self) -> Self {
         self.init_value_update();
-        self.init_adaptive_limits();
+        self.init_limit_handling();
         self.init_value_display();
         self.init_precision_tooltip();
         self.init_component_layout();
@@ -362,11 +362,12 @@ impl Slider {
         };
     }
 
-    /// Initialize the adaptive slider limits FRP network
-    fn init_adaptive_limits(&self) {
+    /// Initialize the slider limit handling FRP network
+    fn init_limit_handling(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
         let output = &self.frp.private.output;
+        let model = &self.model;
 
         frp::extend! { network
             output.min_value <+ all5(
@@ -383,6 +384,13 @@ impl Slider {
                 &output.max_value,
                 &input.set_upper_limit_type,
             ).map(adapt_upper_limit);
+
+            overflow_lower <- all2(&output.value, &output.min_value).map(|(val, min)| val < min );
+            overflow_upper <- all2(&output.value, &output.max_value).map(|(val, max)| val > max );
+            overflow_lower <- overflow_lower.on_change();
+            overflow_upper <- overflow_upper.on_change();
+            eval overflow_lower((v) model.set_overflow_lower_visible(*v));
+            eval overflow_upper((v) model.set_overflow_upper_visible(*v));
         };
     }
 
@@ -472,6 +480,12 @@ impl Slider {
             eval model.value_text_dot.height((h) model.value_text_dot.set_position_y(*h / 2.0));
             eval model.value_text_dot.width((w) model.value_text_right.set_position_x(*w / 2.0));
             eval model.value_text_right.height((h) model.value_text_right.set_position_y(*h / 2.0));
+
+            eval model.value_text_left.height((h) model.set_overflow_marker_size(*h));
+            overflow_marker_pos_x <- all2(&input.set_width, &input.set_height);
+            overflow_marker_pos_x <- overflow_marker_pos_x.map(|(w, h)| w / 2.0 - h / 4.0);
+            eval overflow_marker_pos_x((x) model.overflow_lower.set_position_x(-*x));
+            eval overflow_marker_pos_x((x) model.overflow_upper.set_position_x(*x));
 
             model.label.set_content <+ input.set_label;
             eval input.set_label_hidden((v) model.set_label_hidden(*v));

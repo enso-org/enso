@@ -79,6 +79,28 @@ mod track {
     }
 }
 
+/// Triangle shape used as an overflow indicator on either side of the range.
+mod overflow {
+    use super::*;
+
+    ensogl_core::shape! {
+        above = [background, track];
+        pointer_events = false;
+        (style:Style, color:Vector4) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = "input_size.y".into();
+            let width = width - COMPONENT_MARGIN.px() * 2.0;
+            let height = height - COMPONENT_MARGIN.px() * 2.0;
+
+            let color = style.get_color(theme::component::slider::overflow::color);
+            let triangle = Triangle(width, height);
+            let triangle = triangle.fill(color);
+
+            triangle.into()
+        }
+    }
+}
+
 
 
 // ===============================
@@ -92,6 +114,10 @@ pub struct Model {
     pub background:       background::View,
     /// Slider track element that fills the slider proportional to the slider value.
     pub track:            track::View,
+    /// Indicator for overflow when the value is below the lower limit.
+    pub overflow_lower:   overflow::View,
+    /// Indicator for overflow when the value is above the upper limit.
+    pub overflow_upper:   overflow::View,
     /// Slider label that is shown next to the slider.
     pub label:            text::Text,
     /// Textual representation of the slider value, only part left of the decimal point.
@@ -117,6 +143,8 @@ impl Model {
         let tooltip = Tooltip::new(app);
         let background = background::View::new();
         let track = track::View::new();
+        let overflow_lower = overflow::View::new();
+        let overflow_upper = overflow::View::new();
         let scene = &app.display.default_scene;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
@@ -136,6 +164,8 @@ impl Model {
         let model = Self {
             background,
             track,
+            overflow_lower,
+            overflow_upper,
             label,
             value_text_left,
             value_text_dot,
@@ -154,6 +184,8 @@ impl Model {
         self.track.color.set(track_color.into());
         self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
+        self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
+        self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
         self
     }
 
@@ -164,6 +196,14 @@ impl Model {
         self.track.size.set(size + margin);
     }
 
+    /// Set the size of the overflow markers.
+    pub fn set_overflow_marker_size(&self, size: f32) {
+        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
+        let size = Vector2(size, size) + margin;
+        self.overflow_lower.size.set(size);
+        self.overflow_upper.size.set(size);
+    }
+
     /// Set the color of the slider track.
     pub fn set_track_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
@@ -172,6 +212,24 @@ impl Model {
     /// Set the color of the slider background.
     pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
+    }
+
+    /// Set whether the lower overfow marker is visible.
+    pub fn set_overflow_lower_visible(&self, visible: bool) {
+        if visible {
+            self.root.add_child(&self.overflow_lower);
+        } else {
+            self.root.remove_child(&self.overflow_lower);
+        }
+    }
+
+    /// Set whether the upper overfow marker is visible.
+    pub fn set_overflow_upper_visible(&self, visible: bool) {
+        if visible {
+            self.root.add_child(&self.overflow_upper);
+        } else {
+            self.root.remove_child(&self.overflow_upper);
+        }
     }
 
     /// Set whether the slider label is hidden.
