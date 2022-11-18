@@ -768,7 +768,7 @@ impl Node {
             // === Size ===
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
-            eval new_size ((t) model.output.frp.set_size.emit(t));
+            model.output.frp.set_size <+ new_size;
 
 
             // === Action Bar ===
