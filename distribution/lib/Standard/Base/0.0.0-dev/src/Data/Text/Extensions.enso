@@ -1161,7 +1161,6 @@ Text.drop self range=(First 1) =
      Converting a text to upper case in a specified locale:
 
          from Standard.Base import all
-         import Standard.Base.Data.Locale
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 Text.to_case : Case -> Locale -> Text
