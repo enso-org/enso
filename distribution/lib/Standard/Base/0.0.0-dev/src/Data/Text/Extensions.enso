@@ -196,7 +196,7 @@ Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
 Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
-    _ : Regex_Matcher ->
+    _ : Regex_Matcher.Regex_Matcher ->
         compiled_pattern = matcher.compile pattern
         compiled_pattern.matches self
 
@@ -768,7 +768,7 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    _ : Regex_Matcher ->
+    _ : Regex_Matcher.Regex_Matcher ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
@@ -803,7 +803,7 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    _ : Regex_Matcher ->
+    _ : Regex_Matcher.Regex_Matcher ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
         match = compiled_pattern.match self Regex_Mode.First
