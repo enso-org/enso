@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import Sample
 import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Sort_Column_Selector
@@ -19,7 +18,7 @@ num_iterations = 10
 
 # The Benchmarks ==============================================================
 main =
-    ints = (0.up_to vector_size).to_vector.take (Sample vector_size 42)
+    ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
     start = Date_Time.new 1990 1 1
     dates = ints.map x->
         start + (Duration.new seconds=x)

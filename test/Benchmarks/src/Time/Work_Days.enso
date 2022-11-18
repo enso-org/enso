@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import Sample
 import Standard.Base.Data.Time.Period
 
 from Standard.Test import Bench
@@ -12,7 +11,7 @@ main =
 
     first_day = Date.new 2020 1 1
     dates = Vector.new 1000 (x -> first_day + (Period.new days=x))
-    holidays = dates.take (Sample 100 100)
+    holidays = dates.take (Index_Sub_Range.Sample 100 100)
     shifts = [1, 5, 20, 100]
 
     shifts.each shift->

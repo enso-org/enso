@@ -1,6 +1,13 @@
-from Standard.Base import all
-
-from Standard.Base.Error.Common import dataflow_error_handler
+import project.Data.Ordering.Ordering
+import project.Data.Pair.Pair
+import project.Data.Range
+import project.Data.Text.Text
+import project.Data.Text.Extensions
+import project.Nothing.Nothing
+import project.Meta
+import project.Data.Json
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, dataflow_error_handler
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -75,19 +82,19 @@ type Any
     == self that = if Meta.is_same_object self that then True else
         self_meta = Meta.meta self
         that_meta = Meta.meta that
-        case Pair_Data self_meta that_meta of
-            Pair_Data (Meta.Atom_Data _) (Meta.Atom_Data _) ->
+        case Pair.Pair_Data self_meta that_meta of
+            Pair.Pair_Data (Meta.Atom_Data _) (Meta.Atom_Data _) ->
                 c_1 = self_meta.constructor ...
                 c_2 = that_meta.constructor ...
                 if Meta.is_same_object c_1 c_2 . not then False else
                     f_1 = self_meta.fields
                     f_2 = that_meta.fields
                     0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Pair_Data (Meta.Error_Data _) (Meta.Error_Data _) -> self_meta.payload == that_meta.payload
-            Pair_Data (Meta.Polyglot_Data o_1) (Meta.Polyglot_Data o_2) ->
+            Pair.Pair_Data (Meta.Error_Data _) (Meta.Error_Data _) -> self_meta.payload == that_meta.payload
+            Pair.Pair_Data (Meta.Polyglot_Data o_1) (Meta.Polyglot_Data o_2) ->
                 langs_match = (self_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
                 if langs_match.not then False else o_1.equals o_2
-            Pair_Data (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
+            Pair.Pair_Data (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
                 (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
             ## Constructor comparison is covered by the identity equality.
                Primitive objects should define their own equality.

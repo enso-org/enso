@@ -183,7 +183,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   ): Api.ExecutionResult.Diagnostic = {
     Api.ExecutionResult.Diagnostic(
       kind,
-      diagnostic.message,
+      Option(diagnostic.message),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>

@@ -631,7 +631,7 @@ enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
 
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
 
 maybe_parse_java_zoned text pattern=Nothing =
     if pattern == Nothing then ZonedDateTime.parse text else

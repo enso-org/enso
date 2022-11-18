@@ -18,7 +18,7 @@ import Standard.Base.Data.Json.Internal
          import Standard.Base.Data.Json
 
          example_from_pairs = Json.from_pairs [["foo", 533], ["bar", False]]
-from_pairs : Vector.Vector -> Object
+from_pairs : Vector -> Object
 from_pairs contents =
     fs = contents.fold Map.empty map-> kv_pair->
         key = kv_pair . at 0 . to_json_key

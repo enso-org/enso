@@ -56,7 +56,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         Array.is_a Array . should_be_true
         [].to_array.is_a Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
-        [1,2,3].is_a Vector.Vector . should_be_true
+        [1,2,3].is_a Vector . should_be_true
         [1,2,3].is_a Array . should_be_false
 
         Boolean.is_a Boolean . should_be_true
@@ -115,7 +115,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         n_3 . should_not_equal_type Decimal
 
         v_tpe = Meta.type_of [1,2,3]
-        v_tpe . should_equal_type Vector.Vector
+        v_tpe . should_equal_type Vector
         v_tpe . should_not_equal_type Array
         Meta.type_of [1,2,3].to_array . should_equal_type Array
 

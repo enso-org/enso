@@ -64,7 +64,7 @@ type Image
             _ : File.File -> location.path
             _ -> location
         read_flags = case flags of
-            _ : Vector.Vector ->
+            _ : Vector ->
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
@@ -96,7 +96,7 @@ type Image
             _ : File.File -> location.path
             _ -> location
         write_flags = case flags of
-            _ : Vector.Vector -> flags
+            _ : Vector -> flags
             _ -> [flags]
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
         Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
@@ -475,7 +475,7 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        _ : Vector.Vector ->
+        _ : Vector ->
             Scalar.new value.to_array
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal

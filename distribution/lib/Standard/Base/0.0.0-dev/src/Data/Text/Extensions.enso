@@ -2,16 +2,16 @@
 
 from Standard.Base import all
 
-import Standard.Base.Data.Array
+import Standard.Base.Data.Array.Array
 import Standard.Base.Data.Text.Regex
 
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
-import Standard.Base.Data.Text.Line_Ending_Style
 
-import Standard.Base.Data.Index_Sub_Range
-import Standard.Base.Data.Text.Text_Sub_Range
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+import project.Data.Text.Text_Sub_Range as Text_Sub_Range_Module
+import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Meta
@@ -19,7 +19,6 @@ import Standard.Base.Meta
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Location
-export Standard.Base.Data.Text.Line_Ending_Style
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -121,7 +120,7 @@ Text.at self index =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".characters
-Text.characters : Vector.Vector Text
+Text.characters : Vector Text
 Text.characters self =
     bldr = Vector.new_builder
     self.each bldr.append
@@ -185,7 +184,7 @@ Text.characters self =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".match regex
-Text.match : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
+Text.match : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Match | Vector Match | Nothing ! Regex.Compile_Error
 Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.match self mode
@@ -248,7 +247,7 @@ Text.match self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive
          example_match =
              regex = ".+@.+"
              "contact@enso.org".matches regex
-Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
+Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Boolean ! Regex.Compile_Error
 Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.matches self
@@ -310,7 +309,7 @@ Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_match
          example_find =
              text = "Now I know my ABCs"
              text.find "\w{1,3}"
-Text.find : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
+Text.find : Text | Engine.Pattern -> (Regex_Mode | Matching_Mode) -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Text | Vector Text | Nothing
 Text.find self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.find self mode
@@ -342,7 +341,7 @@ Text.find self pattern mode=Regex_Mode.All match_ascii=Nothing case_insensitive=
      Split the text on any whitespace.
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher.Regex_Matcher_Data == ["abc", "def", "ghi"]
-Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
+Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument_Error_Data "The delimiter cannot be empty.") else
     case Meta.type_of matcher of
         Text_Matcher.Text_Matcher ->
@@ -491,7 +490,7 @@ Text.replace self term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.C
      Getting the words in the Thai sentence "แมวมีสี่ขา"
 
          "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
-Text.words : Boolean -> Vector.Vector Text
+Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
@@ -534,7 +533,7 @@ Text.words self keep_whitespace=False =
      Split the text '\na\nb\n' into lines, keeping the line endings.
 
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
-Text.lines : Boolean -> Vector.Vector Text
+Text.lines : Boolean -> Vector Text
 Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
@@ -722,7 +721,7 @@ Text.is_whitespace self =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
-Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
+Text.bytes : Encoding -> Problem_Behavior -> Vector Byte
 Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
@@ -745,7 +744,7 @@ Text.bytes self encoding on_problems=Report_Warning =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
-Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
+Text.from_bytes : Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
@@ -768,7 +767,7 @@ Text.from_bytes bytes encoding on_problems=Report_Warning =
      Get the UTF-8 bytes of the text "Hello".
 
          "Hello".utf_8
-Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
+Text.utf_8 : Problem_Behavior -> Vector Byte
 Text.utf_8 self on_problems=Report_Warning =
     self.bytes Encoding.utf_8 on_problems
 
@@ -789,7 +788,7 @@ Text.utf_8 self on_problems=Report_Warning =
      Decoding the bytes to get a text.
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
-Text.from_utf_8 : Vector.Vector Byte -> Problem_Behavior -> Text
+Text.from_utf_8 : Vector Byte -> Problem_Behavior -> Text
 Text.from_utf_8 bytes on_problems=Report_Warning =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
@@ -802,7 +801,7 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
      Get the character vector of the text "Hello".
 
          "Hello".char_vector
-Text.char_vector : Vector.Vector Integer
+Text.char_vector : Vector Integer
 Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 
 ## Takes a vector of characters and returns the text that results from it.
@@ -812,7 +811,7 @@ Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_char_vector : Vector.Vector Integer -> Text
+Text.from_char_vector : Vector Integer -> Text
 Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
@@ -825,7 +824,7 @@ Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
      Get the codepoints of the text "Hello".
 
          "Hello".codepoints
-Text.codepoints : Vector.Vector Integer
+Text.codepoints : Vector Integer
 Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints self)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
@@ -837,7 +836,7 @@ Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints sel
    > Example
      Converting a vector of codepoints back into a text.
          Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
-Text.from_codepoints : Vector.Vector Integer -> Text
+Text.from_codepoints : Vector Integer -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
 ## ALIAS Check Prefix
@@ -882,7 +881,7 @@ Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
-            self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
+            self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
@@ -917,7 +916,7 @@ Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
-            self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
+            self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher.Regex_Matcher_Data _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
@@ -1075,11 +1074,11 @@ Text.repeat self count=1 =
          "Hello World!".take (Sample 3 seed=42) == "l d"
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds_Error
 Text.take self range=(First 1) =
-    ranges = Text_Sub_Range.find_codepoint_ranges self range
+    ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
         Range_Data start end _ ->
             Text_Utils.substring self start end
-        Text_Sub_Range.Codepoint_Ranges_Data char_ranges _ ->
+        Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
 
 ## ALIAS skip, remove
@@ -1121,17 +1120,17 @@ Text.take self range=(First 1) =
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop self range=(First 1) =
-    ranges = Text_Sub_Range.find_codepoint_ranges self range
+    ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
         Range_Data start end _ ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else
                     prefix + Text_Utils.drop_first self end
-        Text_Sub_Range.Codepoint_Ranges_Data _ _ ->
+        _ : Codepoint_Ranges ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Index_Sub_Range.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
 ## ALIAS lower, upper, title, proper
@@ -1205,9 +1204,9 @@ Text.pad self length=0 with_pad=' ' at=Location.End =
             remainder = pad_size % with_pad_length
             case at of
                 Location.Start ->
-                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
+                    with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
                 Location.End ->
-                    self + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
+                    self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
 ## This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
