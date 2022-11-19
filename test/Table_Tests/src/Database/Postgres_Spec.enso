@@ -353,7 +353,7 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
 
                 Test_Environment.unsafe_with_environment_override "PGPASSWORD" "other password" <|
                     [c2, c3, c4].each c->
-                        c.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "other user", Pair_Data "password" "other password"]
+                        c.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "other user", Pair.Value "password" "other password"]
 
 spec =
     table_spec

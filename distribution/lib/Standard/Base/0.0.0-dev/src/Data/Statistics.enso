@@ -127,7 +127,6 @@ type Statistic
     compute data statistic=Statistic.Count =
         Statistic.compute_bulk data [statistic] . first
 
-
     ## Compute a set of statistics on a vector like object.
 
        Arguments:

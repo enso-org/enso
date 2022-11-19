@@ -29,6 +29,7 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
+import project.Data.Regression
 import project.Data.Statistics
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
@@ -45,6 +46,7 @@ export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
 export project.Data.Ordering.Sort_Direction.Sort_Direction
 export project.Data.Pair.Pair
+import project.Data.Regression
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
@@ -61,7 +63,6 @@ from project.Data.Index_Sub_Range export First, Last
 # Not refactored modules below:
 
 import project.Data.Range
-import project.Data.Regression
 
 import project.Data.Text
 import project.Data.Text.Case
