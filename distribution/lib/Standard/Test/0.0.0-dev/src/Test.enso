@@ -30,11 +30,11 @@ type Test
         if config.should_run_group name then
             case pending of
                 Nothing ->
-                    r = State.run Spec (Spec.Value name  Nil) <|
+                    r = State.run Spec (Spec.Value name List.Nil) <|
                         behaviors
                         State.get Spec
                     Test_Reporter.print_report r config suite.builder
-                    new_suite = Test_Suite.Value suite.config (Cons r suite.specs) suite.builder
+                    new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
                     State.put Test_Suite new_suite
                 reason ->
                     Test_Reporter.report_pending_group name reason config suite.builder
@@ -73,7 +73,7 @@ type Test
         result = pair.second
         time_taken = pair.first
         spec = State.get Spec
-        new_spec = Spec.Value spec.name (Cons (Behavior.Value label result time_taken) spec.behaviors)
+        new_spec = Spec.Value spec.name (List.Cons (Behavior.Value label result time_taken) spec.behaviors)
         State.put Spec new_spec
 
     ## Expect a function to fail with the provided panic.

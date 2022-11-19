@@ -76,8 +76,8 @@ from Standard.Geo.Geo_Json import Object_Type
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
              json.to_table headers
-Json.Json.to_table : Vector -> Table
-Json.Json.to_table self fields=Nothing = case self of
+Json.to_table : Vector -> Table
+Json.to_table self fields=Nothing = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->

@@ -735,7 +735,7 @@ type Vector a
          Convert a vector of numbers to JSON.
 
              [1, 2, 3].to_json
-    to_json : Json.Array
+    to_json : Json
     to_json self = Json.Array (self.map .to_json)
 
     ## Get the first element from the vector, or an `Empty_Error` if the vector
@@ -927,7 +927,7 @@ type Vector a
        Converts the vector to a list with the same elements.
     to_list : List
     to_list self =
-        self.reverse.fold Nil acc-> elem-> Cons elem acc
+        self.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
 
 type Builder
 
