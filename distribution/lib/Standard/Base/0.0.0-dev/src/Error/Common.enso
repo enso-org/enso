@@ -115,7 +115,7 @@ type Error
              import Standard.Examples
 
              example_to_json = Examples.throw_error.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self =
         error_type = ["type", "Error"]
         caught = self.catch

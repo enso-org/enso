@@ -1,54 +1,58 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Data.Pair.Pair
+import project.Nothing.Nothing
 
-import Standard.Base.Data.Map.Internal
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error
 
-## Returns an empty map.
-
-   > Example
-     Create an empty map.
-
-         import Standard.Base.Data.Map.Internal
-
-         example_empty = Map.empty
-empty : Map
-empty = Tip
-
-## Returns a single-element map with the given key and value present.
-
-   Arguments:
-   - key: The key to update in the map.
-   - value: The value to store against 'key' in the map.
-
-   > Example
-     Create a single element map storing the key 1 and the value 2.
-
-         import Standard.Base.Data.Map.Internal
-
-         example_singleton = Map.singleton 1 2
-singleton : Any -> Any -> Map
-singleton key value = Bin 1 key value Tip Tip
-
-## Builds a map from a vector of key-value pairs.
-
-   Arguments:
-   - vec: A vector of key-value pairs.
-
-   > Example
-     Building a map containing two key-value pairs.
-
-         import Standard.Base.Data.Map.Internal
-
-         example_from_vector = Map.from_vector [[1, 2], [3, 4]]
-from_vector : Vector Any -> Map
-from_vector vec = vec.fold empty (m -> el -> m.insert (el.at 0) (el.at 1))
-
-# TODO Dubious constructor export
-from project.Data.Map.Map import all
-from project.Data.Map.Map export all
+import project.Data.Map.Internal
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
 type Map
+    ## Returns an empty map.
+
+       > Example
+         Create an empty map.
+
+             import Standard.Base.Data.Map.Map
+
+             example_empty = Map.empty
+    empty : Map
+    empty = Map.Tip
+
+    ## Returns a single-element map with the given key and value present.
+
+       Arguments:
+       - key: The key to update in the map.
+       - value: The value to store against 'key' in the map.
+
+       > Example
+         Create a single element map storing the key 1 and the value 2.
+
+             import Standard.Base.Data.Map.Map
+
+             example_singleton = Map.singleton 1 2
+    singleton : Any -> Any -> Map
+    singleton key value = Map.Bin 1 key value Map.Tip Map.Tip
+
+    ## Builds a map from a vector of key-value pairs.
+
+       Arguments:
+       - vec: A vector of key-value pairs.
+
+       > Example
+         Building a map containing two key-value pairs.
+
+             import Standard.Base.Data.Map.Map
+
+             example_from_vector = Map.from_vector [[1, 2], [3, 4]]
+    from_vector : Vector Any -> Map
+    from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
     ## PRIVATE
        A key-value store. This type assumes all keys are pairwise comparable,
@@ -72,21 +76,21 @@ type Map
        > Example
          Check if a map is empty.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_is_empty = Examples.map.is_empty
     is_empty : Boolean
     is_empty self = case self of
-        Bin _ _ _ _ _ -> False
-        Tip -> True
+        Map.Bin _ _ _ _ _ -> False
+        Map.Tip -> True
 
     ## Checks if the map is not empty.
 
        > Example
          Check if a map is not empty.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_not_empty = Examples.map.not_empty
@@ -98,14 +102,14 @@ type Map
        > Example
          Get the size of a map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_size = Examples.map.size
     size : Integer
     size self = case self of
-        Bin s _ _ _ _ -> s
-        Tip -> 0
+        Map.Bin s _ _ _ _ -> s
+        Map.Tip -> 0
 
     ## Converts the map into a vector of `[key, value]` pairs.
 
@@ -114,7 +118,7 @@ type Map
        > Example
          Convert a map to a vector.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_to_vector = Examples.map.to_vector
@@ -122,12 +126,12 @@ type Map
     to_vector self =
         builder = Vector.new_builder
         to_vector_with_builder m = case m of
-            Bin _ k v l r ->
+            Map.Bin _ k v l r ->
                 to_vector_with_builder l
                 builder.append [k, v]
                 to_vector_with_builder r
                 Nothing
-            Tip -> Nothing
+            Map.Tip -> Nothing
         to_vector_with_builder self
         result = builder.to_vector
         result
@@ -137,7 +141,7 @@ type Map
        > Example
          Convert a map to text.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_to_text = Examples.map.to_text
@@ -155,7 +159,7 @@ type Map
        > Example
          Checking two maps for equality.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_equals =
@@ -174,7 +178,7 @@ type Map
        > Example
          Insert the value "seven" into the map for the key 7.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_insert = Examples.map.insert 7 "seven"
@@ -190,13 +194,13 @@ type Map
        > Example
          Get the value for the key 1 in a map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_get = Examples.map.get 1
-    get : Any -> Any ! No_Value_For_Key_Error
+    get : Any -> Any ! No_Value_For_Key
     get self key =
-        self.get_or_else key (Error.throw (No_Value_For_Key_Error_Data key))
+        self.get_or_else key (Error.throw (No_Value_For_Key.Error key))
 
     ## Gets the value associated with `key` in this map, or returns `other` if
        it isn't present.
@@ -209,15 +213,15 @@ type Map
          Get the value for the key 2 in a map or instead return "zero" if it
          isn't present.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else self key ~other =
         go map = case map of
-            Tip -> other
-            Bin _ k v l r -> case Internal.compare_allow_nothing key k of
+            Map.Tip -> other
+            Map.Bin _ k v l r -> case Internal.compare_allow_nothing key k of
                 Ordering.Equal -> v
                 Ordering.Less -> @Tail_Call go l
                 Ordering.Greater -> @Tail_Call go r
@@ -233,7 +237,7 @@ type Map
        > Example
          Turn all keys into `Text` and append "_word" to the values in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_transform =
@@ -242,7 +246,7 @@ type Map
     transform self function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        from_vector vec_transformed
+        Map.from_vector vec_transformed
 
     ## Maps a function over each value in this map.
 
@@ -253,7 +257,7 @@ type Map
        > Example
          Append "_word" to all values in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_map = Examples.map.map (+ "_word")
@@ -272,7 +276,7 @@ type Map
        > Example
          Prepend the keys to the values in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_map_with_key =
@@ -280,9 +284,9 @@ type Map
     map_with_key : (Any -> Any -> Any) -> Map
     map_with_key self function =
         go map = case map of
-            Bin s k v l r ->
-                Bin s k (function k v) (go l) (go r)
-            Tip -> Tip
+            Map.Bin s k v l r ->
+                Map.Bin s k (function k v) (go l) (go r)
+            Map.Tip -> Map.Tip
         go self
 
     ## Maps a function over each key in this map.
@@ -294,7 +298,7 @@ type Map
        > Example
          Doubling all keys in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_map_keys = Examples.map.map_keys *2
@@ -315,7 +319,7 @@ type Map
        > Example
          Printing each value in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_each = Examples.map.each IO.println
@@ -336,7 +340,7 @@ type Map
        > Example
          Printing each key and value in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_each_with_key = Examples.map.each_with_key k->v->
@@ -345,12 +349,12 @@ type Map
     each_with_key : (Any -> Any -> Any) -> Nothing
     each_with_key self function =
         go map = case map of
-            Bin _ k v l r ->
+            Map.Bin _ k v l r ->
                 go l
                 function k v
                 go r
                 Nothing
-            Tip -> Nothing
+            Map.Tip -> Nothing
         go self
 
     ## Combines the values in the map.
@@ -362,18 +366,18 @@ type Map
        > Example
          Find the length of the longest word in the map.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
         go map init = case map of
-            Bin _ _ v l r ->
+            Map.Bin _ _ v l r ->
                 y = go l init
                 z = function y v
                 go r z
-            Tip -> init
+            Map.Tip -> init
         go self init
 
     ## Combines the key-value pairs in the map.
@@ -386,7 +390,7 @@ type Map
        > Example
          Glue the values in the map together with the keys.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_fold_with_key =
@@ -394,11 +398,11 @@ type Map
     fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
     fold_with_key self init function =
         go map init = case map of
-            Bin _ k v l r ->
+            Map.Bin _ k v l r ->
                 y = go l init
                 z = function y k v
                 go r z
-            Tip -> init
+            Map.Tip -> init
         go self init
 
     ## Get a vector containing the keys in the map.
@@ -406,7 +410,7 @@ type Map
        > Example
          Get the keys from the map `m`.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_keys = Examples.map.keys
@@ -414,12 +418,12 @@ type Map
     keys self =
         builder = Vector.new_builder
         to_vector_with_builder m = case m of
-            Bin _ k _ l r ->
+            Map.Bin _ k _ l r ->
                 to_vector_with_builder l
                 builder.append k
                 to_vector_with_builder r
                 Nothing
-            Tip -> Nothing
+            Map.Tip -> Nothing
         to_vector_with_builder self
         builder.to_vector
 
@@ -428,7 +432,7 @@ type Map
        > Example
          Get the values from the map `m`.
 
-             import Standard.Base.Data.Map
+             import Standard.Base.Data.Map.Map
              import Standard.Examples
 
              example_values = Examples.map.values
@@ -436,12 +440,12 @@ type Map
     values self =
         builder = Vector.new_builder
         to_vector_with_builder m = case m of
-            Bin _ _ v l r ->
+            Map.Bin _ _ v l r ->
                 to_vector_with_builder l
                 builder.append v
                 to_vector_with_builder r
                 Nothing
-            Tip -> Nothing
+            Map.Tip -> Nothing
         to_vector_with_builder self
         builder.to_vector
 
@@ -450,8 +454,8 @@ type Map
     first : Pair
     first self =
         first p m = case m of
-            Bin _ k v l _ -> @Tail_Call first (Pair_Data k v) l
-            Tip -> p
+            Map.Bin _ k v l _ -> @Tail_Call first (Pair.Pair_Data k v) l
+            Map.Tip -> p
         first Nothing self
 
     ## Get a key value pair of the highest key in the map.
@@ -459,13 +463,9 @@ type Map
     last : Pair
     last self =
         last p m = case m of
-            Bin _ k v _ r -> @Tail_Call last (Pair_Data k v) r
-            Tip -> p
+            Map.Bin _ k v _ r -> @Tail_Call last (Pair.Pair_Data k v) r
+            Map.Tip -> p
         last Nothing self
-
-# TODO Dubious constructor export
-from project.Data.Map.No_Value_For_Key_Error import all
-from project.Data.Map.No_Value_For_Key_Error export all
 
 ## UNSTABLE
 
@@ -473,8 +473,8 @@ from project.Data.Map.No_Value_For_Key_Error export all
 
    Arguments:
    - key: The key that was asked for.
-type No_Value_For_Key_Error
-    No_Value_For_Key_Error_Data key
+type No_Value_For_Key
+    Error key
 
     ## PRIVATE
 

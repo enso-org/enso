@@ -64,7 +64,7 @@ type Test_Suite
     run ~specs config =
         builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config builder <|
-            State.run Test_Suite (Test_Suite.Value config Nil builder) <|
+            State.run Test_Suite (Test_Suite.Value config List.Nil builder) <|
                 specs
                 State.get Test_Suite
 

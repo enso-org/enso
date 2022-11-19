@@ -1,16 +1,10 @@
-from Standard.Base import all hiding Number, Boolean, Array
-import Standard.Base
+from Standard.Base import all
+from project.Data.Json import Marshalling_Error
 
-import Standard.Base.Data.Numbers as Base_Number
-import Standard.Base.Runtime.Ref
-from Standard.Base.Data.Json import all
+import project.Runtime.Ref
 
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
-
-# TODO Dubious constructor export
-from project.Data.Json.Internal.Consumer import all
-from project.Data.Json.Internal.Consumer export all
 
 ## PRIVATE
 
@@ -18,6 +12,14 @@ from project.Data.Json.Internal.Consumer export all
 
    Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
 type Consumer
+    ## PRIVATE
+
+       Creates a new top-level consumer.
+    new : Consumer
+    new =
+        child = Ref.new List.Nil
+        val = Ref.new Nothing
+        Consumer.Value child val
 
     ## PRIVATE
 
@@ -28,7 +30,7 @@ type Consumer
        - value: The value being consumed.
 
        Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
-    Consumer_Data child_consumer value
+    Value child_consumer value
 
     ## PRIVATE
 
@@ -38,7 +40,7 @@ type Consumer
        - v: The value to act upon.
     on_value : Any -> Nothing
     on_value self v = case self.child_consumer . get of
-        Nil -> self.value . put v
+        List.Nil -> self.value . put v
         cons -> cons.on_value v
 
     ## PRIVATE
@@ -50,7 +52,7 @@ type Consumer
         child = self.child_consumer.get
         val = child.seal
         case child.parent of
-            Nil ->
+            List.Nil ->
                 self.value . put val
             p ->
                 self.child_consumer . put p
@@ -62,7 +64,7 @@ type Consumer
     on_start_object : Nothing
     on_start_object self =
         parent = self.child_consumer . get
-        self.child_consumer . put (mk_object_consumer parent)
+        self.child_consumer . put (Object_Consumer.new parent)
 
     ## PRIVATE
 
@@ -85,7 +87,7 @@ type Consumer
     on_start_array : Nothing
     on_start_array self =
         parent = self.child_consumer . get
-        self.child_consumer . put (mk_array_consumer parent)
+        self.child_consumer . put (Array_Consumer.new parent)
 
     ## PRIVATE
 
@@ -100,7 +102,7 @@ type Consumer
        Arguments:
        - n: The long value to process.
     on_long : Integer -> Nothing
-    on_long self n = self.on_value (Number n)
+    on_long self n = self.on_value (Json.Number n)
 
     ## PRIVATE
 
@@ -109,7 +111,7 @@ type Consumer
        Arguments:
        - n: The double value to process.
     on_double : Decimal -> Nothing
-    on_double self n = self.on_value (Number n)
+    on_double self n = self.on_value (Json.Number n)
 
     ## PRIVATE
 
@@ -118,29 +120,25 @@ type Consumer
        Arguments:
        - s: The string value to process.
     on_string : Text -> Nothing
-    on_string self s = self.on_value (String s)
+    on_string self s = self.on_value (Json.String s)
 
     ## PRIVATE
 
        Consumes the `true` event.
     on_true : Nothing
-    on_true self = self.on_value (Boolean True)
+    on_true self = self.on_value (Json.Boolean True)
 
     ## PRIVATE
 
        Consumes the `false` event.
     on_false : Nothing
-    on_false self = self.on_value (Boolean False)
+    on_false self = self.on_value (Json.Boolean False)
 
     ## PRIVATE
 
        Consumes the `null` event.
     on_null : Nothing
-    on_null self = self.on_value Null
-
-# TODO Dubious constructor export
-from project.Data.Json.Internal.Array_Consumer import all
-from project.Data.Json.Internal.Array_Consumer export all
+    on_null self = self.on_value Json.Null
 
 ## PRIVATE
 
@@ -148,12 +146,22 @@ from project.Data.Json.Internal.Array_Consumer export all
 type Array_Consumer
     ## PRIVATE
 
+      Creates a new array consumer with the given parent.
+
+      Arguments:
+      - parent: The parent of the new consumer.
+    new : Any -> Array_Consumer
+    new parent =
+        Array_Consumer.Value Vector.new_builder parent
+
+    ## PRIVATE
+
        A child consumer, used to process events inside arrays.
 
        Arguments:
        - builder: The builder for array values.
        - parent: The parent consumer.
-    Array_Consumer_Data builder parent
+    Value builder parent
 
     ## PRIVATE
 
@@ -167,19 +175,27 @@ type Array_Consumer
     ## PRIVATE
 
        Returns the final value built by this consumer.
-    seal : Array
+    seal : Json
     seal self =
         vec = self.builder.to_vector
-        Array vec
-
-# TODO Dubious constructor export
-from project.Data.Json.Internal.Object_Consumer import all
-from project.Data.Json.Internal.Object_Consumer export all
+        Json.Array vec
 
 ## PRIVATE
 
    A child consumer, used to process events inside objects.
 type Object_Consumer
+    ## PRIVATE
+
+       Creates a new object consumer with the given parent.
+
+       Arguments:
+       - parent: The parent of the new consumer.
+    new : Any -> Object_Consumer
+    new parent =
+        k = Ref.new ""
+        m = Ref.new Map.empty
+        Object_Consumer.Value k m parent
+
     ## PRIVATE
 
        A child consumer, used to process events inside objects.
@@ -188,7 +204,7 @@ type Object_Consumer
        - last_key: The last object key that has been seen.
        - map: The map representing the object.
        - parent: The parent consumer.
-    Object_Consumer_Data last_key map parent
+    Value last_key map parent
 
     ## PRIVATE
 
@@ -215,42 +231,10 @@ type Object_Consumer
     ## PRIVATE
 
        Returns the final value built by this consumer.
-    seal : Object
+    seal : Json
     seal self =
         m = self.map . get
-        Object m
-
-## PRIVATE
-
-   Creates a new object consumer with the given parent.
-
-   Arguments:
-   - parent: The parent of the new consumer.
-mk_object_consumer : Any -> Object_Consumer
-mk_object_consumer parent =
-    k = Ref.new ""
-    m = Ref.new Map.empty
-    Object_Consumer_Data k m parent
-
-## PRIVATE
-
-  Creates a new array consumer with the given parent.
-
-  Arguments:
-  - parent: The parent of the new consumer.
-mk_array_consumer : Any -> Array_Consumer
-mk_array_consumer parent =
-    bldr = Vector.new_builder
-    Array_Consumer_Data bldr parent
-
-## PRIVATE
-
-   Creates a new top-level consumer.
-mk_consumer : Consumer
-mk_consumer =
-    child = Ref.new Nil
-    val = Ref.new Nothing
-    Consumer_Data child val
+        Json.Object m
 
 ## PRIVATE
 
@@ -261,7 +245,7 @@ mk_consumer =
    - json: The json value being converted to text.
 render_helper : Text -> Json -> Text
 render_helper builder json = case json of
-    Object fields ->
+    Json.Object fields ->
         r = Ref.new ""
         render_key_value acc key value =
             separator = r . get
@@ -270,7 +254,7 @@ render_helper builder json = case json of
             acc + separator + (Printer.json_escape key) + ":" + val
         arr = fields.fold_with_key "" render_key_value
         builder + "{" + arr + "}"
-    Array items ->
+    Json.Array items ->
         r = Ref.new ""
         render_array_element acc element =
             separator = r.get
@@ -279,14 +263,14 @@ render_helper builder json = case json of
             acc + separator + val
         arr = items.fold "" render_array_element
         builder + "[" + arr + "]"
-    String value ->
+    Json.String value ->
         builder + (Printer.json_escape value)
-    Number value ->
+    Json.Number value ->
         builder + value.to_text
-    Boolean value ->
+    Json.Boolean value ->
         val = if value then "true" else "false"
         builder + val
-    Null ->
+    Json.Null ->
         builder + "null"
 
 ## PRIVATE
@@ -300,33 +284,33 @@ render_helper builder json = case json of
    See `Json.into` for semantics documentation.
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
-    _ : Base.Vector -> case json of
-        Array items -> items.map (into_helper (fmt.at 0))
-        _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    _ : Base.Boolean -> case json of
-        Boolean v -> v
-        _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    _ : Base_Number.Number -> case json of
-        Number v -> v
-        _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    _ : Base.Text -> case json of
-        String v -> v
-        _ -> Panic.throw (Type_Mismatch_Error json fmt)
+    _ : Vector -> case json of
+        Json.Array items -> items.map (into_helper (fmt.at 0))
+        _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
+    _ : Boolean -> case json of
+        Json.Boolean v -> v
+        _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
+    _ : Number -> case json of
+        Json.Number v -> v
+        _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
+    _ : Text -> case json of
+        Json.String v -> v
+        _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
     _ ->
         m = Meta.meta fmt
         case m of
             Meta.Atom_Data _ -> case json of
-                Object json_fields ->
+                Json.Object json_fields ->
                     cons = Meta.Constructor_Data m.constructor
-                    fnames = cons.fields
-                    ffmts = m.fields
-                    field_values = fnames.zip ffmts n-> inner_fmt->
-                        fjson = json_fields . get n . catch Any _->
-                            Panic.throw (Missing_Field_Error json fmt n)
-                        into_helper inner_fmt fjson
+                    field_names = cons.fields
+                    field_formats = m.fields
+                    field_values = field_names.zip field_formats n-> inner_format->
+                        field_json = json_fields . get n . catch Any _->
+                            Panic.throw (Marshalling_Error.Missing_Field json fmt n)
+                        into_helper inner_format field_json
                     cons.new field_values
-                _ -> Panic.throw (Type_Mismatch_Error json fmt)
-            _ -> Panic.throw (Type_Mismatch_Error json fmt)
+                _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
+            _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
 
 ## PRIVATE
 
@@ -336,6 +320,6 @@ into_helper fmt json = case fmt of
    - json_text: The textual representation of the JSON.
 parse_helper : Text -> Json
 parse_helper json_text =
-    consumer = mk_consumer
+    consumer = Consumer.new
     Parser.parse json_text consumer
     consumer.value . get

@@ -1,20 +1,30 @@
 import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.List.List
+import project.Data.Numbers
+import project.Data.Map.Map
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 
 export project.Data.Any.Any
 export project.Data.Array.Array
+export project.Data.List.List
+export project.Data.Map.Map
 export project.Data.Vector.Vector
 export project.Nothing.Nothing
-from project.Data.Boolean export all
+
+from project.Data.Boolean export Boolean, True, False
+from project.Data.Numbers export Number, Integer, Decimal
 
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
+import project.Data.Json
+import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
+import project.Data.Noise
 import project.Data.Ordering.Ordering
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
@@ -23,23 +33,23 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Json.Json
+export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Ordering
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
+
+from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
 
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
 
 
 
+# Not refactored modules below:
 
-import project.Data.Json
-import project.Data.List
-import project.Data.Locale
-import project.Data.Map
-import project.Data.Noise
-import project.Data.Numbers
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
@@ -85,10 +95,6 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Json
-export project.Data.Locale
-export project.Data.Map
-
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
@@ -120,9 +126,7 @@ export project.System.File
 export project.System.File.Existing_File_Behavior
 export project.Warning
 
-from project.Data.List export Nil, Cons, List
-from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
-from project.Data.Noise export all hiding Noise
+
 from project.Data.Pair export Pair, Pair_Data
 from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode

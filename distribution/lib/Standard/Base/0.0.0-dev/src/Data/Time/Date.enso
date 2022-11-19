@@ -533,7 +533,7 @@ type Date
          Convert the current date to JSON.
 
              example_to_json = Date.now.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
