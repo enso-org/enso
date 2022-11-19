@@ -69,7 +69,7 @@ prepare_aggregate_columns aggregates table =
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
         new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
-        Pair_Data new_name agg
+        Pair.Value new_name agg
 
     # Build Problems Output
     if renamed_columns.is_empty then

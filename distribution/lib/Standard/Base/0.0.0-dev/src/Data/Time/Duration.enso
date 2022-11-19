@@ -109,16 +109,16 @@ zero = new
 
    Arguments:
    - function: Function to execute.
-time_execution : Any -> Pair Duration Any
+time_execution : Any -> Pair
 time_execution ~function =
     start = System.nano_time
     result = Runtime.no_inline function
     end = System.nano_time
     duration = new nanoseconds=(end - start)
-    Pair_Data duration result
+    Pair.Value duration result
 
 ## PRIVATE
-ensure_duration : Any -> Suspend (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
+ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
 ensure_duration object ~action =
     case object of
         _ : Duration -> action

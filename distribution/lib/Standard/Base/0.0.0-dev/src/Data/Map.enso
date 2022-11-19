@@ -454,7 +454,7 @@ type Map
     first : Pair
     first self =
         first p m = case m of
-            Map.Bin _ k v l _ -> @Tail_Call first (Pair.Pair_Data k v) l
+            Map.Bin _ k v l _ -> @Tail_Call first (Pair.Value k v) l
             Map.Tip -> p
         first Nothing self
 
@@ -463,7 +463,7 @@ type Map
     last : Pair
     last self =
         last p m = case m of
-            Map.Bin _ k v _ r -> @Tail_Call last (Pair.Pair_Data k v) r
+            Map.Bin _ k v _ r -> @Tail_Call last (Pair.Value k v) r
             Map.Tip -> p
         last Nothing self
 

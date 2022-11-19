@@ -33,7 +33,7 @@ read host port database username=Nothing =
             entry.matches host port database username
         case found.catch Nothing of
             Nothing -> []
-            entry -> [Pair_Data 'user' entry.username, Pair_Data 'password' entry.password]
+            entry -> [Pair.Value 'user' entry.username, Pair.Value 'password' entry.password]
 
 type Pgpass_Entry
     ## PRIVATE
