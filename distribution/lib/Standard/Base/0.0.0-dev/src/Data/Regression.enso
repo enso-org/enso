@@ -85,7 +85,7 @@ type Fitted_Model
 fitted_model_with_r_squared : Any -> Number -> Number -> Vector -> Vector -> Fitted_Model
 fitted_model_with_r_squared constructor a b known_xs known_ys =
     model = constructor a b
-    r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+    r_squared = known_ys.compute (Statistic.R_Squared (known_xs.map model.predict))
     constructor a b r_squared
 
 ## PRIVATE

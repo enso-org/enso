@@ -207,7 +207,7 @@ newline_at_eof : File -> Encoding -> Text|Nothing
 newline_at_eof file encoding =
     newlines = ['\r\n', '\n', '\r']
     newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
-    most_bytes = newline_bytes.map .length . compute Statistics.Maximum
+    most_bytes = newline_bytes.map .length . compute Statistic.Maximum
     file_last_bytes = file.read_last_bytes most_bytes
     result = newlines.zip newline_bytes . find pair->
         bytes = pair.second
