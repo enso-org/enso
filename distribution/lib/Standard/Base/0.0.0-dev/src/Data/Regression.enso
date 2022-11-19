@@ -55,12 +55,12 @@ fit_least_squares known_xs known_ys model=Model.Linear =
         Model.Logarithmic ->
             log_xs = Model.ln_series known_xs "X-values"
             fitted = Regression.fit_linear log_xs.to_array known_ys.to_array
-            fitted_model_with_r_squared Fitted_Model.Logarithmic fitted.slope fitted.intercept known_xs known_ys
+            Model.fitted_model_with_r_squared Fitted_Model.Logarithmic fitted.slope fitted.intercept known_xs known_ys
         Model.Power ->
             log_xs = Model.ln_series known_xs "X-values"
             log_ys = Model.ln_series known_ys "Y-values"
             fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
-            fitted_model_with_r_squared Fitted_Model.Power fitted.intercept.exp fitted.slope known_xs known_ys
+            Model.fitted_model_with_r_squared Fitted_Model.Power fitted.intercept.exp fitted.slope known_xs known_ys
         _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported model.")
 
 type Fitted_Model
