@@ -25,8 +25,11 @@ import project.Data.Json
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
+import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
@@ -37,8 +40,11 @@ export project.Data.Interval.Interval
 export project.Data.Json.Json
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
+export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
+export project.Data.Ordering.Sort_Direction.Sort_Direction
 export project.Data.Pair.Pair
+export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 
@@ -52,16 +58,13 @@ from project.Data.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
 
-import project.Data.Ordering.Natural_Order
-import project.Data.Ordering.Sort_Direction
-
 import project.Data.Range
 import project.Data.Regression
 import project.Data.Statistics
 import project.Data.Statistics.Rank_Method
 import project.Data.Text
 import project.Data.Text.Case
-import project.Data.Text.Case_Sensitivity
+
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
@@ -97,8 +100,6 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Ordering.Natural_Order
-export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
 export project.Data.Statistics
 export project.Data.Statistics.Rank_Method
@@ -131,7 +132,7 @@ export project.Warning
 from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style
+from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Span export all
 from project.Error.Common export all
