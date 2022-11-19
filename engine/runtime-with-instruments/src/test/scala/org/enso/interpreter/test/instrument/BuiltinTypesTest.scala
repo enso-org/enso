@@ -344,10 +344,10 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(39, 19)
+    val idMain   = metadata.addItem(45, 19)
 
     val code =
-      """import Standard.Base.Data.Array
+      """import Standard.Base.Data.Array.Array
         |
         |main =
         |    Array.new_1 42
@@ -370,11 +370,11 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(69, 34)
+    val idMain   = metadata.addItem(75, 34)
 
     val code =
       """from Standard.Base import all
-        |import Standard.Base.Data.Array
+        |import Standard.Base.Data.Array.Array
         |
         |main =
         |    Vector.from_array Array.empty

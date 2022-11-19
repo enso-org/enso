@@ -1,15 +1,16 @@
-from Standard.Base.Data.Numbers import all
-from Standard.Base.Error.Common import Error
-from Standard.Base.Data.Boolean import True, False
-import Standard.Base.Data.Filter_Condition.Filter_Condition
-import Standard.Base.Data.Vector.Vector
-import Standard.Base.Function.Function
-import Standard.Base.Nothing
-import Standard.Base.Runtime.Unsafe
+import project.Data.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Numbers.Number
+import project.Data.Numbers.Integer
+import project.Data.Vector.Vector
+import project.Function.Function
+import project.Nothing.Nothing
+import project.Runtime.Unsafe
 
-# TODO Dubious constructor export
-from project.Data.List.List import all
-from project.Data.List.List export all
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error
+
+from project.Data.List.List import Nil, Cons
 
 ## The basic cons-list type.
 
@@ -185,10 +186,10 @@ type List
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
             go_filter list = case list of
+                Nil -> Nil
                 Cons h t ->
                     rest = go_filter t
                     if predicate h then Cons h rest else rest
-                Nil -> Nil
             go_filter self
 
     ## Applies a function to each element of the list, returning the list of
@@ -261,8 +262,8 @@ type List
              example_drop_start = Examples.list.drop_start 1
     drop_start : Integer -> List
     drop_start self count = if count <= 0 then self else case self of
-        Cons _ b -> b.drop_start count-1
         Nil -> Nil
+        Cons _ b -> b.drop_start count-1
 
     ## Creates a new list consisting of the first `count` elements at the start
        of `self`.
@@ -278,8 +279,8 @@ type List
              example_take_start = Examples.list.take_start 2
     take_start : Integer -> List
     take_start self count = if count <= 0 then Nil else case self of
-        Cons a b -> Cons a (b.take_start count-1)
         Nil -> Nil
+        Cons a b -> Cons a (b.take_start count-1)
 
     ## Get the first element from the list.
 
@@ -291,8 +292,8 @@ type List
              example_head = Examples.list.x
     head : Any ! Empty_Error
     head self = case self of
-        Cons a _ -> a
         Nil -> Error.throw Empty_Error
+        Cons a _ -> a
 
     ## Get all elements from the list except the first.
 
@@ -304,8 +305,8 @@ type List
              example_tail = Examples.list.tail
     tail : List ! Empty_Error
     tail self = case self of
-        Cons _ b -> b
         Nil -> Error.throw Empty_Error
+        Cons _ b -> b
 
     ## Get all elements from the list except the last.
 
@@ -317,12 +318,12 @@ type List
              example_init = Examples.list.init
     init : List ! Empty_Error
     init self =
-        init' x y = case y of
+        init_fn x y = case y of
             Nil -> Nil
-            Cons a b -> Cons x (init' a b)
+            Cons a b -> Cons x (init_fn a b)
         case self of
-            Cons a b -> init' a b
             Nil -> Error.throw Empty_Error
+            Cons a b -> init_fn a b
 
     ## Get the last element of the list.
 
@@ -390,8 +391,8 @@ type Empty_Error
    to the user-facing API.
 map_helper : List -> Any -> (Any -> Any) -> Nothing
 map_helper list cons f = case list of
+    Nil -> Unsafe.set_atom_field cons 1 Nil
     Cons h t ->
         res = Cons (f h) Nil
         Unsafe.set_atom_field cons 1 res
         @Tail_Call map_helper t res f
-    Nil -> Unsafe.set_atom_field cons 1 Nil

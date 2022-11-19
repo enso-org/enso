@@ -365,7 +365,7 @@ type File
              import Standard.Examples
 
              example_to_json = Examples.csv.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
 
     ## Checks whether the file exists.

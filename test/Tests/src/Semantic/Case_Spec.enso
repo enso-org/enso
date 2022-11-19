@@ -201,21 +201,21 @@ spec = Test.group "Pattern Matches" <|
             '\u0065\u{301}' -> Nothing
             _     -> Test.fail "Expected value to match constant."
     Test.specify "should be able to match on literal values nested in constructors" <|
-        value_1 = Cons 42 Nil
-        value_2 = Cons (Cons 42 Nil) Nil
+        value_1 = List.Cons 42 List.Nil
+        value_2 = List.Cons (List.Cons 42 List.Nil) List.Nil
         case value_1 of
-            42                    -> Test.fail "Expected value to match constant."
-            Cons (Cons 1 Nil) Nil -> Test.fail "Expected value to match constant."
-            Cons 1 Nil            -> Test.fail "Expected value to match constant."
-            Cons 42 Nil           -> Nothing
-            _                     -> Test.fail "Expected value to match constant."
+            42                                        -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons 1 List.Nil) List.Nil -> Test.fail "Expected value to match constant."
+            List.Cons 1 List.Nil                      -> Test.fail "Expected value to match constant."
+            List.Cons 42 List.Nil                     -> Nothing
+            _                                         -> Test.fail "Expected value to match constant."
         case value_2 of
-            42                    -> Test.fail "Expected value to match constant."
-            Cons (Cons 1 Nil) Nil -> Test.fail "Expected value to match constant."
-            Cons (Cons a Nil) Nil -> if a == 42 then Nothing else Test.fail "Expected variable to bind to 42"
-            Cons 1 Nil            -> Test.fail "Expected value to match constant."
-            Cons _ Nil            -> Test.fail "Expected value to match constant."
-            _                     -> Test.fail "Expected value to match constant."
+            42                                        -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons 1 List.Nil) List.Nil -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons a List.Nil) List.Nil -> if a == 42 then Nothing else Test.fail "Expected variable to bind to 42"
+            List.Cons 1 List.Nil                      -> Test.fail "Expected value to match constant."
+            List.Cons _ List.Nil                      -> Test.fail "Expected value to match constant."
+            _                                         -> Test.fail "Expected value to match constant."
 
     Test.specify "should be able to match on module rather than a type" <|
         case Vector_Module of
