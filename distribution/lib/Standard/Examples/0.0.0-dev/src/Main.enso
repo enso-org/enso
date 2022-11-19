@@ -98,16 +98,16 @@ json_text = """
     ]
 
 ## Example JSON for working with.
-json : Json.Json
+json : Json
 json = Json.parse json_text
 
 ## An example JSON object.
-json_object : Json.Object
+json_object : Json
 json_object = json.items.head
 
 ## An example cons-list.
 list : List
-list = Cons 1 (Cons 2 (Cons 3 Nil))
+list = List.Cons 1 (List.Cons 2 (List.Cons 3 List.Nil))
 
 ## A simple map that contains some numbers mapped to their word equivalents.
 map : Map
@@ -199,7 +199,7 @@ get_boolean : Boolean
 get_boolean = False
 
 ## A simple small piece of JSON that can easily be converted into a table.
-simple_table_json : Json.Json
+simple_table_json : Json
 simple_table_json =
     row_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
     row_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
@@ -211,7 +211,7 @@ simple_table_json_headers : Vector Text
 simple_table_json_headers = ["foo", "bar", "baz"]
 
 ## Some simple GeoJSON.
-geo_json : Json.Json
+geo_json : Json
 geo_json = Json.parse <| '''
     {
       "type": "FeatureCollection",

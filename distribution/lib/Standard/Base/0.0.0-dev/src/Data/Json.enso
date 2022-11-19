@@ -1,53 +1,48 @@
-from Standard.Base import all hiding Parse_Error_Data, Array, Boolean, Number
-import Standard.Base
+from Standard.Base import all
+import project.Data.Map.No_Value_For_Key
 
-import Standard.Base.Data.Json.Internal
-
-## A smart constructor, building an object representation based on a vector
-   of key-value pairs.
-
-   Arguments:
-   - contents: A vector of key-value pairs.
-
-   All values used as keys must define a `to_json_key : Text` method.
-
-   > Example
-     The following code returns a JSON object, that after serialization becomes
-     { "foo": 533, "bar": false }
-
-         import Standard.Base.Data.Json
-
-         example_from_pairs = Json.from_pairs [["foo", 533], ["bar", False]]
-from_pairs : Vector -> Object
-from_pairs contents =
-    fs = contents.fold Map.empty map-> kv_pair->
-        key = kv_pair . at 0 . to_json_key
-        val = kv_pair . at 1 . to_json
-        map.insert key val
-    Object fs
-
-## Parses an RFC-8259 compliant JSON text into a `Json` structure.
-
-   Arguments:
-   - json_text: The RFC-8259-compliant JSON text.
-
-   > Example
-     Convert some text representing a JSON object into JSON.
-
-         import Standard.Base.Data.Json
-
-         example_parse = Json.parse '{ "a": 1 }'
-parse : Text -> Json ! Parse_Error
-parse json_text =
-    Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
-        Error.throw (Parse_Error_Data java_exception.getMessage)
-
-# TODO Dubious constructor export
-from project.Data.Json.Json import all
-from project.Data.Json.Json export all
+import project.Data.Json.Internal
 
 ## Represents a JSON structure.
 type Json
+    ## A smart constructor, building an object representation based on a vector
+       of key-value pairs.
+
+       Arguments:
+       - contents: A vector of key-value pairs.
+
+       All values used as keys must define a `to_json_key : Text` method.
+
+       > Example
+         The following code returns a JSON object, that after serialization becomes
+         { "foo": 533, "bar": false }
+
+             import Standard.Base.Data.Json.Json
+
+             example_from_pairs = Json.from_pairs [["foo", 533], ["bar", False]]
+    from_pairs : Vector -> Json
+    from_pairs contents =
+        fs = contents.fold Map.empty map-> kv_pair->
+            key = kv_pair . at 0 . to_json_key
+            val = kv_pair . at 1 . to_json
+            map.insert key val
+        Json.Object fs
+
+    ## Parses an RFC-8259 compliant JSON text into a `Json` structure.
+
+       Arguments:
+       - json_text: The RFC-8259-compliant JSON text.
+
+       > Example
+         Convert some text representing a JSON object into JSON.
+
+             import Standard.Base.Data.Json.Json
+
+             example_parse = Json.parse '{ "a": 1 }'
+    parse : Text -> Json ! Json_Parse_Error
+    parse json_text =
+        Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
+            Error.throw (Json_Parse_Error.Error java_exception.getMessage)
 
     ## A representation of a JSON object.
 
@@ -82,11 +77,11 @@ type Json
     ## A representation of a JSON null.
     Null
 
-    ## Marshalls this JSON into an arbitrary value described by
+    ## Marshals this JSON into an arbitrary value described by
        `type_descriptor`.
 
        Arguments:
-       - `type_dscriptor`: The type descriptor is a fully-applied type,
+       - type_descriptor: The type descriptor is a fully-applied type,
          describing all required sub-types. It can either be an Atom or one of
          the primitive types (`Number`, `Text`, `Boolean`, `Vector`).
 
@@ -95,7 +90,6 @@ type Json
          type. It will return a vector of `Book` objects containing data from
          `json_string`.
 
-             import Standard.Base.Data.Json
              import Standard.Examples
 
              type Book title author
@@ -121,7 +115,6 @@ type Json
        > Example
          Convert some JSON to text.
 
-             import Standard.Base.Data.Json
              import Standard.Examples
 
              example_to_text = Examples.json.to_text
@@ -133,17 +126,17 @@ type Json
        > Example
          Unwrap the JSON number 3 to the primitive number 3.
 
-             import Standard.Base.Data.Json
+             import Standard.Base.Data.Json.Json
 
              example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
     unwrap self = case self of
-        Array its -> its.map .unwrap
-        Boolean b -> b
-        Number n -> n
-        String t -> t
-        Null -> Nothing
-        Object f -> f.map .unwrap
+        Json.Array its -> its.map .unwrap
+        Json.Boolean b -> b
+        Json.Number n -> n
+        Json.String t -> t
+        Json.Null -> Nothing
+        Json.Object f -> f.map .unwrap
 
     ## Gets the value associated with the given key in this object.
 
@@ -155,28 +148,23 @@ type Json
        > Example
          Get the "title" field from this JSON representing a book.
 
-             import Standard.Base.Data.Json
              import Standard.Examples
 
              example_get = Examples.json_object.get "title"
-    get : Text -> Json ! No_Such_Field_Error
+    get : Text -> Json ! No_Such_Field
     get self field = case self of
-        Object _ -> self.fields.get field . map_error case _ of
-            Map.No_Value_For_Key_Error_Data _ -> No_Such_Field_Error_Data field
+        Json.Object _ -> self.fields.get field . map_error case _ of
+            No_Value_For_Key.Error _ -> No_Such_Field.Error field
             x -> x
         _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
-
-# TODO Dubious constructor export
-from project.Data.Json.Parse_Error import all
-from project.Data.Json.Parse_Error export all
 
 ## UNSTABLE
 
    A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
-type Parse_Error
-    Parse_Error_Data message
+type Json_Parse_Error
+    Error message
 
     ## PRIVATE
 
@@ -185,15 +173,11 @@ type Parse_Error
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
 
-# TODO Dubious constructor export
-from project.Data.Json.No_Such_Field_Error import all
-from project.Data.Json.No_Such_Field_Error export all
-
 ## UNSTABLE
 
    An error indicating that there is no such field in the JSON object.
-type No_Such_Field_Error
-    No_Such_Field_Error_Data field_name
+type No_Such_Field
+    Error field_name
 
     ## PRIVATE
 
@@ -201,10 +185,6 @@ type No_Such_Field_Error
     to_display_text : Text
     to_display_text self =
         "The field " + self.field_name.to_text + " is not present in this object."
-
-# TODO Dubious constructor export
-from project.Data.Json.Marshalling_Error import all
-from project.Data.Json.Marshalling_Error export all
 
 ## UNSTABLE
 
@@ -222,7 +202,7 @@ type Marshalling_Error
        - format: The type format that did not match.
 
        This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
-    Type_Mismatch_Error json format
+    Type_Mismatch json format
 
     ## UNSTABLE
 
@@ -236,18 +216,18 @@ type Marshalling_Error
 
        This can occure when trying to reinterpret a JSON object into an atom,
        when the JSON does not contain all the fields required by the atom.
-    Missing_Field_Error json field format
+    Missing_Field json field format
 
     ## UNSTABLE
 
        Convert the marshalling error into a human-readable format.
     to_display_text : Text
     to_display_text self = case self of
-        Type_Mismatch_Error json format ->
+        Marshalling_Error.Type_Mismatch json format ->
             json_text = Meta.get_simple_type_name json
             format_text = Meta.get_simple_type_name format
             "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
-        Missing_Field_Error _ field _ ->
+        Marshalling_Error.Missing_Field _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."
 
 ## ALIAS To JSON
@@ -261,6 +241,7 @@ type Marshalling_Error
    > Example
      Convert a vector to JSON.
          [1, 2, 3, 4].to_json
+Any.to_json : Json
 Any.to_json self =
     m = Meta.meta self
     case m of
@@ -270,15 +251,28 @@ Any.to_json self =
             fnames = cons.fields
             json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
                 m.insert (fnames.at i) (fs.at i . to_json)
-            with_tp = json_fs . insert "type" (String cons.name)
-            Object with_tp
+            with_tp = json_fs . insert "type" (Json.String cons.name)
+            Json.Object with_tp
         Meta.Constructor_Data _ ->
-            Object (Map.empty . insert "type" (String m.name))
+            Json.Object (Map.empty . insert "type" (Json.String m.name))
 
         ## The following two cases cannot be handled generically and should
            instead define their own `to_json` implementations.
-        Meta.Polyglot_Data _ -> Null
-        Meta.Primitive_Data _ -> Null
+        Meta.Polyglot_Data _ -> Json.Null
+        Meta.Primitive_Data _ -> Json.Null
+
+## Text to JSON conversion.
+
+   > Example
+     Convert the text "Hello World!" to JSON.
+
+         "Hello World!".to_json
+   > Example
+     Convert the text "cześć" to JSON.
+
+         "cześć".to_json
+Text.to_json : Json
+Text.to_json self = Json.String self
 
 ## Method used by object builders to convert a value into a valid JSON key.
 
@@ -293,14 +287,13 @@ Text.to_json_key self = self
    > Example
      Convert `True` to JSON.
          True.to_json
-Base.Boolean.to_json : Boolean
-Base.Boolean.to_json self = Boolean self
+Boolean.to_json : Json
+Boolean.to_json self = Json.Boolean self
 
 ## Convert `Nothing` to JSON.
 
    > Example
      Convert `Nothing` to JSON.
          Nothing.to_json
-Nothing.to_json : Null
-Nothing.to_json self = Null
-
+Nothing.to_json : Json
+Nothing.to_json self = Json.Null

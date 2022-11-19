@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Map import No_Value_For_Key_Error_Data
+from Standard.Base.Data.Map import No_Value_For_Key
 
 from Standard.Test import Test, Test_Suite
 
@@ -45,7 +45,7 @@ spec = Test.group "Maps" <|
         m.get "foo" . should_equal 134
         m.get "bar" . should_equal 654
         m.get "baz" . should_equal "spam"
-        (m.get "nope").should_fail_with No_Value_For_Key_Error_Data
+        (m.get "nope").should_fail_with No_Value_For_Key.Error
     Test.specify "should support get_or_else" <|
         m = Map.empty . insert 2 3
         m.get_or_else 2 0 . should_equal 3

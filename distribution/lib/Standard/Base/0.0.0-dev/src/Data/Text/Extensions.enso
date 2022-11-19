@@ -466,23 +466,6 @@ Text.to_case_insensitive_key self locale=Locale.default =
    > Example
      Checking how "a" orders in relation to "b".
 
-         "a".compare_to "b"
-Text.compare_to : Text -> Ordering
-Text.compare_to self that =
-    if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
-        comparison_result = Text_Utils.compare_normalized self that
-        if comparison_result == 0 then Ordering.Equal else
-            if comparison_result < 0 then Ordering.Less else
-                Ordering.Greater
-
-## Compare two texts to discover their ordering.
-
-   Arguments:
-   - that: The text to order `self` with respect to.
-
-   > Example
-     Checking how "a" orders in relation to "b".
-
          "a".compare_to_ignore_case "b"
 Text.compare_to_ignore_case : Text -> Locale -> Ordering
 Text.compare_to_ignore_case self that locale=Locale.default =
@@ -491,34 +474,6 @@ Text.compare_to_ignore_case self that locale=Locale.default =
         if comparison_result == 0 then Ordering.Equal else
             if comparison_result < 0 then Ordering.Less else
                 Ordering.Greater
-
-## ALIAS Check Emptiness
-
-   Check if `self` is empty.
-
-   ! What is Empty?
-     Text is considered to be empty when its length is zero.
-
-   > Example
-     Check if the text "aaa" is empty.
-
-         "aaa".is_empty
-Text.is_empty : Boolean
-Text.is_empty self = self == ""
-
-## ALIAS Check Non-Emptiness
-
-   Check if `self` is not empty.
-
-   ! What is Not Empty?
-     Text is considered to be not empty when its length is greater than zero.
-
-   > Example
-     Check if the text "aaa" is not empty.
-
-         "aaa".not_empty
-Text.not_empty : Boolean
-Text.not_empty self = self.is_empty.not
 
 ## Inserts text value at the specified index.
 
@@ -870,16 +825,6 @@ Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
         match = compiled_pattern.match self Regex_Mode.First
         match.is_nothing.not
 
-## Text to JSON conversion.
-
-   > Example
-     Convert the text "cześć" to JSON.
-
-         "cześć".to_json
-Text.to_json : Json.String
-Text.to_json self = Json.String self
-
-
 ## Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
@@ -1045,7 +990,6 @@ Text.drop self range=(First 1) =
      Converting a text to upper case in a specified locale:
 
          from Standard.Base import all
-         import Standard.Base.Data.Locale
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 Text.to_case : Case -> Locale -> Text

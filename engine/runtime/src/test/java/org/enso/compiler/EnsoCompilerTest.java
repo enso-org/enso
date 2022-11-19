@@ -47,7 +47,7 @@ public class EnsoCompilerTest {
   @Test
   public void testLocationsApplicationsAndMethodCalls() throws Exception {
     parseTest("""
-    main = (2-2 == 0).if_then_else (Cons 5 6) 0
+    main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
     """, true, true, true);
   }
 
@@ -612,7 +612,7 @@ public class EnsoCompilerTest {
   public void testReverseListType() throws Exception {
     parseTest("""
     reverse_list : List Any -> List
-    reverse_list list = Nil
+    reverse_list list = List.Nil
     """);
   }
 
@@ -621,11 +621,11 @@ public class EnsoCompilerTest {
     parseTest("""
     reverse_list list =
         go = list -> acc -> case list of
-            Cons h t -> go t (Cons h acc)
-            Cons h _ -> acc
-            Nil -> acc
+            List.Cons h t -> go t (List.Cons h acc)
+            List.Cons h _ -> acc
+            ListNil -> acc
             _ -> acc
-        res = go list Nil
+        res = go list List.Nil
         res
     """);
   }
@@ -1090,11 +1090,11 @@ public class EnsoCompilerTest {
   @Test
   public void testAtomBenchmarks1() throws Exception {
     parseTest("""
-    from Standard.Base.Data.List import Cons,Nil
+    import Standard.Base.Data.List.List
 
     main =
         generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
-        res = generator (acc -> x -> Cons x acc) Nil 1 1000000
+        res = generator (acc -> x -> List.Cons x acc) List.Nil 1 1000000
         res
     """);
   }
@@ -1102,14 +1102,14 @@ public class EnsoCompilerTest {
   @Test
   public void testAtomBenchmarks3() throws Exception {
     parseTest("""
-    from Standard.Base.Data.List import all
+    import Standard.Base.Data.List.List
 
-    List.List.mapReverse self f acc = case self of
-        Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+    List.mapReverse self f acc = case self of
+        List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
         _ -> acc
 
     main = list ->
-        res = list.mapReverse (x -> x + 1) Nil
+        res = list.mapReverse (x -> x + 1) List.Nil
         res
     """, true, true, false);
   }

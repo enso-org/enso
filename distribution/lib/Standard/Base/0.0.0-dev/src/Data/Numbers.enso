@@ -1,13 +1,13 @@
+import project.Data.Json.Json
+from project.Data.Boolean import Boolean, True, False
+
+from project.Error.Common import Panic,Error,Illegal_Argument_Error
+
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.String
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
-
-import Standard.Base.Data.Json
-from Standard.Base.Data.Boolean import all
-from Standard.Base.Data.Range import all
-from Standard.Base.Error.Common import Panic,Error,Illegal_Argument_Error
 
 ## The root type of the Enso numeric hierarchy.
 
@@ -326,7 +326,7 @@ type Number
          Convert the number 8 to JSON.
 
              8.to_json
-    to_json : Json.Number
+    to_json : Json
     to_json self = Json.Number self
 
     ## A constant holding the floating-point positive infinity.
@@ -597,7 +597,7 @@ type Decimal
     parse : Text -> Decimal ! Parse_Error
     parse text =
         Panic.catch NumberFormatException (Double.parseDouble text) _->
-            Error.throw (Parse_Error_Data text)
+            Error.throw (Number_Parse_Error.Error text)
 
 ## Integer is the type of integral numbers in Enso. They are of unbounded
    size and can grow as large as necessary.
@@ -975,17 +975,13 @@ type Integer
     parse : Text -> Text -> Integer ! Parse_Error
     parse text (radix=10) =
         Panic.catch NumberFormatException (Long.parseLong text radix) _->
-             Error.throw (Parse_Error_Data text)
-
-# TODO Dubious constructor export
-from project.Data.Numbers.Parse_Error import all
-from project.Data.Numbers.Parse_Error export all
+             Error.throw (Number_Parse_Error.Error text)
 
 ## UNSTABLE
 
    A syntax error when parsing a double.
-type Parse_Error
-    Parse_Error_Data text
+type Number_Parse_Error
+    Error text
 
     ## UNSTABLE
 
