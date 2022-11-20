@@ -34,6 +34,8 @@ import project.Data.Statistics
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Day_Of_Week
+import project.Data.Time.Time_Period.Time_Period
 
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
@@ -50,10 +52,12 @@ import project.Data.Regression
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
+export project.Data.Time.Time_Period.Time_Period
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
-from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
-from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
+from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
+from project.Data.Time.Day_Of_Week export all hiding DayOfWeek
 
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
@@ -63,6 +67,18 @@ from project.Data.Index_Sub_Range export First, Last
 # Not refactored modules below:
 
 import project.Data.Range
+import project.Data.Time.Date
+import project.Data.Time.Date_Time
+import project.Data.Time.Duration
+import project.Data.Time.Time_Of_Day
+import project.Data.Time.Time_Zone
+
+from project.Data.Range export all
+export project.Data.Time.Date
+export project.Data.Time.Date_Time
+export project.Data.Time.Duration
+export project.Data.Time.Time_Of_Day
+export project.Data.Time.Time_Zone
 
 import project.Data.Text
 import project.Data.Text.Case
@@ -74,13 +90,7 @@ import project.Data.Text.Text_Matcher
 import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
-import project.Data.Time.Date
-import project.Data.Time.Date_Time
-import project.Data.Time.Duration
-import project.Data.Time.Time_Of_Day
-import project.Data.Time.Time_Zone
-import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Day_Of_Week_From
+
 
 import project.Error.Common
 import project.Error.Problem_Behavior
@@ -109,13 +119,7 @@ export project.Data.Text.Regex.Regex_Mode
 export project.Data.Text.Text_Ordering
 export project.Data.Text.Text_Matcher
 export project.Data.Text.Regex_Matcher
-export project.Data.Time.Date
-export project.Data.Time.Date_Time
-export project.Data.Time.Duration
-export project.Data.Time.Time_Of_Day
-export project.Data.Time.Time_Zone
-export project.Data.Time.Day_Of_Week.Day_Of_Week
-export project.Data.Time.Day_Of_Week_From
+
 export project.Error.Problem_Behavior
 export project.IO
 export project.Math
@@ -129,7 +133,6 @@ export project.System.File
 export project.System.File.Existing_File_Behavior
 export project.Warning
 
-from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
 from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity

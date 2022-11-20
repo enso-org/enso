@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Time import Duration, Period, Time_Period
+from Standard.Base.Data.Time import Duration, Period
 from Standard.Base.Error.Common import Time_Error_Data
 
 from Standard.Test import Test, Test_Suite
