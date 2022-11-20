@@ -32,7 +32,8 @@ pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
     Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
 }
 
-#[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(), commit)]
+// #[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(),
+// commit)]
 pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result<Release> {
     let versions = &context.triple.versions;
     let tag = versions.tag();
@@ -52,7 +53,11 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
     // Make sure that this version has not been released yet.
     let repo = &context.remote_repo_handle();
     if let Ok(colliding_release) = repo.find_release_by_tag(&tag).await {
-        bail!("Release with tag {} already exists: {}", tag, colliding_release.html_url);
+        ensure!(colliding_release.draft, "Release {} has already been published.", tag);
+        warn!(
+            "Release {tag} has already been drafted: {}. Creating a new one.",
+            colliding_release.html_url
+        );
     }
 
     // Check if the remote repository contains a conflicting tag.
