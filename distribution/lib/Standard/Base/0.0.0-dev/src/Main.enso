@@ -43,6 +43,7 @@ import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
+import project.Data.Time.Time_Zone.Time_Zone
 
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
@@ -66,6 +67,7 @@ export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Period.Period
 export project.Data.Time.Time_Period.Time_Period
+export project.Data.Time.Time_Zone.Time_Zone
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
@@ -81,12 +83,10 @@ from project.Data.Index_Sub_Range export First, Last
 import project.Data.Range
 import project.Data.Time.Duration
 import project.Data.Time.Time_Of_Day
-import project.Data.Time.Time_Zone
 
 from project.Data.Range export all
 export project.Data.Time.Duration
 export project.Data.Time.Time_Of_Day
-export project.Data.Time.Time_Zone
 
 import project.Data.Text
 import project.Data.Text.Case

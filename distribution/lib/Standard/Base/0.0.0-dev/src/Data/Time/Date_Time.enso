@@ -12,7 +12,7 @@ import project.Data.Time.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
-import project.Data.Time.Time_Zone
+import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.Warning

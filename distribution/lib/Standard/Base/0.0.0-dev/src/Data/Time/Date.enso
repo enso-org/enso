@@ -11,7 +11,7 @@ import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day
-import project.Data.Time.Time_Zone
+import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Math
 import project.Nothing.Nothing
