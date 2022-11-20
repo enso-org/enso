@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Time import Duration, Period, Date_Period
-from project.Data.Time.Time_Period.Time_Period
+from Standard.Base.Data.Time import Duration, Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter

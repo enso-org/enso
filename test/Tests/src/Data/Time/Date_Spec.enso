@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Text_Sub_Range
-import Standard.Base.Data.Time.Date_Period
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Period
 from Standard.Base.Error.Common import Time_Error

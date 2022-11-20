@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import project.Data.Time.Duration
 import project.Data.Time.Period
-import project.Data.Time.Date_Period
 
 import Standard.Base.Polyglot
 from Standard.Base.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Polyglot_Error_Data, unimplemented
