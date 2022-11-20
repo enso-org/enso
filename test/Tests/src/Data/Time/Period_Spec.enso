@@ -23,7 +23,7 @@ spec =
         Test.specify "should get Period between two dates" <|
             (Period.between (Date.new year=100) (Date.new year=150)) . should_equal (Period.new years=50)
             (Period.between (Date.new year=150) (Date.new year=100)) . should_equal (Period.new years=(-50))
-            (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.days 13)
+            (Period.between (Date.new 2022 10 19) (Date.new 2022 11 01)) . should_equal (Period.new days=13)
 
         Test.specify "should not compare between two periods" <|
             ((Period.new days=10) > (Period.new days=1)) . should_fail_with Incomparable_Values_Error
