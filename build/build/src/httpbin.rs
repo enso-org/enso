@@ -71,6 +71,7 @@ mod tests {
         };
 
         let spawned = get_and_spawn_httpbin_on_free_port(&sbt).await?;
+        std::thread::sleep(std::time::Duration::from_secs(20));
         dbg!(&spawned);
 
 
