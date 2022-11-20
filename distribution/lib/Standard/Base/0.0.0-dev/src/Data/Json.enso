@@ -11,7 +11,6 @@ from project.Data.Boolean import Boolean, True, False
 from project.Data.Range import all
 from project.Error.Common import Panic, Error, Illegal_Argument_Error_Data
 
-
 ## Represents a JSON structure.
 type Json
     ## A smart constructor, building an object representation based on a vector
