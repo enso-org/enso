@@ -38,6 +38,7 @@ import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Time_Period.Time_Period
@@ -59,6 +60,7 @@ export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
 export project.Data.Time.Date_Period.Date_Period
+export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Time_Period.Time_Period
@@ -75,13 +77,11 @@ from project.Data.Index_Sub_Range export First, Last
 # Not refactored modules below:
 
 import project.Data.Range
-import project.Data.Time.Date_Time
 import project.Data.Time.Duration
 import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Zone
 
 from project.Data.Range export all
-export project.Data.Time.Date_Time
 export project.Data.Time.Duration
 export project.Data.Time.Time_Of_Day
 export project.Data.Time.Time_Zone

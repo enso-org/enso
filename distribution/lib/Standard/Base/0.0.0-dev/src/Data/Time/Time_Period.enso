@@ -1,5 +1,5 @@
 import project.Data.Time.Time_Of_Day
-import project.Data.Time.Date_Time
+import project.Data.Time.Date_Time.Date_Time
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Time_Utils
