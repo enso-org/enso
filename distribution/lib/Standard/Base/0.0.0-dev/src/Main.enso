@@ -41,6 +41,7 @@ import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 
 export project.Data.Filter_Condition.Filter_Condition
@@ -63,6 +64,7 @@ export project.Data.Time.Date_Period.Date_Period
 export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
+export project.Data.Time.Period.Period
 export project.Data.Time.Time_Period.Time_Period
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
@@ -88,7 +90,6 @@ export project.Data.Time.Time_Zone
 
 import project.Data.Text
 import project.Data.Text.Case
-
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
@@ -96,13 +97,10 @@ import project.Data.Text.Text_Matcher
 import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
-
-
 import project.Error.Common
 import project.Error.Problem_Behavior
 import project.Function
 import project.IO
-
 import project.Meta
 import project.Polyglot
 import project.Polyglot.Java
@@ -124,7 +122,6 @@ export project.Data.Text.Regex.Regex_Mode
 export project.Data.Text.Text_Ordering
 export project.Data.Text.Text_Matcher
 export project.Data.Text.Regex_Matcher
-
 export project.Error.Problem_Behavior
 export project.IO
 export project.Meta

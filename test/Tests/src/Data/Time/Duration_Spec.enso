@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
 from Standard.Test import Test, Test_Suite
 
 polyglot java import java.time.Duration as Java_Duration
@@ -67,7 +66,7 @@ spec =
 
         Test.specify "should not mix Duration and Period" <|
             durations = [(Duration.hours 1), (Duration.zero), (Duration.new hours=1 seconds=30)]
-            periods = [(Period.days 1), (Period.new 0), (Period.years 30), (Period.new years=3 months=2)]
+            periods = [(Period.new days=1), (Period.new 0), (Period.new years=30), (Period.new years=3 months=2)]
             durations.each duration->
                 periods.each period->
                     (duration + period).should_fail_with Time_Error_Data

@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System
-from Standard.Base.Data.Time import Period
+import Standard.Base.Data.Time.Period.Period
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
@@ -122,7 +122,7 @@ ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Er
 ensure_duration object ~action =
     case object of
         _ : Duration -> action
-        _ : Period.Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
+        _ : Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
         x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Duration type, got: " + (Meta.get_qualified_type_name x)

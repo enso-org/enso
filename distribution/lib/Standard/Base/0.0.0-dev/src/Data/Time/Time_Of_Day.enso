@@ -1,8 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
-import Standard.Base.Data.Time.Time_Period.Time_Period
 from Standard.Base.Error.Common import Time_Error
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -252,7 +250,7 @@ type Time_Of_Day
     + self amount =
         case amount of
             duration : Duration.Duration -> self.plus_builtin duration
-            _ : Period.Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
+            _ : Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
 
     ## Subtract the  specified amount of time from this instant to get a new
        instant.
@@ -271,7 +269,7 @@ type Time_Of_Day
     - self amount =
         case amount of
             duration : Duration.Duration -> self.minus_builtin duration
-            _ : Period.Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
+            _ : Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
 
     ## Format this time of day as text using the default formatter.
 

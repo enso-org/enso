@@ -1,8 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
 from Standard.Base.Error.Common import Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -93,19 +91,19 @@ spec_with name create_new_date parse_date =
                 Json.from_pairs [["type", "Date"], ["day", date.day], ["month", date.month], ["year", date.year]]
 
         Test.specify "should add date-based interval" <|
-            date = create_new_date 1970 + (Period.days 1)
+            date = create_new_date 1970 + (Period.new days=1)
             date . year . should_equal 1970
             date . month . should_equal 1
             date . day . should_equal 2
 
         Test.specify "should subtract date-based interval" <|
-            date = create_new_date 1970 - (Period.years 1)
+            date = create_new_date 1970 - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should support mixed interval operators" <|
-            date = create_new_date 1970 + (Period.months 1) - (Period.years 1)
+            date = create_new_date 1970 + (Period.new months=1) - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 2
             date . day . should_equal 1
@@ -375,7 +373,7 @@ spec_with name create_new_date parse_date =
         Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = create_new_date year 1 1
-                Vector.new first_day.length_of_year (n -> first_day + (Period.days n))
+                Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
 
             two_years_vacation = all_year_holiday 1999 + all_year_holiday 2000
 
