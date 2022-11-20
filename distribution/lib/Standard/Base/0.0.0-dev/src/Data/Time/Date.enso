@@ -1,71 +1,30 @@
-from Standard.Base import all
-
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration
 import project.Data.Time.Period
+import project.Data.Time.Time_Of_Day
+import project.Data.Time.Time_Zone
+import project.Data.Vector.Vector
+import project.Math
+import project.Nothing.Nothing
+import project.Polyglot
 
-import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Polyglot_Error_Data, unimplemented
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import java.time.DateTimeException
 polyglot java import java.lang.ArithmeticException
-
-## Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         example_now = Date.now
-now : Date
-now = @Builtin_Method "Date.now"
-
-## ALIAS Current Date
-
-   Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         example_today = Date.today
-today : Date
-today = now
-
-## Constructs a new Date from a year, month, and day.
-
-   Arguments
-   - year: The year to represent.
-   - month: The month-of-year to represent, from 1 (January) to 12 (December).
-   - day: The day-of-month to represent, from 1 to 31. It must be valid for the
-     year and month.
-
-   Returns a `Time_Error` if the provided time is not valid.
-
-   > Example
-     Create a new local date at Unix epoch.
-
-         from Standard.Base import Date
-
-         example_new = Date.new 1970
-
-   > Example
-     Get the local date of 5th August 1986.
-
-         example_new = Date.new 1986 8 5
-
-new : Integer -> Integer -> Integer -> Date ! Time_Error
-new year (month = 1) (day = 1) =
-    ## TODO This is left using the old error handling approach, because
-       magically, changing this to the `catch_java` (which is now preferred way
-       of catching Polyglot_Errors) lead to the "should format local date using
-       provided pattern" test failing because it called the `LocalDate.format`
-       instead of Enso format. Hopefully this will be fixed with
-       https://github.com/enso-org/enso/pull/3559
-       Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
-        Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
-        ex -> ex
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
@@ -79,78 +38,6 @@ new year (month = 1) (day = 1) =
    Recommended to use `Date.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Date
 new_builtin year month day = @Builtin_Method "Date.new_builtin"
-
-## ALIAS Date from Text
-
-   Converts text containing a date into a Date object.
-
-   Arguments:
-   - text: The text to try and parse as a date.
-   - pattern: An optional pattern describing how to parse the text.
-
-   Returns a `Time_Error` if the provided `text` cannot be parsed using the
-   provided `pattern`.
-
-   ? Pattern Syntax
-     Patterns are based on a simple sequence of letters and symbols. For
-     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
-
-   ? Default Date Formatting
-     Unless you provide a custom format, the text must represent a valid date
-     that can be parsed using the ISO-8601 extended local date format. The
-     format consists of:
-
-     - Four digits or more for the year. Years in the range 0000 to 9999
-       will be pre-padded by zero to ensure four digits. Years outside
-       that range will have a prefixed positive or negative symbol.
-     - A dash
-     - Two digits for the month-of-year. This is pre-padded by zero to ensure
-       two digits.
-     - A dash
-     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-       digits.
-
-   > Example
-     Parse the date of 23rd December 2020.
-
-         from Standard.Base import Date
-
-         example_parse = Date.parse "2020-12-23"
-
-   > Example
-     Recover from an error due to a wrong format.
-
-         from Standard.Base import Date
-         from Standard.Base.Error.Common import Time_Error
-
-         example_parse_err = Date.parse "my birthday" . catch Time_Error _->
-             Date.new 2000 1 1
-
-   > Example
-     Parse "1999-1-1" as Date using a custom format.
-
-         from Standard.Base import Date
-
-         example_parse = Date.parse "1999-1-1" "yyyy-M-d"
-
-   > Example
-     Recover from the parse error.
-
-         from Standard.Base import Date
-         from Standard.Base.Error.Common import Time_Error
-
-         example_parse_err =
-             date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch Time_Error (_->Date.new 2000 1 1)
-parse : Text -> (Text | Nothing) -> Date ! Time_Error
-parse text pattern=Nothing =
-    result = Panic.recover Any <| case pattern of
-        Nothing -> parse_builtin text 0
-        _ : Text -> parse_builtin text pattern
-        _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
-    result . map_error <| case _ of
-        Polyglot_Error_Data err -> Time_Error_Data err.getMessage
-        ex -> ex
 
 ## PRIVATE
    Converts text containing a date into a Date object.
@@ -192,6 +79,132 @@ parse_builtin text pattern = @Builtin_Method "Date.parse_builtin"
    offset or timezone.
 @Builtin_Type
 type Date
+    ## Obtains the current date from the system clock in the system timezone.
+
+       > Example
+         Get the current date.
+
+             example_now = Date.now
+    now : Date
+    now = @Builtin_Method "Date.now"
+
+    ## ALIAS Current Date
+
+       Obtains the current date from the system clock in the system timezone.
+
+       > Example
+         Get the current date.
+
+             example_today = Date.today
+    today : Date
+    today = Date.now
+
+    ## Constructs a new Date from a year, month, and day.
+
+       Arguments
+       - year: The year to represent.
+       - month: The month-of-year to represent, from 1 (January) to 12 (December).
+       - day: The day-of-month to represent, from 1 to 31. It must be valid for the
+         year and month.
+
+       Returns a `Time_Error` if the provided time is not valid.
+
+       > Example
+         Create a new local date at Unix epoch.
+
+             from Standard.Base import Date
+
+             example_new = Date.new 1970
+
+       > Example
+         Get the local date of 5th August 1986.
+
+             example_new = Date.new 1986 8 5
+
+    new : Integer -> Integer -> Integer -> Date ! Time_Error
+    new year (month = 1) (day = 1) =
+        ## TODO This is left using the old error handling approach, because
+           magically, changing this to the `catch_java` (which is now preferred way
+           of catching Polyglot_Errors) lead to the "should format local date using
+           provided pattern" test failing because it called the `LocalDate.format`
+           instead of Enso format. Hopefully this will be fixed with
+           https://github.com/enso-org/enso/pull/3559
+           Then this should be switched to use `Panic.catch_java`.
+        Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
+            Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
+            ex -> ex
+
+    ## ALIAS Date from Text
+
+       Converts text containing a date into a Date object.
+
+       Arguments:
+       - text: The text to try and parse as a date.
+       - pattern: An optional pattern describing how to parse the text.
+
+       Returns a `Time_Error` if the provided `text` cannot be parsed using the
+       provided `pattern`.
+
+       ? Pattern Syntax
+         Patterns are based on a simple sequence of letters and symbols. For
+         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+       ? Default Date Formatting
+         Unless you provide a custom format, the text must represent a valid date
+         that can be parsed using the ISO-8601 extended local date format. The
+         format consists of:
+
+         - Four digits or more for the year. Years in the range 0000 to 9999
+           will be pre-padded by zero to ensure four digits. Years outside
+           that range will have a prefixed positive or negative symbol.
+         - A dash
+         - Two digits for the month-of-year. This is pre-padded by zero to ensure
+           two digits.
+         - A dash
+         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+           digits.
+
+       > Example
+         Parse the date of 23rd December 2020.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "2020-12-23"
+
+       > Example
+         Recover from an error due to a wrong format.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err = Date.parse "my birthday" . catch Time_Error _->
+                 Date.new 2000 1 1
+
+       > Example
+         Parse "1999-1-1" as Date using a custom format.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "1999-1-1" "yyyy-M-d"
+
+       > Example
+         Recover from the parse error.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err =
+                 date = Date.parse "1999-1-1" "yyyy-MM-dd"
+                 date.catch Time_Error (_->Date.new 2000 1 1)
+    parse : Text -> (Text | Nothing) -> Date ! Time_Error
+    parse text pattern=Nothing =
+        result = Panic.recover Any <| case pattern of
+            Nothing -> parse_builtin text 0
+            _ : Text -> parse_builtin text pattern
+            _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+        result . map_error <| case _ of
+            Polyglot_Error_Data err -> Time_Error_Data err.getMessage
+            ex -> ex
 
     ## Get the year field.
 
@@ -520,7 +533,7 @@ type Date
         case period of
             _ : Period.Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
-                new new_java_date.year new_java_date.month new_java_date.day
+                Date.new new_java_date.year new_java_date.month new_java_date.day
             _ : Duration.Duration ->
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->

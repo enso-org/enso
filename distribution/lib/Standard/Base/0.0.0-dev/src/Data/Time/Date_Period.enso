@@ -1,6 +1,6 @@
-import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Date
+import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Time_Utils

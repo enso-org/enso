@@ -47,7 +47,7 @@ type SQL_Statement
             SQL_Fragment.Interpolation _ obj -> case obj of
                 Number -> obj.to_text
                 Date_Time.Date_Time -> "'" + (obj.format "yyyy-MM-dd HH:mm:ss") + "'"
-                Date.Date -> "'" + (obj.format "yyyy-MM-dd") + "'"
+                Date -> "'" + (obj.format "yyyy-MM-dd") + "'"
                 Time_Of_Day.Time_Of_Day -> "'" + (obj.format "HH:mm:ss") + "'"
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""

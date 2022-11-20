@@ -35,7 +35,7 @@ ensure_in_epoch : (Date_Time | Date) -> (Any -> Any) -> Any
 ensure_in_epoch date ~action =
     datetime = case date of
         x : Date_Time -> x
-        x : Date.Date -> x.to_date_time
+        x : Date -> x.to_date_time
     ret_value = action
     case enso_epoch_start <= datetime of
         True -> ret_value
