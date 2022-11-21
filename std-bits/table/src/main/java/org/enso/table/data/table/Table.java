@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class Table {
 
   private final Column[] columns;
+  @Deprecated
   private final Index index;
   private final AggregatedProblems problems;
 
