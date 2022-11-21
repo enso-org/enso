@@ -1,6 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Array as ArrayMod
-import Standard.Base.Data.Text as TextMod
+import Standard.Base.Data.Array as Array_Module
+import Standard.Base.Data.Text as Text_Module
+import Standard.Base.Data.Vector as Vector_Module
 
 polyglot java import java.lang.Class
 polyglot java import java.lang.Object as JObject
@@ -75,13 +76,13 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected a text type to match."
         case Text of
             _ : Text -> Nothing
-            TextMod -> Test.fail "Expected the Text constructor to match4."
+            Text_Module -> Test.fail "Expected the Text constructor to match4."
             Text -> Test.fail "Expected the Text constructor to match4."
             _ -> Test.fail "Expected the Text constructor to matc5h."
-        case TextMod of
+        case Text_Module of
             _ : Text -> Test.fail "Expected the Text module to match4."
             Text -> Test.fail "Expected the Text module to match4."
-            TextMod -> Nothing
+            Text_Module -> Nothing
             _ -> Test.fail "Expected the Text module to matc5h."
     Test.specify "should be able to match on the Array type" <|
         case [].to_array of
@@ -89,22 +90,22 @@ spec = Test.group "Pattern Matches" <|
             _ : Array -> Nothing
             _ -> Test.fail "Expected an array type  to match."
         case Array of
-            ArrayMod -> Test.fail "Expected the Array type to match."
+            Array_Module -> Test.fail "Expected the Array type to match."
             _ : Array -> Nothing
             Array -> Test.fail "Expected the Array type to match."
             _ -> Test.fail "Expected the Array Type to match."
-        case ArrayMod of
+        case Array_Module of
             _ : Array -> Test.fail "Expected the Array module to match."
             Array -> Test.fail "Expected the Array module to match."
-            ArrayMod -> Nothing
+            Array_Module -> Nothing
             _ -> Test.fail "Expected the Array module to match."
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
         case random_gen of
-            Polyglot -> Nothing
+            Polyglot.Polyglot -> Nothing
             _ -> Test.fail "Expected a polyglot object to match."
-        case Polyglot of
-            Polyglot -> Nothing
+        case Polyglot.Polyglot of
+            Polyglot.Polyglot -> Nothing
             _ -> Test.fail "Expected the Polyglot constructor to match."
     Test.specify "should be able to match on the Any type" <|
         value_1 = 1.23143
@@ -131,48 +132,48 @@ spec = Test.group "Pattern Matches" <|
         new_zone = Time_Zone.system
 
         case new_date of
-            Date_Time.Date_Time -> Test.fail "Expected date value to match Date type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date type."
-            Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date type."
-            Date.Date -> Test.fail "Expected date value to match Date type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected date value to match Date type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date type."
-            _ : Date.Date -> Nothing
+            Date_Time -> Test.fail "Expected date value to match Date type."
+            Time_Of_Day -> Test.fail "Expected date value to match Date type."
+            Time_Zone -> Test.fail "Expected date value to match Date type."
+            Date -> Test.fail "Expected date value to match Date type."
+            _ : Date_Time -> Test.fail "Expected date value to match Date type."
+            _ : Time_Of_Day -> Test.fail "Expected date value to match Date type."
+            _ : Time_Zone -> Test.fail "Expected date value to match Date type."
+            _ : Date -> Nothing
             _ -> Test.fail "Expected date value to match Date type."
 
         case new_date_time of
-            Date.Date -> Test.fail "Expected datetime value to match Date_Time type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
-            Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
-            Date_Time.Date_Time -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Date.Date -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Date_Time.Date_Time -> Nothing
+            Date -> Test.fail "Expected datetime value to match Date_Time type."
+            Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
+            Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
+            Date_Time -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Date -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Date_Time -> Nothing
 
             _ -> Test.fail "Expected datetime value to match Date_Time type."
 
         case new_time of
-            Date.Date -> Test.fail "Expected time value to match Time_Of_Day type."
-            Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
-            Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Date.Date -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Time_Of_Day.Time_Of_Day -> Nothing
+            Date -> Test.fail "Expected time value to match Time_Of_Day type."
+            Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
+            Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
+            Time_Of_Day -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Date -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Time_Of_Day -> Nothing
             _ -> Test.fail "Expected time value to match Time_Of_Day type."
 
         case new_zone of
-            Date.Date -> Test.fail "Expected timezone value to match Time_Zone type."
-            Date_Time.Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
-            Time_Zone.Time_Zone -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Date.Date -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Time_Zone.Time_Zone -> Nothing
+            Date -> Test.fail "Expected timezone value to match Time_Zone type."
+            Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
+            Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
+            Time_Zone -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Date -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Time_Zone -> Nothing
             _ -> Test.fail "Expected timezone value to match Time_Zone type."
 
     Test.specify "should be able to match on literal values" <|
@@ -200,35 +201,35 @@ spec = Test.group "Pattern Matches" <|
             '\u0065\u{301}' -> Nothing
             _     -> Test.fail "Expected value to match constant."
     Test.specify "should be able to match on literal values nested in constructors" <|
-        value_1 = Cons 42 Nil
-        value_2 = Cons (Cons 42 Nil) Nil
+        value_1 = List.Cons 42 List.Nil
+        value_2 = List.Cons (List.Cons 42 List.Nil) List.Nil
         case value_1 of
-            42                    -> Test.fail "Expected value to match constant."
-            Cons (Cons 1 Nil) Nil -> Test.fail "Expected value to match constant."
-            Cons 1 Nil            -> Test.fail "Expected value to match constant."
-            Cons 42 Nil           -> Nothing
-            _                     -> Test.fail "Expected value to match constant."
+            42                                        -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons 1 List.Nil) List.Nil -> Test.fail "Expected value to match constant."
+            List.Cons 1 List.Nil                      -> Test.fail "Expected value to match constant."
+            List.Cons 42 List.Nil                     -> Nothing
+            _                                         -> Test.fail "Expected value to match constant."
         case value_2 of
-            42                    -> Test.fail "Expected value to match constant."
-            Cons (Cons 1 Nil) Nil -> Test.fail "Expected value to match constant."
-            Cons (Cons a Nil) Nil -> if a == 42 then Nothing else Test.fail "Expected variable to bind to 42"
-            Cons 1 Nil            -> Test.fail "Expected value to match constant."
-            Cons _ Nil            -> Test.fail "Expected value to match constant."
-            _                     -> Test.fail "Expected value to match constant."
+            42                                        -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons 1 List.Nil) List.Nil -> Test.fail "Expected value to match constant."
+            List.Cons (List.Cons a List.Nil) List.Nil -> if a == 42 then Nothing else Test.fail "Expected variable to bind to 42"
+            List.Cons 1 List.Nil                      -> Test.fail "Expected value to match constant."
+            List.Cons _ List.Nil                      -> Test.fail "Expected value to match constant."
+            _                                         -> Test.fail "Expected value to match constant."
 
     Test.specify "should be able to match on module rather than a type" <|
-        case Vector of
-            _ : Vector.Vector -> Test.fail "Expected to match on module."
-            Vector.Vector     -> Test.fail "Expected to match on module."
-            Vector            -> Nothing
+        case Vector_Module of
+            _ : Vector        -> Test.fail "Expected to match on module."
+            Vector            -> Test.fail "Expected to match on module."
+            Vector_Module     -> Nothing
             _                 -> Test.fail "Expected to match on module."
 
     Test.specify "should be able to match on a type of a value rather tha module" <|
         case [1,2,3] of
-            Vector          -> Test.fail "Expected to match on a type."
-            Vector.Vector   -> Test.fail "Expected to match on a type."
-            _ : Vector.Vector -> Nothing
-            _               -> Test.fail "Expected to match on a type."
+            Vector_Module -> Test.fail "Expected to match on a type."
+            Vector        -> Test.fail "Expected to match on a type."
+            _ : Vector    -> Nothing
+            _             -> Test.fail "Expected to match on a type."
 
     Test.specify "should correctly pattern match on array-like polyglot values" <|
         list = ArrayList.new
@@ -236,26 +237,26 @@ spec = Test.group "Pattern Matches" <|
         list.add 2
 
         case list of
-            _ : Vector.Vector -> Test.fail "Expected to match on Array type."
+            _ : Vector -> Test.fail "Expected to match on Array type."
             _ : Array -> Nothing
             _ : ArrayList -> Test.fail "Expected to match on Array type."
             _ -> Test.fail "Expected to match on Array type."
 
         case list of
-            _ : Vector.Vector -> Test.fail "Expected to match on ArrayList type."
+            _ : Vector -> Test.fail "Expected to match on ArrayList type."
             _ : ArrayList -> Nothing
             _ : Array -> Test.fail "Expected to match on ArrayList type."
             _ -> Test.fail "Expected to match on ArrayList type."
 
         case Meta.type_of list of
-            _ : Vector.Vector -> Test.fail "Expected to match in java.lang.Class case."
+            _ : Vector -> Test.fail "Expected to match in java.lang.Class case."
             _ : Array -> Test.fail "Expected to match in java.lang.Class case."
             _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
             _ : Class -> Nothing
             _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
 
         case Meta.type_of list of
-            Vector.Vector -> Test.fail "Expected to match on a polyglot symbol."
+            Vector -> Test.fail "Expected to match on a polyglot symbol."
             Array -> Test.fail "Expected to match on a polyglot symbol."
             ArrayList -> Nothing
             Class -> Test.fail "Expected to match on a polyglot symbol."

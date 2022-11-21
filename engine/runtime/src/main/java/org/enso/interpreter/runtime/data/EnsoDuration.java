@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -43,7 +42,8 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds")
+          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds",
+      autoRegister = false)
   @TruffleBoundary
   public static EnsoDuration create(
       long hours, long minutes, long seconds, long milliseconds, long nanoseconds) {
@@ -59,7 +59,8 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(
       name = "between_builtin",
       description =
-          "Construct a new Duration that is between the given start date inclusive, and end date exclusive")
+          "Construct a new Duration that is between the given start date inclusive, and end date exclusive",
+      autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
   public static EnsoDuration between(

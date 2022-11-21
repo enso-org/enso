@@ -7,7 +7,8 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 @BuiltinMethod(
     type = "Unsafe",
     name = "set_atom_field",
-    description = "Unsafely, in place, sets the value of an atom field by index.")
+    description = "Unsafely, in place, sets the value of an atom field by index.",
+    autoRegister = false)
 public class SetAtomFieldNode extends Node {
   Atom execute(Atom atom, long index, Object value) {
     atom.getFields()[(int) index] = value;

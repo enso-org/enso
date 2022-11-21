@@ -19,7 +19,7 @@ public final class Ref implements TruffleObject {
    *
    * @param value the initial value to store in the reference.
    */
-  @Builtin.Method(description = "Creates a new Ref")
+  @Builtin.Method(description = "Creates a new Ref", autoRegister = false)
   public Ref(Object value) {
     this.value = value;
   }

@@ -239,6 +239,9 @@
 - [Implemented `Period` type][3818]
 - [Implemented new functions on Column and added expression syntax support to
   create derived Columns.][3782]
+- [Added support for milli and micro seconds, new short form for rename_columns
+  and fixed issue with compare_to versus Nothing][3874]
+- [Aligned `Text.match`/`Text.locate` API][3841]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -380,6 +383,8 @@
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
+[3874]: https://github.com/enso-org/enso/pull/3874
+[3841]: https://github.com/enso-org/enso/pull/3841
 
 #### Enso Compiler
 
@@ -431,6 +436,7 @@
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
 - [Fix performance of method calls on polyglot arrays][3781]
+- [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
 - [Made Vector performance to be on par with Array][3811]
 - [Introduced IO Permission Contexts][3828]
@@ -495,6 +501,7 @@
 [3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
 [3781]: https://github.com/enso-org/enso/pull/3781
+[3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
 [3811]: https://github.com/enso-org/enso/pull/3811
 [3828]: https://github.com/enso-org/enso/pull/3828

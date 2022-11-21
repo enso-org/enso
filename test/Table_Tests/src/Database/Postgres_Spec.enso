@@ -235,7 +235,7 @@ pgpass_file = enso_project.data / "pgpass.conf"
 
 pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
     make_pair username password =
-        [Pair_Data "user" username, Pair_Data "password" password]
+        [Pair.Value "user" username, Pair.Value "password" password]
     Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
         result = Pgpass.parse_file pgpass_file
         result.length . should_equal 12
@@ -310,11 +310,11 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
         c4.database . should_equal ""
         c4.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
 
-    add_ssl props = props+[Pair_Data 'sslmode' 'prefer']
+    add_ssl props = props+[Pair.Value 'sslmode' 'prefer']
     Test.specify "should use the given credentials" <|
         c = Postgres credentials=(Credentials.Username_And_Password "myuser" "mypass")
         c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
-        c.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "myuser", Pair_Data "password" "mypass"]
+        c.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "myuser", Pair.Value "password" "mypass"]
 
     Test.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
         c1 = Postgres
@@ -326,7 +326,7 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
             c1.jdbc_properties.catch.message . should_equal "PGPASSWORD is set, but PGUSER is not."
 
             Test_Environment.unsafe_with_environment_override "PGUSER" "someuser" <|
-                c1.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "someuser", Pair_Data "password" "somepassword"]
+                c1.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "someuser", Pair.Value "password" "somepassword"]
 
         c2 = Postgres "192.168.4.0" 1234 "foo"
         c3 = Postgres "::1" 55999 "database_name"
@@ -336,24 +336,24 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
         c4.jdbc_properties . should_equal <| add_ssl []
 
         Test_Environment.unsafe_with_environment_override "PGPASSFILE" pgpass_file.absolute.path <|
-            c2.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "bar", Pair_Data "password" "baz"]
-            c3.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "user_that_has_no_password", Pair_Data "password" ""]
-            c4.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "*", Pair_Data "password" "fallback_password"]
+            c2.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "bar", Pair.Value "password" "baz"]
+            c3.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "user_that_has_no_password", Pair.Value "password" ""]
+            c4.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "*", Pair.Value "password" "fallback_password"]
 
             Test_Environment.unsafe_with_environment_override "PGUSER" "bar" <|
-                c2.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "bar", Pair_Data "password" "baz"]
+                c2.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "bar", Pair.Value "password" "baz"]
                 [c3, c4].each c->
                     c.jdbc_properties . should_equal <|
-                        add_ssl [Pair_Data "user" "*", Pair_Data "password" "fallback_password"]
+                        add_ssl [Pair.Value "user" "*", Pair.Value "password" "fallback_password"]
 
             Test_Environment.unsafe_with_environment_override "PGUSER" "other user" <|
                 [c2, c3, c4].each c->
                     c.jdbc_properties . should_equal <|
-                        add_ssl [Pair_Data "user" "*", Pair_Data "password" "fallback_password"]
+                        add_ssl [Pair.Value "user" "*", Pair.Value "password" "fallback_password"]
 
                 Test_Environment.unsafe_with_environment_override "PGPASSWORD" "other password" <|
                     [c2, c3, c4].each c->
-                        c.jdbc_properties . should_equal <| add_ssl [Pair_Data "user" "other user", Pair_Data "password" "other password"]
+                        c.jdbc_properties . should_equal <| add_ssl [Pair.Value "user" "other user", Pair.Value "password" "other password"]
 
 spec =
     table_spec

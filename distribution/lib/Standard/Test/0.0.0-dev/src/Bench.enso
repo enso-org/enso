@@ -45,12 +45,12 @@ type Bench
 
    Arguments:
    - list: The list to reverse.
-reverse_list : List Any -> List
+reverse_list : List -> List
 reverse_list list =
     go = list -> acc -> case list of
-        Cons h t -> @Tail_Call go t (Cons h acc)
-        Nil -> acc
-    res = go list Nil
+        List.Cons h t -> @Tail_Call go t (List.Cons h acc)
+        List.Nil -> acc
+    res = go list List.Nil
     res
 
 ## PRIVATE
@@ -59,11 +59,11 @@ reverse_list list =
 
    Arguments:
    - list: The list of numbers to sum.
-sum_list : List Number -> Sum
+sum_list : List -> Sum
 sum_list list =
     go = list -> acc -> case list of
-        Cons a b -> @Tail_Call go b (acc + a)
-        Nil -> acc
+        List.Cons a b -> @Tail_Call go b (acc + a)
+        List.Nil -> acc
 
     res = go list 0
     res
@@ -74,7 +74,7 @@ sum_list list =
 
    Arguments:
    - list: The list of numbers to calculate the average of.
-avg_list : List Number -> Number
+avg_list : List -> Number
 avg_list list = sum_list list / len_list list
 
 ## PRIVATE
@@ -83,11 +83,11 @@ avg_list list = sum_list list / len_list list
 
    Arguments:
    - list: The list to calculate the length of.
-len_list : List Any -> Integer
+len_list : List -> Integer
 len_list list =
     go = list -> acc -> case list of
-        Cons _ b -> @Tail_Call go b (acc + 1)
-        Nil -> acc
+        List.Cons _ b -> @Tail_Call go b (acc + 1)
+        List.Nil -> acc
     res = go list 0
     res
 
@@ -100,6 +100,6 @@ len_list list =
 times : Integer -> (Integer -> Any) -> List Any
 times count act =
     go = results -> number -> if number == 0 then results else
-        @Tail_Call go (Cons (act number) results) number-1
-    res = reverse_list (go Nil count)
+        @Tail_Call go (List.Cons (act number) results) number-1
+    res = reverse_list (go List.Nil count)
     res

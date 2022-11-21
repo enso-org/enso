@@ -1,59 +1,82 @@
-from Standard.Base import all
+import project.Data.Numbers.Number
+from project.Data.Boolean import Boolean, False
 
-import Standard.Base.Data.Interval.Bound
+## A type representing an interval bound over any order-able type.
 
-export Standard.Base.Data.Interval.Bound
+   An order-able type is one that has a
+   [total order](https://en.wikipedia.org/wiki/Total_order) defined for it.
+type Bound
+    ## A bound that includes the value `n`.
 
-## Creates an interval that excludes both its bounds.
+       Arguments:
+       - n: The value defining the inclusive bound.
 
-   > Example
-     Create the bounds-exclusive range from 0.1 to 0.5.
+       > Example
+         Create a bound that includes the value 2.
 
-         import Standard.Base.Data.Interval
+             import Standard.Base.Data.Interval.Bound
 
-         example_exclusive = Interval.exclusive 0.1 0.5
-exclusive : Number -> Number -> Interval
-exclusive start end = Interval_Data (Bound.Exclusive start) (Bound.Exclusive end)
+             example_bound_inclusive = Bound.Inclusive 2
+    Inclusive n
 
-## Creates an interval that excludes its lower bound.
+    ## A bound that excludes the value `n`.
 
-   > Example
-     Create the start-exclusive range from 1 to 5.
+       Arguments:
+       - n: The value defining the exclusive bound.
 
-         import Standard.Base.Data.Interval
+       > Example
+         Create a bound that excludes the value 2.
 
-         example_start_exclusive = Interval.start_exclusive 1 5
-start_exclusive : Number -> Number -> Interval
-start_exclusive start end = Interval_Data (Bound.Exclusive start) (Bound.Inclusive end)
+             import Standard.Base.Data.Interval.Bound
 
-## Creates an interval that excludes its upper bound.
-
-   > Example
-     Create the end-exclusive range from 1 to 5.
-
-         import Standard.Base.Data.Interval
-
-         example_end_exclusive = Interval.end_exclusive 1 5
-end_exclusive : Number -> Number -> Interval
-end_exclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Exclusive end)
-
-## Creates an interval that includes both of its bounds.
-
-   > Example
-     Create the inclusive range from 0 to 0.
-
-         import Standard.Base.Data.Interval
-
-         example_inclusive = Interval.inclusive 0 0
-inclusive : Number -> Number -> Interval
-inclusive start end = Interval_Data (Bound.Inclusive start) (Bound.Inclusive end)
-
-# TODO Dubious constructor export
-from project.Data.Interval.Interval import all
-from project.Data.Interval.Interval export all
+             example_bound_exclusive = Bound.Exclusive 2.
+    Exclusive n
 
 ## A type representing an interval over real numbers.
 type Interval
+    ## Creates an interval that excludes both its bounds.
+
+       > Example
+         Create the bounds-exclusive range from 0.1 to 0.5.
+
+             import Standard.Base.Data.Interval
+
+             example_exclusive = Interval.exclusive 0.1 0.5
+    exclusive : Number -> Number -> Interval
+    exclusive start end = Interval.Value (Bound.Exclusive start) (Bound.Exclusive end)
+
+    ## Creates an interval that excludes its lower bound.
+
+       > Example
+         Create the start-exclusive range from 1 to 5.
+
+             import Standard.Base.Data.Interval
+
+             example_start_exclusive = Interval.start_exclusive 1 5
+    start_exclusive : Number -> Number -> Interval
+    start_exclusive start end = Interval.Value (Bound.Exclusive start) (Bound.Inclusive end)
+
+    ## Creates an interval that excludes its upper bound.
+
+       > Example
+         Create the end-exclusive range from 1 to 5.
+
+             import Standard.Base.Data.Interval
+
+             example_end_exclusive = Interval.end_exclusive 1 5
+    end_exclusive : Number -> Number -> Interval
+    end_exclusive start end = Interval.Value (Bound.Inclusive start) (Bound.Exclusive end)
+
+    ## Creates an interval that includes both of its bounds.
+
+       > Example
+         Create the inclusive range from 0 to 0.
+
+             import Standard.Base.Data.Interval
+
+             example_inclusive = Interval.inclusive 0 0
+    inclusive : Number -> Number -> Interval
+    inclusive start end = Interval.Value (Bound.Inclusive start) (Bound.Inclusive end)
 
     ## PRIVATE
 
@@ -62,7 +85,7 @@ type Interval
        Arguments:
        - start: The start of the interval.
        - end: The end of the interval.
-    Interval_Data (start : Bound.Bound) (end : Bound.Bound)
+    Value (start : Bound.Bound) (end : Bound.Bound)
 
     ## Checks if the interval contains `that`.
 
@@ -112,4 +135,3 @@ type Interval
              example_not_empty = Interval.inclusive 0 0.001 . not_empty
     not_empty : Boolean
     not_empty self = self.is_empty.not
-

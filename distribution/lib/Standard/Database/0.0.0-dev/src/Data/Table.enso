@@ -315,10 +315,12 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
-    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ : Map ->
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
             if new_names.is_error then new_names else
@@ -522,6 +524,12 @@ type Table
        Returns the vector of columns contained in this table.
     columns : Vector Column
     columns self = self.internal_columns . map self.make_column
+
+    ## UNSTABLE
+
+       Returns the vector of column names contained in this table.
+    column_names : Vector Text
+    column_names self = self.internal_columns . map _.name
 
     ## Returns a vector of rows contained in this table.
 
@@ -787,8 +795,8 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Group_By "Key", Count Nothing]
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count Nothing]
+    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
         on_problems.attach_problems_before validated.problems <|
@@ -812,7 +820,7 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

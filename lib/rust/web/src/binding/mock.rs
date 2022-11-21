@@ -462,10 +462,11 @@ mock_data! { EventTarget => Object
 // === Document ===
 mock_data! { Document => EventTarget
     fn body(&self) -> Option<HtmlElement>;
+    fn head(&self) -> Option<HtmlHeadElement>;
+    fn fonts(&self) -> FontFaceSet;
     fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
     fn create_text_node(&self, data: &str) -> Text;
-    fn head(&self) -> Option<HtmlHeadElement>;
 }
 
 
@@ -483,11 +484,6 @@ mock_data! { Window => EventTarget
         (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
     fn clear_timeout_with_handle(&self, handle: i32);
     fn clear_interval_with_handle(&self, handle: i32);
-}
-
-
-// === HtmlHeadElement ===
-mock_data! { HtmlHeadElement => HtmlElement
 }
 
 
@@ -597,6 +593,22 @@ impl From<HtmlElement> for EventTarget {
 }
 
 
+// === HtmlHeadElement ===
+mock_data! { HtmlHeadElement => HtmlElement }
+
+
+// === HtmlHeadElement ===
+mock_data! { Promise
+    fn then(&self, cb: &Closure<dyn FnMut(JsValue)>) -> Promise;
+}
+
+
+// === HtmlHeadElement ===
+mock_data! { FontFaceSet
+    fn ready(&self) -> Result<Promise, JsValue>;
+}
+
+
 // === HtmlDivElement ===
 mock_data! { HtmlDivElement => HtmlElement }
 impl From<HtmlDivElement> for EventTarget {
@@ -630,10 +642,18 @@ mock_data! { HtmlCanvasElement => HtmlElement
         ) -> Result<Option<Object>, JsValue>;
 }
 
+// === HtmlCanvasElement ===
+mock_data! { TextMetrics
+    fn actual_bounding_box_right(&self) -> u32;
+    fn actual_bounding_box_left(&self) -> u32;
+    fn width(&self) -> u32;
+}
+
 
 // === CanvasRenderingContext2d ===
 mock_data! { CanvasRenderingContext2d
     fn save(&self);
+    fn measure_text(&self, text: &str) -> Result<TextMetrics, JsValue>;
     fn restore(&self);
     fn begin_path(&self);
     fn stroke(&self);

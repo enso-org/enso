@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Table.Table
 import project.Data.Storage.Storage
@@ -796,7 +796,7 @@ type Column
                     Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
-                    _ : Vector.Vector -> vector
+                    _ : Vector -> vector
                     column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
@@ -808,7 +808,7 @@ type Column
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
-                    _ : Vector.Vector -> vector
+                    _ : Vector -> vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
                     column : Column -> column.to_vector
@@ -1167,7 +1167,7 @@ type Column
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
-        Index_Sub_Range.take_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
     ## Creates a new Column from the input with the specified range of rows
        removed.
@@ -1176,7 +1176,7 @@ type Column
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length self.at self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
@@ -1282,7 +1282,7 @@ type Empty_Error
 run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Boolean -> Text -> Column
 run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_name=(name + "_" + column.name) =
     case operands of
-        _ : Vector.Vector ->
+        _ : Vector ->
             folded = operands.fold column.java_column.getStorage current-> operand->
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
@@ -1371,5 +1371,5 @@ get_item_string column ix =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Column_Data (column.java_column.slice normalized.to_array)

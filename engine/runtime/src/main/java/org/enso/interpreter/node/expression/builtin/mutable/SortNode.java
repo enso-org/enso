@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
@@ -20,32 +22,34 @@ import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
-  private @Child ComparatorNode comparatorNode = ComparatorNode.build();
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
+  private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
   private final BranchProfile resultProfile = BranchProfile.create();
 
-  abstract Object execute(VirtualFrame frame, State state, Object self, Object comparator);
+  abstract Object execute(State state, Object self, Object comparator);
 
   static SortNode build() {
     return SortNodeGen.create();
   }
 
   @Specialization
-  Object doSortFunction(VirtualFrame frame, State state, Array self, Function comparator) {
+  Object doSortFunction(State state, Array self, Function comparator) {
     Context context = Context.get(this);
     Comparator<Object> compare = getComparator(comparator, context, state);
     return runSort(compare, self, context);
   }
 
   @Specialization
-  Object doSortCallable(VirtualFrame frame, State state, Array self, Object comparator) {
-    Comparator<Object> compare = (l, r) -> comparatorNode.execute(frame, comparator, state, l, r);
-    return runSort(compare, self, Context.get(this));
+  Object doAtomThis(State state, Atom self, Object that) {
+    return Context.get(this).getBuiltins().nothing();
   }
 
-  @Specialization
-  Object doAtomThis(VirtualFrame frame, State state, Atom self, Object that) {
-    return Context.get(this).getBuiltins().nothing();
+  @Fallback
+  Object doOther(State state, Object self, Object comparator) {
+    CompilerDirectives.transferToInterpreter();
+    var fun = Context.get(this).getBuiltins().function();
+    throw new PanicException(
+        Context.get(this).getBuiltins().error().makeTypeError(fun, comparator, "comparator"), this);
   }
 
   Object runSort(Comparator<Object> compare, Array self, Context context) {
@@ -97,9 +101,7 @@ public abstract class SortNode extends Node {
         return 1;
       } else {
         resultProfile.enter();
-        var ordering = context.getBuiltins().ordering().getType();
-        throw new PanicException(
-            context.getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
+        return invalidComparisonNode.execute(res);
       }
     }
   }

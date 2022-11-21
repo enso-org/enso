@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Array_Proxy import Array_Proxy
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 from project.Data.Table import Table
 

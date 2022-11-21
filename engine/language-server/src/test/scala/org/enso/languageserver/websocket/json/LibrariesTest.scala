@@ -556,7 +556,7 @@ class LibrariesTest extends BaseServerTest {
         var waitingForResult = true
 
         while (waitingForTask || waitingForResult) {
-          val msg = client.expectSomeJson().asObject.value
+          val msg = client.expectSomeJson(10.seconds.dilated).asObject.value
 
           msg("id") match {
             case Some(json) =>
