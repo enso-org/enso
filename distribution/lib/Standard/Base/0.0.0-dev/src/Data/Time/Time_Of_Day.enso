@@ -1,57 +1,24 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Period.Time_Period
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Meta
+import project.Nothing.Nothing
 
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
-import Standard.Base.Data.Time.Time_Period
-from Standard.Base.Error.Common import Time_Error
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
-
-## Obtains the current time from the system clock in the default time-zone.
-
-   > Example
-     Get the current time in the default time zone.
-
-         from Standard.Base import Time_Of_Day
-
-         example_now = Time_Of_Day.now
-now : Time_Of_Day
-now = @Builtin_Method "Time_Of_Day.now"
-
-## Obtains an instance of `Time_Of_Day` from an hour, minute, second
-   and nanosecond.
-
-   Arguments:
-   - hour: The hour-of-day to represent, from 0 to 23.
-   - minute: The minute-of-hour to represent, from 0 to 59.
-   - second: The second-of-minute to represent, from 0 to 59.
-   - millisecond: the millisecond-of-second to represent, from 0 to 999.
-   - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
-   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
-
-   Returns a `Time_Error` if the provided time is not a valid time.
-
-   > Example
-     Create a new local time at Unix epoch.
-
-         from Standard.Base import Time_Of_Day
-
-         example_epoch = Time_Of_Day.new
-
-   > Example
-     Get the local time at 9:30.
-
-         from Standard.Base import Time_Of_Day
-
-         example_epoch = Time_Of_Day.new hour=9 minute=30
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
-new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
-    total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-    Panic.catch_java Any (new_builtin hour minute second total_nanoseconds) java_exception->
-        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## PRIVATE
 
@@ -67,74 +34,6 @@ new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (na
    Recommended to use `Time_Of_Day.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
-
-## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-   Arguments:
-   - text: The text to parse as a time of day.
-   - pattern: The pattern to use for parsing the input text.
-   - locale: The locale in which the pattern should be interpreted.
-
-   Returns a `Time_Error` if the provided text cannot be parsed using the
-   default format.
-
-   ? Pattern Syntax
-     For the list of accepted symbols in pattern refer to `Time.format` doc.
-
-   ? Default Time Format
-     The text must represent a valid time and is parsed using the ISO-8601
-     extended local time format. The format consists of:
-
-     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
-       digits.
-     - A colon
-     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
-       two digits.
-     - If the second-of-minute is not available then the format is complete.
-     - A colon
-     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
-       two digits.
-     - If the nano-of-second is zero or not available then the format is
-       complete.
-     - A decimal point
-     - One to nine digits for the nano-of-second. As many digits will be output
-       as required.
-
-   > Example
-     Get the time 15:05:30.
-
-         from Standard.Base import Time_Of_Day
-
-         example_parse = Time_Of_Day.parse "15:05:30"
-
-   > Example
-     Recover from the parse error.
-
-         from Standard.Base import Time_Of_Day
-         from Standard.Base.Error.Common import Time_Error
-
-         example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
-             Time_Of_Day.new
-
-   > Example
-     Parse "04:30:20" as Time_Of_Day.
-
-         from Standard.Base import Time_Of_Day
-
-         example_parse = Time_Of_Day.parse "04:30:20" "HH:mm:ss"
-
-   > Example
-     Parse "4:30AM" as Time_Of_Day
-
-         from Standard.Base import Time_Of_Day
-
-         example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
-parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
-        case pattern of
-            Nothing -> parse_builtin text
-            _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
 ## PRIVATE
 
@@ -157,6 +56,116 @@ parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
    "13:45.30.123456789" can be stored in a `Time_Of_Day`.
 @Builtin_Type
 type Time_Of_Day
+    ## Obtains the current time from the system clock in the default time-zone.
+
+       > Example
+         Get the current time in the default time zone.
+
+             from Standard.Base import Time_Of_Day
+
+             example_now = Time_Of_Day.now
+    now : Time_Of_Day
+    now = @Builtin_Method "Time_Of_Day.now"
+
+    ## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+       and nanosecond.
+
+       Arguments:
+       - hour: The hour-of-day to represent, from 0 to 23.
+       - minute: The minute-of-hour to represent, from 0 to 59.
+       - second: The second-of-minute to represent, from 0 to 59.
+       - millisecond: the millisecond-of-second to represent, from 0 to 999.
+       - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
+       - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+
+       Returns a `Time_Error` if the provided time is not a valid time.
+
+       > Example
+         Create a new local time at Unix epoch.
+
+             from Standard.Base import Time_Of_Day
+
+             example_epoch = Time_Of_Day.new
+
+       > Example
+         Get the local time at 9:30.
+
+             from Standard.Base import Time_Of_Day
+
+             example_epoch = Time_Of_Day.new hour=9 minute=30
+    new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
+    new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
+        total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
+        Panic.catch_java Any (new_builtin hour minute second total_nanoseconds) java_exception->
+            Error.throw (Time_Error_Data java_exception.getMessage)
+
+    ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+       Arguments:
+       - text: The text to parse as a time of day.
+       - pattern: The pattern to use for parsing the input text.
+       - locale: The locale in which the pattern should be interpreted.
+
+       Returns a `Time_Error` if the provided text cannot be parsed using the
+       default format.
+
+       ? Pattern Syntax
+         For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+       ? Default Time Format
+         The text must represent a valid time and is parsed using the ISO-8601
+         extended local time format. The format consists of:
+
+         - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+           digits.
+         - A colon
+         - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
+           two digits.
+         - If the second-of-minute is not available then the format is complete.
+         - A colon
+         - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+           two digits.
+         - If the nano-of-second is zero or not available then the format is
+           complete.
+         - A decimal point
+         - One to nine digits for the nano-of-second. As many digits will be output
+           as required.
+
+       > Example
+         Get the time 15:05:30.
+
+             from Standard.Base import Time_Of_Day
+
+             example_parse = Time_Of_Day.parse "15:05:30"
+
+       > Example
+         Recover from the parse error.
+
+             from Standard.Base import Time_Of_Day
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse = Time_Of_Day.parse "half twelve" . catch Time_Error _->
+                 Time_Of_Day.new
+
+       > Example
+         Parse "04:30:20" as Time_Of_Day.
+
+             from Standard.Base import Time_Of_Day
+
+             example_parse = Time_Of_Day.parse "04:30:20" "HH:mm:ss"
+
+       > Example
+         Parse "4:30AM" as Time_Of_Day
+
+             from Standard.Base import Time_Of_Day
+
+             example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
+    parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
+    parse text pattern=Nothing locale=Locale.default =
+        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+            case pattern of
+                Nothing -> parse_builtin text
+                _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
     ## Get the hour portion of the time of day.
 
@@ -244,15 +253,14 @@ type Time_Of_Day
 
        > Example
 
-             from Standard.Base import Time_Of_Day
-             import Standard.Base.Data.Time.Duration
+             from Standard.Base import Time_Of_Day, Duration
 
-             example_plus = Time_Of_Day.new + (Duration.seconds 3)
+             example_plus = Time_Of_Day.new + (Duration.new seconds=3)
     + : Duration -> Time_Of_Day ! Time_Error
     + self amount =
         case amount of
-            duration : Duration.Duration -> self.plus_builtin duration
-            _ : Period.Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
+            duration : Duration -> self.plus_builtin duration
+            _ : Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
 
     ## Subtract the  specified amount of time from this instant to get a new
        instant.
@@ -263,15 +271,14 @@ type Time_Of_Day
        > Example
          Subtract 12 hours from a local time.
 
-             from Standard.Base import Time_Of_Day
-             import Standard.Base.Data.Time.Duration
+             from Standard.Base import Time_Of_Day, Duration
 
-             example_minus = Time_Of_Day.now - (Duration.hours 12)
+             example_minus = Time_Of_Day.now - (Duration.new hours=12)
     - : Duration -> Time_Of_Day ! Time_Error
     - self amount =
         case amount of
-            duration : Duration.Duration -> self.minus_builtin duration
-            _ : Period.Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
+            duration : Duration -> self.minus_builtin duration
+            _ : Period -> Error.throw (Time_Error_Data "Time_Of_Day does not support date intervals (periods)")
 
     ## Format this time of day as text using the default formatter.
 
@@ -368,6 +375,7 @@ type Time_Of_Day
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
     == self that = case that of
+        Time_Of_Day -> Meta.is_same_object self Time_Of_Day
         _ : Time_Of_Day ->
             sign = Time_Utils.compare_to_localtime self that
             0 == sign

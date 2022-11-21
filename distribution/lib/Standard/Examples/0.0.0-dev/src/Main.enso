@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
 import Standard.Base.Network.Http
 import Standard.Base.System.Platform
 import Standard.Base.Network.URI

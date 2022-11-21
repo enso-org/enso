@@ -795,8 +795,8 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Group_By "Key", Count Nothing]
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count Nothing]
+    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
         on_problems.attach_problems_before validated.problems <|
@@ -820,7 +820,7 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

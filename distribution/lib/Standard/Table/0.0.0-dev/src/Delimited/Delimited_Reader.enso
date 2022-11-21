@@ -108,8 +108,8 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
             Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
     warnings_as_errors = on_problems == Report_Error
     quote_characters = case format.quote_style of
-        Quote_Style.No_Quotes -> Pair_Data Nothing Nothing
-        Quote_Style.With_Quotes _ quote quote_escape -> Pair_Data quote quote_escape
+        Quote_Style.No_Quotes -> Pair.Value Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair.Value quote quote_escape
     base_parser = case format.quote_style of
         Quote_Style.No_Quotes -> IdentityParser.new
         Quote_Style.With_Quotes _ quote _ ->
@@ -207,7 +207,7 @@ newline_at_eof : File -> Encoding -> Text|Nothing
 newline_at_eof file encoding =
     newlines = ['\r\n', '\n', '\r']
     newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
-    most_bytes = newline_bytes.map .length . compute Statistics.Maximum
+    most_bytes = newline_bytes.map .length . compute Statistic.Maximum
     file_last_bytes = file.read_last_bytes most_bytes
     result = newlines.zip newline_bytes . find pair->
         bytes = pair.second

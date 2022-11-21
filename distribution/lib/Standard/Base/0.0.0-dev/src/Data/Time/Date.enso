@@ -1,72 +1,31 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Vector
+import project.Math
+import project.Meta
+import project.Nothing.Nothing
+import project.Polyglot
 
-import project.Data.Time.Duration
-import project.Data.Time.Period
-import project.Data.Time.Date_Period
-
-import Standard.Base.Polyglot
-from Standard.Base.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Polyglot_Error_Data, unimplemented
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import java.time.DateTimeException
 polyglot java import java.lang.ArithmeticException
-
-## Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         example_now = Date.now
-now : Date
-now = @Builtin_Method "Date.now"
-
-## ALIAS Current Date
-
-   Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         example_today = Date.today
-today : Date
-today = now
-
-## Constructs a new Date from a year, month, and day.
-
-   Arguments
-   - year: The year to represent.
-   - month: The month-of-year to represent, from 1 (January) to 12 (December).
-   - day: The day-of-month to represent, from 1 to 31. It must be valid for the
-     year and month.
-
-   Returns a `Time_Error` if the provided time is not valid.
-
-   > Example
-     Create a new local date at Unix epoch.
-
-         from Standard.Base import Date
-
-         example_new = Date.new 1970
-
-   > Example
-     Get the local date of 5th August 1986.
-
-         example_new = Date.new 1986 8 5
-
-new : Integer -> Integer -> Integer -> Date ! Time_Error
-new year (month = 1) (day = 1) =
-    ## TODO This is left using the old error handling approach, because
-       magically, changing this to the `catch_java` (which is now preferred way
-       of catching Polyglot_Errors) lead to the "should format local date using
-       provided pattern" test failing because it called the `LocalDate.format`
-       instead of Enso format. Hopefully this will be fixed with
-       https://github.com/enso-org/enso/pull/3559
-       Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
-        Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
-        ex -> ex
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
@@ -80,78 +39,6 @@ new year (month = 1) (day = 1) =
    Recommended to use `Date.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Date
 new_builtin year month day = @Builtin_Method "Date.new_builtin"
-
-## ALIAS Date from Text
-
-   Converts text containing a date into a Date object.
-
-   Arguments:
-   - text: The text to try and parse as a date.
-   - pattern: An optional pattern describing how to parse the text.
-
-   Returns a `Time_Error` if the provided `text` cannot be parsed using the
-   provided `pattern`.
-
-   ? Pattern Syntax
-     Patterns are based on a simple sequence of letters and symbols. For
-     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
-
-   ? Default Date Formatting
-     Unless you provide a custom format, the text must represent a valid date
-     that can be parsed using the ISO-8601 extended local date format. The
-     format consists of:
-
-     - Four digits or more for the year. Years in the range 0000 to 9999
-       will be pre-padded by zero to ensure four digits. Years outside
-       that range will have a prefixed positive or negative symbol.
-     - A dash
-     - Two digits for the month-of-year. This is pre-padded by zero to ensure
-       two digits.
-     - A dash
-     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-       digits.
-
-   > Example
-     Parse the date of 23rd December 2020.
-
-         from Standard.Base import Date
-
-         example_parse = Date.parse "2020-12-23"
-
-   > Example
-     Recover from an error due to a wrong format.
-
-         from Standard.Base import Date
-         from Standard.Base.Error.Common import Time_Error
-
-         example_parse_err = Date.parse "my birthday" . catch Time_Error _->
-             Date.new 2000 1 1
-
-   > Example
-     Parse "1999-1-1" as Date using a custom format.
-
-         from Standard.Base import Date
-
-         example_parse = Date.parse "1999-1-1" "yyyy-M-d"
-
-   > Example
-     Recover from the parse error.
-
-         from Standard.Base import Date
-         from Standard.Base.Error.Common import Time_Error
-
-         example_parse_err =
-             date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch Time_Error (_->Date.new 2000 1 1)
-parse : Text -> (Text | Nothing) -> Date ! Time_Error
-parse text pattern=Nothing =
-    result = Panic.recover Any <| case pattern of
-        Nothing -> parse_builtin text 0
-        _ : Text -> parse_builtin text pattern
-        _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
-    result . map_error <| case _ of
-        Polyglot_Error_Data err -> Time_Error_Data err.getMessage
-        ex -> ex
 
 ## PRIVATE
    Converts text containing a date into a Date object.
@@ -193,6 +80,132 @@ parse_builtin text pattern = @Builtin_Method "Date.parse_builtin"
    offset or timezone.
 @Builtin_Type
 type Date
+    ## Obtains the current date from the system clock in the system timezone.
+
+       > Example
+         Get the current date.
+
+             example_now = Date.now
+    now : Date
+    now = @Builtin_Method "Date.now"
+
+    ## ALIAS Current Date
+
+       Obtains the current date from the system clock in the system timezone.
+
+       > Example
+         Get the current date.
+
+             example_today = Date.today
+    today : Date
+    today = Date.now
+
+    ## Constructs a new Date from a year, month, and day.
+
+       Arguments
+       - year: The year to represent.
+       - month: The month-of-year to represent, from 1 (January) to 12 (December).
+       - day: The day-of-month to represent, from 1 to 31. It must be valid for the
+         year and month.
+
+       Returns a `Time_Error` if the provided time is not valid.
+
+       > Example
+         Create a new local date at Unix epoch.
+
+             from Standard.Base import Date
+
+             example_new = Date.new 1970
+
+       > Example
+         Get the local date of 5th August 1986.
+
+             example_new = Date.new 1986 8 5
+
+    new : Integer -> Integer -> Integer -> Date ! Time_Error
+    new year (month = 1) (day = 1) =
+        ## TODO This is left using the old error handling approach, because
+           magically, changing this to the `catch_java` (which is now preferred way
+           of catching Polyglot_Errors) lead to the "should format local date using
+           provided pattern" test failing because it called the `LocalDate.format`
+           instead of Enso format. Hopefully this will be fixed with
+           https://github.com/enso-org/enso/pull/3559
+           Then this should be switched to use `Panic.catch_java`.
+        Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
+            Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
+            ex -> ex
+
+    ## ALIAS Date from Text
+
+       Converts text containing a date into a Date object.
+
+       Arguments:
+       - text: The text to try and parse as a date.
+       - pattern: An optional pattern describing how to parse the text.
+
+       Returns a `Time_Error` if the provided `text` cannot be parsed using the
+       provided `pattern`.
+
+       ? Pattern Syntax
+         Patterns are based on a simple sequence of letters and symbols. For
+         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+       ? Default Date Formatting
+         Unless you provide a custom format, the text must represent a valid date
+         that can be parsed using the ISO-8601 extended local date format. The
+         format consists of:
+
+         - Four digits or more for the year. Years in the range 0000 to 9999
+           will be pre-padded by zero to ensure four digits. Years outside
+           that range will have a prefixed positive or negative symbol.
+         - A dash
+         - Two digits for the month-of-year. This is pre-padded by zero to ensure
+           two digits.
+         - A dash
+         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+           digits.
+
+       > Example
+         Parse the date of 23rd December 2020.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "2020-12-23"
+
+       > Example
+         Recover from an error due to a wrong format.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err = Date.parse "my birthday" . catch Time_Error _->
+                 Date.new 2000 1 1
+
+       > Example
+         Parse "1999-1-1" as Date using a custom format.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "1999-1-1" "yyyy-M-d"
+
+       > Example
+         Recover from the parse error.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err =
+                 date = Date.parse "1999-1-1" "yyyy-MM-dd"
+                 date.catch Time_Error (_->Date.new 2000 1 1)
+    parse : Text -> (Text | Nothing) -> Date ! Time_Error
+    parse text pattern=Nothing =
+        result = Panic.recover Any <| case pattern of
+            Nothing -> parse_builtin text 0
+            _ : Text -> parse_builtin text pattern
+            _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+        result . map_error <| case _ of
+            Polyglot_Error_Data err -> Time_Error_Data err.getMessage
+            ex -> ex
 
     ## Get the year field.
 
@@ -315,14 +328,14 @@ type Date
          end-exclusive manner), by default the end date is not included in the
          count. This has the nice property that for example to count the work
          days within the next week you can do
-         `date.work_days_until (date + (Period.days 7)` and it will look at the 7 days
-         starting from the current `date` and not 8 days. This also gives us a
-         property that `date.work_days_until (date.add_work_days N) == N` for
-         any non-negative N. On the other hand, sometimes we may want the end
-         date to be included in the count, so we provide the `include_end_date`
-         argument for that purpose. Setting it to `True` should make the result
-         consistent with the `NETWORKDAYS` function in Excel and similar
-         products.
+         `date.work_days_until (date + (Period.new days=7)` and it will look at
+         the 7 days starting from the current `date` and not 8 days. This also
+         gives us a property that
+         `date.work_days_until (date.add_work_days N) == N` for any non-negative
+         N. On the other hand, sometimes we may want the end date to be included
+         in the count, so we provide the `include_end_date` argument for that
+         purpose. Setting it to `True` should make the result consistent with
+         the `NETWORKDAYS` function in Excel and similar products.
 
        > Example
          Count the number of workdays between two dates.
@@ -333,7 +346,7 @@ type Date
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
         Date_Time.ensure_in_epoch self <|
-            if include_end_date then self.work_days_until (end + (Period.days 1)) holidays include_end_date=False else
+            if include_end_date then self.work_days_until (end + (Period.new days=1)) holidays include_end_date=False else
                 weekdays = week_days_between self end
                 ## We count holidays that occurred within the period, but not on the
                    weekends (as weekend days have already been excluded from the count).
@@ -357,7 +370,7 @@ type Date
              from Standard.Base import Date, Time_Of_Day, Time_Zone
 
              example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
-    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
+    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time.Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
@@ -370,13 +383,13 @@ type Date
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = Date.new 2020 + (Period.months 6)
+             example_add = Date.new 2020 + (Period.new months=6)
     + : Period -> Date ! (Time_Error | Illegal_Argument_Error)
     + self period =
         case period of
-            _ : Period.Period ->
+            _ : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-            _ : Duration.Duration ->
+            _ : Duration ->
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
@@ -462,7 +475,7 @@ type Date
                        as long as needed to fall on a non-weekend non-holiday
                        workday.
                     go end_date =
-                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + (Period.days 1)) else end_date
+                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + (Period.new days=1)) else end_date
                     go end
             False ->
                 ## We shift a bit so that if shifting by N full weeks, the 'last'
@@ -500,7 +513,7 @@ type Date
                        holiday, we need to ensure that we move it - this time
                        backwards - to the first workday.
                     go end_date =
-                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.days 1)) else end_date
+                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
     ## Subtract the specified amount of time from this instant to get another
@@ -515,14 +528,14 @@ type Date
              from Standard.Base import Date
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = Date.new 2020 - (Period.days 7)
+             example_subtract = Date.new 2020 - (Period.new days=7)
     - : Period -> Date ! (Time_Error | Illegal_Argument_Error)
     - self period =
         case period of
-            _ : Period.Period ->
+            _ : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
-                new new_java_date.year new_java_date.month new_java_date.day
-            _ : Duration.Duration ->
+                Date.new new_java_date.year new_java_date.month new_java_date.day
+            _ : Duration ->
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
@@ -593,6 +606,7 @@ type Date
     ## Compares two Dates for equality.
     == : Date -> Boolean
     == self that = case that of
+        Date -> Meta.is_same_object self Date
         _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             0 == sign
@@ -604,7 +618,7 @@ week_days_between start end =
        starting point), the last week (containing the end point), and the full
        weeks in between those. In some cases there may be no weeks in-between
        and the first and last week can be the same week.
-    start_of_first_full_week = (start.start_of Date_Period.Week) + (Period.days 7)
+    start_of_first_full_week = (start.start_of Date_Period.Week) + (Period.new days=7)
     start_of_last_week = end.start_of Date_Period.Week
     full_weeks_between = (Time_Utils.days_between start_of_first_full_week start_of_last_week).div 7
     case full_weeks_between < 0 of
@@ -620,7 +634,7 @@ week_days_between start end =
                     _ -> days_between
         False ->
             # We count the days in the first week up until Friday - the weekend is not counted.
-            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.days 2)))
+            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2)))
             # We count the days in the last week, not including the weekend.
             last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
             full_weeks_between * 5 + first_week_days + last_week_days

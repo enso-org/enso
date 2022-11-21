@@ -1,10 +1,16 @@
-from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
+import project.Data.Any.Any
+import project.Data.Array.Array
+import project.Data.Ordering.Comparator
+import project.Data.Numbers.Number
+import project.Data.Vector.Vector
+import project.Meta
+import project.Nothing.Nothing
 
-from Standard.Base.Data.Vector import Empty_Error
+from project.Data.Boolean import Boolean, True, False
+from project.Data.Range import all
+from project.Data.Vector import Empty_Error
 
-import Standard.Base.Data.Ordering.Comparator
-
-import Standard.Base.Data.Statistics.Rank_Method
+from project.Error.Common import Error, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.CountMinMax
@@ -14,23 +20,46 @@ polyglot java import org.enso.base.statistics.Rank
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.NullPointerException
 
-# TODO Dubious constructor export
-from project.Data.Statistics.Statistic import all
-from project.Data.Statistics.Statistic export all
+## Specifies how to handle ranking of equal values.
+type Rank_Method
+    ## Use the mean of all ranks for equal values.
+    Average
+
+    ## Use the lowest of all ranks for equal values.
+    Minimum
+
+    ## Use the highest of all ranks for equal values.
+    Maximum
+
+    ## Use same rank value for equal values and next group is the immediate
+       following ranking number.
+    Dense
+
+    ## Equal values are assigned the next rank in order that they occur.
+    Ordinal
+
+    ## Assigns a rank to each value of data, dealing with equal values according to the method.
+
+       Arguments:
+       - data: Input data to rank.
+    compute : Vector -> Vector
+    compute self input =
+        java_method = case self of
+            Rank_Method.Minimum -> Rank.Method.MINIMUM
+            Rank_Method.Maximum -> Rank.Method.MAXIMUM
+            Rank_Method.Average -> Rank.Method.AVERAGE
+            Rank_Method.Ordinal -> Rank.Method.ORDINAL
+            Rank_Method.Dense -> Rank.Method.DENSE
+
+        report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
+        handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
+        handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
+
+        handle_classcast <| handle_nullpointer <|
+            java_ranks = Rank.rank input.to_array Comparator.new java_method
+            Vector.from_polyglot_array java_ranks
 
 type Statistic
-    ## PRIVATE
-       Convert the Enso Statistic into Java equivalent.
-    to_moment_statistic : SingleValue
-    to_moment_statistic self = case self of
-        Sum -> Moments.SUM
-        Mean -> Moments.MEAN
-        Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
-        Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
-        Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
-        Kurtosis -> Moments.KURTOSIS
-        _ -> Nothing
-
     ## Count the number of non-Nothing and non-NaN values.
     Count
 
@@ -89,98 +118,113 @@ type Statistic
        - predicted: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
 
+    ## Compute a single statistic on a vector like object.
 
-## Compute a single statistic on a vector like object.
+       Arguments:
+       - data: Vector like object which has a `to_array` method.
+       - statistic: Statistic to calculate.
+    compute : Vector -> Statistic -> Any
+    compute data statistic=Statistic.Count =
+        Statistic.compute_bulk data [statistic] . first
 
-   Arguments:
-   - data: Vector like object which has a `to_array` method.
-   - statistic: Statistic to calculate.
-compute : Vector -> Statistic -> Any
-compute data statistic=Count =
-    compute_bulk data [statistic] . first
+    ## Compute a set of statistics on a vector like object.
 
+       Arguments:
+       - data: Vector like object which has a `to_array` method.
+       - statistics: Set of statistics to calculate.
+    compute_bulk : Vector -> Vector Statistic -> Vector Any
+    compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
+        count_min_max = statistics.any s->((s.is_a Statistic.Count) || (s.is_a Statistic.Minimum) || (s.is_a Statistic.Maximum))
 
-## Compute a set of statistics on a vector like object.
+        java_stats = statistics.map to_moment_statistic
+        skip_java_stats = java_stats.all s->s.is_nothing
 
-   Arguments:
-   - data: Vector like object which has a `to_array` method.
-   - statistics: Set of statistics to calculate.
-compute_bulk : Vector -> [Statistic] -> [Any]
-compute_bulk data statistics=[Count, Sum] =
-    count_min_max = statistics.any s->((s.is_a Count) || (s.is_a Minimum) || (s.is_a Maximum))
+        report_invalid _ =
+            statistics.map_with_index i->v->
+                if java_stats.at i . is_nothing then Nothing else
+                    Error.throw (Illegal_Argument_Error_Data ("Can only compute " + v.to_text + " on numerical data sets."))
+        handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
 
-    java_stats = statistics.map .to_moment_statistic
-    skip_java_stats = java_stats.all s->s.is_nothing
+        empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
+            if (s == Statistic.Minimum) || (s == Statistic.Maximum) then Error.throw Empty_Error else
+                Number.nan
 
-    report_invalid _ =
-        statistics.map_with_index i->v->
-            if java_stats.at i . is_nothing then Nothing else
-                Error.throw (Illegal_Argument_Error_Data ("Can only compute " + v.to_text + " on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
+        if data.length == 0 then statistics.map empty_map else
+            count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing
+            stats_array = if skip_java_stats then Nothing else
+                handle_unsupported <| Moments.compute data.to_array java_stats.to_array
 
-    empty_map s = if (s == Count) || (s == Sum) then 0 else
-        if (s == Minimum) || (s == Maximum) then Error.throw Empty_Error else
-            Number.nan
+            statistics.map_with_index i->s->case s of
+                Statistic.Count -> count_min_max_values.count
+                Statistic.Minimum ->
+                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
+                        count_min_max_values.minimum
+                Statistic.Maximum ->
+                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
+                        count_min_max_values.maximum
+                Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
+                Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
+                Statistic.Spearman s -> calculate_spearman_rank data s
+                Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
+                _ -> stats_array.at i
 
-    if data.length == 0 then statistics.map empty_map else
-        count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing
-        stats_array = if skip_java_stats then Nothing else
-            handle_unsupported <| Moments.compute data.to_array java_stats.to_array
+    ## Calculate a variance-covariance matrix between the input series.
 
-        statistics.map_with_index i->s->case s of
-            Count -> count_min_max_values.count
-            Minimum ->
-                if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
-                    count_min_max_values.minimum
-            Maximum ->
-                if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
-                    count_min_max_values.maximum
-            Covariance s -> calculate_correlation_statistics data s . covariance
-            Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
-            Spearman s -> calculate_spearman_rank data s
-            R_Squared s -> calculate_correlation_statistics data s . rSquared
-            _ -> stats_array.at i
+       Arguments:
+       - data: The input data sets
+    covariance_matrix : Vector Vector -> Vector Vector
+    covariance_matrix data =
+        stats_vectors = calculate_correlation_statistics_matrix data
+        stats_vectors.map v->(v.map .covariance)
 
+    ## Calculate a Pearson correlation matrix between the input series.
 
-## Calculate a variance-covariance matrix between the input series.
+       Arguments:
+       - data: The input data sets
+    pearson_correlation : Vector Vector -> Vector Vector
+    pearson_correlation data =
+        stats_vectors = calculate_correlation_statistics_matrix data
+        stats_vectors.map v->(v.map .pearsonCorrelation)
 
-   Arguments:
-   - data: The input data sets
-covariance_matrix : [Vector] -> [Vector]
-covariance_matrix data =
-    stats_vectors = calculate_correlation_statistics_matrix data
-    stats_vectors.map v->(v.map .covariance)
+    ## Calculate a Spearman Rank correlation matrix between the input series.
 
+       Arguments:
+       - data: The input data sets
+    spearman_correlation : Vector Vector -> Vector Vector
+    spearman_correlation data =
+        Panic.handle_wrapped_dataflow_error <|
+            output = Vector.new_builder data.length
 
-## Calculate a Pearson correlation matrix between the input series.
+            0.up_to data.length . each i->
+                output.append <|
+                    Vector.new data.length j->
+                        if j == i then 1 else
+                            if j < i then (output.at j . at i) else
+                                Panic.throw_wrapped_if_error <|
+                                    calculate_spearman_rank (data.at i) (data.at j)
 
-   Arguments:
-   - data: The input data sets
-pearson_correlation : [Vector] -> [Vector]
-pearson_correlation data =
-    stats_vectors = calculate_correlation_statistics_matrix data
-    stats_vectors.map v->(v.map .pearsonCorrelation)
+            output.to_vector
 
+    ## Assigns a rank to each value of data, dealing with equal values according to the method.
 
-## Calculate a Spearman Rank correlation matrix between the input series.
+       Arguments:
+       - data: Input data to rank.
+       - method: Method used to deal with equal values.
+    rank_data : Vector -> Rank_Method -> Vector
+    rank_data input method=Rank_Method.Average =
+        method.compute input
 
-   Arguments:
-   - data: The input data sets
-spearman_correlation : [Vector] -> [Vector]
-spearman_correlation data =
-    Panic.handle_wrapped_dataflow_error <|
-        output = Vector.new_builder data.length
-
-        0.up_to data.length . each i->
-            output.append <|
-                Vector.new data.length j->
-                    if j == i then 1 else
-                        if j < i then (output.at j . at i) else
-                            Panic.throw_wrapped_if_error <|
-                                calculate_spearman_rank (data.at i) (data.at j)
-
-        output.to_vector
-
+## PRIVATE
+   Convert the Enso Statistic into Java equivalent.
+to_moment_statistic : Statistic -> MomentStatistic
+to_moment_statistic s = case s of
+    Statistic.Sum -> Moments.SUM
+    Statistic.Mean -> Moments.MEAN
+    Statistic.Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
+    Statistic.Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
+    Statistic.Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
+    Statistic.Kurtosis -> Moments.KURTOSIS
+    _ -> Nothing
 
 ## PRIVATE
 wrap_java_call : Any -> Any
@@ -190,13 +234,11 @@ wrap_java_call ~function =
 
     handle_unsupported <| Illegal_Argument_Error.handle_java_exception <| function
 
-
 ## PRIVATE
    Given two series, get a computed CorrelationStatistics object
 calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
 calculate_correlation_statistics x_data y_data =
     wrap_java_call <| CorrelationStatistics.compute x_data.to_array y_data.to_array
-
 
 ## PRIVATE
    Given two series, get a compute the Spearman Rank correlation
@@ -204,52 +246,26 @@ calculate_spearman_rank : Vector -> Vector -> Decimal
 calculate_spearman_rank x_data y_data =
     wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data.to_array y_data.to_array
 
-
 ## PRIVATE
    Given a set of series get CorrelationStatistics objects
-calculate_correlation_statistics_matrix : [Vector] -> [CorrelationStatistics]
+calculate_correlation_statistics_matrix : Vector Vector -> Vector CorrelationStatistics
 calculate_correlation_statistics_matrix data =
     data_array = Vector.new data.length i->(data.at i).to_array . to_array
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
-
 
 ## Compute a single statistic on the vector.
 
    Arguments:
    - statistic: Statistic to calculate.
 Vector.compute : Statistic -> Any
-Vector.compute self statistic=Count =
+Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
-
 
 ## Compute statistics on the vector.
 
    Arguments:
    - statistics: Set of statistics to calculate.
-Vector.compute_bulk : [Statistic] -> [Any]
-Vector.compute_bulk self statistics=[Count, Sum] =
-    compute_bulk self statistics
-
-
-## Assigns a rank to each value of data, dealing with equal values according to the method.
-
-   Arguments:
-   - data: Input data to rank.
-   - method: Method used to deal with equal values.
-rank_data : Vector -> Rank_Method -> Vector
-rank_data input method=Rank_Method.Average =
-    java_method = case method of
-        Rank_Method.Minimum -> Rank.Method.MINIMUM
-        Rank_Method.Maximum -> Rank.Method.MAXIMUM
-        Rank_Method.Average -> Rank.Method.AVERAGE
-        Rank_Method.Ordinal -> Rank.Method.ORDINAL
-        Rank_Method.Dense -> Rank.Method.DENSE
-
-    report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
-    handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
-    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
-
-    handle_classcast <| handle_nullpointer <|
-        java_ranks = Rank.rank input.to_array Comparator.new java_method
-        Vector.from_polyglot_array java_ranks
+Vector.compute_bulk : Vector Statistic -> Vector Any
+Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    Statistic.compute_bulk self statistics

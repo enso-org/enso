@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Time import Duration, Period, Date_Period, Time_Period
 
 from Standard.Test import Test, Test_Suite
 
@@ -229,7 +228,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . day . should_equal 1
 
         Test.specify "should add time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.nanoseconds 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.new nanoseconds=1)
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -240,7 +239,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . should_equal Time_Zone.utc
 
         Test.specify "should add date interval" <|
-            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.months 1)
+            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -251,7 +250,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should add mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.months 1) + (Duration.hours 3)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -262,7 +261,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.hours 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.new hours=1)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 31
@@ -273,7 +272,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract date interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -284,7 +283,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1) - (Duration.hours 3)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
             time . month . should_equal 11
             time . day . should_equal 30
@@ -295,7 +294,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should support mixed interval operators" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1) + (Duration.hours 12)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) + (Duration.new hours=12)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -348,8 +347,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             new_datetime = create_new_datetime 2020 6 1 10 0 0
             parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
 
-            Meta.type_of new_datetime . should_equal_type Date_Time.Date_Time
-            Meta.type_of parsed_datetime . should_equal_type Date_Time.Date_Time
+            Meta.type_of new_datetime . should_equal_type Date_Time
+            Meta.type_of parsed_datetime . should_equal_type Date_Time
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Date_Period containing the current datetime" <|
@@ -448,7 +447,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=js_dst_pending <|
             d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
             d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
-            d1_plus = d1 + (Duration.hours 1)
+            d1_plus = d1 + (Duration.new hours=1)
             d1_plus . should_equal d2
 
             check_dates_spring date =
@@ -480,7 +479,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundar - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: https://github.com/oracle/graal/issues/4918"
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the autumn DST switch" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
-            d4 = d3 + (Duration.hours 1)
+            d4 = d3 + (Duration.new hours=1)
 
             d3.hour . should_equal 2
             d4.hour . should_equal 2
@@ -554,7 +553,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle shifting dates around autumn DST edge cases" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
-            d4 = d3 + (Duration.hours 1)
+            d4 = d3 + (Duration.new hours=1)
 
             # TODO we need to check and document the actual behaviour once it is expressible, it may be equally acceptable to shift to 3:30 instead of 2:30.
             d4 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 15 0 tz)

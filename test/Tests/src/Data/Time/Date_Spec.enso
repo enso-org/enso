@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Text_Sub_Range
-import Standard.Base.Data.Time.Date_Period
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Period
 from Standard.Base.Error.Common import Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -94,32 +90,32 @@ spec_with name create_new_date parse_date =
                 Json.from_pairs [["type", "Date"], ["day", date.day], ["month", date.month], ["year", date.year]]
 
         Test.specify "should add date-based interval" <|
-            date = create_new_date 1970 + (Period.days 1)
+            date = create_new_date 1970 + (Period.new days=1)
             date . year . should_equal 1970
             date . month . should_equal 1
             date . day . should_equal 2
 
         Test.specify "should subtract date-based interval" <|
-            date = create_new_date 1970 - (Period.years 1)
+            date = create_new_date 1970 - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should support mixed interval operators" <|
-            date = create_new_date 1970 + (Period.months 1) - (Period.years 1)
+            date = create_new_date 1970 + (Period.new months=1) - (Period.new years=1)
             date . year . should_equal 1969
             date . month . should_equal 2
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based Duration" <|
-            case (create_new_date 1970 + (Duration.hours 1)) . catch of
+            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting time-based Duration" <|
-            case (create_new_date 1970 - (Duration.minutes 1)) . catch of
+            case (create_new_date 1970 - (Duration.new minutes=1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
                 result ->
@@ -173,8 +169,8 @@ spec_with name create_new_date parse_date =
             new_date = create_new_date 2020 6 1
             parsed_date = parse_date "2021-01-02"
 
-            Meta.type_of new_date . should_equal_type Date.Date
-            Meta.type_of parsed_date . should_equal_type Date.Date
+            Meta.type_of new_date . should_equal_type Date
+            Meta.type_of parsed_date . should_equal_type Date
 
         Test.specify "should allow to find start and end of a Date_Period containing the current date" <|
             d1 = create_new_date 2022 9 12
@@ -376,7 +372,7 @@ spec_with name create_new_date parse_date =
         Test.specify "should allow to shift the date by N working days, skipping custom holidays" <|
             all_year_holiday year =
                 first_day = create_new_date year 1 1
-                Vector.new first_day.length_of_year (n -> first_day + (Period.days n))
+                Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
 
             two_years_vacation = all_year_holiday 1999 + all_year_holiday 2000
 
