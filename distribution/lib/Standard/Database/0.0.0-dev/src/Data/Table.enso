@@ -29,7 +29,7 @@ import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
-polyglot java import java.sql.Connection
+import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
 

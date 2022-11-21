@@ -54,7 +54,7 @@ const x _ = x
    - f function accepting pair of values
 
 # curry : ([a, b] -> c) -> (a -> b -> c)
-curry : (Vector -> Any) -> (Any -> Any -> Any)
+curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
 ## Converts a multi-argument function into a single-argument one accepting a pair of elements.
@@ -63,5 +63,5 @@ curry f = x -> y -> f [x, y]
    - f function accepting multiple arguments
 
 # uncurry : (a -> b -> c) -> ([a, b] -> c)
-uncurry : (Any -> Any -> Any) -> (Vector -> Any)
+uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.head pair.second)
