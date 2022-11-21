@@ -110,11 +110,6 @@ const config: esbuild.BuildOptions = {
     publicPath: '/assets',
     incremental: true,
     color: true,
-    watch: {
-        onRebuild(error, result) {
-            if (error) console.error('watch build failed:', error)
-        },
-    },
     logOverride: {
         // Happens in ScalaJS-generated parser (scala-parser.js):
         //    6 │   "fileLevelThis": this
@@ -132,10 +127,20 @@ const config: esbuild.BuildOptions = {
 }
 
 /**
- * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
+ * Spawn the esbuild serve and watch process. It continuously runs, rebuilding the package and
+ * serves the content.
  */
-export async function watch() {
-    return esbuild.build(config)
+export async function watch(onRebuild?: () => void, banner?: esbuild.BuildOptions['banner']) {
+    return esbuild.build({
+        ...config,
+        banner: banner ?? config.banner,
+        watch: {
+            onRebuild(error, result) {
+                if (error) console.error('watch build failed:', error)
+                else onRebuild?.()
+            },
+        },
+    })
 }
 
 /**
