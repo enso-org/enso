@@ -16,7 +16,7 @@ class PolyglotTest extends InterpreterTest {
     "allow calling methods on static objects" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array
+          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
@@ -61,7 +61,7 @@ class PolyglotTest extends InterpreterTest {
     "allow instantiating objects and calling methods on them" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array
+          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"
@@ -74,7 +74,7 @@ class PolyglotTest extends InterpreterTest {
     "allow listing available members of an object" in {
       val code =
         """from Standard.Base import all
-          |import Standard.Base.Data.Array
+          |import Standard.Base.Data.Array.Array
           |
           |main =
           |    class = Java.lookup_class "org.enso.example.TestClass"

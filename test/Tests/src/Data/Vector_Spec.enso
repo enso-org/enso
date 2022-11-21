@@ -287,9 +287,9 @@ spec = Test.group "Vectors" <|
         concat.should_equal [1, 2, 3, 4, 5, 6]
 
     Test.specify "should be convertible to a list" <|
-        [].to_list . should_equal Nil
-        ["A"].to_list . should_equal (Cons "A" Nil)
-        [1, 2, "B", 3].to_list . should_equal (Cons 1 (Cons 2 (Cons "B" (Cons 3 Nil))))
+        [].to_list . should_equal List.Nil
+        ["A"].to_list . should_equal (List.Cons "A" List.Nil)
+        [1, 2, "B", 3].to_list . should_equal (List.Cons 1 (List.Cons 2 (List.Cons "B" (List.Cons 3 List.Nil))))
 
     Test.specify "Vector slice should return a Vector" <|
         vec = [1, 2, 3, 4, 5, 6]

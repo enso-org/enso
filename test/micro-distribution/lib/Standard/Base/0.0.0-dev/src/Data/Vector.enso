@@ -1,4 +1,3 @@
 @Builtin_Type
 type Vector a
-
-from_array array = @Builtin_Method "Vector.from_array"
+    from_array array = @Builtin_Method "Vector.from_array"

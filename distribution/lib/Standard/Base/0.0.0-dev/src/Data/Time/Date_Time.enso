@@ -383,7 +383,7 @@ type Date_Time
          other hand, the first day of the week is Monday, and week 1 is the week
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
-    week_of_year : (Locale.Locale | Nothing) -> Integer
+    week_of_year : (Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
         ensure_in_epoch self <|
             if locale.is_nothing then Time_Utils.get_field_as_zoneddatetime self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
@@ -581,7 +581,7 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_to_json = Date_Time.now.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.

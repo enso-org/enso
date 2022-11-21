@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Numbers import Parse_Error_Data
+from Standard.Base.Data.Numbers import Number_Parse_Error
 
 from Standard.Test import Test, Test_Suite
 
@@ -181,28 +181,28 @@ spec =
             Integer.parse "-1234567" . should_equal -1234567
             Integer.parse "00000" . should_equal 0
             Integer.parse "00000123" . should_equal 123
-            Integer.parse "123.45" . should_fail_with Parse_Error_Data
-            Integer.parse "123A" . should_fail_with Parse_Error_Data
-            Integer.parse "aaaa" . should_fail_with Parse_Error_Data
+            Integer.parse "123.45" . should_fail_with Number_Parse_Error.Error
+            Integer.parse "123A" . should_fail_with Number_Parse_Error.Error
+            Integer.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
         Test.specify "should be able to parse alternate bases" <|
             Integer.parse "1245623" 8 . should_equal 347027
             Integer.parse "-1245623" 8 . should_equal -347027
             Integer.parse "0001245623" 8 . should_equal 347027
             Integer.parse "00000" 8 . should_equal 0
-            Integer.parse "9847" 8 . should_fail_with Parse_Error_Data
-            Integer.parse "8479" 8 . should_fail_with Parse_Error_Data
+            Integer.parse "9847" 8 . should_fail_with Number_Parse_Error.Error
+            Integer.parse "8479" 8 . should_fail_with Number_Parse_Error.Error
             Integer.parse "ABC123" 16 . should_equal 11256099
             Integer.parse "123ABC" 16 . should_equal 1194684
             Integer.parse "123aBc" 16 . should_equal 1194684
             Integer.parse "-ABC123" 16 . should_equal -11256099
             Integer.parse "00000ABC123" 16 . should_equal 11256099
-            Integer.parse "123aBcG" 16 . should_fail_with Parse_Error_Data
+            Integer.parse "123aBcG" 16 . should_fail_with Number_Parse_Error.Error
             Integer.parse "10101010" 2 . should_equal 170
             Integer.parse "00001111" 2 . should_equal 15
             Integer.parse "-10101010" 2 . should_equal -170
-            Integer.parse "-101021010" 2 . should_fail_with Parse_Error_Data
-            Integer.parse "123" 128 . should_fail_with Parse_Error_Data
+            Integer.parse "-101021010" 2 . should_fail_with Number_Parse_Error.Error
+            Integer.parse "123" 128 . should_fail_with Number_Parse_Error.Error
 
     Test.group "Decimals" <|
 
@@ -218,7 +218,7 @@ spec =
             Decimal.parse "-98.5" . should_equal -98.5
             Decimal.parse "000000" . should_equal 0
             Decimal.parse "000000.0001" . should_equal 0.0001
-            Decimal.parse "aaaa" . should_fail_with Parse_Error_Data
+            Decimal.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
     Test.group "Numbers" <|
 

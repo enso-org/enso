@@ -313,7 +313,7 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_to_json = (Duration.seconds 10).to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self =
         b = Vector.new_builder
         b.append ["type", "Duration"]
