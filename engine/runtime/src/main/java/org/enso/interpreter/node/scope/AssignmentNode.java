@@ -30,6 +30,7 @@ public abstract class AssignmentNode extends ExpressionNode {
   public static AssignmentNode build(ExpressionNode expression, int frameSlotIdx) {
     return AssignmentNodeGen.create(frameSlotIdx, expression);
   }
+
   /**
    * Writes a long value into the provided frame.
    *

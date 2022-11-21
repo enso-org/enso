@@ -19,21 +19,47 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
- * This class serves as a basic support for debugging with Chrome inspector.
- * Currently, only function scopes are supported.
- * Optimally, we should also implement ModuleScopes, and evaluation of an arbitrary expression.
+ * This class serves as a basic support for debugging with Chrome inspector. Currently, only
+ * function scopes are supported.
+ *
+ * <p>Some of the features that remain to be implemented are:
+ *
+ * <ul>
+ *   <li>Module scopes. How to display imports in chrome devtools? Get inspiration from Python?
+ *   <li>Evaluation of an arbitrary expression
+ * </ul>
  */
 @ExportLibrary(InteropLibrary.class)
 public class DebugLocalScope implements TruffleObject {
-  // TODO: Implement ModuleScope as top level scope
   private final EnsoRootNode rootNode;
-  // All bindings, including parent scopes
+  /** All the bindings, including the parent scopes. */
   private final Map<String, FramePointer> allBindings;
+  /**
+   * The inner lists represent particular scope in a scope hierarchy. For example, for the following
+   * snippet:
+   *
+   * <pre>
+   * func =
+   *     x = 1
+   *     inner_func =
+   *         y = 2
+   *         y
+   *     inner_func
+   * </pre>
+   *
+   * the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
+   */
   private final List<List<String>> bindingsByLevels;
+  /** Index of the current scope into {@link #bindingsByLevels} list. */
   private final int bindingsByLevelsIdx;
+
   private final MaterializedFrame frame;
 
-  private DebugLocalScope(EnsoRootNode rootNode, MaterializedFrame frame, List<List<String>> bindingsByLevels, int bindingsByLevelsIdx) {
+  private DebugLocalScope(
+      EnsoRootNode rootNode,
+      MaterializedFrame frame,
+      List<List<String>> bindingsByLevels,
+      int bindingsByLevelsIdx) {
     this.rootNode = rootNode;
     this.frame = frame;
     this.allBindings = rootNode.getLocalScope().flattenBindings();
@@ -44,30 +70,16 @@ public class DebugLocalScope implements TruffleObject {
     assert 0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size();
   }
 
-  private void log(String msg) {
-    System.out.printf("DebugLocalScope@%s : %s\n",
-        Integer.toHexString(hashCode()),
-        msg);
-  }
-
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
-    var scope = new DebugLocalScope(rootNode, frame, null, 0);
-    System.out.printf("new DebugLocalScope@%s : %s\n",
-        Integer.toHexString(scope.hashCode()),
-        scope);
-    return scope;
+    return new DebugLocalScope(rootNode, frame, null, 0);
   }
 
   private static DebugLocalScope createParent(DebugLocalScope childScope) {
-    var scope = new DebugLocalScope(
+    return new DebugLocalScope(
         childScope.rootNode,
         childScope.frame,
         childScope.bindingsByLevels,
         childScope.bindingsByLevelsIdx + 1);
-    System.out.printf("new DebugLocalScope@%s : %s\n",
-        Integer.toHexString(scope.hashCode()),
-        scope);
-    return scope;
   }
 
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
@@ -82,13 +94,12 @@ public class DebugLocalScope implements TruffleObject {
     // Get all binding names for a particular parent level
     List<List<String>> bindingsByLevels = new ArrayList<>(maxParentLevel + 1);
     for (int level = 0; level < maxParentLevel + 1; level++) {
-      int finalLevel = level;
-      List<String> levelBindings = bindings
-          .entrySet()
-          .stream()
-          .filter(entry -> entry.getValue().getParentLevel() == finalLevel)
-          .map(Entry::getKey)
-          .collect(Collectors.toList());
+      final int finalLevel = level;
+      List<String> levelBindings =
+          bindings.entrySet().stream()
+              .filter(entry -> entry.getValue().getParentLevel() == finalLevel)
+              .map(Entry::getKey)
+              .collect(Collectors.toList());
       bindingsByLevels.add(levelBindings);
     }
     return bindingsByLevels;
@@ -114,11 +125,7 @@ public class DebugLocalScope implements TruffleObject {
     return true;
   }
 
-  /**
-   * Returns the members from the current local scope and all the parent scopes.
-   * @param includeInternal
-   * @return
-   */
+  /** Returns the members from the current local scope and all the parent scopes. */
   @ExportMessage
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
@@ -130,7 +137,6 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   boolean isMemberModifiable(String memberName) {
-    // TODO
     return false;
   }
 
@@ -152,14 +158,16 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   boolean hasMemberWriteSideEffects(String member) {
-    // TODO
     return false;
   }
 
   @ExportMessage
   boolean isMemberReadable(String memberName) {
-    return allBindings.containsKey(memberName) &&
-        getValue(frame, allBindings.get(memberName)) != null;
+    // When a value in a frame is null, it means that the corresponding
+    // AssignmentNode was not run yet, and the slot kind of the
+    // FrameDescriptor would be Illegal.
+    return allBindings.containsKey(memberName)
+        && getValue(frame, allBindings.get(memberName)) != null;
   }
 
   @ExportMessage
@@ -184,7 +192,8 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   /**
-   * ModuleScopes are not supported yet.
+   * Returns the parent scope. ModuleScopes are not supported yet.
+   *
    * @return Parent scope (outer method).
    * @throws UnsupportedMessageException if there is no parent scope.
    */
@@ -215,7 +224,8 @@ public class DebugLocalScope implements TruffleObject {
 
   @Override
   public String toString() {
-    return String.format("DebugLocalScope{rootNode = '%s', bindingsByLevels = %s, idx = %d}",
+    return String.format(
+        "DebugLocalScope{rootNode = '%s', bindingsByLevels = %s, idx = %d}",
         rootNode.toString(), bindingsByLevels.toString(), bindingsByLevelsIdx);
   }
 
@@ -231,8 +241,9 @@ public class DebugLocalScope implements TruffleObject {
     return currentFrame;
   }
 
+  /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
-  final static class ScopeMembers implements TruffleObject {
+  static final class ScopeMembers implements TruffleObject {
     private final List<String> memberNames;
 
     ScopeMembers(List<String> memberNames) {
