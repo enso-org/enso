@@ -4,6 +4,7 @@
 //! suitable nalgebra's Vector types.
 
 use enso_prelude::*;
+
 use nalgebra;
 use nalgebra::Scalar;
 use nalgebra::Vector2;

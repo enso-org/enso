@@ -1,15 +1,14 @@
 //! Generation of Dim* macros, macros allowing generation of swizzling getters and setters.
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-// === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
+#![deny(non_ascii_idents)]
 #![deny(unconditional_recursion)]
+#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -19,6 +18,7 @@
 #![warn(unused_qualifications)]
 
 use enso_prelude::*;
+
 use std::fmt::Write;
 use std::fs::File;
 use std::io::Write as IoWrite;

@@ -7,8 +7,8 @@ use std::ops::*;
 use crate::data::color;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
-use enso_types;
 
+use enso_types;
 use nalgebra::Scalar;
 
 

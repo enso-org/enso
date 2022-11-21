@@ -31,7 +31,14 @@ use ensogl_core::display::symbol::DomSymbol;
 use ensogl_core::system::web;
 use nalgebra::Vector2;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ensogl_core::system::web::dom::Shape;
+
+
 
 const ELEM_COUNT: i32 = 10;
 const HTML_PADDING: f32 = 10.0;
