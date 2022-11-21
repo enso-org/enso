@@ -1,30 +1,22 @@
-from Standard.Base import all
-import Standard.Base.System
-from Standard.Base.Data.Time import Period
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Pair.Pair
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Period.Period
+import project.Data.Vector.Vector
+import project.Meta
+import project.Runtime
+import project.System
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, Illegal_State_Error, Illegal_State_Error_Data
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.lang.ArithmeticException
-
-## Create an interval representing the duration between two points in time.
-
-   Arguments:
-   - start_inclusive: The start datetime of the duration, included.
-   - end_exclusive: The end datetime of the duration, excluded.
-   - timezone_aware: Whether the duration between two given times should be
-     aware of the timezone, that can be set for start or end times.
-
-   > Example
-     An hour interval between two points in time.
-
-         from Standard.Base import Date_Time
-         import Standard.Base.Data.Time.Duration
-
-         example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
-between : Date_Time -> Date_Time -> Boolean -> Duration
-between start_inclusive end_exclusive timezone_aware=True =
-    between_builtin start_inclusive end_exclusive timezone_aware
 
 ## PRIVATE
    Create an interval representing the duration between two points in time.
@@ -38,25 +30,6 @@ between start_inclusive end_exclusive timezone_aware=True =
    Recommended to use `Duration.between` instead which provides defaults.
 between_builtin : Date_Time -> Date_Time -> Boolean -> Duration
 between_builtin start_inclusive end_exclusive timezone_aware = @Builtin_Method "Duration.between_builtin"
-
-## Create a duration from time units.
-
-   Arguments:
-   - hours: hours
-   - minutes: minutes
-   - seconds: seconds
-   - milliseconds: milliseconds
-   - nanoseconds: nanoseconds
-
-   > Example
-     Duration of 2 hours.
-
-         import Standard.Base.Data.Time.Duration
-
-         example_duration = Duration.new hours=2
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
-new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
-    new_builtin hours minutes seconds milliseconds nanoseconds
 
 ## PRIVATE
    Create a duration from time units.
@@ -72,63 +45,80 @@ new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
 new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
 new_builtin hours minutes seconds milliseconds nanoseconds = @Builtin_Method "Duration.new_builtin"
 
-## Create a Duration from hours.
-hours : Integer -> Duration
-hours h = new hours=h
-
-## Create a Duration from minutes.
-minutes : Integer -> Duration
-minutes m = new minutes=m
-
-## Create a Duration from seconds.
-seconds : Integer -> Duration
-seconds s = new seconds=s
-
-## Create a Duration from milliseconds.
-milliseconds : Integer -> Duration
-milliseconds ms = new milliseconds=ms
-
-## Create a Duration from nanoseconds.
-nanoseconds : Integer -> Duration
-nanoseconds ns = new nanoseconds=ns
-
-## Create a zero (empty) duration.
-   > Example
-     Folding a vector of durations.
-
-         import Standard.Base.Data.Time.Duration
-
-         durations = [(Duration.seconds 1), (Duration.seconds 2), (Duration.seconds 3)]
-         example_sum = durations.fold Duration.zero (+)
-zero : Duration
-zero = new
-
-## ADVANCED
-
-   Time the evaluation of a function, return a Pair of Duration and Result
-
-   Arguments:
-   - function: Function to execute.
-time_execution : Any -> Pair Duration Any
-time_execution ~function =
-    start = System.nano_time
-    result = Runtime.no_inline function
-    end = System.nano_time
-    duration = new nanoseconds=(end - start)
-    Pair_Data duration result
-
 ## PRIVATE
-ensure_duration : Any -> Suspend (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
+ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Error)
 ensure_duration object ~action =
     case object of
         _ : Duration -> action
-        _ : Period.Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
+        _ : Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
         x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
 
 @Builtin_Type
 type Duration
+    ## Create an interval representing the duration between two points in time.
+
+       Arguments:
+       - start_inclusive: The start datetime of the duration, included.
+       - end_exclusive: The end datetime of the duration, excluded.
+       - timezone_aware: Whether the duration between two given times should be
+         aware of the timezone, that can be set for start or end times.
+
+       > Example
+         An hour interval between two points in time.
+
+             from Standard.Base import Date_Time
+             import Standard.Base.Data.Time.Duration
+
+             example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
+    between : Date_Time -> Date_Time -> Boolean -> Duration
+    between start_inclusive end_exclusive timezone_aware=True =
+        between_builtin start_inclusive end_exclusive timezone_aware
+
+    ## Create a duration from time units.
+
+       Arguments:
+       - hours: hours
+       - minutes: minutes
+       - seconds: seconds
+       - milliseconds: milliseconds
+       - nanoseconds: nanoseconds
+
+       > Example
+         Duration of 2 hours.
+
+             import Standard.Base.Data.Time.Duration
+
+             example_duration = Duration.new hours=2
+    new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Duration
+    new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
+        new_builtin hours minutes seconds milliseconds nanoseconds
+
+    ## Create a zero (empty) duration.
+       > Example
+         Folding a vector of durations.
+
+             import Standard.Base.Data.Time.Duration
+
+             durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
+             example_sum = durations.fold Duration.zero (+)
+    zero : Duration
+    zero = Duration.new
+
+    ## ADVANCED
+
+       Time the evaluation of a function, return a Pair of Duration and Result
+
+       Arguments:
+       - function: Function to execute.
+    time_execution : Any -> Pair
+    time_execution ~function =
+        start = System.nano_time
+        result = Runtime.no_inline function
+        end = System.nano_time
+        duration = Duration.new nanoseconds=(end - start)
+        Pair.Value duration result
 
     ## Add the specified amount of time to this duration.
 
@@ -140,14 +130,14 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = (Duration.minutes 3) + (Duration.seconds 6)
+             example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
        > Example
          Add 12 hours to a duration of 30 minutes.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = (Duration.minutes 30) + (Duration.hours 12)
+             example_add = (Duration.new minutes=30) + (Duration.new hours=12)
     + : Duration -> Duration ! Time_Error
     + self that =
         ensure_duration that <|
@@ -164,7 +154,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = (Duration.hours 6) - (Duration.minutes 30)
+             example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
     - : Duration -> Duration ! Time_Error
     - self that =
         ensure_duration that <|
@@ -181,7 +171,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_eq = (Duration.seconds 60).total_minutes == (Duration.minutes 1).total_minutes
+             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
     == : Duration -> Boolean
     == self that =
         case that of
@@ -200,7 +190,7 @@ type Duration
 
              example_compare_to =
                  duration_1 = (Duration.new hour=1)
-                 duration_2 = (Duration.minutes 60) + (Duration.minutes 5)
+                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
     compare_to self that =
@@ -301,7 +291,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_vec = (Duration.nanoseconds 800)).to_vector
+             example_to_vec = (Duration.new nanoseconds=800)).to_vector
     to_vector : Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
@@ -312,7 +302,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_json = (Duration.seconds 10).to_json
+             example_to_json = (Duration.new seconds=10).to_json
     to_json : Json
     to_json self =
         b = Vector.new_builder

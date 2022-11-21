@@ -5,6 +5,7 @@ import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
 import project.Data.Vector.Vector
+import project.Math
 import project.Nothing.Nothing
 
 export project.Data.Any.Any
@@ -12,6 +13,7 @@ export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map
 export project.Data.Vector.Vector
+export project.Math
 export project.Nothing.Nothing
 
 from project.Data.Boolean export Boolean, True, False
@@ -25,9 +27,25 @@ import project.Data.Json
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
+import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Sort_Direction.Sort_Direction
+import project.Data.Pair.Pair
+import project.Data.Regression
+import project.Data.Statistics
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Period.Time_Period
+import project.Data.Time.Time_Zone.Time_Zone
 
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
@@ -36,12 +54,28 @@ export project.Data.Interval.Interval
 export project.Data.Json.Json
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
+export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
+export project.Data.Ordering.Sort_Direction.Sort_Direction
+export project.Data.Pair.Pair
+export project.Data.Regression
+export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
+export project.Data.Time.Date.Date
+export project.Data.Time.Date_Period.Date_Period
+export project.Data.Time.Date_Time.Date_Time
+export project.Data.Time.Day_Of_Week.Day_Of_Week
+export project.Data.Time.Day_Of_Week_From
+export project.Data.Time.Duration.Duration
+export project.Data.Time.Period.Period
+export project.Data.Time.Time_Of_Day.Time_Of_Day
+export project.Data.Time.Time_Period.Time_Period
+export project.Data.Time.Time_Zone.Time_Zone
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
-from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
+from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
 
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
@@ -50,16 +84,11 @@ from project.Data.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
 
-import project.Data.Ordering.Natural_Order
-import project.Data.Ordering.Sort_Direction
-import project.Data.Pair
 import project.Data.Range
-import project.Data.Regression
-import project.Data.Statistics
-import project.Data.Statistics.Rank_Method
+from project.Data.Range export all
+
 import project.Data.Text
 import project.Data.Text.Case
-import project.Data.Text.Case_Sensitivity
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
@@ -67,20 +96,10 @@ import project.Data.Text.Text_Matcher
 import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
-import project.Data.Time.Date
-import project.Data.Time.Date_Time
-import project.Data.Time.Duration
-import project.Data.Time.Time_Of_Day
-import project.Data.Time.Time_Zone
-import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Day_Of_Week_From
-
 import project.Error.Common
 import project.Error.Problem_Behavior
 import project.Function
 import project.IO
-
-import project.Math
 import project.Meta
 import project.Polyglot
 import project.Polyglot.Java
@@ -95,27 +114,15 @@ import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 import project.Warning
 
-export project.Data.Ordering.Natural_Order
-export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
-export project.Data.Statistics
-export project.Data.Statistics.Rank_Method
 export project.Data.Text.Case_Sensitivity
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode
 export project.Data.Text.Text_Ordering
 export project.Data.Text.Text_Matcher
 export project.Data.Text.Regex_Matcher
-export project.Data.Time.Date
-export project.Data.Time.Date_Time
-export project.Data.Time.Duration
-export project.Data.Time.Time_Of_Day
-export project.Data.Time.Time_Zone
-export project.Data.Time.Day_Of_Week.Day_Of_Week
-export project.Data.Time.Day_Of_Week_From
 export project.Error.Problem_Behavior
 export project.IO
-export project.Math
 export project.Meta
 export project.Polyglot
 export project.Polyglot.Java
@@ -126,12 +133,9 @@ export project.System.File
 export project.System.File.Existing_File_Behavior
 export project.Warning
 
-
-from project.Data.Pair export Pair, Pair_Data
-from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style
+from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Span export all
 from project.Error.Common export all

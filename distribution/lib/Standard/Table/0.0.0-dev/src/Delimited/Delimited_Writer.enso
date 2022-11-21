@@ -144,8 +144,8 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         Quote_Style.With_Quotes always _ _ ->
             if always then WriteQuoteBehavior.ALWAYS else WriteQuoteBehavior.NECESSARY
     quote_characters = case format.quote_style of
-        Quote_Style.No_Quotes -> Pair_Data Nothing Nothing
-        Quote_Style.With_Quotes _ quote quote_escape -> Pair_Data quote quote_escape
+        Quote_Style.No_Quotes -> Pair.Value Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair.Value quote quote_escape
     write_headers = should_write_headers format.headers
     newline = separator_override.if_nothing <|
         case format.line_endings of

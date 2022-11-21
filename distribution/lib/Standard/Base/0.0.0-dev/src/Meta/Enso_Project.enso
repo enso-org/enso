@@ -1,14 +1,8 @@
-import Standard.Base.System.File
-
-## TODO Dubious constructor export
-from project.Meta.Enso_Project.Project_Description import all
-from project.Meta.Enso_Project.Project_Description export all
-
+import project.System.File
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
-
     ## A representation of an Enso project.
 
        Arguments:
