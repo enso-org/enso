@@ -22,7 +22,7 @@ primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 
    Returns the execution stack trace of its call site. The ordering of the
    resulting vector is such that the top stack frame is the first element.
-get_stack_trace : Vector_Type
+get_stack_trace : Vector
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_prims = Vector.from_polyglot_array prim_stack
