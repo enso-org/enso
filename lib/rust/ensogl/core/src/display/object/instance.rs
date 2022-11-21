@@ -10,11 +10,11 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
 use super::event;
-use super::transform;
+use super::transformation;
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
-use transform::CachedTransform;
+use transformation::CachedTransformation;
 
 
 
@@ -35,13 +35,52 @@ pub struct Id(usize);
 // === Model ===
 // =============
 
+// TODO: add information how Scene works and that moving objects between scenes is not supported.
+
+/// A hierarchical representation of object containing information about transformation in 3D space,
+/// list of children, and set of utils for dirty flag propagation.
+///
+/// ## Scene Layers
+/// Each display object instance contains an optional list of [`scene::LayerId`]. During object
+/// update, the list is passed from parent display objects to their children as long as the child
+/// does not override it (is assigned with [`None`]). Similar to [`Scene`], the scene layers list
+/// plays a very important role in decoupling the architecture. It allows objects and their children
+/// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
+/// management.
+#[derive(Derivative)]
+#[derive(CloneRef, Deref, From)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
+#[derivative(Default(bound = ""))]
+#[repr(transparent)]
+pub struct Instance {
+    def: InstanceDef,
+}
+
+/// Internal representation of [`Instance`]. It exists only to make the implementation less
+/// error-prone. [`Instance`] implements [`Object`]. The [`ObjectOps`] trait defines the public API
+/// of display objects, such as the [`add_child`] method. Without this struct, it would need to be
+/// implemented as [`self.display_object().add_child(child)`]. However, if then we rename the
+/// function in [`Instance`], the [`ObjectOps`] trait would still compile, but its function will
+/// loop infinitely. This struct allows the implementation to be written as
+/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile after
+/// renaming the function in [`InstanceDef`].
+#[derive(Derivative)]
+#[derive(CloneRef, Deref)]
+#[derivative(Clone(bound = ""))]
+#[repr(transparent)]
+pub struct InstanceDef {
+    rc: Rc<Model>,
+}
+
 /// A display object model. See the documentation of [`Instance`] to learn more.
 #[derive(Debug, Deref)]
 pub struct Model {
     /// This is the display object's FRP network. Feel free to extend it with new FRP nodes as long
     /// as they are inherently bound with this display object. For example, a sprite, which owns a
-    /// display object instance can extend this network to perform computations. However, you
-    /// should not extend it from other places, as this will cause memory leak. See docs of FRP to
+    /// display object instance, can extend this network to perform computations. However, you
+    /// should not extend it if you don't own the display object, as nodes created in this network
+    /// may survive the lifetime of other objects causing memory leaks. See the docs of FRP to
     /// learn more.
     pub network: frp::Network,
 
@@ -49,6 +88,34 @@ pub struct Model {
     hierarchy:    HierarchyModel,
     event:        EventModel,
     bounding_box: Cell<Vector2<f32>>,
+}
+
+
+// === Contructors ===
+
+impl Instance {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+}
+
+impl InstanceDef {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self { rc: Rc::new(Model::new()) }.init_events_handling()
+    }
+
+    /// ID getter of this display object.
+    pub fn id(&self) -> Id {
+        Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
+    }
+}
+
+impl Default for InstanceDef {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Model {
@@ -168,7 +235,7 @@ pub mod dirty {
     /// contains information about which properties changed and need to be updated.
     ///
     /// # Performance
-    /// Let's consider a tree of objects. To render an object, we need its position in the
+    /// Let's consider a deep tree of objects. To render an object, we need its position in the
     /// world-space (global-space). Thus, when the tree root object moves, all of its children,
     /// their sub-children, etc., need to be updated. As there might be hundreds or thousands of
     /// such sub-children, this might be very costly. Even worse, if the user of this library moves
@@ -180,7 +247,7 @@ pub mod dirty {
         pub new_parent:        NewParent,
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
-        pub transform:         Transform,
+        pub transformation:    Transform,
         pub new_layer:         SceneLayer,
     }
 
@@ -190,9 +257,9 @@ pub mod dirty {
             let new_parent = NewParent::new(());
             let modified_children = ModifiedChildren::new(on_dirty_callback(parent_bind));
             let removed_children = RemovedChildren::new(on_dirty_callback(parent_bind));
-            let transform = Transform::new(on_dirty_callback(parent_bind));
+            let transformation = Transform::new(on_dirty_callback(parent_bind));
             let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
-            Self { new_parent, modified_children, removed_children, transform, new_layer }
+            Self { new_parent, modified_children, removed_children, transformation, new_layer }
         }
     }
 
@@ -268,7 +335,7 @@ pub struct HierarchyModel {
     #[deref]
     frp:            HierarchyFrp,
     visible:        Cell<bool>,
-    transform:      RefCell<CachedTransform>,
+    transformation: RefCell<CachedTransformation>,
     parent_bind:    SharedParentBind,
     children:       RefCell<OptVec<WeakInstance>>,
     /// Layer the object was explicitly assigned to by the user, if any.
@@ -282,23 +349,53 @@ impl HierarchyModel {
     fn new(network: &frp::Network) -> Self {
         let frp = HierarchyFrp::new(network);
         let visible = default();
-        let transform = default();
+        let transformation = default();
         let parent_bind = default();
         let children = default();
         let assigned_layer = default();
         let layer = default();
         let dirty = dirty::Flags::new(&parent_bind);
-        Self { frp, visible, transform, parent_bind, children, assigned_layer, layer, dirty }
+        Self { frp, visible, transformation, parent_bind, children, assigned_layer, layer, dirty }
     }
 }
+
 
 
 // =======================
 // === Hierarchy Logic ===
 // =======================
 
-
 // === Updates and Visibility ===
+
+impl Model {
+    /// Get the layer this object is displayed in. May be equal to layer explicitly set by the user
+    /// or a layer inherited from the parent.
+    fn display_layer(&self) -> Option<Layer> {
+        self.layer.borrow().as_ref().and_then(|t| t.upgrade())
+    }
+
+    /// Add this object to the provided scene layer. Do not use this method explicitly. Use layers'
+    /// methods instead.
+    pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
+        let layer = layer.downgrade();
+        self.dirty.new_layer.set();
+        let mut assigned_layer = self.assigned_layer.borrow_mut();
+        if assigned_layer.as_ref() != Some(&layer) {
+            *assigned_layer = Some(layer);
+        }
+    }
+
+    /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
+    /// layers' methods instead.
+    pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
+        let layer = layer.downgrade();
+        let mut assigned_layer = self.assigned_layer.borrow_mut();
+        if assigned_layer.as_ref() == Some(&layer) {
+            self.dirty.new_layer.set();
+            *assigned_layer = None;
+        }
+    }
+}
 
 impl Model {
     /// Checks whether the object is visible.
@@ -311,19 +408,108 @@ impl Model {
         self.set_vis_false(None)
     }
 
-    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
+    /// Show the object. This is a helper API. Used by tests and the [`Root`] object.
     fn show(&self) {
         self.set_vis_true(None, None)
     }
 
-    /// Recompute the transformation matrix of this object and update all of its dirty children.
+    fn set_vis_false(&self, scene: Option<&Scene>) {
+        if self.visible.get() {
+            trace!("Hiding.");
+            self.visible.set(false);
+            self.on_hide_source.emit(scene.cloned());
+            self.children.borrow().iter().for_each(|child| {
+                child.upgrade().for_each(|t| t.set_vis_false(scene));
+            });
+        }
+    }
+
+    fn set_vis_true(&self, scene: Option<&Scene>, parent_layer: Option<&WeakLayer>) {
+        if !self.visible.get() {
+            trace!("Showing.");
+            self.visible.set(true);
+            let assigned_layer_borrow = self.assigned_layer.borrow();
+            let assigned_layer = assigned_layer_borrow.as_ref();
+            let new_layer = if assigned_layer.is_none() { parent_layer } else { assigned_layer };
+            self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
+            self.children.borrow().iter().for_each(|child| {
+                child.upgrade().for_each(|t| t.set_vis_true(scene, new_layer));
+            });
+        }
+    }
+
+    /// Checks whether the object is orphan (do not have parent object attached).
+    pub fn has_parent(&self) -> bool {
+        self.parent_bind.is_some()
+    }
+
+    /// Get reference to the parent object if any.
+    pub fn parent(&self) -> Option<Instance> {
+        self.parent_bind.parent()
+    }
+
+    /// The index of this display object in the parent's children list.
+    fn my_index(&self) -> Option<usize> {
+        self.parent_bind.child_index()
+    }
+
+    fn has_visible_parent(&self) -> bool {
+        self.parent_bind.parent().map_or(false, |parent| parent.is_visible())
+    }
+
+    /// Number of children of this object.
+    pub fn children_count(&self) -> usize {
+        self.children.borrow().len()
+    }
+
+    /// Removes and returns the parent bind. Please note that the parent is not updated as long as
+    /// the parent bind is not dropped.
+    fn take_parent_bind(&self) -> Option<ParentBind> {
+        let parent_bind = self.parent_bind.take_bind();
+        if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
+            let is_focused = self.event.focused_descendant.borrow().is_some();
+            if is_focused {
+                parent.propagate_up_no_focus_instance();
+            }
+        }
+        parent_bind
+    }
+
+    /// Set parent of the object. If the object already has a parent, the parent would be replaced.
+    fn set_parent_bind(&self, bind: ParentBind) {
+        trace!("Adding new parent bind.");
+        if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
+            if let Some(parent) = bind.parent.upgrade() {
+                parent.blur_tree();
+                parent.propagate_up_new_focus_instance(focus_instance);
+            }
+        }
+        if let Some(parent) = bind.parent() {
+            let index = bind.child_index;
+            self.dirty.new_parent.set();
+            self.parent_bind.set_bind(bind);
+        }
+    }
+
+    /// Removes all children of this display object and returns them.
+    pub fn remove_all_children(&self) -> Vec<Instance> {
+        let children: Vec<Instance> =
+            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
+        for child in &children {
+            child.unset_parent();
+        }
+        children
+    }
+
+    /// Recompute the transformation matrix of the display object tree starting with this object and
+    /// traversing all of its dirty children.
     pub fn update(&self, scene: &Scene) {
         let origin0 = Matrix4::identity();
         self.update_with_origin(scene, origin0, false, false, None)
     }
 
-    /// Updates object transformations by providing a new origin location. See docs of `update` to
-    /// learn more.
+    /// Update the display object tree transformations based on the parent object origin. See docs
+    /// of [`update`] to learn more.
     fn update_with_origin(
         &self,
         scene: &Scene,
@@ -381,8 +567,8 @@ impl Model {
         let new_parent_origin = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() { "new" } else { "old" };
         debug_span!("Update with {} parent origin.", parent_origin_label).in_scope(|| {
-            let origin_changed = self.transform.borrow_mut().update(new_parent_origin);
-            let new_origin = self.transform.borrow().matrix;
+            let origin_changed = self.transformation.borrow_mut().update(new_parent_origin);
+            let new_origin = self.transformation.borrow().matrix;
             if origin_changed || layer_changed {
                 if origin_changed {
                     trace!("Self origin changed.");
@@ -430,7 +616,7 @@ impl Model {
             }
             self.dirty.modified_children.unset_all();
         });
-        self.dirty.transform.unset();
+        self.dirty.transformation.unset();
         self.dirty.new_parent.unset();
     }
 
@@ -449,6 +635,7 @@ impl Model {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
                         if !child.has_visible_parent() {
+                            // The child was not attached to another visible parent.
                             child.set_vis_false(Some(scene));
                         }
                         // Even if the child is visible at this point, it does not mean that it
@@ -461,35 +648,7 @@ impl Model {
             })
         }
     }
-
-    fn set_vis_false(&self, scene: Option<&Scene>) {
-        if self.visible.get() {
-            trace!("Hiding.");
-            self.visible.set(false);
-            self.on_hide_source.emit(scene.cloned());
-            self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_false(scene));
-            });
-        }
-    }
-
-    fn set_vis_true(&self, scene: Option<&Scene>, parent_layer: Option<&WeakLayer>) {
-        if !self.visible.get() {
-            trace!("Showing.");
-            let this_scene_layer = self.assigned_layer.borrow();
-            let this_scene_layers_ref = this_scene_layer.as_ref();
-            let layer =
-                if this_scene_layers_ref.is_none() { parent_layer } else { this_scene_layers_ref };
-            self.visible.set(true);
-            self.on_show_source.emit((scene.cloned(), layer.cloned()));
-            self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_true(scene, layer));
-            });
-        }
-    }
 }
-
-// === Parent / Child Management ===
 
 impl InstanceDef {
     /// Checks if the provided object is child of the current one.
@@ -542,92 +701,53 @@ impl InstanceDef {
             child.unset_parent()
         }
     }
-}
 
-impl Model {
-    /// Checks whether the object is orphan (do not have parent object attached).
-    pub fn has_parent(&self) -> bool {
-        self.parent_bind.is_some()
+    /// Get reversed parent chain of this display object (`[root, child_of root, ..., parent,
+    /// self]`). The last item is this object.
+    fn rev_parent_chain(&self) -> Vec<Instance> {
+        let mut vec = default();
+        Self::build_rev_parent_chain(&mut vec, Some(self.clone_ref().into()));
+        vec
     }
 
-    /// Get reference to the parent object if any.
-    pub fn parent(&self) -> Option<Instance> {
-        self.parent_bind.parent()
-    }
-
-    /// Number of children of this object.
-    pub fn children_count(&self) -> usize {
-        self.children.borrow().len()
-    }
-
-    /// Removes and returns the parent bind. Please note that the parent is not updated as long as
-    /// the parent bind is not dropped.
-    fn take_parent_bind(&self) -> Option<ParentBind> {
-        let parent_bind = self.parent_bind.take_bind();
-        if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
-            let is_focused = self.event.focused_descendant.borrow().is_some();
-            if is_focused {
-                parent.propagate_up_no_focus_instance();
-            }
+    fn build_rev_parent_chain(vec: &mut Vec<Instance>, parent: Option<Instance>) {
+        if let Some(parent) = parent {
+            Self::build_rev_parent_chain(vec, parent.parent());
+            vec.push(parent);
         }
-        parent_bind
-    }
-
-    /// Set parent of the object. If the object already has a parent, the parent would be replaced.
-    fn set_parent_bind(&self, bind: ParentBind) {
-        trace!("Adding new parent bind.");
-        if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
-            if let Some(parent) = bind.parent.upgrade() {
-                parent.blur_tree();
-                parent.propagate_up_new_focus_instance(focus_instance);
-            }
-        }
-        if let Some(parent) = bind.parent() {
-            let index = bind.child_index;
-            self.dirty.new_parent.set();
-            self.parent_bind.set_bind(bind);
-        }
-    }
-
-    /// Removes all children of this display object and returns them.
-    pub fn remove_all_children(&self) -> Vec<Instance> {
-        let children: Vec<Instance> =
-            self.children.borrow().iter().filter_map(|weak| weak.upgrade()).collect();
-        for child in &children {
-            child.unset_parent();
-        }
-        children
     }
 }
 
 
 
-// === Transformation Getters ===
+// =======================
+// === Transformations ===
+// =======================
 
 impl Model {
     /// Position of the object in the global coordinate space.
-    pub fn global_position(&self) -> Vector3<f32> {
-        self.transform.borrow().global_position()
+    fn global_position(&self) -> Vector3<f32> {
+        self.transformation.borrow().global_position()
     }
 
     /// Position of the object in the parent coordinate space.
-    pub fn position(&self) -> Vector3<f32> {
-        self.transform.borrow().position()
+    fn position(&self) -> Vector3<f32> {
+        self.transformation.borrow().position()
     }
 
     /// Scale of the object in the parent coordinate space.
-    pub fn scale(&self) -> Vector3<f32> {
-        self.transform.borrow().scale()
+    fn scale(&self) -> Vector3<f32> {
+        self.transformation.borrow().scale()
     }
 
     /// Rotation of the object in the parent coordinate space.
-    pub fn rotation(&self) -> Vector3<f32> {
-        self.transform.borrow().rotation()
+    fn rotation(&self) -> Vector3<f32> {
+        self.transformation.borrow().rotation()
     }
 
     /// Transformation matrix of the object in the parent coordinate space.
-    pub fn matrix(&self) -> Matrix4<f32> {
-        self.transform.borrow().matrix()
+    fn transformation_matrix(&self) -> Matrix4<f32> {
+        self.transformation.borrow().matrix()
     }
 }
 
@@ -635,36 +755,28 @@ impl Model {
 // === Transformation Setters ===
 
 impl Model {
-    fn with_mut_borrowed_transform<F, T>(&self, f: F) -> T
-    where F: FnOnce(&mut CachedTransform) -> T {
-        self.dirty.transform.set();
-        f(&mut self.transform.borrow_mut())
-    }
-
-    fn set_position(&self, v: Vector3<f32>) {
-        self.with_mut_borrowed_transform(|t| t.set_position(v));
-    }
-
-    fn set_scale(&self, v: Vector3<f32>) {
-        self.with_mut_borrowed_transform(|t| t.set_scale(v));
-    }
-
-    fn set_rotation(&self, v: Vector3<f32>) {
-        self.with_mut_borrowed_transform(|t| t.set_rotation(v));
-    }
-
-    fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.with_mut_borrowed_transform(|t| t.mod_position(f));
-    }
-
-    fn mod_rotation<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.with_mut_borrowed_transform(|t| t.mod_rotation(f));
-    }
-
-    fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.with_mut_borrowed_transform(|t| t.mod_scale(f));
+    fn with_mut_borrowed_transformation<F, T>(&self, f: F) -> T
+    where F: FnOnce(&mut CachedTransformation) -> T {
+        self.dirty.transformation.set();
+        f(&mut self.transformation.borrow_mut())
     }
 }
+
+macro_rules! generate_transformation_getters_and_setters {
+    ($($name:ident),*) => { paste! {
+        impl Model {$(
+            fn [<set_ $name>](&self, v: Vector3<f32>) {
+                self.with_mut_borrowed_transformation(|t| t.[<set_ $name>](v));
+            }
+
+            fn [<mod_ $name>](&self, f: impl FnOnce(&mut Vector3<f32>)) {
+                self.with_mut_borrowed_transformation(|t| t.[<mod_ $name>](f));
+            }
+        )*}
+    }};
+}
+
+generate_transformation_getters_and_setters!(position, scale, rotation);
 
 
 
@@ -700,77 +812,21 @@ impl Model {
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
-    pub fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
+    fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
         self.event.bubbling_fan.output::<event::Event<T>>()
     }
 
     /// Get event stream for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
-    pub fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
+    fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
         self.event.capturing_fan.output::<event::Event<T>>()
     }
 }
 
-
-
-// ================
-// === Instance ===
-// ================
-
-// TODO: add information how Scene works and that moving objects between scenes is not supported.
-
-/// A hierarchical representation of object containing information about transformation in 3D space,
-/// list of children, and set of utils for dirty flag propagation.
-///
-/// ## Scene Layers
-/// Each display object instance contains an optional list of [`scene::LayerId`]. During object
-/// update, the list is passed from parent display objects to their children as long as the child
-/// does not override it (is assigned with [`None`]). Similar to [`Scene`], the scene layers list
-/// plays a very important role in decoupling the architecture. It allows objects and their children
-/// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
-/// management.
-#[derive(Derivative)]
-#[derive(CloneRef, Deref, From)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
-#[derivative(Default(bound = ""))]
-#[repr(transparent)]
-pub struct Instance {
-    def: InstanceDef,
-}
-
-/// Internal representation of [`Instance`]. It exists only to make the implementation less
-/// error-prone. [`Instance`] implements [`Object`]. The [`ObjectOps`] trait defines the public API
-/// of display objects, such as the [`add_child`] method. Without this struct, it would need to be
-/// implemented as [`self.display_object().add_child(child)`]. However, if then we rename the
-/// function in [`Instance`], the [`ObjectOps`] trait would still compile, but its function will
-/// loop infinitely. This struct allows the implementation to be written as
-/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile after
-/// renaming the function in [`InstanceDef`].
-#[derive(Derivative)]
-#[derive(CloneRef, Deref)]
-#[derivative(Clone(bound = ""))]
-#[repr(transparent)]
-pub struct InstanceDef {
-    rc: Rc<Model>,
-}
-
-impl Instance {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
 impl InstanceDef {
-    /// Constructor.
-    pub fn new() -> Self {
-        Self { rc: Rc::new(Model::new()) }.init()
-    }
-
-    fn init(self) -> Self {
+    fn init_events_handling(self) -> Self {
         // This implementation is a bit complex because we do not want to clone network to the FRP
         // closure in order to avoid a memory leak.
         let network = &self.network;
@@ -792,7 +848,7 @@ impl InstanceDef {
         capturing_event_fan: &frp::Fan,
         bubbling_event_fan: &frp::Fan,
     ) {
-        let rev_parent_chain = Self::rev_parent_chain(parent);
+        let rev_parent_chain = parent.map(|p| p.rev_parent_chain()).unwrap_or_default();
         if event.captures.get() {
             for object in &rev_parent_chain {
                 if !event.is_cancelled() {
@@ -816,21 +872,6 @@ impl InstanceDef {
                     break;
                 }
             }
-        }
-    }
-
-    /// Get reversed parent chain of this display object (`[root, child_of root, ...,
-    /// parent]`). The last item is the argument passed to this function.
-    fn rev_parent_chain(parent: Option<Instance>) -> Vec<Instance> {
-        let mut vec = default();
-        Self::build_rev_parent_chain(&mut vec, parent);
-        vec
-    }
-
-    fn build_rev_parent_chain(vec: &mut Vec<Instance>, parent: Option<Instance>) {
-        if let Some(parent) = parent {
-            Self::build_rev_parent_chain(vec, parent.parent());
-            vec.push(parent);
         }
     }
 
@@ -913,70 +954,12 @@ impl InstanceDef {
     }
 }
 
-impl Default for InstanceDef {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-
-// === Public API ==
-
-impl InstanceDef {
-    /// ID getter of this display object.
-    pub fn id(&self) -> Id {
-        Id(Rc::downgrade(&self.rc).as_ptr() as *const () as usize)
-    }
-}
-
 
 
 // =============================
 // === Hierarchy Management ====
 // =============================
 
-impl InstanceDef {
-    /// Get the layers where this object is displayed. May be equal to layers it was explicitly
-    /// assigned, or layers inherited from the parent.
-    pub fn display_layers(&self) -> Option<WeakLayer> {
-        self.layer.borrow().as_ref().cloned()
-    }
-
-    /// Add this object to the provided scene layer.
-    /// Do not use this method explicitly. Use layers' methods instead.
-    pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
-        self.dirty.new_layer.set();
-        let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() != Some(&layer) {
-            *assigned_layer = Some(layer);
-        }
-    }
-
-    /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
-    /// layers' methods instead.
-    pub(crate) fn remove_from_scene_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
-        let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() == Some(&layer) {
-            self.dirty.new_layer.set();
-            *assigned_layer = None;
-        }
-    }
-}
-
-
-// === Private API ===
-
-impl Instance {
-    fn parent_index(&self) -> Option<usize> {
-        self.parent_bind.child_index()
-    }
-
-    fn has_visible_parent(&self) -> bool {
-        self.parent_bind.parent().map_or(false, |parent| parent.is_visible())
-    }
-}
 
 
 // === Instances ===
@@ -1202,6 +1185,89 @@ impl Drop for UnsetParentOnDrop {
 
 impl<T: Object + ?Sized> ObjectOps for T {}
 
+
+macro_rules! gen_object_trans {
+    ($trans:ident) => {
+        paste! {
+            fn $trans(&self) -> Vector3<f32> {
+                self.display_object().def.rc.$trans()
+            }
+
+            fn [<mod_ $trans>]<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+                self.display_object().def.[<mod_ $trans>](f)
+            }
+
+            fn [<set_ $trans>](&self, t: Vector3<f32>) {
+                self.display_object().def.rc.[<set_ $trans>](t);
+            }
+        }
+        gen_object_trans_swizzling! {$trans [x,y,z] [[x y],[x z],[y z]] [[x y z]]}
+    };
+}
+
+macro_rules! gen_object_trans_swizzling {
+    ($trans:ident [$($t1:ident),*] [$( [$($t2:ident)*] ),*] [$( [$($t3:ident)*] ),*]) => {
+        paste! {
+            $(
+                fn $t1(&self) -> f32 {
+                    self.$trans().$t1
+                }
+
+                fn [<mod_ $t1>]<F: FnOnce(f32) -> f32>(&self, f: F) {
+                    self.[<set_ $t1>](f(self.$t1()));
+                }
+
+                fn [<set_ $t1>](&self, t: f32) {
+                    self.[<mod_ $trans>](|p| p.$t1 = t)
+                }
+            )*
+            $(
+                fn [<$($t2)*>](&self) -> Vector2<f32> {
+                    self.$trans().[<$($t2)*>]()
+                }
+
+
+                // fn [<mod_ $($t2)*>]<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
+                //     self.[<set_ $($t2)*>](f(self.[<$($t2)*>]()));
+                // }
+            )*
+            //
+            // $(
+            //     fn $($t3)*(&self) -> Vector3<f32> {
+            //         self.$trans().$($t3)*
+            //     }
+            //
+            //     fn [<mod_ $($t3)*>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&self, f: F) {
+            //         self.[<set_ $($t3)*>](f(self.$($t3)*()));
+            //     }
+            // )*
+            //
+            //
+            // fn set_xy(&self, t: Vector2<f32>) {
+            //     self.[<mod_ $trans>](|p| {
+            //         p.x = t.x;
+            //         p.y = t.y;
+            //     })
+            // }
+            //
+            // fn set_xz(&self, t: Vector2<f32>) {
+            //     self.[<mod_ $trans>](|p| {
+            //         p.x = t.x;
+            //         p.z = t.y;
+            //     })
+            // }
+            //
+            // fn set_yz(&self, t: Vector2<f32>) {
+            //     self.[<mod_ $trans>](|p| {
+            //         p.y = t.x;
+            //         p.z = t.y;
+            //     })
+            // }
+
+        }
+    };
+}
+
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
 //
@@ -1209,6 +1275,9 @@ impl<T: Object + ?Sized> ObjectOps for T {}
 // https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
 pub trait ObjectOps: Object {
+    gen_object_trans!(position);
+
+
     // === Information ===
 
     /// Globally unique identifier of this display object.
@@ -1219,10 +1288,10 @@ pub trait ObjectOps: Object {
 
     // === Hierarchy ===
 
-    /// Get the layers where this object is displayed. May be equal to layers it was explicitly
-    /// assigned, or layers inherited from the parent.
-    fn display_layer(&self) -> Option<WeakLayer> {
-        self.display_object().def.display_layers()
+    /// Get the layer this object is displayed in. May be equal to layer explicitly set by the user
+    /// or a layer inherited from the parent.
+    fn display_layer(&self) -> Option<Layer> {
+        self.display_object().def.display_layer()
     }
 
     /// Add another display object as a child to this display object. Children will inherit all
@@ -1311,8 +1380,8 @@ pub trait ObjectOps: Object {
 
     // === Transform ===
 
-    fn transform_matrix(&self) -> Matrix4<f32> {
-        self.display_object().def.rc.matrix()
+    fn transformation_matrix(&self) -> Matrix4<f32> {
+        self.display_object().def.rc.transformation_matrix()
     }
 
     fn global_position(&self) -> Vector3<f32> {
@@ -1322,105 +1391,6 @@ pub trait ObjectOps: Object {
 
     // === Position ===
 
-    fn position(&self) -> Vector3<f32> {
-        self.display_object().def.rc.position()
-    }
-
-    fn x(&self) -> f32 {
-        self.position().x
-    }
-
-    fn y(&self) -> f32 {
-        self.position().y
-    }
-
-    fn z(&self) -> f32 {
-        self.position().z
-    }
-
-    fn xy(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.x, position.y)
-    }
-
-    fn xz(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.x, position.z)
-    }
-
-    fn yz(&self) -> Vector2<f32> {
-        let position = self.position();
-        Vector2(position.y, position.z)
-    }
-
-    fn xyz(&self) -> Vector3<f32> {
-        self.position()
-    }
-
-    fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().def.rc.mod_position(f)
-    }
-
-    fn mod_position_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_xy(f(self.position().xy()));
-    }
-
-    fn mod_position_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_xz(f(self.position().xz()));
-    }
-
-    fn mod_position_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_position_yz(f(self.position().yz()));
-    }
-
-    fn mod_position_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_x(f(self.position().x));
-    }
-
-    fn mod_position_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_y(f(self.position().y));
-    }
-
-    fn mod_position_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_position_z(f(self.position().z));
-    }
-
-    fn set_position(&self, t: Vector3<f32>) {
-        self.display_object().def.rc.set_position(t);
-    }
-
-    fn set_position_xy(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_position_xz(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_position_yz(&self, t: Vector2<f32>) {
-        self.mod_position(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_position_x(&self, t: f32) {
-        self.mod_position(|p| p.x = t)
-    }
-
-    fn set_position_y(&self, t: f32) {
-        self.mod_position(|p| p.y = t)
-    }
-
-    fn set_position_z(&self, t: f32) {
-        self.mod_position(|p| p.z = t)
-    }
 
 
     // === Scale ===
@@ -1585,16 +1555,16 @@ mod tests {
         let node2 = Instance::new();
         let node3 = Instance::new();
         node1.add_child(&node2);
-        assert_eq!(node2.parent_index(), Some(0));
+        assert_eq!(node2.my_index(), Some(0));
 
         node1.add_child(&node2);
-        assert_eq!(node2.parent_index(), Some(0));
+        assert_eq!(node2.my_index(), Some(0));
 
         node1.add_child(&node3);
-        assert_eq!(node3.parent_index(), Some(1));
+        assert_eq!(node3.my_index(), Some(1));
 
         node1.remove_child(&node3);
-        assert_eq!(node3.parent_index(), None);
+        assert_eq!(node3.my_index(), None);
     }
 
     #[test]
@@ -1965,15 +1935,15 @@ mod tests {
 
         node1.add_to_display_layer(&layer1);
         node1.update(scene);
-        assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
-        assert_eq!(node2.display_layer(), Some(layer1.downgrade()));
-        assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
+        assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
+        assert_eq!(node2.display_layer().as_ref(), Some(&layer1));
+        assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
 
         node2.add_to_display_layer(&layer2);
         node1.update(scene);
-        assert_eq!(node1.display_layer(), Some(layer1.downgrade()));
-        assert_eq!(node2.display_layer(), Some(layer2.downgrade()));
-        assert_eq!(node3.display_layer(), Some(layer1.downgrade()));
+        assert_eq!(node1.display_layer().as_ref(), Some(&layer1));
+        assert_eq!(node2.display_layer().as_ref(), Some(&layer2));
+        assert_eq!(node3.display_layer().as_ref(), Some(&layer1));
     }
 
     #[test]

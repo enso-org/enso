@@ -926,10 +926,10 @@ impl SceneData {
         screen_pos: Vector2,
     ) -> Vector2 {
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
-        let layer = object.display_layer().and_then(|t| t.upgrade());
+        let layer = object.display_layer();
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
+        let inv_object_matrix = object.transformation_matrix().try_inverse().unwrap();
 
         let shape = camera.screen();
         let clip_space_z = origin_clip_space.z;

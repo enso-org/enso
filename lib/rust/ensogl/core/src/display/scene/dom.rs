@@ -220,7 +220,7 @@ impl DomScene {
             return;
         }
 
-        let trans_cam = camera.transform_matrix().try_inverse();
+        let trans_cam = camera.transformation_matrix().try_inverse();
         let trans_cam = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam = trans_cam.map(eps);
         let trans_cam = inverse_y_translation(trans_cam);

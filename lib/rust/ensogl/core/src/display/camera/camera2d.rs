@@ -248,7 +248,7 @@ impl Camera2dData {
     }
 
     fn recompute_view_matrix(&mut self) {
-        let transform = self.display_object.matrix();
+        let transform = self.display_object.transformation_matrix();
         self.matrix.view_inversed = transform;
         self.matrix.view = transform.try_inverse().unwrap()
     }

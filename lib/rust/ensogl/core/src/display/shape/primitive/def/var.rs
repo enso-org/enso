@@ -285,7 +285,7 @@ dim_impl! ( Dim4 for Var<Vector4<T>> {
     swizzling = Dim2Type [ww, xw, wx, yw, wy, zw, wz];
     swizzling = Dim3Type [
         xxw, xyw, xzw, yxw, yyw, yzw, zxw, zyw, zzw, xwx, xwy, xwz, ywx, ywy, ywz, zwx, zwy, zwz,
-        wxx, wxy, wxz, wyx, wyy, wyz, wzx, wzy, wzz
+        wxx, wxy, wxz, wyx, wyy, wyz, wzx, wzy, wzz, xww, yww, zww, wxw, wyw, wzw, wwx, wwy, wwz, www
     ];
     swizzling = Dim4Type [
         xxxx, xxxy, xxxz, xxxw, xxyx, xxyy, xxyz, xxyw, xxzx, xxzy, xxzz, xxzw, xxwx, xxwy, xxwz,

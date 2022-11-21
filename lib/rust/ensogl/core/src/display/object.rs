@@ -11,7 +11,7 @@ use crate::display::scene::layer::Layer;
 
 pub mod event;
 pub mod instance;
-pub mod transform;
+pub mod transformation;
 
 pub use instance::Any;
 pub use instance::*;

@@ -103,7 +103,7 @@ impl Size {
         frp::extend! { network
             eval_ display_object.on_updated ([transform] {
                 if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.matrix())
+                    transform.set(display_object.transformation_matrix())
                 }
             });
         }
