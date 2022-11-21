@@ -470,14 +470,13 @@ impl Slider {
         tooltip_anim.set_delay(INFORMATION_TOOLTIP_DELAY);
 
         frp::extend! { network
-            tooltip_anim.start <+ component_events.mouse_over;
-            tooltip_anim.reset <+ component_events.mouse_out;
+            tooltip_anim.start <+ any2(&component_events.mouse_over, &component_events.mouse_up_primary);
+            tooltip_anim.reset <+ any2(&component_events.mouse_out, &component_events.mouse_down_primary);
             tooltip_show <- input.set_tooltip.sample(&tooltip_anim.on_end);
             model.tooltip.frp.set_style <+ tooltip_show.map(|tooltip| {
                 tooltip::Style::set_label(format!("{}", tooltip))
             });
-            tooltip_hide <- any2(&tooltip_anim.on_reset, &component_events.mouse_down_primary);
-            model.tooltip.frp.set_style <+ tooltip_hide.map(|_|
+            model.tooltip.frp.set_style <+ tooltip_anim.on_reset.map(|_|
                 tooltip::Style::unset_label()
             );
         };
