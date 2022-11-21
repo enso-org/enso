@@ -7,6 +7,7 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table as Database_Table
+# TODO[DB] Fix composite types #183857386
 import project.Data.Table.Table as Database_Table_Type
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression

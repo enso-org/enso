@@ -8,6 +8,7 @@ import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
 
 from Standard.Table import Table, Column
+# TODO[DB] Fix composite types #183857386
 import Standard.Table.Data.Column.Column as Column_Type
 import Standard.Table.Data.Table.Table as Table_Type
 
