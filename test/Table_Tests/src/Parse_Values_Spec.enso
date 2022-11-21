@@ -74,11 +74,11 @@ spec = Test.group "Table.parse_values" <|
         t2.at "dates" . to_vector . map date_as_vector . should_equal [[2022, 5, 7], [2000, 1, 1], [2010, 12, 31]]
 
         t3 = Table.new [["datetimes", ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]]]
-        t4 = t3.parse_values column_types=[Column_Type_Selection 0 Time.Time]
+        t4 = t3.parse_values column_types=[Column_Type_Selection 0 Date_Time]
         t4.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 5, 7, 23, 59, 59, 0], [2000, 1, 1, 0, 0, 0, 0], [2010, 12, 31, 12, 34, 56, 0]]
 
         t5 = Table.new [["times", ["23:59:59", "00:00:00", "12:34:56"]]]
-        t6 = t5.parse_values column_types=[Column_Type_Selection 0 Time_Of_Day.Time_Of_Day]
+        t6 = t5.parse_values column_types=[Column_Type_Selection 0 Time_Of_Day]
         t6.at "times" . to_vector . map time_as_vector . should_equal [[23, 59, 59, 0], [0, 0, 0, 0], [12, 34, 56, 0]]
 
     Test.specify "should parse date and time in various formats" <|
@@ -89,11 +89,11 @@ spec = Test.group "Table.parse_values" <|
         t2.at "dates" . to_vector . map date_as_vector . should_equal [[476, 2, 1], [1900, 1, 10], [2008, 6, 3]]
 
         t3 = Table.new [["datetimes", ["2011-12-03T10:15:30", "31/12/2012 22:33"]]]
-        t4 = t3.parse_values opts column_types=[Column_Type_Selection 0 Time.Time]
+        t4 = t3.parse_values opts column_types=[Column_Type_Selection 0 Date_Time]
         t4.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2011, 12, 3, 10, 15, 30, 0], [2012, 12, 31, 22, 33, 0, 0]]
 
         t5 = Table.new [["times", ["1:02:03.987654321", "1:30PM"]]]
-        t6 = t5.parse_values opts column_types=[Column_Type_Selection 0 Time_Of_Day.Time_Of_Day]
+        t6 = t5.parse_values opts column_types=[Column_Type_Selection 0 Time_Of_Day]
         t6.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 987654321], [13, 30, 0, 0]]
 
     Test.specify "should warn when cells do not fit the expected format" <|
@@ -105,7 +105,7 @@ spec = Test.group "Table.parse_values" <|
         t = Table.new [ints, floats, bools, ["dates", time_content], ["datetimes", time_content], ["times", time_content]]
 
         action pb =
-            t.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Time.Time, Column_Type_Selection "times" Time_Of_Day.Time_Of_Day] on_problems=pb
+            t.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Date_Time, Column_Type_Selection "times" Time_Of_Day] on_problems=pb
         tester t =
             t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
             t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
@@ -118,8 +118,8 @@ spec = Test.group "Table.parse_values" <|
             floats = Invalid_Format "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
             bools = Invalid_Format "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
             dates = Invalid_Format "dates" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            datetimes = Invalid_Format "datetimes" Time.Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            times = Invalid_Format "times" Time_Of_Day.Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            datetimes = Invalid_Format "datetimes" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            times = Invalid_Format "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
             [ints, floats, bools, dates, datetimes, times]
         Problems.test_problem_handling action problems tester
 
@@ -234,7 +234,7 @@ spec = Test.group "Table.parse_values" <|
         Table.new [ints, floats, bools, dates, datetimes, times]
 
     Test.specify "should trim input values by default" <|
-        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Time.Time, Column_Type_Selection "times" Time_Of_Day.Time_Of_Day]
+        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Date_Time, Column_Type_Selection "times" Time_Of_Day]
         t1.at "ints" . to_vector . should_equal [0, 1, Nothing, 2]
         t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
         t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
@@ -247,13 +247,13 @@ spec = Test.group "Table.parse_values" <|
         expected_warnings.append (Invalid_Format "floats" Decimal ["- 1"])
         expected_warnings.append (Invalid_Format "bools" Boolean ["t rue"])
         expected_warnings.append (Invalid_Format "dates" Date ["2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format "datetimes" Time.Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["00 : 00 : 00"])
+        expected_warnings.append (Invalid_Format "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format "times" Time_Of_Day ["00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
         opts = Data_Formatter trim_values=False
-        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Time.Time, Column_Type_Selection "times" Time_Of_Day.Time_Of_Day]
+        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date, Column_Type_Selection "datetimes" Date_Time, Column_Type_Selection "times" Time_Of_Day]
         t1.at "ints" . to_vector . should_equal [0, Nothing, Nothing, Nothing]
         t1.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, 10.0]
         t1.at "bools" . to_vector . should_equal [Nothing, Nothing, Nothing, False]
@@ -267,8 +267,8 @@ spec = Test.group "Table.parse_values" <|
         expected_warnings.append (Invalid_Format "floats" Decimal ["0    ", " 2.0", "- 1"])
         expected_warnings.append (Invalid_Format "bools" Boolean ["True ", " false", "t rue"])
         expected_warnings.append (Invalid_Format "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format "datetimes" Time.Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
+        expected_warnings.append (Invalid_Format "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format "times" Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|

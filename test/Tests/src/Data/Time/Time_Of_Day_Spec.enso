@@ -121,8 +121,8 @@ specWith name create_new_time parse_time =
             new_timeofday = create_new_time 15 37 58
             parsed_timeofday =  parse_time "10:00:00"
 
-            Meta.type_of new_timeofday . should_equal_type Time_Of_Day.Time_Of_Day
-            Meta.type_of parsed_timeofday . should_equal_type Time_Of_Day.Time_Of_Day
+            Meta.type_of new_timeofday . should_equal_type Time_Of_Day
+            Meta.type_of parsed_timeofday . should_equal_type Time_Of_Day
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|

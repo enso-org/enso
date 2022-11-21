@@ -43,6 +43,7 @@ import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 
@@ -68,6 +69,7 @@ export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Duration.Duration
 export project.Data.Time.Period.Period
+export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 
@@ -83,10 +85,7 @@ from project.Data.Index_Sub_Range export First, Last
 # Not refactored modules below:
 
 import project.Data.Range
-import project.Data.Time.Time_Of_Day
-
 from project.Data.Range export all
-export project.Data.Time.Time_Of_Day
 
 import project.Data.Text
 import project.Data.Text.Case

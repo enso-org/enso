@@ -323,7 +323,7 @@ type Any
          Applying a function over a value 10.
 
              10.map_nothing *2
-    map_nothing : (a -> b) -> b | Nothing
+    map_nothing : (Any -> Any) -> Any | Nothing
     map_nothing self f = case self of
         Nothing -> Nothing
         a -> f a
