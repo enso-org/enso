@@ -6,7 +6,7 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalUnit
 
-## Represents a period of time of a day or shorter.
+## Represents a unit of time of a day or shorter.
 type Time_Period
     Day
 

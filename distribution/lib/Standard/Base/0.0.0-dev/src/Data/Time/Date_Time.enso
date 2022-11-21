@@ -690,7 +690,7 @@ type Date_Time
          Compare two times for their ordering.
 
          (Date_Time.new 2000).compare_to (Date_Time.new 2001)
-    compare_to : Any -> Ordering
+    compare_to : Date_Time -> Ordering
     compare_to self that = case that of
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that

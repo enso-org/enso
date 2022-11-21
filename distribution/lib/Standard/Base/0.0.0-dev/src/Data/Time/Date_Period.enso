@@ -8,7 +8,7 @@ polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
 
-## Represents a period of time longer on the scale of days (longer than a day).
+## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
     Year
 
