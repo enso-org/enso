@@ -1,6 +1,9 @@
 from Standard.Base import all
 from Standard.Table import Table
 
+# TODO[DB] Fix composite types #183857386
+import Standard.Base.System.File.File as File_Type
+
 polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.util.Collections
@@ -49,7 +52,7 @@ type Spreadsheets
    - secret_file: a file containing Google Service Account credentials to use to
      access Google services. The credentials file can be downloaded from the
      Google Admin Console when generating a key.
-initialize : File.File -> Google_Api_Client
+initialize : File_Type -> Google_Api_Client
 initialize secret_file =
     credential = secret_file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream is->
@@ -57,4 +60,3 @@ initialize secret_file =
     http_transport = GoogleNetHttpTransport.newTrustedTransport
     json_factory = GsonFactory.getDefaultInstance
     Google_Api_Client.Value credential json_factory http_transport
-

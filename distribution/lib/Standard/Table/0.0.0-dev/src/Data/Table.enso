@@ -7,6 +7,8 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
 import Standard.Base.System.Platform
+# TODO[DB] Fix composite types #183857386
+import Standard.Base.System.File.File as File_Type
 
 import project.Data.Column.Column
 from project.Data.Column import get_item_string
@@ -22,6 +24,7 @@ import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
 import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
@@ -379,7 +382,7 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         Table.new new_columns
@@ -1188,7 +1191,7 @@ type Table
              import Standard.Examples
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File.File -> Nothing
+    write_json : File_Type -> Nothing
     write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
@@ -1251,7 +1254,7 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File_Type|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of

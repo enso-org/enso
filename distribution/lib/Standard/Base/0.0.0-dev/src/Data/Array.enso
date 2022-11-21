@@ -1,9 +1,14 @@
 import project.Data.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Common.Panic
+import project.Meta
+import project.Nothing.Nothing
+
 from project.Data.Boolean import Boolean, False
 from project.Data.Range import all
-import project.Meta
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
