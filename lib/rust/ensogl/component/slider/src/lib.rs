@@ -230,9 +230,11 @@ ensogl_core::define_endpoints_2! {
         height(f32),
         value(f32),
         precision(f32),
-        /// The slider value's lower limit. This takes into account limit extension if an adaptive slider limit is set.
+        /// The slider value's lower limit. This takes into account limit extension if an adaptive
+        /// slider limit is set.
         min_value(f32),
-        /// The slider value's upper limit. This takes into account limit extension if an adaptive slider limit is set.
+        /// The slider value's upper limit. This takes into account limit extension if an adaptive
+        /// slider limit is set.
         max_value(f32),
     }
 }
@@ -445,10 +447,14 @@ impl Slider {
             );
             precision <- output.precision.on_change().gate(&component_drag);
             model.tooltip.frp.set_style <+ precision.map(|precision| {
-                let prec_text = format!("{:.digits$}", precision, digits=MAX_DISP_DECIMAL_PLACES_DEFAULT);
+                let prec_text = format!(
+                    "Precision: {:.digits$}",
+                    precision, 
+                    digits=MAX_DISP_DECIMAL_PLACES_DEFAULT
+                );
                 let prec_text = prec_text.trim_end_matches('0');
                 let prec_text = prec_text.trim_end_matches('.');
-                tooltip::Style::set_label(format!("Precision: {}", prec_text))
+                tooltip::Style::set_label(prec_text.into())
             });
             precision_changed <- precision.constant(());
             tooltip_anim.reset <+ precision_changed;
@@ -470,8 +476,14 @@ impl Slider {
         tooltip_anim.set_delay(INFORMATION_TOOLTIP_DELAY);
 
         frp::extend! { network
-            tooltip_anim.start <+ any2(&component_events.mouse_over, &component_events.mouse_up_primary);
-            tooltip_anim.reset <+ any2(&component_events.mouse_out, &component_events.mouse_down_primary);
+            tooltip_anim.start <+ any2(
+                &component_events.mouse_over,
+                &component_events.mouse_up_primary
+            );
+            tooltip_anim.reset <+ any2(
+                &component_events.mouse_out,
+                &component_events.mouse_down_primary
+            );
             tooltip_show <- input.set_tooltip.sample(&tooltip_anim.on_end);
             model.tooltip.frp.set_style <+ tooltip_show.map(|tooltip| {
                 tooltip::Style::set_label(format!("{}", tooltip))
