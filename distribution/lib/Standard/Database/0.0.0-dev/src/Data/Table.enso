@@ -7,6 +7,7 @@ import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
@@ -28,6 +29,7 @@ import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
+import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
 
@@ -251,7 +253,7 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
@@ -1230,4 +1232,3 @@ freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Colum
 freshen_columns used_names columns =
     new_names = fresh_names used_names (columns.map .name)
     internal_rename_columns columns new_names
-

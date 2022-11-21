@@ -91,6 +91,21 @@ object Suggestion {
     case object Local extends Kind
   }
 
+  /** Arguments extractor. */
+  object Arguments {
+
+    def apply(suggestion: Suggestion): Seq[Argument] =
+      suggestion match {
+        case _: Module                => Seq()
+        case tpe: Type                => tpe.params
+        case constructor: Constructor => constructor.arguments
+        case method: Method           => method.arguments
+        case conversion: Conversion   => conversion.arguments
+        case function: Function       => function.arguments
+        case _: Local                 => Seq()
+      }
+  }
+
   /** Self type extractor. */
   object SelfType {
 

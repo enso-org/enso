@@ -18,6 +18,7 @@ polyglot java import java.util.Properties
 
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
+polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
@@ -192,7 +193,7 @@ create_table_statement name table temporary =
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.
-default_storage_type : Storage.Type -> SQL_Type
+default_storage_type : Storage -> SQL_Type
 default_storage_type storage_type = case storage_type of
     Storage.Text -> SQL_Type.text
     Storage.Integer -> SQL_Type.integer

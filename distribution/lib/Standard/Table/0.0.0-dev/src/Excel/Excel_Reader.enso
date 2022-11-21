@@ -27,7 +27,8 @@ prepare_reader_table on_problems result_with_problems =
 
 ## PRIVATE
    Convert Boolean|Infer to the correct HeaderBehavior
-make_java_headers : (Boolean|Infer) -> ExcelHeaders.HeaderBehavior
+# TODO[DB] Fix composite types #183857386
+#make_java_headers : (Boolean | Infer) -> ExcelHeaders.HeaderBehavior
 make_java_headers headers = case headers of
         True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> ExcelHeaders.HeaderBehavior.INFER
