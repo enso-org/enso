@@ -8,6 +8,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Scope => AliasScope
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
+import org.enso.interpreter.runtime.scope.LocalScope.internalSlots
 
 import scala.jdk.CollectionConverters._
 
@@ -49,14 +50,6 @@ class LocalScope(
     */
   private lazy val allFrameSlotIdxs: Map[Graph.Id, Int] =
     parentFrameSlotIdxs ++ localFrameSlotIdxs
-
-  /** Internal slots are prepended at the beginning of every [[FrameDescriptor]].
-    * Every tuple of the list denotes frame slot kind and its name.
-    * Note that `info` for a frame slot is not used by Enso.
-    */
-  private val internalSlots: List[(FrameSlotKind, String)] = List(
-    (FrameSlotKind.Object, "<<monadic_state>>")
-  )
 
   /** Creates a new child with a new aliasing scope.
     *
@@ -175,7 +168,9 @@ class LocalScope(
 
   /** Gather local variables from the alias scope information.
     * Does not include any variables from the parent scopes.
-    * @return
+    * @return Mapping of local variable identifiers to their
+    *         indexes in the frame. Takes into account all the
+    *         internal slots, that are prepended to every frame.
     */
   private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
     scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
@@ -226,4 +221,12 @@ object LocalScope {
       DataflowAnalysis.DependencyInfo()
     )
   }
+
+  /** Internal slots are prepended at the beginning of every [[FrameDescriptor]].
+    * Every tuple of the list denotes frame slot kind and its name.
+    * Note that `info` for a frame slot is not used by Enso.
+    */
+  def internalSlots: List[(FrameSlotKind, String)] = List(
+    (FrameSlotKind.Object, "<<monadic_state>>")
+  )
 }
