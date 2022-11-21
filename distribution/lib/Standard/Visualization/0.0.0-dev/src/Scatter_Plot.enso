@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import Sample
 
 from Standard.Table import Table, Column
 
@@ -129,8 +128,8 @@ Table.axes self =
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data self  =
+Vector.point_data : Vector -> Object
+Vector.point_data self  =
     self.map_with_index <| i-> elem->
         Json.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
 
@@ -173,7 +172,7 @@ limit_data limit data = case limit of
         extreme = Map.from_vector bounds . values
 
         if limit <= extreme.length then extreme.take (First limit) else
-            extreme + data.take (Sample (limit - extreme.length))
+            extreme + data.take (Index_Sub_Range.Sample (limit - extreme.length))
 
 ## PRIVATE
 json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> Json
@@ -200,9 +199,9 @@ json_from_vector vec bounds limit =
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        _ : Column        -> json_from_table  value.to_table bounds limit
-        _ : Table         -> json_from_table  value bounds limit
-        _ : Vector.Vector -> json_from_vector value bounds limit
-        _                 -> json_from_vector value.to_vector bounds limit
+        _ : Column -> json_from_table  value.to_table bounds limit
+        _ : Table  -> json_from_table  value bounds limit
+        _ : Vector -> json_from_vector value bounds limit
+        _          -> json_from_vector value.to_vector bounds limit
 
     json.to_text

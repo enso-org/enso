@@ -1,4 +1,5 @@
-from Standard.Base import Boolean, True
+import project.Data.Any.Any
+from project.Data.Boolean import Boolean, True
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
    universal value to indicate the lack of presence of a value.

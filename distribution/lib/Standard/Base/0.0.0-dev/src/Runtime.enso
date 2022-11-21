@@ -1,7 +1,8 @@
-import Standard.Base.Data.Vector
-from Standard.Base.Data.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range import First, Last
+import project.Nothing.Nothing
+
+import Standard.Base.Data.Vector.Vector
 import Standard.Base.Polyglot
-import Standard.Base.Nothing
 from Standard.Base.Runtime.Extensions import Source_Location, Source_Location_Data
 
 ## Utilities for interacting with the runtime.
@@ -18,7 +19,7 @@ primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 
    Returns the execution stack trace of its call site. The ordering of the
    resulting vector is such that the top stack frame is the first element.
-get_stack_trace : Vector.Vector Stack_Trace_Element
+get_stack_trace : Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = primitive_get_stack_trace
     stack_with_prims = Vector.from_polyglot_array prim_stack

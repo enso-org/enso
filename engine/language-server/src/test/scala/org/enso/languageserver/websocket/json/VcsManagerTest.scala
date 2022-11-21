@@ -13,6 +13,8 @@ import org.enso.testkit.RetrySpec
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
+import java.time.{Clock, LocalDate}
+
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
@@ -196,7 +198,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           """)
         val allCommits = commits(testContentRoot.file)
         allCommits should have length 3
-        val today = java.time.LocalDate.now()
+        val today = LocalDate.now(Clock.systemUTC())
 
         allCommits.head.getShortMessage should startWith(today.toString)
     }

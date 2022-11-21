@@ -22,7 +22,7 @@ import Standard.Base.Network.URI
          import Standard.Base.Network.URI
 
          example_new = Request.new Method.Post (URI.parse "http://example.com")
-new : Method -> (Text | URI) -> Vector.Vector -> Request_Body -> Request
+new : Method -> (Text | URI) -> Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
     Panic.recover Any (Request_Data method (Panic.rethrow (addr.to_uri)) headers body)
 
@@ -37,7 +37,7 @@ new method addr (headers = []) (body = Request_Body.Empty) =
          import Standard.Base.Network.URI
 
          example_options = Request.options (URI.parse "http://example.com")
-options : (Text | URI) -> Vector.Vector -> Request
+options : (Text | URI) -> Vector -> Request
 options addr (headers = []) = new Method.Options addr headers
 
 ## Create a Get request.
@@ -53,7 +53,7 @@ options addr (headers = []) = new Method.Options addr headers
          import Standard.Base.Network.URI
 
          example_get = Request.get (URI.parse "http://example.com")
-get : (Text | URI) -> Vector.Vector -> Request
+get : (Text | URI) -> Vector -> Request
 get addr (headers = []) = new Method.Get addr headers
 
 ## Create a Head request.
@@ -69,7 +69,7 @@ get addr (headers = []) = new Method.Get addr headers
          import Standard.Base.Network.URI
 
          example_head = Request.head (URI.parse "http://example.com")
-head : (Text | URI) -> Vector.Vector -> Request
+head : (Text | URI) -> Vector -> Request
 head addr (headers = []) = new Method.Head addr headers
 
 ## Create a Post request.
@@ -87,7 +87,7 @@ head addr (headers = []) = new Method.Head addr headers
          import Standard.Base.Network.URI
 
          example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
-post : (Text | URI) -> Request_Body -> Vector.Vector -> Request
+post : (Text | URI) -> Request_Body -> Vector -> Request
 post addr body (headers = []) = new Method.Post addr headers body
 
 ## Create a Put request.
@@ -105,7 +105,7 @@ post addr body (headers = []) = new Method.Post addr headers body
          import Standard.Base.Network.URI
 
          example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
-put : (Text | URI) -> Request_Body -> Vector.Vector -> Request
+put : (Text | URI) -> Request_Body -> Vector -> Request
 put addr body (headers = []) = new Method.Put addr headers body
 
 ## Create a Delete request.
@@ -121,7 +121,7 @@ put addr body (headers = []) = new Method.Put addr headers body
          import Standard.Base.Network.URI
 
          example_delete = Request.delete (URI.parse "http://example.com")
-delete : (Text | URI) -> Vector.Vector -> Request
+delete : (Text | URI) -> Vector -> Request
 delete addr (headers = []) = new Method.Delete addr headers
 
 ## TODO Dubious constructor export

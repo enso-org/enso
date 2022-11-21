@@ -409,7 +409,7 @@ class ContextEventsListenerSpec
               Seq(
                 ExecutionDiagnostic(
                   ExecutionDiagnosticKind.Error,
-                  message,
+                  Some(message),
                   None,
                   None,
                   None,

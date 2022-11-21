@@ -37,7 +37,7 @@ class VcsManager(
       .absolve
 
   private def toVcsError: FileSystemFailure => VcsFailure = {
-    case ex: FileSystemFailure => ProjectNotFound(ex.toString)
+    ex: FileSystemFailure => ProjectNotFound(ex.toString)
   }
 
   private def resolvePath(path: Path): IO[VcsFailure, File] =

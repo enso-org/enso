@@ -7,7 +7,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -26,6 +25,7 @@ public final class EnsoBigInteger implements TruffleObject {
    * @param value the value to wrap.
    */
   public EnsoBigInteger(BigInteger value) {
+    assert (value.bitLength() > 63);
     this.value = value;
   }
 

@@ -1,5 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Data.Vector import Empty_Error
 
 from Standard.Test import Test, Test_Suite
 
@@ -94,11 +95,11 @@ spec = Test.group "Vectors" <|
 
     Test.specify "should allow to reduce elements if it is non-empty" <|
         [1,2,3].reduce (+) . should_equal 6
-        [].reduce (+) . should_fail_with Vector.Empty_Error
+        [].reduce (+) . should_fail_with Empty_Error
 
     Test.specify "should allow summing elements if they define +" <|
         [1,2,3].sum . should_equal 6
-        [].sum . should_fail_with Vector.Empty_Error
+        [].sum . should_fail_with Empty_Error
         [T.Value 1 2, T.Value 3 4].sum . should_fail_with No_Such_Method_Error_Data
 
     Test.specify "should check exists" <|
@@ -286,9 +287,9 @@ spec = Test.group "Vectors" <|
         concat.should_equal [1, 2, 3, 4, 5, 6]
 
     Test.specify "should be convertible to a list" <|
-        [].to_list . should_equal Nil
-        ["A"].to_list . should_equal (Cons "A" Nil)
-        [1, 2, "B", 3].to_list . should_equal (Cons 1 (Cons 2 (Cons "B" (Cons 3 Nil))))
+        [].to_list . should_equal List.Nil
+        ["A"].to_list . should_equal (List.Cons "A" List.Nil)
+        [1, 2, "B", 3].to_list . should_equal (List.Cons 1 (List.Cons 2 (List.Cons "B" (List.Cons 3 List.Nil))))
 
     Test.specify "Vector slice should return a Vector" <|
         vec = [1, 2, 3, 4, 5, 6]
@@ -426,7 +427,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.head . should_equal 1
         singleton_vec.head . should_equal 1
-        empty_vec.head . should_fail_with Vector.Empty_Error
+        empty_vec.head . should_fail_with Empty_Error
 
     Test.specify "should allow getting the tail of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -434,7 +435,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.tail . should_equal [2, 3, 4, 5]
         singleton_vec.tail . should_equal []
-        empty_vec.tail . should_fail_with Vector.Empty_Error
+        empty_vec.tail . should_fail_with Empty_Error
 
     Test.specify "should allow getting the init of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -442,7 +443,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.init . should_equal [1, 2, 3, 4]
         singleton_vec.init . should_equal []
-        empty_vec.init . should_fail_with Vector.Empty_Error
+        empty_vec.init . should_fail_with Empty_Error
 
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -450,7 +451,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.last . should_equal 5
         singleton_vec.last . should_equal 1
-        empty_vec.last . should_fail_with Vector.Empty_Error
+        empty_vec.last . should_fail_with Empty_Error
 
     Test.specify "should allow getting the first element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -458,7 +459,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.first . should_equal 1
         singleton_vec.first . should_equal 1
-        empty_vec.first . should_fail_with Vector.Empty_Error
+        empty_vec.first . should_fail_with Empty_Error
 
     Test.specify "should allow getting the rest of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -466,7 +467,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.rest . should_equal [2, 3, 4, 5]
         singleton_vec.rest . should_equal []
-        empty_vec.rest . should_fail_with Vector.Empty_Error
+        empty_vec.rest . should_fail_with Empty_Error
 
     Test.specify "should be able to be sorted" <|
         empty_vec = []
@@ -484,6 +485,7 @@ spec = Test.group "Vectors" <|
         [2, Date.new 1999].sort . should_fail_with Incomparable_Values_Error
         [Date_Time.new 1999 1 1 12 30, Date.new 1999].sort . should_fail_with Incomparable_Values_Error
         [Date_Time.new 1999 1 1 12 30, Time_Of_Day.new 12 30].sort . should_fail_with Incomparable_Values_Error
+        Test.expect_panic_with ([3,2,1].to_array.sort 42) Type_Error_Data
 
     Test.specify "should leave the original vector unchanged" <|
         non_empty_vec = [2, 4, 2, 3, 2, 3]

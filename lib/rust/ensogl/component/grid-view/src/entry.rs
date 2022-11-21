@@ -76,6 +76,9 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         set_size(Vector2),
         set_params(Params),
         set_location((Row, Col)),
+        /// Called to inform the entry that its position is updated. Note that this is not usually
+        /// needed as the entry will update its position automatically through its display object.
+        position_set(Vector2),
         /// True if the entry is currently selected.
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.

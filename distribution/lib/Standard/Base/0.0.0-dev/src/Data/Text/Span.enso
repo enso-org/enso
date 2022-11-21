@@ -27,7 +27,7 @@ type Span
        Arguments:
        - range: The range of characters over which the span exists. The range is
          assumed to have `step` equal to 1.
-       - text: The text over which the span exists.
+       - parent: The text over which the span exists.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -43,7 +43,7 @@ type Span
                  text = "Hello!"
                  range = 0.up_to 3
                  Span.Span_Data range text
-    Span_Data (range : Range.Range) (text : Text)
+    Span_Data (range : Range.Range) (parent : Text)
 
     ## The index of the first character included in the span.
 
@@ -73,6 +73,10 @@ type Span
     length : Integer
     length self = self.range.length
 
+    ## Returns the part of the text that this span covers.
+    text : Text
+    text self = self.to_utf_16_span.text
+
     ## Converts the span of extended grapheme clusters to a corresponding span
        of UTF-16 code units.
 
@@ -83,7 +87,7 @@ type Span
          (Span_Data (Range 1 3) text).to_utf_16_span == (Utf_16_Span_Data (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
     to_utf_16_span self =
-        Utf_16_Span_Data (range_to_char_indices self.text self.range) self.text
+        Utf_16_Span_Data (range_to_char_indices self.parent self.range) self.parent
 
 # TODO Dubious constructor export
 from project.Data.Text.Span.Utf_16_Span import all
@@ -96,7 +100,7 @@ type Utf_16_Span
        Arguments:
        - range: The range of code units over which the span exists. The range is
          assumed to have `step` equal to 1.
-       - text: The text over which the span exists.
+       - parent: The text over which the span exists.
 
        > Example
          Creating a span over the first three code units of the text 'a\u{301}bc'.
@@ -106,7 +110,7 @@ type Utf_16_Span
              example_span =
                  text = 'a\u{301}bc'
                  Span.Utf_16_Span_Data (Range 0 3) text
-    Utf_16_Span_Data (range : Range.Range) (text : Text)
+    Utf_16_Span_Data (range : Range.Range) (parent : Text)
 
     ## The index of the first code unit included in the span.
     start : Integer
@@ -120,6 +124,10 @@ type Utf_16_Span
     ## The length of the span in UTF-16 code units.
     length : Integer
     length self = self.range.length
+
+    ## Returns the part of the text that this span covers.
+    text : Text
+    text self = Text_Utils.substring self.parent self.start self.end
 
     ## Returns a span of extended grapheme clusters which is the closest
        approximation of this span of code units.
@@ -139,14 +147,14 @@ type Utf_16_Span
          extended == Span_Data (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
          extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
+    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.parent) then Error.throw (Illegal_State_Error_Data "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->
-                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.text self.start
-                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.text
+                    grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start
+                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.parent
                 False ->
-                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.text [self.start, self.end - 1].to_array
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1].to_array
                     grapheme_first = grapheme_ixes.at 0
                     grapheme_last = grapheme_ixes.at 1
                     ## We find the grapheme index of the last code unit actually contained within our span and set the
@@ -154,7 +162,7 @@ type Utf_16_Span
                        only a part of a grapheme were contained in our original span, the resulting span will be
                        extended to contain this whole grapheme.
                     grapheme_end = grapheme_last + 1
-                    Span_Data (Range_Data grapheme_first grapheme_end) self.text
+                    Span_Data (Range_Data grapheme_first grapheme_end) self.parent
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
