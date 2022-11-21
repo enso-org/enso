@@ -8,7 +8,7 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
-import project.Data.Time.Duration
+import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
@@ -503,11 +503,11 @@ type Date_Time
              from Standard.Base import Date_Time, Period
              from Standard.Base.Data.Time import Duration
 
-             example_plus = Date_Time.new 2020 + (Period.new years=15) + (Duration.hours 3)
+             example_plus = Date_Time.new 2020 + (Period.new years=15) + (Duration.new hours=3)
     + : (Duration | Period) -> Date_Time ! Time_Error
     + self amount =
         case amount of
-            duration : Duration.Duration ->
+            duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
@@ -573,7 +573,7 @@ type Date_Time
     - : (Duration | Period) -> Date_Time ! Time_Error
     - self amount =
         result = case amount of
-            duration : Duration.Duration ->
+            duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period

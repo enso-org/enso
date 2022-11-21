@@ -8,7 +8,7 @@ import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
-import project.Data.Time.Duration
+import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
@@ -388,7 +388,7 @@ type Date
         case period of
             _ : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-            _ : Duration.Duration ->
+            _ : Duration ->
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
@@ -534,7 +534,7 @@ type Date
             _ : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
-            _ : Duration.Duration ->
+            _ : Duration ->
                 Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
