@@ -66,5 +66,3 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     // Unknown code, display everything in red.
     output_color = vec4(1.0, 0.0, 0.0, 1.0);
 }
-
-// output_color = vec4(1.0, 1.0/zoom(), 0.0, 1.0);

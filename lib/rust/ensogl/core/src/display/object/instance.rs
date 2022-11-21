@@ -35,8 +35,6 @@ pub struct Id(usize);
 // === Model ===
 // =============
 
-// TODO: add information how Scene works and that moving objects between scenes is not supported.
-
 /// A hierarchical representation of object containing information about transformation in 3D space,
 /// list of children, and set of utils for dirty flag propagation.
 ///
@@ -58,13 +56,15 @@ pub struct Instance {
 }
 
 /// Internal representation of [`Instance`]. It exists only to make the implementation less
-/// error-prone. [`Instance`] implements [`Object`]. The [`ObjectOps`] trait defines the public API
-/// of display objects, such as the [`add_child`] method. Without this struct, it would need to be
-/// implemented as [`self.display_object().add_child(child)`]. However, if then we rename the
-/// function in [`Instance`], the [`ObjectOps`] trait would still compile, but its function will
-/// loop infinitely. This struct allows the implementation to be written as
-/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile after
-/// renaming the function in [`InstanceDef`].
+/// error-prone. [`Instance`] implements the [`Object`] trait. The [`ObjectOps`] trait defines the
+/// public API of display objects, such as the [`add_child`] method, and it is automatically defined
+/// for every struct that implements [`Object`], including [`Instance`]. Without this struct, the
+/// [`add_child`] method would need to be implemented as [`self.display_object().add_child(child)`].
+/// However, this implementation is very error-prone, as if we rename the function in [`Instance`],
+/// the [`ObjectOps`] trait would still compile, but its function will loop infinitely (this is not
+/// caught by rustc nowadays yet). This struct allows the implementation to be written as
+/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile
+/// after renaming the function in [`InstanceDef`].
 #[derive(Derivative)]
 #[derive(CloneRef, Deref)]
 #[derivative(Clone(bound = ""))]
@@ -813,7 +813,7 @@ impl EventModel {
 }
 
 impl Model {
-    // FIXME: wrong place
+    // FIXME: this is not finished yet, should be finished in the next PR regarding auto-layouts.
     pub(crate) fn set_bounding_box(&self, bounding_box: Vector2<f32>) {
         self.bounding_box.set(bounding_box);
     }
@@ -1198,6 +1198,8 @@ impl Drop for UnsetParentOnDrop {
 // === ObjectOps ===
 // =================
 
+/// Generates getters and setters for display object transformations, such as `x()`, `xy()`,
+/// `set_x()`, `rotation_z()`, `set_scale_x()`, etc.
 macro_rules! gen_object_trans {
     ($trans:ident $(,$tx_name:ident)?) => {
         paste! {
@@ -1260,9 +1262,6 @@ impl<T: Object + ?Sized> ObjectOps for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
-//
-// HOTFIX[WD]: We are using names with underscores in order to fix this bug:
-// https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
 pub trait ObjectOps: Object {
     // === Transformations ===
@@ -1278,6 +1277,7 @@ pub trait ObjectOps: Object {
     fn global_position(&self) -> Vector3<f32> {
         self.display_object().def.global_position()
     }
+
 
     // === Information ===
 

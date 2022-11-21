@@ -89,7 +89,6 @@ fn define_stack(network: &frp::Network) -> rectangle::View {
     let h0 = define_rect(RECT_SIZE, RECT_SIZE, network);
     let h1 = define_rect(RECT_SIZE - RECT_DIFF, RECT_SIZE - RECT_DIFF, network);
     let h2 = define_rect(RECT_SIZE - 2.0 * RECT_DIFF, RECT_SIZE - 2.0 * RECT_DIFF, network);
-    warn!("size: {}", RECT_SIZE - 2.0 * RECT_DIFF);
     h0.add_child(&h1);
     h1.add_child(&h2);
     h0

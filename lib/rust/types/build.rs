@@ -158,5 +158,6 @@ fn main() {
     out.write_str(&gen_swizzling_macro(false)).unwrap();
     out.write_str("\n\n").unwrap();
     out.write_str(&gen_swizzling_macro(true)).unwrap();
+    out.write_str("\n").unwrap();
     file.write_all(out.as_bytes()).unwrap();
 }
