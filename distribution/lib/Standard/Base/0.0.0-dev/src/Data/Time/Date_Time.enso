@@ -14,6 +14,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Meta
 import project.Nothing.Nothing
 import project.Warning
 
@@ -699,6 +700,7 @@ type Date_Time
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
     == self that = case that of
+        Date_Time -> Meta.is_same_object self Date_Time
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             0 == sign

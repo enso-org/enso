@@ -14,6 +14,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Math
+import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot
 
@@ -605,6 +606,7 @@ type Date
     ## Compares two Dates for equality.
     == : Date -> Boolean
     == self that = case that of
+        Date -> Meta.is_same_object self Date
         _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             0 == sign
