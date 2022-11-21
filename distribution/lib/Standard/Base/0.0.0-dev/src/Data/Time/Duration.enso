@@ -101,7 +101,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             durations = [(Duration.seconds 1), (Duration.seconds 2), (Duration.seconds 3)]
+             durations = [(Duration.new seconds=1), (Duration.new seconds=2), (Duration.new seconds=3)]
              example_sum = durations.fold Duration.zero (+)
     zero : Duration
     zero = Duration.new
@@ -130,14 +130,14 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = (Duration.minutes 3) + (Duration.seconds 6)
+             example_add = (Duration.new minutes=3) + (Duration.new seconds=6)
 
        > Example
          Add 12 hours to a duration of 30 minutes.
 
              import Standard.Base.Data.Time.Duration
 
-             example_add = (Duration.minutes 30) + (Duration.hours 12)
+             example_add = (Duration.new minutes=30) + (Duration.new hours=12)
     + : Duration -> Duration ! Time_Error
     + self that =
         ensure_duration that <|
@@ -154,7 +154,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = (Duration.hours 6) - (Duration.minutes 30)
+             example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
     - : Duration -> Duration ! Time_Error
     - self that =
         ensure_duration that <|
@@ -171,7 +171,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_eq = (Duration.seconds 60).total_minutes == (Duration.minutes 1).total_minutes
+             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
     == : Duration -> Boolean
     == self that =
         case that of
@@ -190,7 +190,7 @@ type Duration
 
              example_compare_to =
                  duration_1 = (Duration.new hour=1)
-                 duration_2 = (Duration.minutes 60) + (Duration.minutes 5)
+                 duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
     compare_to self that =
@@ -291,7 +291,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_vec = (Duration.nanoseconds 800)).to_vector
+             example_to_vec = (Duration.new nanoseconds=800)).to_vector
     to_vector : Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
@@ -302,7 +302,7 @@ type Duration
 
              import Standard.Base.Data.Time.Duration
 
-             example_to_json = (Duration.seconds 10).to_json
+             example_to_json = (Duration.new seconds=10).to_json
     to_json : Json
     to_json self =
         b = Vector.new_builder

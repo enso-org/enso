@@ -820,7 +820,7 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.

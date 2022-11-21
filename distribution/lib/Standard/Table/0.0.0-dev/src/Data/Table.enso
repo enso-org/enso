@@ -680,7 +680,7 @@ type Table
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
@@ -696,7 +696,7 @@ type Table
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
                     ambiguous = matching_input.exists s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector column.name ambiguous)
+                    problem_builder.append (Duplicate_Type_Selector.Duplicate_Type_Selector_Data column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
         expected_types = case column_types of
@@ -716,9 +716,9 @@ type Table
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns missing_columns.to_vector)
+                    problem_builder.append (Missing_Input_Columns.Missing_Input_Columns_Data missing_columns.to_vector)
                 if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range invalid_indices.to_vector)
+                    problem_builder.append (Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data invalid_indices.to_vector)
                 columns.map_with_index find_datatype
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
