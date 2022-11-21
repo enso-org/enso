@@ -15,6 +15,10 @@ macro_rules! gen_dim_trait {
     ([$prev_dim:tt] $dim:tt
         $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*
     ) => { paste! {
+        #[doc = "Component swizzling getters for "]
+        #[doc = stringify!($dim)]
+        #[doc = "`-dimensional types."]
+        #[allow(missing_docs)]
         pub trait [<Dim $dim>] : [<Dim $prev_dim>] {
             type [<Dim $dim Type>];
             $(
@@ -24,6 +28,7 @@ macro_rules! gen_dim_trait {
     }};
 }
 
+/// An abstract, 0-dimensional type. It is defined to simplify macro definition.
 pub trait Dim0 {}
 impl<T> Dim0 for T {}
 
@@ -42,6 +47,10 @@ macro_rules! gen_dim_setter_trait {
     ($dim:tt
         $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*
     ) => { paste! {
+        #[doc = "Component swizzling setters for "]
+        #[doc = stringify!($dim)]
+        #[doc = "`-dimensional types."]
+        #[allow(missing_docs)]
         pub trait [<Dim Setter $dim>] : [<Dim $dim>] {
             $(
                 fn [<set_$name>](&mut self, value: Self::[<Dim $swizzling_dim Type>]);
@@ -85,7 +94,8 @@ macro_rules! gen_dim_impl_for_vector_body {
     }};
 }
 
-type Vector1<T> = T;
+/// A one dimensional vector, being just a value. It is used mostly to simplify macro definitions.
+pub type Vector1<T> = T;
 
 crate::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector2);
 crate::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector2);

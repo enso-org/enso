@@ -1183,14 +1183,11 @@ impl Drop for UnsetParentOnDrop {
 // === ObjectOps ===
 // =================
 
-impl<T: Object + ?Sized> ObjectOps for T {}
-
-
 macro_rules! gen_object_trans {
-    ($trans:ident) => {
+    ($trans:ident $(,$tx_name:ident)?) => {
         paste! {
             fn $trans(&self) -> Vector3<f32> {
-                self.display_object().def.rc.$trans()
+                self.display_object().def.$trans()
             }
 
             fn [<mod_ $trans>]<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
@@ -1198,75 +1195,53 @@ macro_rules! gen_object_trans {
             }
 
             fn [<set_ $trans>](&self, t: Vector3<f32>) {
-                self.display_object().def.rc.[<set_ $trans>](t);
+                self.display_object().def.[<set_ $trans>](t);
             }
         }
-        gen_object_trans_swizzling! {$trans [x,y,z] [[x y],[x z],[y z]] [[x y z]]}
+        enso_types::with_swizzling_for_dim!(1, gen_getters, $trans $(,$tx_name)?);
+        enso_types::with_swizzling_for_dim!(2, gen_getters, $trans $(,$tx_name)?);
+        enso_types::with_swizzling_for_dim!(3, gen_getters, $trans $(,$tx_name)?);
+
+        enso_types::with_swizzling_for_dim_unique!(1, gen_setters, $trans $(,$tx_name)?);
+        enso_types::with_swizzling_for_dim_unique!(2, gen_setters, $trans $(,$tx_name)?);
+        enso_types::with_swizzling_for_dim_unique!(3, gen_setters, $trans $(,$tx_name)?);
     };
 }
 
-macro_rules! gen_object_trans_swizzling {
-    ($trans:ident [$($t1:ident),*] [$( [$($t2:ident)*] ),*] [$( [$($t3:ident)*] ),*]) => {
-        paste! {
-            $(
-                fn $t1(&self) -> f32 {
-                    self.$trans().$t1
-                }
-
-                fn [<mod_ $t1>]<F: FnOnce(f32) -> f32>(&self, f: F) {
-                    self.[<set_ $t1>](f(self.$t1()));
-                }
-
-                fn [<set_ $t1>](&self, t: f32) {
-                    self.[<mod_ $trans>](|p| p.$t1 = t)
-                }
-            )*
-            $(
-                fn [<$($t2)*>](&self) -> Vector2<f32> {
-                    self.$trans().[<$($t2)*>]()
-                }
-
-
-                // fn [<mod_ $($t2)*>]<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-                //     self.[<set_ $($t2)*>](f(self.[<$($t2)*>]()));
-                // }
-            )*
-            //
-            // $(
-            //     fn $($t3)*(&self) -> Vector3<f32> {
-            //         self.$trans().$($t3)*
-            //     }
-            //
-            //     fn [<mod_ $($t3)*>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&self, f: F) {
-            //         self.[<set_ $($t3)*>](f(self.$($t3)*()));
-            //     }
-            // )*
-            //
-            //
-            // fn set_xy(&self, t: Vector2<f32>) {
-            //     self.[<mod_ $trans>](|p| {
-            //         p.x = t.x;
-            //         p.y = t.y;
-            //     })
-            // }
-            //
-            // fn set_xz(&self, t: Vector2<f32>) {
-            //     self.[<mod_ $trans>](|p| {
-            //         p.x = t.x;
-            //         p.z = t.y;
-            //     })
-            // }
-            //
-            // fn set_yz(&self, t: Vector2<f32>) {
-            //     self.[<mod_ $trans>](|p| {
-            //         p.y = t.x;
-            //         p.z = t.y;
-            //     })
-            // }
-
-        }
+macro_rules! gen_getters {
+    ([$tx:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
+        gen_getters! {@ $tx $( $name $name $dim )* }
     };
+    ([$tx:tt, $tx_name:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
+        gen_getters! {@ $tx $( [<$tx_name _ $name>] $name $dim )* }
+    };
+    (@ $tx:tt $( $fn_name:tt $name:tt $dim:tt )*) => { paste! {
+        $( fn $fn_name(&self) -> [<Vector $dim>]<f32> { self.$tx().$name() } )*
+    }};
 }
+
+macro_rules! gen_setters {
+    ([$tx:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
+        gen_setters! {@ $tx $( [<set_ $name>] [<mod_ $name>] $name $dim )* }
+    };
+    ([$tx:tt, $tx_name:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
+        gen_setters! {@ $tx $( [<set_ $tx_name _ $name>] [<mod_ $tx_name _ $name>] $name $dim )* }
+    };
+    (@ $tx:tt $( $set_name:tt $mod_name:tt $name:tt $dim:tt )*) => { paste! {
+        $(
+            fn $set_name(&self, value: [<Vector $dim>]<f32>) {
+                self.[<mod_ $tx>](|p| p.[<set_ $name>](value));
+            }
+
+            fn $mod_name<F>(&self, f: F)
+            where F: FnOnce([<Vector $dim>]<f32>) -> [<Vector $dim>]<f32> {
+                self.[<set_ $name>](f(self.$name()));
+            }
+        )*
+    }};
+}
+
+impl<T: Object + ?Sized> ObjectOps for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
@@ -1275,8 +1250,19 @@ macro_rules! gen_object_trans_swizzling {
 // https://github.com/rust-lang/rust/issues/70727 . To be removed as soon as the bug is fixed.
 #[allow(missing_docs)]
 pub trait ObjectOps: Object {
-    gen_object_trans!(position);
+    // === Transformations ===
 
+    gen_object_trans!(position);
+    gen_object_trans!(rotation, rotation);
+    gen_object_trans!(scale, scale);
+
+    fn transformation_matrix(&self) -> Matrix4<f32> {
+        self.display_object().def.transformation_matrix()
+    }
+
+    fn global_position(&self) -> Vector3<f32> {
+        self.display_object().def.global_position()
+    }
 
     // === Information ===
 
@@ -1318,7 +1304,7 @@ pub trait ObjectOps: Object {
 
     /// Checks whether the object is visible.
     fn is_visible(&self) -> bool {
-        self.display_object().def.rc.is_visible()
+        self.display_object().def.is_visible()
     }
 
 
@@ -1333,14 +1319,14 @@ pub trait ObjectOps: Object {
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
     fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
-        self.display_object().def.rc.on_event()
+        self.display_object().def.on_event()
     }
 
     /// Get event stream for capturing events. You should rather not need this function. Use
     /// [`on_event`] instead. See docs of [`event::Event`] to learn more.
     fn on_event_capturing<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
-        self.display_object().def.rc.on_event_capturing()
+        self.display_object().def.on_event_capturing()
     }
 
     /// Creates a new event with this object set to target.
@@ -1375,165 +1361,6 @@ pub trait ObjectOps: Object {
     /// Get the currently focused object if any. See docs of [`Event::Focus`] to learn more.
     fn focused_instance(&self) -> Option<Instance> {
         InstanceDef::focused_instance(self.display_object())
-    }
-
-
-    // === Transform ===
-
-    fn transformation_matrix(&self) -> Matrix4<f32> {
-        self.display_object().def.rc.transformation_matrix()
-    }
-
-    fn global_position(&self) -> Vector3<f32> {
-        self.display_object().def.rc.global_position()
-    }
-
-
-    // === Position ===
-
-
-
-    // === Scale ===
-
-    fn scale(&self) -> Vector3<f32> {
-        self.display_object().def.rc.scale()
-    }
-
-    fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().def.rc.mod_scale(f)
-    }
-
-    fn mod_scale_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_xy(f(self.scale().xy()));
-    }
-
-    fn mod_scale_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_xz(f(self.scale().xz()));
-    }
-
-    fn mod_scale_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_scale_yz(f(self.scale().yz()));
-    }
-
-    fn mod_scale_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_x(f(self.scale().x));
-    }
-
-    fn mod_scale_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_y(f(self.scale().y));
-    }
-
-    fn mod_scale_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_scale_z(f(self.scale().z));
-    }
-
-    fn set_scale(&self, t: Vector3<f32>) {
-        self.display_object().def.rc.set_scale(t);
-    }
-
-    fn set_scale_xy(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_scale_xz(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_scale_yz(&self, t: Vector2<f32>) {
-        self.mod_scale(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_scale_x(&self, t: f32) {
-        self.mod_scale(|p| p.x = t)
-    }
-
-    fn set_scale_y(&self, t: f32) {
-        self.mod_scale(|p| p.y = t)
-    }
-
-    fn set_scale_z(&self, t: f32) {
-        self.mod_scale(|p| p.z = t)
-    }
-
-
-    // === Rotation ===
-
-    fn rotation(&self) -> Vector3<f32> {
-        self.display_object().def.rc.rotation()
-    }
-
-    fn mod_rotation<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-        self.display_object().def.rc.mod_rotation(f)
-    }
-
-    fn mod_rotation_xy<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_xy(f(self.rotation().xy()));
-    }
-
-    fn mod_rotation_xz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_xz(f(self.rotation().xz()));
-    }
-
-    fn mod_rotation_yz<F: FnOnce(Vector2<f32>) -> Vector2<f32>>(&self, f: F) {
-        self.set_rotation_yz(f(self.rotation().yz()));
-    }
-
-    fn mod_rotation_x<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_x(f(self.rotation().x));
-    }
-
-    fn mod_rotation_y<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_y(f(self.rotation().y));
-    }
-
-    fn mod_rotation_z<F: FnOnce(f32) -> f32>(&self, f: F) {
-        self.set_rotation_z(f(self.rotation().z));
-    }
-
-    fn set_rotation(&self, t: Vector3<f32>) {
-        self.display_object().def.rc.set_rotation(t);
-    }
-
-    fn set_rotation_xy(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.x = t.x;
-            p.y = t.y;
-        })
-    }
-
-    fn set_rotation_xz(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.x = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_rotation_yz(&self, t: Vector2<f32>) {
-        self.mod_rotation(|p| {
-            p.y = t.x;
-            p.z = t.y;
-        })
-    }
-
-    fn set_rotation_x(&self, t: f32) {
-        self.mod_rotation(|p| p.x = t)
-    }
-
-    fn set_rotation_y(&self, t: f32) {
-        self.mod_rotation(|p| p.y = t)
-    }
-
-    fn set_rotation_z(&self, t: f32) {
-        self.mod_rotation(|p| p.z = t)
     }
 }
 
