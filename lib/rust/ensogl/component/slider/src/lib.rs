@@ -445,7 +445,10 @@ impl Slider {
             );
             precision <- output.precision.on_change().gate(&component_drag);
             model.tooltip.frp.set_style <+ precision.map(|precision| {
-                tooltip::Style::set_label(format!("Precision: {}", precision))
+                let prec_text = format!("{:.digits$}", precision, digits=MAX_DISP_DECIMAL_PLACES_DEFAULT);
+                let prec_text = prec_text.trim_end_matches('0');
+                let prec_text = prec_text.trim_end_matches('.');
+                tooltip::Style::set_label(format!("Precision: {}", prec_text))
             });
             precision_changed <- precision.constant(());
             tooltip_anim.reset <+ precision_changed;
