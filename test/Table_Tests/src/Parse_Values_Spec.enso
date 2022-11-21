@@ -65,8 +65,6 @@ spec = Test.group "Table.parse_values" <|
         t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Boolean]
         t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
 
-    time_as_vector d = if d.is_nothing then Nothing else [d.hour, d.minute, d.second, d.nanosecond]
-    datetime_as_vector d = if d.is_nothing then Nothing else [d.year, d.month, d.day, d.hour, d.minute, d.second, d.nanosecond]
     Test.specify "should correctly parse date and time" <|
         t1 = Table.new [["dates", ["2022-05-07", "2000-01-01", "2010-12-31"]]]
         t2 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Date]
@@ -74,11 +72,11 @@ spec = Test.group "Table.parse_values" <|
 
         t3 = Table.new [["datetimes", ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]]]
         t4 = t3.parse_values column_types=[Column_Type_Selection.Value 0 Date_Time]
-        t4.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 5, 7, 23, 59, 59, 0], [2000, 1, 1, 0, 0, 0, 0], [2010, 12, 31, 12, 34, 56, 0]]
+        t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 5 7 23 59 59, Date_Time.new 2000 1 1, Date_Time.new 2010 12 31 12 34 56]
 
         t5 = Table.new [["times", ["23:59:59", "00:00:00", "12:34:56"]]]
         t6 = t5.parse_values column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
-        t6.at "times" . to_vector . map time_as_vector . should_equal [[23, 59, 59, 0], [0, 0, 0, 0], [12, 34, 56, 0]]
+        t6.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59 59, Time_Of_Day.new, Time_Of_Day.new 12 34 56]
 
     Test.specify "should parse date and time in various formats" <|
         opts = Data_Formatter.Value date_formats=["d.M.y", "d MMM y[ G]", "E, d MMM y"] datetime_formats=["yyyy-MM-dd'T'HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.n", "h:mma"]
@@ -89,11 +87,11 @@ spec = Test.group "Table.parse_values" <|
 
         t3 = Table.new [["datetimes", ["2011-12-03T10:15:30", "31/12/2012 22:33"]]]
         t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Date_Time]
-        t4.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2011, 12, 3, 10, 15, 30, 0], [2012, 12, 31, 22, 33, 0, 0]]
+        t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2011 12 3 10 15 30, Date_Time.new 2012 12 31 22 33]
 
         t5 = Table.new [["times", ["1:02:03.987654321", "1:30PM"]]]
         t6 = t5.parse_values opts column_types=[Column_Type_Selection.Value 0 Time_Of_Day]
-        t6.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 987654321], [13, 30, 0, 0]]
+        t6.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3 nanosecond=987654321, Time_Of_Day.new 13 30 0 0]
 
     Test.specify "should warn when cells do not fit the expected format" <|
         ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]]
@@ -110,8 +108,8 @@ spec = Test.group "Table.parse_values" <|
             t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
             t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
             t.at "dates" . to_vector . should_equal [Date.new 2001 1 1, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at "datetimes" . to_vector . map datetime_as_vector . should_equal [Nothing, [2001, 1, 1, 12, 34, 56, 0], Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at "times" . to_vector . map time_as_vector . should_equal [Nothing, Nothing, [10, 0, 10, 0], Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
         problems =
             ints = Invalid_Format.Invalid_Format_Data "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
             floats = Invalid_Format.Invalid_Format_Data "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
@@ -175,8 +173,8 @@ spec = Test.group "Table.parse_values" <|
         t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
         t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
         t2.at "dates" . to_vector . should_equal [Date.new 2022 10 1, Date.new 2000 1 1, Date.new 1999 1 2, Nothing]
-        t2.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 10, 1, 1, 2, 3, 0], [2000, 1, 1, 1, 2, 3, 0], [1999, 1, 2, 1, 2, 3, 0], Nothing]
-        t2.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 0], [0, 0, 0, 0], [1, 2, 3, 0], Nothing]
+        t2.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 10 1 1 2 3, Date_Time.new 2000 1 1 1 2 3, Date_Time.new 1999 1 2 1 2 3, Nothing]
+        t2.at "times" . to_vector . should_equal [Time_Of_Day.new 1 2 3, Time_Of_Day.new, Time_Of_Day.new 1 2 3, Nothing]
         t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
         t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
 
@@ -238,8 +236,8 @@ spec = Test.group "Table.parse_values" <|
         t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
         t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
         t1.at "dates" . to_vector . should_equal [Date.new 2022 1 1, Date.new 2022 7 17, Nothing, Nothing]
-        t1.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 1, 1, 11, 59, 0, 0], Nothing, Nothing, Nothing]
-        t1.at "times" . to_vector . map time_as_vector . should_equal [[11, 0, 0, 0], [0, 0, 0, 0], Nothing, Nothing]
+        t1.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 1 1 11 59, Nothing, Nothing, Nothing]
+        t1.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
         warnings = Warning.get_all t1 . map .value
         expected_warnings = Vector.new_builder
         expected_warnings.append (Invalid_Format.Invalid_Format_Data "ints" Integer ["0 1"])
