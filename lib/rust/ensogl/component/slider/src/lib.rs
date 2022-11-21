@@ -1,6 +1,6 @@
 //! A slider UI component that allows adjusting a value through mouse interaction.
 
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -24,6 +24,7 @@ use ensogl_core::prelude::*;
 
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application;
+use ensogl_core::application::shortcut;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -224,6 +225,12 @@ ensogl_core::define_endpoints_2! {
         set_lower_limit_type(SliderLimit),
         /// Set the behavior of the slider when its value is adjusted to above the `max_value`.
         set_upper_limit_type(SliderLimit),
+        /// Begin textual editing of the slider value.
+        start_value_editing(),
+        /// End textual editing of the slider value and apply the edited value to the slider.
+        finish_value_editing(),
+        /// End textual editing of the slider value and revert to the slider value before editing.
+        cancel_value_editing(),
     }
     Output {
         width(f32),
@@ -236,6 +243,10 @@ ensogl_core::define_endpoints_2! {
         /// The slider value's upper limit. This takes into account limit extension if an adaptive
         /// slider limit is set.
         max_value(f32),
+        /// Indicates whether the mouse is currently hovered over the component.
+        hovered(bool),
+        /// Indicates whether the slider's value is being edited currently.
+        editing(bool),
     }
 }
 
@@ -274,13 +285,14 @@ impl Slider {
 
     fn init(self) -> Self {
         self.init_value_update();
+        self.init_value_editing();
         self.init_limit_handling();
         self.init_value_display();
         self.init_precision_tooltip();
         self.init_information_tooltip();
         self.init_component_layout();
         self.init_component_colors();
-        self.init_precision_defaults();
+        self.init_slider_defaults();
         self
     }
 
@@ -317,6 +329,7 @@ impl Slider {
             mouse_y_local <- mouse_position_click_or_drag.map(
                 f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y)
             );
+            output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
 
 
             // === Precision calculation ===
@@ -526,6 +539,8 @@ impl Slider {
             eval model.value_text_dot.height((h) model.value_text_dot.set_position_y(*h / 2.0));
             eval model.value_text_dot.width((w) model.value_text_right.set_position_x(*w / 2.0));
             eval model.value_text_right.height((h) model.value_text_right.set_position_y(*h / 2.0));
+            eval model.value_text_edit.width((w) model.value_text_edit.set_position_x(-*w / 2.0));
+            eval model.value_text_edit.height((h) model.value_text_edit.set_position_y(*h / 2.0));
 
             eval model.value_text_left.height((h) model.set_overflow_marker_size(*h));
             overflow_marker_pos_x <- all2(&input.set_width, &input.set_height);
@@ -577,9 +592,39 @@ impl Slider {
         };
     }
 
+    /// Initialize the textual value editing FRP network.
+    fn init_value_editing(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+        let output = &self.frp.private.output;
+        let model = &self.model;
+
+        frp::extend! { network
+            output.editing <+ input.start_value_editing.constant(true);
+            output.editing <+ input.finish_value_editing.constant(false);
+            output.editing <+ input.cancel_value_editing.constant(false);
+            value_on_edit <- output.value.sample(&input.start_value_editing);
+            value_text_on_edit <- value_on_edit.map(|v| format!("{}", v).to_im_string());
+            model.value_text_edit.set_content <+ value_text_on_edit;
+            eval_ input.start_value_editing({
+                model.set_edit_mode(true);
+            });
+            eval_ input.finish_value_editing({
+                model.set_edit_mode(false);
+            });
+            eval_ input.cancel_value_editing({
+                model.set_edit_mode(false);
+            });
+            value_after_edit <- model.value_text_edit.content.sample(&input.finish_value_editing);
+            value_after_edit <- value_after_edit.map(|s| f32::from_str(&String::from(s)).unwrap());
+            output.value <+ value_after_edit;
+            trace value_after_edit;
+        };
+    }
+
     /// Initialize the precision adjustment areas above/below the slider and the default precision
     /// value.
-    fn init_precision_defaults(&self) {
+    fn init_slider_defaults(&self) {
         self.frp.set_default_precision(PRECISION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
@@ -611,6 +656,27 @@ impl application::View for Slider {
 
     fn app(&self) -> &Application {
         &self.app
+    }
+
+    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+        use shortcut::ActionType::DoublePress;
+        use shortcut::ActionType::Press;
+        vec![
+            Self::self_shortcut_when(
+                DoublePress,
+                "left-mouse-button",
+                "start_value_editing",
+                "hovered & !editing",
+            ),
+            Self::self_shortcut_when(
+                DoublePress,
+                "left-mouse-button",
+                "cancel_value_editing",
+                "!hovered & editing",
+            ),
+            Self::self_shortcut_when(Press, "enter", "finish_value_editing", "editing"),
+            Self::self_shortcut_when(Press, "escape", "cancel_value_editing", "editing"),
+        ]
     }
 }
 

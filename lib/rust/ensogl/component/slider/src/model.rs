@@ -126,6 +126,8 @@ pub struct Model {
     pub value_text_dot:   text::Text,
     /// Textual representation of the slider value, only part right of the decimal point.
     pub value_text_right: text::Text,
+    /// Textual representation of the slider value used when editing the value as text input.
+    pub value_text_edit:  text::Text,
     /// Tooltip component showing either a tooltip message or slider precision changes.
     pub tooltip:          Tooltip,
     /// Root of the display object.
@@ -140,6 +142,7 @@ impl Model {
         let value_text_left = app.new_view::<text::Text>();
         let value_text_dot = app.new_view::<text::Text>();
         let value_text_right = app.new_view::<text::Text>();
+        let value_text_edit = app.new_view::<text::Text>();
         let tooltip = Tooltip::new(app);
         let background = background::View::new();
         let track = track::View::new();
@@ -159,6 +162,7 @@ impl Model {
         value_text_left.add_to_scene_layer(&scene.layers.label);
         value_text_dot.add_to_scene_layer(&scene.layers.label);
         value_text_right.add_to_scene_layer(&scene.layers.label);
+        value_text_edit.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
@@ -170,6 +174,7 @@ impl Model {
             value_text_left,
             value_text_dot,
             value_text_right,
+            value_text_edit,
             tooltip,
             root,
         };
@@ -184,6 +189,7 @@ impl Model {
         self.track.color.set(track_color.into());
         self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
+        self.value_text_edit.set_content("");
         self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
         self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
         self
@@ -238,6 +244,27 @@ impl Model {
             self.root.remove_child(&self.label);
         } else {
             self.root.add_child(&self.label);
+        }
+    }
+
+    /// Set whether the value is being edited. This hides the value display and shows a text editor
+    /// field to enter a new value.
+    pub fn set_edit_mode(&self, editing: bool) {
+        if editing {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
+            self.root.add_child(&self.value_text_edit);
+            self.value_text_edit.deprecated_focus();
+            self.value_text_edit.add_cursor_at_front();
+            self.value_text_edit.cursor_select_to_text_end();
+        } else {
+            self.root.add_child(&self.value_text_left);
+            self.root.add_child(&self.value_text_dot);
+            self.root.add_child(&self.value_text_right);
+            self.root.remove_child(&self.value_text_edit);
+            self.value_text_edit.deprecated_defocus();
+            self.value_text_edit.remove_all_cursors();
         }
     }
 
