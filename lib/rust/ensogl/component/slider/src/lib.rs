@@ -449,7 +449,7 @@ impl Slider {
             model.tooltip.frp.set_style <+ precision.map(|precision| {
                 let prec_text = format!(
                     "Precision: {:.digits$}",
-                    precision, 
+                    precision,
                     digits=MAX_DISP_DECIMAL_PLACES_DEFAULT
                 );
                 let prec_text = prec_text.trim_end_matches('0');
