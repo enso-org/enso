@@ -12,7 +12,7 @@ polyglot java import org.enso.base.Time_Utils
 iter_size = 100
 num_iterations = 10
 
-make_random_vec : Integer -> Base.Vector.Vector
+make_random_vec : Integer -> Base.Vector
 make_random_vec n =
     random_gen = Random.new n
     Base.Vector.new n _->random_gen.nextLong

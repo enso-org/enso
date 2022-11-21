@@ -308,7 +308,7 @@ object ContextRegistryProtocol {
     */
   case class ExecutionDiagnostic(
     kind: ExecutionDiagnosticKind,
-    message: String,
+    message: Option[String],
     path: Option[Path],
     location: Option[model.Range],
     expressionId: Option[UUID],

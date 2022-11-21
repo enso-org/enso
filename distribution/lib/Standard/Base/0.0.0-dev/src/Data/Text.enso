@@ -1,5 +1,9 @@
-from Standard.Base import Any, Boolean, False
-import Standard.Base.Meta
+import project.Data.Any.Any
+import project.Data.Ordering.Ordering
+import project.Meta
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Type_Error_Data
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -49,3 +53,46 @@ type Text
         case that of
             _ : Text -> Text_Utils.equals self that
             _ -> False
+
+    ## Compare two texts to discover their ordering.
+
+       Arguments:
+       - that: The text to order `self` with respect to.
+
+       > Example
+         Checking how "a" orders in relation to "b".
+
+             "a".compare_to "b"
+    compare_to : Text -> Ordering
+    compare_to self that =
+        if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+            comparison_result = Text_Utils.compare_normalized self that
+            Ordering.from_sign comparison_result
+
+    ## ALIAS Check Emptiness
+
+       Check if `self` is empty.
+
+       ! What is Empty?
+         Text is considered to be empty when its length is zero.
+
+       > Example
+         Check if the text "aaa" is empty.
+
+             "aaa".is_empty
+    is_empty : Boolean
+    is_empty self = self == ""
+
+    ## ALIAS Check Non-Emptiness
+
+       Check if `self` is not empty.
+
+       ! What is Not Empty?
+         Text is considered to be not empty when its length is greater than zero.
+
+       > Example
+         Check if the text "aaa" is not empty.
+
+             "aaa".not_empty
+    not_empty : Boolean
+    not_empty self = self.is_empty.not

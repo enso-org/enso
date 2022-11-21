@@ -16,10 +16,10 @@ vector_size = 1000000
 iter_size = 100
 num_iterations = 10
 
-make_sorted_ascending_vec : Integer -> Vector.Vector
+make_sorted_ascending_vec : Integer -> Vector
 make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 
-make_partially_sorted_vec : Integer -> Vector.Vector
+make_partially_sorted_vec : Integer -> Vector
 make_partially_sorted_vec n =
     random_gen = Random.new n
     direction = Ref.new Sort_Direction.Ascending

@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import While
 from Standard.Base.Runtime import Stack_Trace_Element
 
 ## A representation of a dataflow warning attached to a value.
@@ -15,7 +14,7 @@ type Warning
        ADVANCED
 
        A stack trace for the original warning creation.
-    origin : Vector.Vector Stack_Trace_Element
+    origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
     ## UNSTABLE
@@ -34,7 +33,7 @@ type Warning
          arguments will be accumulated in the return value.
        - The standard library methods reassign warnings such that their dataflow
          nature is preserved.
-    reassignments : Vector.Vector Stack_Trace_Element
+    reassignments : Vector Stack_Trace_Element
     reassignments self =
         Vector.from_polyglot_array self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
@@ -70,14 +69,14 @@ attach warning value =
 
    Builtin utility function which attaches a new warning to the value
    and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
-attach_with_stacktrace : Any -> Any -> Vector.Vector Stack_Trace_Element -> Any
+attach_with_stacktrace : Any -> Any -> Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 
 ## UNSTABLE
 
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
-get_all : Any -> Vector.Vector Warning
+get_all : Any -> Vector Warning
 get_all value = Vector.from_polyglot_array (get_all_array value)
 
 
@@ -96,7 +95,7 @@ get_all_array value = @Builtin_Method "Warning.get_all_array"
    Arguments:
    - value: the value to which warnings should be set to.
    - warnings: vector of warnings to set to the value.
-set : Any -> Vector.Vector Warning -> Any
+set : Any -> Vector Warning -> Any
 set value warnings = set_array value warnings.to_array
 
 ## PRIVATE
@@ -171,7 +170,7 @@ map_attached_warnings_helper mapper value frames_to_drop =
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
                 stack_trace = Runtime.get_stack_trace
-                stack_trace_up_to_this_function = stack_trace.drop (While element-> element.name != self_call_name)
+                stack_trace_up_to_this_function = stack_trace.drop (Index_Sub_Range.While element-> element.name != self_call_name)
                 new_origin = stack_trace_up_to_this_function.drop (First 1+frames_to_drop)
                 create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the

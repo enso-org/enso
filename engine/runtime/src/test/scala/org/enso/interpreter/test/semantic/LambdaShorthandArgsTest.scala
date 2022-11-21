@@ -66,14 +66,14 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """from Standard.Base.Data.List import all
+        """import Standard.Base.Data.List.List
           |
           |main =
           |    f = case _ of
-          |           Cons a b -> 10
-          |           Nil -> 0
-          |    res1 = f (Cons 1 2)
-          |    res2 = f Nil
+          |           List.Cons a b -> 10
+          |           List.Nil -> 0
+          |    res1 = f (List.Cons 1 2)
+          |    res2 = f List.Nil
           |    res2 - res1
           |""".stripMargin
 

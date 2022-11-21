@@ -22,7 +22,7 @@ from Standard.Base.System import System_Process_Result, System_Process_Result_Da
          example_run = case Platform.os of
              Platform.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
-run : Text -> Vector.Vector Text -> Exit_Code
+run : Text -> Vector Text -> Exit_Code
 run command arguments=[] =
     result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
     Exit_Code.from_number result.exit_code
@@ -82,7 +82,7 @@ type Builder
              example_set_args =
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
-    set_arguments : Vector.Vector Text -> Builder
+    set_arguments : Vector Text -> Builder
     set_arguments self arguments = Builder_Data self.command arguments self.stdin
 
     ## UNSTABLE
