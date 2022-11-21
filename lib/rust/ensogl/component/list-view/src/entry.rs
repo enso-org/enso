@@ -125,7 +125,7 @@ impl Label {
             label.set_property_default <+ color.ref_into_some();
             label.set_font <+ font;
             label.set_property_default <+ size.map(|v| text::Size(*v)).ref_into_some();
-            eval size ((size) label.set_position_y(size/2.0));
+            eval size ((size) label.set_y(size/2.0));
 
             label.set_content <+ text;
             label.set_view_width <+ max_width_px.some();

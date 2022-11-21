@@ -1,3 +1,8 @@
+//! Definition of Dim* traits. These traits define common operations on types that represent
+//! dimensional transformations. For example, they define getters, such as `xy()`, or setters, such
+//! as `set_xy(...)` on 2-dimensional types. Moreover, this module implements these traits for
+//! suitable nalgebra's Vector types.
+
 use enso_prelude::*;
 use nalgebra;
 use nalgebra::Scalar;

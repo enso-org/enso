@@ -38,7 +38,6 @@ use crate::prelude::*;
 use crate::model::AnyFolderContent;
 
 use ensogl_core::display;
-use ensogl_core::display::Scene;
 use std::path::PathBuf;
 
 

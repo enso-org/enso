@@ -629,11 +629,11 @@ impl NodeModel {
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
-        self.backdrop.set_position_x(x_offset_to_node_center);
-        self.background.set_position_x(x_offset_to_node_center);
-        self.drag_area.set_position_x(x_offset_to_node_center);
-        self.error_indicator.set_position_x(x_offset_to_node_center);
-        self.vcs_indicator.set_position_x(x_offset_to_node_center);
+        self.backdrop.set_x(x_offset_to_node_center);
+        self.background.set_x(x_offset_to_node_center);
+        self.drag_area.set_x(x_offset_to_node_center);
+        self.error_indicator.set_x(x_offset_to_node_center);
+        self.vcs_indicator.set_x(x_offset_to_node_center);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
@@ -642,8 +642,8 @@ impl NodeModel {
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);
-        self.error_visualization.set_position_xy(visualization_offset);
-        self.visualization.set_position_xy(visualization_offset);
+        self.error_visualization.set_xy(visualization_offset);
+        self.visualization.set_xy(visualization_offset);
 
         size
     }
@@ -760,9 +760,9 @@ impl Node {
             eval comment_color ((value) model.comment.set_property(.., color::Rgba::from(value)));
 
             eval model.comment.width ([model](width)
-                model.comment.set_position_x(-*width - COMMENT_MARGIN));
+                model.comment.set_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
-                model.comment.set_position_y(*height / 2.0));
+                model.comment.set_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
             out.comment <+ model.comment.content.map(|text| text.to_im_string());
 

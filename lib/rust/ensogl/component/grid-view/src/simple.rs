@@ -114,7 +114,7 @@ impl EntryData {
     fn update_layout(&self, contour: entry::Contour, text_size: text::Size, text_offset: f32) {
         self.background.set_contour(contour);
         let size = contour.size;
-        self.label.set_position_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
+        self.label.set_xy(Vector2(text_offset - size.x / 2.0, text_size.value / 2.0));
     }
 }
 

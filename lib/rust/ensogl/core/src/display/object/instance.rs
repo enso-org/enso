@@ -129,6 +129,12 @@ impl Model {
     }
 }
 
+impl Default for Model {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 
 // =================================================================================================
@@ -217,6 +223,7 @@ impl SharedParentBind {
 // === Dirty Flags ===
 // ===================
 
+/// Dirty flags.
 pub mod dirty {
     pub use super::*;
 
@@ -280,6 +287,7 @@ pub mod dirty {
 // === Hierarchy FRP ===
 // =====================
 
+/// FRP endpoints relate to display object hierarchy modification.
 #[derive(Debug)]
 pub struct HierarchyFrp {
     /// Fires when the display object is shown. It will fire during the first scene refresh after
@@ -330,6 +338,7 @@ impl HierarchyFrp {
 // === Hierarchy Model ===
 // =======================
 
+/// The part of display object model related to its hierarchy.
 #[derive(Debug, Deref)]
 pub struct HierarchyModel {
     #[deref]
@@ -478,16 +487,13 @@ impl Model {
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind: ParentBind) {
         trace!("Adding new parent bind.");
-        if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
-            if let Some(parent) = bind.parent.upgrade() {
+        if let Some(parent) = bind.parent() {
+            if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
                 parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
-        }
-        if let Some(parent) = bind.parent() {
-            let index = bind.child_index;
-            self.dirty.new_parent.set();
             self.parent_bind.set_bind(bind);
+            self.dirty.new_parent.set();
         }
     }
 
@@ -785,6 +791,7 @@ generate_transformation_getters_and_setters!(position, scale, rotation);
 // ======================
 // See the documentation of [`event::Event`] to learn more about events.
 
+/// The part of display object model related to event handling.
 #[derive(Debug)]
 pub struct EventModel {
     source:             frp::Source<event::SomeEvent>,
@@ -795,8 +802,8 @@ pub struct EventModel {
 
 impl EventModel {
     fn new(network: &frp::Network) -> Self {
-        let capturing_fan = frp::Fan::new(&network);
-        let bubbling_fan = frp::Fan::new(&network);
+        let capturing_fan = frp::Fan::new(network);
+        let bubbling_fan = frp::Fan::new(network);
         let focused_descendant = default();
         frp::extend! { network
             source <- source();
@@ -1064,12 +1071,20 @@ impl Root {
         self
     }
 
+    /// Hide the display object.
     pub fn hide(&self) {
         self.def.hide()
     }
 
+    /// Show the display object.
     pub fn show(&self) {
         self.def.show()
+    }
+}
+
+impl Default for Root {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -91,11 +91,11 @@ impl Frp {
         let track_click = relative_shape_down_position(net, scene, &model.track);
 
         // Initialisation of components. Required for correct layout on startup.
-        model.label_right.set_position_y(text_size.value() / 2.0);
-        model.label_left.set_position_y(text_size.value() / 2.0);
-        model.label.set_position_y(text_size.value() / 2.0);
-        model.caption_left.set_position_y(text_size.value() / 2.0);
-        model.caption_center.set_position_y(text_size.value() / 2.0);
+        model.label_right.set_y(text_size.value() / 2.0);
+        model.label_left.set_y(text_size.value() / 2.0);
+        model.label.set_y(text_size.value() / 2.0);
+        model.caption_left.set_y(text_size.value() / 2.0);
+        model.caption_center.set_y(text_size.value() / 2.0);
 
         let bg_color = style.get_color(theme::component::slider::background);
         model.set_background_color(bg_color.value());
@@ -106,9 +106,9 @@ impl Frp {
             init_shadow_padding <- source::<()>();
             shadow_padding      <- all_with(&shadow.size,&init_shadow_padding,|&v,_| Vector2(v,v));
             eval text_size ((size) {
-                model.label.set_position_y(size / 2.0);
-                model.label_right.set_position_y(size / 2.0);
-                model.label_left.set_position_y(size / 2.0);
+                model.label.set_y(size / 2.0);
+                model.label_right.set_y(size / 2.0);
+                model.label_left.set_y(size / 2.0);
             });
             eval bg_color ((color)  model.set_background_color(*color) );
 
@@ -116,7 +116,7 @@ impl Frp {
              update_caption_position <- all(&size,&text_size);
              eval update_caption_position((args) model.update_caption_position(args));
              eval model.caption_center.frp.width((width)
-                model.caption_center.set_position_x(-width/2.0)
+                model.caption_center.set_x(-width/2.0)
             );
 
             // Size updates

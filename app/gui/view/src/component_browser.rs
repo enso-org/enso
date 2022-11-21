@@ -125,8 +125,8 @@ impl component::Frp<Model> for Frp {
             list_position_x <-
                 all_with3(&size, &list_panel.size, &snap, |sz, list_sz, snap| list_sz.x / 2.0 - sz.x / 2.0 + snap.x);
             doc_position_x <- all_with3(&size, &doc_size, &snap, |sz, doc_sz, snap| sz.x / 2.0 - doc_sz.x / 2.0 + snap.x);
-            eval list_position_x ((x) model.list.set_position_x(*x));
-            eval doc_position_x ((x) model.documentation.set_position_x(*x));
+            eval list_position_x ((x) model.list.set_x(*x));
+            eval doc_position_x ((x) model.documentation.set_x(*x));
 
             model.list.input.show <+ input.show;
             model.list.input.hide <+ input.hide;

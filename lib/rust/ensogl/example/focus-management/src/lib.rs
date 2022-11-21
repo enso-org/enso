@@ -109,8 +109,8 @@ pub fn main() {
     let container = define_rect(container_size * 2.0, container_size, network);
     let left_stack = define_stack(network);
     let right_stack = define_stack(network);
-    left_stack.mod_position_x(|x| x - (container_size) / 2.0);
-    right_stack.mod_position_x(|x| x + (container_size) / 2.0);
+    left_stack.mod_x(|x| x - (container_size) / 2.0);
+    right_stack.mod_x(|x| x + (container_size) / 2.0);
 
     world.add_child(&container);
     container.add_child(&left_stack);

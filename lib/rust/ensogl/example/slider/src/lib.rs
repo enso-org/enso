@@ -81,16 +81,16 @@ fn init(app: &Application) {
     let slider2 = make_number_picker(app);
     slider2.inner().frp.resize(Vector2(400.0, 50.0));
     slider2.inner().frp.set_bounds.emit(Bounds::new(-100.0, 100.0));
-    slider2.inner().set_position_y(50.0);
+    slider2.inner().set_y(50.0);
     slider2.inner().frp.use_overflow_bounds(Bounds::new(-150.0, 200.0));
     slider2.inner().frp.set_caption(Some("Value:".to_string()));
 
     let slider3 = make_range_picker(app);
-    slider3.inner().set_position_y(-100.0);
+    slider3.inner().set_y(-100.0);
     slider3.inner().set_track_color(color::Rgba::new(0.0, 0.80, 0.80, 1.0));
 
     let slider4 = make_range_picker(app);
-    slider4.inner().set_position_y(-200.0);
+    slider4.inner().set_y(-200.0);
     slider4.inner().frp.use_overflow_bounds(Bounds::new(-2.0, 3.0));
     slider4.inner().frp.set_caption(Some("Caption".to_string()));
     slider4.inner().set_track_color(color::Rgba::new(0.5, 0.70, 0.70, 1.0));

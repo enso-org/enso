@@ -12,6 +12,7 @@ use crate::prelude::*;
 macro_rules! include_codes {
     ($($name:ident),* $(,)?) => { paste! {
         /// Enum describing possible GLSL codes.
+        #[derive(Clone, Copy, Debug)]
         #[allow(missing_docs)]
         pub enum Codes {
             $([<$name:camel>]),*

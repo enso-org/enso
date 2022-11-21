@@ -8,7 +8,6 @@ use enso_frp as frp;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::scene::Scene;
 use ensogl::Animation;
 use ensogl_component::label::Label;
 
@@ -180,7 +179,7 @@ impl View {
                 let half_height = scene_size.height / 2.0;
                 let label_height = model.label_height();
                 let pos_y = half_height - LABEL_PADDING_TOP - label_height / 2.0;
-                model.display_object.set_position_y(pos_y);
+                model.display_object.set_y(pos_y);
             }));
 
             eval_ frp.enabled(model.show_enabled_label());

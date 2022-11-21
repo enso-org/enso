@@ -221,7 +221,7 @@ impl display::Object for SpriteModel {
 
 impl display::Object for Sprite {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object()
+        self.model.display_object()
     }
 }
 
@@ -340,6 +340,7 @@ impl SpriteSystem {
         shader.set_material(&surface_material);
     }
 
+    /// The default geometry material for all sprites.
     pub fn default_geometry_material() -> Material {
         let mut material = Material::new();
         material.add_input_def::<Vector2<f32>>("size");
@@ -363,6 +364,7 @@ impl SpriteSystem {
         material
     }
 
+    /// The default surface material for all sprites.
     pub fn default_surface_material() -> Material {
         let mut material = Material::new();
         // FIXME We need to use this output, as we need to declare the same amount of shader

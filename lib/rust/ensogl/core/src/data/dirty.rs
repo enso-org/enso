@@ -17,65 +17,130 @@ use std::mem;
 // === Operations ===
 // ==================
 
+/// Common traits for dirty flags.
 pub mod traits {
     use super::*;
 
     // === Arg ===
+
+    /// Abstraction for dirty flags which accept an argument.
+    #[allow(missing_docs)]
     pub trait HasArg {
         type Arg;
     }
+    /// The argument type-level getter.
     pub type Arg<T> = <T as HasArg>::Arg;
 
+
     // === Global Operations ===
+
+    /// Abstraction for dirty flags which can be checked for being dirty.
+    #[allow(missing_docs)]
     pub trait HasCheckAll {
         fn check_all(&self) -> bool;
     }
+
+    /// Abstraction for dirty flags which can be unset (set to clean).
+    #[allow(missing_docs)]
     pub trait HasUnsetAll {
         fn unset_all(&mut self);
     }
 
+
     // === Arity-0 Operations ===
+
+    /// Abstraction for dirty flags which can perform a dirty check without requiring an argument.
+    #[allow(missing_docs)]
     pub trait HasCheck0 {
         fn check(&self) -> bool;
     }
+
+    /// Abstraction for dirty flags which can be set without requiring an argument.
+    #[allow(missing_docs)]
     pub trait HasSet0 {
         fn set(&mut self);
     }
+
+    /// Abstraction for dirty flags which can be unset without requiring an argument.
+    #[allow(missing_docs)]
     pub trait HasUnset0 {
         fn unset(&mut self);
     }
 
+
     // === Arity-1 Operations ===
+
+    /// Abstraction for dirty flags which can perform a dirty check by providing a single argument.
+    #[allow(missing_docs)]
     pub trait HasCheck1: HasArg {
         fn check(&self, arg: &Self::Arg) -> bool;
     }
+
+    /// Abstraction for dirty flags which can be set by providing a single argument.
+    #[allow(missing_docs)]
     pub trait HasSet1: HasArg {
         fn set(&mut self, arg: Self::Arg);
     }
+
+    /// Abstraction for dirty flags which can be unset by providing a single argument.
+    #[allow(missing_docs)]
     pub trait HasUnset1: HasArg {
         fn unset(&mut self, arg: &Self::Arg);
     }
 
-    // === Shared Operations ===
+
+    // === Shared Global Operations ===
+
+    /// Abstraction for dirty flags which can be unset (set to clean) without requiring mutable
+    /// access to self.
+    #[allow(missing_docs)]
     pub trait SharedHasUnsetAll {
         fn unset_all(&self);
     }
+
+
+    // === Shared Arity-0 Operations ===
+
+    /// Abstraction for dirty flags which can be set without requiring an argument and without
+    /// requiring mutable access to self.
+    #[allow(missing_docs)]
     pub trait SharedHasSet0 {
         fn set(&self);
     }
+
+    /// Abstraction for dirty flags which can be unset without requiring an argument and without
+    /// requiring mutable access to self.
+    #[allow(missing_docs)]
     pub trait SharedHasUnset0 {
         fn unset(&self);
     }
+
+
+    // === Shared Arity-1 Operations ===
+
+    /// Abstraction for dirty flags which can be set by providing a single argument without
+    /// requiring mutable access to self.
+    #[allow(missing_docs)]
     pub trait SharedHasSet1: HasArg {
         fn set(&self, arg: Self::Arg);
     }
+
+    /// Abstraction for dirty flags which can be unset by providing a single argument without
+    /// requiring mutable access to self.
+    #[allow(missing_docs)]
     pub trait SharedHasUnset1: HasArg {
         fn unset(&self, arg: &Self::Arg);
     }
 
     // === Type Aliases ===
+
+    /// Trait alias for bounds required by all dirty flags.
     pub trait FlagOps = Debug + HasCheckAll + HasUnsetAll;
+
+    /// Trait alias for bounds required by all dirty flags which does not accept an argument.
     pub trait FlagOps0 = FlagOps + HasCheck0 + HasSet0;
+
+    /// Trait alias for bounds required by all dirty flags which accept an argument.
     pub trait FlagOps1 = FlagOps + HasCheck1 + HasSet1 where Arg<Self>: Debug;
 }
 
@@ -94,6 +159,7 @@ pub use traits::*;
 /// implements public API for working with dirty flags.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
+#[allow(missing_docs)]
 pub struct Flag<T, OnMut> {
     pub data: T,
     #[derivative(Debug = "ignore")]
@@ -104,11 +170,13 @@ pub struct Flag<T, OnMut> {
 // === Basics ===
 
 impl<OnMut, T: Default> Flag<T, OnMut> {
+    /// Constructor.
     pub fn new(on_set: OnMut) -> Self {
         let data = default();
         Self { data, on_set }
     }
 
+    /// Unsets the flag and returns its dirty value.
     pub fn take(&mut self) -> T {
         mem::take(&mut self.data)
     }
@@ -221,16 +289,19 @@ pub struct RefCellFlag<T, OnMut> {
 // === API ===
 
 impl<T: Default, OnMut> RefCellFlag<T, OnMut> {
+    /// Constructor.
     pub fn new(on_set: OnMut) -> Self {
         Self { data: RefCell::new(Flag::new(on_set)) }
     }
 
+    /// Unsets the flag and returns its dirty value.
     pub fn take(&self) -> T {
         self.data.borrow_mut().take()
     }
 }
 
 impl<T, OnMut> RefCellFlag<T, OnMut> {
+    /// Replace the callback of the flag.
     pub fn set_callback(&self, on_set: OnMut) {
         self.data.borrow_mut().on_set = on_set;
     }
@@ -324,6 +395,7 @@ pub struct SharedFlag<T, OnMut> {
 // === API ===
 
 impl<T: Default, OnMut> SharedFlag<T, OnMut> {
+    /// Constructor.
     pub fn new(on_set: OnMut) -> Self {
         Self { rc: Rc::new(RefCellFlag::new(on_set)) }
     }
@@ -401,6 +473,7 @@ where Arg<T>: Display
 // === WeakSharedFlag ===
 // ======================
 
+/// A weak version of [`RefCellFlag`].
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
 #[derivative(Clone(bound = ""))]
@@ -409,12 +482,14 @@ pub struct WeakSharedFlag<T, OnMut> {
     weak: Weak<RefCellFlag<T, OnMut>>,
 }
 impl<T, OnMut> SharedFlag<T, OnMut> {
+    /// Downgrade the flag to its weak version.
     pub fn downgrade(&self) -> WeakSharedFlag<T, OnMut> {
         let weak = self.rc.downgrade();
         WeakSharedFlag { weak }
     }
 }
 impl<T, OnMut> WeakSharedFlag<T, OnMut> {
+    /// Upgrade the flag to its strong version.
     pub fn upgrade(&self) -> Option<SharedFlag<T, OnMut>> {
         self.weak.upgrade().map(|rc| SharedFlag { rc })
     }
@@ -462,6 +537,7 @@ define_flag! {
     Bool
 }
 
+/// Internal representation of the [`Bool`] flag.
 #[derive(Clone, Copy, Debug, Display, Default)]
 pub struct BoolData {
     is_dirty: bool,
@@ -511,7 +587,9 @@ define_flag! {
 
 pub trait RangeIx = PartialOrd + Copy + Debug;
 
+/// Internal representation of the [`Range`] flag.
 #[derive(Debug, Default)]
+#[allow(missing_docs)]
 pub struct RangeData<Ix = usize> {
     pub range: Option<RangeInclusive<Ix>>,
 }
@@ -586,9 +664,11 @@ define_flag! {
 
 pub trait SetItem = Eq + Hash + Debug;
 
+/// Internal representation of the [`Set`] flag.
 #[derive(Derivative, Shrinkwrap)]
 #[derivative(Debug(bound = "Item:SetItem"))]
 #[derivative(Default(bound = "Item:SetItem"))]
+#[allow(missing_docs)]
 pub struct SetData<Item> {
     pub set: FxHashSet<Item>,
 }
@@ -654,8 +734,10 @@ define_flag! {
 
 pub trait VectorItem = Debug + PartialEq;
 
+/// Internal representation of the [`Vector`] flag.
 #[derive(Derivative, Debug, Shrinkwrap)]
 #[derivative(Default(bound = ""))]
+#[allow(missing_docs)]
 pub struct VectorData<Item> {
     pub vec: Vec<Item>,
 }
@@ -728,11 +810,15 @@ pub trait EnumElem = Copy + Into<usize>;
 
 /// Dirty flag which keeps dirty indexes in a `BitField` under the hood.
 pub type BitField<Prim, OnMut> = Enum<Prim, usize, OnMut>;
+
+/// Shared version of the [`BitField`] flag.
 pub type SharedBitField<Prim, OnMut> = SharedEnum<Prim, usize, OnMut>;
 
+/// Internal representation of the [`Enum`] flag.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "Prim:Debug"))]
 #[derivative(Default(bound = "Prim:Default"))]
+#[allow(missing_docs)]
 pub struct EnumData<Prim = u32, T = usize> {
     pub bits: Prim,
     phantom:  PhantomData<T>,

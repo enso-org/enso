@@ -54,14 +54,14 @@ fn update_shape(screen: Shape, sprites: &[Sprite], dom_symbols: &[DomSymbol]) {
     for symbol in sprites {
         let size = Vector2::new(width, height * HEIGHT_FRACTION);
         symbol.size.set(size);
-        symbol.mod_position_y(|y| y - screen.height / 2.0 + size.y / 2.0 + VERTICAL_MARGIN);
+        symbol.mod_y(|y| y - screen.height / 2.0 + size.y / 2.0 + VERTICAL_MARGIN);
     }
     for symbol in dom_symbols {
         let size = Vector2::new(width, height * HEIGHT_FRACTION - HTML_PADDING * 2.0);
         symbol.set_size(size);
-        symbol.mod_position_x(|y| y - HTML_PADDING);
-        symbol.mod_position_y(|y| y + HTML_PADDING);
-        symbol.mod_position_y(|y| {
+        symbol.mod_x(|y| y - HTML_PADDING);
+        symbol.mod_y(|y| y + HTML_PADDING);
+        symbol.mod_y(|y| {
             y + screen.height / 2.0 - (size.y + HTML_PADDING * 2.0) / 2.0 - VERTICAL_MARGIN
         });
     }
@@ -74,7 +74,6 @@ pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera();
-    let screen = camera.screen();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new();
     world.add_child(&sprite_system);
@@ -84,9 +83,6 @@ pub fn main() {
 
     let mut sprites: Vec<Sprite> = default();
     let mut dom_symbols: Vec<DomSymbol> = default();
-    let screen_width = 1400.0;
-    let screen_height = 500.0;
-    let offset = -50.0;
     for i in 0..ELEM_COUNT {
         let fi = i as f32;
         if i % 2 == 0 {
