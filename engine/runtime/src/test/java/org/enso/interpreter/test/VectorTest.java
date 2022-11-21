@@ -130,10 +130,10 @@ public class VectorTest {
   public void passingListOrArrayToEnsoAsArray() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
     final Source src = Source.newBuilder("enso", """
-    import Standard.Base.Data.Array
+    import Standard.Base.Data.Array.Array
 
     how_long array = case array of
-        arr : Array.Array -> arr.length
+        arr : Array -> arr.length
         _ -> -1
     """, "how_long.enso")
             .uri(uri)
@@ -200,7 +200,7 @@ public class VectorTest {
   private void noCopyTest(String factoryName) throws Exception {
     final URI uri = new URI("memory://how_long.enso");
     final Source src = Source.newBuilder("enso", """
-    import Standard.Base.Data.Vector
+    import Standard.Base.Data.Vector.Vector
     polyglot java import org.enso.interpreter.test.VectorTest
 
     raw = VectorTest.${call}

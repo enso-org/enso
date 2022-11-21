@@ -1,8 +1,14 @@
-from Standard.Base import all
-
-from Standard.Base.Data.Filter_Condition.Filter_Condition import all
+import project.Data.Any.Any
+import project.Data.Text.Extensions
+import project.Data.Text.Regex
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+from project.Data.Boolean import all
 
 polyglot java import org.enso.base.Regex_Utils
+
+from project.Data.Filter_Condition.Filter_Condition import all
 
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?

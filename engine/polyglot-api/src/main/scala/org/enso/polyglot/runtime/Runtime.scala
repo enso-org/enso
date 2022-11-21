@@ -847,7 +847,7 @@ object Runtime {
         */
       case class Diagnostic(
         kind: DiagnosticType,
-        message: String,
+        message: Option[String],
         file: Option[File],
         location: Option[model.Range],
         expressionId: Option[ExpressionId],
@@ -858,7 +858,7 @@ object Runtime {
         override def toLogString(shouldMask: Boolean): String =
           "Diagnostic(" +
           s"kind=$kind," +
-          s"message=${MaskedString(message).toLogString(shouldMask)}," +
+          s"message=${message.map(m => MaskedString(m).toLogString(shouldMask))}," +
           s"file=${file.map(f => MaskedPath(f.toPath).toLogString(shouldMask))}," +
           s"location=$location," +
           s"expressionId=$expressionId," +
@@ -886,7 +886,7 @@ object Runtime {
         ): Diagnostic =
           new Diagnostic(
             DiagnosticType.Error(),
-            message,
+            Option(message),
             file,
             location,
             expressionId,
@@ -911,7 +911,7 @@ object Runtime {
         ): Diagnostic =
           new Diagnostic(
             DiagnosticType.Warning(),
-            message,
+            Option(message),
             file,
             location,
             expressionId,

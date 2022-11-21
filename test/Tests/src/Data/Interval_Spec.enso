@@ -5,16 +5,16 @@ from Standard.Test import Test, Test_Suite
 spec =
     Test.group "Bound" <|
         Test.specify "should allow constructing inclusive bounds" <|
-            bound = Interval.Bound.Inclusive 0
+            bound = Bound.Inclusive 0
             bound.n . should_equal 0
         Test.specify "should allow constructing exclusive bounds" <|
-            bound = Interval.Bound.Exclusive 0
+            bound = Bound.Exclusive 0
             bound.n . should_equal 0
         Test.specify "should be able to be checked for equality" <|
-            inclusive_1 = Interval.Bound.Inclusive 10
-            inclusive_2 = Interval.Bound.Inclusive 5
-            exclusive_1 = Interval.Bound.Exclusive 10
-            exclusive_2 = Interval.Bound.Exclusive 5
+            inclusive_1 = Bound.Inclusive 10
+            inclusive_2 = Bound.Inclusive 5
+            exclusive_1 = Bound.Exclusive 10
+            exclusive_2 = Bound.Exclusive 5
             (inclusive_1 == inclusive_1) . should_be_true
             (inclusive_1 == inclusive_2) . should_be_false
             (exclusive_1 == exclusive_1) . should_be_true
@@ -23,20 +23,20 @@ spec =
     Test.group "Interval" <|
         Test.specify "should allow constructing exclusive intervals" <|
             interval = Interval.exclusive 1 5
-            interval.start . should_equal (Interval.Bound.Exclusive 1)
-            interval.end . should_equal (Interval.Bound.Exclusive 5)
+            interval.start . should_equal (Bound.Exclusive 1)
+            interval.end . should_equal (Bound.Exclusive 5)
         Test.specify "should allow constructing start-exclusive intervals" <|
             interval = Interval.start_exclusive 1 5
-            interval.start . should_equal (Interval.Bound.Exclusive 1)
-            interval.end . should_equal (Interval.Bound.Inclusive 5)
+            interval.start . should_equal (Bound.Exclusive 1)
+            interval.end . should_equal (Bound.Inclusive 5)
         Test.specify "should allow constructing end-exclusive intervals" <|
             interval = Interval.end_exclusive 1 5
-            interval.start . should_equal (Interval.Bound.Inclusive 1)
-            interval.end . should_equal (Interval.Bound.Exclusive 5)
+            interval.start . should_equal (Bound.Inclusive 1)
+            interval.end . should_equal (Bound.Exclusive 5)
         Test.specify "should allow constructing inclusive intervals" <|
             interval = Interval.inclusive 1 5
-            interval.start . should_equal (Interval.Bound.Inclusive 1)
-            interval.end . should_equal (Interval.Bound.Inclusive 5)
+            interval.start . should_equal (Bound.Inclusive 1)
+            interval.end . should_equal (Bound.Inclusive 5)
         Test.specify "should allow checking if an interval contains a value of the contained type" <|
             interval = Interval.end_exclusive 1 10
             interval.contains 0 . should_be_false

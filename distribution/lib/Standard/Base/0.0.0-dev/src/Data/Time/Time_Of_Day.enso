@@ -292,7 +292,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_to_json = Time_Of_Day.now.to_text
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Time_Of_Day"], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
 
     ## Format this time of day using the provided formatter pattern.

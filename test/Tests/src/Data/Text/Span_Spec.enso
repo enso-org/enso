@@ -10,11 +10,14 @@ spec = Test.group "Text.Span" <|
         span = Span_Data (Range_Data 0 3) text
         span.start . should_equal 0
         span.end . should_equal 3
-        span.text . should_equal text
+        span.parent . should_equal text
+        span.text . should_equal "Hel"
 
     Test.specify "should be able to be converted to code units" <|
         text = 'ae\u{301}fz'
-        (Span_Data (Range_Data 1 3) text).to_utf_16_span . should_equal (Utf_16_Span_Data (Range_Data 1 4) text)
+        span = Span_Data (Range_Data 1 3) text
+        span.to_utf_16_span . should_equal (Utf_16_Span_Data (Range_Data 1 4) text)
+        span.text . should_equal 'e\u{301}f'
 
     Test.specify "should expand to the associated grapheme clusters" <|
         text = 'a\u{301}e\u{302}o\u{303}'

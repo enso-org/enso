@@ -1,6 +1,7 @@
-from Standard.Base import all
-
-from Standard.Base.Data.Map import all
+import project.Data.Any.Any
+import project.Data.Ordering.Ordering
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
 
 ## PRIVATE
    Compares keys allowing for the possibility that one or both keys are Nothing.
@@ -21,7 +22,7 @@ compare_allow_nothing x y = if x == y then Ordering.Equal else
    - v: The previous top value of the left subtree.
    - l: The left subtree.
    - r: The right subtree.
-insert_l : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
+insert_l : Any -> Any -> Any -> Any -> Map -> Map -> Map
 insert_l key value k v l r =
     new_left = insert l key value
     balance_left k v new_left r
@@ -37,7 +38,7 @@ insert_l key value k v l r =
    - v: The previous top value of the right subtree.
    - l: The left subtree.
    - r: The right subtree.
-insert_r : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
+insert_r : Any -> Any -> Any -> Any -> Map -> Map -> Map
 insert_r key value k v l r =
     new_right = insert r key value
     balance_right k v l new_right
@@ -56,80 +57,81 @@ insert_r key value k v l r =
    Haskell's `Data.Map.Strict` as implemented in the `containers` package.
 insert : Map -> Any -> Any -> Map
 insert map key value = case map of
-    Bin s k v l r -> case compare_allow_nothing key k of
+    Map.Bin s k v l r -> case compare_allow_nothing key k of
         Ordering.Less -> @Tail_Call insert_l key value k v l r
         Ordering.Greater -> @Tail_Call insert_r key value k v l r
-        Ordering.Equal -> Bin s key value l r
-    _ -> Bin 1 key value Tip Tip
+        Ordering.Equal -> Map.Bin s key value l r
+    _ -> Map.Bin 1 key value Map.Tip Map.Tip
 
 ## PRIVATE
 
-   Rebalances the map after the left subtree grows.
+   Re-balances the map after the left subtree grows.
 
    Arguments:
    - k: The old top key of the left subtree.
    - x: The old top value of the left subtree.
    - l: The left subtree.
    - r: The right subtree.
-balance_left : Any -> Any -> Tree -> Tree -> Tree
+balance_left : Any -> Any -> Map -> Map -> Map
 balance_left k x l r = case r of
-    Bin rs _ _ _ _ -> case l of
-        Bin ls lk lx ll lr ->
-            if ls <= delta*rs then Bin 1+ls+rs k x l r else
+    Map.Bin rs _ _ _ _ -> case l of
+        Map.Bin ls lk lx ll lr ->
+            if ls <= delta*rs then Map.Bin 1+ls+rs k x l r else
                 lls = size ll
                 case lr of
-                    Bin lrs lrk lrx lrl lrr ->
-                        if lrs < ratio*lls then Bin 1+ls+rs lk lx ll (Bin 1+rs+lrs k x lr r) else
+                    Map.Bin lrs lrk lrx lrl lrr ->
+                        if lrs < ratio*lls then Map.Bin 1+ls+rs lk lx ll (Map.Bin 1+rs+lrs k x lr r) else
                             lrls = size lrl
                             lrrs = size lrr
-                            Bin 1+ls+rs lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+rs+lrrs k x lrr r)
-        _ -> Bin 1+rs k x Tip r
+                            Map.Bin 1+ls+rs lrk lrx (Map.Bin 1+lls+lrls lk lx ll lrl) (Map.Bin 1+rs+lrrs k x lrr r)
+        _ -> Map.Bin 1+rs k x Map.Tip r
     _ -> case l of
-        Tip -> Bin 1 k x Tip Tip
-        Bin _ _ _ Tip Tip -> Bin 2 k x l Tip
-        Bin _ lk lx Tip (Bin _ lrk lrx _ _) -> Bin 3 lrk lrx (Bin 1 lk lx Tip Tip) (Bin 1 k x Tip Tip)
-        Bin _ lk lx ll Tip -> Bin 3 lk lx ll (Bin 1 k x Tip Tip)
-        Bin ls lk lx ll lr -> case lr of
-            Bin lrs lrk lrx lrl lrr ->
+        Map.Tip -> Map.Bin 1 k x Map.Tip Map.Tip
+        Map.Bin _ _ _ Map.Tip Map.Tip -> Map.Bin 2 k x l Map.Tip
+        Map.Bin _ lk lx Map.Tip (Map.Bin _ lrk lrx _ _) -> Map.Bin 3 lrk lrx (Map.Bin 1 lk lx Map.Tip Map.Tip) (Map.Bin 1 k x Map.Tip Map.Tip)
+        Map.Bin _ lk lx ll Map.Tip -> Map.Bin 3 lk lx ll (Map.Bin 1 k x Map.Tip Map.Tip)
+        Map.Bin ls lk lx ll lr -> case lr of
+            Map.Bin lrs lrk lrx lrl lrr ->
                 lls = size ll
-                if lrs < ratio*lls then Bin 1+ls lk lx ll (Bin 1+lrs k x lr Tip) else
+                if lrs < ratio*lls then Map.Bin 1+ls lk lx ll (Map.Bin 1+lrs k x lr Map.Tip) else
                     lrls = size lrl
                     lrrs = size lrr
-                    Bin 1+ls lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+lrrs k x lrr Tip)
+                    Map.Bin 1+ls lrk lrx (Map.Bin 1+lls+lrls lk lx ll lrl) (Map.Bin 1+lrrs k x lrr Map.Tip)
 
 ## PRIVATE
 
-   Rebalances the map after the right subtree grows.
+   Re-balances the map after the right subtree grows.
 
    Arguments:
    - k: The old top key of the right subtree.
    - x: The old top value of the right subtree.
    - l: The left subtree.
    - r: The right subtree.
+balance_right : Any -> Any -> Map -> Map -> Map
 balance_right k x l r = case l of
-    Bin ls _ _ _ _ -> case r of
-        Bin rs rk rx rl rr ->
-            if rs <= delta*ls then Bin 1+ls+rs k x l r else
+    Map.Bin ls _ _ _ _ -> case r of
+        Map.Bin rs rk rx rl rr ->
+            if rs <= delta*ls then Map.Bin 1+ls+rs k x l r else
                 case rl of
-                    Bin rls rlk rlx rll rlr ->
+                    Map.Bin rls rlk rlx rll rlr ->
                         rrs = size rr
-                        if rls < ratio*rrs then Bin 1+ls+rs rk rx (Bin 1+ls+rls k x l rl) rr else
+                        if rls < ratio*rrs then Map.Bin 1+ls+rs rk rx (Map.Bin 1+ls+rls k x l rl) rr else
                             rlls = size rll
                             rlrs = size rlr
-                            Bin 1+ls+rs rlk rlx (Bin 1+ls+rlls k x l rll) (Bin 1+rrs+rlrs rk rx rlr rr)
-        _ -> Bin 1+ls k x l Tip
+                            Map.Bin 1+ls+rs rlk rlx (Map.Bin 1+ls+rlls k x l rll) (Map.Bin 1+rrs+rlrs rk rx rlr rr)
+        _ -> Map.Bin 1+ls k x l Map.Tip
     _ -> case r of
-        Tip -> Bin 1 k x Tip Tip
-        Bin _ _ _ Tip Tip -> Bin 2 k x Tip r
-        Bin _ rk rx Tip rr -> Bin 3 rk rx (Bin 1 k x Tip Tip) rr
-        Bin _ rk rx (Bin _ rlk rlx _ _) Tip -> Bin 3 rlk rlx (Bin 1 k x Tip Tip) (Bin 1 rk rx Tip Tip)
-        Bin rs rk rx rl rr -> case rl of
-            Bin rls rlk rlx rll rlr -> case rr of
-                Bin rrs _ _ _ _ ->
-                    if rls < ratio*rrs then Bin 1+rs rk rx (Bin 1+rls k x Tip rl) rr else
+        Map.Tip -> Map.Bin 1 k x Map.Tip Map.Tip
+        Map.Bin _ _ _ Map.Tip Map.Tip -> Map.Bin 2 k x Map.Tip r
+        Map.Bin _ rk rx Map.Tip rr -> Map.Bin 3 rk rx (Map.Bin 1 k x Map.Tip Map.Tip) rr
+        Map.Bin _ rk rx (Map.Bin _ rlk rlx _ _) Map.Tip -> Map.Bin 3 rlk rlx (Map.Bin 1 k x Map.Tip Map.Tip) (Map.Bin 1 rk rx Map.Tip Map.Tip)
+        Map.Bin rs rk rx rl rr -> case rl of
+            Map.Bin rls rlk rlx rll rlr -> case rr of
+                Map.Bin rrs _ _ _ _ ->
+                    if rls < ratio*rrs then Map.Bin 1+rs rk rx (Map.Bin 1+rls k x Map.Tip rl) rr else
                         srll = size rll
                         srlr = size rlr
-                        Bin 1+rs rlk rlx (Bin 1+srll k x Tip rll) (Bin 1+rrs+srlr rk rx rlr rr)
+                        Map.Bin 1+rs rlk rlx (Map.Bin 1+srll k x Map.Tip rll) (Map.Bin 1+rrs+srlr rk rx rlr rr)
 
 ## PRIVATE
 
@@ -158,6 +160,6 @@ delta = 3
    - m: The map to get the size of.
 size : Map -> Integer
 size m = case m of
-    Bin s _ _ _ _ -> s
+    Map.Bin s _ _ _ _ -> s
     _ -> 0
 
