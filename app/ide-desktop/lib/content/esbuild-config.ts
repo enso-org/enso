@@ -127,8 +127,7 @@ const config: esbuild.BuildOptions = {
 }
 
 /**
- * Spawn the esbuild serve and watch process. It continuously runs, rebuilding the package and
- * serves the content.
+ * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
  */
 export async function watch(onRebuild?: () => void, banner?: esbuild.BuildOptions['banner']) {
     return esbuild.build({
