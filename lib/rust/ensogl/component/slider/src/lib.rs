@@ -377,20 +377,24 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            output.min_value <+ all5(
+            min_value <- all5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.min_value,
                 &input.set_lower_limit_type,
-            ).map(adapt_lower_limit);
-            output.max_value <+ all5(
+            );
+            min_value <- min_value.map(adapt_lower_limit).on_change();
+            output.min_value <+ min_value;
+            max_value<- all5(
                 &output.value,
                 &input.set_min_value,
                 &input.set_max_value,
                 &output.max_value,
                 &input.set_upper_limit_type,
-            ).map(adapt_upper_limit);
+            );
+            max_value <- max_value.map(adapt_upper_limit).on_change();
+            output.max_value <+ max_value;
 
             overflow_lower <- all2(&output.value, &output.min_value).map(|(val, min)| val < min );
             overflow_upper <- all2(&output.value, &output.max_value).map(|(val, max)| val > max );
