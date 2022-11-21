@@ -5,8 +5,12 @@ import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
 import project.Data.Vector.Vector
+import project.Function
 import project.Math
 import project.Nothing.Nothing
+import project.Polyglot
+import project.Polyglot.Java
+import project.Warning.Warning
 
 export project.Data.Any.Any
 export project.Data.Array.Array
@@ -15,8 +19,12 @@ export project.Data.Map.Map
 export project.Data.Vector.Vector
 export project.Math
 export project.Nothing.Nothing
+export project.Polyglot
+export project.Polyglot.Java
+export project.Warning.Warning
 
 from project.Data.Boolean export Boolean, True, False
+from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
 
 import project.Data.Filter_Condition.Filter_Condition
@@ -98,11 +106,9 @@ import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Error.Common
 import project.Error.Problem_Behavior
-import project.Function
+
 import project.IO
 import project.Meta
-import project.Polyglot
-import project.Polyglot.Java
 import project.Runtime
 import project.Runtime.Extensions
 import project.Runtime.State
@@ -112,9 +118,7 @@ import project.System.File_Format
 import project.System.File.Existing_File_Behavior
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
-import project.Warning
 
-export project.Data.Regression
 export project.Data.Text.Case_Sensitivity
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode
@@ -124,14 +128,11 @@ export project.Data.Text.Regex_Matcher
 export project.Error.Problem_Behavior
 export project.IO
 export project.Meta
-export project.Polyglot
-export project.Polyglot.Java
 export project.Runtime
 export project.Runtime.State
 export project.System.Environment
 export project.System.File
 export project.System.File.Existing_File_Behavior
-export project.Warning
 
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
@@ -139,6 +140,5 @@ from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Span export all
 from project.Error.Common export all
-from project.Function export all
 from project.Runtime.Extensions export all
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
