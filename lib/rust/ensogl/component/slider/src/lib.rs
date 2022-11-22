@@ -245,6 +245,10 @@ ensogl_core::define_endpoints_2! {
         max_value(f32),
         /// Indicates whether the mouse is currently hovered over the component.
         hovered(bool),
+        /// Indicates whether the slider is currently being dragged.
+        dragged(bool),
+        /// Indicates whether the slider is disabled.
+        disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
     }
@@ -313,8 +317,14 @@ impl Slider {
 
             component_click <- component_events.mouse_down_primary
                 .gate_not(&input.set_slider_disabled);
-            component_release <- component_events.mouse_release_primary
-                .gate_not(&input.set_slider_disabled);
+            component_click <- component_click.gate_not(&output.editing);
+            slider_disabled_is_true <- input.set_slider_disabled.on_true();
+            slider_editing_is_true <- output.editing.on_true();
+            component_release <- any3(
+                &component_events.mouse_release_primary,
+                &slider_disabled_is_true,
+                &slider_editing_is_true,
+            );
             component_drag <- bool(&component_release, &component_click);
             component_drag <- component_drag.gate_not(&input.set_slider_disabled);
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
@@ -330,6 +340,8 @@ impl Slider {
                 f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y)
             );
             output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
+            output.dragged <+ component_drag;
+            output.disabled <+ input.set_slider_disabled; 
 
 
             // === Precision calculation ===
@@ -488,16 +500,17 @@ impl Slider {
     fn init_information_tooltip(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
+        let output = &self.frp.private.output;
         let model = &self.model;
         let component_events = &model.background.events;
         let tooltip_anim = DelayedAnimation::new(network);
         tooltip_anim.set_delay(INFORMATION_TOOLTIP_DELAY);
 
         frp::extend! { network
-            tooltip_anim.start <+ any2(
-                &component_events.mouse_over,
-                &component_events.mouse_up_primary
-            );
+            tooltip_start <- any2(&component_events.mouse_over, &component_events.mouse_up_primary);
+            tooltip_start <- tooltip_start.gate_not(&output.dragged);
+            tooltip_start <- tooltip_start.gate_not(&output.editing);
+            tooltip_anim.start <+ tooltip_start;
             tooltip_anim.reset <+ any2(
                 &component_events.mouse_out,
                 &component_events.mouse_down_primary
@@ -601,17 +614,18 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            output.editing <+ input.start_value_editing.constant(true);
+            start_editing <- input.start_value_editing.constant(true).gate_not(&output.disabled);
+            output.editing <+ start_editing;
             output.editing <+ input.finish_value_editing.constant(false);
             output.editing <+ input.cancel_value_editing.constant(false);
-            value_on_edit <- output.value.sample(&input.start_value_editing);
-            prec_on_edit <- output.precision.sample(&input.start_value_editing);
+            value_on_edit <- output.value.sample(&start_editing);
+            prec_on_edit <- output.precision.sample(&start_editing);
             max_places_on_edit <-
-                input.set_max_disp_decimal_places.sample(&input.start_value_editing);
+                input.set_max_disp_decimal_places.sample(&start_editing);
             value_text_on_edit <- all3(&value_on_edit, &prec_on_edit, &max_places_on_edit);
             value_text_on_edit <- value_text_on_edit.map(|t| value_text_truncate(t).to_im_string());
             model.value_text_edit.set_content <+ value_text_on_edit;
-            eval_ input.start_value_editing(model.set_edit_mode(true));
+            eval_ start_editing(model.set_edit_mode(true));
             eval_ input.finish_value_editing(model.set_edit_mode(false));
             eval_ input.cancel_value_editing(model.set_edit_mode(false));
             value_text_after_edit <-
