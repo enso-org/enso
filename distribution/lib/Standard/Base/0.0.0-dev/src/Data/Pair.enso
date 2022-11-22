@@ -8,7 +8,7 @@ type Pair
        - first: The first element.
        - second: The second element.
     of : Any -> Any -> Pair
-    of first second = Pair first second
+    of first second = Pair.Value first second
 
     ## UNSTABLE
 

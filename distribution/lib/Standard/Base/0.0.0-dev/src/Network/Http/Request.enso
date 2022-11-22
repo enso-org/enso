@@ -160,7 +160,8 @@ type Request
            Pair.Value acc True -> Pair.of (acc + [h]) True
            Pair.Value acc False ->
                if h.name . equals_ignore_case key then Pair.of (acc + [new_header]) True else Pair.of (acc + [h]) False
-       new_headers = case self.headers.fold (Pair.of [] False) update_header of
+       empty = Pair.of [] False
+       new_headers = case self.headers.fold empty update_header of
            Pair.Value acc True -> acc
            Pair.Value acc False -> acc + [new_header]
        Request_Data self.method self.uri new_headers self.body

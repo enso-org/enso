@@ -54,7 +54,8 @@ type Postgres_Options
             Nothing ->
                 env_user = Environment.get "PGUSER"
                 env_password = Environment.get "PGPASSWORD"
-                case Pair.of env_user env_password of
+                env_pair = Pair.of env_user env_password
+                case env_pair of
                     Pair.Value Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
                     Pair.Value Nothing _ ->

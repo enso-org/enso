@@ -174,7 +174,8 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
     is_valid = (0.up_to len+1).contains
 
-    case (Pair.of (is_valid start) (is_valid end)) of
+    pair = Pair.of (is_valid start) (is_valid end)
+    case pair of
         Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
         Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
         Pair.Value True True ->
