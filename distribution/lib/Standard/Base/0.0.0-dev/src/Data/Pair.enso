@@ -7,8 +7,8 @@ type Pair
        Arguments:
        - first: The first element.
        - second: The second element.
-    of : Any -> Any -> Pair
-    of first second = Pair.Value first second
+    new : Any -> Any -> Pair
+    new first second = Pair.Value first second
 
     ## UNSTABLE
 
@@ -29,4 +29,4 @@ type Pair
          (Pair 1 2).map (+1) == (Pair 2 3)
     map : (Any -> Any) -> Pair
     map self fun =
-        Pair.of (fun self.first) (fun self.second)
+        Pair.new (fun self.first) (fun self.second)

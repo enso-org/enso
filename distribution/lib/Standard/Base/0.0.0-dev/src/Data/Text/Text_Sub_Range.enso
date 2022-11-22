@@ -130,15 +130,15 @@ type Codepoint_Ranges
      - start: index the char array to start of grapheme cluster
      - end: index the char array to start of next grapheme cluster
      If the predicate returns True for a given character, the loop will exit.
-   Returns: either a Pair of char indices for current grapheme cluster or
+   Returns: either a Pair.new char indices for current grapheme cluster or
      Pair Nothing (char array length) if not found.
 find_sub_range_end text predicate =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
 
     loop index start end =
-        if end == -1 then (Pair.of Nothing start) else
-            if predicate index start end then (Pair.of start end) else
+        if end == -1 then (Pair.new Nothing start) else
+            if predicate index start end then (Pair.new start end) else
                 @Tail_Call loop (index + 1) end iterator.next
 
     loop 0 0 iterator.next
