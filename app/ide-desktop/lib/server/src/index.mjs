@@ -16,27 +16,27 @@ export const LIVE_RELOAD_LISTENER_PATH = path.join(dirname, 'live-reload.js')
 export async function start({ root, assets, port }) {
     assets = assets ?? path.join(root, 'assets')
 
-    const freePort = await portfinder.getPortPromise({ port: port ?? DEFAULT_PORT});
+    const freePort = await portfinder.getPortPromise({ port: port ?? DEFAULT_PORT })
 
     const app = connect()
         .use(logger('dev', { skip: (req, res) => res.statusCode < 400 }))
         .use(serveStatic(root))
         .use('/assets', serveStatic(assets))
 
-    const server = app.listen(freePort);
+    const server = app.listen(freePort)
 
     const reloadSockets = []
-    const wsServer = new WebSocketServer({ server, path: '/live-reload' });
-    wsServer.on('connection', (socket) => reloadSockets.push(socket));
+    const wsServer = new WebSocketServer({ server, path: '/live-reload' })
+    wsServer.on('connection', socket => reloadSockets.push(socket))
 
-    var serverUrl = `http://localhost:${freePort}`;
-    console.log(("Serving %s"), serverUrl);
+    var serverUrl = `http://localhost:${freePort}`
+    console.log('Serving %s', serverUrl)
 
     return {
         port: freePort,
         reload() {
-            reloadSockets.forEach((sock) => sock.send("reload"));
-            reloadSockets.length = 0;
-        }
+            reloadSockets.forEach(sock => sock.send('reload'))
+            reloadSockets.length = 0
+        },
     }
 }
