@@ -68,7 +68,6 @@ impl ModuleGroups {
         let is_top_module = entry.kind == suggestion_database::entry::Kind::Module
             && entry.defined_in.is_top_element();
         let qualified_name = entry.qualified_name();
-        let qualified_name = QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
             qualified_name,

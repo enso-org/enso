@@ -579,8 +579,12 @@ impl Entry {
 
         fn to_qualified_name(s: String) -> QualifiedName {
             s.as_str().try_into().unwrap_or_else(|_| {
-                error!("Invalid qualified name received from the Engine in SuggestionEntry. Assuming an entinty in Standard.Base project");
-                QualifiedName::new_child(name::project::QualifiedName::standard_base_library().into(), s)
+                let standard_base = name::project::QualifiedName::standard_base_library();
+                error!(
+                    "Invalid qualified name received from the Engine in SuggestionEntry. \
+                    Assuming an entity in {standard_base} project"
+                );
+                QualifiedName::new_child(standard_base.into(), s)
             })
         }
 

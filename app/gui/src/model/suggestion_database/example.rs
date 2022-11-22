@@ -92,7 +92,7 @@ pub fn documentation_html_from(inner: &str) -> String {
 
 lazy_static! {
     /// The hard-coded examples to be used until the proper solution
-    /// (described in https://github.com/enso-org/ide/issues/1011) will be implemented.
+    /// (described in https://www.pivotaltracker.com/story/show/181061125) will be implemented.
     //TODO[ao]: Remove once the issue will be implemented.
     pub static ref EXAMPLES: Vec<Example> = vec![
         Example {

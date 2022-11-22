@@ -97,7 +97,7 @@ impl QualifiedNameToIdMap {
         let mut swapped_value = value;
         swap_value_and_traverse_back_pruning_empty_subtrees(
             &mut self.tree,
-            &mut path.into_iter(),
+            path,
             &mut swapped_value,
         );
         swapped_value
@@ -387,13 +387,14 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 /// recursively.
 fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
     node: &mut HashMapTree<ImString, Option<entry::Id>>,
-    mut path: P,
+    path: P,
     value: &mut Option<entry::Id>,
 ) where
-    P: Iterator<Item = I>,
+    P: IntoIterator<Item = I>,
     I: Into<ImString>,
 {
     use std::collections::hash_map::Entry;
+    let mut path = path.into_iter();
     match path.next() {
         None => std::mem::swap(&mut node.value, value),
         Some(key) => match node.branches.entry(key.into()) {
