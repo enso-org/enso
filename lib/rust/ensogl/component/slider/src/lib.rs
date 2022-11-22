@@ -647,7 +647,6 @@ impl Slider {
                                 comp_height / 2.0 + comp_width / 2.0 + lab_height,
                         }
                     }
-                    
                 }
             );
             eval label_pos_y((y) model.label.set_position_y(*y));
