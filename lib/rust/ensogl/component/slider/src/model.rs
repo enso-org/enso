@@ -1,5 +1,7 @@
 //! Model for the slider component.
 
+use crate::SliderOrientation;
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -69,10 +71,14 @@ mod track {
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
-        (style:Style, slider_fraction_filled:f32, color:Vector4) {
+        (style:Style, slider_fraction_horizontal:f32, slider_fraction_vertical:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
-            let track = Rect((&width * &slider_fraction_filled,&height));
-            let track = track.translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5);
+            let track = Rect((
+                &width * &slider_fraction_horizontal,
+                &height * &slider_fraction_vertical
+            ));
+            let track = track.translate_x(&width * (&slider_fraction_horizontal - 1.0) * 0.5);
+            let track = track.translate_y(&height * (&slider_fraction_vertical - 1.0) * 0.5);
             let track = track.intersection(background).fill(color);
             track.into()
         }
@@ -189,9 +195,6 @@ impl Model {
         self.track.color.set(track_color.into());
         self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
-        self.value_text_edit.set_content("");
-        self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
-        self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
         self
     }
 
@@ -200,6 +203,24 @@ impl Model {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         self.background.size.set(size + margin);
         self.track.size.set(size + margin);
+    }
+
+    /// Set the fraction of the slider filled by the track.
+    pub fn set_track_fraction(&self, (fraction, orientation): &(f32, SliderOrientation)) {
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.track.slider_fraction_horizontal.set(*fraction);
+                self.track.slider_fraction_vertical.set(1.0);
+                self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
+                self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
+            }
+            SliderOrientation::Vertical => {
+                self.track.slider_fraction_horizontal.set(1.0);
+                self.track.slider_fraction_vertical.set(*fraction);
+                self.overflow_lower.set_rotation_z(std::f32::consts::PI);
+                self.overflow_upper.set_rotation_z(0.0);
+            }
+        }
     }
 
     /// Set the size of the overflow markers.

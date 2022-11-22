@@ -90,6 +90,22 @@ pub enum LabelPosition {
 
 
 
+// ==========================
+// === Slider orientation ===
+// ==========================
+
+/// The orientation of the slider component.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum SliderOrientation {
+    #[default]
+    /// The slider value is changed by dragging the slider horizontally.
+    Horizontal,
+    /// The slider value is changed by dragging the slider vertically.
+    Vertical,
+}
+
+
+
 // =============================
 // === Slider limit behavior ===
 // =============================
@@ -213,6 +229,8 @@ ensogl_core::define_endpoints_2! {
         set_label_hidden(bool),
         /// Set the position of the slider's label.
         set_label_position(LabelPosition),
+        /// Set the orientation of the slider component.
+        set_orientation(SliderOrientation),
         /// Set a tooltip that pops up when the mose hovers over the component.
         set_tooltip(ImString),
         /// Set the delay of the tooltip showing after the mouse hovers over the component.
@@ -336,13 +354,26 @@ impl Slider {
             drag_start_pos <- mouse.position.sample(&component_click);
             drag_end_pos <- mouse.position.gate(&component_drag);
             drag_end_pos <- any2(&drag_end_pos, &drag_start_pos);
-            drag_delta_x <- all2(&drag_end_pos, &drag_start_pos);
-            drag_delta_x <- drag_delta_x.map(|(end, start)| end.x - start.x).on_change();
+            drag_delta <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);;
+            drag_delta_primary <- all2(&drag_delta, &input.set_orientation);
+            drag_delta_primary <- drag_delta_primary.map( |(delta, orientation)|
+                match orientation {
+                    SliderOrientation::Horizontal => delta.x,
+                    SliderOrientation::Vertical => delta.y,
+                }
+            ).on_change();
             mouse_position_click <- mouse.position.sample(&component_click);
             mouse_position_drag <- mouse.position.gate(&component_drag);
             mouse_position_click_or_drag <- any2(&mouse_position_click, &mouse_position_drag);
-            mouse_y_local <- mouse_position_click_or_drag.map(
-                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos).y)
+            mouse_local <- mouse_position_click_or_drag.map(
+                f!([scene, model] (pos) scene.screen_to_object_space(&model.background, *pos))
+            );
+            mouse_local_secondary <- all2(&mouse_local, &input.set_orientation);
+            mouse_local_secondary <- mouse_local_secondary.map( |(offset, orientation)|
+                match orientation {
+                    SliderOrientation::Horizontal => offset.y,
+                    SliderOrientation::Vertical => offset.x,
+                }
             );
             output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
             output.dragged <+ component_drag;
@@ -352,12 +383,20 @@ impl Slider {
             // === Precision calculation ===
 
             output.precision <+ input.set_default_precision.sample(&component_click);
-            precision_adjustment_margin <- all2(
+            precision_adjustment_margin <- all4(
+                &input.set_width,
                 &input.set_height,
                 &input.set_precision_adjustment_margin,
-            ).map(|(h, m)| h / 2.0 + m);
+                &input.set_orientation,
+            );
+            precision_adjustment_margin <- precision_adjustment_margin.map(
+                |(width, height, margin, orientation)| match orientation {
+                    SliderOrientation::Horizontal => height / 2.0 + margin,
+                    SliderOrientation::Vertical => width / 2.0 + margin,
+                }
+            );
             precision_offset_steps <- all3(
-                &mouse_y_local,
+                &mouse_local_secondary,
                 &precision_adjustment_margin,
                 &input.set_precision_adjustment_step_size,
             ).map(
@@ -383,7 +422,7 @@ impl Slider {
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset, &value_on_click);
             update_value <- bool(&component_release, &value_on_click);
-            value <- all3(&value_on_click, &precision, &drag_delta_x).gate(&update_value);
+            value <- all3(&value_on_click, &precision, &drag_delta_primary).gate(&update_value);
             value <- value.map(|(value, precision, delta)| value + delta * precision);
             value <- any2(&input.set_value, &value);
             // Snap the slider's value to the nearest precision increment.
@@ -548,7 +587,8 @@ impl Slider {
             output.height <+ input.set_height;
             track_pos <- all3(&output.value, &output.min_value, &output.max_value);
             track_pos_anim.target <+ track_pos.map(|(value, min, max)| (value - min) / (max - min));
-            eval track_pos_anim.value((v) model.track.slider_fraction_filled.set(*v));
+            track_pos <- all2(&track_pos_anim.value, &input.set_orientation);
+            eval track_pos((v) model.set_track_fraction(v));
 
             value_text_left_pos_x <- all2(
                 &model.value_text_left.width,
