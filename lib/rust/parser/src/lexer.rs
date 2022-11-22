@@ -1303,15 +1303,9 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 ];
 
 impl<'s> Lexer<'s> {
-    /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
-    /// hierarchy).
-    pub fn run(self) -> ParseResult<Vec<Item<'s>>> {
-        self.run_flat().map(build_block_hierarchy)
-    }
-
     /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
     /// as start and end tokens).
-    pub fn run_flat(mut self) -> ParseResult<Vec<Token<'s>>> {
+    pub fn run(mut self) -> ParseResult<Vec<Token<'s>>> {
         self.spaces_after_lexeme();
         self.current_block_indent = self.last_spaces_visible_offset;
         let mut any_parser_matched = true;
@@ -1349,36 +1343,8 @@ impl<'s> Lexer<'s> {
 
 /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
 /// as start and end tokens).
-pub fn run_flat(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
-    Lexer::new(input).run_flat()
-}
-
-/// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
-/// hierarchy).
-pub fn run(input: &'_ str) -> ParseResult<Vec<Item<'_>>> {
+pub fn run(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
     Lexer::new(input).run()
-}
-
-/// Convert the flat token stream into hierarchical one. The token variants [`BlockStart`] and
-/// [`BlockEnd`] will be replaced with [`Item::Group`].
-pub fn build_block_hierarchy(tokens: Vec<Token<'_>>) -> Vec<Item<'_>> {
-    let mut stack = vec![];
-    let mut out: Vec<Item<'_>> = vec![];
-    for token in tokens {
-        match token.variant {
-            token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
-            token::Variant::BlockEnd(_) => {
-                let new_out = stack.pop().unwrap();
-                let block = mem::replace(&mut out, new_out);
-                out.push(Item::Block(block));
-            }
-            _ => out.push(token.into()),
-        }
-    }
-    if !stack.is_empty() {
-        panic!("Internal error. Block start token not paired with block end token.");
-    }
-    out
 }
 
 
@@ -1425,7 +1391,7 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        assert_eq!(run_flat(input).unwrap(), expected);
+        assert_eq!(run(input).unwrap(), expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
