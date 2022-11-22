@@ -334,6 +334,7 @@ impl Slider {
 
             // === Precision calculation ===
 
+            output.precision <+ input.set_default_precision.sample(&component_click);
             precision_adjustment_margin <- all2(
                 &input.set_height,
                 &input.set_precision_adjustment_margin,
@@ -605,11 +606,11 @@ impl Slider {
             output.editing <+ input.cancel_value_editing.constant(false);
             value_on_edit <- output.value.sample(&input.start_value_editing);
             precision_on_edit <- output.precision.sample(&input.start_value_editing);
-            max_places_on_edit <- input.set_max_disp_decimal_places
-                .sample(&input.start_value_editing);
-            value_text_on_edit <- all3(&value_on_edit, &precision_on_edit, &max_places_on_edit);
-            value_text_on_edit <- value_text_on_edit.map(|t| value_text_truncate(t).to_im_string());
-            model.value_text_edit.set_content <+ value_text_on_edit;
+            max_places_on_edit <-
+                input.set_max_disp_decimal_places.sample(&input.start_value_editing);
+            value_on_edit <- all3(&value_on_edit, &precision_on_edit, &max_places_on_edit);
+            value_on_edit <- value_on_edit.map(|t| value_text_truncate(t).to_im_string());
+            model.value_text_edit.set_content <+ value_on_edit;
             eval_ input.start_value_editing({
                 model.set_edit_mode(true);
             });
@@ -619,10 +620,11 @@ impl Slider {
             eval_ input.cancel_value_editing({
                 model.set_edit_mode(false);
             });
-            value_after_edit <- model.value_text_edit.content.sample(&input.finish_value_editing);
-            value_after_edit <- value_after_edit.map(|s| f32::from_str(&String::from(s)).unwrap());
-            output.value <+ value_after_edit;
-            trace value_after_edit;
+            value_after_edit <-
+                model.value_text_edit.content.sample(&input.finish_value_editing);
+            value_after_edit <- value_after_edit.map(|s| String::from(s).to_im_string());
+            output.value <+ value_after_edit.map(|s| f32::from_str(s).unwrap());
+            output.precision <+ value_after_edit.map(|s| get_value_text_precision(&s));
         };
     }
 
@@ -713,6 +715,16 @@ fn value_text_truncate_split(
     let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or_default();
     let text_right = text_iter.next().map(|s| s.to_im_string());
     (text_left, text_right)
+}
+
+/// Get the precision of a string containing a decimal value.
+fn get_value_text_precision(text: &str) -> f32 {
+    let mut text_iter = text.split('.').skip(1);
+    let text_right_len = text_iter.next().map(|t| t.len());
+    match text_right_len {
+        None => 1.0,
+        Some(n) => 10f32.powi(-(n as i32))
+    }
 }
 
 
