@@ -162,4 +162,3 @@ size : Map -> Integer
 size m = case m of
     Map.Bin s _ _ _ _ -> s
     _ -> 0
-

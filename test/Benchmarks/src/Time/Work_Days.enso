@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Period
 
 from Standard.Test import Bench
 

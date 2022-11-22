@@ -28,7 +28,7 @@ type Update
     ## PRIVATE
 
        Generate JSON that can be consumed by the visualization.
-    to_json : Object
+    to_json : Json
     to_json self =
         data = ['data', Json.from_pairs [['values', self.values]]]
         axis = ['axis', Json.from_pairs [['x', Json.from_pairs [['label', self.label]]]]]

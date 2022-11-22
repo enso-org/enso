@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.docs.generator.DocsGenerator
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
@@ -19,6 +19,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -30,6 +31,8 @@ class RuntimeStdlibTest
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  import RuntimeStdlibTest._
 
   override val timeLimit = 5.minutes
 
@@ -161,6 +164,18 @@ class RuntimeStdlibTest
 
   }
 
+  def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
+    val arguments  = Suggestion.Arguments(suggestion)
+    val argTypes   = arguments.map(_.reprType)
+    val selfType   = Suggestion.SelfType(suggestion)
+    val returnType = suggestion.returnType
+
+    (argTypes ++ selfType :+ returnType).map(QualifiedName.fromString)
+  }
+
+  def isQualified(name: QualifiedName): Boolean =
+    name.path.size > 1
+
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -231,14 +246,51 @@ class RuntimeStdlibTest
     )
 
     // check that the suggestion notifications are received
+    val errors: mutable.Map[String, Vector[ErrorEntry]] =
+      mutable.Map()
     val suggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(
+              module,
+              _,
+              actions,
+              _,
+              updates
+            )
           ) =>
-        (xs.nonEmpty || as.nonEmpty) shouldBe true
+        (actions.nonEmpty || updates.nonEmpty) shouldBe true
+        updates.toVector.foreach { update =>
+          val types            = extractTypes(update.suggestion).toSet
+          val unqualifiedTypes = types.filterNot(isQualified)
+          if (unqualifiedTypes.nonEmpty) {
+            errors.updateWith(module) {
+              case Some(values) =>
+                Some(values :+ ErrorEntry(update.suggestion, unqualifiedTypes))
+              case None =>
+                Some(Vector(ErrorEntry(update.suggestion, unqualifiedTypes)))
+            }
+          }
+        }
     }
     suggestions.isEmpty shouldBe false
+
+    // check that types are qualified
+    if (errors.nonEmpty) {
+      val numberOfErrors = errors.size
+      val report =
+        errors
+          .map { case (module, entries) =>
+            val suggestions = entries.map(entry =>
+              s"${entry.suggestion.name}(${entry.unqualifiedTypes.mkString(",")})"
+            )
+            s"$module: ${suggestions.mkString(",")}"
+          }
+          .mkString("\n")
+      fail(
+        s"Found $numberOfErrors modules with unqualified types:\n$report"
+      )
+    }
 
     // check that the Standard.Base library is indexed
     val stdlibSuggestions = responses.collect {
@@ -312,4 +364,12 @@ class RuntimeStdlibTest
     context.consumeOut shouldEqual List("Hello World!")
   }
 
+}
+
+object RuntimeStdlibTest {
+
+  case class ErrorEntry(
+    suggestion: Suggestion,
+    unqualifiedTypes: Set[QualifiedName] = Set()
+  )
 }

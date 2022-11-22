@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.Throwable
 
 ## A type representing dataflow errors.
 
@@ -745,7 +746,7 @@ type Unimplemented_Error
          import Standard.Base.Error.Common as Errors
 
          example_unimplemented = Errors.unimplemented
-unimplemented : Text -> Void
+unimplemented : Text -> Nothing
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
 
 ## TODO Dubious constructor export

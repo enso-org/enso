@@ -1,4 +1,5 @@
-import Standard.Base.Data.Vector
+import project.Data.Any.Any
+import project.Data.Vector.Vector
 
 ## A function is any type that represents a not-yet evaluated computation.
 
@@ -16,7 +17,8 @@ type Function
    > Example
      five = Function.identity 5 # returns number 5
 
-identity : a -> a
+# identity : a -> a
+identity : Any -> Any
 identity x = x
 
 ## Flips the first two arguments of a function. Returns function that
@@ -28,7 +30,8 @@ identity x = x
    > Example
     IO.println <| Function.flip (+) "world" "hello" # Prints 'helloworld'
 
-flip : (a -> b -> c) -> (b -> a -> c)
+# flip : (a -> b -> c) -> (b -> a -> c)
+flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
 
@@ -41,7 +44,8 @@ flip f = (x -> y -> f y x)
    > Example
     IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
 
-const : a -> b -> a
+# const : a -> b -> a
+const : Any -> Any -> Any
 const x _ = x
 
 ## Converts a single-argument function accepting a pair of elements into a multi-argument one.
@@ -49,7 +53,8 @@ const x _ = x
    Arguments:
    - f function accepting pair of values
 
-curry : ([a, b] -> c) -> (a -> b -> c)
+# curry : ([a, b] -> c) -> (a -> b -> c)
+curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
 ## Converts a multi-argument function into a single-argument one accepting a pair of elements.
@@ -57,5 +62,6 @@ curry f = x -> y -> f [x, y]
    Arguments:
    - f function accepting multiple arguments
 
-uncurry : (a -> b -> c) -> ([a, b] -> c)
+# uncurry : (a -> b -> c) -> ([a, b] -> c)
+uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.head pair.second)

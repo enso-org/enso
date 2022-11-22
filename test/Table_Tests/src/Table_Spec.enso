@@ -1,6 +1,5 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import Report_Error
-import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last

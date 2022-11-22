@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
-
 import Standard.Base.Network.Http
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
@@ -30,8 +28,8 @@ spec =
         url_get = base_url_with_slash + "get"
         url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
-            http = Http.new (timeout = (Duration.seconds 30))
-            http.timeout.should_equal (Duration.seconds 30)
+            http = Http.new (timeout = (Duration.new seconds=30))
+            http.timeout.should_equal (Duration.new seconds=30)
         Test.specify "should create HTTP client with follow_redirects setting" <|
             http = Http.new (follow_redirects = False)
             http.follow_redirects.should_equal False

@@ -93,13 +93,13 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.is_a err Error . should_be_true
         Meta.is_a err Text . should_be_false
 
-        Meta.is_a Date.now Date.Date . should_be_true
-        Meta.is_a Date_Time.now Date_Time.Date_Time . should_be_true
-        Meta.is_a Date_Time.now Date.Date . should_be_false
-        Meta.is_a Time_Of_Day.now Time_Of_Day.Time_Of_Day . should_be_true
-        Meta.is_a Time_Of_Day.now Date.Date . should_be_false
-        Meta.is_a Date_Time.now.zone Time_Zone.Time_Zone . should_be_true
-        Meta.is_a Date_Time.now.zone Date.Date . should_be_false
+        Meta.is_a Date.now Date . should_be_true
+        Meta.is_a Date_Time.now Date_Time . should_be_true
+        Meta.is_a Date_Time.now Date . should_be_false
+        Meta.is_a Time_Of_Day.now Time_Of_Day . should_be_true
+        Meta.is_a Time_Of_Day.now Date . should_be_false
+        Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
+        Meta.is_a Date_Time.now.zone Date . should_be_false
 
     Test.specify "should allow for returning the type of a value" <|
         n_1 = Meta.type_of 42
@@ -125,16 +125,16 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.type_of True . should_equal_type Boolean
         Meta.type_of False . should_not_equal_type Any
 
-        (Meta.type_of Date.now) . should_equal_type Date.Date
-        (Meta.type_of Date.now) . should_not_equal_type Date_Time.Date_Time
-        (Meta.type_of Date_Time.now) . should_equal_type Date_Time.Date_Time
-        (Meta.type_of Date_Time.now) . should_not_equal_type Date.Date
-        (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day.Time_Of_Day
-        (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date.Date
-        (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone.Time_Zone
-        (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date.Date
-        (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone.Time_Zone
-        (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone.Time_Zone
+        (Meta.type_of Date.now) . should_equal_type Date
+        (Meta.type_of Date.now) . should_not_equal_type Date_Time
+        (Meta.type_of Date_Time.now) . should_equal_type Date_Time
+        (Meta.type_of Date_Time.now) . should_not_equal_type Date
+        (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day
+        (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date
+        (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone
+        (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date
+        (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone
+        (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone
 
         list = ArrayList.new
         list.add 123

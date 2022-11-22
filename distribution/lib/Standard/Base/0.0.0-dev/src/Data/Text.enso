@@ -1,4 +1,5 @@
 import project.Data.Any.Any
+import project.Data.Locale.Locale
 import project.Data.Ordering.Ordering
 import project.Meta
 
@@ -67,6 +68,56 @@ type Text
     compare_to self that =
         if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
             comparison_result = Text_Utils.compare_normalized self that
+            Ordering.from_sign comparison_result
+
+    ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
+
+       Arguments:
+       - that: The text to compare `self` for case-insensitive equality with.
+
+       Two texts are considered equal ignoring case if they are of the same length
+       and corresponding characters are equal ignoring case.
+
+       ! Unicode Equality
+         The definition of equality includes Unicode canonicalization. I.e. two
+         texts are equal if they are identical after canonical decomposition. This
+         ensures that different ways of expressing the same character in the
+         underlying binary representation are considered equal.
+
+       > Example
+         The string 'É' (i.e. the character U+00C9, LATIN CAPITAL LETTER E WITH
+         ACUTE) is equal ignore case to the string 'é' (i.e. the character U+00E9,
+         LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
+         string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
+         ACCENT). Therefore:
+
+             (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
+    equals_ignore_case : Text -> Locale -> Boolean
+    equals_ignore_case self that locale=Locale.default =
+        Text_Utils.equals_ignore_case self that locale.java_locale
+
+    ## ADVANCED
+       PRIVATE
+       UNSTABLE
+       Unifies the case of all letters in the text, generating a key which can be
+       used to perform case-insensitive comparisons.
+    to_case_insensitive_key : Locale -> Text
+    to_case_insensitive_key self locale=Locale.default =
+        Text_Utils.case_insensitive_key self locale.java_locale
+
+    ## Compare two texts to discover their ordering.
+
+       Arguments:
+       - that: The text to order `self` with respect to.
+
+       > Example
+         Checking how "a" orders in relation to "b".
+
+             "a".compare_to_ignore_case "b"
+    compare_to_ignore_case : Text -> Locale -> Ordering
+    compare_to_ignore_case self that locale=Locale.default =
+        if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+            comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
     ## ALIAS Check Emptiness
