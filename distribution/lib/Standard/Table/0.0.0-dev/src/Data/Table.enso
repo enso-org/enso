@@ -24,6 +24,7 @@ import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 
@@ -1144,6 +1145,80 @@ type Table
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
             Table.Table_Data (Java_Table.concat java_tables.to_array)
         Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
+
+    ## Returns a new table with a chosen subset of columns left unchanged and
+       the other columns pivoted to rows with a single name field and a single
+       value field.
+
+       Arguments:
+       - id_fields: Set of fields to remain as columns. These values will be
+         repeated for each data field that is pivoted.
+       - name_field: The name of the field that will contain the names of the
+         pivoted fields. If this name is already in use, it will be renamed
+         with a numeric suffix.
+       - value_field: The name of the field that will contain the values of the
+         pivoted fields. If this name is already in use, it will be renamed
+         with a numeric suffix.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
+         - If there are no columns to transpose, a `No_Input_Columns`.
+    transpose : Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
+    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
+        columns_helper = self.columns_helper
+        unique = Unique_Name_Strategy.new
+        problem_builder = Problem_Builder.new
+
+        id_columns = columns_helper.select_columns_helper id_fields False problem_builder
+        count = self.column_count - id_columns.length
+
+        result = case count == 0 of
+            True ->
+                problem_builder.report_other_warning No_Input_Columns_Selected
+                id_columns.each k-> unique.make_unique k.name
+                self
+            False ->
+                mask = OrderMask.repeatRows self.row_count count
+
+                selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
+
+                data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
+
+                id_columns.each k-> unique.make_unique k.name
+
+                name_column = Column.repeated_from_vector (unique.make_unique name_field) (data.map .name) self.row_count
+                values = Vector.new (self.row_count * count) i->
+                    col = i % count
+                    row = (i - col) / count
+                    data.at col . java_column . getStorage . getItemBoxed row
+                value_column = Column.from_vector (unique.make_unique value_field) values
+
+                Table.new (id_columns + [name_column, value_column])
+
+        problem_builder.attach_problems_after on_problems result
+
+    ## UNSTABLE
+    cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
+    cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
+        columns_helper = self.columns_helper
+        unique = Unique_Name_Strategy.new
+        problem_builder = Problem_Builder.new
+
+        grouping = columns_helper.select_columns_helper group_by True problem_builder . map Aggregate_Column.Group_By
+        values_vector = case values of
+            _ : Vector -> values
+            _ -> [values]
+        full_set = grouping + [Aggregate_Column.Group_By name_column] + values_vector
+        self.aggregate full_set on_problems
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.

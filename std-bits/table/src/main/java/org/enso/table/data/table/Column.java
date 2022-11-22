@@ -117,10 +117,23 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromItems(String name, List<Value> items) {
-    InferredBuilder builder = new InferredBuilder(items.size());
-    for (Value item : items) {
-      Object converted = Polyglot_Utils.convertPolyglotValue(item);
-      builder.appendNoGrow(converted);
+    return fromRepeatedItems(name, items, 1);
+  }
+
+  /**
+   * Creates a new column with given name and elements.
+   *
+   * @param name the name to use
+   * @param items the items contained in the column
+   * @return a column with given name and items
+   */
+  public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
+    InferredBuilder builder = new InferredBuilder(items.size() * repeat);
+    for (int i = 0; i < repeat; i++) {
+      for (Value item : items) {
+        Object converted = Polyglot_Utils.convertPolyglotValue(item);
+        builder.appendNoGrow(converted);
+      }
     }
     var storage = builder.seal();
     return new Column(name, new DefaultIndex(items.size()), storage);
