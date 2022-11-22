@@ -691,9 +691,7 @@ impl application::View for Slider {
 // =============================
 
 /// Rounds and truncates a floating point value to a specified precision.
-fn value_text_truncate(
-    (value, precision, max_digits): &(f32, f32, usize),
-) -> String {
+fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> String {
     if *precision < 1.0 || *max_digits == 0 {
         let digits = (-precision.log10()).ceil() as usize;
         let digits = digits.min(*max_digits);
@@ -721,7 +719,7 @@ fn get_value_text_precision(text: &str) -> f32 {
     let text_right_len = text_iter.next().map(|t| t.len());
     match text_right_len {
         None => 1.0,
-        Some(n) => 10f32.powi(-(n as i32))
+        Some(n) => 10f32.powi(-(n as i32)),
     }
 }
 
