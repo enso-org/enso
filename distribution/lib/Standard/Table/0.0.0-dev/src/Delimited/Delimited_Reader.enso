@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 import Standard.Base.System.File.Input_Stream
-from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -107,7 +106,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         _ : Integer -> format.row_limit
         _ ->
             Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
-    warnings_as_errors = on_problems == Report_Error
+    warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair.Value Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair.Value quote quote_escape
@@ -165,7 +164,7 @@ type Detected_File_Metadata
    count.
 detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
 detect_metadata file format =
-    on_problems = Ignore
+    on_problems = Problem_Behavior.Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         trailing_line_separator = newline_at_eof file format.encoding
         has_trailing_line_separator = trailing_line_separator.is_nothing.not

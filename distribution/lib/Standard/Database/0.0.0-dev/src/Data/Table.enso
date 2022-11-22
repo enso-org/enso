@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Expression.Expression

@@ -4,8 +4,9 @@ import project.Data.Range
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.Meta
-from project.Data.Json import all
+
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Json import all
 from project.Error.Common import Error, dataflow_error_handler
 
 ## Any is the universal top-type, with all other types being subsumed by it.
