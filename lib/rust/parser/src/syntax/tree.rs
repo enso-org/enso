@@ -997,64 +997,6 @@ impl<'s> From<token::Ident<'s>> for Tree<'s> {
 
 
 
-// =============================
-// === Traversing operations ===
-// =============================
-
-/// Recurse into the lexical LHS of the tree, applying a function to each node reached, until the
-/// function returns `false`.
-pub fn recurse_left_mut_while<'s>(
-    mut tree: &'_ mut Tree<'s>,
-    mut f: impl FnMut(&'_ mut Tree<'s>) -> bool,
-) {
-    while f(tree) {
-        tree = match &mut *tree.variant {
-            // No LHS.
-            Variant::Invalid(_)
-            | Variant::BodyBlock(_)
-            | Variant::Ident(_)
-            | Variant::Number(_)
-            | Variant::Wildcard(_)
-            | Variant::AutoScope(_)
-            | Variant::TextLiteral(_)
-            | Variant::UnaryOprApp(_)
-            | Variant::MultiSegmentApp(_)
-            | Variant::TypeDef(_)
-            | Variant::Import(_)
-            | Variant::Export(_)
-            | Variant::Group(_)
-            | Variant::CaseOf(_)
-            | Variant::Lambda(_)
-            | Variant::Array(_)
-            | Variant::Annotated(_)
-            | Variant::Documented(_)
-            | Variant::ForeignFunction(_)
-            | Variant::Tuple(_) => break,
-            // Optional LHS.
-            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
-            | Variant::OperatorBlockApplication(OperatorBlockApplication { lhs, .. })
-            | Variant::OprApp(OprApp { lhs, .. }) =>
-                if let Some(lhs) = lhs {
-                    lhs
-                } else {
-                    break;
-                },
-            // Unconditional LHS.
-            Variant::App(App { func: lhs, .. })
-            | Variant::NamedApp(NamedApp { func: lhs, .. })
-            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
-            | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
-            | Variant::DefaultApp(DefaultApp { func: lhs, .. })
-            | Variant::Assignment(Assignment { pattern: lhs, .. })
-            | Variant::TypeSignature(TypeSignature { variable: lhs, .. })
-            | Variant::Function(Function { name: lhs, .. })
-            | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
-        }
-    }
-}
-
-
-
 // ================
 // === Visitors ===
 // ================
