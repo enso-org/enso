@@ -2,12 +2,13 @@ import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.Polyglot
 import project.Runtime
-import project.Runtime.Source_Location
+import project.Runtime.Extensions.Source_Location
 import project.Runtime.Stack_Trace_Element
 
 from project.Data.Boolean import Boolean, True, False
@@ -22,7 +23,7 @@ type Warning
     attach : Any -> Any -> Any
     attach warning value =
         origin = Runtime.get_stack_trace
-        attach_with_stacktrace value warning (origin.drop (First 1))
+        attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
 
     ## UNSTABLE
 
@@ -110,11 +111,11 @@ type Warning
              result.second # the list of matched warnings
     detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
     detach_selected_warnings value predicate =
-        warnings = get_all value
+        warnings = Warning.get_all value
         result = warnings.partition w-> predicate w.value
         matched = result.first
         remaining = result.second
-        Pair.Value (set remaining value) matched
+        Pair.Value (Warning.set remaining value) matched
 
     ## UNSTABLE
        A helper function which gathers warnings matching some predicate and passes
@@ -138,7 +139,7 @@ type Warning
                  [No_Matches_Found all_criteria]
     merge_matched_warnings : Any -> (Any -> Boolean) -> (Vector -> Vector) -> Any
     merge_matched_warnings value matcher merger =
-        result = detach_selected_warnings value matcher
+        result = Warning.detach_selected_warnings value matcher
         if result.second.is_empty then result.first else
             new_warnings = merger (result.second.map .value)
             new_warnings.fold result.first acc-> warning->
@@ -227,7 +228,7 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
    An internal helper function to avoid repeating the implementation.
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
-    warnings = get_all value
+    warnings = Warning.get_all value
     mapped_warnings = warnings.map warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
@@ -239,4 +240,4 @@ map_attached_warnings_helper mapper value frames_to_drop =
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.
             Nothing -> warning
-    set value mapped_warnings
+    Warning.set value mapped_warnings

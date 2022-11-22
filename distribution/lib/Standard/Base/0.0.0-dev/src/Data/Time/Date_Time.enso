@@ -16,7 +16,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
-import project.Warning
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Type_Error_Data

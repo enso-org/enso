@@ -1,6 +1,6 @@
 import project.Data.Any.Any
 import project.Data.Vector.Vector
-import project.Warning
+import project.Warning.Warning
 
 from project.Error.Common import Error
 

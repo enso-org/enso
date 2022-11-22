@@ -11,6 +11,7 @@ import project.Math
 import project.Nothing.Nothing
 import project.Polyglot
 import project.Polyglot.Java
+import project.System.Environment
 import project.Warning.Warning
 
 export project.Data.Any.Any
@@ -23,6 +24,7 @@ export project.Math
 export project.Nothing.Nothing
 export project.Polyglot
 export project.Polyglot.Java
+export project.System.Environment
 export project.Warning.Warning
 
 from project.Data.Boolean export Boolean, True, False
@@ -41,6 +43,7 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
+import project.Data.Range
 import project.Data.Regression
 import project.Data.Statistics
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -63,7 +66,6 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
-export project.Data.Json.Json
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order
@@ -88,6 +90,7 @@ export project.Random
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
+from project.Data.Range export all hiding throw_zero_step_error
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
 from project.Error.Problem_Behavior export all
 
@@ -98,8 +101,23 @@ from project.Data.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
 
-import project.Data.Range
-from project.Data.Range export all
+import project.Meta
+import project.Runtime
+import project.Runtime.Extensions
+import project.Runtime.State
+import project.System.File
+import project.System.File_Format
+import project.System.File.Existing_File_Behavior
+
+export project.Meta
+export project.Runtime
+export project.Runtime.State
+export project.System.File
+export project.System.File.Existing_File_Behavior
+
+from project.Runtime.Extensions export all
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
+
 
 import project.Data.Text
 import project.Data.Text.Case
@@ -111,15 +129,6 @@ import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Error.Common
-
-import project.Meta
-import project.Runtime
-import project.Runtime.Extensions
-import project.Runtime.State
-import project.System.Environment
-import project.System.File
-import project.System.File_Format
-import project.System.File.Existing_File_Behavior
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
 
@@ -130,12 +139,6 @@ export project.Data.Text.Text_Ordering
 export project.Data.Text.Text_Matcher
 export project.Data.Text.Regex_Matcher
 export project.Error.Problem_Behavior
-export project.Meta
-export project.Runtime
-export project.Runtime.State
-export project.System.Environment
-export project.System.File
-export project.System.File.Existing_File_Behavior
 
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
@@ -143,5 +146,3 @@ from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case
 from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Span export all
 from project.Error.Common export all
-from project.Runtime.Extensions export all
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
