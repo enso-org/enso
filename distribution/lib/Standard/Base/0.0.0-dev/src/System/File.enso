@@ -5,7 +5,7 @@ from Standard.Base.Error.Common import Unsupported_File_Type
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
-import Standard.Base.System.File.Option
+import Standard.Base.System.File.Option.Option
 import Standard.Base.System.File.File_Permissions
 
 polyglot java import org.enso.base.Array_Builder
@@ -214,7 +214,7 @@ type File
        > Example
          Perform an action on an output stream with the file open for writing.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_with_stream =
@@ -262,7 +262,7 @@ type File
        > Example
          Perform an action on an input stream with the file open for reading.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_with_stream =
@@ -775,7 +775,7 @@ type Output_Stream
        > Example
          Write some bytes through a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_write_bytes =
@@ -801,7 +801,7 @@ type Output_Stream
        > Example
          Open and close a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_write_bytes =
@@ -866,7 +866,7 @@ type Input_Stream
        > Example
          Read all of the bytes from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_read_all =
@@ -896,7 +896,7 @@ type Input_Stream
        > Example
          Read 10 of the bytes from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_read_all =
@@ -921,7 +921,7 @@ type Input_Stream
        > Example
          Read byte from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_read_all =
@@ -946,7 +946,7 @@ type Input_Stream
        > Example
          Open and close a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.Option.Option
              import Standard.Examples
 
              example_read_all =

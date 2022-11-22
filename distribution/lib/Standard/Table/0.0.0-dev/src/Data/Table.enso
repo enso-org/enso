@@ -1259,7 +1259,7 @@ type Table
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->

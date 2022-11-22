@@ -1,6 +1,4 @@
 from Standard.Base import all
-from Standard.Base import all
-import Standard.Base.System.File_Format
 
 import project.Data.Table.Table
 import project.Data.Column.Column
