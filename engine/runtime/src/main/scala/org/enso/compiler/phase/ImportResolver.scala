@@ -28,6 +28,7 @@ import scala.collection.mutable
   * @param compiler the compiler instance for the compiling context.
   */
 class ImportResolver(compiler: Compiler) {
+  import ImportResolver._
 
   /** Runs the import mapping logic.
     *
@@ -121,8 +122,60 @@ class ImportResolver(compiler: Compiler) {
   ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
-      .collect { case ex: Export.Module => ex }
-      .find(_.name.name == impName)
+      .collect { case ex: Export.Module if ex.name.name == impName => ex }
+    val fromAllExports = exp.filter(_.isAll)
+    fromAllExports match {
+      case _ :: _ :: _ =>
+        // Detect potential conflicts when importing all and hiding names for the exports of the same module
+        val all = fromAllExports.collect { case e if e.onlyNames.isEmpty => e }
+        val onlyNames = fromAllExports.collect {
+          case IR.Module.Scope.Export.Module(
+                _,
+                _,
+                _,
+                Some(onlyNames),
+                _,
+                _,
+                _,
+                _,
+                _
+              ) =>
+            onlyNames.map(_.name)
+        }
+        val withHiddenNames = fromAllExports.collect {
+          case e @ IR.Module.Scope.Export.Module(
+                _,
+                _,
+                _,
+                _,
+                Some(hiddenNames),
+                _,
+                _,
+                _,
+                _
+              ) =>
+            (e, hiddenNames)
+        }
+        withHiddenNames.foreach { case (e, hidden) =>
+          val conflictsWithAll = all.filter(_ != e)
+          if (conflictsWithAll.nonEmpty) {
+            throw HiddenNamesShadowUnqualifiedExport(
+              e.name.name,
+              hidden.map(_.name)
+            )
+          }
+
+          val conflictsWithNames =
+            onlyNames.filter(_ != e).flatten.intersect(hidden.map(_.name))
+          if (conflictsWithNames.nonEmpty) {
+            throw HiddenNamesShadowQualifiedExport(
+              e.name.name,
+              conflictsWithNames
+            )
+          }
+        }
+      case _ =>
+    }
     val libraryName = imp.name.parts match {
       case namespace :: name :: _ =>
         LibraryName(namespace.name, name.name)
@@ -174,4 +227,38 @@ class ImportResolver(compiler: Compiler) {
         )
     }
   }
+}
+
+object ImportResolver {
+  trait HiddenNamesConflict {
+    def getMessage(): String
+  }
+
+  private case class HiddenNamesShadowUnqualifiedExport(
+    name: String,
+    hiddenNames: List[String]
+  ) extends Exception(
+        s"""Hidden '${hiddenNames.mkString(",")}' name${if (
+          hiddenNames.size == 1
+        ) ""
+        else
+          "s"} of the export module ${name} conflict${if (hiddenNames.size == 1)
+          "s"
+        else
+          ""} with the unqualified export"""
+      )
+      with HiddenNamesConflict
+
+  private case class HiddenNamesShadowQualifiedExport(
+    name: String,
+    conflict: List[String]
+  ) extends Exception(
+        s"""Hidden '${conflict.mkString(",")}' name${if (conflict.size == 1) ""
+        else
+          "s"} of the exported module ${name} conflict${if (conflict.size == 1)
+          "s"
+        else
+          ""} with the qualified export"""
+      )
+      with HiddenNamesConflict
 }
