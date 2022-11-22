@@ -612,19 +612,45 @@ impl Slider {
 
             model.label.set_content <+ input.set_label;
             eval input.set_label_hidden((v) model.set_label_hidden(*v));
-            eval model.label.height((h) model.label.set_position_y(*h / 2.0));
-            label_pos_x <- all4(
+            label_pos_x <- all5(
                 &input.set_width,
                 &input.set_height,
                 &model.label.width,
                 &input.set_label_position,
+                &input.set_orientation,
             ).map(
-                |(comp_width, comp_height, lab_width, position)| match *position {
-                    LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
-                    LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
+                |(comp_width, comp_height, lab_width, position, orientation)| {
+                    match orientation {
+                        SliderOrientation::Horizontal => match position {
+                            LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
+                            LabelPosition::Outside =>
+                                -comp_width / 2.0 - comp_height / 2.0 - lab_width,
+                        }
+                        SliderOrientation::Vertical => - lab_width / 2.0,
+                    }
                 }
             );
             eval label_pos_x((x) model.label.set_position_x(*x));
+            label_pos_y <- all5(
+                &input.set_width,
+                &input.set_height,
+                &model.label.height,
+                &input.set_label_position,
+                &input.set_orientation,
+            ).map(
+                |(comp_width, comp_height, lab_height, position, orientation)| {
+                    match orientation {
+                        SliderOrientation::Horizontal => lab_height / 2.0,
+                        SliderOrientation::Vertical => match position {
+                            LabelPosition::Inside => comp_height / 2.0 - comp_width / 2.0,
+                            LabelPosition::Outside =>
+                                comp_height / 2.0 + comp_width / 2.0 + lab_height,
+                        }
+                    }
+                    
+                }
+            );
+            eval label_pos_y((y) model.label.set_position_y(*y));
         };
     }
 
