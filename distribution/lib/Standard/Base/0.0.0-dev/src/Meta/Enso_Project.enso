@@ -1,4 +1,7 @@
+import project.Data.Text.Text
 import project.System.File
+# TODO[DB] Fix composite types #183857386
+import project.System.File.File as File_Type
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
@@ -17,7 +20,7 @@ type Project_Description
          Get the root directory of the project.
 
              enso_project.root
-    root : File.File
+    root : File_Type
     root self = File.new self.prim_root_file
 
     ## Returns the root data directory of the project.
@@ -26,7 +29,7 @@ type Project_Description
          Get the data directory of the project.
 
              enso_project.data
-    data : File.File
+    data : File_Type
     data self = self.root / "data"
 
     ## Returns the name of the project.

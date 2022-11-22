@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Suite_Config.Suite_Config
+import project.Test.Test
 import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
@@ -24,7 +25,7 @@ wrap_junit_testsuites config builder ~action =
 
 ## PRIVATE
    Prints a report on the tests to standard output.
-print_report : Spec -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+print_report : Test -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 print_report spec config builder =
     total_time = spec.behaviors.fold Duration.zero acc-> behavior->
         acc + behavior.time_taken

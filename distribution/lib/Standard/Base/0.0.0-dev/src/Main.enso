@@ -75,7 +75,7 @@ export project.Data.Time.Time_Zone.Time_Zone
 
 from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
-from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
+from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
 
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
@@ -142,4 +142,3 @@ from project.Error.Common export all
 from project.Function export all
 from project.Runtime.Extensions export all
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
-
