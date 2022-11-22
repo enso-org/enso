@@ -118,7 +118,7 @@ type Duration
         result = Runtime.no_inline function
         end = System.nano_time
         duration = Duration.new nanoseconds=(end - start)
-        Pair.Value duration result
+        Pair.of duration result
 
     ## Add the specified amount of time to this duration.
 
