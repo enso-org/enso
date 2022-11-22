@@ -129,10 +129,10 @@ const config: esbuild.BuildOptions = {
 /**
  * Spawn the esbuild watch process. It continuously runs, rebuilding the package.
  */
-export async function watch(onRebuild?: () => void, banner?: esbuild.BuildOptions['banner']) {
+export async function watch(onRebuild?: () => void, inject?: esbuild.BuildOptions['inject']) {
     return esbuild.build({
         ...config,
-        banner: banner ?? config.banner,
+        inject: [...(config.inject ?? []), ...(inject ?? [])],
         watch: {
             onRebuild(error, result) {
                 if (error) console.error('watch build failed:', error)
