@@ -66,9 +66,9 @@ const PRECISION_ADJUSTMENT_STEP_SIZE: f32 = 50.0;
 /// 10.0, 100.0, ...] when decreasing the precision and [0.1, 0.01, 0.001, ...] when increasing the
 /// precision.
 const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
-/// A tooltip is displayed whenever the slider's precision is changed. This is the duration for
-/// which the tooltip is visible.
-const PRECISION_ADJUSTMENT_TOOLTIP_DURATION: f32 = 1000.0;
+/// A pop-up is displayed whenever the slider's precision is changed. This is the duration for
+/// which the pop-up is visible.
+const PRECISION_ADJUSTMENT_POPUP_DURATION: f32 = 1000.0;
 /// The delay before an information tooltip is displayed when hovering over a slider component.
 const INFORMATION_TOOLTIP_DELAY: f32 = 1000.0;
 
@@ -215,6 +215,11 @@ ensogl_core::define_endpoints_2! {
         set_label_position(LabelPosition),
         /// Set a tooltip that pops up when the mose hovers over the component.
         set_tooltip(ImString),
+        /// Set the delay of the tooltip showing after the mouse hovers over the component.
+        set_tooltip_delay(f32),
+        /// A pop-up is displayed whenever the slider's precision is changed. This is the duration
+        /// for which the pop-up is visible.
+        set_precision_popup_duration(f32),
         /// Set whether the slider is disabled. When disabled, the slider's value cannot be changed
         /// and the slider is greyed out.
         set_slider_disabled(bool),
@@ -292,7 +297,7 @@ impl Slider {
         self.init_value_editing();
         self.init_limit_handling();
         self.init_value_display();
-        self.init_precision_tooltip();
+        self.init_precision_popup();
         self.init_information_tooltip();
         self.init_component_layout();
         self.init_component_colors();
@@ -461,16 +466,17 @@ impl Slider {
         };
     }
 
-    /// Initialize the precision tooltip FRP network.
-    fn init_precision_tooltip(&self) {
+    /// Initialize the precision pop-up FRP network.
+    fn init_precision_popup(&self) {
         let network = self.frp.network();
+        let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
         let component_events = &model.background.events;
-        let tooltip_anim = DelayedAnimation::new(network);
-        tooltip_anim.set_duration(PRECISION_ADJUSTMENT_TOOLTIP_DURATION);
+        let popup_anim = DelayedAnimation::new(network);
 
         frp::extend! { network
+            popup_anim.set_duration <+ input.set_precision_popup_duration;
             component_drag <- bool(
                 &component_events.mouse_release_primary,
                 &component_events.mouse_down_primary
@@ -487,10 +493,10 @@ impl Slider {
                 tooltip::Style::set_label(prec_text.into())
             });
             precision_changed <- precision.constant(());
-            tooltip_anim.reset <+ precision_changed;
-            tooltip_anim.start <+ precision_changed;
-            tooltip_hide <- any2(&tooltip_anim.on_end, &component_events.mouse_release_primary);
-            model.tooltip.frp.set_style <+ tooltip_hide.map(|_|
+            popup_anim.reset <+ precision_changed;
+            popup_anim.start <+ precision_changed;
+            popup_hide <- any2(&popup_anim.on_end, &component_events.mouse_release_primary);
+            model.tooltip.frp.set_style <+ popup_hide.map(|_|
                 tooltip::Style::unset_label()
             );
         };
@@ -504,9 +510,9 @@ impl Slider {
         let model = &self.model;
         let component_events = &model.background.events;
         let tooltip_anim = DelayedAnimation::new(network);
-        tooltip_anim.set_delay(INFORMATION_TOOLTIP_DELAY);
 
         frp::extend! { network
+            tooltip_anim.set_delay <+ input.set_tooltip_delay;
             tooltip_start <- any2(&component_events.mouse_over, &component_events.mouse_up_primary);
             tooltip_start <- tooltip_start.gate_not(&output.dragged);
             tooltip_start <- tooltip_start.gate_not(&output.editing);
@@ -648,6 +654,8 @@ impl Slider {
         self.frp.set_precision_adjustment_step_size(PRECISION_ADJUSTMENT_STEP_SIZE);
         self.frp.set_max_value(MAX_VALUE_DEFAULT);
         self.frp.set_max_disp_decimal_places(MAX_DISP_DECIMAL_PLACES_DEFAULT);
+        self.frp.set_tooltip_delay(INFORMATION_TOOLTIP_DELAY);
+        self.frp.set_precision_popup_duration(PRECISION_ADJUSTMENT_POPUP_DURATION);
     }
 }
 
