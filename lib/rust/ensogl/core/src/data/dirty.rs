@@ -277,7 +277,9 @@ where Arg<T>: Display
 // === Definition ===
 
 /// A version of `Flag` which uses internal mutability pattern. It is meant to expose the same
-/// API but without requiring `self` reference to be mutable.
+/// API but without requiring `self` reference to be mutable. This version does not allow for
+/// cloning the flag. If you want to clone it you either need to put it in something like [`Rc`] or
+/// use the [`SharedFlag`] instead.
 #[derive(Derivative, From)]
 #[derivative(Debug(bound = "T:Debug"))]
 #[repr(transparent)]
@@ -382,7 +384,9 @@ where Arg<T>: Display
 // === Definition ===
 
 /// A version of `Flag` which uses internal mutability pattern. It is meant to expose the same
-/// API but without requiring `self` reference to be mutable.
+/// API but without requiring `self` reference to be mutable. This version implements cloning. If
+/// you don't need it, or you want to store a bunch of flags enclosed in a single [`Rc`], use the
+/// [`RefCellFlag`] instead.
 #[derive(Derivative, CloneRef, From, Deref)]
 #[derivative(Debug(bound = "T:Debug"))]
 #[derivative(Clone(bound = ""))]
@@ -473,7 +477,7 @@ where Arg<T>: Display
 // === WeakSharedFlag ===
 // ======================
 
-/// A weak version of [`RefCellFlag`].
+/// A weak version of [`SharedFlag`].
 #[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
 #[derivative(Clone(bound = ""))]

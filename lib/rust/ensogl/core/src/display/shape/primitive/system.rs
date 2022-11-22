@@ -433,11 +433,11 @@ impl ShapeSystemModel {
                 vec2 padding2 = 2.0 * padding;
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
-                vec2 uv_offset = padding / padded_size;
-                input_uv = (vertex_uv - uv_offset) * uv_scale;
+                vec2 uv_offset = padding / input_size;
+                input_uv = vertex_uv * uv_scale - uv_offset;
 
                 // We need to recompute the vertex position with the padding.
-                input_local = vec3((input_uv - input_alignment) * padded_size, 0.0);
+                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
                 gl_Position = model_view_projection * vec4(input_local,1.0);
                 input_local.z = gl_Position.z;
             ",

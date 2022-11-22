@@ -5,12 +5,12 @@
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
+use crate::display::object::event;
+use crate::display::object::transformation;
 use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
-use super::event;
-use super::transformation;
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
@@ -29,22 +29,40 @@ use transformation::CachedTransformation;
 )]
 pub struct Id(usize);
 
+/// The index of a child of a display object.
+#[derive(
+    Clone, CloneRef, Copy, Debug, Default, Deref, Display, Eq, From, Hash, Into, PartialEq, Ord,
+    PartialOrd
+)]
+pub struct ChildIndex(usize);
+
 
 
 // =============
 // === Model ===
 // =============
 
-/// A hierarchical representation of object containing information about transformation in 3D space,
-/// list of children, and set of utils for dirty flag propagation.
+/// Display objects are essential structures used to build elements visible on the screen. They are
+/// used to build objects hierarchy, computing elements transformations within this hierarchy
+/// (position, rotation, and scale), passing events trough that hierarchy, and layouting the
+/// elements on the screen (e.g. with horizontal or vertical layout).
+///
+/// ## Lazy updates of display objects
+/// Some operations on display objects are very expensive. For example, after moving the root object
+/// of a hierarchy, the matrix transformations of all its children, their children, etc. need to be
+/// updated. That's why these operations are performed in a lazy way. After an element is
+/// transformed, or when the hierarchy is modified, the change information is propagated up to the
+/// root of the hierarchy and is updated once per frame, after the [`update`] function is called
+/// (usually, it is called by the [`Scene`]). Emitting events is not done in a lazy fashion, as they
+/// do not require passing the event down the hierarchy. Instead, the event is passed up the
+/// hierarchy, from the object the event was emitted on all way to the root of the hierarchy.
 ///
 /// ## Scene Layers
-/// Each display object instance contains an optional list of [`scene::LayerId`]. During object
-/// update, the list is passed from parent display objects to their children as long as the child
-/// does not override it (is assigned with [`None`]). Similar to [`Scene`], the scene layers list
-/// plays a very important role in decoupling the architecture. It allows objects and their children
-/// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
-/// management.
+/// Every display object can be assigned to a [`scene::Layer`]. During object update, the assignment
+/// information is passed down the hierarchy. If an object was not assigned to a layer explicitly,
+/// it will inherit the assignment from its parent object, if any. This means that adding an object
+/// to a layer will also move all of its children there, until they are assigned with a different
+/// layer explicitly.
 #[derive(Derivative)]
 #[derive(CloneRef, Deref, From)]
 #[derivative(Clone(bound = ""))]
@@ -56,15 +74,15 @@ pub struct Instance {
 }
 
 /// Internal representation of [`Instance`]. It exists only to make the implementation less
-/// error-prone. [`Instance`] implements the [`Object`] trait. The [`ObjectOps`] trait defines the
-/// public API of display objects, such as the [`add_child`] method, and it is automatically defined
-/// for every struct that implements [`Object`], including [`Instance`]. Without this struct, the
-/// [`add_child`] method would need to be implemented as [`self.display_object().add_child(child)`].
-/// However, this implementation is very error-prone, as if we rename the function in [`Instance`],
-/// the [`ObjectOps`] trait would still compile, but its function will loop infinitely (this is not
-/// caught by rustc nowadays yet). This struct allows the implementation to be written as
-/// [`self.display_object().def.add_child(child)`] instead, which will fail to compile
-/// after renaming the function in [`InstanceDef`].
+/// error-prone. The [`ObjectOps`] trait defines the public API of display objects, such as the
+/// [`add_child`] method, and it is automatically defined for every struct that implements
+/// the [`Object`] trait, including the [`Instance`]. Without this struct, the [`add_child`] method
+/// would need to be implemented as [`self.display_object().add_child(child)`]. Such an
+/// implementation will be very error-prone. After renaming the function in [`Instance`], the
+/// [`ObjectOps`] trait would still compile, but its function will call itself infinitely (this is
+/// not caught by rustc yet: https://github.com/rust-lang/rust/issues/57965). This struct allows the
+/// implementation to be written as [`self.display_object().def.add_child(child)`] instead, which
+/// will fail to compile after renaming the function in [`InstanceDef`].
 #[derive(Derivative)]
 #[derive(CloneRef, Deref)]
 #[derivative(Clone(bound = ""))]
@@ -112,12 +130,6 @@ impl InstanceDef {
     }
 }
 
-impl Default for InstanceDef {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Model {
     /// Constructor.
     pub fn new() -> Self {
@@ -129,9 +141,48 @@ impl Model {
     }
 }
 
+
+// === Impls ===
+
+impl Default for InstanceDef {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Default for Model {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl PartialEq for InstanceDef {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.rc, &other.rc)
+    }
+}
+
+impl PartialEq for Instance {
+    fn eq(&self, other: &Self) -> bool {
+        self.def.eq(&other.def)
+    }
+}
+
+impl Display for Instance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Instance")
+    }
+}
+
+impl Display for InstanceDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Instance")
+    }
+}
+
+impl Debug for InstanceDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DisplayObject")
     }
 }
 
@@ -151,7 +202,7 @@ impl Default for Model {
 pub struct ParentBind {
     /// The parent's child index. If this is a binding stored by [`Instance`], this will be the
     /// instance index in the parent's instance vector.
-    child_index: usize,
+    child_index: ChildIndex,
     parent:      WeakInstance,
 }
 
@@ -164,7 +215,7 @@ impl ParentBind {
 impl Drop for ParentBind {
     fn drop(&mut self) {
         if let Some(parent) = self.parent() {
-            if let Some(weak_child) = parent.children.borrow_mut().remove(self.child_index) {
+            if let Some(weak_child) = parent.children.borrow_mut().remove(*self.child_index) {
                 parent.dirty.modified_children.unset(&self.child_index);
                 if let Some(child) = weak_child.upgrade() {
                     child.dirty.new_parent.set();
@@ -208,11 +259,11 @@ impl SharedParentBind {
         self.data.borrow().as_ref().and_then(|t| t.parent())
     }
 
-    fn parent_and_child_index(&self) -> Option<(Instance, usize)> {
+    fn parent_and_child_index(&self) -> Option<(Instance, ChildIndex)> {
         self.data.borrow().as_ref().and_then(|t| t.parent().map(|s| (s, t.child_index)))
     }
 
-    fn child_index(&self) -> Option<usize> {
+    fn child_index(&self) -> Option<ChildIndex> {
         self.data.borrow().as_ref().map(|t| t.child_index)
     }
 }
@@ -230,7 +281,7 @@ pub mod dirty {
     // === Types ===
 
     type NewParent = crate::data::dirty::RefCellBool<()>;
-    type ModifiedChildren = crate::data::dirty::RefCellSet<usize, OnDirtyCallback>;
+    type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
     type RemovedChildren = crate::data::dirty::RefCellVector<WeakInstance, OnDirtyCallback>;
     type Transform = crate::data::dirty::RefCellBool<OnDirtyCallback>;
     type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
@@ -238,8 +289,9 @@ pub mod dirty {
 
     // === Definition ===
 
-    /// For performance reasons, the display object hierarchy is updated lazily. This struct
-    /// contains information about which properties changed and need to be updated.
+    /// A set of dirty flags encoding which hierarchy-related properties of a display object have
+    /// been changed and not yet updated. See the docs of [`Instance`] to learn more about the lazy
+    /// update mechanism.
     ///
     /// # Performance
     /// Let's consider a deep tree of objects. To render an object, we need its position in the
@@ -252,6 +304,8 @@ pub mod dirty {
     #[allow(missing_docs)]
     pub struct Flags {
         pub new_parent:        NewParent,
+        /// A set of children that were added, removed, transformed, moved to a different layer, or
+        /// whose ancestors were modified in such a way.
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
         pub transformation:    Transform,
@@ -290,16 +344,17 @@ pub mod dirty {
 /// FRP endpoints relate to display object hierarchy modification.
 #[derive(Debug)]
 pub struct HierarchyFrp {
-    /// Fires when the display object is shown. It will fire during the first scene refresh after
-    /// this object is added as a child to a visible parent.
+    /// Fires when the display object is shown. It will fire during the first scene refresh if this
+    /// object was invisible and was added as a child to a visible parent.
     pub on_show:            frp::Stream<(Option<Scene>, Option<WeakLayer>)>,
     /// Fires when the display object is hidden. This can happen for example after detaching it
-    /// from a visible parent.
+    /// from a visible parent. It will fire during the first scene refresh if this object was
+    /// removed from a visible parent or added to an invisible one.
     pub on_hide:            frp::Stream<Option<Scene>>,
-    /// Fires when the display object is moved between scene layers.
+    /// Fires during the first scene refresh if this object was moved between scene layers.
     pub on_layer_change:    frp::Stream<(Option<Scene>, Option<WeakLayer>, Option<WeakLayer>)>,
-    /// Fires after the display object is updated. Please note that display objects that were not
-    /// modified will not perform the update stage.
+    /// Fires during the first scene refresh if this object needed an update and the update was
+    /// performed.
     pub on_updated:         frp::Stream<()>,
     on_show_source:         frp::Source<(Option<Scene>, Option<WeakLayer>)>,
     on_hide_source:         frp::Source<Option<Scene>>,
@@ -458,7 +513,7 @@ impl Model {
     }
 
     /// The index of this display object in the parent's children list.
-    fn my_index(&self) -> Option<usize> {
+    fn my_index(&self) -> Option<ChildIndex> {
         self.parent_bind.child_index()
     }
 
@@ -488,12 +543,12 @@ impl Model {
     fn set_parent_bind(&self, bind: ParentBind) {
         trace!("Adding new parent bind.");
         if let Some(parent) = bind.parent() {
+            self.parent_bind.set_bind(bind);
+            self.dirty.new_parent.set();
             if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
                 parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
-            self.parent_bind.set_bind(bind);
-            self.dirty.new_parent.set();
         }
     }
 
@@ -605,7 +660,7 @@ impl Model {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
                             self.children
                                 .borrow()
-                                .safe_index(*ix)
+                                .safe_index(**ix)
                                 .and_then(|t| t.upgrade())
                                 .for_each(|child| {
                                     child.update_with_origin(
@@ -663,7 +718,7 @@ impl InstanceDef {
     }
 
     /// Returns the index of the provided object if it was a child of the current one.
-    pub fn child_index<T: Object>(&self, child: &T) -> Option<usize> {
+    pub fn child_index<T: Object>(&self, child: &T) -> Option<ChildIndex> {
         let child = child.display_object();
         child.parent_bind.parent_and_child_index().and_then(|(parent, index)| {
             if &parent.def == self {
@@ -693,8 +748,8 @@ impl InstanceDef {
         child.set_parent_bind(parent_bind);
     }
 
-    fn register_child(&self, child: &InstanceDef) -> usize {
-        let index = self.children.borrow_mut().insert(child.downgrade());
+    fn register_child(&self, child: &InstanceDef) -> ChildIndex {
+        let index = ChildIndex(self.children.borrow_mut().insert(child.downgrade()));
         self.dirty.modified_children.set(index);
         index
     }
@@ -958,46 +1013,6 @@ impl InstanceDef {
         debug_assert!(self.event.focused_descendant.borrow().is_none());
         *self.event.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
-    }
-}
-
-
-
-// =============================
-// === Hierarchy Management ====
-// =============================
-
-
-
-// === Instances ===
-
-impl PartialEq for InstanceDef {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.rc, &other.rc)
-    }
-}
-
-impl PartialEq for Instance {
-    fn eq(&self, other: &Self) -> bool {
-        self.def.eq(&other.def)
-    }
-}
-
-impl Display for Instance {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Instance")
-    }
-}
-
-impl Display for InstanceDef {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Instance")
-    }
-}
-
-impl Debug for InstanceDef {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DisplayObject")
     }
 }
 
@@ -1397,13 +1412,13 @@ mod tests {
         let node2 = Instance::new();
         let node3 = Instance::new();
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(0));
+        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node2);
-        assert_eq!(node2.my_index(), Some(0));
+        assert_eq!(node2.my_index(), Some(ChildIndex(0)));
 
         node1.add_child(&node3);
-        assert_eq!(node3.my_index(), Some(1));
+        assert_eq!(node3.my_index(), Some(ChildIndex(1)));
 
         node1.remove_child(&node3);
         assert_eq!(node3.my_index(), None);
@@ -1918,7 +1933,6 @@ mod tests {
     #[test]
     fn focus_event_propagation_test() {
         let world = World::new();
-        let scene = &world.default_scene;
 
         let obj_1 = Instance::new();
         let obj_2 = Instance::new();

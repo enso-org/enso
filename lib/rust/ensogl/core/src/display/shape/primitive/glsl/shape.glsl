@@ -11,43 +11,43 @@ struct BoundingBox {
 };
 
 BoundingBox bounding_box (float min_x, float max_x, float min_y, float max_y) {
-    return BoundingBox(min_x,max_x,min_y,max_y);
+    return BoundingBox(min_x, max_x, min_y, max_y);
 }
 
 BoundingBox bounding_box (float w, float h) {
-    return BoundingBox(-w,w,-h,h);
+    return BoundingBox(-w, w, -h, h);
 }
 
 BoundingBox bounding_box (vec2 size) {
     float w2 = size.x / 2.0;
     float h2 = size.y / 2.0;
-    return BoundingBox(-w2,w2,-h2,h2);
+    return BoundingBox(-w2, w2, -h2, h2);
+}
+
+BoundingBox infinite () {
+    return BoundingBox(0.0, 0.0, 0.0, 0.0);
 }
 
 /// Inverses the bounding box. Please note that the inversed bounding box is infinite and thus
 /// it does not have a proper representation. We represent infinite bounding boxes as 0-sized ones.
 BoundingBox inverse (BoundingBox a) {
-    return BoundingBox(0.0,0.0,0.0,0.0);
-}
-
-BoundingBox infinite () {
-    return BoundingBox(0.0,0.0,0.0,0.0);
+    return infinite();
 }
 
 BoundingBox unify (BoundingBox a, BoundingBox b) {
-    float min_x = min(a.min_x,b.min_x);
-    float max_x = max(a.max_x,b.max_x);
-    float min_y = min(a.min_y,b.min_y);
-    float max_y = max(a.max_y,b.max_y);
-    return BoundingBox(min_x,max_x,min_y,max_y);
+    float min_x = min(a.min_x, b.min_x);
+    float max_x = max(a.max_x, b.max_x);
+    float min_y = min(a.min_y, b.min_y);
+    float max_y = max(a.max_y, b.max_y);
+    return BoundingBox(min_x, max_x, min_y, max_y);
 }
 
 BoundingBox intersection (BoundingBox a, BoundingBox b) {
-    float min_x = max(a.min_x,b.min_x);
-    float max_x = min(a.max_x,b.max_x);
-    float min_y = max(a.min_y,b.min_y);
-    float max_y = min(a.max_y,b.max_y);
-    return BoundingBox(min_x,max_x,min_y,max_y);
+    float min_x = max(a.min_x, b.min_x);
+    float max_x = min(a.max_x, b.max_x);
+    float min_y = max(a.min_y, b.min_y);
+    float max_y = min(a.max_y, b.max_y);
+    return BoundingBox(min_x, max_x, min_y, max_y);
 }
 
 /// Please note that we cannot compute the exact bounding box for a difference of `a - b`. Thus, we
@@ -57,20 +57,21 @@ BoundingBox difference (BoundingBox a, BoundingBox b) {
 }
 
 BoundingBox grow (BoundingBox a, float value) {
-    float min_x = a.min_x-value;
-    float max_x = a.max_x+value;
-    float min_y = a.min_y-value;
-    float max_y = a.max_y+value;
-    return BoundingBox(min_x,max_x,min_y,max_y);
+    float min_x = a.min_x - value;
+    float max_x = a.max_x + value;
+    float min_y = a.min_y - value;
+    float max_y = a.max_y + value;
+    return BoundingBox(min_x, max_x, min_y, max_y);
 }
+
 
 
 // ===========
 // === Sdf ===
 // ===========
 
-/// Signed distance field. Describes the distance to the nearest point of a shape.
-/// Follow the link to learn more: https://en.wikipedia.org/wiki/Signed_distance_function .
+/// Signed distance field. Describes the distance to the nearest point of a shape. Follow the link
+/// to learn more: https://en.wikipedia.org/wiki/Signed_distance_function.
 struct Sdf {
     float distance;
 };
@@ -84,15 +85,15 @@ Sdf inverse (Sdf a) {
 }
 
 Sdf unify (Sdf a, Sdf b) {
-    return Sdf(min(a.distance,b.distance));
+    return Sdf(min(a.distance, b.distance));
 }
 
 Sdf intersection (Sdf a, Sdf b) {
-    return Sdf(max(a.distance,b.distance));
+    return Sdf(max(a.distance, b.distance));
 }
 
 Sdf difference (Sdf a, Sdf b) {
-    return intersection(a,inverse(b));
+    return intersection(a, inverse(b));
 }
 
 Sdf grow (Sdf a, float size) {
@@ -105,8 +106,8 @@ Sdf grow (Sdf a, float size) {
 // === BoundSdf ===
 // ================
 
-/// Bound SDF. Signed distance field with associated bounds. See documentation of `sdf` and `bbox`
-/// to learn more.
+/// Bound SDF. Signed distance field with associated bounds. See documentation of [`sdf`] and
+/// [`bbox`] to learn more.
 struct BoundSdf {
     float       distance;
     BoundingBox bounds;
@@ -119,10 +120,6 @@ float distance (BoundSdf a) {
     return a.distance;
 }
 
-//BoundingBox bounds (BoundSdf a) {
-//    return a.bounds;
-//}
-
 Sdf sdf (BoundSdf a) {
     return sdf(a.distance);
 }
@@ -131,11 +128,11 @@ Sdf sdf (BoundSdf a) {
 // === Smart Constructors ===
 
 BoundSdf bound_sdf (float distance, BoundingBox bounds) {
-    return BoundSdf(distance,bounds);
+    return BoundSdf(distance, bounds);
 }
 
 BoundSdf bound_sdf (Sdf sdf, BoundingBox bounds) {
-    return bound_sdf(sdf.distance,bounds);
+    return bound_sdf(sdf.distance, bounds);
 }
 
 
@@ -153,24 +150,24 @@ BoundSdf pixel_snap (BoundSdf a) {
 
 BoundSdf grow (BoundSdf a, float size) {
     a.distance = a.distance - size;
-    a.bounds   = grow(a.bounds,size);
+    a.bounds = grow(a.bounds,size);
     return a;
 }
 
 BoundSdf inverse (BoundSdf a) {
-    return bound_sdf(inverse(sdf(a)),inverse(a.bounds));
+    return bound_sdf(inverse(sdf(a)), inverse(a.bounds));
 }
 
 BoundSdf unify (BoundSdf a, BoundSdf b) {
-    return bound_sdf(unify(sdf(a),sdf(b)),unify(a.bounds,b.bounds));
+    return bound_sdf(unify(sdf(a), sdf(b)), unify(a.bounds, b.bounds));
 }
 
 BoundSdf difference (BoundSdf a, BoundSdf b) {
-    return bound_sdf(difference(sdf(a),sdf(b)),difference(a.bounds,b.bounds));
+    return bound_sdf(difference(sdf(a), sdf(b)), difference(a.bounds, b.bounds));
 }
 
 BoundSdf intersection (BoundSdf a, BoundSdf b) {
-    return bound_sdf(intersection(sdf(a),sdf(b)),intersection(a.bounds,b.bounds));
+    return bound_sdf(intersection(sdf(a), sdf(b)), intersection(a.bounds, b.bounds));
 }
 
 
@@ -179,6 +176,8 @@ BoundSdf intersection (BoundSdf a, BoundSdf b) {
 // === Id ===
 // ==========
 
+/// The ID of a shape. It is used to identify shapes after rendering to an non-antialiased ID
+/// texture.
 struct Id {
     int value;
 };
@@ -191,7 +190,6 @@ Id new_id_layer (BoundSdf sdf, int i) {
     return Id((sdf.distance <= 0.0) ? i : 0);
 }
 
-
 // Premultiplied
 struct Color {
     Srgba color;
@@ -199,7 +197,7 @@ struct Color {
 
 Color premultiply(Srgba t) {
     float alpha = a(t);
-    vec3 rgb    = t.raw.rgb * alpha;
+    vec3 rgb = t.raw.rgb * alpha;
     return Color(srgba(rgb,alpha));
 }
 
@@ -242,7 +240,10 @@ Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
 
 Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     float alpha = render(bound_sdf);
-    return Shape(id,bound_sdf,color,alpha);
+    Srgba rgba = unpremultiply(color);
+    rgba.raw.a *= alpha;
+    Color color2 = premultiply(rgba);
+    return Shape(id,bound_sdf,color2,alpha);
 }
 
 Shape resample (Shape s, float multiplier) {

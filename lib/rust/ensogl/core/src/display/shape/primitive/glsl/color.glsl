@@ -1,5 +1,5 @@
 // =================================================================================================
-// === Colorspaces Definition ======================================================================
+// === Color spaces definition =====================================================================
 // =================================================================================================
 
 /// Helper for colors definition.
@@ -12,100 +12,100 @@
 /// All component values are in range 0.0..1.0.
 
 
-#define DEF_COLOR(type_name3,type_name4,name3,name4,t1,t2,t3) \
-                                                              \
-/* ============================= */                           \
-/* === Non Transparent Color === */                           \
-/* ============================= */                           \
-                                                              \
-/* === Definition === */                                      \
-                                                              \
-struct type_name3 {                                           \
-   vec3 raw;                                                  \
-};                                                            \
-                                                              \
-                                                              \
-/* === Getters === */                                         \
-                                                              \
-float t1 (type_name3 color) { return color.raw.x; }           \
-float t2 (type_name3 color) { return color.raw.y; }           \
-float t3 (type_name3 color) { return color.raw.z; }           \
-                                                              \
-                                                              \
-/* === Constructors === */                                    \
-                                                              \
-type_name3 name3(type_name3 identity) {                       \
-    return identity;                                          \
-}                                                             \
-                                                              \
-type_name3 name3(vec3 raw) {                                  \
-    return type_name3(raw);                                   \
-}                                                             \
-                                                              \
-type_name3 name3(float t1, float t2, float t3) {              \
-    return name3(vec3(t1,t2,t3));                             \
-}                                                             \
-                                                              \
-                                                              \
-                                                              \
-/* ========================= */                               \
-/* === Transparent Color === */                               \
-/* ========================= */                               \
-                                                              \
-/* === Definition === */                                      \
-                                                              \
-struct type_name4 {                                           \
-   vec4 raw;                                                  \
-};                                                            \
-                                                              \
-                                                              \
-/* === Getters === */                                         \
-                                                              \
-float t1 (type_name4 name4) { return name4.raw.x; }           \
-float t2 (type_name4 name4) { return name4.raw.y; }           \
-float t3 (type_name4 name4) { return name4.raw.z; }           \
-float a  (type_name4 name4) { return name4.raw.a; }           \
-                                                              \
-                                                              \
-/* === Constructors === */                                    \
-                                                              \
-type_name4 name4 (type_name4 identity) {                      \
-    return identity;                                          \
-}                                                             \
-                                                              \
-type_name4 name4 (vec4 raw) {                                 \
-    return type_name4(raw);                                   \
-}                                                             \
-                                                              \
-type_name4 name4 (vec3 raw) {                                 \
-    return name4(vec4(raw,1.0));                              \
-}                                                             \
-                                                              \
-type_name4 name4 (vec3 raw, float a) {                        \
-    return name4(vec4(raw,a));                                \
-}                                                             \
-                                                              \
-type_name4 name4 (type_name3 name3) {                         \
-    return name4(name3.raw);                                  \
-}                                                             \
-                                                              \
-type_name4 name4 (type_name3 name3, float a) {                \
-    return name4(name3.raw,a);                                \
-}                                                             \
-                                                              \
-type_name4 name4 (float t1, float t2, float t3) {             \
-    return name4(vec3(t1,t2,t3));                             \
-}                                                             \
-                                                              \
-type_name4 name4 (float t1, float t2, float t3, float a) {    \
-    return name4(vec4(t1,t2,t3,a));                           \
-}                                                             \
-                                                              \
-                                                              \
-/* === Conversions === */                                     \
-                                                              \
-type_name3 name3 (type_name4 a) {                             \
-    return name3(a.raw.xyz);                                  \
+#define DEF_COLOR(TYPE_NAME_3, TYPE_NAME_4, NAME_3, NAME_4, T_1, T_2, T_3)                         \
+                                                                                                   \
+/* ============================= */                                                                \
+/* === Non Transparent Color === */                                                                \
+/* ============================= */                                                                \
+                                                                                                   \
+/* === Definition === */                                                                           \
+                                                                                                   \
+struct TYPE_NAME_3 {                                                                               \
+   vec3 raw;                                                                                       \
+};                                                                                                 \
+                                                                                                   \
+                                                                                                   \
+/* === Getters === */                                                                              \
+                                                                                                   \
+float T_1 (TYPE_NAME_3 color) { return color.raw.x; }                                              \
+float T_2 (TYPE_NAME_3 color) { return color.raw.y; }                                              \
+float T_3 (TYPE_NAME_3 color) { return color.raw.z; }                                              \
+                                                                                                   \
+                                                                                                   \
+/* === Constructors === */                                                                         \
+                                                                                                   \
+TYPE_NAME_3 NAME_3(TYPE_NAME_3 identity) {                                                         \
+    return identity;                                                                               \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_3 NAME_3(vec3 raw) {                                                                     \
+    return TYPE_NAME_3(raw);                                                                       \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_3 NAME_3(float T_1, float T_2, float T_3) {                                              \
+    return NAME_3(vec3(T_1, T_2, T_3));                                                            \
+}                                                                                                  \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+/* ========================= */                                                                    \
+/* === Transparent Color === */                                                                    \
+/* ========================= */                                                                    \
+                                                                                                   \
+/* === Definition === */                                                                           \
+                                                                                                   \
+struct TYPE_NAME_4 {                                                                               \
+   vec4 raw;                                                                                       \
+};                                                                                                 \
+                                                                                                   \
+                                                                                                   \
+/* === Getters === */                                                                              \
+                                                                                                   \
+float T_1 (TYPE_NAME_4 NAME_4) { return NAME_4.raw.x; }                                            \
+float T_2 (TYPE_NAME_4 NAME_4) { return NAME_4.raw.y; }                                            \
+float T_3 (TYPE_NAME_4 NAME_4) { return NAME_4.raw.z; }                                            \
+float a   (TYPE_NAME_4 NAME_4) { return NAME_4.raw.a; }                                            \
+                                                                                                   \
+                                                                                                   \
+/* === Constructors === */                                                                         \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (TYPE_NAME_4 identity) {                                                        \
+    return identity;                                                                               \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (vec4 raw) {                                                                    \
+    return TYPE_NAME_4(raw);                                                                       \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (vec3 raw) {                                                                    \
+    return NAME_4(vec4(raw,1.0));                                                                  \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (vec3 raw, float a) {                                                           \
+    return NAME_4(vec4(raw,a));                                                                    \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (TYPE_NAME_3 NAME_3) {                                                          \
+    return NAME_4(NAME_3.raw);                                                                     \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (TYPE_NAME_3 NAME_3, float a) {                                                 \
+    return NAME_4(NAME_3.raw, a);                                                                  \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (float T_1, float T_2, float T_3) {                                             \
+    return NAME_4(vec3(T_1, T_2, T_3));                                                            \
+}                                                                                                  \
+                                                                                                   \
+TYPE_NAME_4 NAME_4 (float T_1, float T_2, float T_3, float a) {                                    \
+    return NAME_4(vec4(T_1, T_2, T_3, a));                                                         \
+}                                                                                                  \
+                                                                                                   \
+                                                                                                   \
+/* === Conversions === */                                                                          \
+                                                                                                   \
+TYPE_NAME_3 NAME_3 (TYPE_NAME_4 a) {                                                               \
+    return NAME_3(a.raw.xyz);                                                                      \
 }
 
 
@@ -117,30 +117,30 @@ DEF_COLOR(Lch  , Lcha  , lch  , lcha  , l , c ,h)
 
 
 // =================================================================================================
-// === Colorpsace Conversion =======================================================================
+// === Color space conversion ======================================================================
 // =================================================================================================
 
-#define DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                 \
-a_type_name3,a_type_name4,a_name3,a_name4,b_type_name3,b_type_name4,b_name3,b_name4) \
-                                                                                     \
-a_type_name3 a_name3(b_type_name4 b_name4) {                                         \
-    return a_name3(b_name3(b_name4));                                                \
-}                                                                                    \
-                                                                                     \
-a_type_name4 a_name4(b_type_name4 b_name4) {                                         \
-    return a_name4(a_name3(b_name3(b_name4)),a(b_name4));                            \
-}                                                                                    \
-                                                                                     \
-a_type_name4 a_name4(b_type_name3 b_name3) {                                         \
-    return a_name4(a_name3(b_name3));                                                \
+#define DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                          \
+A_TYPE_NAME_3, A_TYPE_NAME_4, A_NAME_3, A_NAME_4, B_TYPE_NAME_3, B_TYPE_NAME_4, B_NAME_3, B_NAME_4)\
+                                                                                                   \
+A_TYPE_NAME_3 A_NAME_3(B_TYPE_NAME_4 B_NAME_4) {                                                   \
+    return A_NAME_3(B_NAME_3(B_NAME_4));                                                           \
+}                                                                                                  \
+                                                                                                   \
+A_TYPE_NAME_4 A_NAME_4(B_TYPE_NAME_4 B_NAME_4) {                                                   \
+    return A_NAME_4(A_NAME_3(B_NAME_3(B_NAME_4)), a(B_NAME_4));                                    \
+}                                                                                                  \
+                                                                                                   \
+A_TYPE_NAME_4 A_NAME_4(B_TYPE_NAME_3 B_NAME_3) {                                                   \
+    return A_NAME_4(A_NAME_3(B_NAME_3));                                                           \
 }
 
-#define DEF_TRANSITIVE_CONVERSIONS(                                                       \
-a_type_name3,a_type_name4,a_name3,a_name4,b_type_name3,b_type_name4,b_name3,b_name4) \
-DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                         \
-a_type_name3,a_type_name4,a_name3,a_name4,b_type_name3,b_type_name4,b_name3,b_name4) \
-DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                         \
-b_type_name3,b_type_name4,b_name3,b_name4,a_type_name3,a_type_name4,a_name3,a_name4)
+#define DEF_TRANSITIVE_CONVERSIONS(                                                                \
+A_TYPE_NAME_3, A_TYPE_NAME_4, A_NAME_3, A_NAME_4, B_TYPE_NAME_3, B_TYPE_NAME_4, B_NAME_3, B_NAME_4)\
+DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                                  \
+A_TYPE_NAME_3, A_TYPE_NAME_4, A_NAME_3, A_NAME_4, B_TYPE_NAME_3, B_TYPE_NAME_4, B_NAME_3, B_NAME_4)\
+DEF_TRANSITIVE_CONVERSIONS_1_WAY(                                                                  \
+B_TYPE_NAME_3, B_TYPE_NAME_4, B_NAME_3, B_NAME_4, A_TYPE_NAME_3, A_TYPE_NAME_4, A_NAME_3, A_NAME_4)
 
 
 
@@ -269,7 +269,8 @@ Rgba mix(Rgba color1, Rgba color2, float t) {
 // ================
 
 
-#define DEF_GRADIENT(COLOR,COLOR_CONS,CONTROL_POINT,GRADIENT1,GRADIENT2,GRADIENT3,GRADIENT4,GRADIENT5) \
+#define DEF_GRADIENT(                                                                              \
+COLOR, COLOR_CONS, CONTROL_POINT, GRADIENT_1, GRADIENT_2, GRADIENT_3, GRADIENT_4, GRADIENT_5)      \
 struct CONTROL_POINT {                                                                             \
     float offset;                                                                                  \
     COLOR color;                                                                                   \
@@ -279,29 +280,29 @@ CONTROL_POINT gradient_control_point(float offset, COLOR color) {               
     return CONTROL_POINT(offset,color);                                                            \
 }                                                                                                  \
                                                                                                    \
-struct GRADIENT1 {                                                                                 \
+struct GRADIENT_1 {                                                                                \
     CONTROL_POINT control_point1;                                                                  \
 };                                                                                                 \
                                                                                                    \
-struct GRADIENT2 {                                                                                 \
+struct GRADIENT_2 {                                                                                \
     CONTROL_POINT control_point1;                                                                  \
     CONTROL_POINT control_point2;                                                                  \
 };                                                                                                 \
                                                                                                    \
-struct GRADIENT3 {                                                                                 \
+struct GRADIENT_3 {                                                                                \
     CONTROL_POINT control_point1;                                                                  \
     CONTROL_POINT control_point2;                                                                  \
     CONTROL_POINT control_point3;                                                                  \
 };                                                                                                 \
                                                                                                    \
-struct GRADIENT4 {                                                                                 \
+struct GRADIENT_4 {                                                                                \
     CONTROL_POINT control_point1;                                                                  \
     CONTROL_POINT control_point2;                                                                  \
     CONTROL_POINT control_point3;                                                                  \
     CONTROL_POINT control_point4;                                                                  \
 };                                                                                                 \
                                                                                                    \
-struct GRADIENT5 {                                                                                 \
+struct GRADIENT_5 {                                                                                \
     CONTROL_POINT control_point1;                                                                  \
     CONTROL_POINT control_point2;                                                                  \
     CONTROL_POINT control_point3;                                                                  \
@@ -309,93 +310,88 @@ struct GRADIENT5 {                                                              
     CONTROL_POINT control_point5;                                                                  \
 };                                                                                                 \
                                                                                                    \
-GRADIENT2 gradient                                                                                 \
+GRADIENT_2 gradient                                                                                \
 ( CONTROL_POINT control_point1                                                                     \
 , CONTROL_POINT control_point2 ) {                                                                 \
-    return GRADIENT2(control_point1,control_point2);                                               \
+    return GRADIENT_2(control_point1, control_point2);                                             \
 }                                                                                                  \
                                                                                                    \
-GRADIENT3 gradient                                                                                 \
+GRADIENT_3 gradient                                                                                \
 ( CONTROL_POINT control_point1                                                                     \
 , CONTROL_POINT control_point2                                                                     \
 , CONTROL_POINT control_point3 ) {                                                                 \
-    return GRADIENT3(control_point1,control_point2,control_point3);                                \
+    return GRADIENT_3(control_point1, control_point2, control_point3);                             \
 }                                                                                                  \
                                                                                                    \
-GRADIENT4 gradient                                                                                 \
+GRADIENT_4 gradient                                                                                \
 ( CONTROL_POINT control_point1                                                                     \
 , CONTROL_POINT control_point2                                                                     \
 , CONTROL_POINT control_point3                                                                     \
 , CONTROL_POINT control_point4 ) {                                                                 \
-    return GRADIENT4(control_point1,control_point2,control_point3,control_point4);                 \
+    return GRADIENT_4(control_point1, control_point2, control_point3, control_point4);             \
 }                                                                                                  \
                                                                                                    \
-GRADIENT5 gradient                                                                                 \
+GRADIENT_5 gradient                                                                                \
 ( CONTROL_POINT control_point1                                                                     \
 , CONTROL_POINT control_point2                                                                     \
 , CONTROL_POINT control_point3                                                                     \
 , CONTROL_POINT control_point4                                                                     \
 , CONTROL_POINT control_point5 ) {                                                                 \
-    return GRADIENT5(control_point1,control_point2,control_point3,control_point4,control_point5);  \
+    return GRADIENT_5                                                                              \
+        (control_point1, control_point2, control_point3, control_point4, control_point5);          \
 }                                                                                                  \
                                                                                                    \
-COLOR sample(GRADIENT2 gradient, float offset) {                                                   \
+COLOR sample(GRADIENT_2 gradient, float offset) {                                                  \
     float span = gradient.control_point2.offset - gradient.control_point1.offset;                  \
-    float t    = clamp((offset - gradient.control_point1.offset)/span);                            \
-    return COLOR_CONS(mix(gradient.control_point1.color.raw,gradient.control_point2.color.raw,t)); \
+    float t = clamp((offset - gradient.control_point1.offset)/span);                               \
+    return COLOR_CONS(mix                                                                          \
+        (gradient.control_point1.color.raw, gradient.control_point2.color.raw, t));                \
 }                                                                                                  \
                                                                                                    \
-COLOR sample(GRADIENT3 gradient, float offset) {                                                   \
+COLOR sample(GRADIENT_3 gradient, float offset) {                                                  \
     if (offset < gradient.control_point1.offset) {                                                 \
         return gradient.control_point1.color;                                                      \
     } else if (offset < gradient.control_point2.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point1,gradient.control_point2),offset);          \
+        return sample(GRADIENT_2(gradient.control_point1, gradient.control_point2), offset);       \
     } else if (offset < gradient.control_point3.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point2,gradient.control_point3),offset);          \
+        return sample(GRADIENT_2(gradient.control_point2, gradient.control_point3), offset);       \
     } else {                                                                                       \
         return gradient.control_point3.color;                                                      \
     }                                                                                              \
 }                                                                                                  \
                                                                                                    \
-COLOR sample(GRADIENT4 gradient, float offset) {                                                   \
+COLOR sample(GRADIENT_4 gradient, float offset) {                                                  \
     if (offset < gradient.control_point1.offset) {                                                 \
         return gradient.control_point1.color;                                                      \
     } else if (offset < gradient.control_point2.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point1,gradient.control_point2),offset);          \
+        return sample(GRADIENT_2(gradient.control_point1, gradient.control_point2), offset);       \
     } else if (offset < gradient.control_point3.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point2,gradient.control_point3),offset);          \
+        return sample(GRADIENT_2(gradient.control_point2, gradient.control_point3), offset);       \
     } else if (offset < gradient.control_point4.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point3,gradient.control_point4),offset);          \
+        return sample(GRADIENT_2(gradient.control_point3, gradient.control_point4), offset);       \
     } else {                                                                                       \
         return gradient.control_point4.color;                                                      \
     }                                                                                              \
 }                                                                                                  \
                                                                                                    \
-COLOR sample(GRADIENT5 gradient, float offset) {                                                   \
+COLOR sample(GRADIENT_5 gradient, float offset) {                                                  \
     if (offset < gradient.control_point1.offset) {                                                 \
         return gradient.control_point1.color;                                                      \
     } else if (offset < gradient.control_point2.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point1,gradient.control_point2),offset);          \
+        return sample(GRADIENT_2(gradient.control_point1, gradient.control_point2), offset);       \
     } else if (offset < gradient.control_point3.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point2,gradient.control_point3),offset);          \
+        return sample(GRADIENT_2(gradient.control_point2, gradient.control_point3), offset);       \
     } else if (offset < gradient.control_point4.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point3,gradient.control_point4),offset);          \
+        return sample(GRADIENT_2(gradient.control_point3, gradient.control_point4), offset);       \
     } else if (offset < gradient.control_point5.offset) {                                          \
-        return sample(GRADIENT2(gradient.control_point4,gradient.control_point5),offset);          \
+        return sample(GRADIENT_2(gradient.control_point4, gradient.control_point5), offset);       \
     } else {                                                                                       \
         return gradient.control_point5.color;                                                      \
     }                                                                                              \
 }                                                                                                  \
 
 
-DEF_GRADIENT(Rgb,rgb,RgbGradientControlPoint,RgbGradient1,RgbGradient2,RgbGradient3,RgbGradient4,RgbGradient5)
-DEF_GRADIENT(Rgba,rgba,RgbaGradientControlPoint,RgbaGradient1,RgbaGradient2,RgbaGradient3,RgbaGradient4,RgbaGradient5)
-
-
-
-
-//Rgba blend(Rgba bottom, Rgba top, float t) {
-//    float weight = t * a(top);
-//    float rgb    = mix(bottom.raw.rgb, top.raw.rgb, weight);
-//    float alpha  = a(bottom) + a(top);
-//}
+DEF_GRADIENT(Rgb, rgb, RgbGradientControlPoint, RgbGradient1, RgbGradient2, RgbGradient3,          \
+             RgbGradient4, RgbGradient5)
+DEF_GRADIENT(Rgba, rgba, RgbaGradientControlPoint, RgbaGradient1, RgbaGradient2, RgbaGradient3,    \
+             RgbaGradient4, RgbaGradient5)

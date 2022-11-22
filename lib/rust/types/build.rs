@@ -34,6 +34,16 @@ const AXES: &[&str] = &["x", "y", "z", "w"];
 
 
 
+// ========================
+// === Formatting Utils ===
+// ========================
+
+fn indent(size: usize) -> String {
+    " ".repeat(size * 4)
+}
+
+
+
 // ======================
 // === Implementation ===
 // ======================
@@ -105,21 +115,24 @@ fn gen_swizzling_force_dim_component(
 fn gen_swizzling_macro_branch(input_dim: usize, unique: bool) -> String {
     let mut out = String::new();
     out.write_str(&format!(
-        "    ({}, $f: ident $(,$($args:tt)*)?) => {{ $f! {{ $([$($args)*])? {}\n",
-        input_dim, input_dim,
+        "{}({}, $f: ident $(,$($args:tt)*)?) => {{ $f! {{ $([$($args)*])? {}\n",
+        indent(1),
+        input_dim,
+        input_dim,
     ))
     .unwrap();
 
     for dim in 1..input_dim {
         for (axes, dim, ixs, ord) in gen_swizzling_force_dim_component(input_dim, dim, unique) {
-            out.write_str(&format!("        {} {} {:?} {:?}\n", axes.join(""), dim, ixs, ord))
+            out.write_str(&format!("{}{} {} {:?} {:?}\n", indent(2), axes.join(""), dim, ixs, ord))
                 .unwrap();
         }
     }
     for (axes, dim, ixs, ord) in gen_swizzling(input_dim, input_dim, unique) {
-        out.write_str(&format!("        {} {} {:?} {:?}\n", axes.join(""), dim, ixs, ord)).unwrap();
+        out.write_str(&format!("{}{} {} {:?} {:?}\n", indent(2), axes.join(""), dim, ixs, ord))
+            .unwrap();
     }
-    out.write_str("    }};\n").unwrap();
+    out.write_str(&format!("{}}}}};\n", indent(1))).unwrap();
     out
 }
 
