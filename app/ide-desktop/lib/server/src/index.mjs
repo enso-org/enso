@@ -2,7 +2,6 @@ import path from 'node:path'
 import url from 'node:url'
 import portfinder from 'portfinder'
 import connect from 'connect'
-// import { WebSocket } from 'faye-websocket'
 import { WebSocketServer } from 'ws'
 import serveStatic from 'serve-static'
 import logger from 'morgan'
@@ -24,10 +23,7 @@ export async function start({ root, assets, port }) {
         .use('/assets', serveStatic(assets))
 
     const server = app.listen(freePort)
-
-    const reloadSockets = []
-    const wsServer = new WebSocketServer({ server, path: '/live-reload' })
-    wsServer.on('connection', socket => reloadSockets.push(socket))
+    const wsServer = new WebSocketServer({ server, clientTracking: true, path: '/live-reload' })
 
     var serverUrl = `http://localhost:${freePort}`
     console.log('Serving %s', serverUrl)
@@ -35,8 +31,7 @@ export async function start({ root, assets, port }) {
     return {
         port: freePort,
         reload() {
-            reloadSockets.forEach(sock => sock.send('reload'))
-            reloadSockets.length = 0
+            wsServer.clients.forEach(sock => sock.send('reload'))
         },
     }
 }
