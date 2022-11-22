@@ -140,7 +140,7 @@ impl<'a> Builder<'a> {
         };
         let project_name = module_name.project();
         let main_module_name = QualifiedName::new_main(project_name.clone_ref());
-        let main_module = self.lookup(main_module_name.as_ref());
+        let main_module = self.lookup(&main_module_name);
         let to_main_module_entry = |entry: (component::Id, Rc<Entry>)| BreadcrumbEntry {
             displayed_name: String::from(project_name.project.clone_ref()).into(),
             ..entry.into()
@@ -156,11 +156,14 @@ impl<'a> Builder<'a> {
         module: &component::Id,
     ) -> Option<(Rc<QualifiedName>, BreadcrumbEntry)> {
         let module_name = self.components.module_qualified_name(*module)?;
-        let entry = BreadcrumbEntry::from(self.lookup((*module_name).as_ref())?);
+        let entry = BreadcrumbEntry::from(self.lookup(&*module_name)?);
         Some((module_name, entry))
     }
 
-    fn lookup(&self, name: QualifiedNameRef) -> Option<(component::Id, Rc<Entry>)> {
+    fn lookup<'b>(
+        &self,
+        name: impl Into<QualifiedNameRef<'b>>,
+    ) -> Option<(component::Id, Rc<Entry>)> {
         self.database.lookup_by_qualified_name(name)
     }
 

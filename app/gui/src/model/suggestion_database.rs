@@ -277,16 +277,17 @@ impl SuggestionDatabase {
     /// composed of segments separated by the [`ACCESS`] character.
     pub fn lookup_by_qualified_name_str(&self, qualified_name_str: &str) -> Option<Rc<Entry>> {
         let qualified_name = QualifiedName::from_text(qualified_name_str).ok()?;
-        let (_, entry) = self.lookup_by_qualified_name(qualified_name.as_ref())?;
+        let (_, entry) = self.lookup_by_qualified_name(&qualified_name)?;
         Some(entry)
     }
 
     /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
     /// [`model::QualifiedName`].
-    pub fn lookup_by_qualified_name(
+    pub fn lookup_by_qualified_name<'a>(
         &self,
-        name: QualifiedNameRef,
+        name: impl Into<QualifiedNameRef<'a>>,
     ) -> Option<(SuggestionId, Rc<Entry>)> {
+        let name = name.into();
         let segments = name.segments().map(CloneRef::clone_ref);
         let id = self.qualified_name_to_id_map.borrow().get(segments);
         id.and_then(|id| Some((id, self.lookup(id).ok()?)))
@@ -473,7 +474,7 @@ pub mod test {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
         let db = mock::standard_db_mock();
         let replaced_entry = QualifiedName::from_text("Standard.Base.Number").unwrap();
-        let (replaced_id, _) = db.lookup_by_qualified_name(replaced_entry.as_ref()).unwrap();
+        let (replaced_id, _) = db.lookup_by_qualified_name(&replaced_entry).unwrap();
         let new_entry = SuggestionEntry::Constructor {
             name:                   "NewEntry".to_owned(),
             module:                 "test.TestProject.TestModule".to_owned(),
@@ -714,10 +715,10 @@ pub mod test {
             QualifiedName::from_text("local.Project.Submodule.module_method").unwrap();
         let entry_removed = QualifiedName::from_text("Standard.Base.Number").unwrap();
         let (entry_with_doc_change_id, _) =
-            db.lookup_by_qualified_name(entry_with_doc_change.as_ref()).unwrap();
+            db.lookup_by_qualified_name(&entry_with_doc_change).unwrap();
         let (entry_with_mod_change_id, _) =
-            db.lookup_by_qualified_name(entry_with_mod_change.as_ref()).unwrap();
-        let (entry_removed_id, _) = db.lookup_by_qualified_name(entry_removed.as_ref()).unwrap();
+            db.lookup_by_qualified_name(&entry_with_mod_change).unwrap();
+        let (entry_removed_id, _) = db.lookup_by_qualified_name(&entry_removed).unwrap();
         let entry_added_id = 123;
         // Modify the database contents by applying an update event.
         let entry_doc_change = Box::new(SuggestionsDatabaseModification {

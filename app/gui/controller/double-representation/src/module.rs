@@ -66,7 +66,7 @@ pub struct NotDirectChild(ast::Crumbs);
 /// The segments of module name. Allow finding module in the project.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id {
-    /// The last segments being a module name. For project's main module it should be equal
+    /// The last segment being a module name. For project's main module it should be equal
     /// to [`PROJECTS_MAIN_MODULE`].
     pub name:           ImString,
     /// The segments of all parent modules, from the top module to the direct parent. Does **not**
@@ -102,7 +102,7 @@ impl IntoIterator for Id {
 
 impl From<Id> for NamePath {
     fn from(id: Id) -> Self {
-        id.parent_modules.into_iter().chain(iter::once(id.name)).collect()
+        id.into_iter().collect()
     }
 }
 

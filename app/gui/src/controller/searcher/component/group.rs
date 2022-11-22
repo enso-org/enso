@@ -136,8 +136,7 @@ impl Group {
         let looked_up_components = components
             .iter()
             .filter_map(|qualified_name| {
-                let (id, suggestion) =
-                    suggestion_db.lookup_by_qualified_name(qualified_name.as_ref())?;
+                let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
                 Some(Component::new_from_database_entry(id, suggestion))
             })
             .collect_vec();

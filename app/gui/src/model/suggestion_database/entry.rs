@@ -488,12 +488,12 @@ impl Entry {
 
     fn self_type_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
         let self_type_ref = self.self_type.as_ref();
-        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp.as_ref()));
+        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp));
         lookup.map(|(_, entry)| entry)
     }
 
     fn defined_in_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
-        let lookup = db.lookup_by_qualified_name(self.defined_in.as_ref());
+        let lookup = db.lookup_by_qualified_name(&self.defined_in);
         lookup.map(|(_, entry)| entry)
     }
 }

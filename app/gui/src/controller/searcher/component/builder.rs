@@ -211,7 +211,7 @@ impl List {
         db: &model::SuggestionDatabase,
         module: QualifiedNameRef,
     ) -> Option<&mut ModuleGroups> {
-        let (module_id, db_entry) = db.lookup_by_qualified_name(module.clone_ref())?;
+        let (module_id, db_entry) = db.lookup_by_qualified_name(&module)?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.
@@ -431,7 +431,7 @@ mod tests {
         let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
         let qn_not_in_db = QualifiedName::from_text("test.Test.NameNotInSuggestionDb").unwrap();
-        assert_eq!(db.lookup_by_qualified_name(qn_not_in_db.as_ref()), None);
+        assert_eq!(db.lookup_by_qualified_name(&qn_not_in_db), None);
         let groups = [
             execution_context::ComponentGroup {
                 project:    project::QualifiedName::standard_base_library(),

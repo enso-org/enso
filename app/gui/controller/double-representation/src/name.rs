@@ -55,7 +55,8 @@ pub type NamePathRef<'a> = &'a [ImString];
 
 /// A QualifiedName template without specified type of segment's list container.
 ///
-/// Designed to not be used direct
+/// Usually you should use one of its specialization: the owned [`QualifiedName`] or borrowed
+/// [`QualifiedNameRef`].
 #[derive(Clone, Debug, Default, Deserialize, Hash, Serialize)]
 #[serde(into = "String")]
 #[serde(try_from = "String")]
@@ -113,9 +114,9 @@ impl QualifiedName {
     /// Constructs a qualified name from its text representation.
     ///
     /// Note, that there is no guarantee that `QualifiedName::from_text(s).to_string() = s`, as the
-    /// main module
+    /// `Main` segment is removed upon constructing [`QualifiedName`].
     ///
-    /// Fails, if the text is not a valid module's qualified name.
+    /// Fails, if the text is not a valid name.
     ///
     /// # Example
     ///
@@ -218,7 +219,7 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
         QualifiedNameRef { project: self.project.clone_ref(), path: &self.path.as_ref()[range] }
     }
 
-    /// Return the [`QualifiedNameRef`] referring to the this name parent.
+    /// Return the [`QualifiedNameRef`] referring to the this name's parent.
     ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
@@ -379,6 +380,12 @@ impl<'a> From<&'a QualifiedName> for NamePath {
 impl<'a, 'b> From<&'a QualifiedNameRef<'b>> for NamePath {
     fn from(qualified: &'a QualifiedNameRef<'b>) -> Self {
         qualified.segments().cloned().collect()
+    }
+}
+
+impl<'a> From<&'a QualifiedName> for QualifiedNameRef<'a> {
+    fn from(qualified: &'a QualifiedName) -> Self {
+        qualified.as_ref()
     }
 }
 

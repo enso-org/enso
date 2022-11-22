@@ -388,33 +388,33 @@ impl Fixture {
     /// match node. Node contents is not covered.
     fn deserialize_macro_matches(&mut self) {
         let macro_usages = vec![
-            // "[]",
-            // "[1,2,3]",
-            // "{x}",
-            // "polyglot java import com.example.MyClass",
-            // "foo -> bar",
-            // "()",
-            // "(foo -> bar)",
-            // "a b c -> bar",
-            // "type Maybe a\n    Just val:a",
-            // "if foo > 8 then 10 else 9",
+            "[]",
+            "[1,2,3]",
+            "{x}",
+            "polyglot java import com.example.MyClass",
+            "foo -> bar",
+            "()",
+            "(foo -> bar)",
+            "a b c -> bar",
+            "type Maybe a\n    Just val:a",
+            "if foo > 8 then 10 else 9",
             "skip bar",
             "freeze bar",
-            // "case foo of\n  bar",
-            // "import foo",
-            // "import",
-            // "export bar",
-            // "from bar import all",
-            // "from bar export bo",
-            // "a ->",
-            // "-> a",
-            // "(a -> b) -> c",
+            "case foo of\n  bar",
+            "import foo",
+            "import",
+            "export bar",
+            "from bar import all",
+            "from bar export bo",
+            "a ->",
+            "-> a",
+            "(a -> b) -> c",
         ];
 
         for macro_usage in macro_usages.iter() {
             println!(">>>>>>>>>> {}", macro_usage);
             let ast = self.parser.parse_line_ast(*macro_usage).unwrap();
-            println!("{:#?}", ast);
+            println!("{:?}", ast);
             expect_shape::<Match<Ast>>(&ast);
         }
     }
@@ -469,7 +469,7 @@ impl Fixture {
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
-#[test]
+#[wasm_bindgen_test]
 fn parser_tests() {
     Fixture::new().run()
 }

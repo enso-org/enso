@@ -468,7 +468,7 @@ impl Data {
             // This is meant to work with single function calls (without "this" argument).
             // In other case we should know what the function is from the engine, as the function
             // should be resolved.
-            fragment.is_still_unmodified(&input).and_option(Some(fragment))
+            fragment.is_still_unmodified(&input).then_some(fragment)
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
@@ -1770,15 +1770,15 @@ pub mod test {
             };
             let (_, entry1) = searcher
                 .database
-                .lookup_by_qualified_name(module_name.clone().new_child("testFunction1").as_ref())
+                .lookup_by_qualified_name(&module_name.clone().new_child("testFunction1"))
                 .unwrap();
             let (_, entry2) = searcher
                 .database
-                .lookup_by_qualified_name(module_name.clone().new_child("test_var_1").as_ref())
+                .lookup_by_qualified_name(&module_name.clone().new_child("test_var_1"))
                 .unwrap();
             let (_, entry3) = searcher
                 .database
-                .lookup_by_qualified_name(module_name.clone().new_child("test_method").as_ref())
+                .lookup_by_qualified_name(&module_name.clone().new_child("test_method"))
                 .unwrap();
             let entry4 = searcher
                 .database
@@ -1786,7 +1786,7 @@ pub mod test {
                 .unwrap();
             let (_, entry9) = searcher
                 .database
-                .lookup_by_qualified_name(module_name.new_child("testFunction2").as_ref())
+                .lookup_by_qualified_name(&module_name.new_child("testFunction2"))
                 .unwrap();
             Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9 }
         }
