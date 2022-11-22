@@ -604,7 +604,11 @@ impl Slider {
             output.editing <+ input.finish_value_editing.constant(false);
             output.editing <+ input.cancel_value_editing.constant(false);
             value_on_edit <- output.value.sample(&input.start_value_editing);
-            value_text_on_edit <- value_on_edit.map(|v| format!("{}", v).to_im_string());
+            precision_on_edit <- output.precision.sample(&input.start_value_editing);
+            max_places_on_edit <- input.set_max_disp_decimal_places
+                .sample(&input.start_value_editing);
+            value_text_on_edit <- all3(&value_on_edit, &precision_on_edit, &max_places_on_edit);
+            value_text_on_edit <- value_text_on_edit.map(|t| value_text_truncate(t).to_im_string());
             model.value_text_edit.set_content <+ value_text_on_edit;
             eval_ input.start_value_editing({
                 model.set_edit_mode(true);
@@ -686,24 +690,29 @@ impl application::View for Slider {
 // === Value text formatting ===
 // =============================
 
+/// Rounds and truncates a floating point value to a specified precision.
+fn value_text_truncate(
+    (value, precision, max_digits): &(f32, f32, usize),
+) -> String {
+    if *precision < 1.0 || *max_digits == 0 {
+        let digits = (-precision.log10()).ceil() as usize;
+        let digits = digits.min(*max_digits);
+        format!("{:.prec$}", value, prec = digits)
+    } else {
+        format!("{:.0}", value)
+    }
+}
+
 /// Rounds a floating point value to a specified precision and provides two strings: one with the
 /// digits left of the decimal point, and one optional with the digits right of the decimal point.
 fn value_text_truncate_split(
     (value, precision, max_digits): &(f32, f32, usize),
 ) -> (ImString, Option<ImString>) {
-    if *precision < 1.0 || *max_digits == 0 {
-        let digits = (-precision.log10()).ceil() as usize;
-        let digits = digits.min(*max_digits);
-        let text = format!("{:.prec$}", value, prec = digits);
-        let mut text_iter = text.split('.');
-        let text_left = text_iter.next().map(|s| s.to_im_string());
-        let text_left = text_left.unwrap_or_default();
-        let text_right = text_iter.next().map(|s| s.to_im_string());
-        (text_left, text_right)
-    } else {
-        let text_left = format!("{:.0}", value.trunc()).to_im_string();
-        (text_left, None)
-    }
+    let text = value_text_truncate(&(*value, *precision, *max_digits));
+    let mut text_iter = text.split('.');
+    let text_left = text_iter.next().map(|s| s.to_im_string()).unwrap_or_default();
+    let text_right = text_iter.next().map(|s| s.to_im_string());
+    (text_left, text_right)
 }
 
 
