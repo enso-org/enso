@@ -217,13 +217,20 @@ impl Path {
     /// Obtain a module's full qualified name from the path and the project name.
     ///
     /// ```
+    /// use double_representation::name::project;
     /// use enso_gui::model::module::Path;
     /// use enso_gui::prelude::*;
     ///
-    /// let path = Path::from_name_segments(default(), &["Main"]).unwrap();
-    /// assert_eq!(path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Main.enso");
-    /// let name = path.qualified_module_name("local.Project".try_into().unwrap());
-    /// assert_eq!(name.to_string(), "local.Project.Main");
+    /// let path = Path::from_name_segments(default(), &["Module"]).unwrap();
+    /// let main_path = Path::from_name_segments(default(), &["Main"]).unwrap();
+    /// assert_eq!(path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Module.enso");
+    /// assert_eq!(main_path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Main.enso");
+    ///
+    /// let project = project::QualifiedName::from_text("local.Project").unwrap();
+    /// let name = path.qualified_module_name(project.clone());
+    /// assert_eq!(name.to_string(), "local.Project.Module");
+    /// let main_name = main_path.qualified_module_name(project);
+    /// assert_eq!(main_name.to_string(), "local.Project");
     /// ```
     pub fn qualified_module_name(&self, project_name: project::QualifiedName) -> QualifiedName {
         QualifiedName::new_module(project_name, self.id())
