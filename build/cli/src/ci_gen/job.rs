@@ -70,7 +70,7 @@ pub fn plain_job_customized(
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 impl JobArchetype for CancelWorkflow {
-    fn job(_os: OS) -> Job {
+    fn job(&self, _os: OS) -> Job {
         Job {
             name: "Cancel Previous Runs".into(),
             // It is important that this particular job runs pretty much everywhere (we use x64,
@@ -87,7 +87,7 @@ impl JobArchetype for CancelWorkflow {
 #[derive(Clone, Copy, Debug)]
 pub struct Lint;
 impl JobArchetype for Lint {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(&os, "Lint", "lint")
     }
 }
@@ -95,7 +95,7 @@ impl JobArchetype for Lint {
 #[derive(Clone, Copy, Debug)]
 pub struct NativeTest;
 impl JobArchetype for NativeTest {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(&os, "Native GUI tests", "wasm test --no-wasm")
     }
 }
@@ -103,7 +103,7 @@ impl JobArchetype for NativeTest {
 #[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
 impl JobArchetype for WasmTest {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(&os, "WASM GUI tests", "wasm test --no-native")
     }
 }
@@ -111,7 +111,7 @@ impl JobArchetype for WasmTest {
 #[derive(Clone, Copy, Debug)]
 pub struct IntegrationTest;
 impl JobArchetype for IntegrationTest {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(
             &os,
             "IDE integration tests",
@@ -123,7 +123,7 @@ impl JobArchetype for IntegrationTest {
 #[derive(Clone, Copy, Debug)]
 pub struct BuildWasm;
 impl JobArchetype for BuildWasm {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(
             &os,
             "Build GUI (WASM)",
@@ -135,7 +135,7 @@ impl JobArchetype for BuildWasm {
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
 impl JobArchetype for BuildBackend {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(&os, "Build Backend", "backend get")
     }
 }
@@ -143,7 +143,7 @@ impl JobArchetype for BuildBackend {
 #[derive(Clone, Copy, Debug)]
 pub struct UploadBackend;
 impl JobArchetype for UploadBackend {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job(&os, "Upload Backend", "backend upload")
     }
 }
@@ -151,7 +151,7 @@ impl JobArchetype for UploadBackend {
 #[derive(Clone, Copy, Debug)]
 pub struct DeployRuntime;
 impl JobArchetype for DeployRuntime {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-runtime", |step| {
             let step = step
                 .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
@@ -170,7 +170,7 @@ impl JobArchetype for DeployRuntime {
 #[derive(Clone, Copy, Debug)]
 pub struct DeployGui;
 impl JobArchetype for DeployGui {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job_customized(&os, "Upload GUI to S3", "release deploy-gui", |step| {
             let step = step
                 .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
@@ -220,7 +220,7 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
 #[derive(Clone, Copy, Debug)]
 pub struct PackageIde;
 impl JobArchetype for PackageIde {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job_customized(
             &os,
             "Package IDE",
@@ -233,7 +233,7 @@ impl JobArchetype for PackageIde {
 #[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend;
 impl JobArchetype for CiCheckBackend {
-    fn job(os: OS) -> Job {
+    fn job(&self, os: OS) -> Job {
         plain_job_customized(&os, "Engine", "backend ci-check", |main_step| {
             vec![main_step, step::engine_test_reporter(os), step::stdlib_test_reporter(os)]
         })

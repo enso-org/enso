@@ -178,23 +178,29 @@ impl Workflow {
         key
     }
 
-    pub fn add<J: JobArchetype>(&mut self, os: OS) -> String {
-        self.add_customized::<J>(os, |_| {})
+    pub fn add(&mut self, os: OS, job: impl JobArchetype) -> String {
+        self.add_customized(os, job, |_| {})
     }
 
-    pub fn add_customized<J: JobArchetype>(&mut self, os: OS, f: impl FnOnce(&mut Job)) -> String {
-        let (key, mut job) = J::entry(os);
+    pub fn add_customized(
+        &mut self,
+        os: OS,
+        job: impl JobArchetype,
+        f: impl FnOnce(&mut Job),
+    ) -> String {
+        let (key, mut job) = job.entry(os);
         f(&mut job);
         self.jobs.insert(key.clone(), job);
         key
     }
 
-    pub fn add_dependent<J: JobArchetype>(
+    pub fn add_dependent(
         &mut self,
         os: OS,
+        job: impl JobArchetype,
         needed: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
-        let (key, mut job) = J::entry(os);
+        let (key, mut job) = job.entry(os);
         for needed in needed {
             self.expose_outputs(needed.as_ref(), &mut job);
         }
@@ -607,7 +613,12 @@ impl Job {
         let step = step_id.as_ref();
         let output = output_name.into();
         let value = format!("${{{{ steps.{step}.outputs.{output} }}}}");
-        self.outputs.insert(output, value);
+        if let Some(old_value) = self.outputs.insert(output.clone(), value) {
+            warn!(
+                "Overwriting output `{}` of job `{}` with value `{}`",
+                output, self.name, old_value
+            );
+        }
     }
 
     pub fn env(&mut self, name: impl Into<String>, value: impl Into<String>) {
@@ -621,7 +632,7 @@ impl Job {
     pub fn use_job_outputs(&mut self, job_id: impl Into<String>, job: &Job) {
         let job_id = job_id.into();
         for output_name in job.outputs.keys() {
-            let reference = format!("${{{{needs.{}.outputs.{}}}}}", job_id, output_name);
+            let reference = wrap_expression(format!("needs.{job_id}.outputs.{output_name}"));
             self.env.insert(output_name.into(), reference);
         }
         self.needs(job_id);
@@ -633,6 +644,11 @@ impl Job {
 
     pub fn with(&mut self, name: impl Into<String>, value: impl Into<String>) {
         self.with.insert(name.into(), value.into());
+    }
+
+    pub fn with_with(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.with(name, value);
+        self
     }
 }
 
@@ -915,27 +931,27 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
 }
 
 pub trait JobArchetype {
-    fn id_key_base() -> String {
+    fn id_key_base(&self) -> String {
         std::any::type_name::<Self>().to_kebab_case()
     }
 
-    fn key(os: OS) -> String {
-        format!("{}-{}", Self::id_key_base(), os)
+    fn key(&self, os: OS) -> String {
+        format!("{}-{}", self.id_key_base(), os)
     }
 
-    fn job(os: OS) -> Job;
+    fn job(&self, os: OS) -> Job;
 
-    fn entry(os: OS) -> (String, Job) {
-        (Self::key(os), Self::job(os))
+    fn entry(&self, os: OS) -> (String, Job) {
+        (self.key(os), self.job(os))
     }
 
     // [Step ID] => [variable names]
-    fn outputs() -> BTreeMap<String, Vec<String>> {
+    fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         default()
     }
 
-    fn expose_outputs(job: &mut Job) {
-        for (step_id, outputs) in Self::outputs() {
+    fn expose_outputs(&self, job: &mut Job) {
+        for (step_id, outputs) in self.outputs() {
             for output in outputs {
                 job.expose_output(&step_id, output);
             }
