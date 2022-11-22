@@ -119,7 +119,7 @@ type Polyglot
 
    Arguments:
    - atom: The atom to obtain the constructor for.
-get_atom_constructor : Atom -> Atom_Constructor
+get_atom_constructor : Atom -> Constructor
 get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
 
 ## PRIVATE
@@ -142,7 +142,7 @@ Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
    ADVANCED
 
    Returns a constructor value of the given atom.
-Atom.constructor : Atom_Constructor
+Atom.constructor : Constructor
 Atom.constructor self = get_atom_constructor self.value ...
 
 # Polyglot methods
@@ -172,7 +172,7 @@ Polyglot.get_language self =
    Arguments:
    - name: The name of the unresolved symbol.
    - scope: The scope in which the symbol name is unresolved.
-create_unresolved_symbol : Text -> Module_Scope -> Unresolved_Symbol
+create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
 create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
 
 ## PRIVATE
@@ -190,7 +190,7 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
 
    Arguments:
    - symbol: The unresolved symbol from which to get the scope.
-get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
+get_unresolved_symbol_scope : Unresolved_Symbol -> Any
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
 # Constructor methods
@@ -200,7 +200,7 @@ get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol
 
    Arguments:
    - atom_constructor: The constructor from which to get the fields.
-get_constructor_fields : Atom_Constructor -> Array
+get_constructor_fields : Constructor -> Array
 get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
 
 ## PRIVATE
@@ -209,7 +209,7 @@ get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_
 
    Arguments:
    - atom_constructor: The atom constructor from which to obtain the name.
-get_constructor_name : Atom_Constructor -> Text
+get_constructor_name : Constructor -> Text
 get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 
 ## PRIVATE
@@ -219,7 +219,7 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
    Arguments:
    - constructor: The constructor for the atom to create.
    - fields: The arguments to pass to constructor.
-new_atom : Atom_Constructor -> Array -> Atom
+new_atom : Constructor -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
 ## UNSTABLE

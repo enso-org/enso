@@ -2,7 +2,9 @@ from Standard.Base import all hiding First, Last
 
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
+import project.Data.Dialect.Dialect
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 

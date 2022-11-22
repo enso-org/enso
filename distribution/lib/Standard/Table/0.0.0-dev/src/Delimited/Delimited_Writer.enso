@@ -1,6 +1,7 @@
 from Standard.Base import all
-import Standard.Base.System
 import Standard.Base.Error.Common as Errors
+import Standard.Base.System
+import Standard.Base.System.File.Output_Stream
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -19,6 +20,7 @@ polyglot java import org.enso.table.util.ColumnMapper
 polyglot java import java.io.PrintWriter
 polyglot java import java.io.StringWriter
 polyglot java import java.io.IOException
+polyglot java import java.io.Writer
 
 ## Writes a delimited file according to the provided format.
 

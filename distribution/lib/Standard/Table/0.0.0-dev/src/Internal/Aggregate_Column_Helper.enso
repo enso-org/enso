@@ -10,6 +10,7 @@ import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import all
+import project.Data.Table.Table
 from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
 
 polyglot java import org.enso.table.aggregations.Aggregator
@@ -45,7 +46,7 @@ type Validated_Aggregate_Columns
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Problem_Behavior -> Validated_Aggregate_Columns
 prepare_aggregate_columns aggregates table =
     problem_builder = Problem_Builder.new
 

@@ -146,7 +146,7 @@ Text.characters self =
          example_match =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
-Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Text | Nothing
+Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
     case self.locate term mode matcher of
         Nothing -> Nothing
@@ -192,7 +192,7 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".is_match regex
-Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
+Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Regex.Compile_Error
 Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
@@ -666,7 +666,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
          "Hello!".starts_with "[a-z]" Regex_Matcher == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher == True
-Text.starts_with : Text -> Matcher -> Boolean
+Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
@@ -701,7 +701,7 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
-Text.ends_with : Text -> Matcher -> Boolean
+Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
@@ -763,7 +763,7 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
      See if the text "Hello!" contains any lowercase letters, using a regex.
 
          "Hello!".contains "[a-z]" Regex_Matcher
-Text.contains : Text -> Matcher -> Boolean
+Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
     Text_Matcher.Case_Insensitive locale ->
@@ -1130,7 +1130,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_span = case mode of
@@ -1232,7 +1232,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
          match_1 . map .length == [2, 3]
          match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
-Text.locate_all : Text -> Matcher -> [Span]
+Text.locate_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Span
 Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
