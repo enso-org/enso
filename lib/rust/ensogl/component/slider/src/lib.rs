@@ -605,26 +605,24 @@ impl Slider {
             output.editing <+ input.finish_value_editing.constant(false);
             output.editing <+ input.cancel_value_editing.constant(false);
             value_on_edit <- output.value.sample(&input.start_value_editing);
-            precision_on_edit <- output.precision.sample(&input.start_value_editing);
+            prec_on_edit <- output.precision.sample(&input.start_value_editing);
             max_places_on_edit <-
                 input.set_max_disp_decimal_places.sample(&input.start_value_editing);
-            value_on_edit <- all3(&value_on_edit, &precision_on_edit, &max_places_on_edit);
-            value_on_edit <- value_on_edit.map(|t| value_text_truncate(t).to_im_string());
-            model.value_text_edit.set_content <+ value_on_edit;
-            eval_ input.start_value_editing({
-                model.set_edit_mode(true);
-            });
-            eval_ input.finish_value_editing({
-                model.set_edit_mode(false);
-            });
-            eval_ input.cancel_value_editing({
-                model.set_edit_mode(false);
-            });
-            value_after_edit <-
+            value_text_on_edit <- all3(&value_on_edit, &prec_on_edit, &max_places_on_edit);
+            value_text_on_edit <- value_text_on_edit.map(|t| value_text_truncate(t).to_im_string());
+            model.value_text_edit.set_content <+ value_text_on_edit;
+            eval_ input.start_value_editing(model.set_edit_mode(true));
+            eval_ input.finish_value_editing(model.set_edit_mode(false));
+            eval_ input.cancel_value_editing(model.set_edit_mode(false));
+            value_text_after_edit <-
                 model.value_text_edit.content.sample(&input.finish_value_editing);
-            value_after_edit <- value_after_edit.map(|s| String::from(s).to_im_string());
-            output.value <+ value_after_edit.map(|s| f32::from_str(s).unwrap());
-            output.precision <+ value_after_edit.map(|s| get_value_text_precision(&s));
+            value_text_after_edit <- value_text_after_edit.map(|s| String::from(s).to_im_string());
+            value_after_edit <- value_text_after_edit.map(|s| f32::from_str(s).ok());
+            edit_success <- value_after_edit.map(|v| v.is_some());
+            value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
+            prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(&s));
+            output.value <+ value_after_edit.gate(&edit_success);
+            output.precision <+ prec_after_edit.gate(&edit_success);
         };
     }
 
