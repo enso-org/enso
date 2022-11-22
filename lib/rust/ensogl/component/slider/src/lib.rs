@@ -620,7 +620,7 @@ impl Slider {
             value_after_edit <- value_text_after_edit.map(|s| f32::from_str(s).ok());
             edit_success <- value_after_edit.map(|v| v.is_some());
             value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
-            prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(&s));
+            prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(s));
             output.value <+ value_after_edit.gate(&edit_success);
             output.precision <+ prec_after_edit.gate(&edit_success);
         };
