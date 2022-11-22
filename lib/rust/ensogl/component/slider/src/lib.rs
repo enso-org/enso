@@ -341,7 +341,7 @@ impl Slider {
             );
             output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
             output.dragged <+ component_drag;
-            output.disabled <+ input.set_slider_disabled; 
+            output.disabled <+ input.set_slider_disabled;
 
 
             // === Precision calculation ===
