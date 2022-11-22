@@ -643,6 +643,13 @@ impl Slider {
             edit_success <- value_after_edit.map(|v| v.is_some());
             value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
             prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(s));
+            value_after_edit <- all5(
+                &value_after_edit,
+                &input.set_min_value,
+                &input.set_max_value,
+                &input.set_lower_limit_type,
+                &input.set_upper_limit_type,
+            ).map(value_limit_clamp);
             output.value <+ value_after_edit.gate(&edit_success);
             output.precision <+ prec_after_edit.gate(&edit_success);
         };
