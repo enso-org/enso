@@ -516,6 +516,8 @@ impl Slider {
             tooltip_start <- any2(&component_events.mouse_over, &component_events.mouse_up_primary);
             tooltip_start <- tooltip_start.gate_not(&output.dragged);
             tooltip_start <- tooltip_start.gate_not(&output.editing);
+            tooltip_empty <- input.set_tooltip.sample(&tooltip_start).map(|s| s.trim().is_empty());
+            tooltip_start <- tooltip_start.gate_not(&tooltip_empty);
             tooltip_anim.start <+ tooltip_start;
             tooltip_anim.reset <+ any2(
                 &component_events.mouse_out,
