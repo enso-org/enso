@@ -11,6 +11,12 @@ on:
           - patch
           - rc
           - nightly
+  workflow_call:
+    inputs:
+      designator:
+        description: What kind of release should be promoted.
+        required: true
+        type: string
 jobs:
   enso-build-cli-ci-gen-promote-release-job-linux:
     name: Promote release (linux)

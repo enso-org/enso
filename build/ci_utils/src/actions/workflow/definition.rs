@@ -449,8 +449,7 @@ impl TryFrom<WorkflowDispatchInputType> for WorkflowCallInputType {
         Ok(match value {
             WorkflowDispatchInputType::String { default } => Self::String { default },
             WorkflowDispatchInputType::Boolean { default } => Self::Boolean { default },
-            WorkflowDispatchInputType::Choice { .. } =>
-                bail!("Choice is not supported for workflow call inputs!"),
+            WorkflowDispatchInputType::Choice { default, .. } => Self::String { default },
             WorkflowDispatchInputType::Environment { .. } =>
                 bail!("Environment is not supported for workflow call inputs!"),
         })
