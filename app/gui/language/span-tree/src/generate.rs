@@ -1,8 +1,7 @@
 //! A module containing code related to SpanTree generation.
-pub mod context;
-pub mod macros;
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
@@ -19,7 +18,14 @@ use ast::Ast;
 use ast::HasRepr;
 use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod context;
+pub mod macros;
 
 pub use context::Context;
 
@@ -83,7 +89,7 @@ impl<T: Payload> SpanTreeGenerator<T> for String {
 /// An utility to generate children with increasing offsets.
 #[derive(Debug, Default)]
 struct ChildGenerator<T> {
-    current_offset: Bytes,
+    current_offset: ByteDiff,
     children:       Vec<node::Child<T>>,
 }
 
@@ -91,7 +97,7 @@ impl<T: Payload> ChildGenerator<T> {
     /// Add spacing to current generator state. It will be taken into account for the next generated
     /// children's offsets
     fn spacing(&mut self, size: usize) {
-        self.current_offset += Bytes::from(size);
+        self.current_offset += (size as i32).byte_diff();
     }
 
     fn generate_ast_node(
@@ -220,7 +226,7 @@ fn generate_node_for_ast<T: Payload>(
                 .unwrap()
                 .generate_node(kind, context),
             _ => {
-                let size = ast.len();
+                let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
                 let children = default();
                 let name = ast::identifier::name(ast);
@@ -620,7 +626,7 @@ mod test {
     use ast::crumbs::SectionSidesCrumb;
     use ast::Crumbs;
     use ast::IdMap;
-    use parser::Parser;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -945,7 +951,7 @@ mod test {
     fn generating_span_tree_for_unfinished_call() {
         let parser = Parser::new_or_panic();
         let this_param =
-            ArgumentInfo { name: Some("this".to_owned()), tp: Some("Any".to_owned()) };
+            ArgumentInfo { name: Some("self".to_owned()), tp: Some("Any".to_owned()) };
         let param1 =
             ArgumentInfo { name: Some("arg1".to_owned()), tp: Some("Number".to_owned()) };
         let param2 = ArgumentInfo { name: Some("arg2".to_owned()), tp: None };

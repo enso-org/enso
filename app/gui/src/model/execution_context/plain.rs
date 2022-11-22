@@ -3,16 +3,18 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::AttachedVisualization;
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
-use crate::model::module;
 
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
+
 
 
 // ==============
@@ -47,7 +49,6 @@ pub struct InvalidVisualizationId(VisualizationId);
 /// controllers.
 #[derive(Debug)]
 pub struct ExecutionContext {
-    logger: Logger,
     /// A name of definition which is a root call of this context.
     pub entry_point: MethodPointer,
     /// Local call stack.
@@ -58,17 +59,26 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
+    /// Component groups defined in libraries imported into the execution context.
+    pub component_groups: RefCell<Rc<Vec<ComponentGroup>>>,
 }
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(logger: impl Into<Logger>, entry_point: MethodPointer) -> Self {
-        let logger = logger.into();
+    pub fn new(entry_point: MethodPointer) -> Self {
         let stack = default();
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
-        Self { logger, entry_point, stack, visualizations, computed_value_info_registry, is_ready }
+        let component_groups = default();
+        Self {
+            entry_point,
+            stack,
+            visualizations,
+            computed_value_info_registry,
+            is_ready,
+            component_groups,
+        }
     }
 
     /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used
@@ -109,7 +119,7 @@ impl ExecutionContext {
         let id = visualization.id;
         let (update_sender, receiver) = futures::channel::mpsc::unbounded();
         let visualization = AttachedVisualization { visualization, update_sender };
-        info!(self.logger, "Inserting to the registry: {id}.");
+        info!("Inserting to the registry: {id}.");
         self.visualizations.borrow_mut().insert(id, visualization);
         receiver
     }
@@ -121,17 +131,17 @@ impl ExecutionContext {
     pub fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> FallibleResult {
         let err = || InvalidVisualizationId(id);
         let mut visualizations = self.visualizations.borrow_mut();
         let visualization = &mut visualizations.get_mut(&id).ok_or_else(err)?.visualization;
-        if let Some(expression) = expression {
-            visualization.preprocessor_code = expression;
+        if let Some(method_pointer) = method_pointer {
+            visualization.method_pointer = method_pointer;
         }
-        if let Some(module) = module {
-            visualization.context_module = module;
+        if let Some(arguments) = arguments {
+            visualization.arguments = arguments;
         }
         Ok(())
     }
@@ -141,7 +151,7 @@ impl ExecutionContext {
     /// This function shadows the asynchronous version from API trait.
     pub fn detach_visualization(&self, id: VisualizationId) -> FallibleResult<Visualization> {
         let err = || InvalidVisualizationId(id);
-        info!(self.logger, "Removing from the registry: {id}.");
+        info!("Removing from the registry: {id}.");
         let removed = self.visualizations.borrow_mut().remove(&id).ok_or_else(err)?;
         Ok(removed.visualization)
     }
@@ -171,6 +181,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn active_visualizations(&self) -> Vec<VisualizationId> {
         self.visualizations.borrow().keys().copied().collect_vec()
+    }
+
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.component_groups.borrow().clone()
     }
 
     fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry> {
@@ -210,10 +224,11 @@ impl model::execution_context::API for ExecutionContext {
     fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        futures::future::ready(self.modify_visualization(id, expression, module)).boxed_local()
+        futures::future::ready(self.modify_visualization(id, method_pointer, arguments))
+            .boxed_local()
     }
 
     fn dispatch_visualization_update(
@@ -225,11 +240,10 @@ impl model::execution_context::API for ExecutionContext {
             // TODO [mwu] Should we consider detaching the visualization if the view has dropped the
             //   channel's receiver? Or we need to provide a way to re-establish the channel.
             let _ = visualization.update_sender.unbounded_send(data);
-            debug!(self.logger, "Sending update data to the visualization {visualization_id}.");
+            debug!("Sending update data to the visualization {visualization_id}.");
             Ok(())
         } else {
             error!(
-                self.logger,
                 "Failed to dispatch update to visualization {visualization_id}. \
             Failed to found such visualization."
             );
@@ -246,15 +260,17 @@ pub mod test {
 
     use double_representation::definition::DefinitionName;
     use double_representation::project;
+    use engine_protocol::language_server;
 
     #[derive(Clone, Derivative)]
     #[derivative(Debug)]
     pub struct MockData {
-        pub module_path:     model::module::Path,
-        pub context_id:      model::execution_context::Id,
-        pub root_definition: DefinitionName,
-        pub namespace:       String,
-        pub project_name:    String,
+        pub module_path:      model::module::Path,
+        pub context_id:       model::execution_context::Id,
+        pub root_definition:  DefinitionName,
+        pub namespace:        String,
+        pub project_name:     String,
+        pub component_groups: Vec<language_server::LibraryComponentGroup>,
     }
 
     impl Default for MockData {
@@ -266,11 +282,12 @@ pub mod test {
     impl MockData {
         pub fn new() -> MockData {
             MockData {
-                context_id:      model::execution_context::Id::new_v4(),
-                module_path:     crate::test::mock::data::module_path(),
-                root_definition: crate::test::mock::data::definition_name(),
-                namespace:       crate::test::mock::data::NAMESPACE_NAME.to_owned(),
-                project_name:    crate::test::mock::data::PROJECT_NAME.to_owned(),
+                context_id:       model::execution_context::Id::new_v4(),
+                module_path:      crate::test::mock::data::module_path(),
+                root_definition:  crate::test::mock::data::definition_name(),
+                namespace:        crate::test::mock::data::NAMESPACE_NAME.to_owned(),
+                project_name:     crate::test::mock::data::PROJECT_NAME.to_owned(),
+                component_groups: vec![],
             }
         }
 
@@ -292,9 +309,17 @@ pub mod test {
             }
         }
 
+        fn component_groups(&self) -> RefCell<Rc<Vec<ComponentGroup>>> {
+            use engine_protocol::language_server::LibraryComponentGroup;
+            let group_from_lib_group = |g: &LibraryComponentGroup| g.clone().try_into().unwrap();
+            let groups = self.component_groups.iter().map(group_from_lib_group).collect();
+            RefCell::new(Rc::new(groups))
+        }
+
         pub fn create(&self) -> ExecutionContext {
-            let logger = Logger::new("Mocked Execution Context");
-            ExecutionContext::new(logger, self.main_method_pointer())
+            let mut ec = ExecutionContext::new(self.main_method_pointer());
+            ec.component_groups = self.component_groups();
+            ec
         }
     }
 }

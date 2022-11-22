@@ -6,6 +6,7 @@ use json_rpc::test_util::transport::mock::MockTransport;
 use serde::Serialize;
 
 
+
 #[derive(Debug)]
 pub struct TestWithMockedTransport {
     with_executor_fixture: TestWithLocalPoolExecutor,

@@ -3,41 +3,39 @@ package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "<=", description = "Comparison of numbers.")
 public abstract class LessOrEqualNode extends Node {
 
-  abstract boolean execute(long _this, Object that);
+  abstract Object execute(long self, Object that);
 
   static LessOrEqualNode build() {
     return LessOrEqualNodeGen.create();
   }
 
   @Specialization
-  boolean doLong(long _this, long that) {
-    return _this <= that;
+  boolean doLong(long self, long that) {
+    return self <= that;
   }
 
   @Specialization
-  boolean doDouble(long _this, double that) {
-    return (double) _this <= that;
+  boolean doDouble(long self, double that) {
+    return (double) self <= that;
   }
 
   @Specialization
-  boolean doBigInteger(long _this, EnsoBigInteger that) {
+  boolean doBigInteger(long self, EnsoBigInteger that) {
     return that.getValue().signum() > 0;
   }
 
   @Fallback
-  boolean doOther(long _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
-    Atom number = builtins.number().getNumber().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
+  DataflowError doOther(long self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 }

@@ -1,0 +1,26 @@
+import project.Data.Numbers.Integer
+
+## Specifies the direction of ordering.
+type Sort_Direction
+
+    ## Elements should be sorted in ascending order.
+
+       > Example
+         Create an ascending order.
+
+             Sort_Direction.Ascending
+    Ascending
+
+    ## Elements should be sorted in descending order.
+
+       > Example
+         Create a descending order.
+
+             Sort_Direction.Descending
+    Descending
+
+    ## Convert into the sign of the direction
+    to_sign : Integer
+    to_sign self = case self of
+        Sort_Direction.Ascending -> 1
+        Sort_Direction.Descending -> -1

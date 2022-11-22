@@ -1,30 +1,35 @@
 from Standard.Base import all
+from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Test_Result.Test_Result
 
-type Author name year_of_birth
-type Book title author
+type Author
+    Value name year_of_birth
 
-Text.should_fail_parsing_with expected =
-    as_fail = case Json.parse this of
-        _ -> Test.Failure "Expected a parse error, but no error reported."
-    result = as_fail.catch e-> case e of
-        Json.Parse_Error msg ->
-            if msg.contains expected then Test.Success else
+type Book
+    Value title author
+
+Text.should_fail_parsing_with self expected =
+    as_fail = case Json.parse self of
+        _ -> Test_Result.Failure "Expected a parse error, but no error reported."
+    result = as_fail.catch Any e-> case e of
+        Json_Parse_Error.Error msg ->
+            if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
-                Test.Failure fail_msg
+                Test_Result.Failure fail_msg
         _ ->
             fail_msg = "Expected a parser error, but " + e.to_text + " was thrown."
-            Test.Failure fail_msg
+            Test_Result.Failure fail_msg
     case result of
-        Test.Success -> Test.Success
-        fail -> Panic.throw fail
+        Test_Result.Success -> Test_Result.Success
+        _ -> Panic.throw result
 
-Text.should_parse_as expected =
-    Test.Verbs.equal (Json.parse this) expected.to_json
+Text.should_parse_as self expected =
+    Json.parse self . should_equal expected.to_json
 
-Text.should_render_itself =
-    Test.Verbs.equal (Json.parse this . to_text) this
+Text.should_render_itself self =
+    Json.parse self . to_text . should_equal self
 
 spec =
     Test.group "JSON Deserialization" <|
@@ -68,17 +73,17 @@ spec =
             "123 4".should_fail_parsing_with "Expected end of input"
 
         Test.specify "should parse and convert JSON into domain model" <|
-            book_1 = Book "Lord of the Rings" <|
-                Author "J. R. R. Tolkien" 1892
-            book_2 = Book "The Little Prince" <|
-                Author "Antoine de Saint-Exupéry" 1900
-            book_3 = Book "And Then There Were None" <|
-                Author "Agatha Christie" 1890
+            book_1 = Book.Value "Lord of the Rings" <|
+                Author.Value "J. R. R. Tolkien" 1892
+            book_2 = Book.Value "The Little Prince" <|
+                Author.Value "Antoine de Saint-Exupéry" 1900
+            book_3 = Book.Value "And Then There Were None" <|
+                Author.Value "Agatha Christie" 1890
             books = [book_1, book_2, book_3]
 
-            json_string = (Enso_Project.data / "books.json").read
+            json_string = (enso_project.data / "books.json").read_text
             parsed = Json.parse json_string
-            domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+            domain = parsed.into (Vector.fill 1 (Book.Value title=Text (Author.Value name=Text year_of_birth=Number)))
             domain.should_equal books
 
     Test.group "JSON Serialization" <|
@@ -104,10 +109,10 @@ spec =
             1.54.to_json.should_equal (Json.Number 1.54)
             ["foo", "bar", "baz"].to_json.should_equal <|
                 (Json.Array [Json.String "foo", Json.String "bar", Json.String "baz"])
-            Author "Tolkien" 1892 . to_json . should_equal <|
+            Author.Value "Tolkien" 1892 . to_json . should_equal <|
                 n = Json.String "Tolkien"
                 y = Json.Number 1892
-                t = Json.String "Author"
+                t = Json.String "Value"
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
 
@@ -120,5 +125,6 @@ spec =
                   "y": {"z": null, "w": null} }
 
             object.get "foo" . should_equal (Json.String "bar")
-            object.get "bar" . should_fail_with Json.No_Such_Field_Error
+            object.get "bar" . should_fail_with No_Such_Field.Error
 
+main = Test_Suite.run_main spec

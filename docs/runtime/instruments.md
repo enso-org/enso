@@ -21,8 +21,7 @@ and other kinds of behavior analysis at runtime.
 ## Naming Conventions
 
 Every Instrument must be implemented in Java and have name that ends with
-`Instrument`. This requirement is to ensure that the [fix](#fixing-compilation)
-described below works.
+`Instrument`.
 
 ## Fixing Compilation
 
@@ -32,7 +31,6 @@ Unfortunately, when doing an incremental compilation, only the changed files are
 recompiled and the annotation processor 'forgets' about other instruments that
 haven't been recompiled, leading to runtime errors about missing instruments.
 
-To fix that, we add the
-[`FixInstrumentsGeneration.scala`](../../project/FixInstrumentsGeneration.scala)
-task which detects changes to any of the instruments and forces recompilation of
-all instruments in the project by removing their classfiles.
+To fix that, individual services have to be placed in separate subprojects
+depending on `runtime` and aggregated under `runtime-with-instruments`. Later
+the META-INF registrations are concatenated in the final uber jar.

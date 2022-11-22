@@ -27,7 +27,7 @@ class LambdaTest extends InterpreterTest {
           |    add = a -> b -> a + b
           |    adder = b -> add a b
           |    adder 2
-      """.stripMargin
+          |""".stripMargin
 
       eval(code).call(3) shouldEqual 5
     }
@@ -46,7 +46,7 @@ class LambdaTest extends InterpreterTest {
           |main =
           |    sumTo = x -> if x == 0 then 0 else x + (sumTo (x-1))
           |    sumTo 10
-      """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 55
     }
@@ -75,13 +75,13 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Data.List.List
           |
           |main =
-          |    f = x -> Cons
+          |    f = x -> List.Cons
           |    myCons = f 1 2 3
           |    case myCons of
-          |        Cons h t -> h + t
+          |        List.Cons h t -> h + t
           |""".stripMargin
 
       eval(code) shouldEqual 5
@@ -89,9 +89,9 @@ class LambdaTest extends InterpreterTest {
 
     "support the use of oversaturated args in methods" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing.Nothing
           |
-          |Nothing.my_method = 1
+          |Nothing.my_method self = 1
           |
           |main =
           |    f = x -> .my_method
@@ -117,7 +117,7 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated returned lambdas" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.IO import all
           |
           |main =
           |    fn = a -> b ->
@@ -134,9 +134,9 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated lambdas returned with TCO" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Numbers import Number
           |
-          |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
+          |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |
           |main =
           |    lam = (x = 10) -> x

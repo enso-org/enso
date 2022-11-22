@@ -9,13 +9,14 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(
     type = "Polyglot",
     name = "has_source_location",
-    description = "Checks if an object has a source location.")
+    description = "Checks if an object has a source location.",
+    autoRegister = false)
 public class HasSourceLocationNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  boolean execute(Object _this, Object value) {
+  boolean execute(Object value) {
     return library.hasSourceLocation(value);
   }
 }

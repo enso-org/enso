@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE filesystem PUBLIC "-//NetBeans//DTD Filesystem 1.2//EN" "http://www.netbeans.org/dtds/filesystem-1_2.dtd">
+<filesystem>
+    <folder name="IGV">
+        <folder name="Languages">
+            <folder name="enso">
+                <attr name="displayName" bundlevalue="org.enso.tools.enso4igv.Bundle#EnsoLanguage"/>
+                <attr name="mimetype" stringvalue="application/x-enso"/>
+                <attr name="iconBase" stringvalue="org/enso/tools/enso4igv/enso.png"/>
+            </folder>
+        </folder>
+    </folder>
+</filesystem>

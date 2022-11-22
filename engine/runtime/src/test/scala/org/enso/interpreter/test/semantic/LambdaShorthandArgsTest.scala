@@ -50,9 +50,9 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with mixfix functions" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Numbers import all
           |
-          |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
+          |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |
           |main =
           |    f = if _ then 10 else 5
@@ -66,14 +66,14 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Data.List.List
           |
           |main =
           |    f = case _ of
-          |           Cons a b -> 10
-          |           Nil -> 0
-          |    res1 = f (Cons 1 2)
-          |    res2 = f Nil
+          |           List.Cons a b -> 10
+          |           List.Nil -> 0
+          |    res1 = f (List.Cons 1 2)
+          |    res2 = f List.Nil
           |    res2 - res1
           |""".stripMargin
 
@@ -85,7 +85,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
         """
           |main =
           |    f = (x = _) -> x
-          |    g = f.call
+          |    g = f
           |    h = _
           |    res1 = g 10
           |    res2 = h 10
@@ -142,9 +142,9 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used with dot notation" in {
       val code =
         """
-          |import Standard.Builtins
+          |from Standard.Base.Data.Numbers import Number
           |
-          |Builtins.Number.f = this + 10
+          |Number.f self = self + 10
           |
           |main =
           |    fun = _.f
@@ -157,8 +157,6 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used inside the function of an application" in {
       val code =
         """
-          |import Standard.Builtins
-          |
           |main = (_ - 5) 0
           |""".stripMargin
 

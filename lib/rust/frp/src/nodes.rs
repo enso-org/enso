@@ -3,23 +3,26 @@
 //! Please note that the documentation is provided for methods of `Network`, as this is considered
 //! to be the public API. The same documentation applies to node definitions below.
 
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::prelude::*;
-
-use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
+use crate::prelude::*;
+use enso_generics::traits::*;
+
+use crate::data::watch;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
 use crate::stream::OwnedStream;
 use crate::stream::Stream;
 use crate::stream::ValueProvider;
+
 use enso_generics as generics;
-use enso_generics::traits::*;
+
 
 
 // ========================
@@ -50,6 +53,12 @@ impl Network {
     /// Print the incoming events to console and pass them to output.
     pub fn trace<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedTrace::new(label, src))
+    }
+
+    /// Profile the event resolution from this node onwards and log the result in the profiling
+    /// framework.
+    pub fn profile<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
+        self.register(OwnedProfile::new(label, src))
     }
 
     /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
@@ -107,6 +116,7 @@ impl Network {
         self.register(OwnedGateNot::new(label, event, behavior))
     }
 
+    /// Unwraps the value of incoming events and emits the unwrapped values.
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
         T: EventOutput<Output = Option<S>>,
@@ -114,6 +124,7 @@ impl Network {
         self.register(OwnedUnwrap::new(label, event))
     }
 
+    /// On every incoming event, iterate over its value and emit each element separately.
     pub fn iter<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -122,6 +133,7 @@ impl Network {
         self.register(OwnedIter::new(label, event))
     }
 
+    /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -130,6 +142,7 @@ impl Network {
         self.register(OwnedFold::new(label, event))
     }
 
+    /// Get the 0-based index of the incoming event.
     pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt0<Output<T1>>>
     where
         T1: EventOutput,
@@ -138,6 +151,7 @@ impl Network {
         self.register(OwnedGet0::new(label, event))
     }
 
+    /// Get the 1-based index of the incoming event.
     pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt1<Output<T1>>>
     where
         T1: EventOutput,
@@ -146,6 +160,7 @@ impl Network {
         self.register(OwnedGet1::new(label, event))
     }
 
+    /// Get the 2-based index of the incoming event.
     pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt2<Output<T1>>>
     where
         T1: EventOutput,
@@ -163,6 +178,51 @@ impl Network {
         let prev = self.previous(label, t);
         let changed = self.map2(label, t, &prev, |t1, t2| t1 != t2);
         self.gate(label, t, &changed)
+    }
+
+    /// Just like [`value.into()`] on the reference of the incoming value.
+    pub fn ref_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        S: Data,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| v.into())
+    }
+
+    /// Just like [`value.clone().into()`] on the incoming value.
+    pub fn cloned_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Data, {
+        self.map(label, t, |v| v.clone().into())
+    }
+
+    /// Just like [`Some(value.into())`] on the reference of the incoming value.
+    pub fn ref_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        S: Clone + Debug + 'static,
+        for<'t> &'t V: Into<S>, {
+        self.map(label, t, |v| Some(v.into()))
+    }
+
+    /// Just like [`Some(value.clone().into())`] on the incoming value.
+    pub fn cloned_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
+    where
+        T: EventOutput<Output = V>,
+        V: Clone + Into<S>,
+        S: Clone + Debug + 'static, {
+        self.map(label, t, |v| Some(v.clone().into()))
+    }
+
+    /// Converts the incoming values to [`AnyData`] hiding their types. This can be used to create
+    /// FRP inputs accepting different types, not known at compile time.
+    pub fn any_data<T>(&self, label: Label, t: &T) -> Stream<crate::AnyData>
+    where
+        T: EventOutput,
+        T::Output: Clone + 'static, {
+        self.map(label, t, |v| crate::AnyData::new(v.clone()))
     }
 
 
@@ -655,6 +715,52 @@ impl Network {
         self.register(OwnedAll5::new(label, t1, t2, t3, t4, t5))
     }
 
+    /// Specialized version of `all`.
+    pub fn all6<T1, T2, T3, T4, T5, T6>(
+        &self,
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+    ) -> Stream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>)>
+    where
+        T1: EventOutput,
+        T2: EventOutput,
+        T3: EventOutput,
+        T4: EventOutput,
+        T5: EventOutput,
+        T6: EventOutput,
+    {
+        self.register(OwnedAll6::new(label, t1, t2, t3, t4, t5, t6))
+    }
+
+    /// Specialized version of `all`.
+    pub fn all7<T1, T2, T3, T4, T5, T6, T7>(
+        &self,
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        t7: &T7,
+    ) -> Stream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>, Output<T7>)>
+    where
+        T1: EventOutput,
+        T2: EventOutput,
+        T3: EventOutput,
+        T4: EventOutput,
+        T5: EventOutput,
+        T6: EventOutput,
+        T7: EventOutput,
+    {
+        self.register(OwnedAll7::new(label, t1, t2, t3, t4, t5, t6, t7))
+    }
+
 
     // === Filter ===
 
@@ -940,6 +1046,10 @@ impl DynamicNetwork {
 
     pub fn trace<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
         OwnedTrace::new(label, src).into()
+    }
+
+    pub fn profile<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+        OwnedProfile::new(label, src).into()
     }
 
     pub fn toggle<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<bool> {
@@ -1451,35 +1561,68 @@ impl<Out: Data> Source<Out> {
     }
 }
 
-/// The parameter of FRP system. It allows passing wide range of values to the `emit` function for
-/// easy of use.
+define_not_same_trait!();
+impl<T> !NotSame for (T, &T) {}
+impl<T> !NotSame for (Option<T>, T) {}
+impl<T> !NotSame for (Option<T>, &T) {}
+
 #[allow(missing_docs)]
 pub trait IntoParam<T> {
     fn into_param(self) -> T;
 }
+
 impl<T> IntoParam<T> for T {
     fn into_param(self) -> T {
         self
     }
 }
+
 impl<T: Clone> IntoParam<T> for &T {
     fn into_param(self) -> T {
         self.clone()
     }
 }
+
 impl<T> IntoParam<Option<T>> for T {
     fn into_param(self) -> Option<T> {
         Some(self)
     }
 }
+
 impl<T: Clone> IntoParam<Option<T>> for &T {
     fn into_param(self) -> Option<T> {
         Some(self.clone())
     }
 }
-impl IntoParam<String> for &str {
-    fn into_param(self) -> String {
+
+impl<T: Clone, S> IntoParam<Option<T>> for S
+where
+    S: Into<T>,
+    (Option<T>, S): NotSame,
+{
+    fn into_param(self) -> Option<T> {
+        Some(self.into())
+    }
+}
+
+impl<T, S> IntoParam<T> for S
+where
+    (T, S): NotSame,
+    S: Into<T>,
+{
+    default fn into_param(self) -> T {
         self.into()
+    }
+}
+
+impl<T1, T2, S1, S2> IntoParam<(T1, T2)> for (S1, S2)
+where
+    ((T1, T2), (S1, S2)): NotSame,
+    S1: Into<T1>,
+    S2: Into<T2>,
+{
+    default fn into_param(self) -> (T1, T2) {
+        (self.0.into(), self.1.into())
     }
 }
 
@@ -1575,9 +1718,51 @@ impl<T: EventOutput> OwnedTrace<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        DEBUG!("[FRP] {self.label()}: {event:?}");
-        DEBUG!("[FRP] {stack}");
+        debug!("[FRP] {}: {:?}", self.label(), event);
+        debug!("[FRP] {}", stack);
         self.emit_event(stack, event);
+    }
+}
+
+
+
+// ===============
+// === Profile ===
+// ===============
+
+#[derive(Clone, Debug)]
+pub struct ProfileData<T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src: T,
+}
+pub type OwnedProfile<T> = stream::Node<ProfileData<T>>;
+pub type Profile<T> = stream::WeakNode<ProfileData<T>>;
+
+impl<T: EventOutput> HasOutput for ProfileData<T> {
+    type Output = Output<T>;
+}
+
+impl<T: EventOutput> OwnedProfile<T> {
+    /// Constructor.
+    pub fn new(label: Label, src1: &T) -> Self {
+        let src = src1.clone_ref();
+        let def = ProfileData { src };
+        Self::construct_and_connect(label, src1, def)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        use profiler::internal::StartState;
+
+        let label = profiler::internal::Label(self.label());
+        let parent = profiler::internal::EventId::implicit();
+        let now = Some(profiler::internal::Timestamp::now());
+        let profiler = profiler::Debug::start(parent, label, now, StartState::Active);
+        self.emit_event(stack, event);
+        profiler.finish();
     }
 }
 
@@ -2844,7 +3029,8 @@ where
         t1.register_target(weak.clone_ref().into());
         t2.register_target(weak.clone_ref().into());
         t3.register_target(weak.clone_ref().into());
-        t4.register_target(weak.into());
+        t4.register_target(weak.clone_ref().into());
+        t5.register_target(weak.into());
         this
     }
 }
@@ -2882,6 +3068,229 @@ where
             Link::mixed(&self.src3),
             Link::mixed(&self.src4),
             Link::mixed(&self.src5),
+        ]
+    }
+}
+
+
+
+// ============
+// === All6 ===
+// ============
+
+#[derive(Debug)]
+pub struct All6Data<T1, T2, T3, T4, T5, T6> {
+    src1: watch::Ref<T1>,
+    src2: watch::Ref<T2>,
+    src3: watch::Ref<T3>,
+    src4: watch::Ref<T4>,
+    src5: watch::Ref<T5>,
+    src6: watch::Ref<T6>,
+}
+pub type OwnedAll6<T1, T2, T3, T4, T5, T6> = stream::Node<All6Data<T1, T2, T3, T4, T5, T6>>;
+pub type WeakAll6<T1, T2, T3, T4, T5, T6> = stream::WeakNode<All6Data<T1, T2, T3, T4, T5, T6>>;
+
+impl<T1, T2, T3, T4, T5, T6> HasOutput for All6Data<T1, T2, T3, T4, T5, T6>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+{
+    type Output = (Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>);
+}
+
+impl<T1, T2, T3, T4, T5, T6> OwnedAll6<T1, T2, T3, T4, T5, T6>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+{
+    /// Constructor.
+    pub fn new(label: Label, t1: &T1, t2: &T2, t3: &T3, t4: &T4, t5: &T5, t6: &T6) -> Self {
+        let src1 = watch_stream(t1);
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let src6 = watch_stream(t6);
+        let def = All6Data { src1, src2, src3, src4, src5, src6 };
+        let this = Self::construct(label, def);
+        let weak = this.downgrade();
+        t1.register_target(weak.clone_ref().into());
+        t2.register_target(weak.clone_ref().into());
+        t3.register_target(weak.clone_ref().into());
+        t4.register_target(weak.clone_ref().into());
+        t5.register_target(weak.clone_ref().into());
+        t6.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, Out> stream::EventConsumer<Out> for OwnedAll6<T1, T2, T3, T4, T5, T6>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+{
+    fn on_event(&self, stack: CallStack, _: &Out) {
+        let value1 = self.src1.value();
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let value6 = self.src6.value();
+        self.emit_event(stack, &(value1, value2, value3, value4, value5, value6));
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6> stream::InputBehaviors for All6Data<T1, T2, T3, T4, T5, T6>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![
+            Link::mixed(&self.src1),
+            Link::mixed(&self.src2),
+            Link::mixed(&self.src3),
+            Link::mixed(&self.src4),
+            Link::mixed(&self.src5),
+            Link::mixed(&self.src6),
+        ]
+    }
+}
+
+
+
+// ============
+// === All7 ===
+// ============
+
+#[derive(Debug)]
+pub struct All7Data<T1, T2, T3, T4, T5, T6, T7> {
+    src1: watch::Ref<T1>,
+    src2: watch::Ref<T2>,
+    src3: watch::Ref<T3>,
+    src4: watch::Ref<T4>,
+    src5: watch::Ref<T5>,
+    src6: watch::Ref<T6>,
+    src7: watch::Ref<T7>,
+}
+pub type OwnedAll7<T1, T2, T3, T4, T5, T6, T7> = stream::Node<All7Data<T1, T2, T3, T4, T5, T6, T7>>;
+pub type WeakAll7<T1, T2, T3, T4, T5, T6, T7> =
+    stream::WeakNode<All7Data<T1, T2, T3, T4, T5, T6, T7>>;
+
+impl<T1, T2, T3, T4, T5, T6, T7> HasOutput for All7Data<T1, T2, T3, T4, T5, T6, T7>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+{
+    type Output =
+        (Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>, Output<T7>);
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7> OwnedAll7<T1, T2, T3, T4, T5, T6, T7>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+{
+    /// Constructor.
+    pub fn new(
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        t7: &T7,
+    ) -> Self {
+        let src1 = watch_stream(t1);
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let src6 = watch_stream(t6);
+        let src7 = watch_stream(t7);
+        let def = All7Data { src1, src2, src3, src4, src5, src6, src7 };
+        let this = Self::construct(label, def);
+        let weak = this.downgrade();
+        t1.register_target(weak.clone_ref().into());
+        t2.register_target(weak.clone_ref().into());
+        t3.register_target(weak.clone_ref().into());
+        t4.register_target(weak.clone_ref().into());
+        t5.register_target(weak.clone_ref().into());
+        t6.register_target(weak.clone_ref().into());
+        t7.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7, Out> stream::EventConsumer<Out>
+    for OwnedAll7<T1, T2, T3, T4, T5, T6, T7>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+{
+    fn on_event(&self, stack: CallStack, _: &Out) {
+        let value1 = self.src1.value();
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let value6 = self.src6.value();
+        let value7 = self.src7.value();
+        self.emit_event(stack, &(value1, value2, value3, value4, value5, value6, value7));
+    }
+}
+
+impl<T1, T2, T3, T4, T5, T6, T7> stream::InputBehaviors for All7Data<T1, T2, T3, T4, T5, T6, T7>
+where
+    T1: EventOutput,
+    T2: EventOutput,
+    T3: EventOutput,
+    T4: EventOutput,
+    T5: EventOutput,
+    T6: EventOutput,
+    T7: EventOutput,
+{
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![
+            Link::mixed(&self.src1),
+            Link::mixed(&self.src2),
+            Link::mixed(&self.src3),
+            Link::mixed(&self.src4),
+            Link::mixed(&self.src5),
+            Link::mixed(&self.src6),
+            Link::mixed(&self.src7),
         ]
     }
 }

@@ -1,32 +1,47 @@
 package org.enso.compiler.test.context
 
-import org.enso.compiler.Passes
-import org.enso.compiler.context.{
-  FreshNameSupply,
-  ModuleContext,
-  SuggestionBuilder
-}
+import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassManager
-import org.enso.compiler.test.CompilerTest
-import org.enso.docs.generator.DocParserWrapper
+import org.enso.interpreter.runtime
+import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
 import org.enso.polyglot.data.Tree
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 
-class SuggestionBuilderTest extends CompilerTest {
+class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
+  private val ctx = new InterpreterContext()
+  private val langCtx = ctx.ctx
+    .getBindings(LanguageInfo.ID)
+    .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+    .asHostObject[Context]()
 
-  implicit val passManager: PassManager = new Passes(defaultConfig).passManager
+  implicit private class PreprocessModule(code: String) {
+
+    def preprocessModule(name: QualifiedName): IR.Module = {
+      val module = new runtime.Module(
+        name,
+        null,
+        code.stripMargin.linesIterator.mkString("\n")
+      )
+      langCtx.getCompiler.run(module)
+      module.getIr
+    }
+
+    def preprocessModule: IR.Module =
+      preprocessModule(Module)
+
+  }
 
   private val Module = QualifiedName(List("Unnamed"), "Test")
   private val ModuleNode = Tree.Node(
     Suggestion.Module(
-      module            = Module.toString,
-      documentation     = None,
-      documentationHtml = None,
-      reexport          = None
+      module        = Module.toString,
+      documentation = None
     ),
     Vector()
   )
@@ -34,18 +49,18 @@ class SuggestionBuilderTest extends CompilerTest {
   private val DoccedModuleNode = Tree.Node(
     Suggestion.Module(
       module        = Module.toString,
-      documentation = Some(" " + moduleDoc),
-      documentationHtml =
-        Some(DocParserWrapper.runOnPureDoc(moduleDoc, Module.toString)),
-      reexport = None
+      documentation = Some(" " + moduleDoc)
     ),
     Vector()
   )
 
+  @annotation.nowarn
+  def endOfLine(line: Int, character: Int): Suggestion.Position =
+    Suggestion.Position(line + 1, 0)
+
   "SuggestionBuilder" should {
 
     "build method without explicit arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo = 42"""
       val module = code.preprocessModule
@@ -59,12 +74,12 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -73,7 +88,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -91,13 +105,12 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
-              documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+              isStatic      = true,
+              documentation = Some(" The foo")
             ),
             Vector()
           )
@@ -106,7 +119,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with type and documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -125,13 +137,12 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = "Number",
-              documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+              isStatic      = true,
+              documentation = Some(" The foo")
             ),
             Vector()
           )
@@ -140,7 +151,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with a qualified type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -157,12 +167,12 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Foo.Bar",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Foo.Bar",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -171,7 +181,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with an argument" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -188,13 +197,13 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("a", "Text", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Number",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -203,7 +212,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with a type containing higher kinds" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -220,7 +228,7 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument(
                   "a",
                   "Either (Vector Number) Text",
@@ -229,10 +237,10 @@ class SuggestionBuilderTest extends CompilerTest {
                   None
                 )
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Number",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -242,7 +250,6 @@ class SuggestionBuilderTest extends CompilerTest {
 
     "build method with a type containing qualified higher kinds" in {
       pending // issue #1711
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -259,12 +266,12 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Foo.Bar Baz",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Foo.Bar Baz",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -273,7 +280,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """foo a b =
@@ -292,16 +298,16 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -333,7 +339,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with default arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo (a = 0) = a + 1"""
       val module = code.preprocessModule
@@ -347,14 +352,14 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -363,12 +368,11 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with explicit self type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyType
           |
-          |MyType.bar a b = a + b
+          |MyType.bar self a b = a + b
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -376,14 +380,14 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "MyType",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.MyType",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyType",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -394,16 +398,16 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "bar",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -412,7 +416,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "not build method with undefined self type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """MyAtom.bar a b = a + b"""
@@ -422,14 +425,13 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """type MyAtom
+        """type MyAtom a
           |
           |## My bar
           |MyAtom.bar : Number -> Number -> Number
-          |MyAtom.bar a b = a + b
+          |MyAtom.bar self a b = a + b
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -437,14 +439,17 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "MyAtom",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.MyAtom",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "MyAtom",
+              params = Seq(
+                Suggestion
+                  .Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyAtom",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -455,15 +460,14 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "bar",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyAtom", false, false, None),
                 Suggestion.Argument("a", "Number", false, false, None),
                 Suggestion.Argument("b", "Number", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyAtom",
               returnType    = "Number",
-              documentation = Some(" My bar"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My bar", "bar"))
+              isStatic      = false,
+              documentation = Some(" My bar")
             ),
             Vector()
           )
@@ -472,13 +476,12 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with function type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom
           |
           |MyAtom.apply : (Number -> Number) -> Number
-          |MyAtom.apply f = f this
+          |MyAtom.apply self f = f self
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -486,14 +489,14 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "MyAtom",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.MyAtom",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyAtom",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.MyAtom",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -504,13 +507,13 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "apply",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyAtom", false, false, None),
                 Suggestion.Argument("f", "Number -> Number", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyAtom",
-              returnType        = "Number",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyAtom",
+              returnType    = "Number",
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -519,13 +522,16 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with union type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """type MyAtom
+        """type My_Atom
+          |    Variant_1
+          |    Variant_2
           |
-          |MyAtom.apply : (Number | Text | MyAtom) -> Number
-          |MyAtom.apply f = f this
+          |type Other_Atom
+          |
+          |Other_Atom.apply : (Number | Other_Atom | My_Atom) -> Number
+          |Other_Atom.apply self f = f self
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -533,14 +539,48 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "MyAtom",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.MyAtom",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "My_Atom",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.My_Atom",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Variant_1",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.My_Atom",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Variant_2",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.My_Atom",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Other_Atom",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Other_Atom",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -551,19 +591,33 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "apply",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                  .Argument(
+                    "self",
+                    "Unnamed.Test.Other_Atom",
+                    false,
+                    false,
+                    None
+                  ),
                 Suggestion.Argument(
                   "f",
-                  "Number | Text | Unnamed.Test.MyAtom",
+                  "Number | Unnamed.Test.Other_Atom | Unnamed.Test.My_Atom",
                   false,
                   false,
-                  None
+                  None,
+                  Some(
+                    Seq(
+                      "Number",
+                      "Unnamed.Test.Other_Atom",
+                      "Unnamed.Test.Variant_1",
+                      "Unnamed.Test.Variant_2"
+                    )
+                  )
                 )
               ),
-              selfType          = "Unnamed.Test.MyAtom",
-              returnType        = "Number",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Other_Atom",
+              returnType    = "Number",
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -572,7 +626,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with lazy arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """foo ~a = a + 1"""
@@ -587,14 +640,14 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, true, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -603,7 +656,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -616,14 +668,14 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "A",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -633,13 +685,20 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("a", "Unnamed.Test.A", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.A"))
+                )
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -649,7 +708,6 @@ class SuggestionBuilderTest extends CompilerTest {
 
     "build conversion method for simple type" in {
       pending
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom a
@@ -664,17 +722,17 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "MyType",
-              arguments = Seq(
+              params = Seq(
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.MyType",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
@@ -685,12 +743,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -703,9 +761,7 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType    = "Unnamed.Test.MyType",
               sourceType    = "Number",
-              documentation = Some(" My conversion"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My conversion", "from"))
+              documentation = Some(" My conversion")
             ),
             Vector()
           )
@@ -713,19 +769,19 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build conersion method for complex type" in {
+    "build conversion method for complex type" in {
       pending
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyMaybe
-          |    type Some a
-          |    type None
+          |    Some a
+          |    None
           |
-          |type Newtype x
+          |type New
+          |    Newtype x
           |
           |## My conversion method
-          |Newtype.from : MyMaybe -> Newtype
-          |Newtype.from opt = case opt of
+          |New.from : MyMaybe -> New
+          |New.from opt = case opt of
           |    Some a -> Newtype a
           |    None -> Newtype 0
           |""".stripMargin
@@ -735,7 +791,19 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyMaybe",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.MyMaybe",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "Some",
@@ -743,9 +811,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.MyMaybe",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.MyMaybe",
+              documentation = None
             ),
             Vector()
           ),
@@ -756,29 +823,40 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyMaybe", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyMaybe", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyMaybe",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyMaybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "None",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.None",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "None",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.None",
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "New",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.New",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "Newtype",
@@ -786,9 +864,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("x", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.Newtype",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.New",
+              documentation = None
             ),
             Vector()
           ),
@@ -799,12 +876,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "x",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Newtype", false, false, None)
+                  .Argument("self", "Unnamed.Test.New", false, false, None)
               ),
-              selfType          = "Unnamed.Test.NewType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.New",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -818,10 +895,7 @@ class SuggestionBuilderTest extends CompilerTest {
               ),
               returnType    = "Unnamed.Test.MyType",
               sourceType    = "Unnamed.Test.MyMaybe",
-              documentation = Some(" My conversion method"),
-              documentationHtml = Some(
-                DocParserWrapper.runOnPureDoc(" My conversion method", "from")
-              )
+              documentation = Some(" My conversion method")
             ),
             Vector()
           )
@@ -830,12 +904,12 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -843,16 +917,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -879,14 +951,14 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo a =
           |        b = a + 1
           |        b
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -894,16 +966,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -944,13 +1014,13 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo : Number -> Number
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -958,16 +1028,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -993,7 +1061,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -1001,36 +1068,35 @@ class SuggestionBuilderTest extends CompilerTest {
           |main =
           |    foo : A -> A
           |    foo a = a + 1
-          |    foo 42""".stripMargin
+          |    foo 42
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "A",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -1040,7 +1106,14 @@ class SuggestionBuilderTest extends CompilerTest {
                   name       = "foo",
                   arguments = Seq(
                     Suggestion
-                      .Argument("a", "Unnamed.Test.A", false, false, None)
+                      .Argument(
+                        "a",
+                        "Unnamed.Test.A",
+                        false,
+                        false,
+                        None,
+                        Some(List("Unnamed.Test.A"))
+                      )
                   ),
                   returnType = "Unnamed.Test.A",
                   scope = Suggestion.Scope(
@@ -1057,12 +1130,12 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo = 42
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1070,16 +1143,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -1102,14 +1173,14 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo =
           |        b = 42
           |        b
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1117,16 +1188,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -1163,13 +1232,13 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
           |    foo : Number
           |    foo = 42
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
@@ -1177,16 +1246,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -1209,7 +1276,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -1217,36 +1283,35 @@ class SuggestionBuilderTest extends CompilerTest {
           |main =
           |    foo : A
           |    foo = A
-          |    foo""".stripMargin
+          |    foo
+          |""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "A",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -1269,28 +1334,40 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build atom simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
-      val code   = """type MyType a b"""
+      val code =
+        """type MyType
+          |    MkMyType a b""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyType",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "MyType",
+              name       = "MkMyType",
               arguments = Seq(
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.MyType",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.MyType",
+              documentation = None
             ),
             Vector()
           ),
@@ -1301,12 +1378,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -1317,12 +1394,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -1331,20 +1408,33 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build atom with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
           |
           |## My sweet type
-          |type MyType a b""".stripMargin
+          |type Mtp
+          |    ## My sweet atom
+          |    MyType a b""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           DoccedModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Mtp",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Mtp",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = Some(" My sweet type")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "MyType",
@@ -1354,10 +1444,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = Some(" My sweet type"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" My sweet type", "MyType"))
+              returnType    = "Unnamed.Test.Mtp",
+              documentation = Some(" My sweet atom")
             ),
             Vector()
           ),
@@ -1368,12 +1456,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.Mtp", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Mtp",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -1384,12 +1472,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.Mtp", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Mtp",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -1398,31 +1486,41 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type Maybe
-          |    type Nothing
-          |    type Just a""".stripMargin
+          |    Nothing
+          |    Just a""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "Nothing",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.Nothing",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Maybe",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "Just",
@@ -1430,9 +1528,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.Just",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = None
             ),
             Vector()
           ),
@@ -1443,12 +1540,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Maybe", false, false, None)
               ),
-              selfType          = "Unnamed.Test.Just",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Maybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -1457,7 +1554,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -1465,30 +1561,39 @@ class SuggestionBuilderTest extends CompilerTest {
           |## When in doubt
           |type Maybe
           |    ## Nothing here
-          |    type Nothing
+          |    Nothing
           |    ## Something there
-          |    type Just a""".stripMargin
+          |    Just a""".stripMargin
       val module = code.preprocessModule
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
           DoccedModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
               externalId    = None,
               module        = "Unnamed.Test",
-              name          = "Nothing",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nothing",
-              documentation = Some(" Nothing here"),
-              documentationHtml = Some(
-                DocParserWrapper.runOnPureDoc(" Nothing here", "Nothing")
-              )
+              name          = "Maybe",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = Some(" When in doubt")
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = Some(" Nothing here")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "Just",
@@ -1496,11 +1601,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Just",
-              documentation = Some(" Something there"),
-              documentationHtml = Some(
-                DocParserWrapper.runOnPureDoc(" Something there", "Just")
-              )
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = Some(" Something there")
             ),
             Vector()
           ),
@@ -1511,12 +1613,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Maybe", false, false, None)
               ),
-              selfType          = "Unnamed.Test.Just",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Maybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           )
@@ -1525,13 +1627,12 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with methods, type signatures and docs" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type List
           |    ## And more
-          |    type Cons
+          |    Cons
           |    ## End
-          |    type Nil
+          |    Nil
           |
           |    ## a method
           |    empty : List
@@ -1543,28 +1644,36 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "List",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.List",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId    = None,
               module        = "Unnamed.Test",
               name          = "Cons",
               arguments     = Seq(),
-              returnType    = "Unnamed.Test.Cons",
-              documentation = Some(" And more"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" And more", "Cons"))
+              returnType    = "Unnamed.Test.List",
+              documentation = Some(" And more")
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Constructor(
               externalId    = None,
               module        = "Unnamed.Test",
               name          = "Nil",
               arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nil",
-              documentation = Some(" End"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" End", "Nil"))
+              returnType    = "Unnamed.Test.List",
+              documentation = Some(" End")
             ),
             Vector()
           ),
@@ -1575,30 +1684,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "empty",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Cons", false, false, None)
+                  .Argument("self", "Unnamed.Test.List", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Cons",
-              returnType    = "List",
-              documentation = Some(" a method"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
-            ),
-            Vector()
-          ),
-          Tree.Node(
-            Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "empty",
-              arguments = Seq(
-                Suggestion
-                  .Argument("this", "Unnamed.Test.Nil", false, false, None)
-              ),
-              selfType      = "Unnamed.Test.Nil",
-              returnType    = "List",
-              documentation = Some(" a method"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" a method", "empty"))
+              selfType      = "Unnamed.Test.List",
+              returnType    = "Unnamed.Test.List",
+              isStatic      = true,
+              documentation = Some(" a method")
             ),
             Vector()
           )
@@ -1607,13 +1698,12 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with methods, without type signatures" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type Maybe
-          |    type Nothing
-          |    type Just a
+          |    Nothing
+          |    Just a
           |
-          |    map f = case this of
+          |    map self f = case self of
           |        Just a  -> Just (f a)
           |        Nothing -> Nothing""".stripMargin
       val module = code.preprocessModule
@@ -1622,19 +1712,30 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
-              externalId        = None,
-              module            = "Unnamed.Test",
-              name              = "Nothing",
-              arguments         = Seq(),
-              returnType        = "Unnamed.Test.Nothing",
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Maybe",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
               name       = "Just",
@@ -1642,9 +1743,8 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.Just",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.Maybe",
+              documentation = None
             ),
             Vector()
           ),
@@ -1655,12 +1755,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Maybe", false, false, None)
               ),
-              selfType          = "Unnamed.Test.Just",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Maybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -1671,32 +1771,78 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "map",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Nothing", false, false, None),
+                  .Argument("self", "Unnamed.Test.Maybe", false, false, None),
                 Suggestion
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType          = "Unnamed.Test.Nothing",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Maybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build Integer type" in {
+
+      val code = "type Integer"
+      val moduleName =
+        QualifiedName.fromString("Standard.Base.Data.Numbers")
+      val module = code.preprocessModule(moduleName)
+
+      build(code, module, moduleName) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Module(
+              module        = moduleName.toString,
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "map",
-              arguments = Seq(
-                Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None),
-                Suggestion
-                  .Argument("f", SuggestionBuilder.Any, false, false, None)
-              ),
-              selfType          = "Unnamed.Test.Just",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+            Suggestion.Type(
+              externalId    = None,
+              module        = moduleName.toString,
+              name          = "Integer",
+              params        = Seq(),
+              returnType    = moduleName.createChild("Integer").toString,
+              parentType    = Some(moduleName.createChild("Number").toString),
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build Number type" in {
+
+      val code = "type Number"
+      val moduleName =
+        QualifiedName.fromString("Standard.Base.Data.Numbers")
+      val module = code.preprocessModule(moduleName)
+
+      build(code, module, moduleName) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Module(
+              module        = moduleName.toString,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = moduleName.toString,
+              name          = "Number",
+              params        = Seq(),
+              returnType    = moduleName.createChild("Number").toString,
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
             ),
             Vector()
           )
@@ -1705,9 +1851,9 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with simple atom" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
-        """type MyType a b
+        """type MyType
+          |    MkMyType a b
           |
           |main = IO.println "Hello!"""".stripMargin
       val module = code.preprocessModule
@@ -1716,19 +1862,30 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyType",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.MyType",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "MyType",
+              name       = "MkMyType",
               arguments = Seq(
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.MyType",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.MyType",
+              documentation = None
             ),
             Vector()
           ),
@@ -1739,12 +1896,12 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -1755,27 +1912,25 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyType",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -1784,9 +1939,9 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with an atom named as module" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
-        """type Test a
+        """type Test
+          |    Mk_Test a
           |
           |main = IO.println "Hello!"""".stripMargin
       val module = code.preprocessModule
@@ -1795,17 +1950,28 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion.Atom(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Test",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Test",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "Test",
+              name       = "Mk_Test",
               arguments = Seq(
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType        = "Unnamed.Test.Test",
-              documentation     = None,
-              documentationHtml = None
+              returnType    = "Unnamed.Test.Test",
+              documentation = None
             ),
             Vector()
           ),
@@ -1816,27 +1982,25 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Test", false, false, None)
+                  .Argument("self", "Unnamed.Test.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -1845,18 +2009,17 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with overloaded functions" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type A
-          |    type A
+          |    Mk_A
           |    quux : A -> A
-          |    quux x = x
+          |    quux self x = x
           |
           |quux : A -> A
           |quux x = x
           |
           |main =
-          |    here.quux A
+          |    quux A
           |    A.quux A""".stripMargin
       val module = code.preprocessModule
 
@@ -1864,16 +2027,26 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           ModuleNode,
           Tree.Node(
-            Suggestion
-              .Atom(
-                externalId        = None,
-                module            = "Unnamed.Test",
-                name              = "A",
-                arguments         = List(),
-                returnType        = "Unnamed.Test.A",
-                documentation     = None,
-                documentationHtml = None
-              ),
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              params        = List(),
+              returnType    = "Unnamed.Test.A",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Mk_A",
+              arguments     = List(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
             Vector()
           ),
           Tree.Node(
@@ -1883,13 +2056,20 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "quux",
               arguments = Vector(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.A", false, false, None),
-                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+                  .Argument("self", "Unnamed.Test.A", false, false, None),
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.Mk_A"))
+                )
               ),
-              selfType          = "Unnamed.Test.A",
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test.A",
+              returnType    = "Unnamed.Test.A",
+              isStatic      = false,
+              documentation = None
             ),
             Vector()
           ),
@@ -1899,28 +2079,33 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "quux",
               arguments = Vector(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.Mk_A"))
+                )
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Unnamed.Test.A",
-              documentation     = None,
-              documentationHtml = None
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = List(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = List(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -1929,7 +2114,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main = IO.println "Hello!"
           |
@@ -1947,15 +2131,13 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Method(
               externalId =
                 Some(UUID.fromString("4083ce56-a5e5-4ecd-bf45-37ddf0b58456")),
-              module = "Unnamed.Test",
-              name   = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector()
           )
@@ -1964,7 +2146,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main =
           |    id x = x
@@ -1982,16 +2163,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -2020,7 +2199,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main =
           |    foo = 42
@@ -2038,16 +2216,14 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
-              ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = None,
-              documentationHtml = None
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
             ),
             Vector(
               Tree.Node(
@@ -2072,7 +2248,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -2085,12 +2260,8 @@ class SuggestionBuilderTest extends CompilerTest {
         Vector(
           Tree.Node(
             Suggestion.Module(
-              "Unnamed.Test",
-              Some(" Module doc"),
-              Some(
-                DocParserWrapper.runOnPureDoc(" Module doc", "Unnamed.Test")
-              ),
-              None
+              module        = "Unnamed.Test",
+              documentation = Some(" Module doc")
             ),
             Vector()
           ),
@@ -2100,27 +2271,44 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
-              documentation = Some(" The foo"),
-              documentationHtml =
-                Some(DocParserWrapper.runOnPureDoc(" The foo", "foo"))
+              isStatic      = true,
+              documentation = Some(" The foo")
             ),
             Vector()
           )
         )
       )
     }
+
+    "provide type variants when applicable" in {
+      val code =
+        """type My_Tp
+          |    Variant_A
+          |    Variant_B
+          |
+          |foo : My_Tp -> My_Tp
+          |foo arg = arg.do_sth""".stripMargin
+      val module      = code.preprocessModule
+      val suggestions = build(code, module)
+      val fooSuggestion = suggestions.collectFirst {
+        case s: Suggestion.Method if s.name == "foo" => s
+      }
+      val fooArg = fooSuggestion.get.arguments(1)
+      fooArg.reprType shouldEqual "Unnamed.Test.My_Tp"
+      fooArg.tagValues shouldEqual Some(
+        List("Unnamed.Test.Variant_A", "Unnamed.Test.Variant_B")
+      )
+    }
   }
 
-  private def build(source: String, ir: IR.Module): Tree.Root[Suggestion] =
-    SuggestionBuilder(source).build(Module, ir)
-
-  private def freshModuleContext: ModuleContext =
-    buildModuleContext(
-      moduleName      = Module,
-      freshNameSupply = Some(new FreshNameSupply)
-    )
+  private def build(
+    source: String,
+    ir: IR.Module,
+    module: QualifiedName = Module
+  ): Tree.Root[Suggestion] =
+    SuggestionBuilder(source).build(module, ir)
 }

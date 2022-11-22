@@ -19,6 +19,11 @@
 //! As the models are usually shared between many controllers, they should implement "internal
 //! mutability" pattern.
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod execution_context;
 pub mod module;
 pub mod project;
@@ -30,6 +35,8 @@ pub use execution_context::ExecutionContext;
 pub use module::Module;
 pub use project::Project;
 pub use suggestion_database::SuggestionDatabase;
+
+
 
 /// A module with commonly used traits to mass import.
 pub mod traits {

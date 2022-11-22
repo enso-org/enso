@@ -1,8 +1,8 @@
 package org.enso.loggingservice
 
-import java.util.logging.{Handler, Level, LogRecord}
-
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
+
+import java.util.logging.{Handler, Level, LogRecord}
 
 /** A [[Handler]] implementation that allows to use the logging service as a
   * backend for [[java.util.logging]].
@@ -28,12 +28,10 @@ class JavaLoggingLogHandler(
     }
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def flush(): Unit = {}
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def close(): Unit = {}
 }
 

@@ -1,16 +1,24 @@
 //! Drop Down Menu Component.
+
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -18,12 +26,12 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::primitive::StyleWatch;
-use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::ModelProvider;
 use ensogl_text as text;
+
 
 
 // =================
@@ -45,7 +53,7 @@ const MENU_WIDTH: f32 = 180.0;
 pub mod arrow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [chooser_hover_area];
         (style:Style) {
             let width            = Var::<Pixels>::from("input_size.x");
@@ -65,8 +73,8 @@ pub mod arrow {
 pub mod chooser_hover_area {
     use super::*;
 
-    ensogl_core::define_shape_system! {
-        () {
+    ensogl_core::shape! {
+        (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let background           = Rect((&width,&height));
@@ -116,7 +124,7 @@ struct Model {
     icon:         arrow::View,
     icon_overlay: chooser_hover_area::View,
 
-    label:          text::Area,
+    label:          text::Text,
     selection_menu: list_view::ListView<Entry>,
 
     // `SingleMaskedProvider` allows us to hide the selected element.
@@ -125,12 +133,11 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("drop_down_menu");
-        let display_object = display::object::Instance::new(&logger);
-        let icon = arrow::View::new(&logger);
-        let icon_overlay = chooser_hover_area::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let icon = arrow::View::new();
+        let icon_overlay = chooser_hover_area::View::new();
         let selection_menu = list_view::ListView::new(app);
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let content = default();
 
         Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()
@@ -146,6 +153,7 @@ impl Model {
     }
 
     fn set_label(&self, label: &str) {
+        #[allow(clippy::needless_borrow)] // Removing the borrow breaks type inference.
         self.label.set_cursor(&default());
         self.label.select_all();
         self.label.insert(label);
@@ -346,7 +354,7 @@ impl DropDownMenu {
             frp.source.icon_mouse_out  <+ model.icon_overlay.events.mouse_out;
 
 
-            let icon_mouse_down = model.icon_overlay.events.mouse_down.clone_ref();
+            let icon_mouse_down = model.icon_overlay.events.mouse_down_primary.clone_ref();
             visibility_on_mouse_down <- frp.source.menu_visible.sample(&icon_mouse_down) ;
 
             eval visibility_on_mouse_down ([show_menu,hide_menu](is_visible){
@@ -370,7 +378,7 @@ impl DropDownMenu {
         // shape system (#795)
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
-        model.label.set_default_color(text_color);
+        model.label.set_property_default(text_color);
 
         self
     }

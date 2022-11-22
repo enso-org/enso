@@ -8,9 +8,10 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "Meta",
     name = "is_unresolved_symbol",
-    description = "Checks if the argument is an unresolved symbol.")
+    description = "Checks if the argument is an unresolved symbol.",
+    autoRegister = false)
 public class IsUnresolvedSymbolNode extends Node {
-  boolean execute(Object _this, @AcceptsError Object value) {
+  boolean execute(@AcceptsError Object value) {
     return TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value);
   }
 }

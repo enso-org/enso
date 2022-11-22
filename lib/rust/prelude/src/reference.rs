@@ -1,12 +1,14 @@
 //! This module defines helpers and utilities for working with references.
 
+
+
 // ============
 // === With ===
 // ============
 
 /// Surprisingly useful function. Consider the following code:
 ///
-/// ```compile_fail
+/// ```text
 /// fn init(self) -> Self {
 ///    let mut data = self.borrow_mut();
 ///    ...
@@ -20,7 +22,7 @@
 /// We can use this function to narrow-down the lifetimes. The following code
 /// compiles just fine:
 ///
-/// ```compile_fail
+/// ```text
 /// fn init(self) -> Self {
 ///    with(self.borrow_mut(), |mut data| {
 ///        ...
@@ -30,6 +32,18 @@
 /// ```
 pub fn with<T, F: FnOnce(T) -> Out, Out>(t: T, f: F) -> Out {
     f(t)
+}
+
+
+
+// ================
+// === TryAsRef ===
+// ================
+
+/// Just like [`AsRef`], but might return [`None`] for some data.
+#[allow(missing_docs)]
+pub trait TryAsRef<T> {
+    fn try_as_ref(&self) -> Option<&T>;
 }
 
 

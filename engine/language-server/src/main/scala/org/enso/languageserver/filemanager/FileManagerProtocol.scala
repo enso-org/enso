@@ -18,6 +18,12 @@ object FileManagerProtocol {
     */
   case class BinaryFileContent(path: File, contents: Array[Byte])
 
+  /** Requests the Language Server open an in-memory buffer.
+    *
+    * @param path a path to a buffer
+    */
+  case class OpenBuffer(path: Path)
+
   /** Requests the Language Server write textual content to an arbitrary file.
     *
     * @param path a path to a file

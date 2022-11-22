@@ -1,27 +1,32 @@
 //! This is a visualization example scene which creates a sinusoidal graph.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use ensogl::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Data;
 use ide_view::graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -52,7 +57,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
                         console.log("pressed",e);
                     })
                 }
-                this.setPreprocessor(`x ->\n IO.println "Preprocessor set after receiving ${data}`)
+                this.setPreprocessor('Standard.Visualization.Preprocessor', 'default_preprocessor');
 
                 let first = data.shift();
                 if (first) {
@@ -89,9 +94,9 @@ fn constructor_graph() -> visualization::java_script::Definition {
     visualization::java_script::Definition::new_builtin(sources).unwrap()
 }
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code, missing_docs)]
-pub fn entry_point_visualization() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);
@@ -113,7 +118,7 @@ fn init(app: &Application) {
         .iter()
         .find(|class| &*class.signature.name == "Graph")
         .expect("Couldn't find Graph class.");
-    let visualization = vis_class.new_instance(scene).expect("Couldn't create visualiser.");
+    let visualization = vis_class.new_instance(app).expect("Couldn't create visualiser.");
     visualization.activate.emit(());
 
     let network = enso_frp::Network::new("VisualizationExample");
@@ -130,7 +135,9 @@ fn init(app: &Application) {
         .add(move |time_info: animation::TimeInfo| {
             let _keep_alive = &navigator;
 
-            let data = generate_data((time_info.local / 1000.0).into());
+            let data = generate_data(
+                (time_info.since_animation_loop_started.unchecked_raw() / 1000.0).into(),
+            );
             let data = Rc::new(data);
             let content = serde_json::to_value(data).unwrap();
             let data = Data::from(content);

@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Decimal", name = "negate", description = "Negation for numbers.")
 public class NegateNode extends Node {
-  double execute(double _this) {
-    return -_this;
+  double execute(double self) {
+    return -self;
   }
 }

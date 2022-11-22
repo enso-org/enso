@@ -1,0 +1,5 @@
+## Matches the first found instance.
+type First
+
+## Matches the last found instance.
+type Last

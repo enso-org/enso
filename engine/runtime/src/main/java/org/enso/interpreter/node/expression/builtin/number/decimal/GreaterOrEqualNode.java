@@ -3,42 +3,40 @@ package org.enso.interpreter.node.expression.builtin.number.decimal;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = ">=", description = "Comparison of numbers.")
 public abstract class GreaterOrEqualNode extends Node {
 
-  abstract boolean execute(double _this, Object that);
+  abstract Object execute(double self, Object that);
 
   static GreaterOrEqualNode build() {
     return GreaterOrEqualNodeGen.create();
   }
 
   @Specialization
-  boolean doDouble(double _this, double that) {
-    return _this >= that;
+  boolean doDouble(double self, double that) {
+    return self >= that;
   }
 
   @Specialization
-  boolean doLong(double _this, long that) {
-    return _this >= (double) that;
+  boolean doLong(double self, long that) {
+    return self >= (double) that;
   }
 
   @Specialization
-  boolean doBigInteger(double _this, EnsoBigInteger that) {
-    return _this >= BigIntegerOps.toDouble(that.getValue());
+  boolean doBigInteger(double self, EnsoBigInteger that) {
+    return self >= BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  boolean doOther(double _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
-    Atom number = builtins.number().getNumber().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
+  DataflowError doOther(double self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 }

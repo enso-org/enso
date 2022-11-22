@@ -1,0 +1,98 @@
+# This file is used to generate `target/debug/build/enso-build-<hash>/out/paths.rs`.
+# Generation logic is in `ci_utils/src/paths.rs`.
+
+<repo_root>/:
+  .github/:
+    workflows/:
+      benchmark.yml:
+      changelog.yml:
+      gui.yml:
+      nightly.yml:
+      release.yml:
+      scala-new.yml:
+  app/:
+    gui/:
+    ide-desktop/:
+      lib/:
+        client/:
+        content/:
+        icons/:
+        project-manager/:
+  build/:
+    prettier/:
+  built-distribution/:
+    ? path: "enso-engine-<triple>"
+      type: engine_package
+    "enso-bundle-<triple>":
+    "project-manager-bundle-<triple>":
+      enso:
+  dist/:
+    gui/:
+      assets/:
+        ide.wasm:
+        index.js:
+        style.css:
+        wasm_imports.js:
+
+    # Final WASM artifacts in `dist` directory.
+    wasm/:
+      ? path: ide.wasm
+        var: wasm_main
+      ? path: ide_bg.wasm
+        var: wasm_main_raw
+      ? path: ide.js
+        var: wasm_glue
+  distribution/:
+    editions/:
+      <edition>.yaml:
+  engine/:
+    runner-native/:
+      src/:
+        test/:
+          resources/:
+            Factorial.enso:
+    runtime/:
+      target/:
+      bench-report.xml:
+  lib/:
+    rust/:
+      parser/:
+        generate-java/:
+          java/:
+  target/:
+    generated-java/:
+  tools/:
+    ci/:
+      docker/:
+        docker-entrypoint.sh:
+        Dockerfile:
+    simple-library-server/:
+  build.sbt:
+  run:
+  runner: # The runner native image (Linux only).
+  CHANGELOG.md:
+
+project-manager/:
+  bin/:
+    project-manager<exe>:
+  dist/:
+  runtime/:
+
+# Engine Package
+# https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package
+{ path: enso-<version>/, var: engine_package }:
+  bin/:
+  components/:
+  editions/:
+  lib/:
+  manifest.yaml:
+
+# Engine Bundle
+# https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
+{ path: enso/, var: engine_bundle }:
+  dist/:
+    <version>/:
+  edition/:
+    <edition>.yaml:
+  runtime/:
+  .enso.portable:

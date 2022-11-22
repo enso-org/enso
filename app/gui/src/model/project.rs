@@ -1,11 +1,7 @@
-#![allow(clippy::ptr_arg)] // workaround for https://github.com/asomers/mockall/issues/58
-
 //! Project controller.
 //!
 //! Responsible for owning any remote connection clients, and providing controllers for specific
 //! files and modules. Expected to live as long as the project remains open in the IDE.
-
-pub mod synchronized;
 
 use crate::prelude::*;
 
@@ -18,8 +14,15 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
 use flo_stream::Subscriber;
 use mockall::automock;
-use parser::Parser;
+use parser_scala::Parser;
 use uuid::Uuid;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod synchronized;
 
 
 
@@ -97,27 +100,22 @@ pub trait API: Debug {
     ///
     /// This module is special, as it needs to be referred by the project name itself.
     fn main_module(&self) -> model::module::QualifiedName {
-        let id = controller::project::main_module_id();
         let name = self.qualified_name();
-        model::module::QualifiedName::new(name, id)
+        model::module::QualifiedName::new_main(name)
+    }
 
-        // TODO [mwu] The code below likely should be preferred but does not work
-        //            because language server does not support using project name
-        //            for project's main module in some contexts.
-        //            This is tracked by: https://github.com/enso-org/enso/issues/1543
-        // use model::module::QualifiedName;
-        // ReferentName::try_from(self.name().as_str())
-        //     .map(QualifiedName::new_main)
-        //     .map_err(Into::into)
+    /// Get the file path of the project's `Main` module.
+    fn main_module_path(&self) -> model::module::Path {
+        let main_name = self.main_module();
+        let content_root_id = self.project_content_root_id();
+        model::module::Path::from_id(content_root_id, &main_name.id)
     }
 
     /// Get a model of the project's main module.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn main_module_model<'a>(&'a self) -> BoxFuture<'a, FallibleResult<model::Module>> {
         async move {
-            let main_name = self.main_module();
-            let content_root_id = self.project_content_root_id();
-            let main_path = model::module::Path::from_id(content_root_id, &main_name.id);
+            let main_path = self.main_module_path();
             self.module(main_path).await
         }
         .boxed_local()
@@ -170,14 +168,14 @@ pub type Synchronized = synchronized::Project;
 // ====================
 
 /// Notification emitted by the project model.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
 }
 
 /// Denotes one of backend connections used by a project.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BackendConnection {
     /// The text connection used to transfer JSON messages.
     LanguageServerJson,

@@ -1,28 +1,30 @@
 package org.enso.table.data.table;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.enso.base.Text_Utils;
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.table.aggregate.AggregateTable;
+import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.operations.Distinct;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** A representation of a table structure. */
 public class Table {
 
   private final Column[] columns;
   private final Index index;
+  private final AggregatedProblems problems;
 
   /**
    * Creates a new table
@@ -30,14 +32,25 @@ public class Table {
    * @param columns the columns contained in this table.
    */
   public Table(Column[] columns) {
-    this(
-        columns,
-        new DefaultIndex((columns == null || columns.length == 0) ? 0 : columns[0].getSize()));
+    this(columns, null, null);
   }
 
   public Table(Column[] columns, Index index) {
+    this(columns, index, null);
+  }
+
+  public Table(Column[] columns, AggregatedProblems problems) {
+    this(columns, null, problems);
+  }
+
+  private Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
-    this.index = index;
+    this.index =
+        index == null
+            ? (new DefaultIndex(
+                (columns == null || columns.length == 0) ? 0 : columns[0].getSize()))
+            : index;
+    this.problems = problems;
   }
 
   /** @return the number of rows in this table */
@@ -54,6 +67,11 @@ public class Table {
     return columns;
   }
 
+  /** @return Attached set of any problems from the Java side */
+  public AggregatedProblems getProblems() {
+    return problems;
+  }
+
   /**
    * Returns a column with the given name, or null if it doesn't exist.
    *
@@ -62,7 +80,7 @@ public class Table {
    */
   public Column getColumnByName(String name) {
     for (Column column : columns) {
-      if (column.getName().equals(name)) {
+      if (Text_Utils.equals(column.getName(), name)) {
         return column;
       }
     }
@@ -81,7 +99,7 @@ public class Table {
       return column;
     }
 
-    if (getIndex().getName().equals(name)) {
+    if (Text_Utils.equals(getIndex().getName(), name)) {
       return getIndex().toColumn();
     }
 
@@ -96,11 +114,10 @@ public class Table {
    * @return the result of masking this table with the provided column
    */
   public Table mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage)) {
+    if (!(maskCol.getStorage() instanceof BoolStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, rowCount());
@@ -123,7 +140,7 @@ public class Table {
   public Table addOrReplaceColumn(Column newColumn) {
     int existingIx = -1;
     for (int i = 0; i < columns.length; i++) {
-      if (columns[i].getName().equals(newColumn.getName())) {
+      if (Text_Utils.equals(columns[i].getName(), newColumn.getName())) {
         existingIx = i;
         break;
       }
@@ -165,7 +182,7 @@ public class Table {
    * @return a table indexed by the proper column
    */
   public Table indexFromColumn(Column col) {
-    Storage storage = col.getStorage();
+    Storage<?> storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     List<Column> newColumns = new ArrayList<>();
     Column indexCol = index.toColumn();
@@ -173,7 +190,7 @@ public class Table {
       newColumns.add(indexCol.withIndex(ix));
     }
     for (Column column : columns) {
-      if (!column.getName().equals(col.getName())) {
+      if (!Text_Utils.equals(column.getName(), col.getName())) {
         newColumns.add(column.withIndex(ix));
       }
     }
@@ -190,6 +207,51 @@ public class Table {
     Column col = getColumnByName(name);
     if (col == null) throw new NoSuchColumnException(name);
     return indexFromColumn(col);
+  }
+
+  /**
+   * Creates an index for this table by using values from the specified columns.
+   *
+   * @param columns set of columns to use as an Index
+   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
+   * @return a table indexed by the proper column
+   */
+  public MultiValueIndex indexFromColumns(Column[] columns, Comparator<Object> objectComparator) {
+    return new MultiValueIndex(columns, this.rowCount(), objectComparator);
+  }
+
+  /**
+   * Creates a new table with the rows sorted
+   *
+   * @param columns set of columns to use as an Index
+   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
+   * @return a table indexed by the proper column
+   */
+  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
+    int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
+    MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
+    OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
+    return this.applyMask(mask);
+  }
+
+  /**
+   * Creates a new table keeping only rows with distinct key columns.
+   *
+   * @param keyColumns set of columns to use as an Index
+   * @param textFoldingStrategy a strategy for folding text columns
+   * @return a table where duplicate rows with the same key are removed
+   */
+  public Table distinct(Column[] keyColumns, TextFoldingStrategy textFoldingStrategy) {
+    var problems = new AggregatedProblems();
+    var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), keyColumns, textFoldingStrategy, problems);
+    int cardinality = rowsToKeep.cardinality();
+    Column[] newColumns = new Column[this.columns.length];
+    Index newIx = index.mask(rowsToKeep, cardinality);
+    for (int i = 0; i < this.columns.length; i++) {
+      newColumns[i] = this.columns[i].mask(newIx, rowsToKeep, cardinality);
+    }
+
+    return new Table(newColumns, newIx, problems);
   }
 
   /**
@@ -232,7 +294,7 @@ public class Table {
         matches[i] = other.index.loc(index.iloc(i));
       }
     } else {
-      Storage onS = getColumnByName(on).getStorage();
+      Storage<?> onS = getColumnByName(on).getStorage();
       for (int i = 0; i < s; i++) {
         matches[i] = other.index.loc(onS.getItemBoxed(i));
       }
@@ -298,7 +360,7 @@ public class Table {
         Arrays.stream(columns)
             .map(
                 column -> {
-                  Storage newStorage = column.getStorage().applyMask(orderMask);
+                  Storage<?> newStorage = column.getStorage().applyMask(orderMask);
                   return new Column(column.getName(), newIndex, newStorage);
                 })
             .toArray(Column[]::new);
@@ -338,7 +400,7 @@ public class Table {
     for (var table : tables) {
       for (var column : table.getColumns()) {
         var matchingBuilder =
-            builders.stream().filter(bldr -> bldr.name.equals(column.getName())).findFirst();
+            builders.stream().filter(bldr -> Text_Utils.equals(bldr.name, column.getName())).findFirst();
         NamedBuilder builder;
         if (matchingBuilder.isPresent()) {
           builder = matchingBuilder.get();
@@ -354,7 +416,7 @@ public class Table {
       }
       for (var builder : builders) {
         var columnExists =
-            Arrays.stream(table.getColumns()).anyMatch(col -> col.getName().equals(builder.name));
+            Arrays.stream(table.getColumns()).anyMatch(col -> Text_Utils.equals(col.getName(), builder.name));
         if (!columnExists) {
           builder.builder.appendNulls(table.rowCount());
         }
@@ -369,7 +431,7 @@ public class Table {
     return new Table(newColumns, newIndex);
   }
 
-  private Storage concatStorages(Storage left, Storage right) {
+  private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
     InferredBuilder builder = new InferredBuilder(left.size() + right.size());
     for (int i = 0; i < left.size(); i++) {
       builder.appendNoGrow(left.getItemBoxed(i));
@@ -380,7 +442,7 @@ public class Table {
     return builder.seal();
   }
 
-  private Storage nullPad(int nullCount, Storage storage, boolean start) {
+  private Storage<?> nullPad(int nullCount, Storage<?> storage, boolean start) {
     InferredBuilder builder = new InferredBuilder(nullCount + storage.size());
     if (start) {
       builder.appendNulls(nullCount);
@@ -430,17 +492,21 @@ public class Table {
     return new Table(newColumns, index);
   }
 
-  public AggregateTable group(String by) {
-    Table t = by == null ? this : indexFromColumn(by);
-    return new AggregateTable(t);
-  }
-
-  /** @return a copy of the Column containing a slice of the original data */
+  /** @return a copy of the Table containing a slice of the original data */
   public Table slice(int offset, int limit) {
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(offset, limit);
     }
     return new Table(newColumns, index.slice(offset, limit));
+  }
+
+  /** @return a copy of the Table consisting of slices of the original data */
+  public Table slice(List<SliceRange> ranges) {
+    Column[] newColumns = new Column[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].slice(ranges);
+    }
+    return new Table(newColumns, index.slice(ranges));
   }
 }

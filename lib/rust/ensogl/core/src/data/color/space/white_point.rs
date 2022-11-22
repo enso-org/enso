@@ -13,6 +13,7 @@ use super::super::component::*;
 use super::def::*;
 
 
+
 /// Common traits.
 pub mod traits {
     pub use super::WhitePoint;

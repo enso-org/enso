@@ -3,11 +3,16 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.Type;
 
-@BuiltinMethod(type = "Meta", name = "is_atom", description = "Checks if the argument is an atom")
+@BuiltinMethod(
+    type = "Meta",
+    name = "is_atom",
+    description = "Checks if the argument is an atom",
+    autoRegister = false)
 public class IsAtomNode extends Node {
-  boolean execute(Object _this, @AcceptsError Object value) {
-    return TypesGen.isAtom(value);
+  boolean execute(@AcceptsError Object value) {
+    return value instanceof Atom || value instanceof Type;
   }
 }

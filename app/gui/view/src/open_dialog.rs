@@ -1,5 +1,4 @@
 //! A module with [`OpenDialog`] component.
-pub mod project_list;
 
 use crate::prelude::*;
 
@@ -9,6 +8,13 @@ use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::file_browser::FileBrowser;
 use ensogl_hardcoded_theme as theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod project_list;
 
 
 
@@ -43,11 +49,11 @@ impl OpenDialog {
         // Once FileBrowser will be implemented as component, it should be instantiated this way:
         //let file_browser   = app.new_view::<FileBrowser>();
 
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         display_object.add_child(&project_list);
         display_object.add_child(&file_browser);
-        app.display.default_scene.layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add(&display_object);
 
         use theme::application as theme_app;
         let project_list_width = style_watch.get_number(theme_app::project_list::width);

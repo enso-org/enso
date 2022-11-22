@@ -1,18 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Ordering;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "compare_to", description = "Comparison for decimals.")
@@ -22,57 +18,43 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(double _this, Object that);
+  abstract Object execute(double self, Object that);
 
   @Specialization
-  Atom doLong(
-      double _this,
-      long that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    if (_this == that) {
-      return ordering.newEqual();
-    } else if (_this > that) {
-      return ordering.newGreater();
+  Atom doLong(double self, long that) {
+    if (self == that) {
+      return getOrdering().newEqual();
+    } else if (self > that) {
+      return getOrdering().newGreater();
     } else {
-      return ordering.newLess();
+      return getOrdering().newLess();
     }
   }
 
   @Specialization
-  Atom doBigInt(
-      double _this,
-      EnsoBigInteger that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compareTo(_this, that.getValue()));
+  Atom doBigInt(double self, EnsoBigInteger that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(
-      double _this,
-      double that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    if (_this == that) {
-      return ordering.newEqual();
-    } else if (_this > that) {
-      return ordering.newGreater();
+  Atom doDecimal(double self, double that) {
+    if (self == that) {
+      return getOrdering().newEqual();
+    } else if (self > that) {
+      return getOrdering().newGreater();
     } else {
-      return ordering.newLess();
+      return getOrdering().newLess();
     }
   }
 
-  @Specialization
-  Atom doOther(
-      double _this, Object that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    CompilerDirectives.transferToInterpreter();
-    var number = ctxRef.get().getBuiltins().number().getNumber().newInstance();
-    var typeError = ctxRef.get().getBuiltins().error().makeTypeError(that, number, "that");
-    throw new PanicException(typeError, this);
+  @Fallback
+  DataflowError doOther(double self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 
-  Ordering getOrdering(ContextReference<Context> ctxRef) {
-    return ctxRef.get().getBuiltins().ordering();
+  Ordering getOrdering() {
+    return Context.get(this).getBuiltins().ordering();
   }
 }

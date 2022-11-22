@@ -1,21 +1,21 @@
 //! This module defines a DOM management utilities.
 
+use crate::display::object::traits::*;
 use crate::prelude::*;
 use web::traits::*;
 
 use crate::display::camera::camera2d::Projection;
 use crate::display::camera::Camera2d;
-use crate::display::object::traits::*;
 use crate::display::symbol::dom::eps;
 use crate::display::symbol::dom::inverse_y_translation;
 use crate::display::symbol::DomSymbol;
-use crate::system::web;
-use web::HtmlDivElement;
-
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
+use crate::system::web;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
+use web::HtmlDivElement;
 
 
 
@@ -48,15 +48,15 @@ mod js {
         }
     ")]
     extern "C" {
-        /// Setup perspective CSS 3D projection on DOM.
+        // Setup perspective CSS 3D projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_perspective(dom: &web::JsValue, znear: &web::JsValue);
 
-        /// Setup Camera orthographic projection on DOM.
+        // Setup Camera orthographic projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_camera_orthographic(dom: &web::JsValue, matrix_array: &web::JsValue);
 
-        /// Setup Camera perspective projection on DOM.
+        // Setup Camera perspective projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_camera_perspective(
             dom: &web::JsValue,
@@ -129,13 +129,12 @@ pub struct DomSceneData {
     pub dom:                 HtmlDivElement,
     /// The child div of the `dom` element with view-projection Css 3D transformations applied.
     pub view_projection_dom: HtmlDivElement,
-    logger:                  Logger,
 }
 
 impl DomSceneData {
     /// Constructor.
-    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement, logger: Logger) -> Self {
-        Self { dom, view_projection_dom, logger }
+    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement) -> Self {
+        Self { dom, view_projection_dom }
     }
 }
 
@@ -164,8 +163,7 @@ pub struct DomScene {
 
 impl DomScene {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "DomScene");
+    pub fn new() -> Self {
         let dom = web::document.create_div_or_panic();
         let view_projection_dom = web::document.create_div_or_panic();
 
@@ -188,7 +186,7 @@ impl DomScene {
 
         dom.append_or_warn(&view_projection_dom);
 
-        let data = DomSceneData::new(dom, view_projection_dom, logger);
+        let data = DomSceneData::new(dom, view_projection_dom);
         let data = Rc::new(data);
         Self { data }
     }
@@ -246,5 +244,11 @@ impl DomScene {
                 setup_camera_orthographic(&self.data.view_projection_dom, &trans_cam);
             }
         }
+    }
+}
+
+impl Default for DomScene {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -186,7 +186,8 @@ class FileNotificationsTest extends BaseServerTest with FlakySpec {
         Api.Request(
           Api.EditFileNotification(
             file("foo.txt"),
-            Seq(TextEdit(Range(Position(0, 0), Position(0, 0)), "bar"))
+            Seq(TextEdit(Range(Position(0, 0), Position(0, 0)), "bar")),
+            execute = true
           )
         )
       )

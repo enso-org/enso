@@ -1,11 +1,12 @@
 package org.enso.table.data.column.builder.object;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.BitSet;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.Arrays;
+import java.util.BitSet;
 
 /** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {
@@ -67,14 +68,20 @@ public class NumericBuilder extends TypedBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else if (isDouble && o instanceof Double) {
-      data[currentSize++] = Double.doubleToRawLongBits((Double) o);
-    } else if (!isDouble && o instanceof Long) {
-      data[currentSize++] = (Long) o;
-    } else if (isDouble && o instanceof BigDecimal) {
-      data[currentSize++] = Double.doubleToRawLongBits(((BigDecimal) o).doubleValue());
+    } else if (isDouble) {
+      double value = NumericConverter.coerceToDouble(o);
+      data[currentSize++] = Double.doubleToRawLongBits(value);
     } else {
-      throw new UnsupportedOperationException();
+      data[currentSize++] = NumericConverter.coerceToLong(o);
+    }
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    if (isDouble) {
+      return NumericConverter.isCoercibleToDouble(o);
+    } else {
+      return NumericConverter.isCoercibleToLong(o);
     }
   }
 
@@ -135,12 +142,7 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
-  public int getCurrentCapacity() {
-    return data.length;
-  }
-
-  @Override
-  public Storage seal() {
+  public Storage<?> seal() {
     if (isDouble) {
       return new DoubleStorage(data, currentSize, isMissing);
     } else {

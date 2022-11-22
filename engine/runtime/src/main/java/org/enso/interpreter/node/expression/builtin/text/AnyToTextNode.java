@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
@@ -18,16 +19,16 @@ public abstract class AnyToTextNode extends Node {
   private @Child InteropLibrary strings =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
 
-  static AnyToTextNode build() {
+  public static AnyToTextNode build() {
     return AnyToTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  public abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom at) {
     if (at.getFields().length == 0) {
-      return Text.create(at.getConstructor().getName());
+      return consName(at.getConstructor());
     } else {
       return doComplexAtom(at);
     }
@@ -38,13 +39,24 @@ public abstract class AnyToTextNode extends Node {
     try {
       return Text.create(showObject(object));
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       return Text.create(object.toString());
     }
   }
 
   @CompilerDirectives.TruffleBoundary
+  private Text consName(AtomConstructor constructor) {
+    if (constructor.getName().equals("Value")) {
+      return Text.create(constructor.getType().getName() + "." + constructor.getName());
+    } else {
+      return Text.create(constructor.getName());
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
   private Text doComplexAtom(Atom atom) {
-    Text res = Text.create("(" + atom.getConstructor().getName() + " ");
+    Text res = Text.create("(", consName(atom.getConstructor()));
+    res = Text.create(res, " ");
     try {
       res = Text.create(res, showObject(atom.getFields()[0]));
     } catch (UnsupportedMessageException e) {
@@ -64,7 +76,12 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private String showObject(Object child) throws UnsupportedMessageException {
-    if (child instanceof Boolean) {
+    if (child == null) {
+      // TODO [RW] This is a temporary workaround to make it possible to display errors related to
+      // https://www.pivotaltracker.com/story/show/181652974
+      // Most likely it should be removed once that is implemented.
+      return "null";
+    } else if (child instanceof Boolean) {
       return (boolean) child ? "True" : "False";
     } else {
       return strings.asString(displays.toDisplayString(child));

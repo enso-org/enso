@@ -3,11 +3,14 @@ package org.enso.interpreter.node.callable.function;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * This node is responsible for representing the definition of a function. It contains information
@@ -75,5 +78,18 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   public ArgumentDefinition[] getArgs() {
     return schema.getArgumentInfos();
+  }
+
+  /** Optionally offers {@link AvoidIdInstrumentationTag}.
+   */
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (AvoidIdInstrumentationTag.class == tag) {
+      if (callTarget.getRootNode() instanceof ClosureRootNode c) {
+        return !c.isUsedInBinding() && !c.isSubjectToInstrumentation();
+      }
+      return false;
+    }
+    return super.hasTag(tag);
   }
 }

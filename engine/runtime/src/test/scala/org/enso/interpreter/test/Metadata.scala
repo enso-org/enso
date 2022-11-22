@@ -17,10 +17,16 @@ class Metadata {
     *
     * @param start the start position of the entry.
     * @param len the length of the entry.
+    * @param suggestion optional hexadecimal suggestion of UUID prefix
     * @return the new entry's id.
     */
-  def addItem(start: Int, len: Int): UUID = {
-    val id = UUID.randomUUID();
+  def addItem(start: Int, len: Int, suggestion: String = null): UUID = {
+    var id = UUID.randomUUID();
+    if (suggestion != null) {
+      val lo = java.lang.Long.parseUnsignedLong(suggestion, 16);
+      val hi = id.getMostSignificantBits();
+      id = new UUID(lo, hi)
+    }
     items ::= Item(start, len, id)
     id
   }

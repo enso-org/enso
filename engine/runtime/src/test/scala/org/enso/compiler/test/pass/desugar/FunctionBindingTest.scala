@@ -227,6 +227,14 @@ class FunctionBindingTest extends CompilerTest {
       val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
       err.reason shouldBe an[IR.Error.Conversion.NonDefaultedArgument]
     }
+
+    "not return an error if the additional arguments don't have defaults and is not a self parameter" in {
+      val ir =
+        s"""My_Type.$from (that : Other) config=1 self = that + that
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head should not be an[IR.Error]
+    }
   }
 
   "Sugared function definitions" should {

@@ -1,27 +1,24 @@
 package org.enso.table.data.column.storage;
 
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.stream.LongStream;
-
-import org.apache.poi.ss.usermodel.Cell;
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
-public class LongStorage extends NumericStorage {
+public final class LongStorage extends NumericStorage<Long> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<LongStorage> ops = buildOps();
+  private static final MapOpStorage<Long, LongStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -65,13 +62,13 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Object getItemBoxed(int idx) {
+  public Long getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : data[idx];
   }
 
   /** @inheritDoc */
   @Override
-  public long getType() {
+  public int getType() {
     return Type.LONG;
   }
 
@@ -82,65 +79,21 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
   @Override
-  protected Storage runVectorizedMap(String name, Object argument) {
+  protected Storage<?> runVectorizedMap(String name, Object argument) {
     return ops.runMap(name, this, argument);
   }
 
   @Override
-  protected Storage runVectorizedZip(String name, Storage argument) {
+  protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
   }
 
-  @Override
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    switch (name) {
-      case Aggregators.SUM:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            long[] elements = items.toArray();
-            if (elements.length == 0) {
-              submitMissing();
-            } else {
-              submit(LongStream.of(elements).sum());
-            }
-          }
-        };
-      case Aggregators.MAX:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            OptionalLong r = items.max();
-            if (r.isPresent()) {
-              submit(r.getAsLong());
-            } else {
-              submitMissing();
-            }
-          }
-        };
-      case Aggregators.MIN:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            OptionalLong r = items.min();
-            if (r.isPresent()) {
-              submit(r.getAsLong());
-            } else {
-              submitMissing();
-            }
-          }
-        };
-      default:
-        return super.getVectorizedAggregator(name, resultSize);
-    }
-  }
-
-  private Storage fillMissingDouble(double arg) {
+  private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
@@ -154,7 +107,7 @@ public class LongStorage extends NumericStorage {
     return builder.seal();
   }
 
-  private Storage fillMissingLong(long arg) {
+  private Storage<?> fillMissingLong(long arg) {
     final var builder = NumericBuilder.createLongBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -167,18 +120,20 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage fillMissing(Object arg) {
-    if (arg instanceof Double) {
-      return fillMissingDouble((Double) arg);
-    } else if (arg instanceof Long) {
-      return fillMissingLong((Long) arg);
-    } else {
-      return super.fillMissing(arg);
+  public Storage<?> fillMissing(Value arg) {
+    if (arg.isNumber()) {
+      if (arg.fitsInLong()) {
+        return fillMissingLong(arg.asLong());
+      } else {
+        return fillMissingDouble(arg.asDouble());
+      }
     }
+
+    return super.fillMissing(arg);
   }
 
   @Override
-  public LongStorage mask(BitSet mask, int cardinality) {
+  public Storage<Long> mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
@@ -195,7 +150,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage applyMask(OrderMask mask) {
+  public Storage<Long> applyMask(OrderMask mask) {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
@@ -210,7 +165,7 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage countMask(int[] counts, int total) {
+  public Storage<Long> countMask(int[] counts, int total) {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
@@ -227,18 +182,12 @@ public class LongStorage extends NumericStorage {
     return new LongStorage(newData, total, newMissing);
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<Long>naturalOrder();
-  }
-
   public BitSet getIsMissing() {
     return isMissing;
   }
 
-  private static MapOpStorage<LongStorage> buildOps() {
-    MapOpStorage<LongStorage> ops = new MapOpStorage<>();
+  private static MapOpStorage<Long, LongStorage> buildOps() {
+    MapOpStorage<Long, LongStorage> ops = new MapOpStorage<>();
     ops.add(
             new LongNumericOp(Maps.ADD) {
               @Override
@@ -288,6 +237,19 @@ public class LongStorage extends NumericStorage {
               }
             })
         .add(
+            new LongNumericOp(Maps.POWER, true) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return Math.pow(in, arg);
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                throw new IllegalStateException(
+                    "Internal error: Power operation should cast to double.");
+              }
+            })
+        .add(
             new LongNumericOp(Maps.DIV, true) {
               @Override
               public double doDouble(long in, double arg) {
@@ -296,7 +258,7 @@ public class LongStorage extends NumericStorage {
 
               @Override
               public long doLong(long in, long arg) {
-                return in / arg;
+                throw new UnsupportedOperationException("Divide operation should cast to double.");
               }
             })
         .add(
@@ -367,10 +329,11 @@ public class LongStorage extends NumericStorage {
         .add(
             new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
-              public Storage run(LongStorage storage) {
+              public BoolStorage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
-            });
+            })
+        .add(new LongIsInOp());
     return ops;
   }
 
@@ -384,12 +347,20 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  protected String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return String.valueOf(getItem(index));
-  }
+  public LongStorage slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    long[] newData = new long[newSize];
+    BitSet newMissing = new BitSet(newSize);
+    int offset = 0;
+    for (SliceRange range : ranges) {
+      int length = range.end() - range.start();
+      System.arraycopy(data, range.start(), newData, offset, length);
+      for (int i = 0; i < length; ++i) {
+        newMissing.set(offset + i, isMissing.get(range.start() + i));
+      }
+      offset += length;
+    }
 
-  @Override
-  public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
-    cell.setCellValue(getItem(index));
+    return new LongStorage(newData, newSize, newMissing);
   }
 }

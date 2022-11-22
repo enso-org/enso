@@ -1,5 +1,8 @@
 overrides:
-  - files: "*.[j|t]s"
+  - files:
+      - "*.[j|t]s"
+      - "*.mjs"
+      - "*.cjs"
     options:
       printWidth: 100
       tabWidth: 4

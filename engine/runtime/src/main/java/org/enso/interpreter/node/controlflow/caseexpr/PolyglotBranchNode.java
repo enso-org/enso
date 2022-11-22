@@ -1,24 +1,21 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "PolyglotMatch", description = "Allows matching on polyglot objects.")
 public abstract class PolyglotBranchNode extends BranchNode {
-  private final AtomConstructor polyglot;
+  private final Type polyglot;
   private final ConditionProfile constructorProfile = ConditionProfile.createCountingProfile();
   private final ConditionProfile polyglotProfile = ConditionProfile.createCountingProfile();
 
-  PolyglotBranchNode(AtomConstructor polyglot, RootCallTarget branch) {
+  PolyglotBranchNode(Type polyglot, RootCallTarget branch) {
     super(branch);
     this.polyglot = polyglot;
   }
@@ -30,32 +27,26 @@ public abstract class PolyglotBranchNode extends BranchNode {
    * @param branch the code to execute
    * @return an integer branch node
    */
-  public static PolyglotBranchNode build(AtomConstructor polyglot, RootCallTarget branch) {
+  public static PolyglotBranchNode build(Type polyglot, RootCallTarget branch) {
     return PolyglotBranchNodeGen.create(polyglot, branch);
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (constructorProfile.profile(polyglot == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (constructorProfile.profile(polyglot == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 
-  @Specialization(guards = "isPolyglotObject(context,obj)")
-  void doLiteral(
-      VirtualFrame frame,
-      Object state,
-      Object obj,
-      @CachedContext(Language.class) Context context) {
-    if (polyglotProfile.profile(isPolyglotObject(context, obj))) {
-      accept(frame, state, new Object[0]);
-    }
+  @Specialization(guards = "isPolyglotObject(obj)")
+  void doLiteral(VirtualFrame frame, Object state, Object obj) {
+    accept(frame, state, new Object[0]);
   }
 
   @Fallback
   void doFallback(VirtualFrame frame, Object state, Object target) {}
 
-  boolean isPolyglotObject(Context context, Object o) {
-    return context.getEnvironment().isHostObject(o);
+  boolean isPolyglotObject(Object o) {
+    return Context.get(this).getEnvironment().isHostObject(o);
   }
 }

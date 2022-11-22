@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.debug;
 
 import com.oracle.truffle.api.debug.DebuggerTags;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
@@ -9,14 +8,16 @@ import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(type = "Debug", name = "breakpoint", description = "Instrumentation marker node.")
+@BuiltinMethod(
+    type = "Debug",
+    name = "breakpoint",
+    description = "Instrumentation marker node.",
+    autoRegister = false)
 @GenerateWrapper
 public abstract class DebugBreakpointNode extends Node implements InstrumentableNode {
   /**
@@ -38,17 +39,11 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
     return true;
   }
 
-  abstract Stateful execute(
-      VirtualFrame frame, CallerInfo callerInfo, @MonadicState Object state, Object _this);
+  abstract Object execute(VirtualFrame frame, CallerInfo callerInfo, State state);
 
   @Specialization
-  Stateful doExecute(
-      VirtualFrame frame,
-      CallerInfo callerInfo,
-      Object state,
-      Object _this,
-      @CachedContext(Language.class) Context context) {
-    return new Stateful(state, context.getNothing().newInstance());
+  Object doExecute(VirtualFrame frame, CallerInfo callerInfo, State state) {
+    return Context.get(this).getNothing();
   }
 
   /**

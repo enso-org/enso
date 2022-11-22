@@ -1,9 +1,9 @@
 //! This module implements utilities for managing WebGL buffers.
 
-pub mod item;
-pub mod usage;
-
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::data::gl_enum::traits::*;
+use crate::system::gpu::data::prim::*;
 
 use crate::closure;
 use crate::control::callback;
@@ -14,17 +14,21 @@ use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
-use crate::system::Context;
-
-use crate::data::dirty::traits::*;
 use crate::system::gpu::data::default::gpu_default;
-use crate::system::gpu::data::gl_enum::traits::*;
-use crate::system::gpu::data::prim::*;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use std::iter::Extend;
 use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod item;
+pub mod usage;
 
 pub use crate::system::gpu::data::Storable;
 
@@ -100,7 +104,6 @@ shared! { Buffer
 /// on CPU-side and will be uploaded to the GPU as soon as the context is bound or restored.
 #[derive(Debug)]
 pub struct BufferData<T> {
-    logger        : Logger,
     gl            : Option<GlData>,
     buffer        : ObservableVec<T>,
     mut_dirty     : MutDirty,
@@ -113,14 +116,11 @@ pub struct BufferData<T> {
 impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
-    (logger:Logger, stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
-        info!(logger,"Creating new {T::type_display()} buffer.", || {
+    (stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
+        debug_span!("Creating new {T::type_display()} buffer.").in_scope(|| {
             stats.inc_buffer_count();
-            let logger        = logger.clone();
-            let sublogger     = Logger::new_sub(&logger,"mut_dirty");
-            let mut_dirty     = MutDirty::new(sublogger,Box::new(on_mut));
-            let sublogger     = Logger::new_sub(&logger,"resize_dirty");
-            let resize_dirty  = ResizeDirty::new(sublogger, Box::new(on_resize));
+            let mut_dirty     = MutDirty::new(Box::new(on_mut));
+            let resize_dirty  = ResizeDirty::new(Box::new(on_resize));
             resize_dirty.set();
             let on_resize_fn  = on_resize_fn(resize_dirty.clone_ref());
             let on_mut_fn     = on_mut_fn(mut_dirty.clone_ref());
@@ -129,7 +129,7 @@ impl<T:Storable> {
             let stats         = stats.clone_ref();
             let gpu_mem_usage = default();
             let gl            = default();
-            Self {logger,gl,buffer,mut_dirty,resize_dirty,usage,stats,gpu_mem_usage}
+            Self {gl, buffer, mut_dirty, resize_dirty, usage, stats, gpu_mem_usage}
         })
     }
 
@@ -181,15 +181,15 @@ impl<T:Storable> {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        info!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if let Some(gl) = &self.gl {
-                gl.context.bind_buffer(Context::ARRAY_BUFFER,Some(&gl.buffer));
+                gl.context.bind_buffer(*Context::ARRAY_BUFFER,Some(&gl.buffer));
                 if self.resize_dirty.check() {
                     self.upload_data(&None);
                 } else if self.mut_dirty.check_all() {
                     self.upload_data(&self.mut_dirty.take().range);
                 } else {
-                    warning!(self.logger,"Update requested but it was not needed.");
+                    warn!("Update requested but it was not needed.");
                 }
                 self.mut_dirty.unset_all();
                 self.resize_dirty.unset();
@@ -213,18 +213,27 @@ impl<T:Storable> {
     /// https://stackoverflow.com/questions/38853096/webgl-how-to-bind-values-to-a-mat4-attribute
     pub fn vertex_attrib_pointer(&self, loc:u32, instanced:bool) {
         if let Some(gl) = &self.gl {
+            let is_integer     = T::is_integer();
             let item_byte_size = T::item_gpu_byte_size() as i32;
             let item_type      = T::item_gl_enum().into();
             let rows           = T::rows() as i32;
             let cols           = T::cols() as i32;
             let col_byte_size  = item_byte_size * rows;
             let stride         = col_byte_size  * cols;
-            let normalize      = false;
             for col in 0..cols {
                 let lloc = loc + col as u32;
                 let off  = col * col_byte_size;
+                // Please note that for performance reasons, vertex attrib 0 should always be
+                // enabled as an array. For more details see
+                // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
                 gl.context.enable_vertex_attrib_array(lloc);
-                gl.context.vertex_attrib_pointer_with_i32(lloc,rows,item_type,normalize,stride,off);
+                if is_integer {
+                    gl.context.vertex_attrib_i_pointer_with_i32(lloc,rows,item_type,stride,off);
+                } else {
+                    let normalize = false;
+                    gl.context.vertex_attrib_pointer_with_i32
+                        (lloc,rows,item_type,normalize,stride,off);
+                }
                 if instanced {
                     let instance_count = 1;
                     gl.context.vertex_attrib_divisor(lloc,instance_count);
@@ -233,15 +242,13 @@ impl<T:Storable> {
         }
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.gl = context.map(|ctx| {
             self.resize_dirty.set();
             GlData::new(ctx)
         });
-        if self.gl.is_none() {
-            self.drop_stats()
-        }
     }
 }}
 
@@ -273,7 +280,7 @@ impl<T: Storable> BufferData<T> {
     /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range: &Option<RangeInclusive<usize>>) {
-        info!(self.logger, "Uploading buffer data.", || {
+        info_span!("Uploading buffer data.").in_scope(|| {
             self.stats.inc_data_upload_count();
             match opt_range {
                 None => self.replace_gpu_buffer(),
@@ -292,7 +299,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_data_with_array_buffer_view(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     &js_array,
                     gl_enum,
                 );
@@ -325,7 +332,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     dst_byte_offset,
                     &js_array,
                     start_item,
@@ -406,7 +413,7 @@ use enum_dispatch::*;
 pub struct BadVariant;
 
 macro_rules! define_any_buffer {
-([] [$([$base:ident $param:ident])*]) => { paste::item! {
+([] [$([$base:ident $param:ident])*]) => { paste! {
 
     /// An enum with a variant per possible buffer type (i32, f32, Vector<f32>,
     /// and many, many more). It provides a faster alternative to dyn trait one:
@@ -450,7 +457,8 @@ crate::with_all_prim_types!([[define_any_buffer] []]);
 #[enum_dispatch]
 #[allow(missing_docs)]
 pub trait IsBuffer {
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>);
     fn add_element(&self);
     fn len(&self) -> usize;
@@ -465,7 +473,8 @@ pub trait IsBuffer {
 // This implementation is needed, because `enum_dispatch` library requires variant types to
 // implement the trait, as it invokes trait methods explicitly on variant values.
 //
-// Thus we provide implementation that just redirects calls to methods defined in the Buffer itself.
+// Thus, we provide implementation that just redirects calls to methods defined in the Buffer
+// itself.
 impl<T: Storable> IsBuffer for Buffer<T> {
     fn set_context(&self, context: Option<&Context>) {
         self.set_context(context)

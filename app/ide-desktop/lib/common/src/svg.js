@@ -1,6 +1,6 @@
 /// This module defines a set of utils for generating and modifying the SVG images.
 
-import * as math from './math'
+import * as math from './math.js'
 
 // ===========
 // === SVG ===

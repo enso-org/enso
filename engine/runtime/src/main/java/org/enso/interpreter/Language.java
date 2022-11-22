@@ -1,32 +1,37 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.InstrumentInfo;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.state.IOPermissions;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
+
+import java.util.Optional;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.graalvm.options.OptionKey;
+import org.graalvm.options.OptionType;
 
 /**
  * The root of the Enso implementation.
@@ -52,12 +57,21 @@ import org.graalvm.options.OptionDescriptors;
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
   StandardTags.ExpressionTag.class,
+  StandardTags.StatementTag.class,
   StandardTags.RootTag.class,
   StandardTags.TryBlockTag.class,
-  IdentifiedTag.class
+  IdentifiedTag.class,
+  AvoidIdInstrumentationTag.class,
+  Patchable.Tag.class
 })
 public final class Language extends TruffleLanguage<Context> {
-  private IdExecutionInstrument idExecutionInstrument;
+  private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
+  private static final LanguageReference<Language> REFERENCE =
+      LanguageReference.create(Language.class);
+
+  public static Language get(Node node) {
+    return REFERENCE.get(node);
+  }
 
   /**
    * Creates a new Enso context.
@@ -100,12 +114,15 @@ public final class Language extends TruffleLanguage<Context> {
     Context context =
         new Context(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-    InstrumentInfo idValueListenerInstrument =
-        env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
-    idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
+    idExecutionInstrument =
+        Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
+            .map(
+                idValueListenerInstrument ->
+                    env.lookup(idValueListenerInstrument, IdExecutionService.class));
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager));
+
     return context;
   }
 
@@ -153,10 +170,22 @@ public final class Language extends TruffleLanguage<Context> {
     return Truffle.getRuntime().createCallTarget(root);
   }
 
+  @Option(
+      name = "IOEnvironment",
+      category = OptionCategory.USER,
+      help = "The IO environment for program execution.")
+  public static final OptionKey<IOPermissions> IO_ENVIRONMENT =
+      new OptionKey<>(
+          IOPermissions.PRODUCTION, new OptionType<>("IOEnvironment", IOPermissions::forName));
+
+  private static final OptionDescriptors OPTIONS =
+      OptionDescriptors.createUnion(
+          new LanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
+
   /** {@inheritDoc} */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
-    return RuntimeOptions.OPTION_DESCRIPTORS;
+    return OPTIONS;
   }
 
   /**
@@ -171,7 +200,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /** @return a reference to the execution instrument */
-  public IdExecutionInstrument getIdExecutionInstrument() {
+  public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }
 }

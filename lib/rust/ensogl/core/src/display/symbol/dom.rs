@@ -1,17 +1,14 @@
 //! This module contains the implementation of `DomSymbol`, a struct used to represent DOM
 //! elements on the scene.
 
+use crate::display::object::traits::*;
 use crate::prelude::*;
 use web::traits::*;
 
 use crate::display;
-use crate::display::object::traits::*;
 #[cfg(target_arch = "wasm32")]
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web;
-
-// #[cfg(target_arch = "wasm32")]
-// use crate::system::web::traits::*;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -37,7 +34,7 @@ mod js {
         }
     ")]
     extern "C" {
-        /// Sets object's CSS 3D transform.
+        // Sets object's CSS 3D transform.
         #[allow(unsafe_code)]
         pub fn set_object_transform(dom: &web::JsValue, matrix_array: &web::Object);
     }
@@ -114,14 +111,13 @@ pub struct DomSymbol {
 impl DomSymbol {
     /// Constructor.
     pub fn new(content: &web::Node) -> Self {
-        let logger = Logger::new("DomSymbol");
         let size = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
         let dom = web::document.create_div_or_panic();
         dom.set_style_or_warn("position", "absolute");
         dom.set_style_or_warn("width", "0px");
         dom.set_style_or_warn("height", "0px");
         dom.append_or_warn(content);
-        let display_object = display::object::Instance::new(logger);
+        let display_object = display::object::Instance::new();
         let guard = Rc::new(Guard::new(&display_object, &dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
             let mut transform = inverse_y_translation(t.matrix());

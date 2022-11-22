@@ -1,8 +1,10 @@
 //! This module defines abstraction for uniform uploading. WebGL defines a lot of functions for
 //! uploading particular data shapes. Fortunately, Rust is strongly typed, so we can establish a
 //! single abstraction for data uploading.
-use crate::system::gpu::Context;
+
 use crate::types::*;
+
+use crate::system::gpu::Context;
 
 use nalgebra::storage::Storage;
 use web_sys::WebGlUniformLocation;

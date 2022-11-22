@@ -9,20 +9,33 @@
 //! The only things exposed form this module are the `NumberPicker`, `NumberRangePicker`, their
 //! FRPs and the `Bounds` struct.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod bounds;
 pub mod model;
+
+
 
 mod decimal_aligned;
 mod frp;
@@ -96,7 +109,7 @@ impl Deref for NumberPicker {
     }
 }
 
-impl application::command::FrpNetworkProvider for NumberPicker {
+impl FrpNetworkProvider for NumberPicker {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
     }
@@ -166,7 +179,7 @@ impl Deref for NumberRangePicker {
     }
 }
 
-impl application::command::FrpNetworkProvider for NumberRangePicker {
+impl FrpNetworkProvider for NumberRangePicker {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
     }

@@ -1,21 +1,21 @@
 //! This module provides a clickable view for a single breadcrumb.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+
+use crate::component::breadcrumbs;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
+use crate::MethodPointer;
 
 use super::RelativePosition;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
-use crate::component::breadcrumbs;
-use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
-use crate::MethodPointer;
-
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
@@ -55,8 +55,8 @@ const SEPARATOR_MARGIN: f32 = 10.0;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
-        () {
+    ensogl::shape! {
+        (style: Style) {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
         }
@@ -72,8 +72,9 @@ pub mod background {
 mod icon {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+    ensogl::shape! {
+        pointer_events = false;
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
             let ring          = outer_circle - inner_circle;
@@ -97,8 +98,9 @@ mod icon {
 mod separator {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (red:f32,green:f32,blue:f32,alpha:f32) {
+    ensogl::shape! {
+        pointer_events = false;
+        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
             let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());
@@ -257,12 +259,11 @@ pub struct BreadcrumbInfo {
 /// Breadcrumbs model.
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbModel {
-    logger:            Logger,
     display_object:    display::object::Instance,
     view:              background::View,
     separator:         separator::View,
     icon:              icon::View,
-    label:             text::Area,
+    label:             text::Text,
     animations:        Animations,
     style:             StyleWatch,
     /// Breadcrumb information such as name and expression id.
@@ -273,6 +274,7 @@ pub struct BreadcrumbModel {
 
 impl BreadcrumbModel {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(
         app: &Application,
         frp: &Frp,
@@ -280,13 +282,11 @@ impl BreadcrumbModel {
         expression_id: &ast::Id,
     ) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("Breadcrumbs");
-        let display_object = display::object::Instance::new(&logger);
-        let view_logger = Logger::new_sub(&logger, "view_logger");
-        let view = background::View::new(&view_logger);
-        let icon = icon::View::new(&view_logger);
-        let separator = separator::View::new(&view_logger);
-        let label = app.new_view::<text::Area>();
+        let display_object = display::object::Instance::new();
+        let view = background::View::new();
+        let icon = icon::View::new();
+        let separator = separator::View::new();
+        let label = app.new_view::<text::Text>();
         let expression_id = *expression_id;
         let method_pointer = method_pointer.clone();
         let info = Rc::new(BreadcrumbInfo { method_pointer, expression_id });
@@ -301,38 +301,17 @@ impl BreadcrumbModel {
             }
         }
 
-        scene.layers.panel.add_exclusive(&view);
-        let shape_system = scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<background::DynamicShape>);
-        scene.layers.panel.add_exclusive(&shape_system.shape_system.symbol);
+        scene.layers.panel.add(&view);
+        scene.layers.panel.add(&icon);
+        scene.layers.panel.add(&separator);
 
-        scene.layers.panel.add_exclusive(&icon);
-        let shape_system = scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<icon::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
-
-        scene.layers.panel.add_exclusive(&separator);
-        let shape_system = scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<separator::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
-
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
         Self {
-            logger,
             display_object,
             view,
             separator,
@@ -359,9 +338,9 @@ impl BreadcrumbModel {
 
         let color = if self.is_selected() { full_color } else { transparent_color };
 
-        self.label.set_default_color.emit(color);
-        self.label.set_default_text_size(text::style::Size::from(TEXT_SIZE));
-        self.label.single_line(true);
+        self.label.set_property_default(color);
+        self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
+        self.label.set_single_line_mode(true);
         self.label.set_position_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
         self.label.set_position_y(TEXT_SIZE / 2.0);
         self.label.set_content(&self.info.method_pointer.name);
@@ -412,7 +391,7 @@ impl BreadcrumbModel {
 
     fn set_color(&self, value: Vector4<f32>) {
         let color = color::Rgba::from(value);
-        self.label.set_color_all(color);
+        self.label.set_property(.., color);
         self.icon.red.set(color.red);
         self.icon.green.set(color.green);
         self.icon.blue.set(color.blue);
@@ -518,7 +497,7 @@ impl Breadcrumb {
             eval_ mouse_out_if_not_selected(
                 model.animations.color.set_target_value(model.deselected_color().into())
             );
-            eval_ model.view.events.mouse_down(frp.outputs.clicked.emit(()));
+            eval_ model.view.events.mouse_down_primary(frp.outputs.clicked.emit(()));
         }
 
 

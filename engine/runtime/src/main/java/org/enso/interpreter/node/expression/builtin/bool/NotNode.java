@@ -8,7 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     name = "not",
     description = "Computes the logical negation of a boolean value")
 public class NotNode extends Node {
-  boolean execute(boolean _this) {
-    return !_this;
+  boolean execute(boolean self) {
+    return !self;
   }
 }

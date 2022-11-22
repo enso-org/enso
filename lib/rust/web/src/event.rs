@@ -1,11 +1,16 @@
 //! Utilities for DOM events.
 
-pub mod listener;
-
 use js_sys::Function;
 use wasm_bindgen::JsValue;
 use web_sys::Event;
 use web_sys::EventTarget;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod listener;
 
 
 

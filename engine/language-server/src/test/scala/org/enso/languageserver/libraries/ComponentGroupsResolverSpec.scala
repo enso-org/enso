@@ -7,8 +7,8 @@ import org.enso.pkg.{
   ComponentGroups,
   Config,
   ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference
+  GroupName,
+  GroupReference
 }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -32,12 +32,18 @@ class ComponentGroupsResolverSpec extends AnyWordSpec with Matchers {
           "Foo",
           "Quux",
           ComponentGroups(List(newComponentGroup("Mod2", "one")), List())
+        ),
+        config(
+          "Foo",
+          "Brrr",
+          ComponentGroups(List(newComponentGroup("Abc", "three")), List())
         )
       )
 
       resolver.run(testPackages) shouldEqual Vector(
         libraryComponentGroup("Foo", "Baz", "Mod1", "one", "two"),
-        libraryComponentGroup("Foo", "Quux", "Mod2", "one")
+        libraryComponentGroup("Foo", "Quux", "Mod2", "one"),
+        libraryComponentGroup("Foo", "Brrr", "Abc", "three")
       )
     }
 
@@ -274,11 +280,11 @@ object ComponentGroupsResolverSpec {
 
   /** Create a new component group. */
   def newComponentGroup(
-    module: String,
+    group: String,
     exports: String*
   ): ComponentGroup =
     ComponentGroup(
-      module  = ModuleName(module),
+      group   = GroupName(group),
       color   = None,
       icon    = None,
       exports = exports.map(Component(_, None))
@@ -288,27 +294,27 @@ object ComponentGroupsResolverSpec {
   def extendedComponentGroup(
     extendedLibraryNamespace: String,
     extendedLibraryName: String,
-    extendedModule: String,
+    extendedGroup: String,
     exports: String*
   ): ExtendedComponentGroup =
     ExtendedComponentGroup(
-      module = ModuleReference(
+      group = GroupReference(
         LibraryName(extendedLibraryNamespace, extendedLibraryName),
-        ModuleName(extendedModule)
+        GroupName(extendedGroup)
       ),
       exports = exports.map(Component(_, None))
     )
 
   /** Create a new library component group. */
   def libraryComponentGroup(
-    namespace: String,
-    name: String,
-    module: String,
+    libraryNamespace: String,
+    libraryName: String,
+    groupName: String,
     exports: String*
   ): LibraryComponentGroup =
     LibraryComponentGroup(
-      library = LibraryName(namespace, name),
-      module  = ModuleName(module),
+      library = LibraryName(libraryNamespace, libraryName),
+      name    = GroupName(groupName),
       color   = None,
       icon    = None,
       exports = exports.map(LibraryComponent(_, None))

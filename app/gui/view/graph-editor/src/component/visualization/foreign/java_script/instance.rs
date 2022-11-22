@@ -6,18 +6,19 @@
 //! An `Instance` can be created via `Instance::from_object` where the a JS object is provided that
 //! fullfills the spec described in `java_script/definition.rs
 
-
+use crate::component::visualization::*;
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::java_script;
 use crate::component::visualization::java_script::binding::JsConsArgs;
 use crate::component::visualization::java_script::method;
-use crate::component::visualization::*;
 
 use core::result;
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
@@ -25,7 +26,6 @@ use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl::system::web::JsValue;
 use std::fmt::Formatter;
 
@@ -272,7 +272,8 @@ pub struct Instance {
 
 impl Instance {
     /// Constructor.
-    pub fn new(class: &JsValue, scene: &Scene) -> result::Result<Instance, Error> {
+    pub fn new(class: &JsValue, app: &Application) -> result::Result<Instance, Error> {
+        let scene = &app.display.default_scene;
         let network = frp::Network::new("js_visualization_instance");
         let frp = visualization::instance::Frp::new(&network);
         let model = InstanceModel::from_class(class, scene)?;
@@ -304,10 +305,9 @@ impl Instance {
         let callback = Box::new(callback);
         self.model.preprocessor_change.borrow_mut().replace(callback);
         if let Err(err) = self.model.update_preprocessor() {
-            let logger = self.model.logger.clone();
             error!(
-                logger,
-                "Failed to trigger initial preprocessor update from JS: {err.print_to_string()}"
+                "Failed to trigger initial preprocessor update from JS: {}",
+                err.print_to_string()
             );
         }
         self

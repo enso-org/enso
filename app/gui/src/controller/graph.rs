@@ -2,12 +2,11 @@
 //!
 //! This controller provides access to a specific graph. It lives under a module controller, as
 //! each graph belongs to some module.
-pub mod executed;
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::model::module::NodeMetadata;
-use crate::model::traits::*;
 
 use ast::crumbs::InfixCrumb;
 use ast::macros::DocumentationCommentInfo;
@@ -24,12 +23,19 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use parser::Parser;
+use parser_scala::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::Context as SpanTreeContext;
 use span_tree::SpanTree;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod executed;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;
@@ -389,7 +395,7 @@ impl EndpointInfo {
     }
 
     /// Iterates over sibling ports located after this endpoint in its chain.
-    pub fn chained_ports_after<'a>(&'a self) -> impl Iterator<Item = PortRef> + 'a {
+    pub fn chained_ports_after(&self) -> impl Iterator<Item = PortRef> + '_ {
         let parent_port = self.parent_chain_port();
         let ports_after = parent_port.map(move |parent_port| {
             parent_port
@@ -493,6 +499,7 @@ impl Handle {
     /// Create a graph controller for the given method.
     ///
     /// Fails if the module is inaccessible or if the module does not contain the given method.
+    #[profile(Task)]
     pub async fn new_method(
         parent: impl AnyLogger,
         project: &model::Project,
@@ -532,6 +539,11 @@ impl Handle {
         let info = self.node_info(id)?;
         let metadata = self.module.node_metadata(id).ok();
         Ok(Node { info, metadata })
+    }
+
+    /// Check whether the given ID corresponds to an existing node.
+    pub fn node_exists(&self, id: ast::Id) -> bool {
+        self.node_info(id).is_ok()
     }
 
     /// Returns information about all the nodes currently present in this graph.
@@ -748,12 +760,13 @@ impl Handle {
     }
 
     /// Updates the AST of the definition of this graph.
+    #[profile(Debug)]
     pub fn update_definition_ast<F>(&self, f: F) -> FallibleResult
     where F: FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo> {
         let ast_so_far = self.module.ast();
         let definition = self.definition()?;
         let new_definition = f(definition.item)?;
-        info!(self.logger, "Applying graph changes onto definition");
+        info!("Applying graph changes onto definition");
         let new_ast = new_definition.ast.into();
         let new_module = ast_so_far.set_traversing(&definition.crumbs, new_ast)?;
         self.module.update_ast(new_module)
@@ -782,7 +795,7 @@ impl Handle {
 
     /// Adds a new node to the graph and returns information about created node.
     pub fn add_node(&self, node: NewNodeInfo) -> FallibleResult<ast::Id> {
-        info!(self.logger, "Adding node with expression `{node.expression}`");
+        info!("Adding node with expression `{}`", node.expression);
         let expression_ast = self.parse_node_expression(&node.expression)?;
         let main_line = MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
         let documentation = node
@@ -814,7 +827,7 @@ impl Handle {
 
     /// Removes the node with given Id.
     pub fn remove_node(&self, id: ast::Id) -> FallibleResult {
-        info!(self.logger, "Removing node {id}");
+        info!("Removing node {id}");
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.remove_node(id)?;
@@ -827,15 +840,17 @@ impl Handle {
     }
 
     /// Sets the given's node expression.
+    #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
-        info!(self.logger, "Setting node {id} expression to `{expression_text.as_ref()}`");
+        info!("Setting node {id} expression to `{}`", expression_text.as_ref());
         let new_expression_ast = self.parse_node_expression(expression_text)?;
         self.set_expression_ast(id, new_expression_ast)
     }
 
     /// Sets the given's node expression.
+    #[profile(Debug)]
     pub fn set_expression_ast(&self, id: ast::Id, expression: Ast) -> FallibleResult {
-        info!(self.logger, "Setting node {id} expression to `{expression.repr()}`");
+        info!("Setting node {id} expression to `{}`", expression.repr());
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
@@ -862,6 +877,7 @@ impl Handle {
     /// Collapses the selected nodes.
     ///
     /// Lines corresponding to the selection will be extracted to a new method definition.
+    #[profile(Task)]
     pub fn collapse(
         &self,
         nodes: impl IntoIterator<Item = node::Id>,
@@ -872,7 +888,7 @@ impl Handle {
         use double_representation::refactorings::collapse::collapse;
         use double_representation::refactorings::collapse::Collapsed;
         let nodes = nodes.into_iter().map(|id| self.node(id)).collect::<Result<Vec<_>, _>>()?;
-        info!(self.logger, "Collapsing {nodes:?}.");
+        info!("Collapsing {nodes:?}.");
         let collapsed_positions = nodes
             .iter()
             .filter_map(|node| node.metadata.as_ref().and_then(|metadata| metadata.position));
@@ -881,7 +897,8 @@ impl Handle {
         let introduced_name = module.generate_name(new_method_name_base)?;
         let node_ids = nodes.iter().map(|node| node.info.id());
         let graph = self.graph_info()?;
-        let collapsed = collapse(&graph, node_ids, introduced_name, &self.parser)?;
+        let module_name = self.module.name();
+        let collapsed = collapse(&graph, node_ids, introduced_name, &self.parser, module_name)?;
         let Collapsed { new_method, updated_definition, collapsed_node } = collapsed;
 
         let graph = self.graph_info()?;
@@ -904,7 +921,7 @@ impl Handle {
             let mut graph = GraphInfo::from_definition(definition);
             graph.update_node(id, |node| {
                 let new_node = f(node);
-                info!(self.logger, "Setting node {id} line to `{new_node.repr()}`");
+                info!("Setting node {id} line to `{}`", new_node.repr());
                 Some(new_node)
             })?;
             Ok(graph.source)
@@ -975,8 +992,8 @@ pub mod tests {
     use double_representation::identifier::NormalizedName;
     use double_representation::project;
     use engine_protocol::language_server::MethodPointer;
-    use enso_text::traits::*;
-    use parser::Parser;
+    use enso_text::index::*;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 
@@ -1045,10 +1062,11 @@ pub mod tests {
             self.module_path.method_pointer(self.project_name.clone(), self.graph_id.to_string())
         }
 
+        #[profile(Debug)]
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();
-            Rc::new(SuggestionDatabase::new_from_entries(Logger::new("Test"), entries))
+            Rc::new(SuggestionDatabase::new_from_entries(entries))
         }
     }
 
@@ -1097,7 +1115,7 @@ pub mod tests {
     fn graph_controller_notification_relay() {
         Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
-            let change = TextChange { range: (12.bytes()..12.bytes()).into(), text: "2".into() };
+            let change = TextChange { range: (12.byte()..12.byte()).into(), text: "2".into() };
             graph.module.apply_code_change(change, &graph.parser, default()).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         });
@@ -1220,7 +1238,7 @@ main =
         bar b = 5
     print foo"
             .into();
-        test.data.graph_id = definition::Id::new_plain_names(&["main", "foo"]);
+        test.data.graph_id = definition::Id::new_plain_names(["main", "foo"]);
         test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();
@@ -1258,7 +1276,7 @@ func3 a =
 
 main =
     a = 10
-    here.func3 a
+    Mock_Module.func3 a
     a + func1";
 
         test.data.code = code.to_owned();
@@ -1286,7 +1304,7 @@ func1 =
     a
 
 main =
-    a = here.func1
+    a = Mock_Module.func1
     a + c";
 
         test.data.code = code.to_owned();
@@ -1328,7 +1346,7 @@ main =
         // Not using multi-line raw string literals, as we don't want IntelliJ to automatically
         // strip the trailing whitespace in the lines.
         test.data.code = "main =\n    foo a =\n        bar b = 5\n    print foo".into();
-        test.data.graph_id = definition::Id::new_plain_names(&["main", "foo", "bar"]);
+        test.data.graph_id = definition::Id::new_plain_names(["main", "foo", "bar"]);
         test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();

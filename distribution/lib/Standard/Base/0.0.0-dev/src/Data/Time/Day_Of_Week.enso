@@ -1,0 +1,51 @@
+import project.Data.Numbers.Integer
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import java.time.DayOfWeek
+
+type Day_Of_Week
+    Sunday
+
+    Monday
+
+    Tuesday
+
+    Wednesday
+
+    Thursday
+
+    Friday
+
+    Saturday
+
+    ## Convert the Day_Of_Week to an Integer
+
+       Arguments:
+       - `first_day`: The first day of the week.
+       - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
+    to_integer : Day_Of_Week -> Boolean -> Integer
+    to_integer self first_day=Day_Of_Week.Sunday start_at_zero=False =
+        day_number = case self of
+            Day_Of_Week.Sunday -> 0
+            Day_Of_Week.Monday -> 1
+            Day_Of_Week.Tuesday -> 2
+            Day_Of_Week.Wednesday -> 3
+            Day_Of_Week.Thursday -> 4
+            Day_Of_Week.Friday -> 5
+            Day_Of_Week.Saturday -> 6
+
+        shifted = if first_day == Day_Of_Week.Sunday then day_number else
+            (day_number + 7 - (first_day.to_integer start_at_zero=True)) % 7
+
+        shifted + if start_at_zero then 0 else 1
+
+    ## PRIVATE
+    to_java : DayOfWeek
+    to_java self = case self of
+        Day_Of_Week.Sunday -> DayOfWeek.SUNDAY
+        Day_Of_Week.Monday -> DayOfWeek.MONDAY
+        Day_Of_Week.Tuesday -> DayOfWeek.TUESDAY
+        Day_Of_Week.Wednesday -> DayOfWeek.WEDNESDAY
+        Day_Of_Week.Thursday -> DayOfWeek.THURSDAY
+        Day_Of_Week.Friday -> DayOfWeek.FRIDAY
+        Day_Of_Week.Saturday -> DayOfWeek.SATURDAY

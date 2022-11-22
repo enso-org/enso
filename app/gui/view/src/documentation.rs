@@ -2,25 +2,30 @@
 //! the documented node.
 
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::graph_editor::component::visualization;
 
-pub use visualization::container::overlay;
-
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::primitive::system::DynamicShape;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::clipboard;
-use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use web::Closure;
 use web::HtmlElement;
 use web::JsCast;
 use web::MouseEvent;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use visualization::container::overlay;
 
 
 
@@ -68,14 +73,14 @@ impl Model {
     /// Constructor.
     fn new(scene: &Scene) -> Self {
         let logger = Logger::new("DocumentationView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
         let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
         let size =
             Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));
-        let overlay = overlay::View::new(&logger);
+        let overlay = overlay::View::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -106,8 +111,8 @@ impl Model {
         display_object.add_child(&outer_dom);
         outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.front.manage(&outer_dom);
-        scene.dom.layers.front.manage(&inner_dom);
+        scene.dom.layers.node_searcher.manage(&outer_dom);
+        scene.dom.layers.node_searcher.manage(&inner_dom);
 
         let code_copy_closures = default();
         Model { logger, outer_dom, inner_dom, size, overlay, display_object, code_copy_closures }
@@ -158,7 +163,7 @@ impl Model {
                 match copy_button.add_event_listener_with_callback("click", callback) {
                     Ok(_) => Some(closure),
                     Err(e) => {
-                        error!(&self.logger, "Unable to add event listener to copy button: {e:?}");
+                        error!("Unable to add event listener to copy button: {e:?}");
                         None
                     }
                 }
@@ -169,10 +174,7 @@ impl Model {
         let ok_closures = closures.into_iter().filter_map(|t| t.ok()).collect_vec();
         let err_indices = errors.into_iter().filter_map(|t| t.err()).collect_vec();
         if !err_indices.is_empty() {
-            error!(
-                &self.logger,
-                "Failed to attach listeners to copy buttons with indices: {err_indices:?}."
-            )
+            error!("Failed to attach listeners to copy buttons with indices: {err_indices:?}.")
         }
         self.code_copy_closures.set(ok_closures)
     }
@@ -185,7 +187,6 @@ impl Model {
                 Ok(string) => string,
                 Err(err) => {
                     error!(
-                        self.logger,
                         "Error during documentation vis-data serialization: \
                         {err:?}"
                     );
@@ -267,12 +268,13 @@ impl View {
         let path = visualization::Path::builtin("Documentation View");
         visualization::Definition::new(
             visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |scene| Ok(Self::new(scene).into()),
+            |app| Ok(Self::new(app).into()),
         )
     }
 
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);

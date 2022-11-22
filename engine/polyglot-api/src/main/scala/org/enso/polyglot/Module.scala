@@ -15,16 +15,11 @@ class Module(private val value: Value) {
 
   /** @return the associated type of this module
     */
-  def getAssociatedConstructor: Value =
-    value.invokeMember(GET_ASSOCIATED_CONSTRUCTOR)
+  def getAssociatedType: Value =
+    value.invokeMember(GET_ASSOCIATED_TYPE)
 
-  /** Gets a constructor definition by name.
-    *
-    * @param name the constructor name
-    * @return the polyglot representation of the constructor.
-    */
-  def getConstructor(name: String): Value =
-    value.invokeMember(GET_CONSTRUCTOR, name)
+  def getType(name: String): Value =
+    value.invokeMember(GET_TYPE, name)
 
   /** Gets a method by the type it's defined on and name.
     *

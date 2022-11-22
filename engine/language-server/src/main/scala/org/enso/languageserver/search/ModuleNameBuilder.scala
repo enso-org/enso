@@ -53,7 +53,8 @@ object ModuleNameBuilder {
     * @param segments the list of segments
     * @return the fully qualified module name
     */
-  private def toModule(segments: Iterable[String]): String =
-    segments.mkString(".")
+  private def toModule(segments: Vector[String]): String =
+    (local +: segments).mkString(".")
 
+  private val local: String = "local"
 }

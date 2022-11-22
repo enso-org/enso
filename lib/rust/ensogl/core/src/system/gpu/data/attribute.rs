@@ -1,15 +1,14 @@
 //! This module defines attributes and related utilities.
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::types::*;
 
 use crate::control::callback;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
-
-use crate::data::dirty::traits::*;
-use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
 use std::collections::BTreeSet;
@@ -29,10 +28,10 @@ newtype_prim! {
 }
 
 /// Dirty flag collecting information which buffers were mutated.
-pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn Fn()>>;
+pub type BufferDirty = dirty::SharedBitField<u64, Box<dyn FnMut()>>;
 
 /// Dirty flag indicating that the shape of the attribute (all buffers) was changed.
-pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type ShapeDirty = dirty::SharedBool<Box<dyn FnMut()>>;
 
 
 
@@ -93,7 +92,6 @@ pub struct AttributeScopeData {
     buffer_dirty    : BufferDirty,
     shape_dirty     : ShapeDirty,
     buffer_name_map : HashMap<String,BufferIndex>,
-    logger          : Logger,
     free_ids        : BTreeSet<InstanceIndex>,
     size            : usize,
     context         : Option<Context>,
@@ -103,36 +101,31 @@ pub struct AttributeScopeData {
 impl {
     /// Create a new scope with the provided dirty callback.
     pub fn new<OnMut:callback::NoArgs+Clone>
-    (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
-        info!(lgr,"Initializing.",|| {
-            let logger          = lgr.clone();
-            let stats           = stats.clone_ref();
-            let buffer_logger   = Logger::new_sub(&logger,"buffer_dirty");
-            let shape_logger    = Logger::new_sub(&logger,"shape_dirty");
-            let buffer_dirty    = BufferDirty::new(buffer_logger,Box::new(on_mut.clone()));
-            let shape_dirty     = ShapeDirty::new(shape_logger,Box::new(on_mut));
-            let buffers         = default();
+    (stats:&Stats, on_mut:OnMut) -> Self {
+        debug_span!("Initializing.").in_scope(|| {
+            let stats = stats.clone_ref();
+            let buffer_dirty = BufferDirty::new(Box::new(on_mut.clone()));
+            let shape_dirty = ShapeDirty::new(Box::new(on_mut));
+            let buffers = default();
             let buffer_name_map = default();
-            let free_ids        = default();
-            let size            = default();
-            let context         = default();
-            Self {buffers,buffer_dirty,shape_dirty,buffer_name_map,logger,free_ids,size,context
-                 ,stats}
+            let free_ids = default();
+            let size = default();
+            let context = default();
+            Self {buffers,buffer_dirty,shape_dirty,buffer_name_map,free_ids,size,context,stats}
         })
     }
 
     /// Add a new named buffer to the scope.
     pub fn add_buffer<Name:Str, T:Storable>(&mut self, name:Name) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
-        let name         = name.as_ref().to_string();
+        let name = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
-        let shape_dirty  = self.shape_dirty.clone();
-        let ix           = self.buffers.reserve_index();
-        debug!(self.logger, "Adding buffer '{name}' at index {ix}.", || {
-            let on_set     = Box::new(move || { buffer_dirty.set(ix) });
-            let on_resize  = Box::new(move || { shape_dirty.set() });
-            let logger     = Logger::new_sub(&self.logger,&name);
-            let buffer     = Buffer::new(logger,&self.stats,on_set,on_resize);
+        let shape_dirty = self.shape_dirty.clone();
+        let ix = self.buffers.reserve_index();
+        debug_span!("Adding buffer '{name}' at index {ix}.").in_scope(|| {
+            let on_set = Box::new(move || { buffer_dirty.set(ix) });
+            let on_resize = Box::new(move || { shape_dirty.set() });
+            let buffer = Buffer::new(&self.stats, on_set, on_resize);
             buffer.set_context(self.context.as_ref());
             let buffer_ref = buffer.clone();
             self.buffers.set(ix,AnyBuffer::from(buffer));
@@ -155,7 +148,7 @@ impl {
     /// Add a new instance to every buffer in the scope.
     pub fn add_instance(&mut self) -> InstanceIndex {
         let instance_count = 1;
-        debug!(self.logger, "Adding {instance_count} instance(s).", || {
+        debug_span!("Adding {instance_count} instance(s).").in_scope(|| {
             match self.free_ids.iter().next().copied() {
                 Some(ix) => {
                     self.free_ids.remove(&ix);
@@ -174,7 +167,7 @@ impl {
     /// Dispose instance for reuse in the future. All data in all buffers at the provided `id` will
     /// be set to default.
     pub fn dispose(&mut self, ix:InstanceIndex) {
-        debug!(self.logger, "Disposing instance {ix}.", || {
+        debug_span!("Disposing instance {ix}.").in_scope(|| {
             for buffer in &self.buffers {
                 buffer.set_to_default(ix.into())
             }
@@ -184,7 +177,7 @@ impl {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if self.shape_dirty.check() {
                 for i in 0..self.buffers.len() {
                     self.buffers[i].update()
@@ -206,7 +199,8 @@ impl {
         self.size
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.context = context.cloned();
         for buffer in &self.buffers {
@@ -251,5 +245,47 @@ impl<T: Storable> CellGetter for Attribute<T> {
 impl<T: Storable> CellSetter for Attribute<T> {
     fn set(&self, value: Self::Item) {
         self.buffer.set(self.index.into(), value);
+    }
+}
+
+impl<T: Storable + Default> Erase for Attribute<T> {
+    fn erase(&self) {
+        self.set(default())
+    }
+}
+
+
+
+// =============
+// === Erase ===
+// =============
+
+/// Generalization for internally mutable structures which can be erased.
+///
+/// For now, it is placed here, as only [`Attribute`] uses it, but it might be refactored in the
+/// future if it will be usable in more places.
+#[allow(missing_docs)]
+pub trait Erase {
+    fn erase(&self);
+}
+
+/// The provided element will be erased whenever this structure is dropped. Please note that the
+///provided element implements [`CloneRef`] it can still be referenced after this struct is
+/// dropped.
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct EraseOnDrop<T: Erase> {
+    elem: T,
+}
+
+impl<T: Erase> EraseOnDrop<T> {
+    /// Constructor.
+    pub fn new(elem: T) -> Self {
+        Self { elem }
+    }
+}
+
+impl<T: Erase> Drop for EraseOnDrop<T> {
+    fn drop(&mut self) {
+        self.elem.erase()
     }
 }

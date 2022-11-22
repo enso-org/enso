@@ -1,14 +1,15 @@
 //! Camera implementation which is specialized for 2D view (it computes some additional parameters,
 //! like the zoom to the canvas).
 
+use crate::control::callback::traits::*;
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::display;
 use crate::display::scene::Scene;
+use crate::frp;
 
 use nalgebra::Perspective3;
 
@@ -113,9 +114,9 @@ pub struct Dirty {
 }
 
 impl Dirty {
-    fn new(logger: &Logger) -> Self {
-        let projection = ProjectionDirty::new(Logger::new_sub(&logger, "projection"), ());
-        let transform = TransformDirty::new(Logger::new_sub(&logger, "transform"), ());
+    fn new() -> Self {
+        let projection = ProjectionDirty::new(());
+        let transform = TransformDirty::new(());
         Self { projection, transform }
     }
 }
@@ -158,6 +159,18 @@ impl Default for Matrix {
 // === Camera2dData ===
 // ====================
 
+/// Frp outputs of the Camera2d.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Frp {
+    network:      frp::Network,
+    /// Camera position.
+    pub position: frp::Source<Vector3<f32>>,
+    /// Camera zoom factor.
+    pub zoom:     frp::Source<f32>,
+    /// Camera's frustum screen dimensions.
+    pub screen:   frp::Source<Screen>,
+}
+
 /// Function used to return the updated screen dimensions.
 pub trait ScreenUpdateFn = Fn(Vector2<f32>) + 'static;
 
@@ -175,29 +188,38 @@ struct Camera2dData {
     clipping:               Clipping,
     matrix:                 Matrix,
     dirty:                  Dirty,
-    zoom_update_registry:   callback::registry::CopyMut1<f32>,
-    screen_update_registry: callback::registry::CopyMut1<Vector2<f32>>,
+    zoom_update_registry:   callback::registry::Copy1<f32>,
+    screen_update_registry: callback::registry::Copy1<Vector2<f32>>,
+    frp:                    Frp,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    fn new(logger: Logger, display_object: &display::object::Instance) -> Self {
+    fn new(display_object: &display::object::Instance) -> Self {
         let screen = Screen::new();
         let projection = default();
         let clipping = default();
         let zoom = 1.0;
         let z_zoom_1 = 1.0;
         let matrix = default();
-        let dirty = Dirty::new(&Logger::new_sub(&logger, "dirty"));
+        let dirty = Dirty::new();
         let display_object = display_object.clone_ref();
         let zoom_update_registry = default();
         let screen_update_registry = default();
         display_object.set_on_updated(f_!(dirty.transform.set()));
         display_object.mod_position(|p| p.z = 1.0);
         dirty.projection.set();
+        let network = frp::Network::new("Camera2d");
+        frp::extend! { network
+            frp_position <- source();
+            frp_zoom <- source();
+            frp_screen <- source();
+        }
+        let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {
+            frp,
             display_object,
             screen,
             zoom,
@@ -272,7 +294,8 @@ impl Camera2dData {
         }
         if changed {
             self.matrix.view_projection = self.matrix.projection * self.matrix.view;
-            self.zoom_update_registry.run_all(self.zoom);
+            let zoom = self.zoom;
+            self.zoom_update_registry.run_all(zoom);
         }
         changed
     }
@@ -378,12 +401,17 @@ pub struct Camera2d {
 impl Camera2d {
     /// Creates new [`Camera2d`] instance. Please note that the camera will be of zero-size and in
     /// order for it to work properly, you have to initialize it by using the `set_screen` method.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "camera");
-        let display_object = display::object::Instance::new(&logger);
-        let data = Camera2dData::new(logger, &display_object);
+    pub fn new() -> Self {
+        let display_object = display::object::Instance::new();
+        let data = Camera2dData::new(&display_object);
         let data = Rc::new(RefCell::new(data));
         Self { display_object, data }
+    }
+}
+
+impl Default for Camera2d {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -393,7 +421,12 @@ impl Camera2d {
 impl Camera2d {
     /// Sets screen dimensions.
     pub fn set_screen(&self, width: f32, height: f32) {
-        self.data.borrow_mut().set_screen(width, height)
+        let (endpoint, screen) = {
+            let mut borrowed = self.data.borrow_mut();
+            borrowed.set_screen(width, height);
+            (borrowed.frp.screen.clone_ref(), borrowed.screen)
+        };
+        endpoint.emit(screen);
     }
 
     /// Resets the zoom of the camera to the 1.0 value.
@@ -403,7 +436,18 @@ impl Camera2d {
 
     /// Update all dirty camera parameters and compute updated view-projection matrix.
     pub fn update(&self, scene: &Scene) -> bool {
-        self.data.borrow_mut().update(scene)
+        let (is_updated, frp, zoom) = {
+            let mut borrowed = self.data.borrow_mut();
+            let is_updated = borrowed.update(scene);
+            let frp = borrowed.frp.clone_ref();
+            let zoom = borrowed.zoom;
+            (is_updated, frp, zoom)
+        };
+        if is_updated {
+            frp.position.emit(self.display_object.position());
+            frp.zoom.emit(zoom);
+        }
+        is_updated
     }
 
     // FIXME: This can fail, for example, when during calling the callback another callback is
@@ -424,6 +468,10 @@ impl Camera2d {
 
 #[allow(missing_docs)]
 impl Camera2d {
+    pub fn frp(&self) -> Frp {
+        self.data.borrow().frp.clone_ref()
+    }
+
     pub fn clipping(&self) -> Clipping {
         self.data.borrow().clipping
     }
@@ -497,5 +545,42 @@ impl Camera2d {
 impl display::Object for Camera2d {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A regression test checks whether handling the camera's FRP events does not cause panics
+    /// at runtime.
+    ///
+    /// If the events are emitted with the camera's internal [`RefCell`] lock held, the usage of
+    /// camera API methods in event handlers can cause a panic. We need to check methods that use
+    /// both immutable and mutable borrows because, depending on the implementation of
+    /// the camera, it can hold either lock variant while emitting the event.
+    #[test]
+    fn test_frp_endpoints_are_not_causing_refcell_locks() {
+        let app = crate::application::Application::new("root");
+        let camera = app.display.default_scene.camera();
+        let frp = camera.frp();
+        let network = frp::Network::new("TestCamera2d");
+        frp::extend! { network
+            // `zoom()` method uses immutable borrow under the hood.
+            dummy <- frp.position.map(f_!(camera.zoom()));
+            // `set_position` method uses mutable borrow.
+            eval_ dummy(camera.set_position(default()));
+            // `screen` output is fired from the method that uses mutable borrow.
+            eval_ frp.screen(camera.zoom());
+            eval_ frp.screen(camera.set_position(default()));
+        }
+        camera.set_position(Vector3(1.0, 2.0, 3.0));
+        camera.update(&app.display.default_scene);
     }
 }

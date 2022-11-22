@@ -3,7 +3,15 @@
 //! It is opened when the IDE launches without any project or entry point selected. It
 //! displays a list of available projects, template cards and "new project" button.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
+
+
 
 mod side_menu;
 mod template_cards;
@@ -121,7 +129,7 @@ impl Model {
     pub fn new(app: &Application) -> Self {
         let application = app.clone_ref();
         let logger = Logger::new("WelcomeScreen");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         let side_menu = SideMenu::new(&logger);
         let template_cards = TemplateCards::new(&logger);

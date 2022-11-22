@@ -24,13 +24,13 @@ class ApiTest extends AnyFlatSpec with Matchers {
     val code =
       """
         |foo = x -> x + 1
-        |bar = x -> here.foo x + 1
+        |bar = x -> foo x + 1
         |""".stripMargin
-    val module                = executionContext.evalModule(code, "Test")
-    val associatedConstructor = module.getAssociatedConstructor
-    val barFunction           = module.getMethod(associatedConstructor, "bar").get
+    val module         = executionContext.evalModule(code, "Test")
+    val associatedType = module.getAssociatedType
+    val barFunction    = module.getMethod(associatedType, "bar").get
     val result = barFunction.execute(
-      associatedConstructor.newInstance(),
+      associatedType,
       10L.asInstanceOf[AnyRef]
     )
     result.asLong shouldEqual 12
@@ -39,19 +39,21 @@ class ApiTest extends AnyFlatSpec with Matchers {
   "Parsing a file and calling a method on an arbitrary atom" should "be possible" in {
     val code =
       """
-        |type Vector x y z
+        |type Vector
+        |    Vec x y z
         |
-        |Vector.squares = case this of
-        |    Vector x y z -> Vector x*x y*y z*z
+        |Vector.squares self = case self of
+        |    Vector.Vec x y z -> Vector.Vec x*x y*y z*z
         |
-        |Vector.sum = case this of
-        |    Vector x y z -> x + y + z
+        |Vector.sum self = case self of
+        |    Vector.Vec x y z -> x + y + z
         |
-        |Vector.squareNorm = this.squares.sum
+        |Vector.squareNorm self = self.squares.sum
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
-    val vectorCons = module.getConstructor("Vector")
-    val squareNorm = module.getMethod(vectorCons, "squareNorm").get
+    val vectorCons = module.getType("Vector").getMember("Vec")
+    val squareNorm =
+      module.getMethod(module.getType("Vector"), "squareNorm").get
     val testVector = vectorCons.newInstance(
       1L.asInstanceOf[AnyRef],
       2L.asInstanceOf[AnyRef],
@@ -67,7 +69,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |foo = x -> x + 2
         |""".stripMargin
     val module = executionContext.evalModule(code, "Test")
-    val result = module.evalExpression("here.foo 10")
+    val result = module.evalExpression("foo 10")
     result.asLong shouldEqual 12
   }
 }

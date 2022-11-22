@@ -64,6 +64,7 @@ public class BigIntegerOps {
   public static BigInteger divide(BigInteger a, long b) {
     return a.divide(BigInteger.valueOf(b));
   }
+
   @CompilerDirectives.TruffleBoundary
   public static BigInteger divide(BigInteger a, BigInteger b) {
     return a.divide(b);
@@ -186,7 +187,7 @@ public class BigIntegerOps {
 
   @CompilerDirectives.TruffleBoundary
   public static BigInteger bitShiftRight(long a, int b) {
-    return BigIntegerOps.bitShiftRight(BigInteger.valueOf(a),b);
+    return BigIntegerOps.bitShiftRight(BigInteger.valueOf(a), b);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -196,12 +197,12 @@ public class BigIntegerOps {
 
   @CompilerDirectives.TruffleBoundary
   public static boolean nonNegative(BigInteger a) {
-    return BigIntegerOps.compare(a,BigInteger.ZERO) == 1;
+    return BigIntegerOps.compare(a, BigInteger.ZERO) == 1;
   }
 
   @CompilerDirectives.TruffleBoundary
   public static boolean isZero(BigInteger a) {
-    return BigIntegerOps.compare(a,BigInteger.ZERO) == 0;
+    return BigIntegerOps.compare(a, BigInteger.ZERO) == 0;
   }
 
   @CompilerDirectives.TruffleBoundary

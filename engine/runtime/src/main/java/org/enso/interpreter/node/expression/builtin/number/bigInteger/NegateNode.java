@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class NegateNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  Object execute(EnsoBigInteger _this) {
-    return toEnsoNumberNode.execute(BigIntegerOps.negate(_this.getValue()));
+  Object execute(EnsoBigInteger self) {
+    return toEnsoNumberNode.execute(BigIntegerOps.negate(self.getValue()));
   }
 }

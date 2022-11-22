@@ -1,27 +1,33 @@
 //! EasingAnimator examples.
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
+use ensogl_core::animation::easing::*;
 use ensogl_core::prelude::*;
+use ensogl_core::system::web::traits::*;
 
 use ensogl_core::animation;
-use ensogl_core::animation::easing::*;
 use ensogl_core::system::web;
-use ensogl_core::system::web::traits::*;
 use js_sys::Math;
 use nalgebra::Vector2;
 use std::ops::Add;
@@ -199,7 +205,7 @@ impl Sampler {
         let animation_cb = Box::new(move |t| prop.set(t)) as Box<dyn Fn(SpriteData)>;
         let easing_animator = Animator::new(start, end, easing_function2, animation_cb, ());
         let time = 0.0;
-        easing_animator.set_duration(2000.0);
+        easing_animator.set_duration(2.0.s());
         Self {
             color,
             time,
@@ -232,7 +238,7 @@ impl Sampler {
 // ===============
 
 struct Example {
-    _animator: animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>,
+    _animator: animation::Loop,
 }
 
 impl Example {
@@ -247,7 +253,8 @@ impl Example {
         example.set_attribute_or_warn("id", name);
         example.set_style_or_warn("margin", "10px");
         let container = web::document.get_html_element_by_id("examples").unwrap();
-        let header = web::document.get_html_element_by_id("center").unwrap();
+        let header = web::document.create_div_or_panic();
+        header.set_attribute_or_warn("id", "center");
         header.set_style_or_warn("background-color", "black");
         header.set_style_or_warn("color", "white");
         header.set_inner_html(name);
@@ -262,9 +269,9 @@ impl Example {
         let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
             left_canvas.clear();
             right_canvas.clear();
-            sampler1.render(time_info.frame);
-            sampler2.render(time_info.frame);
-            sampler3.render(time_info.frame);
+            sampler1.render(time_info.previous_frame.unchecked_raw());
+            sampler2.render(time_info.previous_frame.unchecked_raw());
+            sampler3.render(time_info.previous_frame.unchecked_raw());
         }) as Box<dyn FnMut(animation::TimeInfo)>);
         Self { _animator }
     }
@@ -274,19 +281,17 @@ macro_rules! examples {
     ($($name:ident),*) => {$(
         std::mem::forget(Example::new(
             stringify!($name),
-            paste::expr!{[<$name _in>]()},
-            paste::expr!{[<$name _out>]()},
-            paste::expr!{[<$name _in_out>]()},
+            paste!{[<$name _in>]()},
+            paste!{[<$name _out>]()},
+            paste!{[<$name _in_out>]()},
         ));
     )*};
 }
 
-#[wasm_bindgen]
-#[allow(dead_code)]
 /// Runs EasingAnimator example.
-pub fn entry_point_easing_animator() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
+#[entry_point]
+#[allow(dead_code)]
+pub fn main() {
     let container = web::document.create_div_or_panic();
     container.set_attribute_or_warn("id", "examples");
     container.set_style_or_warn("display", "flex");

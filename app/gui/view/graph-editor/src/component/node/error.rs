@@ -1,15 +1,17 @@
 //! Contains a struct definition for error information on nodes.
+
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::builtin::visualization::native::error as error_visualization;
 use crate::component::visualization;
 
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -89,12 +91,12 @@ impl Deref for Container {
 
 impl Container {
     /// Constructor of error container.
-    pub fn new(scene: &Scene) -> Self {
-        let scene = scene.clone_ref();
+    pub fn new(app: &Application) -> Self {
+        let scene = app.display.default_scene.clone_ref();
         let logger = Logger::new("error::Container");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let background_dom = Self::create_background_dom(&scene);
-        let visualization = error_visualization::Error::new(&scene);
+        let visualization = error_visualization::Error::new(app);
 
         display_object.add_child(&background_dom);
         display_object.add_child(&visualization);
@@ -133,7 +135,7 @@ impl Container {
 
     /// Move the container with visualization to `layer`.
     pub fn set_layer(&self, layer: visualization::Layer) {
-        self.visualization.frp.set_layer.emit(&layer);
+        self.visualization.frp.set_layer.emit(layer);
         layer.apply_for_html_component(&self.scene, &self.background_dom);
     }
 }

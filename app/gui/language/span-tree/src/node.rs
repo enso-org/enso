@@ -1,6 +1,8 @@
 //! A module with SpanTree structure definition.
 
 use crate::prelude::*;
+use enso_text::index::*;
+use enso_text::unit::*;
 
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
@@ -8,9 +10,14 @@ use crate::ArgumentInfo;
 
 use ast::crumbs::IntoCrumbs;
 use enso_text as text;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod kind;
+
 pub use kind::*;
 
 
@@ -30,7 +37,7 @@ pub trait Payload = Default + Clone;
 #[allow(missing_docs)]
 pub struct Node<T> {
     pub kind:     Kind,
-    pub size:     Bytes,
+    pub size:     ByteDiff,
     pub children: Vec<Child<T>>,
     pub ast_id:   Option<ast::Id>,
     pub payload:  T,
@@ -126,7 +133,7 @@ impl<T> Node<T> {
         self.kind = k.into();
         self
     }
-    pub fn with_size(mut self, size: Bytes) -> Self {
+    pub fn with_size(mut self, size: ByteDiff) -> Self {
         self.size = size;
         self
     }
@@ -176,7 +183,7 @@ pub struct Child<T = ()> {
     /// A child node.
     pub node:       Node<T>,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset:     Bytes,
+    pub offset:     ByteDiff,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs: ast::Crumbs,
 }
@@ -257,7 +264,7 @@ impl<T: Payload> ChildBuilder<T> {
         let builder = ChildBuilder::new(new_child);
         let child = f(builder).child;
         let offset_diff = child.offset - offset;
-        node.size += child.size + offset_diff;
+        node.size = node.size + child.size + offset_diff;
         node.children.push(child);
     }
 
@@ -279,7 +286,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Offset setter.
-    pub fn offset(mut self, offset: Bytes) -> Self {
+    pub fn offset(mut self, offset: ByteDiff) -> Self {
         self.offset = offset;
         self
     }
@@ -297,7 +304,7 @@ impl<T: Payload> ChildBuilder<T> {
     }
 
     /// Size setter.
-    pub fn size(mut self, size: Bytes) -> Self {
+    pub fn size(mut self, size: ByteDiff) -> Self {
         self.node.size = size;
         self
     }
@@ -376,7 +383,7 @@ impl<'a> IntoIterator for &'a Crumbs {
     type Item = &'a Crumb;
     type IntoIter = std::slice::Iter<'a, Crumb>;
     fn into_iter(self) -> Self::IntoIter {
-        (&*self.vec).iter()
+        (*self.vec).iter()
     }
 }
 
@@ -423,7 +430,7 @@ pub struct Ref<'a, T = ()> {
     /// The node's ref.
     pub node:        &'a Node<T>,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Bytes,
+    pub span_offset: Byte,
     /// Crumbs specifying this node position related to root.
     pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
@@ -449,7 +456,7 @@ impl<'a, T: Payload> Ref<'a, T> {
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> text::Range<Bytes> {
+    pub fn span(&self) -> text::Range<Byte> {
         let start = self.span_offset;
         let end = self.span_offset + self.node.size;
         (start..end).into()
@@ -553,7 +560,7 @@ impl<'a, T: Payload> Ref<'a, T> {
 
     /// Get the node which exactly matches the given Span. If there many such node's, it pick first
     /// found by DFS.
-    pub fn find_by_span(self, span: &text::Range<Bytes>) -> Option<Ref<'a, T>> {
+    pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a, T>> {
         if self.span() == *span {
             Some(self)
         } else {
@@ -586,6 +593,7 @@ impl<'a, T: Payload> Ref<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,
@@ -641,9 +649,9 @@ pub struct RefMut<'a, T = ()> {
     /// The node's ref.
     node:            &'a mut Node<T>,
     /// An offset counted from the parent node start to the start of this node's span.
-    pub offset:      Bytes,
+    pub offset:      ByteDiff,
     /// Span begin's offset counted from the root expression.
-    pub span_offset: Bytes,
+    pub span_offset: Byte,
     /// Crumbs specifying this node position related to root.
     pub crumbs:      Crumbs,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
@@ -671,7 +679,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     }
 
     /// Get span of current node.
-    pub fn span(&self) -> text::Range<Bytes> {
+    pub fn span(&self) -> text::Range<Byte> {
         text::Range::new(self.span_offset, self.span_offset + self.size)
     }
 
@@ -679,7 +687,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     fn child_from_ref(
         index: usize,
         child: &'a mut Child<T>,
-        mut span_begin: Bytes,
+        mut span_begin: Byte,
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
     ) -> RefMut<'a, T> {
@@ -750,6 +758,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,
@@ -842,7 +851,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::crumbs;
-    use enso_text::unit::*;
+    use enso_text::index::*;
 
     #[test]
     fn node_lookup() {
@@ -865,11 +874,11 @@ mod test {
         let grand_child2 = child2.clone().get_descendant(&vec![1]).unwrap();
 
         // Span begin.
-        assert_eq!(root.span_offset, 0.bytes());
-        assert_eq!(child1.span_offset, 0.bytes());
-        assert_eq!(child2.span_offset, 2.bytes());
-        assert_eq!(grand_child1.span_offset, 2.bytes());
-        assert_eq!(grand_child2.span_offset, 5.bytes());
+        assert_eq!(root.span_offset, 0.byte());
+        assert_eq!(child1.span_offset, 0.byte());
+        assert_eq!(child2.span_offset, 2.byte());
+        assert_eq!(grand_child1.span_offset, 2.byte());
+        assert_eq!(grand_child2.span_offset, 5.byte());
 
         // Length
         assert_eq!(root.node.size.value, 7);

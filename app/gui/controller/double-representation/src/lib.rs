@@ -1,15 +1,23 @@
 //! A crate with all functions used to synchronize different representations of our language
 
+// === Features ===
 #![feature(associated_type_bounds)]
 #![feature(drain_filter)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
+#![feature(type_alias_impl_trait)]
+#![feature(iter_next_chunk)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
@@ -26,20 +34,25 @@ use ast::opr;
 use ast::prefix;
 use ast::Ast;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod alias_analysis;
 pub mod connection;
 pub mod definition;
 pub mod graph;
 pub mod identifier;
+pub mod import;
 pub mod module;
 pub mod node;
 pub mod project;
 pub mod refactorings;
-pub mod text;
-pub mod tp;
-
 #[cfg(test)]
 pub mod test_utils;
+pub mod text;
+pub mod tp;
 
 
 
@@ -52,6 +65,8 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 
     #[cfg(test)]
     pub use wasm_bindgen_test::wasm_bindgen_test;
@@ -88,7 +103,7 @@ pub enum LineKind {
         ast:  known::Infix,
         /// Name of this definition. Includes typename, if this is an extension method.
         name: Located<DefinitionName>,
-        /// Arguments for this definition. Does not include any implicit ones (e.g. no `this`).
+        /// Arguments for this definition. Does not include any implicit ones (e.g. no `self`).
         args: Vec<Located<Ast>>,
     },
     /// Node in a binding form.
@@ -193,7 +208,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use parser::Parser;
+    use parser_scala::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.
@@ -218,7 +233,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn parse_single_line_comment() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
 
         // Typical single line case.
         let code = r#"
@@ -255,7 +270,7 @@ main =
 
     #[wasm_bindgen_test]
     fn parse_multi_line_comment() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let code = r#"
 main =
     ## First line

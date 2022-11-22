@@ -1,10 +1,28 @@
 package org.enso.projectmanager.boot
 
+import org.enso.loggingservice.LogLevel
+
 import java.io.File
+import java.nio.file.Path
 
 import scala.concurrent.duration.FiniteDuration
 
 object configuration {
+
+  /** The options supplied (e.g. with the command line options when starting the
+    *  main project manager process.
+    *
+    *  @param logLevel the logging level
+    *  @param profilingEventsLogPath the path to the runtime events log file
+    *  @param profilingPath the path to the profiling out file
+    *  @param profilingTime the time limiting the profiling duration
+    */
+  case class MainProcessConfig(
+    logLevel: LogLevel,
+    profilingEventsLogPath: Option[Path],
+    profilingPath: Option[Path],
+    profilingTime: Option[FiniteDuration]
+  )
 
   /** A configuration object for properties of the Project Manager.
     *

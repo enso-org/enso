@@ -17,39 +17,37 @@ use ide_view as view;
 
 #[derive(Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::Text,
     view:       view::code_editor::View,
 }
 
 impl Model {
     fn new(controller: controller::Text, view: view::code_editor::View) -> Self {
-        let logger = Logger::new("presenter::code");
-        Self { logger, controller, view }
+        Self { controller, view }
     }
 
     fn apply_change_from_view(&self, change: &enso_text::Change) {
         let converted = enso_text::Change { range: change.range, text: change.text.to_string() };
         if let Err(err) = self.controller.apply_text_change(converted) {
-            error!(self.logger, "Error while applying text change: {err}");
+            error!("Error while applying text change: {err}");
         }
     }
 
+    #[profile(Detail)]
     async fn emit_event_with_controller_code(&self, endpoint: &frp::Source<ImString>) {
         match self.controller.read_content().await {
             Ok(code) => endpoint.emit(ImString::new(code)),
             Err(err) => {
-                error!(self.logger, "Error while updating code editor: {err}")
+                error!("Error while updating code editor: {err}")
             }
         }
     }
 
     fn save_module(&self, content: String) {
-        let logger = self.logger.clone_ref();
         let controller = self.controller.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.store_content(content).await {
-                error!(logger, "Error while saving module: {err}");
+                error!("Error while saving module: {err}");
             }
         })
     }
@@ -70,6 +68,7 @@ pub struct Code {
 
 impl Code {
     /// Constructor. The returned structure works right away and does not need any initialization.
+    #[profile(Task)]
     pub fn new(controller: controller::Text, project_view: &view::project::View) -> Self {
         let network = frp::Network::new("presenter::code");
         let view = project_view.code_editor().clone_ref();
@@ -81,9 +80,9 @@ impl Code {
             desynchronized <- all_with(&code_in_controller, &text_area.content, |controller, view|
                 *controller != view.to_string()
             );
-            text_area.set_content <+ code_in_controller.gate(&desynchronized).map(|s| s.to_string());
+            text_area.set_content <+ code_in_controller.gate(&desynchronized);
 
-            maybe_change_to_apply <= text_area.changed;
+            maybe_change_to_apply <= text_area.changed.map(|c| (**c).clone());
             change_to_apply <- maybe_change_to_apply.gate(&desynchronized);
             eval change_to_apply ((change) model.apply_change_from_view(change));
 
@@ -114,6 +113,7 @@ impl Code {
         self
     }
 
+    #[profile(Detail)]
     fn display_initial_code(self, code_in_controller: frp::Source<ImString>) -> Self {
         let model = self.model.clone_ref();
         executor::global::spawn(async move {

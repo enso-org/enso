@@ -1,42 +1,60 @@
 package org.enso.interpreter.runtime.data.text;
 
+import com.ibm.icu.text.BreakIterator;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.Language;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Number;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.enso.interpreter.dsl.Builtin;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
-public class Text implements TruffleObject {
+@ExportLibrary(TypesLibrary.class)
+public final class Text implements TruffleObject {
+  private static final Lock LOCK = new ReentrantLock();
   private volatile Object contents;
-  private volatile boolean isFlat;
-  private final Lock lock = new ReentrantLock();
+  private volatile int length = -1;
 
   private Text(String string) {
     this.contents = string;
-    this.isFlat = true;
   }
 
   private Text(ConcatRope contents) {
     this.contents = contents;
-    this.isFlat = false;
+  }
+
+  @Builtin.Method(description = """
+  Computes the number of characters in the text.
+
+    ! What is a Character?
+      A character is defined as an Extended Grapheme Cluster, see Unicode
+      Standard Annex 29. This is the smallest unit that still has semantic
+      meaning in most text-processing applications.
+
+    > Example
+      Getting the length of the string "건반(Korean)".
+
+          "건반(Korean)".length
+   """)
+  public long length() {
+    int l = length;
+    if (l == -1) {
+      l = computeLength();
+      length = l;
+    }
+    return l;
   }
 
   /**
@@ -123,6 +141,18 @@ public class Text implements TruffleObject {
     return toJavaStringNode.execute(this);
   }
 
+  @CompilerDirectives.TruffleBoundary
+  private int computeLength() {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(toString());
+    int len = 0;
+    while (iter.next() != BreakIterator.DONE) {
+      len++;
+    }
+    return len;
+  }
+
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   String toDisplayString(
       boolean allowSideEffects,
@@ -142,140 +172,65 @@ public class Text implements TruffleObject {
     return "'" + replaced + "'";
   }
 
-  /** @return true if this text wraps a string literal and does not require any optimization. */
-  public boolean isFlat() {
-    return isFlat;
-  }
-
-  /** @param flat the new value of the isFlat flag. */
-  public void setFlat(boolean flat) {
-    isFlat = flat;
-  }
-
-  /** @return the contents of this text. */
-  public Object getContents() {
-    return contents;
-  }
-
-  /**
-   * Sets the contents of this text.
-   *
-   * @param contents the new contents.
-   */
-  public void setContents(Object contents) {
+  private void setContents(String contents) {
+    assert length == -1 || length == contents.length();
     this.contents = contents;
-  }
-
-  /** @return the lock required for modification of this text. */
-  public Lock getLock() {
-    return lock;
   }
 
   @Override
   public String toString() {
-    if (isFlat) {
-      return (String) this.contents;
+    Object c = this.contents;
+    if (c instanceof String s) {
+      return s;
     } else {
-      return ToJavaStringNode.inplaceFlatten(this);
+      return flattenIfNecessary(this);
     }
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().text();
+  }
 
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(context.getBuiltins().text().getText(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Text _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(context, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Text _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
+  /**
+   * Converts text to a Java String. For use outside of Truffle Nodes.
+   *
+   * @param text the text to convert.
+   * @return the result of conversion.
+   */
+  @CompilerDirectives.TruffleBoundary
+  private static String flattenIfNecessary(Text text) {
+    LOCK.lock();
+    String result;
+    try {
+      Object c = text.contents;
+      if (c instanceof String s) {
+        result = s;
+      } else {
+        Deque<Object> workStack = new ArrayDeque<>();
+        StringBuilder bldr = new StringBuilder();
+        workStack.push(c);
+        while (!workStack.isEmpty()) {
+          Object item = workStack.pop();
+          if (item instanceof String) {
+            bldr.append((String) item);
+          } else {
+            ConcatRope rope = (ConcatRope) item;
+            workStack.push(rope.getRight());
+            workStack.push(rope.getLeft());
+          }
+        }
+        result = bldr.toString();
+        text.setContents(result);
       }
-      return function;
+    } finally {
+      LOCK.unlock();
     }
-  }
-
-  @ExportMessage
-  public static boolean canConvertFrom(Text receiver) {
-    return true;
-  }
-
-  @ExportMessage
-  public static boolean hasSpecialConversion(Text receiver) {
-    return false;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context, AtomConstructor target, UnresolvedConversion conversion) {
-      return conversion.resolveFor(
-          target, context.getBuiltins().text().getText(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isInlineCachingDisabled()",
-          "cachedTarget == target",
-          "cachedConversion == conversion",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Text _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("doResolve(context, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Text _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(context, target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+    return result;
   }
 }

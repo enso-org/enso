@@ -1,81 +1,71 @@
 /* Fonts */
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenThin/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenThin/font.woff") format("woff");
-  font-style: normal;
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-weight: 100;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenExtraLight/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenExtraLight/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 200;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenLight/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenLight/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 300;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenRegular/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenRegular/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenMedium/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenMedium/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 500;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenSemiBold/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenSemiBold/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 600;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenBold/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenBold/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 700;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenExtraBold/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenExtraBold/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 800;
   font-display: block;
 }
 
 @font-face {
-  font-family: "Causten";
-  src: url("/assets/fonts/CaustenBlack/font.woff2") format("woff2"),
-    url("/assets/fonts/CaustenBlack/font.woff") format("woff");
+  font-family: "M PLUS 1";
+  src: url("/assets/MPLUS1[wght].ttf") format("truetype");
   font-style: normal;
   font-weight: 900;
   font-display: block;

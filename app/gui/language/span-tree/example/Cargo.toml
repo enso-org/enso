@@ -12,14 +12,15 @@ ast = { path = "../../ast/impl" }
 enso-text = { path = "../../../../../lib/rust/text" }
 span-tree = { path = "../../span-tree" }
 enso-web = { path = "../../../../../lib/rust/web" }
-enso-prelude = { path = "../../../../../lib/rust/prelude"}
-enso-logger = { path = "../../../../../lib/rust/logger"}
-wasm-bindgen = { version = "0.2.78", features = [
-  "nightly",
-  "serde-serialize"
-] }
+enso-prelude = { path = "../../../../../lib/rust/prelude" }
+enso-logger = { path = "../../../../../lib/rust/logger" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 
 [dependencies.web-sys]
 version = "0.3.4"
 features = []
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

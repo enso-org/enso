@@ -2,24 +2,20 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.bouncycastle.asn1.tsp.ArchiveTimeStamp;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle method application for the interop library. */
 @GenerateUncached
@@ -61,17 +57,21 @@ public abstract class InteropMethodCallNode extends Node {
     return InvokeMethodNode.build(
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        0);
+  }
+
+  Context getContext() {
+    return Context.get(this);
   }
 
   @Specialization(
-      guards = {"!context.isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
+      guards = {"!getContext().isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       UnresolvedSymbol method,
-      Object state,
+      State state,
       Object[] arguments,
-      @CachedContext(Language.class) Context context,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeMethodNode sorterNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -80,14 +80,14 @@ public abstract class InteropMethodCallNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    if (arguments.length == 0) throw ArityException.create(1, 0);
-    return sorterNode.execute(null, state, method, args[0], args).getValue();
+    if (arguments.length == 0) throw ArityException.create(1, -1, 0);
+    return sorterNode.execute(null, state, method, args[0], args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       UnresolvedSymbol method,
-      Object state,
+      State state,
       Object[] arguments,
       @Cached IndirectInvokeMethodNode indirectInvokeMethodNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -96,18 +96,17 @@ public abstract class InteropMethodCallNode extends Node {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    if (arguments.length == 0) throw ArityException.create(1, 0);
-    return indirectInvokeMethodNode
-        .execute(
-            null,
-            state,
-            method,
-            args[0],
-            args,
-            buildSchema(arguments.length),
-            DefaultsExecutionMode.EXECUTE,
-            ArgumentsExecutionMode.PRE_EXECUTED,
-            TailStatus.NOT_TAIL)
-        .getValue();
+    if (arguments.length == 0) throw ArityException.create(1, -1, 0);
+    return indirectInvokeMethodNode.execute(
+        null,
+        state,
+        method,
+        args[0],
+        args,
+        buildSchema(arguments.length),
+        DefaultsExecutionMode.EXECUTE,
+        ArgumentsExecutionMode.PRE_EXECUTED,
+        TailStatus.NOT_TAIL,
+        0);
   }
 }

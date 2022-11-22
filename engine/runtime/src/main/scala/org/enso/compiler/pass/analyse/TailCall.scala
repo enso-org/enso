@@ -8,7 +8,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.resolve.ExpressionAnnotations
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
 import scala.annotation.unused
 
@@ -34,7 +34,8 @@ case object TailCall extends IRPass {
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
-    LambdaShorthandToLambda
+    LambdaShorthandToLambda,
+    GlobalNames
   )
 
   override val invalidatedPasses: Seq[IRPass] = List()
@@ -109,13 +110,9 @@ case object TailCall extends IRPass {
           "Sugared method definitions should not occur during tail call " +
           "analysis."
         )
-      case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
-        atom
-          .copy(
-            arguments = args.map(analyseDefArgument)
-          )
-          .updateMetadata(this -->> TailPosition.Tail)
       case _: IR.Module.Scope.Definition.Type =>
+        definition.updateMetadata(this -->> TailPosition.Tail)
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "tail call analysis."
@@ -271,7 +268,7 @@ case object TailCall extends IRPass {
     */
   def analyseCallArg(argument: IR.CallArgument): IR.CallArgument = {
     argument match {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]
@@ -394,6 +391,15 @@ case object TailCall extends IRPass {
             fields      = fields.map(analysePattern)
           )
           .updateMetadata(this -->> TailPosition.NotTail)
+      case literal: Pattern.Literal =>
+        literal
+          .updateMetadata(this -->> TailPosition.NotTail)
+      case tpePattern @ Pattern.Type(name, tpe, _, _, _) =>
+        tpePattern
+          .copy(
+            name = analyseName(name, isInTailPosition = false),
+            tpe  = analyseName(tpe, isInTailPosition = false)
+          )
       case err: IR.Error.Pattern =>
         err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>

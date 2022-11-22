@@ -1,6 +1,7 @@
 //! Utilities for writing tests using parser. Should not be used in production parts.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::Parser;
 
@@ -10,6 +11,8 @@ use ast::test_utils::validate_spans;
 use ast::Ast;
 use ast::HasRepr;
 use ast::Shape;
+
+
 
 /// Additional methods for parser to ease writing tests.
 pub trait ParserTestExts {
@@ -39,7 +42,7 @@ impl ParserTestExts for Parser {
         let program = program.into();
         DEBUG!("parsing " program);
         let ast = self.parse(program.clone(), default()).unwrap();
-        assert_eq!(ast.shape().len().as_usize(), program.len());
+        assert_eq!(ast.shape().len(), program.len().bytes());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast

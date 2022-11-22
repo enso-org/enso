@@ -1,9 +1,11 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
-import Standard.Test
+from Standard.Table import Table, Column
+
 import Standard.Visualization.Histogram
+
+from Standard.Test import Test
+
 import project
 
 spec =
@@ -46,7 +48,7 @@ spec =
             table  = Table.from_rows header [row_1, row_2]
             expect table 'value' [10,20]
 
-        Test.specify "is case insensitive" <|
+        Test.specify "is case-insensitive" <|
             header = ['α', 'Value']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]

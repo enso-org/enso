@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   Specifies how null values should be handled within the ordering.
+type Nulls_Order
+
+    ## PRIVATE
+
+       Null values are included before any other values in the ordering.
+    First
+
+    ## PRIVATE
+
+       Null values are included after all other values in the ordering.
+    Last

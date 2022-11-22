@@ -1,0 +1,14 @@
+[package]
+name = "ide-view-component-browser"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+ide-view-component-list-panel-breadcrumbs = { path = "component-list-panel/breadcrumbs" }
+ide-view-component-list-panel = { path = "component-list-panel" }
+ensogl-text = { path = "../../../../lib/rust/ensogl/component/text" }

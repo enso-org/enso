@@ -1,0 +1,72 @@
+from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+import Standard.Base.Runtime.Ref
+
+import project.Internal.Vector_Builder.Vector_Builder
+
+from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Column_Selectors_Data, Input_Indices_Already_Matched_Data, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors_Data
+
+type Problem_Builder
+    Value oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
+
+    report_oob_indices self indices =
+        append_to_ref self.oob_indices indices
+
+    report_duplicate_column_selectors self selectors =
+        append_to_ref self.duplicate_column_selectors selectors
+
+    report_input_indices_already_matched self indices =
+        append_to_ref self.input_indices_already_matched indices
+
+    report_missing_input_columns self columns =
+        append_to_ref self.missing_input_columns columns
+
+    report_column_matched_by_multiple_selectors self column_name selectors =
+        self.report_other_warning (Column_Matched_By_Multiple_Selectors_Data column_name selectors)
+
+    report_other_warning self warning =
+        self.other.append warning
+
+    ## Returns a vector containing all reported problems, aggregated.
+    build_problemset : Vector
+    build_problemset self =
+        problems = Vector.new_builder
+        build_vector_and_append ref problem_creator =
+            vec = ref.get . build
+            if vec.not_empty then
+                problems.append (problem_creator vec)
+
+        build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range_Data
+        build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors_Data
+        build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched_Data
+        build_vector_and_append self.missing_input_columns Missing_Input_Columns_Data
+        self.other.to_vector.each problems.append
+
+        problems.to_vector
+
+    ## Attaches gathered warnings to the result.
+       Any errors from the `result` take precedence over the ones owned by this
+       builder.
+    attach_problems_after : Problem_Behavior -> Any -> Any
+    attach_problems_after self problem_behavior result =
+        problem_behavior.attach_problems_after result self.build_problemset
+
+    ## Attaches gathered warnings to the result of the provided computation.
+       If in `Report_Error` mode and there are any problems gathered, the first
+       one will be returned as error without even running the computation.
+    attach_problems_before : Problem_Behavior -> Any -> Any
+    attach_problems_before self problem_behavior ~computation =
+        problem_behavior.attach_problems_before self.build_problemset computation
+
+    ## PRIVATE
+       Creates a new helper object for aggregating problems to report.
+    new : Problem_Builder
+    new =
+        Problem_Builder.Value (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+
+## PRIVATE
+   Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
+append_to_ref : Ref Vector_Builder -> Vector -> Nothing
+append_to_ref ref vector =
+    appended = (ref.get) ++ vector
+    ref . put appended

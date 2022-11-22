@@ -51,8 +51,8 @@ call.
 > `Managed_Resource.register` call.
 
 To perform operations on the underlying resource, use the
-`Managed_Resource.with resource action` method, where `resource` is the object
-returned from the call to `Managed_Resource.register`, and `action` is a
+`<managed-resource>.with action` method, where `<managed-resource>` is the
+object returned from the call to `Managed_Resource.register`, and `action` is a
 function taking the underlying object as its only argument. It is important that
 the object passed to `action` is not stored and is not used past the return of
 `action`. This means in particular that it is unsafe to give another thread a
@@ -60,9 +60,8 @@ reference to that object, if the thread remains alive past the return of
 `action`. If such an operation is necessary, the other thread should call `with`
 itself, using a reference to the original manged resource.
 
-A managed resource can be closed manually, using
-`Managed_Resource.close resource`. The underlying object is then finalized
-immediately.
+A managed resource can be closed manually, using `<managed-resource>.close`. The
+underlying object is then finalized immediately.
 
 The finalization of a resource can be aborted using
 `Managed_Resource.take resource`. This call will abort any automatic

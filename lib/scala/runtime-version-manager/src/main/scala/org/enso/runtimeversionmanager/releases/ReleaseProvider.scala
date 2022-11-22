@@ -36,5 +36,8 @@ trait ReleaseProvider[ReleaseType] {
 }
 
 object ReleaseProvider {
+
+  val TagPrefix = "enso-"
+
   case class Version(version: SemVer, markedAsBroken: Boolean)
 }

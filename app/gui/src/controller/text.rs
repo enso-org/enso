@@ -13,6 +13,7 @@ use json_rpc::error::RpcError;
 use std::pin::Pin;
 
 
+
 // ====================
 // === Notification ===
 // ====================
@@ -54,6 +55,7 @@ impl Handle {
     ///
     /// This constructor checks what kind of file we read, and load it as a module file or plain
     /// text file.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project: &model::Project,
@@ -76,12 +78,13 @@ impl Handle {
     /// Get clone of file path handled by this controller.
     pub fn file_path(&self) -> &FilePath {
         match &self.file {
-            FileHandle::PlainText { path, .. } => &*path,
+            FileHandle::PlainText { path, .. } => path,
             FileHandle::Module { controller } => controller.model.path().file_path(),
         }
     }
 
     /// Read file's content.
+    #[profile(Detail)]
     pub async fn read_content(&self) -> Result<String, RpcError> {
         use FileHandle::*;
         match &self.file {
@@ -94,6 +97,7 @@ impl Handle {
     }
 
     /// Store the given content to file.
+    #[profile(Detail)]
     pub fn store_content(&self, content: String) -> impl Future<Output = FallibleResult> {
         let file_handle = self.file.clone_ref();
         async move {
@@ -114,6 +118,7 @@ impl Handle {
     /// This function should be called by view on every user interaction changing the text content
     /// of file. It will e.g. update the Module Controller state and notify other views about
     /// update in case of module files.
+    #[profile(Detail)]
     pub fn apply_text_change(&self, change: TextChange) -> FallibleResult {
         if let FileHandle::Module { controller } = &self.file {
             controller.apply_code_change(change)
@@ -171,8 +176,8 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    use enso_text::traits::*;
-    use parser::Parser;
+    use enso_text::index::*;
+    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn setup_mock_project(setup: impl FnOnce(&mut model::project::MockAPI)) -> model::Project {
@@ -201,7 +206,7 @@ mod test {
             };
             let mut sub = controller.subscribe();
 
-            let change = enso_text::Change::inserted(8.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(8.byte(), "2".to_string());
             module.apply_code_change(change).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })
@@ -228,7 +233,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let code = "2 + 2".to_string();
             let undo = default();

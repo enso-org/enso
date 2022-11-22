@@ -1,12 +1,17 @@
 //! Builtin themes definition and compile-time generated theme paths (allowing catching improper
 //! theme usage during IDE compilation time).
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
@@ -176,64 +181,141 @@ define_themes! { [light:0, dark:1]
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
         }
+        component_browser {
+            panels_gap = 3.0, 3.0;
+            documentation {
+                width = 369.0, 369.0;
+            }
+            component_list_panel {
+                background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+                corners_radius = 15.0, 15.0;
+                grid {
+                    width = 400.0, 400.0;
+                    height = 398.0, 398.0;
+                    padding = 3.0, 3.0;
+                    column_gap = 3.0, 3.0;
+                    entry_height = 30.0, 30.0;
+
+                    entry {
+                        background.color_intensity = 0.2, 0.2;
+                        dimmed.color_intensity = 0.5, 0.5;
+                        padding = 17.0, 17.0;
+                        text {
+                            font = "default", "default";
+                            size = 12.0, 12.0;
+                            color_intensity = 1.0, 1.0;
+                            highlight_bold = 0.04, 0.04;
+                        }
+                        icon {
+                            size = 16.0, 16.0;
+                            text_padding = 8.0, 8.0;
+                            strong_color_intensity = 1.0, 1.0;
+                            weak_color_intensity = 0.5, 0.5;
+                        }
+                        highlight {
+                            corners_radius = 12.0, 12.0;
+                            hover.color_intensity = 0.4, 0.4;
+                            selection {
+                                background.color_intensity = 1.0, 1.0;
+                                dimmed.color_intensity = 0.5, 0.5;
+                                text.color_intensity = 0.2, 0.2;
+                                icon_strong.color_intensity = 0.5, 0.5;
+                                icon_weak.color_intensity = 0.2, 0.2;
+                            }
+                        }
+                        shadow = shadow , shadow;
+                        shadow {
+                            size     = 27.0 , 27.0;
+                            spread   = shadow::spread   , shadow::spread;
+                            fading   = shadow::fading   , shadow::fading;
+                            exponent = shadow::exponent , shadow::exponent;
+                            offset_x = shadow::offset_x , shadow::offset_x;
+                            offset_y = shadow::offset_y , shadow::offset_y;
+                        }
+                    }
+
+                    group_colors {
+                        group_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                        group_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
+                        group_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                        group_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
+                        group_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
+                        group_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
+                        local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
+                    }
+                }
+                menu_height = 35.0, 35.0;
+                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                menu_divider_height = 0.5,0.5;
+                menu {
+                    breadcrumbs {
+                        crop_left = 9.0, 9.0;
+                        crop_right = 3.0, 3.0;
+                        height = 28.0, 28.0;
+                        separator {
+                            width = 8.0, 8.0;
+                            height = 6.0, 6.0;
+                        }
+                        ellipsis {
+                            background_width = 24.0, 24.0;
+                            background_height = 10.0, 10.0;
+                            background_corners_radius = 16.0, 16.0;
+                            background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
+                            circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
+                            circles_radius = 2.0, 2.0;
+                            circles_gap = 2.0, 2.0;
+                        }
+                        entry {
+                            margin = 1.0, 1.0;
+                            hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
+                            font = "default", "default";
+                            text_padding_left = 7.0, 7.0;
+                            text_size = 12.0, 12.0;
+                            selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
+                            highlight_corners_radius = 15.0, 15.0;
+                            greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);
+                        }
+                    }
+                }
+                navigator {
+                    width = 37.0, 37.0;
+                    icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    top_padding = -3.0, -3.0;
+                    bottom_padding = 7.0, 7.0;
+                    list_view_width = 39.0, 39.0;
+                    list_view {
+                        background = Rgba::transparent() , Rgba::transparent();
+                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        highlight {
+                            height = 29.0, 29.0;
+                            corner_radius = 10.0, 10.0;
+                        }
+                        entry {
+                            padding = 14.5, 14.5;
+                        }
+                        padding = 5.0, 5.0;
+                    }
+                }
+            }
+        }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
-            selection {
-                padding {
-                    horizontal = 2.0, 2.0;
-                    vertical   = 2.0, 2.0
-                }
-            }
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
-                io {
-                    strong = Rgba(0.475,0.494,0.145,1.0) , Rgba(0.475,0.494,0.145,1.0);
-                    weak   = Rgba(0.612,0.627,0.388,1.0) , Rgba(0.612,0.627,0.388,1.0);
-                }
-                preparation {
-                    strong = Rgba(0.243,0.545,0.161,1.0) , Rgba(0.243,0.545,0.161,1.0);
-                    weak   = Rgba(0.69,0.816,0.663,1.0)  , Rgba(0.69,0.816,0.663,1.0);
-                }
-                join {
-                    strong = Rgba(0.239,0.573,0.808,1.0) , Rgba(0.239,0.573,0.808,1.0);
-                    weak   = Rgba(0.612,0.784,0.902,1.0) , Rgba(0.612,0.784,0.902,1.0);
-                    medium = Rgba(0.42,0.678,0.855,1.0)  , Rgba(0.42,0.678,0.855,1.0);
-                }
-                transform = Rgba(0.169,0.459,0.937,1.0) , Rgba(0.169,0.459,0.937,1.0);
-                text {
-                    strong = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                    weak   = Rgba(0.871,0.635,0.831,1.0) , Rgba(0.871,0.635,0.831,1.0);
-                }
-                date_and_time    = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                spatial          = Rgba(0.827,0.267,0.255,1.0) , Rgba(0.827,0.267,0.255,1.0);
-                predictive       = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
-                machine_learning = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
                 computer_vision {
-                    strong    = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                    weak      = Rgba(0.514,0.518,0.518,1.0) , Rgba(0.514,0.518,0.518,1.0);
                     highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
-                }
-                data_science {
-                    red  = Rgba(0.847,0.212,0.435,1.0) , Rgba(0.847,0.212,0.435,1.0);
-                    blue = Rgba(0.235,0.565,0.886,1.0) , Rgba(0.235,0.565,0.886,1.0);
-                    gray = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                }
-                network {
-                    _0 = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                    _1 = Rgba(0.114,0.506,0.976,1.0) , Rgba(0.114,0.506,0.976,1.0);
-                    _2 = Rgba(0.255,0.588,0.98,1.0)  , Rgba(0.255,0.588,0.98,1.0);
-                    _3 = Rgba(0.404,0.671,0.984,1.0) , Rgba(0.404,0.671,0.984,1.0);
                 }
                 system {
                     background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
                     content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
                 }
                 libraries {
-                    _0 = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                    _1 = Rgba(0.204,0.561,0.976,1.0) , Rgba(0.204,0.561,0.976,1.0);
-                    _2 = Rgba(0.404,0.671,0.984,1.0) , Rgba(0.404,0.671,0.984,1.0);
-                    _3 = Rgba(0.596,0.776,0.988,1.0) , Rgba(0.596,0.776,0.988,1.0);
+                    _0 = Rgba(0.541,0.545,0.545,1.0)  , Rgba(0.541,0.545,0.545,1.0);
+                    _1 = Rgba(0.675,0.675,0.675,1.0) , Rgba(0.675,0.675,0.675,1.0);
+                    _2 = Rgba(0.713,0.713,0.713,1.0) , Rgba(0.713,0.713,0.713,1.0);
+                    _3 = Rgba(0.8,0.8,0.8,1.0) , Rgba(0.8,0.8,0.8,1.0);
                 }
             }
         }
@@ -368,6 +450,23 @@ define_themes! { [light:0, dark:1]
         default_x_gap_between_nodes     = 48.0  , 48.0;
         default_y_gap_between_nodes     = 32.0  , 32.0;
         minimal_x_spacing_for_new_nodes = 150.0 , 150.0;
+        // Area around every existing node where attempts to place a new node may trigger a node
+        // alignment mechanism.
+        //
+        // The specific conditions when the alignment mechanism is triggered, as well as the
+        // algorithm used to perform the alignment, are governed by the Graph Editor.
+        alignment_area_around_node {
+            above_node           = 15.0  , 15.0;
+            below_node           = 50.0 , 50.0;
+            to_the_left_of_node  = 25.0  , 25.0;
+            to_the_right_of_node = 25.0  , 25.0;
+        }
+        screen_margin_when_panning_camera_to_node {
+            top = 40.0, 40.0;
+            bottom = 80.0, 80.0;
+            left = 80.0, 80.0;
+            right = 300.0, 300.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
@@ -437,6 +536,11 @@ define_themes! { [light:0, dark:1]
                 size = 8.0 , 8.0;
                 offset = 0.0 , 0.0;
             }
+            text_grid {
+                font = "DejaVuSansMonoBook" , "DejaVuSansMonoBook";
+                font_size = 12.0 , 12.0;
+
+            }
         }
         breadcrumbs {
             full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
@@ -486,6 +590,21 @@ define_themes! { [light:0, dark:1]
                 size = 20.0, 20.0;
             }
         }
+        add_node_button {
+            margin = 14.0, 14.0;
+            size = 60.0, 60.0;
+            background = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(0.0, 0.0, 0.0, 1.0);
+            color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
+
+            hover {
+                background = Rgba(0.9, 0.9, 1.0, 1.0), Rgba(0.9, 0.9, 1.0, 1.0);
+                color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
+            }
+            click {
+                background = Rgba(0.62, 0.62, 1.0, 1.0), Rgba(0.62, 0.62, 1.0, 1.0);
+                color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
+            }
+        }
     }
     widget {
         list_view {
@@ -493,10 +612,19 @@ define_themes! { [light:0, dark:1]
             highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+                font      = "default-mono", "default-mono";
                 size      = 12.0, 12.0;
+                highlight_bold = 0.02, 0.02;
             }
+            entry {
+                padding = 10.0, 10.0;
+            }
+            highlight {
+                height = 24.0, 24.0;
+                corner_radius = 12.0, 12.0;
+            }
+            padding = 5.0, 5.0;
         }
     }
     colors {
@@ -512,6 +640,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
+                font   = "default", "default";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;
@@ -520,12 +649,17 @@ define_themes! { [light:0, dark:1]
         }
         slider {
             background = graph_editor::node::background , graph_editor::node::background;
+            overshoot_limit = 60.0, 60.0;
             handle {
                 color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
             }
             track {
-                color       = Lcha(0.7,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
-                hover_color = Lcha(0.6,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+                color       = Lcha(0.75,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
+                hover_color = Lcha(0.75,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+            }
+            background {
+                color       = Lcha(1.0,0.0,0.0,0.5), Lcha(0.3,0.0,0.0,0.5);
+                hover_color = Lcha(1.0,0.0,0.0,0.5), Lcha(0.4,0.0,0.0,0.5);
             }
             overflow {
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);

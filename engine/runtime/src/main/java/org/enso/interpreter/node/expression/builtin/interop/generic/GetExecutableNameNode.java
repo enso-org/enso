@@ -5,7 +5,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -15,7 +14,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_executable_name",
-    description = "Returns the executable name of a polyglot object.")
+    description = "Returns the executable name of a polyglot object.",
+    autoRegister = false)
 public class GetExecutableNameNode extends Node {
   private @Child InteropLibrary functionsLibrary =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
@@ -23,7 +23,7 @@ public class GetExecutableNameNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Text execute(Object _this, Object function) {
+  Text execute(Object function) {
     try {
       return Text.create(stringsLibrary.asString(functionsLibrary.getExecutableName(function)));
     } catch (UnsupportedMessageException e) {

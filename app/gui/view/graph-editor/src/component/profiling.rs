@@ -1,6 +1,7 @@
 //! Provides a button that can be used to toggle the editor's profiling mode.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::view;
 
@@ -8,7 +9,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ToggleButton;
 
@@ -28,8 +28,8 @@ mod icon {
     use super::*;
     use ensogl_component::toggle_button::ColorableShape;
 
-    ensogl::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
@@ -83,19 +83,19 @@ mod icon {
             // === Needle ===
 
             let needle       = UnevenCapsule(needle_radius_outer,needle_radius_inner,needle_length);
-            let needle       = needle.rotate(&needle_angle);
+            let needle       = needle.rotate(needle_angle);
             let inner_circle = Circle(&inner_circle_radius);
 
 
             // === Composition ===
 
             let shape      = (circle_outline + needle + inner_circle).fill(fill_color);
-            let hover_area = Rect((&width,&height)).fill(HOVER_COLOR);
+            let hover_area = Rect((&width,&height)).fill(INVISIBLE_HOVER_COLOR);
             (shape + hover_area).into()
         }
     }
 
-    impl ColorableShape for DynamicShape {
+    impl ColorableShape for Shape {
         fn set_color(&self, color: color::Rgba) {
             self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
         }
@@ -128,7 +128,7 @@ ensogl::define_endpoints! {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Button {
     frp:    Frp,
-    button: ToggleButton<icon::DynamicShape>,
+    button: ToggleButton<icon::Shape>,
     styles: StyleWatchFrp,
 }
 
@@ -148,8 +148,8 @@ impl Button {
         let frp = Frp::new();
         let network = &frp.network;
 
-        let button = ToggleButton::<icon::DynamicShape>::new(Logger::new("profiling::Button"));
-        scene.layers.panel.add_exclusive(&button);
+        let button = ToggleButton::<icon::Shape>::new();
+        scene.layers.panel.add(&button);
         button.set_visibility(true);
         button.set_size(Vector2(32.0, 32.0));
 

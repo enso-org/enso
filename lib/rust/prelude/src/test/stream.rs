@@ -7,6 +7,8 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
+
+
 /// Extensions to the `Stream` trait allowing manual control of the execution by subsequent
 /// polling.
 pub trait StreamTestExt<S: ?Sized + Stream> {

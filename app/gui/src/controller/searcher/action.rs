@@ -1,10 +1,16 @@
 //! All structures related to the suggestion list provided by SearcherController.
+
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::CodeToInsert;
 
 use double_representation::module;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod hardcoded;
 
@@ -20,7 +26,7 @@ pub enum Suggestion {
     /// The suggestion from Suggestion Database received from the Engine.
     FromDatabase(Rc<model::suggestion_database::Entry>),
     /// The one of the hard-coded suggestion.
-    Hardcoded(Rc<hardcoded::Suggestion>),
+    Hardcoded(Rc<controller::searcher::component::hardcoded::Snippet>),
 }
 
 impl Suggestion {
@@ -32,10 +38,8 @@ impl Suggestion {
     ) -> CodeToInsert {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
-            Suggestion::Hardcoded(s) => CodeToInsert {
-                code:    s.code.to_owned(),
-                imports: s.imports.iter().cloned().collect(),
-            },
+            Suggestion::Hardcoded(s) =>
+                CodeToInsert { code: s.code.to_owned(), imports: default() },
         }
     }
 
@@ -44,17 +48,17 @@ impl Suggestion {
         match self {
             Suggestion::FromDatabase(suggestion) =>
                 suggestion.arguments.iter().map(|a| a.repr_type.clone()).collect(),
-            Suggestion::Hardcoded(suggestion) =>
-                suggestion.argument_types.iter().map(|t| t.into()).collect(),
+            Suggestion::Hardcoded(_) => vec![],
         }
     }
 
     /// Return the documentation assigned to the suggestion.
     pub fn documentation_html(&self) -> Option<&str> {
-        match self {
-            Suggestion::FromDatabase(s) => s.documentation_html.as_ref().map(AsRef::<str>::as_ref),
-            Suggestion::Hardcoded(s) => s.documentation_html,
-        }
+        let doc_html = match self {
+            Suggestion::FromDatabase(s) => &s.documentation_html,
+            Suggestion::Hardcoded(s) => &s.documentation_html,
+        };
+        doc_html.as_ref().map(AsRef::<str>::as_ref)
     }
 
     /// The Id of the method called by a suggestion, or [`None`] if the suggestion is not a method
@@ -62,7 +66,7 @@ impl Suggestion {
     pub fn method_id(&self) -> Option<MethodId> {
         match self {
             Suggestion::FromDatabase(s) => s.method_id(),
-            Suggestion::Hardcoded(s) => s.method_id.clone(),
+            Suggestion::Hardcoded(_) => None,
         }
     }
 }
@@ -91,17 +95,6 @@ pub enum Action {
     /// The project management operation: creating or opening, projects.
     ProjectManagement(ProjectManagement),
     // In the future, other action types will be added (like module/method management, etc.).
-}
-
-impl Action {
-    /// Get the name of the icon associated with given action.
-    pub fn icon(&self) -> ImString {
-        use Suggestion::*;
-        match self {
-            Self::Suggestion(Hardcoded(s)) => s.icon.clone_ref(),
-            _ => hardcoded::ICONS.with(|ics| ics.default.clone_ref()),
-        }
-    }
 }
 
 impl Display for Action {
@@ -173,6 +166,12 @@ pub enum MatchInfo {
     Matches { subsequence: fuzzly::Subsequence },
 }
 
+impl Default for MatchInfo {
+    fn default() -> Self {
+        Self::Matches { subsequence: default() }
+    }
+}
+
 impl Ord for MatchInfo {
     /// Compare Match infos: the better matches are greater. The scores are compared using the full
     /// ordering as described in [`fuzzly::Subsequence::compare_scores`].
@@ -234,6 +233,7 @@ impl ListEntry {
     /// The ordering on the action list: first, are the matched entries are gathered on the top of
     /// the list, then sorted by categories, and those of same category are ordered by match score
     /// (the best matches are first).
+    #[profile(Debug)]
     pub fn ordering_on_list(&self, rhs: &Self) -> std::cmp::Ordering {
         self.matches()
             .cmp(&rhs.matches())
@@ -291,6 +291,7 @@ impl List {
     ///
     /// The "matching score" of each entry is recalculated against the given pattern and the entries
     /// are re-ordered, so the best matches will go first.
+    #[profile(Debug)]
     pub fn update_filtering(&self, pattern: impl Str) {
         {
             let mut entries_mut = self.entries.borrow_mut();
@@ -364,6 +365,7 @@ impl List {
         self.entries.borrow().iter().map(|entry| entry.action.clone_ref()).collect()
     }
 
+    #[profile(Debug)]
     fn update_sorting(&self) {
         let mut entries_mut = self.entries.borrow_mut();
         entries_mut.sort_by(|l, r| l.ordering_on_list(r));

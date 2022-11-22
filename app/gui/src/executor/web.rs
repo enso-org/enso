@@ -1,8 +1,6 @@
 //! Module defining `JsExecutor` - an executor that tries running until stalled
 //! on each animation frame callback call.
 
-pub mod test;
-
 use crate::prelude::*;
 
 use ensogl::animation;
@@ -13,8 +11,17 @@ use futures::task::LocalFutureObj;
 use futures::task::LocalSpawn;
 use futures::task::SpawnError;
 
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod test;
+
+
+
 /// An alias for a main animation loop.
-pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
+pub type MainLoop = animation::Loop;
 
 /// Executor. Uses a single-threaded `LocalPool` underneath, relying on ensogl's
 /// `animation::DynamicLoop` to do as much progress as possible on every animation frame.
@@ -57,6 +64,8 @@ impl EventLoopExecutor {
     pub fn runner(&self) -> impl FnMut(animation::TimeInfo) {
         let executor = self.executor.clone();
         move |_| {
+            let _profiler =
+                profiler::start_debug!(profiler::APP_LIFETIME, "EventLoopExecutor::runner");
             // Safe, because this is the only place borrowing executor and loop
             // callback shall never be re-entrant.
             let mut executor = executor.borrow_mut();

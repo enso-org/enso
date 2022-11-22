@@ -1,6 +1,16 @@
 /// This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
 /// Windows ICO formats.
 
+import { default as fss } from 'fs'
+import { promises as fs } from 'fs'
+
+import { execSync } from 'child_process'
+import { default as toIco } from 'to-ico'
+import { default as sharp } from 'sharp'
+import { platform } from 'os'
+import path from 'path'
+import url from 'url'
+
 class Logo {
     constructor(size = 64, compatibleMode = true) {
         this.xsize = size
@@ -111,41 +121,34 @@ class AppLogo extends Logo {
     }
 }
 
-fastGenerate =
+const fastGenerate =
     cons =>
     (...args) =>
         new cons(...args).generate()
 
-exports.generateMinimalWhiteLogo = fastGenerate(AppLogo)
+function generateMinimalWhiteLogo() {
+    return fastGenerate(AppLogo)
+}
 
-const fss = require('fs')
-const fs = fss.promises
-const execSync = require('child_process').execSync
-const toIco = require('to-ico')
-const sharp = require('sharp')
-const path = require('path')
-const platform = require('os').platform
-
-const thisPath = path.resolve(__dirname)
-const root = path.resolve(thisPath, '..', '..', '..', '..', '..')
-const distPath = path.resolve(root, 'dist', 'icons')
-const donePath = path.resolve(distPath, 'init')
-
-async function genIcons() {
+async function genIcons(outputDir) {
     let sizes = [16, 32, 64, 128, 256, 512, 1024]
     let win_sizes = [16, 32, 64, 128, 256]
 
+    const donePath = path.join(outputDir, 'init')
     if (fss.existsSync(donePath)) {
         console.log(`The ${donePath} file exists. Icons will not be regenerated.`)
         return
+    } else {
+        console.log(`Generating icons to ${outputDir}`)
     }
 
     console.log('Generating SVG icons.')
-    await fs.mkdir(path.resolve(distPath, 'svg'), { recursive: true })
-    await fs.mkdir(path.resolve(distPath, 'png'), { recursive: true })
+    await fs.mkdir(path.resolve(outputDir, 'svg'), { recursive: true })
+    await fs.mkdir(path.resolve(outputDir, 'png'), { recursive: true })
     for (let size of sizes) {
         let name = `icon_${size}x${size}.svg`
-        await fs.writeFile(`${distPath}/svg/${name}`, exports.generateMinimalWhiteLogo(size, true))
+        let logo = generateMinimalWhiteLogo()(size, true)
+        await fs.writeFile(`${outputDir}/svg/${name}`, logo)
     }
 
     /// Please note that this function converts the SVG to PNG
@@ -156,47 +159,58 @@ async function genIcons() {
     for (let size of sizes) {
         let inName = `icon_${size}x${size}.svg`
         let outName = `icon_${size}x${size}.png`
-        await sharp(`${distPath}/svg/${inName}`, { density: 144 })
+        await sharp(`${outputDir}/svg/${inName}`, { density: 144 })
             .png()
             .resize({
                 width: size,
                 kernel: sharp.kernel.mitchell,
             })
-            .toFile(`${distPath}/png/${outName}`)
+            .toFile(`${outputDir}/png/${outName}`)
     }
 
     for (let size of sizes.slice(1)) {
         let size2 = size / 2
         let inName = `icon_${size}x${size}.svg`
         let outName = `icon_${size2}x${size2}@2x.png`
-        await sharp(`${distPath}/svg/${inName}`, { density: 144 })
+        await sharp(`${outputDir}/svg/${inName}`, { density: 144 })
             .png()
             .resize({
                 width: size,
                 kernel: sharp.kernel.mitchell,
             })
-            .toFile(`${distPath}/png/${outName}`)
+            .toFile(`${outputDir}/png/${outName}`)
     }
 
     if (platform() === 'darwin') {
         console.log('Generating ICNS.')
-        execSync(`cp -R ${distPath}/png ${distPath}/png.iconset`)
-        execSync(`iconutil --convert icns --output ${distPath}/icon.icns ${distPath}/png.iconset`)
+        execSync(`cp -R ${outputDir}/png ${outputDir}/png.iconset`)
+        execSync(`iconutil --convert icns --output ${outputDir}/icon.icns ${outputDir}/png.iconset`)
     }
 
     console.log('Generating ICO.')
     let files = []
     for (let size of win_sizes) {
         let inName = `icon_${size}x${size}.png`
-        let data = await fs.readFile(`${distPath}/png/${inName}`)
+        let data = await fs.readFile(`${outputDir}/png/${inName}`)
         files.push(data)
     }
     toIco(files).then(buf => {
-        fss.writeFileSync(`${distPath}/icon.ico`, buf)
+        fss.writeFileSync(`${outputDir}/icon.ico`, buf)
     })
 
     let handle = await fs.open(donePath, 'w')
     await handle.close()
 }
 
-genIcons()
+async function main() {
+    const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
+    if (!outputDir) {
+        const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
+        throw Error(
+            `Script '${script}' invocation needs to be given an output path either through command line argument or 'ENSO_BUILD_ICONS' environment variable.`
+        )
+    }
+    await genIcons(outputDir)
+}
+
+await main()

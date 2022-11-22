@@ -14,16 +14,16 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type Atom_One
-          |    type Atom_Two
+          |    Atom_One
+          |    Atom_Two
           |
-          |    is_atom_one = case this of
-          |        Atom_One -> 10
-          |        Atom_Two -> -10
+          |    is_atom_one self = case self of
+          |        My_Type.Atom_One -> 10
+          |        My_Type.Atom_Two -> -10
           |
           |main =
-          |    r_1 = Atom_One.is_atom_one
-          |    r_2 = Atom_Two.is_atom_one
+          |    r_1 = My_Type.Atom_One.is_atom_one
+          |    r_2 = My_Type.Atom_Two.is_atom_one
           |    r_1 + r_2
           |""".stripMargin
 
@@ -34,16 +34,16 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type Atom_One
-          |    type Atom_Two
+          |    Atom_One
+          |    Atom_Two
           |
-          |    is_atom_one n = case this of
-          |        Atom_One -> 10 + n
-          |        Atom_Two -> -10 - n
+          |    is_atom_one self n = case self of
+          |        My_Type.Atom_One -> 10 + n
+          |        My_Type.Atom_Two -> -10 - n
           |
           |main =
-          |    r_1 = Atom_One.is_atom_one 5
-          |    r_2 = Atom_Two.is_atom_one 10
+          |    r_1 = My_Type.Atom_One.is_atom_one 5
+          |    r_2 = My_Type.Atom_Two.is_atom_one 10
           |    r_1 + r_2
           |""".stripMargin
 
@@ -54,13 +54,13 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
       val code =
         """
           |type My_Type
-          |    type My_Atom a
+          |    My_Atom a
           |
-          |    is_equal n = case this of
-          |        My_Atom a -> n - a
+          |    is_equal self n = case self of
+          |        My_Type.My_Atom a -> n - a
           |
           |main =
-          |    (My_Atom 5).is_equal 5
+          |    (My_Type.My_Atom 5).is_equal 5
           |""".stripMargin
 
       eval(code) shouldEqual 0
@@ -68,14 +68,14 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
 
     "work with methods appearing to be suspended blocks" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |type Foo
-          |    type Bar
+          |    Bar
           |    x =
           |        IO.println "foobar"
           |
-          |main = Bar.x
+          |main = Foo.x
           |""".stripMargin
 
       eval(code)
@@ -88,7 +88,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |foo x =
           |    y -> x + y
           |
-          |main = here.foo 1 2
+          |main = foo 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3

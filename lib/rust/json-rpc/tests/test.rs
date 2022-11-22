@@ -1,4 +1,9 @@
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use json_rpc::prelude::*;
+use json_rpc::*;
 
 use enso_web::Duration;
 use futures::task::LocalSpawnExt;
@@ -12,12 +17,13 @@ use json_rpc::messages::Id;
 use json_rpc::messages::Message;
 use json_rpc::messages::Version;
 use json_rpc::test_util::transport::mock::MockTransport;
-use json_rpc::*;
 use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
 use std::thread::sleep;
+
+
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 
@@ -38,7 +44,7 @@ fn pow_impl(msg: MockRequestMessage) -> MockResponseMessage {
 
 // === Protocol Data ===
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct MockRequest {
     i: i64,
 }
@@ -48,12 +54,12 @@ impl RemoteMethodCall for MockRequest {
     type Returned = MockResponse;
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 struct MockResponse {
     result: i64,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Eq)]
 #[serde(tag = "method", content = "params")]
 pub enum MockNotification {
     Meow { text: String },

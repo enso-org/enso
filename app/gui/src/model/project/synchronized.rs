@@ -1,12 +1,12 @@
 //! A Project Model that synchronizes all its operations with the Language Server.
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::model::execution_context;
 use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
-use crate::model::traits::*;
 use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
@@ -24,7 +24,15 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
-use parser::Parser;
+use parser_scala::Parser;
+
+
+
+// =================
+// === Profiling ===
+// =================
+
+profiler::metadata_logger!("RpcEvent", log_rpc_event(&'static str));
 
 
 
@@ -248,6 +256,7 @@ pub struct Project {
 
 impl Project {
     /// Create a new project model.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -257,7 +266,7 @@ impl Project {
     ) -> FallibleResult<Self> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
         let logger = Logger::new_sub(parent, "Project Controller");
-        info!(logger, "Creating a model of project {properties.name}");
+        info!("Creating a model of project {}", properties.name);
         let binary_protocol_events = language_server_bin.event_stream();
         let json_rpc_events = language_server_rpc.events();
         let embedded_visualizations = default();
@@ -270,7 +279,7 @@ impl Project {
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
-        let content_roots = ContentRoots::new_from_connection(&logger, &*language_server);
+        let content_roots = ContentRoots::new_from_connection(&logger, language_server);
         let content_roots = Rc::new(content_roots);
         let notifications = notification::Publisher::default();
         let urm = Rc::new(model::undo_redo::Manager::new(&logger));
@@ -303,6 +312,7 @@ impl Project {
     }
 
     /// Initializes the json and binary connection to Language Server, and creates a Project Model
+    #[profile(Detail)]
     pub async fn new_connected(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -337,6 +347,7 @@ impl Project {
 
     /// Creates a project model by opening a given project in project_manager, and initializing
     /// the received json and binary connections.
+    #[profile(Detail)]
     pub async fn new_opened(
         parent: &Logger,
         project_manager: Rc<dyn project_manager::API>,
@@ -364,36 +375,30 @@ impl Project {
     pub fn binary_event_handler(
         &self,
     ) -> impl Fn(engine_protocol::binary::Event) -> futures::future::Ready<()> {
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         move |event| {
-            debug!(logger, "Received an event from the binary protocol: {event:?}");
+            debug!("Received an event from the binary protocol: {event:?}");
             use engine_protocol::binary::client::Event;
             use engine_protocol::binary::Notification;
             match event {
                 Event::Notification(Notification::VisualizationUpdate { context, data }) => {
-                    debug!(
-                        logger,
-                        "Visualization binary data: {String::from_utf8_lossy(data.as_ref())}"
-                    );
+                    debug!("Visualization binary data: {}", String::from_utf8_lossy(data.as_ref()));
                     let data = VisualizationUpdateData::new(data);
                     if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
                         let result =
                             execution_contexts.dispatch_visualization_update(context, data);
                         if let Err(error) = result {
-                            error!(logger, "Failed to handle the visualization update: {error}.");
+                            error!("Failed to handle the visualization update: {error}.");
                         }
                     } else {
                         error!(
-                            logger,
-                            "Received a visualization update despite project being \
-                        already dropped."
+                            "Received a visualization update despite project being already dropped."
                         );
                     }
                 }
                 Event::Closed => {
-                    error!(logger, "Lost binary connection with the Language Server!");
+                    error!("Lost binary connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerBinary;
                     let notification = model::project::Notification::ConnectionLost(which);
                     publisher.notify(notification);
@@ -402,7 +407,7 @@ impl Project {
                     //   https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger, "Error emitted by the binary data connection: {error}.");
+                    error!("Error emitted by the binary data connection: {error}.");
                 }
             }
             futures::future::ready(())
@@ -416,16 +421,14 @@ impl Project {
     pub fn execution_update_handler(
         &self,
     ) -> impl Fn(execution_context::Id, ExecutionUpdate) + Clone {
-        let logger = self.logger.clone_ref();
         let registry = Rc::downgrade(&self.execution_contexts);
         move |id, update| {
             if let Some(registry) = registry.upgrade() {
                 if let Err(error) = registry.handle_update(id, update) {
-                    error!(logger, "Failed to handle the execution context update: {error}");
+                    error!("Failed to handle the execution context update: {error}");
                 }
             } else {
-                warning!(
-                    logger,
+                warn!(
                     "Received an execution context notification despite execution \
                             context being already dropped."
                 );
@@ -445,15 +448,22 @@ impl Project {
         // generalize them, as the  underlying RPC handlers and their types are separate.
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
-        let logger = self.logger.clone_ref();
         let publisher = self.notifications.clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let execution_update_handler = self.execution_update_handler();
         move |event| {
-            debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
+            debug!("Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
             use engine_protocol::language_server::Notification;
+
+            // Profiler logging
+            if let Event::Notification(notification) = &event {
+                let name: &'static str = notification.into();
+                log_rpc_event(name);
+            }
+
+            // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
@@ -470,9 +480,8 @@ impl Project {
                 }
                 Event::Notification(Notification::ExecutionFailed(update)) => {
                     error!(
-                        logger,
-                        "Execution failed in context {update.context_id}. Error: \
-                        {update.message}."
+                        "Execution failed in context {}. Error: {}.",
+                        update.context_id, update.message
                     );
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) =>
@@ -491,14 +500,16 @@ impl Project {
                 }
                 Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
                     error!(
-                        logger,
-                        "Visualisation evaluation failed in context {update.context_id} \
-                        for visualisation {update.visualisation_id} of expression \
-                        {update.expression_id}. Error: {update.message}"
+                        "Visualisation evaluation failed in context {} for visualisation {} of \
+                        expression {}. Error: {}",
+                        update.context_id,
+                        update.visualisation_id,
+                        update.expression_id,
+                        update.message
                     );
                 }
                 Event::Closed => {
-                    error!(logger, "Lost JSON-RPC connection with the Language Server!");
+                    error!("Lost JSON-RPC connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerJson;
                     let notification = model::project::Notification::ConnectionLost(which);
                     publisher.notify(notification);
@@ -507,7 +518,7 @@ impl Project {
                     //  see https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger, "Error emitted by the JSON-RPC data connection: {error}.");
+                    error!("Error emitted by the JSON-RPC data connection: {error}.");
                 }
             }
             futures::future::ready(())
@@ -522,6 +533,7 @@ impl Project {
             .acquire_capability(&capability.method, &capability.register_options)
     }
 
+    #[profile(Task)]
     fn load_module(
         &self,
         path: module::Path,
@@ -580,9 +592,10 @@ impl model::project::API for Project {
         self.content_roots.get(id)
     }
 
+    #[profile(Detail)]
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
         async move {
-            info!(self.logger, "Obtaining module for {path}");
+            info!("Obtaining module for {path}");
             let model_loader = self.load_module(path.clone());
             let model: model::Module = self.module_registry.get_or_load(path, model_loader).await?;
             Ok(model)
@@ -590,6 +603,7 @@ impl model::project::API for Project {
         .boxed_local()
     }
 
+    #[profile(Detail)]
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
@@ -788,7 +802,7 @@ mod test {
         let context_data = execution_context::plain::test::MockData::new();
         let Fixture { mut test, project, json_events_sender, .. } = Fixture::new(
             |mock_json_client| {
-                ExecutionFixture::mock_create_push_destroy_calls(&context_data, mock_json_client);
+                ExecutionFixture::mock_default_calls(&context_data, mock_json_client);
                 mock_json_client.require_all_calls();
             },
             |_| {},

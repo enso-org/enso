@@ -4,14 +4,18 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   FunctionBinding,
   GenerateMethodBodies
 }
-import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
+import org.enso.compiler.pass.resolve.{
+  MethodDefinitions,
+  ModuleAnnotations,
+  Patterns
+}
 
 import scala.annotation.unused
 
@@ -46,9 +50,22 @@ case object BindingAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val definedConstructors = ir.bindings.collect {
-      case cons: IR.Module.Scope.Definition.Atom =>
-        BindingsMap.Cons(cons.name.name, cons.arguments.length)
+    val definedSumTypes = ir.bindings.collect {
+      case sumType: IR.Module.Scope.Definition.Type =>
+        val isBuiltinType = sumType
+          .getMetadata(ModuleAnnotations)
+          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
+        BindingsMap.Type(
+          sumType.name.name,
+          sumType.members.map(m =>
+            Cons(
+              m.name.name,
+              m.arguments.length,
+              m.arguments.forall(_.defaultValue.isDefined)
+            )
+          ),
+          isBuiltinType
+        )
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
@@ -58,19 +75,20 @@ case object BindingAnalysis extends IRPass {
       .collect { case method: IR.Module.Scope.Definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
-          case IR.Name.Qualified(List(), _, _, _) => Some(ref.methodName.name)
-          case IR.Name.Qualified(List(n), _, _, _) =>
-            val shadowed = definedConstructors.exists(_.name == n.name)
+          case Some(IR.Name.Qualified(List(), _, _, _)) =>
+            Some(ref.methodName.name)
+          case Some(IR.Name.Qualified(List(n), _, _, _)) =>
+            val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None
-          case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
-          case IR.Name.Literal(n, _, _, _, _, _) =>
-            val shadowed = definedConstructors.exists(_.name == n)
+          case Some(IR.Name.Literal(n, _, _, _, _)) =>
+            val shadowed = definedSumTypes.exists(_.name == n)
             if (!shadowed && n == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None
-          case _ => None
+          case None => Some(ref.methodName.name)
+          case _    => None
         }
       }
       .flatten
@@ -81,9 +99,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
-        definedConstructors,
-        importedPolyglot,
-        methodsWithAutogen,
+        definedSumTypes ++ importedPolyglot ++ methodsWithAutogen,
         ModuleReference.Concrete(moduleContext.module)
       )
     )

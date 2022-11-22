@@ -1,17 +1,18 @@
 //! Definition of the Cursor (known as well as mouse pointer) component.
 
+use crate::display::shape::*;
+use crate::gui::style::*;
 use crate::prelude::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::data::color;
 use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
-use crate::display::shape::*;
 use crate::frp;
-use crate::gui::style::*;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
-use crate::DEPRECATED_Tween;
+use crate::Easing;
 
 
 
@@ -90,7 +91,7 @@ impl Style {
         Self { press, ..default() }
     }
 
-    pub fn new_text_cursor() -> Self {
+    pub fn cursor() -> Self {
         let size = Vector2::new(3.0, DEFAULT_SIZE().y);
         let size = Some(StyleValue::new(size));
         let color = Some(StyleValue::new(TEXT_CURSOR_COLOR));
@@ -135,8 +136,10 @@ impl Style {
 /// Canvas shape definition.
 pub mod shape {
     use super::*;
-    crate::define_shape_system! {
-        ( press  : f32
+    crate::shape! {
+        pointer_events = false;
+        ( style  : Style
+        , press  : f32
         , radius : f32
         , color  : Vector4
         ) {
@@ -161,7 +164,7 @@ pub mod shape {
 // === Frp ===
 // ===========
 
-crate::define_endpoints! {
+crate::define_endpoints_2! {
     Input {
         set_style (Style),
     }
@@ -198,30 +201,24 @@ impl CursorModel {
     pub fn new(scene: &Scene) -> Self {
         let scene = scene.clone_ref();
         let logger = Logger::new("cursor");
-        let display_object = display::object::Instance::new(&logger);
-        let view = shape::View::new(&logger);
-        let port_selection = shape::View::new(&logger);
+        let display_object = display::object::Instance::new();
+        let view = shape::View::new();
+        let port_selection = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
         display_object.add_child(&port_selection);
         let tgt_layer = &scene.layers.cursor;
         let port_selection_layer = &scene.layers.port_selection;
-        tgt_layer.add_exclusive(&view);
-        port_selection_layer.add_exclusive(&port_selection);
-
-        for layer in &[tgt_layer, port_selection_layer] {
-            let registry = &layer.shape_system_registry;
-            let shape_sys = registry.shape_system(&scene, PhantomData::<shape::DynamicShape>);
-            shape_sys.shape_system.set_pointer_events(false);
-        }
+        tgt_layer.add(&view);
+        port_selection_layer.add(&port_selection);
 
         Self { logger, scene, display_object, view, port_selection, style }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
         for view in &[&self.view, &self.port_selection] {
-            f(*view)
+            f(view)
         }
     }
 }
@@ -244,7 +241,7 @@ impl Cursor {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         let frp = Frp::new();
-        let network = &frp.network;
+        let network = frp.network();
         let model = CursorModel::new(scene);
         let mouse = &scene.mouse.frp;
 
@@ -274,7 +271,7 @@ impl Cursor {
         let inactive_fade = DEPRECATED_Animation::<f32>::new(network);
         let host_position = DEPRECATED_Animation::<Vector3>::new(network);
         let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
-        let host_attached_weight = DEPRECATED_Tween::new(network);
+        let host_attached_weight = Easing::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
 
         host_attached_weight.set_duration(300.0);
@@ -307,8 +304,8 @@ impl Cursor {
             });
 
             eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
-                host_attached_weight.stop_and_rewind();
-                if new_style.host.is_some() { host_attached_weight.start() }
+                host_attached_weight.stop_and_rewind(0.0);
+                if new_style.host.is_some() { host_attached_weight.target(1.0) }
 
                 let def = 0.0;
                 match &new_style.press {
@@ -461,10 +458,10 @@ impl Cursor {
 
             // === Outputs ===
 
-            frp.source.position             <+ position;
-            frp.source.screen_position      <+ screen_position;
-            frp.source.scene_position       <+ scene_position;
-            frp.source.scene_position_delta <+ scene_position_delta;
+            frp.private.output.position             <+ position;
+            frp.private.output.screen_position      <+ screen_position;
+            frp.private.output.scene_position       <+ scene_position;
+            frp.private.output.scene_position_delta <+ scene_position_delta;
         }
 
         // Hide on init.

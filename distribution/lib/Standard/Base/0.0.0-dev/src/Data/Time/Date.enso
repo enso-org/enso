@@ -1,79 +1,55 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time
+# TODO[DB] Fix composite types #183857386
+import project.Data.Time.Date_Time.Date_Time as Date_Time_Type
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Vector
+import project.Math
+import project.Meta
+import project.Nothing.Nothing
+import project.Polyglot
 
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time_Of_Day
-import Standard.Base.Data.Time.Zone
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
 
-polyglot java import java.time.format.DateTimeFormatter
-polyglot java import java.time.Instant
-polyglot java import java.time.LocalDate
-polyglot java import java.time.temporal.WeekFields
 polyglot java import org.enso.base.Time_Utils
+polyglot java import java.time.temporal.ChronoField
+polyglot java import java.time.temporal.IsoFields
+polyglot java import java.time.DateTimeException
+polyglot java import java.lang.ArithmeticException
 
-## Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         import Standard.Base.Data.Time.Date
-
-         example_now = Date.now
-now : Date
-now = Date LocalDate.now
-
-## ALIAS Current Date
-
-   Obtains the current date from the system clock in the system timezone.
-
-   > Example
-     Get the current date.
-
-         import Standard.Base.Data.Time.Date
-
-         example_today = Date.today
-today : Date
-today = here.now
-
-## Constructs a new Date from a year, month, and day.
+## PRIVATE
+   Constructs a new Date from a year, month, and day.
 
    Arguments
+   - year: The year to represent.
    - month: The month-of-year to represent, from 1 (January) to 12 (December).
    - day: The day-of-month to represent, from 1 to 31. It must be valid for the
      year and month.
 
-   Returns a `Time_Error` if the provided time is not valid.
+   Recommended to use `Date.new` instead which handles potential exceptions.
+new_builtin : Integer -> Integer -> Integer -> Date
+new_builtin year month day = @Builtin_Method "Date.new_builtin"
 
-   > Example
-     Create a new local date at Unix epoch.
-
-         import Standard.Base.Data.Time.Date
-
-         example_new = Date.new 1970
-
-   > Example
-     Get the local date of 5th August 1986.
-
-         import Standard.Base.Data.Time.Date
-
-         example_new = Date.new 1986 8 5
-
-new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
-new year (month = 1) (day = 1) =
-    Panic.recover (Date (LocalDate.of year month day)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
-
-## ALIAS Date from Text
-
+## PRIVATE
    Converts text containing a date into a Date object.
 
    Arguments:
    - text: The text to try and parse as a date.
    - pattern: An optional pattern describing how to parse the text.
 
-   Returns a `Time_Error` if the provided `text` cannot be parsed using the
-   provided `pattern`.
+   Recommended to use `Date.parse` instead which handles potential exceptions.
 
    ? Pattern Syntax
      Patterns are based on a simple sequence of letters and symbols. For
@@ -93,102 +69,184 @@ new year (month = 1) (day = 1) =
      - A dash
      - Two digits for the day-of-month. This is pre-padded by zero to ensure two
        digits.
+parse_builtin : Text -> Any -> Date
+parse_builtin text pattern = @Builtin_Method "Date.parse_builtin"
 
-   > Example
-     Parse the date of 23rd December 2020.
+## This type represents a date, often viewed as year-month-day.
 
-         import Standard.Base.Data.Time.Date
+   For example, the value "2nd October 2007" can be stored in a `Date`.
 
-         example_parse = Date.parse "2020-12-23"
-
-   > Example
-     Recover from an error due to a wrong format.
-
-         import Standard.Base.Data.Time.Date
-         import Standard.Base.Data.Time
-
-         example_parse_err = Date.parse "my birthday" . catch e-> case e of
-             Time.Time_Error _ -> Date.new 2000 1 1
-
-   > Example
-     Parse "1999-1-1" as Date using a custom format.
-
-         import Standard.Base.Data.Time.Date
-
-         example_parse = Date.parse "1999-1-1" "yyyy-M-d"
-
-   > Example
-     Recover from the parse error.
-
-         import Standard.Base.Data.Time.Date
-         import Standard.base.Data.Time
-
-         example_parse_err =
-             date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch e-> case e of
-                 Time.Time_Error _ -> Date.new 2000 1 1
-parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
-parse text pattern=Nothing =
-    result = Panic.recover <| case pattern of
-        Nothing -> LocalDate.parse text
-        Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
-        _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
-    Date result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
-        x -> x
-
+   This class does not store or represent a time or timezone. Instead, it
+   is a description of the date, as used for birthdays. It cannot represent
+   an instant on the time-line without additional information such as an
+   offset or timezone.
+@Builtin_Type
 type Date
+    ## Obtains the current date from the system clock in the system timezone.
 
-    ## This type represents a date, often viewed as year-month-day.
+       > Example
+         Get the current date.
+
+             example_now = Date.now
+    now : Date
+    now = @Builtin_Method "Date.now"
+
+    ## ALIAS Current Date
+
+       Obtains the current date from the system clock in the system timezone.
+
+       > Example
+         Get the current date.
+
+             example_today = Date.today
+    today : Date
+    today = Date.now
+
+    ## Constructs a new Date from a year, month, and day.
+
+       Arguments
+       - year: The year to represent.
+       - month: The month-of-year to represent, from 1 (January) to 12 (December).
+       - day: The day-of-month to represent, from 1 to 31. It must be valid for the
+         year and month.
+
+       Returns a `Time_Error` if the provided time is not valid.
+
+       > Example
+         Create a new local date at Unix epoch.
+
+             from Standard.Base import Date
+
+             example_new = Date.new 1970
+
+       > Example
+         Get the local date of 5th August 1986.
+
+             example_new = Date.new 1986 8 5
+
+    new : Integer -> Integer -> Integer -> Date ! Time_Error
+    new year (month = 1) (day = 1) =
+        ## TODO This is left using the old error handling approach, because
+           magically, changing this to the `catch_java` (which is now preferred way
+           of catching Polyglot_Errors) lead to the "should format local date using
+           provided pattern" test failing because it called the `LocalDate.format`
+           instead of Enso format. Hopefully this will be fixed with
+           https://github.com/enso-org/enso/pull/3559
+           Then this should be switched to use `Panic.catch_java`.
+        Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
+            Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
+            ex -> ex
+
+    ## ALIAS Date from Text
+
+       Converts text containing a date into a Date object.
 
        Arguments:
-       - internal_local_date: The internal date representation.
+       - text: The text to try and parse as a date.
+       - pattern: An optional pattern describing how to parse the text.
 
-       For example, the value "2nd October 2007" can be stored in a `Date`.
+       Returns a `Time_Error` if the provided `text` cannot be parsed using the
+       provided `pattern`.
 
-       This class does not store or represent a time or timezone. Instead, it
-       is a description of the date, as used for birthdays. It cannot represent
-       an instant on the time-line without additional information such as an
-       offset or timezone.
-    type Date internal_local_date
+       ? Pattern Syntax
+         Patterns are based on a simple sequence of letters and symbols. For
+         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+       ? Default Date Formatting
+         Unless you provide a custom format, the text must represent a valid date
+         that can be parsed using the ISO-8601 extended local date format. The
+         format consists of:
+
+         - Four digits or more for the year. Years in the range 0000 to 9999
+           will be pre-padded by zero to ensure four digits. Years outside
+           that range will have a prefixed positive or negative symbol.
+         - A dash
+         - Two digits for the month-of-year. This is pre-padded by zero to ensure
+           two digits.
+         - A dash
+         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+           digits.
+
+       > Example
+         Parse the date of 23rd December 2020.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "2020-12-23"
+
+       > Example
+         Recover from an error due to a wrong format.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err = Date.parse "my birthday" . catch Time_Error _->
+                 Date.new 2000 1 1
+
+       > Example
+         Parse "1999-1-1" as Date using a custom format.
+
+             from Standard.Base import Date
+
+             example_parse = Date.parse "1999-1-1" "yyyy-M-d"
+
+       > Example
+         Recover from the parse error.
+
+             from Standard.Base import Date
+             from Standard.Base.Error.Common import Time_Error
+
+             example_parse_err =
+                 date = Date.parse "1999-1-1" "yyyy-MM-dd"
+                 date.catch Time_Error (_->Date.new 2000 1 1)
+    parse : Text -> (Text | Nothing) -> Date ! Time_Error
+    parse text pattern=Nothing =
+        result = Panic.recover Any <| case pattern of
+            Nothing -> parse_builtin text 0
+            _ : Text -> parse_builtin text pattern
+            _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+        result . map_error <| case _ of
+            Polyglot_Error_Data err -> Time_Error_Data err.getMessage
+            ex -> ex
 
     ## Get the year field.
 
        > Example
          Get the current year.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_year = Date.now.year
     year : Integer
-    year = this . internal_local_date . getYear
+    year self = @Builtin_Method "Date.year"
 
     ## Get the month of year field, as a number from 1 to 12.
 
        > Example
          Get the current month.
 
-             import Standard.Base.Data.Time.Date
-
              example_month = Date.now.month
     month : Integer
-    month = this . internal_local_date . getMonthValue
+    month self = @Builtin_Method "Date.month"
 
     ## Get the day of month field.
 
        > Example
          Get the current day.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_day = Date.now.day
     day : Integer
-    day = this . internal_local_date . getDayOfMonth
+    day self = @Builtin_Method "Date.day"
 
     ## Returns the number of week of year this date falls into.
 
+       Produces a warning for a Date that is before epoch start.
+
        Arguments:
        - locale: the locale used to define the notion of weeks of year.
+         If no locale is provided, then the ISO 8601 week of year is used.
 
        ! Locale Dependency
          Note that this operation is locale-specific. It varies both by the
@@ -198,10 +256,107 @@ type Date
          other hand, the first day of the week is Monday, and week 1 is the week
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
-    week_of_year : Locale.Locale -> Integer
-    week_of_year locale=Locale.default =
-        field = WeekFields.of locale.java_locale . weekOfYear
-        this.internal_local_date.get field
+    week_of_year : (Locale | Nothing) -> Integer
+    week_of_year self locale=Nothing =
+        Date_Time.ensure_in_epoch self <|
+            if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
+                Time_Utils.week_of_year_localdate self locale.java_locale
+
+    ## Returns if the date is in a leap year.
+
+       Produces a warning for a Date that is before epoch start.
+    is_leap_year : Boolean
+    is_leap_year self =
+        Date_Time.ensure_in_epoch self <|
+            Time_Utils.is_leap_year self
+
+    ## Returns the number of days in the year represented by this date.
+
+       Produces a warning for a Date that is before epoch start.
+    length_of_year : Integer
+    length_of_year self = if self.is_leap_year then 366 else 365
+
+    ## Returns the century of the date.
+    century : Integer
+    century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
+        Error.throw (Illegal_Argument_Error_Data "Century can only be given for AD years.")
+
+    ## Returns the quarter of the year the date falls into.
+    quarter : Integer
+    quarter self = Time_Utils.get_field_as_localdate self IsoFields.QUARTER_OF_YEAR
+
+    ## Returns the number of days in the month represented by this date.
+
+       Produces a warning for a Date that is before epoch start.
+    length_of_month : Integer
+    length_of_month self =
+        Date_Time.ensure_in_epoch self <|
+            Time_Utils.length_of_month self
+
+    ## Returns the day of the year.
+    day_of_year : Integer
+    day_of_year self = Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_YEAR
+
+    ## Returns the day of the week.
+
+       Produces a warning for a Date that is before epoch start.
+    day_of_week : Day_Of_Week
+    day_of_week self =
+        Date_Time.ensure_in_epoch self <|
+            Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
+
+    ## Returns the first date within the `Date_Period` containing self.
+    start_of : Date_Period -> Date
+    start_of self period=Date_Period.Month = period.adjust_start self
+
+    ## Returns the last date within the `Date_Period` containing self.
+    end_of : Date_Period -> Date
+    end_of self period=Date_Period.Month = period.adjust_end self
+
+    ## Counts workdays between self (inclusive) and the provided end date
+       (exclusive).
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+       - holidays: dates of holidays to skip when counting workdays.
+       - include_end_date: whether to include the end date in the count.
+         By default the end date is not included in the interval.
+
+       ? Including the end date
+         To be consistent with how we usually represent intervals (in an
+         end-exclusive manner), by default the end date is not included in the
+         count. This has the nice property that for example to count the work
+         days within the next week you can do
+         `date.work_days_until (date + (Period.new days=7)` and it will look at
+         the 7 days starting from the current `date` and not 8 days. This also
+         gives us a property that
+         `date.work_days_until (date.add_work_days N) == N` for any non-negative
+         N. On the other hand, sometimes we may want the end date to be included
+         in the count, so we provide the `include_end_date` argument for that
+         purpose. Setting it to `True` should make the result consistent with
+         the `NETWORKDAYS` function in Excel and similar products.
+
+       > Example
+         Count the number of workdays between two dates.
+
+             from Standard.Base import Date
+
+             example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
+    work_days_until : Date -> Vector Date -> Boolean -> Integer
+    work_days_until self end holidays=[] include_end_date=False =
+        Date_Time.ensure_in_epoch self <|
+            if include_end_date then self.work_days_until (end + (Period.new days=1)) holidays include_end_date=False else
+                weekdays = week_days_between self end
+                ## We count holidays that occurred within the period, but not on the
+                   weekends (as weekend days have already been excluded from the count).
+                   We also need to ensure we exclude each holiday only once, even if the
+                   user provided it multiple times.
+                overlapping_holidays = holidays.filter holiday->
+                    fits_in_range self end holiday && (is_weekend holiday).not
+                weekdays - overlapping_holidays.distinct.length
 
     ## ALIAS Date to Time
 
@@ -214,13 +369,11 @@ type Date
        > Example
          Convert this date to midnight UTC time.
 
-             import Standard.Base.Data.Time.Date
-             import Standard.Base.Data.Time.Time_Of_Day
-             import Standard.Base.Data.Time.Zone
+             from Standard.Base import Date, Time_Of_Day, Time_Zone
 
-             example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
-    to_time : Time_Of_Day -> Zone -> Time
-    to_time time_of_day (zone = Zone.system) = Time.time (this . internal_local_date . atTime time_of_day.internal_local_time . atZone zone.internal_zone_id)
+             example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
+    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time_Type
+    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
 
@@ -230,13 +383,140 @@ type Date
        > Example
          Add 6 months to a local date.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Duration
 
-             example_add = Date.new 2020 + 6.months
-    + : Duration -> Date
-    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date (this . internal_local_date . plus amount.internal_period)
+             example_add = Date.new 2020 + (Period.new months=6)
+    + : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    + self period =
+        case period of
+            _ : Period ->
+                Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            _ : Duration ->
+                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+            _ ->
+                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
+
+    ## Shift the date by the specified amount of business days.
+
+       For the purpose of this method, the business days are defined to be
+       Monday through Friday.
+
+       Produces a warning for a Date that is before epoch start. See
+       `Date_Time.enso_epoch_start`.
+
+       This method always returns a day which is a business day - if the shift
+       amount is zero, the closest following business day is returned. For the
+       purpose of calculating the shift, the holidays are treated as if we were
+       starting at the next business day after them, for example counting the
+       shift starting on Saturday or Sunday works as if we were counting the
+       shift from Monday (for positive shifts). So shifting Sunday by zero days
+       will return Monday, but shifting it by one day will return a Tuesday
+       (so that there is the full work day - Monday) within the interval. For
+       negative shifts, shifting either Saturday or Sunday one day backwards
+       will return Friday, but shifting Monday one day backwards will return a
+       Friday. The whole logic is made consistent with `work_days_until`, so
+       that the following properties hold:
+           date.work_days_until (date.add_work_days N) == N for any N >= 0
+           (date.add_work_days N).work_days_until date == -N for any N < 0
+
+       Arguments:
+       - amount: The number of business days to shift the date by. If `amount`
+         is zero, the current date is returned, unless it is a weekend or a
+         holiday, in which case the next business day is returned.
+       - holidays: An optional list of dates of custom holidays that should also
+         be skipped. If it is not provided, only weekends are skipped.
+
+       > Example
+         Shift the date by 5 business days.
+
+             example_shift = Date.new 2020 2 3 . add_work_days 5
+    add_work_days : Integer -> Vector Date -> Date
+    add_work_days self days=1 holidays=[] =
+        Date_Time.ensure_in_epoch self <|
+            self.internal_add_work_days days holidays
+
+    ## PRIVATE
+
+       Date_Time.ensure_in_epoch breaks tail call annotation and causes
+       stack overflow. That is why `add_work_days` method is split into
+       two methods.
+    internal_add_work_days : Integer -> Vector Date -> Date
+    internal_add_work_days self days=1 holidays=[] =
+        case days >= 0 of
+            True ->
+                full_weeks = days.div 5
+                remaining_days = days % 5
+
+                # If the current day is a Saturday, the ordinal will be 6.
+                ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Monday start_at_zero=False
+
+                ## If the current day is a Sunday, we just need to shift by one day
+                   to 'escape' the weekend, regardless of the overall remaining
+                   shift. On any other day, we check if current day plus the shift
+                   overlaps a weekend, we need the shift to be 2 days since we need
+                   to skip both Saturday and Sunday.
+                additional_shift = if ordinal == 7 then 1 else
+                    if ordinal + remaining_days > 5 then 2 else 0
+
+                days_to_shift = full_weeks*7 + remaining_days + additional_shift
+                end = self + (Period.new days=days_to_shift)
+
+                ## We have shifted the date so that weekends are taken into account,
+                   but other holidays may have happened during that shift period.
+                   Thus we may have shifted by less workdays than really desired. We
+                   compute the difference and if there are still remaining workdays
+                   to shift by, we re-run the whole shift procedure.
+                workdays = self.work_days_until end holidays include_end_date=False
+                diff = days - workdays
+                if diff > 0 then @Tail_Call end.internal_add_work_days diff holidays else
+                    ## Otherwise we have accounted for all workdays we were asked
+                       to. But that is still not the end - we still need to ensure
+                       that the final day on which we have 'landed' is a workday
+                       too. Our procedure ensures that it is not a weekend, but it
+                       can still be a holiday. So we will be shifting the end date
+                       as long as needed to fall on a non-weekend non-holiday
+                       workday.
+                    go end_date =
+                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date + (Period.new days=1)) else end_date
+                    go end
+            False ->
+                ## We shift a bit so that if shifting by N full weeks, the 'last'
+                   shift is done on `remaining_days` and not full weeks. That is
+                   because shifting a Saturday back 5 days does not want us to get
+                   to the earlier Saturday and fall back to the Friday before it,
+                   but we want to stop at the Monday just after that Saturday.
+                full_weeks = (days + 1).div 5
+                remaining_days = (days + 1) % 5 - 1
+
+                # If the current day is a Sunday, the ordinal will be 1.
+                ordinal = self.day_of_week.to_integer first_day=Day_Of_Week.Sunday start_at_zero=False
+
+                ## If we overlapped the weekend, we need to increase the shift by
+                   one day (our current shift already shifts us by one day, but we
+                   need one more to skip the whole two-day weekend).
+                additional_shift = if ordinal == 1 then -1 else
+                    if ordinal + remaining_days <= 1 then -2 else 0
+
+                ## The rest of the logic is analogous to the positive case, we
+                   just need to correctly handle the reverse order of dates. The
+                   `days_to_shift` will be negative so `end` will come _before_
+                   `self`.
+                days_to_shift = full_weeks*7 + remaining_days + additional_shift
+                end = self + (Period.new days=days_to_shift)
+                workdays = end.work_days_until self holidays include_end_date=False
+
+                ## `days` is negative but `workdays` is positive, `diff` will be
+                   zero if we accounted for all days or negative if there are
+                   still workdays we need to shift by - then it will be exactly
+                   the remaining offset that we need to shift by.
+                diff = days + workdays
+                if diff < 0 then @Tail_Call end.internal_add_work_days diff holidays else
+                    ## As in the positive case, if the final end date falls on a
+                       holiday, we need to ensure that we move it - this time
+                       backwards - to the first workday.
+                    go end_date =
+                        if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
+                    go end
 
     ## Subtract the specified amount of time from this instant to get another
        date.
@@ -247,35 +527,29 @@ type Date
        > Example
          Subtract 7 days from a local date.
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
              import Standard.Base.Data.Time.Duration
 
-             example_subtract = Date.new 2020 - 7.days
-    - : Duration -> Date
-    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date (this . internal_local_date . minus amount.internal_period)
-
-    ## Format this date using the default formatter.
-
-       > Example
-         Convert the current date to text.
-
-             import Standard.Base.Data.Time.Date
-
-             example_to_text = Date.now.to_text
-    to_text : Text
-    to_text = Time_Utils.default_date_formatter . format this.internal_local_date
+             example_subtract = Date.new 2020 - (Period.new days=7)
+    - : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    - self period =
+        case period of
+            _ : Period ->
+                new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
+                Date.new new_java_date.year new_java_date.month new_java_date.day
+            _ : Duration ->
+                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+            _ ->
+                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
     ## A Date to Json conversion.
 
        > Example
          Convert the current date to JSON.
 
-             import Standard.Base.Data.Time.Date
-
              example_to_json = Date.now.to_json
-    to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Date"], ["day", this.day], ["month", this.month], ["year", this.year]]
+    to_json : Json
+    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 
@@ -289,41 +563,33 @@ type Date
        > Example
          Format "2020-06-02" as "2 June 2020"
 
-             import Standard.Base.Data.Time.Date
+             from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
 
        > Example
          Format "2020-06-02" as "2 June 20"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
          Format "2020-06-02" as "Tuesday, 02 June 2020"
-
-             import Standard.Base.Data.Time.Date
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 
        > Example
          Format "2020-06-02" as "Tue Jun 2"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "EEE MMM d"
 
        > Example
          Format "2020-06-02" as "2020AD"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_date
+    format self pattern = Time_Utils.local_date_format self pattern
 
-    ## Compares `this` to `that` to produce an ordering.
+    ## Compares `self` to `that` to produce an ordering.
 
        Arguments:
        - that: The other `Date` to compare against.
@@ -333,6 +599,53 @@ type Date
 
          (Date.new 2000).compare_to (Date.new 2001)
     compare_to : Date -> Ordering
-    compare_to that =
-        sign = this.internal_local_date.compareTo that.internal_local_date
-        Ordering.from_sign sign
+    compare_to self that = case that of
+        _ : Date ->
+            sign = Time_Utils.compare_to_localdate self that
+            Ordering.from_sign sign
+        _ -> Error.throw (Type_Error_Data Date that "that")
+
+    ## Compares two Dates for equality.
+    == : Date -> Boolean
+    == self that = case that of
+        Date -> Meta.is_same_object self Date
+        _ : Date ->
+            sign = Time_Utils.compare_to_localdate self that
+            0 == sign
+        _ -> False
+
+## PRIVATE
+week_days_between start end =
+    ## We split the interval into 3 periods: the first week (containing the
+       starting point), the last week (containing the end point), and the full
+       weeks in between those. In some cases there may be no weeks in-between
+       and the first and last week can be the same week.
+    start_of_first_full_week = (start.start_of Date_Period.Week) + (Period.new days=7)
+    start_of_last_week = end.start_of Date_Period.Week
+    full_weeks_between = (Time_Utils.days_between start_of_first_full_week start_of_last_week).div 7
+    case full_weeks_between < 0 of
+        # Either start is before end or they both lie within the same week.
+        True ->
+            days_between = Time_Utils.days_between start end
+            if days_between <= 0 then 0 else
+                ## The end day is not counted, but if the end day was a Sunday,
+                   the last day was a Saturday and it should not be counted
+                   either, so we need to subtract it.
+                case end.day_of_week of
+                    Day_Of_Week.Sunday -> days_between - 1
+                    _ -> days_between
+        False ->
+            # We count the days in the first week up until Friday - the weekend is not counted.
+            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2)))
+            # We count the days in the last week, not including the weekend.
+            last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
+            full_weeks_between * 5 + first_week_days + last_week_days
+
+## PRIVATE
+is_weekend date =
+    dow = date.day_of_week
+    (dow == Day_Of_Week.Saturday) || (dow == Day_Of_Week.Sunday)
+
+## PRIVATE
+fits_in_range start end date =
+    (start <= date) && (date < end)

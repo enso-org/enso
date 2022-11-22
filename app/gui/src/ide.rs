@@ -1,17 +1,22 @@
 //! This module contains the IDE object implementation.
-pub mod initializer;
-
-pub use initializer::Initializer;
 
 use crate::prelude::*;
 
-use crate::controller::project::INITIAL_MODULE_NAME;
 use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
 use enso_frp as frp;
 use ensogl::system::web::sleep;
 use std::time::Duration;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod initializer;
+
+pub use initializer::Initializer;
 
 
 
@@ -68,13 +73,13 @@ impl Ide {
 
         enso_frp::extend! { network
             on_log_sent          <- source::<()>();
-            mouse_moved          <- mouse.position.constant(());
-            any_mouse_press      <- any(mouse.up,mouse.down).constant(());
-            any_mouse_event      <- any(any_mouse_press,mouse_moved,mouse.wheel);
-            any_keyboard_event   <- any(keyboard.down,keyboard.up).constant(());
-            any_input_event      <- any(any_mouse_event,any_keyboard_event);
+            mouse_moved          <- mouse.position.constant(()).profile();
+            any_mouse_press      <- any(mouse.up,mouse.down).constant(()).profile();
+            any_mouse_event      <- any(any_mouse_press,mouse_moved,mouse.wheel).profile();
+            any_keyboard_event   <- any(keyboard.down,keyboard.up).constant(()).profile();
+            any_input_event      <- any(any_mouse_event,any_keyboard_event).profile();
             // True if any input event was captured since the last "alive" log sending.
-            input_event_received <- bool(&on_log_sent,&any_input_event).sampler();
+            input_event_received <- bool(&on_log_sent,&any_input_event).profile().sampler();
         }
         async move {
             loop {
@@ -98,8 +103,6 @@ pub struct FailedIde {
 
 
 /// The Path of the module initially opened after opening project in IDE.
-pub fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {
-    model::module::Path::from_name_segments(project.project_content_root_id(), &[
-        INITIAL_MODULE_NAME,
-    ])
+pub fn initial_module_path(project: &model::Project) -> model::module::Path {
+    project.main_module_path()
 }

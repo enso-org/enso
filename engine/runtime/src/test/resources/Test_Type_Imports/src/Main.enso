@@ -1,0 +1,3 @@
+from project.Type_Def.Maybe import Some
+
+main = Some 10

@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+# TODO Dubious constructor export
+from project.Data.Range.Range import all
+from project.Data.Range.Range export all
+
 ## Represents a right-exclusive range of integer values.
 type Range
 
@@ -9,7 +13,42 @@ type Range
        Arguments:
        - start: The left boundary of the range. Its value is included.
        - end: The right boundary of the range. Its value is excluded.
-    type Range start end
+       - step: The step between consecutive elements of the range. It must be
+         non-zero. Defaults to 1.
+    Range_Data (start : Integer) (end : Integer) (step : Integer = 1)
+
+    ## Creates a copy of this range with a changed step.
+
+       > Example
+         Create a range of even numbers from 0 to 10 (exclusive).
+
+             0.up_to 10 . with_step 2 . to_vector == [0, 2, 4, 6, 8]
+
+       > Example
+         Create a a decreasing range of even numbers from 10 to 0 (exclusive).
+
+             10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
+    with_step : Integer -> Range
+    with_step self new_step = case new_step of
+        _ : Integer ->
+            if new_step == 0 then throw_zero_step_error else
+                if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range_Data self.start self.end self.step.signum*new_step
+        _ ->
+            Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
+
+    ## Returns the last element that is included within the range or `Nothing`
+       if the range is empty.
+    last : Integer | Nothing
+    last self = if self.is_empty then Nothing else case self.step > 0 of
+        True ->
+            diff = self.end - self.start
+            rem = diff % self.step
+            if rem == 0 then self.end - self.step else self.end - rem
+        False ->
+            diff = self.start - self.end
+            rem = diff % (-self.step)
+            if rem == 0 then self.end - self.step else self.end + rem
 
     ## Get the number of elements in the range.
 
@@ -18,7 +57,9 @@ type Range
 
             0.up_to 100 . length
     length : Number
-    length = this.end - this.start
+    length self = case self.last of
+        Nothing -> 0
+        last -> ((last - self.start) . div self.step) + 1
 
     ## Checks if this range is empty.
 
@@ -27,7 +68,9 @@ type Range
 
              0.up_to 100 . is_empty
     is_empty : Boolean
-    is_empty = this.end <= this.start
+    is_empty self = if self.step > 0 then self.end <= self.start else
+        if self.step < 0 then self.start <= self.end else
+            throw_zero_step_error
 
     ## Checks if this range is not empty.
 
@@ -36,7 +79,7 @@ type Range
 
              0.up_to 100 . not_empty
     not_empty : Boolean
-    not_empty = this.is_empty.not
+    not_empty self = self.is_empty.not
 
     ## Applies a function to each element in the range, producing a vector of
        results.
@@ -50,7 +93,29 @@ type Range
 
              1.up_to 10 . map (*2)
     map : (Number -> Any) -> Vector Any
-    map function = this.to_vector.map function
+    map self function =
+        Vector.new self.length (i -> function (self.start + i*self.step))
+
+    ## Returns a vector of all elements of this range which satisfy a condition.
+
+       Arguments:
+       - filter: The filter to apply to the range. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
+
+       > Example
+         Selecting all elements that are greater than 3.
+
+             (0.up_to 7).filter (> 3)
+             (0.up_to 7).filter (Filter_Condition.Greater than=3)
+    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter filter.to_predicate
+        predicate : Function ->
+            builder = self.fold Vector.new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
 
     ## Applies a function for each element in the range.
 
@@ -61,12 +126,38 @@ type Range
          To print all the numbers from 1 to 10 use:
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
-    each function =
-        it start end = if start == end then Nothing else
-            function start
-            @Tail_Call it start+1 end
-        it this.start this.end
-        Nothing
+    each self function =
+        go end_condition current =
+            if end_condition current self.end then Nothing else
+                function current
+                @Tail_Call go end_condition current+self.step
+        if self.step > 0 then go (>=) self.start else
+            if self.step < 0 then go (<=) self.start else
+                throw_zero_step_error
+
+    ## PRIVATE
+       Applies a function to each element of the range.
+
+       Essentially acts like `range.to_vector.each_with_index`, but it is more
+       efficient.
+
+       Arguments:
+       - function: A function to apply that takes two parameters: first the
+         index of a given range element and then the actual range element.
+
+       > Example
+         Print range elements with their indices within the range.
+
+             (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
+    each_with_index : (Integer -> Any -> Any) -> Nothing
+    each_with_index self function =
+        go end_condition ix current =
+            if end_condition current self.end then Nothing else
+                function ix current
+                @Tail_Call go end_condition ix+1 current+self.step
+        if self.step > 0 then go (>=) 0 self.start else
+            if self.step < 0 then go (<=) 0 self.start else
+                throw_zero_step_error
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -77,22 +168,24 @@ type Range
          an item.
 
        In general, the result of
-           Range start end . fold init f
+           Range start end step . fold init f
        is the same as
-           f (...(f (f init start) start+1)...) end-1
+           f (...(f (f init start) start+step)...) last
 
        > Example
-         In the following example, we'll compute the sum of all integers less
-         than 100.
+         In the following example, we'll compute the sum of all even integers
+         less than 100.
 
-             0.up_to 100 . fold 0 (+)
+             0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
-    fold init function =
-        it acc start end = if start == end then acc else
-            new_acc = function acc start
-            @Tail_Call it new_acc start+1 end
-        res = it init this.start this.end
-        res
+    fold self init function =
+        go end_condition acc current =
+            if end_condition current self.end then acc else
+                new_acc = function acc current
+                @Tail_Call go end_condition new_acc current+self.step
+        if self.step > 0 then go (>=) init self.start else
+            if self.step < 0 then go (<=) init self.start else
+                throw_zero_step_error
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
@@ -106,12 +199,7 @@ type Range
 
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
-    all predicate =
-        it start end = if start==end then True else
-            r = predicate start
-            if r then (@Tail_Call it start+1 end) else False
-        res = it this.start this.end
-        res
+    all self predicate = self . exists (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -125,7 +213,7 @@ type Range
 
              1.up_to 100 . exists (> 10)
     exists : (Number -> Boolean) -> Boolean
-    exists predicate = this.find predicate . is_nothing . not
+    exists self predicate = self.find predicate . is_nothing . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -139,7 +227,7 @@ type Range
 
              1.up_to 100 . any (> 10)
     any : (Number -> Boolean) -> Boolean
-    any predicate = this.exists predicate
+    any self predicate = self.exists predicate
 
     ## Gets the first index when `predicate` is satisfied this range.
        If no index satisfies the predicate, return Nothing
@@ -154,12 +242,14 @@ type Range
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
-    find predicate =
-        limit = this.end
-        go n = if (n >= limit) then Nothing else
-          if (predicate n) then n else
-            @Tail_Call go n+1
-        go this.start
+    find self predicate =
+        go end_condition current =
+            if end_condition current self.end then Nothing else
+                if predicate current then current else
+                    @Tail_Call go end_condition current+self.step
+        if self.step > 0 then go (>=) self.start else
+            if self.step < 0 then go (<=) self.start else
+                throw_zero_step_error
 
     ## Converts the range to a vector containing the numbers in the range.
 
@@ -167,12 +257,10 @@ type Range
          Getting a vector of the numbers 1 to 5.
 
              1.up_to 6 . to_vector
-    to_vector : Vector.Vector
-    to_vector =
-        length = Math.max 0 (this.end - this.start)
-        Vector.new length (i -> i + this.start)
+    to_vector : Vector
+    to_vector self = self.map x->x
 
-    ## Does the range contains the specified value
+    ## Checks if the range contains the specified value.
 
        > Example
          Check if an index is in the range of a Vector
@@ -180,5 +268,49 @@ type Range
               vec = ["A", "B", "C", "D", "E"]
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
-    contains value =
-        (this.start <= value) && (this.end > value)
+    contains self value = case value of
+        _ : Integer ->
+            if self.step > 0 then (value >= self.start) && (value < self.end) && (((value - self.start) % self.step) == 0) else
+                if self.step < 0 then (value <= self.start) && (value > self.end) && (((self.start - value) % (-self.step)) == 0) else
+                    throw_zero_step_error
+        ## In the future this will be handled by type-checking, but for now we
+           add this so that we avoid a confusing
+           `Range 0 10 . contains 3.0 == False` and get a type error for
+           decimals instead.
+        _ ->
+            Error.throw (Illegal_Argument_Error_Data "`Range.contains` only accepts Integers.")
+
+## ALIAS Range
+
+   Creates an increasing right-exclusive range of integers from `self` to `n`.
+
+   Arguments:
+   - n: The end of the range.
+
+   > Example
+     Create a range containing the numbers 0, 1, 2, 3, 4.
+
+         0.up_to 5
+Integer.up_to : Integer -> Range
+Integer.up_to self n = case n of
+    _ : Integer -> Range_Data self n
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
+
+## ALIAS Range
+
+   Creates a decreasing right-exclusive range of integers from `self` to `n`.
+
+   Arguments:
+   - n: The end of the range.
+
+   > Example
+     Create a range containing the numbers 5, 4, 3, 2, 1.
+
+         5.down_to 0
+Integer.down_to : Integer -> Range
+Integer.down_to self n = case n of
+    _ : Integer -> Range_Data self n -1
+    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
+
+## PRIVATE
+throw_zero_step_error = Error.throw (Illegal_State_Error_Data "A range with step = 0 is ill-formed.")

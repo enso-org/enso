@@ -10,10 +10,16 @@
 //! sbt "runner/run --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path $HOME/ensotmp --rpc-port 30616"
 //! ```
 
-use enso_gui::prelude::*;
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use engine_protocol::language_server::*;
 use engine_protocol::types::*;
+use enso_gui::prelude::*;
+
+use double_representation::identifier::Identifier;
+use enso_gui::model::execution_context::QualifiedMethodPointer;
 use enso_gui::model::execution_context::Visualization;
 use enso_gui::model::module;
 use enso_gui::transport::web::WebSocket;
@@ -21,6 +27,8 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+
 
 /// The endpoint at which the Language Server should be accepting WS connections.
 const SERVER_ENDPOINT: &str = "ws://localhost:30616";
@@ -41,7 +49,7 @@ main =
     z
 
 Number.foo = x ->
-    y = this + 3
+    y = self + 3
     z = y * x
     z
 
@@ -119,18 +127,36 @@ async fn ls_text_protocol_test() {
     let visualisation_id = uuid::Uuid::new_v4();
     let expression_id = uuid::Uuid::parse_str("c553533e-a2b9-4305-9f12-b8fe7781f933");
     let expression_id = expression_id.expect("Couldn't parse expression id.");
-    let expression = "x -> here.encode x".to_string();
-    let visualisation_module = "Test.Visualisation".to_string();
-    let visualisation_config =
-        VisualisationConfiguration { execution_context_id, expression, visualisation_module };
+    let visualization_function = "foo".to_string();
+    let visualization_module = "Test.Visualisation";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function,
+    };
+    let positional_arguments_expressions = vec!["1".to_owned()];
+    let visualisation_config = VisualisationConfiguration {
+        execution_context_id,
+        expression,
+        positional_arguments_expressions,
+    };
     let response =
         client.attach_visualisation(&visualisation_id, &expression_id, &visualisation_config);
     response.await.expect("Couldn't attach visualisation.");
 
-    let expression = "x -> here.incAndEncode".to_string();
-    let visualisation_module = "Test.Visualisation".to_string();
-    let visualisation_config =
-        VisualisationConfiguration { execution_context_id, expression, visualisation_module };
+    let visualization_function = "bar".to_string();
+    let visualization_module = "Test.Visualisation";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function,
+    };
+    let positional_arguments_expressions = vec!["1".to_owned(), "2".to_owned()];
+    let visualisation_config = VisualisationConfiguration {
+        execution_context_id,
+        expression,
+        positional_arguments_expressions,
+    };
     let response = client.modify_visualisation(&visualisation_id, &visualisation_config).await;
     response.expect("Couldn't modify visualisation.");
 
@@ -279,9 +305,8 @@ async fn file_events() {
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
 async fn setup_ide() -> controller::Ide {
-    let logger = Logger::new("Test");
     let config = enso_gui::config::Startup::default();
-    info!(logger, "Setting up the project.");
+    info!("Setting up the project.");
     let initializer = enso_gui::Initializer::new(config);
     let error_msg = "Couldn't open project.";
     initializer.initialize_ide_controller().await.expect(error_msg)
@@ -291,18 +316,17 @@ async fn setup_ide() -> controller::Ide {
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let logger = Logger::new("Test");
     let _guard = enso_gui::initializer::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
-    info!(logger, "Got project: {project:?}");
+    info!("Got project: {project:?}");
     // Edit file using the text protocol
     let path = Path::new(project.json_rpc().project_root().id(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
-    let written = project.json_rpc().write_file(&path, &contents).await.unwrap();
-    info!(logger, "Written: {written:?}");
+    project.json_rpc().write_file(&path, &contents).await.unwrap();
+    info!("Written: {contents:?}");
     let read_back = project.json_rpc().read_file(&path).await.unwrap();
-    info!(logger, "Read back: {read_back:?}");
+    info!("Read back: {read_back:?}");
     assert_eq!(contents, read_back.contents);
 
     // Edit file using the binary protocol.
@@ -320,22 +344,19 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let logger = Logger::new("Test");
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
-    info!(logger, "Got project: {project:?}");
-
-    let expression = "x -> x.json_serialize".to_owned();
+    info!("Got project: {project:?}");
 
     use controller::project::MAIN_DEFINITION_NAME;
     use ensogl::system::web::sleep;
 
     let logger = Logger::new("Test");
-    let module_path = enso_gui::initial_module_path(&project).unwrap();
+    let module_path = enso_gui::initial_module_path(&project);
     let method = module_path.method_pointer(project.qualified_name(), MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
-    info!(logger, "Got module: {module:?}");
+    info!("Got module: {module:?}");
     let graph_executed = controller::ExecutedGraph::new(&logger, project, method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
@@ -344,13 +365,17 @@ async fn binary_visualization_updates_test_hlp() {
     // We must yield control for a moment, so the text edit is applied.
     sleep(Duration::from_millis(1)).await;
 
-    info!(logger, "Main graph: {graph_executed:?}");
-    info!(logger, "The code is: {module.ast().repr():?}");
-    info!(logger, "Main node: {the_node:?} with {the_node.expression().repr()}");
+    info!("Main graph: {graph_executed:?}");
+    info!("The code is: {:?}", module.ast().repr());
+    info!("Main node: {the_node:?} with {}", the_node.expression().repr());
 
-    let visualization = Visualization::new(the_node.id(), expression, module_qualified_name);
+    let method_pointer = QualifiedMethodPointer::module_method(
+        module_qualified_name,
+        Identifier::from_text("quux").unwrap(),
+    );
+    let visualization = Visualization::new(the_node.id(), method_pointer, vec![]);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
-    info!(logger, "Attached the visualization {visualization.id}");
+    info!("Attached the visualization {}", visualization.id);
     let mut stream = stream.boxed_local();
     let first_event = stream.next().await.unwrap(); // await update
     assert_eq!(first_event.as_ref(), "30".as_bytes());

@@ -9,16 +9,15 @@
      to make sure the indices are correct.
 
          import Standard.Examples
-         import Standard.Table
 
          example_join =
              table_1 = Examples.inventory_table
              table_2 = Examples.popularity_table
-             Table.join [table_1, table_2]
+             table_1.join table_2
 
    > Example
      Join the popularity table and the inventory table to see the relative
-     popularities of the items in the shop inventory.
+     popularity of the items in the shop inventory.
 
          import Standard.Examples
 

@@ -6,12 +6,14 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,
   FileManagerConfig,
   PathWatcherConfig,
-  ProjectDirectoriesConfig
+  ProjectDirectoriesConfig,
+  VcsManagerConfig
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
@@ -43,9 +45,11 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
   val config = Config(
     testContentRoot,
     FileManagerConfig(timeout = 3.seconds),
+    VcsManagerConfig(timeout  = 5.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
-    ProjectDirectoriesConfig.initialize(testContentRoot.file)
+    ProjectDirectoriesConfig.initialize(testContentRoot.file),
+    ProfilingConfig()
   )
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))

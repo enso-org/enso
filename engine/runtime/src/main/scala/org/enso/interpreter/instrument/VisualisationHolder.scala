@@ -1,13 +1,16 @@
 package org.enso.interpreter.instrument
 
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualisationId}
+
+import scala.collection.mutable
 
 /** A mutable holder of all visualisations attached to an execution context.
   */
 class VisualisationHolder() {
 
-  private var visualisationMap: Map[ExpressionId, List[Visualisation]] =
-    Map.empty.withDefaultValue(List.empty)
+  private val visualisationMap: mutable.Map[ExpressionId, List[Visualisation]] =
+    mutable.Map.empty.withDefaultValue(List.empty)
 
   /** Upserts a visualisation.
     *
@@ -15,8 +18,8 @@ class VisualisationHolder() {
     */
   def upsert(visualisation: Visualisation): Unit = {
     val visualisations = visualisationMap(visualisation.expressionId)
-    val removed        = visualisations.filterNot(_.id == visualisation.id)
-    visualisationMap += (visualisation.expressionId -> (visualisation :: removed))
+    val rest           = visualisations.filterNot(_.id == visualisation.id)
+    visualisationMap.update(visualisation.expressionId, visualisation :: rest)
   }
 
   /** Removes a visualisation from the holder.
@@ -30,8 +33,8 @@ class VisualisationHolder() {
     expressionId: ExpressionId
   ): Unit = {
     val visualisations = visualisationMap(expressionId)
-    val removed        = visualisations.filterNot(_.id == visualisationId)
-    visualisationMap += (expressionId -> removed)
+    val rest           = visualisations.filterNot(_.id == visualisationId)
+    visualisationMap.update(expressionId, rest)
   }
 
   /** Finds all visualisations attached to an expression.
@@ -42,6 +45,14 @@ class VisualisationHolder() {
   def find(expressionId: ExpressionId): List[Visualisation] =
     visualisationMap(expressionId)
 
+  /** Finds all visualisations in a given module.
+    *
+    * @param module the qualified module name
+    * @return a list of matching visualisation
+    */
+  def findByModule(module: QualifiedName): Iterable[Visualisation] =
+    visualisationMap.values.flatten.filter(_.module.getName == module)
+
   /** Returns a visualisation with the provided id.
     *
     * @param visualisationId the identifier of visualisation
@@ -50,12 +61,14 @@ class VisualisationHolder() {
   def getById(visualisationId: VisualisationId): Option[Visualisation] =
     visualisationMap.values.flatten.find(_.id == visualisationId)
 
+  /** @return all available visualisations. */
+  def getAll: Iterable[Visualisation] =
+    visualisationMap.values.flatten
 }
 
 object VisualisationHolder {
 
-  /** Returns an empty holder.
-    */
+  /** Returns an empty visualisation holder. */
   def empty = new VisualisationHolder()
 
 }

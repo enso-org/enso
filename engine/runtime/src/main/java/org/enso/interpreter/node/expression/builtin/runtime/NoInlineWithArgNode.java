@@ -5,17 +5,17 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Runtime",
     name = "no_inline_with_arg",
     description =
-        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.")
+        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.",
+    autoRegister = false)
 public class NoInlineWithArgNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
@@ -28,12 +28,7 @@ public class NoInlineWithArgNode extends Node {
     invokeCallableNode.setTailStatus(TailStatus.NOT_TAIL);
   }
 
-  Stateful execute(
-      VirtualFrame frame,
-      @MonadicState Object state,
-      Object _this,
-      Object action,
-      Object argument) {
+  Object execute(VirtualFrame frame, State state, Object action, Object argument) {
     MaterializedFrame materializedFrame = null;
     if (frame != null) {
       materializedFrame = frame.materialize();
@@ -42,8 +37,7 @@ public class NoInlineWithArgNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  Stateful doInvoke(
-      MaterializedFrame frame, @MonadicState Object state, Object action, Object argument) {
+  Object doInvoke(MaterializedFrame frame, State state, Object action, Object argument) {
     return invokeCallableNode.execute(action, frame, state, new Object[] {argument});
   }
 }

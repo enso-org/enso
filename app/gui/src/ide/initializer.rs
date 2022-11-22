@@ -10,7 +10,6 @@ use crate::FailedIde;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use ensogl::application::Application;
-use ensogl::system::web;
 use uuid::Uuid;
 
 
@@ -58,33 +57,22 @@ impl Initializer {
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
-    /// and forget them to keep them alive.
-    pub fn start_and_forget(self) {
-        let executor = setup_global_executor();
-        executor::global::spawn(async move {
-            let ide = self.start().await;
-            web::document
-                .get_element_by_id("loader")
-                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
-            std::mem::forget(ide);
-        });
-        std::mem::forget(executor);
-    }
-
-    /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
+    #[profile(Task)]
     pub async fn start(self) -> Result<Ide, FailedIde> {
-        info!(self.logger, "Starting IDE with the following config: {self.config:?}");
+        info!("Starting IDE with the following config: {:?}", self.config);
 
-        let ensogl_app = ensogl::application::Application::new("root");
-        Initializer::register_views(&ensogl_app);
+        ensogl_text_msdf::initialized().await;
+        let ensogl_app = ensogl::application::Application::new(self.config.dom_parent_id());
+        register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();
 
         // IDE was opened with `project` argument, we should skip the Welcome Screen.
         // We are doing it early, because Controllers initialization
         // takes some time and Welcome Screen might be visible for a brief moment while
         // controllers are not ready.
-        if self.config.project_name.is_some() {
-            view.switch_view_to_project();
+        match self.config.initial_view {
+            config::InitialView::WelcomeScreen => (),
+            config::InitialView::Project => view.switch_view_to_project(),
         }
 
         let status_bar = view.status_bar().clone_ref();
@@ -95,38 +83,15 @@ impl Initializer {
         match self.initialize_ide_controller().await {
             Ok(controller) => {
                 let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                info!(self.logger, "Setup done.");
+                info!("Setup done.");
                 Ok(ide)
             }
             Err(error) => {
                 let message = format!("Failed to initialize application: {error}");
-                error!(self.logger, "{message}");
+                error!("{message}");
                 status_bar.add_event(ide_view::status_bar::event::Label::new(message));
                 Err(FailedIde { view })
             }
-        }
-    }
-
-    fn register_views(app: &Application) {
-        app.views.register::<ide_view::root::View>();
-        app.views.register::<ide_view::graph_editor::GraphEditor>();
-        app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
-        app.views.register::<ide_view::code_editor::View>();
-        app.views.register::<ide_view::project::View>();
-        app.views.register::<ide_view::searcher::View>();
-        app.views.register::<ide_view::welcome_screen::View>();
-        app.views.register::<ensogl_component::text::Area>();
-        app.views.register::<ensogl_component::selector::NumberPicker>();
-        app.views.register::<ensogl_component::selector::NumberRangePicker>();
-
-        // As long as .label() of a View is the same, shortcuts and commands are currently also
-        // expected to be the same, so it should not be important which concrete type parameter of
-        // ListView we use below.
-        type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
-        app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
-
-        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
-            app.views.register::<ide_view::window_control_buttons::View>();
         }
     }
 
@@ -134,6 +99,7 @@ impl Initializer {
     ///
     /// This will setup all required connections to backend properly, according to the
     /// configuration.
+    #[profile(Task)]
     pub async fn initialize_ide_controller(&self) -> FallibleResult<controller::Ide> {
         use crate::config::BackendService::*;
         match &self.config.backend {
@@ -166,6 +132,7 @@ impl Initializer {
 
     /// Create and configure a new project manager client and register it within the global
     /// executor.
+    #[profile(Task)]
     pub async fn setup_project_manager(
         &self,
         endpoint: &str,
@@ -219,8 +186,8 @@ impl WithProjectManager {
     /// Creates a new project and returns its id, so the newly connected project can be opened.
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
-        info!(self.logger, "Creating a new project named '{self.project_name}'.");
-        let version = Some(enso_config::engine_version_supported.to_owned());
+        info!("Creating a new project named '{}'.", self.project_name);
+        let version = enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
@@ -242,7 +209,7 @@ impl WithProjectManager {
         if let Ok(project_id) = project {
             Ok(project_id)
         } else {
-            info!(self.logger, "Attempting to create {self.project_name}");
+            info!("Attempting to create {}", self.project_name);
             self.create_project().await
         }
     }
@@ -259,6 +226,35 @@ pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
     let executor = executor::web::EventLoopExecutor::new_running();
     executor::global::set_spawner(executor.spawner.clone());
     executor
+}
+
+/// Register all the standard views for the IDE.
+pub fn register_views(app: &Application) {
+    app.views.register::<ide_view::root::View>();
+    app.views.register::<ide_view::graph_editor::GraphEditor>();
+    app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+    app.views.register::<ide_view::code_editor::View>();
+    app.views.register::<ide_view::project::View>();
+    app.views.register::<ide_view::searcher::View>();
+    app.views.register::<ide_view::welcome_screen::View>();
+    app.views.register::<ide_view::component_browser::View>();
+    app.views.register::<ide_view::component_browser::component_list_panel::View>();
+    app.views.register::<ide_view::component_browser::component_list_panel::grid::View>();
+    app.views
+        .register::<ide_view::component_browser::component_list_panel::breadcrumbs::Breadcrumbs>();
+    app.views.register::<ensogl_component::text::Text>();
+    app.views.register::<ensogl_component::selector::NumberPicker>();
+    app.views.register::<ensogl_component::selector::NumberRangePicker>();
+
+    // As long as .label() of a View is the same, shortcuts and commands are currently also
+    // expected to be the same, so it should not be important which concrete type parameter of
+    // ListView we use below.
+    type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
+    app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
+
+    if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+        app.views.register::<ide_view::window_control_buttons::View>();
+    }
 }
 
 

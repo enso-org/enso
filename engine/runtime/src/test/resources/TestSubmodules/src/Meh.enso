@@ -1,0 +1,5 @@
+type Meh
+    Foo a
+    Bar b
+
+    create a = Meh.Bar a

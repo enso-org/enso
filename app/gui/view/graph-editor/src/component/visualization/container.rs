@@ -8,11 +8,10 @@
 // FIXME separate camera (view?) per visualization? This is also connected to a question how to
 // FIXME create efficient dashboard view.
 
-pub mod action_bar;
-pub mod fullscreen;
-pub mod visualization_chooser;
-
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
@@ -21,18 +20,22 @@ use crate::visualization;
 use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
-use ensogl::Animation;
-
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
+use ensogl::Animation;
 use ensogl_component::shadow;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod action_bar;
+pub mod fullscreen;
+pub mod visualization_chooser;
 
 
 
@@ -57,8 +60,8 @@ const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
 pub mod overlay {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (radius:f32,roundness:f32,selection:f32) {
+    ensogl::shape! {
+        (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
             let radius        = 1.px() * &radius;
@@ -79,7 +82,7 @@ pub mod background {
     use super::*;
     use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, radius:f32, roundness:f32, selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -165,11 +168,10 @@ pub struct View {
 
 impl View {
     /// Constructor.
-    pub fn new(logger: &Logger, scene: Scene) -> Self {
-        let logger = Logger::new_sub(logger, "view");
-        let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let overlay = overlay::View::new(&logger);
+    pub fn new(scene: Scene) -> Self {
+        let display_object = display::object::Instance::new();
+        let background = background::View::new();
+        let overlay = overlay::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
 
@@ -216,7 +218,7 @@ impl View {
 
     fn init(self) -> Self {
         self.set_layer(visualization::Layer::Default);
-        self.scene.layers.viz.add_exclusive(&self);
+        self.scene.layers.viz.add(&self);
         self
     }
 }
@@ -261,11 +263,11 @@ impl ContainerModel {
     pub fn new(logger: &Logger, app: &Application, registry: visualization::Registry) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "visualization_container");
-        let display_object = display::object::Instance::new(&logger);
-        let drag_root = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
+        let drag_root = display::object::Instance::new();
         let visualization = default();
         let vis_frp_connection = default();
-        let view = View::new(&logger, scene.clone_ref());
+        let view = View::new(scene.clone_ref());
         let fullscreen_view = fullscreen::Panel::new(&logger, scene);
         let scene = scene.clone_ref();
         let is_fullscreen = default();
@@ -439,7 +441,7 @@ impl ContainerModel {
     }
 
     /// Check if given mouse-event-target means this visualization.
-    fn is_this_target(&self, target: scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: scene::PointerTargetId) -> bool {
         self.view.overlay.is_this_target(target)
     }
 
@@ -534,10 +536,10 @@ impl Container {
             new_vis_definition <- any(frp.set_visualization,vis_after_cycling);
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
-                [model,action_bar,scene,logger,preprocessor](vis_definition) {
+                [model,action_bar,app,logger,preprocessor](vis_definition) {
 
                 if let Some(definition) = vis_definition {
-                    match definition.new_instance(&scene) {
+                    match definition.new_instance(&app) {
                         Ok(vis)  => {
                             model.set_visualization(vis,&preprocessor);
                             let path = Some(definition.signature.path.clone());
@@ -624,8 +626,8 @@ impl Container {
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            eval selected_definition([scene,model,logger,preprocessor](definition)  {
-                let vis = definition.as_ref().map(|d| d.new_instance(&scene));
+            eval selected_definition([app,model,logger,preprocessor](definition)  {
+                let vis = definition.as_ref().map(|d| d.new_instance(&app));
                 match vis {
                     Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
                     Some(Err(err)) => {

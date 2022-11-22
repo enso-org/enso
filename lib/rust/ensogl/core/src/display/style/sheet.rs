@@ -1,12 +1,17 @@
 //! This module defines a cascading style sheet registry and related style management utilities.
 
+use crate::control::callback::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::data::HashMapTree;
 use crate::data::Index;
 use crate::data::OptVec;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use super::data::data;
 pub use super::data::Data;
@@ -232,13 +237,6 @@ where T: Into<Data>
 {
     default fn from(t: T) -> Self {
         Self::Data(t.into())
-    }
-}
-
-impl TryFrom<String> for Value {
-    type Error = <Data as TryFrom<String>>::Error;
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        s.try_into().map(Self::Data)
     }
 }
 
@@ -886,7 +884,7 @@ pub struct Sheet {
 }
 
 /// Type of callback registry used in `Sheet`.
-pub type CallbackRegistry = callback::registry::RefMut1<Option<Data>>;
+pub type CallbackRegistry = callback::registry::Ref1<Option<Data>>;
 
 impl Sheet {
     /// Constructor.
@@ -1041,7 +1039,7 @@ mod tests {
         let sheet = Sheet::new();
         sheet.set("button.size", data(1.0));
         assert_query_sheet_count(&sheet, 0, 2);
-        sheet.set("circle.radius", Expression::new(&["button.size"], |args| args[0] + &data(10.0)));
+        sheet.set("circle.radius", Expression::new(["button.size"], |args| args[0] + &data(10.0)));
         assert_query_sheet_count(&sheet, 1, 4);
         assert_eq!(sheet.value("circle.radius"), Some(data(11.0)));
         sheet.unset("button.size");
@@ -1194,10 +1192,10 @@ mod tests {
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(1.0)));
         style.set(
             "graph.button.size",
-            Expression::new(&["button.size"], |args| args[0] + &data(10.0)),
+            Expression::new(["button.size"], |args| args[0] + &data(10.0)),
         );
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(11.0)));
-        style.set("button.size", Expression::new(&["size"], |args| args[0] + &data(100.0)));
+        style.set("button.size", Expression::new(["size"], |args| args[0] + &data(100.0)));
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(111.0)));
         style.set("size", data(2.0));
         assert_eq!(style.query_value(query_graph_button_size), Some(&data(112.0)));
@@ -1210,8 +1208,8 @@ mod tests {
     #[test]
     pub fn expr_circular() {
         let mut style = SheetData::new();
-        style.set("a", Expression::new(&["b"], |args| args[0].clone()));
-        style.set("b", Expression::new(&["a"], |args| args[0].clone()));
+        style.set("a", Expression::new(["b"], |args| args[0].clone()));
+        style.set("b", Expression::new(["a"], |args| args[0].clone()));
         assert!(style.value("a").is_none());
         assert!(style.value("b").is_none());
     }

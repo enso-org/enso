@@ -71,6 +71,13 @@ impl ArgReader for bool {
     }
 }
 
+impl ArgMarker for semver::Version {}
+impl ArgReader for semver::Version {
+    fn read_arg(str: String) -> Option<Self> {
+        semver::Version::parse(&str).ok()
+    }
+}
+
 
 
 // =================
@@ -82,7 +89,7 @@ impl ArgReader for bool {
 /// force argument read, use the `init` function).
 ///
 /// For example, given the following definition:
-/// ```ignore
+/// ```text
 /// read_args! {
 ///     js::global.config {
 ///         entry      : String,
@@ -94,16 +101,16 @@ impl ArgReader for bool {
 ///
 /// The following structs will be generated (some functions omitted for clarity):
 ///
-/// ```ignore
-/// #[derive(Clone,Debug,Default)]
+/// ```text
+/// #[derive(Clone, Debug, Default)]
 /// pub struct Args {
-///     pub entry      : Option<String>,
-///     pub project    : Option<String>,
-///     pub dark_theme : Option<bool>,
+///     pub entry:      Option<String>,
+///     pub project:    Option<String>,
+///     pub dark_theme: Option<bool>,
 /// }
 ///
 /// lazy_static! {
-///     pub static ref ARGS : Args = Args::new();
+///     pub static ref ARGS: Args = Args::new();
 /// }
 /// ```
 ///
@@ -115,7 +122,7 @@ impl ArgReader for bool {
 /// the conversion will fail, a warning will be raised.
 #[macro_export]
 macro_rules! read_args {
-    ([$($($path:tt)*).*] { $($field:ident : $field_type:ty),* $(,)? }) => {
+    ([$($($path:tt)*).*] { $($(#[$($attr:tt)+])* $field:ident : $field_type:ty),* $(,)? }) => {
         mod _READ_ARGS {
             use super::*;
             use $crate::prelude::*;
@@ -137,7 +144,10 @@ macro_rules! read_args {
             #[derive(Clone,Debug,Default)]
             #[allow(missing_docs)]
             pub struct Args {
-                $(pub $field : Option<$field_type>),*
+                $(
+                    $(#[$($attr)*])*
+                    pub $field : Option<$field_type>
+                ),*
             }
 
             impl Args {
@@ -149,7 +159,7 @@ macro_rules! read_args {
                     (&ensogl::system::web::window,&path).ok() {
                         None => {
                             let path = path.join(".");
-                            error!(&logger,"The config path '{path}' is invalid.");
+                            error!("The config path '{path}' is invalid.");
                             default()
                         }
                         Some(cfg) => {

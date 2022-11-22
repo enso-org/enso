@@ -1,66 +1,144 @@
-import project.Data.Any.Extensions
-import project.Data.Array.Extensions
-import project.Data.Interval
+import project.Data.Any.Any
+import project.Data.Array.Array
+import project.Data.Boolean
+import project.Data.List.List
+import project.Data.Numbers
+import project.Data.Map.Map
+import project.Data.Vector.Vector
+import project.Math
+import project.Nothing.Nothing
+
+export project.Data.Any.Any
+export project.Data.Array.Array
+export project.Data.List.List
+export project.Data.Map.Map
+export project.Data.Vector.Vector
+export project.Math
+export project.Nothing.Nothing
+
+from project.Data.Boolean export Boolean, True, False
+from project.Data.Numbers export Number, Integer, Decimal
+
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Index_Sub_Range.Index_Sub_Range
+import project.Data.Interval.Bound
+import project.Data.Interval.Interval
 import project.Data.Json
-import project.Data.List
-import project.Data.Locale
-import project.Data.Map
-import project.Data.Maybe
+import project.Data.Locale.Locale
+import project.Data.Maybe.Maybe
 import project.Data.Noise
-import project.Data.Number.Extensions
-import project.Data.Ordering
-import project.Data.Ordering.Sort_Order
-import project.Data.Pair
+import project.Data.Ordering.Natural_Order
+import project.Data.Ordering.Ordering
+import project.Data.Ordering.Sort_Direction.Sort_Direction
+import project.Data.Pair.Pair
+import project.Data.Regression
+import project.Data.Statistics
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Line_Ending_Style.Line_Ending_Style
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Period.Time_Period
+import project.Data.Time.Time_Zone.Time_Zone
+
+export project.Data.Filter_Condition.Filter_Condition
+export project.Data.Index_Sub_Range.Index_Sub_Range
+export project.Data.Interval.Bound
+export project.Data.Interval.Interval
+export project.Data.Json.Json
+export project.Data.Locale.Locale
+export project.Data.Maybe.Maybe
+export project.Data.Ordering.Natural_Order
+export project.Data.Ordering.Ordering
+export project.Data.Ordering.Sort_Direction.Sort_Direction
+export project.Data.Pair.Pair
+export project.Data.Regression
+export project.Data.Text.Case_Sensitivity.Case_Sensitivity
+export project.Data.Text.Line_Ending_Style.Line_Ending_Style
+export project.Data.Text.Text_Sub_Range.Text_Sub_Range
+export project.Data.Time.Date.Date
+export project.Data.Time.Date_Period.Date_Period
+export project.Data.Time.Date_Time.Date_Time
+export project.Data.Time.Day_Of_Week.Day_Of_Week
+export project.Data.Time.Day_Of_Week_From
+export project.Data.Time.Duration.Duration
+export project.Data.Time.Period.Period
+export project.Data.Time.Time_Of_Day.Time_Of_Day
+export project.Data.Time.Time_Period.Time_Period
+export project.Data.Time.Time_Zone.Time_Zone
+
+from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
+from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
+
+from project.Data.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range export First, Last
+
+
+
+# Not refactored modules below:
+
 import project.Data.Range
+from project.Data.Range export all
+
+import project.Data.Text
+import project.Data.Text.Case
+import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
-import project.Data.Vector
+import project.Data.Text.Text_Matcher
+import project.Data.Text.Regex_Matcher
+import project.Data.Text.Text_Ordering
+import project.Data.Text.Span
 import project.Error.Common
-import project.Error.Extensions
-import project.Math
+import project.Error.Problem_Behavior
+import project.Function
+import project.IO
 import project.Meta
-import project.Meta.Enso_Project
+import project.Polyglot
 import project.Polyglot.Java
+import project.Runtime
 import project.Runtime.Extensions
+import project.Runtime.State
+import project.System.Environment
 import project.System.File
-import project.Data.Text.Regex.Mode as Regex_Mode
+import project.System.File_Format
+import project.System.File.Existing_File_Behavior
+import project.Data.Text.Regex
+import project.Data.Text.Regex.Regex_Mode
+import project.Warning
 
-from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
-
-export project.Data.Interval
-export project.Data.Json
-export project.Data.Locale
-export project.Data.Map
-export project.Data.Maybe
-export project.Data.Ordering
-export project.Data.Ordering.Sort_Order
-export project.Data.Vector
-export project.Math
+export project.Data.Regression
+export project.Data.Text.Case_Sensitivity
+export project.Data.Text.Regex
+export project.Data.Text.Regex.Regex_Mode
+export project.Data.Text.Text_Ordering
+export project.Data.Text.Text_Matcher
+export project.Data.Text.Regex_Matcher
+export project.Error.Problem_Behavior
+export project.IO
 export project.Meta
+export project.Polyglot
+export project.Polyglot.Java
+export project.Runtime
+export project.Runtime.State
+export project.System.Environment
 export project.System.File
-export project.Data.Text.Regex.Mode as Regex_Mode
+export project.System.File.Existing_File_Behavior
+export project.Warning
 
-from project.Data.Any.Extensions export all
-from project.Data.Array.Extensions export all
-from project.Data.List export Nil, Cons
-from project.Data.Number.Extensions export all hiding Math, String, Double
-from project.Data.Noise export all hiding Noise
-from project.Data.Pair export Pair
-from project.Data.Range export Range
-## TODO [RW] Once autoscoping is implemented or automatic imports for ADTs are
-   fixed in the IDE, we should revisit if we want to export ADTs like `Case` by
-   default. It may be unnecessary pollution of scope, but until the issues are
-   fixed, common standard library functions are almost unusable in the GUI.
-   Relevant issues:
-   https://www.pivotaltracker.com/story/show/181403340
-   https://www.pivotaltracker.com/story/show/181309938
-from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style, Case, Location
-from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
+from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
+from project.Data.Text.Matching export No_Matches_Found_Data
+from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
+from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
+from project.Data.Text.Span export all
 from project.Error.Common export all
-from project.Error.Extensions export all
-from project.Meta.Enso_Project export all
-from project.Polyglot.Java export all
+from project.Function export all
 from project.Runtime.Extensions export all
-
-from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering
-
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect

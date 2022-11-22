@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-use crate::display::scene::Scene;
 use crate::display::symbol::gpu::geometry::compound::screen::Screen;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::texture;
+
 
 
 /// A geometry which always covers the whole screen which when rendered outputs an image by
@@ -17,13 +17,8 @@ pub struct MaskComposer {
 
 impl MaskComposer {
     /// Constructor.
-    pub fn new(
-        scene: &Scene,
-        mask: impl AsRef<str>,
-        color: impl AsRef<str>,
-        id: impl AsRef<str>,
-    ) -> Self {
-        let screen = Screen::new(scene, Self::surface_material(mask, color, id));
+    pub fn new(mask: impl AsRef<str>, color: impl AsRef<str>, id: impl AsRef<str>) -> Self {
+        let screen = Screen::new(Self::surface_material(mask, color, id));
         Self { screen }
     }
 

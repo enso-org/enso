@@ -1,29 +1,32 @@
 from Standard.Base import all
 
-import Standard.Test
+from Standard.Test import Test, Test_Suite
 
 foreign js my_method a b = """
     return a + b;
 
-type My_Type
-    type My_Type a b
+foreign js debug = """
+    debugger;
 
-    foreign js my_method = """
+type My_Type
+    Value a b
+
+    foreign js my_method self = """
         return this.a + this.b;
 
-    my_method_2 x = this.my_method * x
+    my_method_2 self x = self.my_method * x
 
-    foreign js my_method_3 y = """
+    foreign js my_method_3 self y = """
         var r = this.my_method_2(y)
         return r + 1;
 
-    foreign js my_throw = """
+    foreign js my_throw self = """
         var err = new Error("JS Exc");
         throw err;
 
-    do_throw = Panic.throw this
+    do_throw self = Panic.throw self
 
-    foreign js do_catch = """
+    foreign js do_catch self = """
         try {
             this.do_throw();
         } catch (e) {
@@ -42,6 +45,9 @@ foreign js make_object = """
 foreign js make_array = """
     return [{ x: 10}, {x: 20}, {x: 30}];
 
+foreign js make_simple_array = """
+    return [10, 20, 30];
+
 foreign js make_str str = """
     return "foo " + str + " bar"
 
@@ -56,6 +62,9 @@ foreign js make_false = """
 
 foreign js make_double = """
     return 10.5
+
+foreign js make_null = """
+    return null;
 
 foreign js does_not_parse = """
     return { x
@@ -72,110 +81,128 @@ foreign js test_array_properties = """
 spec = Test.group "Polyglot JS" <|
 
     Test.specify "should allow declaring module-level methods in JS" <|
-        here.my_method 1 2 . should_equal 3
+        my_method 1 2 . should_equal 3
+        m = my_method 1
+        m 2 . should_equal 3
 
     Test.specify "should allow mutual calling of instance-level methods" <|
-        My_Type 3 4 . my_method_3 5 . should_equal 36
+        My_Type.Value 3 4 . my_method_3 5 . should_equal 36
 
     Test.specify "should expose methods and fields of JS objects" <|
-        obj = here.make_object
+        obj = make_object
         obj.x . should_equal 10
         obj.y . should_be_false
         obj.compare 5 . should_be_false
         obj.compare 11 . should_be_true
 
     Test.specify "should expose array interfaces for JS arrays" <|
-        vec = Vector.Vector here.make_array
+        vec = Vector.from_polyglot_array make_array
         vec.map .x . should_equal [10, 20, 30]
+        vec2 = Vector.from_polyglot_array make_simple_array
+        vec2.to_array.at 0 . should_equal 10
 
     Test.specify "should correctly marshall strings" <|
-        str = here.make_str "x" + " baz"
+        str = make_str "x" + " baz"
         str.should_equal "foo x bar baz"
 
     Test.specify "should make JS strings type pattern-matchable" <|
-        str = here.make_str "x"
+        str = make_str "x"
         t = case str of
-            Text -> True
+            Text -> False
+            _ : Text -> True
             _ -> False
         t.should_be_true
 
     Test.specify "should make JS booleans type pattern-matchable" <|
-        bool = here.make_true
+        bool = make_true
         t = case bool of
             True -> True
             _ -> False
         t.should_be_true
-        bool_2 = here.make_false
+        bool_2 = make_false
         f = case bool_2 of
             False -> True
             _ -> False
         f.should_be_true
         c = case bool of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c.should_be_true
         c_2 = case bool_2 of
-            Boolean -> True
+            _ : Boolean -> True
             _ -> False
         c_2.should_be_true
 
     Test.specify "should make JS arrays type pattern-matchable as arrays" <|
-        arr = here.make_array
+        arr = make_array
         r = case arr of
-            Array -> True
+            Array -> False
+            _ : Array -> True
             _ -> False
         r.should_be_true
 
+    Test.specify "should make JS null values equal to Nothing" <|
+        js_null = make_null
+        js_null . should_equal Nothing
+
     Test.specify "should make JS numbers type pattern-matchable" <|
-        int_match = case here.make_int of
-            Integer -> True
+        int_match = case make_int of
+            _ : Integer -> True
+            _ -> False
         int_match.should_be_true
-        double_match = case here.make_double of
-            Decimal -> True
+        double_match = case make_double of
+            _ : Decimal -> True
+            _ -> False
         double_match.should_be_true
-        num_int_match = case here.make_int of
-            Number -> True
+        num_int_match = case make_int of
+            _ : Number -> True
+            _ -> False
         num_int_match.should_be_true
-        num_double_match = case here.make_double of
-            Number -> True
+        num_double_match = case make_double of
+            _ : Number -> True
+            _ -> False
         num_double_match.should_be_true
 
     Test.specify "should allow Enso to catch JS exceptions" <|
-        value = My_Type 1 2
-        result = Panic.recover <| value.my_throw
+        value = My_Type.Value 1 2
+        result = Panic.recover Any <| value.my_throw
         err = result.catch
         err.cause.message . should_equal "JS Exc"
         err.cause.name . should_equal "Error"
 
     Test.specify "should allow JS to catch Enso exceptions" <|
-        value = My_Type 7 2
+        value = My_Type.Value 7 2
         result = value.do_catch
         result . should_equal 7
 
     Test.specify "should properly handle parse errors" <|
-        err = Panic.recover here.does_not_parse . catch
-        err.cause.message.should .contain "Expected }"
+        err = Panic.recover Any does_not_parse . catch
+        err.cause.message.should_contain "Expected }"
 
     Test.specify "allow access to properties of nested objects" <|
-        value = here.test_multilevel
+        value = test_multilevel
         value.b.x . should_equal 1
 
     Test.specify "allow access to properties of array objects in JS" <|
-        array = here.test_array_properties
+        array = test_array_properties
         array.groups.a . should_equal 1
         array.index . should_equal 0
 
     Test.specify "allow access to the length property of a JS array in Enso" <|
-        array = here.make_array
+        array = make_array
         array.length . should_equal 3
 
     Test.specify "should perform maths with mixed numbers" <|
-        js_num = here.make_int
+        js_num = make_int
         enso_num = 10
         (enso_num + js_num) . should_equal 20
         (js_num - enso_num) . should_equal 0
 
     Test.specify "should propagate dataflow errors" <|
         error = Error.throw 42
-        here.my_method error 0 . should_fail_with Integer
+        my_method error 0 . should_fail_with Integer
 
+    Test.specify "allow use of JavaScript debugger statement" <|
+        debug
+
+main = Test_Suite.run_main spec

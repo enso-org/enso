@@ -26,7 +26,7 @@ use serde::Serializer;
 /// Provides `Deref` implementation that allows accessing underlying shape `T` value.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct KnownAst<T> {
     ast:     Ast,
     phantom: PhantomData<T>,
@@ -203,7 +203,7 @@ impl<T> Display for KnownAst<T> {
 // ===============
 
 /// For input like `[Unrecognized] [Prefix Ast]` generates aliases like:
-/// ```compile_fail
+/// ```text
 /// pub type Unrecognized = KnownAst<crate::Unrecognized>;
 /// pub type Prefix = KnownAst<crate::Prefix<Ast>>;
 /// // etc ...

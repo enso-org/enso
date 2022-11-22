@@ -39,8 +39,8 @@
              Http.post "http://httpbin.org/post" body [header_binary]
 
    > Example
-     Parse Uri text.
+     Parse URI text.
 
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_parse = Uri.parse "http://example.com"
+         example_parse = URI.parse "http://example.com"

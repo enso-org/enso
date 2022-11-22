@@ -1,0 +1,16 @@
+[package]
+name = "enso-metamodel-lexpr"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[dependencies]
+lexpr = "0.2.6"
+bincode = "1.3"
+serde = "1"
+enso-metamodel = { path = "../" }
+derivative = "2.2"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+enso-reflect = { path = "../../reflect" }

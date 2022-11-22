@@ -2,27 +2,33 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl::prelude::*;
-
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use ensogl::prelude::*;
+use span_tree::traits::*;
+use wasm_bindgen::prelude::*;
+
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;
@@ -32,19 +38,17 @@ use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
 use ide_view::status_bar;
-use parser::Parser;
-use span_tree::traits::*;
+use parser_scala::Parser;
 use uuid::Uuid;
-use wasm_bindgen::prelude::*;
 
 
 
 const STUB_MODULE: &str = "from Base import all\n\nmain = IO.println \"Hello\"\n";
 
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_interface() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);
@@ -102,12 +106,10 @@ fn init(app: &Application) {
 
     let world = &app.display;
     let scene = &world.default_scene;
-    let camera = scene.camera();
-    let navigator = Navigator::new(scene, &camera);
 
     app.views.register::<root::View>();
     app.views.register::<project::View>();
-    app.views.register::<text::Area>();
+    app.views.register::<text::Text>();
     app.views.register::<GraphEditor>();
     let root_view = app.new_view::<root::View>();
     let project_view = root_view.project();
@@ -125,9 +127,9 @@ fn init(app: &Application) {
 
     // === Nodes ===
 
-    let node1_id = graph_editor.add_node();
-    let node2_id = graph_editor.add_node();
-    let node3_id = graph_editor.add_node();
+    let node1_id = graph_editor.model.add_node();
+    let node2_id = graph_editor.model.add_node();
+    let node3_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((node1_id, Vector2(-150.0, 50.0)));
     graph_editor.frp.set_node_position.emit((node2_id, Vector2(50.0, 50.0)));
@@ -142,7 +144,7 @@ fn init(app: &Application) {
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id, expression_2.clone()));
 
-    let expression_3 = expression_mock2();
+    let expression_3 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node3_id, expression_3));
     let kind = Immutable(graph_editor::component::node::error::Kind::Panic);
     let message = Rc::new(Some("Runtime Error".to_owned()));
@@ -150,10 +152,10 @@ fn init(app: &Application) {
     let error = graph_editor::component::node::Error { kind, message, propagated };
     graph_editor.frp.set_node_error_status.emit((node3_id, Some(error)));
 
-    let foo_node = graph_editor.add_node_below(node3_id);
+    let foo_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((foo_node, Expression::new_plain("foo")));
 
-    let baz_node = graph_editor.add_node_below(node3_id);
+    let baz_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((baz_node, Expression::new_plain("baz")));
     let (_, baz_position) = graph_editor.node_position_set.value();
     let styles = StyleWatch::new(&scene.style_sheet);
@@ -162,7 +164,7 @@ fn init(app: &Application) {
     let gap_for_bar_node = min_spacing + gap_between_nodes + f32::EPSILON;
     graph_editor.set_node_position((baz_node, baz_position + Vector2(gap_for_bar_node, 0.0)));
 
-    let bar_node = graph_editor.add_node_below(node3_id);
+    let bar_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((bar_node, Expression::new_plain("bar")));
 
 
@@ -176,9 +178,9 @@ fn init(app: &Application) {
 
     // === VCS ===
 
-    let dummy_node_added_id = graph_editor.add_node();
-    let dummy_node_edited_id = graph_editor.add_node();
-    let dummy_node_unchanged_id = graph_editor.add_node();
+    let dummy_node_added_id = graph_editor.model.add_node();
+    let dummy_node_edited_id = graph_editor.model.add_node();
+    let dummy_node_unchanged_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((dummy_node_added_id, Vector2(-450.0, 50.0)));
     graph_editor.frp.set_node_position.emit((dummy_node_edited_id, Vector2(-450.0, 125.0)));
@@ -253,7 +255,6 @@ fn init(app: &Application) {
         .on
         .before_frame
         .add(move |_| {
-            let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 
             if to_theme_switch == 0 {
@@ -319,6 +320,7 @@ pub fn expression_mock_string(label: &str) -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
@@ -327,7 +329,7 @@ pub fn expression_mock() -> Expression {
     let code = "[1,2,3]".to_string();
     let parser = Parser::new_or_panic();
     let this_param =
-        span_tree::ArgumentInfo { name: Some("this".to_owned()), tp: Some("Text".to_owned()) };
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Text".to_owned()) };
     let parameters = vec![this_param];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -335,15 +337,17 @@ pub fn expression_mock() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
+// TODO[ao] This expression mocks results in panic. If you want to use it, please fix it first.
 pub fn expression_mock2() -> Expression {
     let pattern = Some("var1".to_string());
     let pattern_cr = vec![Seq { right: false }, Or, Or, Build];
     let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };
     let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
-    let code = "make_maps size (distribution normal)".into();
+    let code = "make_maps size (distribution normal)".to_string();
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::builder::TreeBuilder::new(36)
         .add_child(0, 14, span_tree::node::Kind::Chained, PrefixCrumb::Func)
@@ -374,6 +378,7 @@ pub fn expression_mock2() -> Expression {
         .add_empty_child(36, span_tree::node::InsertionPointType::Append)
         .build();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }
 
@@ -383,7 +388,7 @@ pub fn expression_mock3() -> Expression {
     let code = "Vector x y z".to_string();
     let parser = Parser::new_or_panic();
     let this_param =
-        span_tree::ArgumentInfo { name: Some("this".to_owned()), tp: Some("Image".to_owned()) };
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Image".to_owned()) };
     let param0 = span_tree::ArgumentInfo {
         name: Some("radius".to_owned()),
         tp:   Some("Number".to_owned()),
@@ -405,5 +410,6 @@ pub fn expression_mock3() -> Expression {
     let output_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap(); //span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
+    let code = code.into();
     Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
 }

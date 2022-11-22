@@ -1,9 +1,8 @@
 from Standard.Base import all
+import Standard.Base.System
 
 import Standard.Base.System.Process.Exit_Code
-
-from Standard.Base.Data.Vector import Vector
-from Standard.Builtins import Array, System, True, False
+from Standard.Base.System import System_Process_Result, System_Process_Result_Data
 
 ## ALIAS Run a Command
    UNSTABLE
@@ -23,7 +22,7 @@ from Standard.Builtins import Array, System, True, False
          example_run = case Platform.os of
              Platform.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
-run : Text -> Vector.Vector Text -> Exit_Code
+run : Text -> Vector Text -> Exit_Code
 run command arguments=[] =
     result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
     Exit_Code.from_number result.exit_code
@@ -42,7 +41,11 @@ run command arguments=[] =
 
          example_new_builder = Process.new_builder "echo"
 new_builder : Text -> Vector Text -> Text -> Builder
-new_builder command arguments=[] stdin="" = Builder command arguments stdin
+new_builder command arguments=[] stdin="" = Builder_Data command arguments stdin
+
+# TODO Dubious constructor export
+from project.System.Process.Builder import all
+from project.System.Process.Builder export all
 
 ## UNSTABLE
 
@@ -62,7 +65,7 @@ type Builder
          We recommend that you use this type with its builder interface. Start
          by creating a `Builder "command"` and then call functions on it to
          set arguments and standard output. It results in much clearer code.
-    type Builder command arguments stdin
+    Builder_Data command arguments stdin
 
     ## UNSTABLE
 
@@ -79,8 +82,8 @@ type Builder
              example_set_args =
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
-    set_arguments : Vector.Vector Text -> Builder
-    set_arguments arguments = Builder this.command arguments this.stdin
+    set_arguments : Vector Text -> Builder
+    set_arguments self arguments = Builder_Data self.command arguments self.stdin
 
     ## UNSTABLE
 
@@ -99,7 +102,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
     set_stdin : Text -> Builder
-    set_stdin stdin = Builder this.command this.arguments stdin
+    set_stdin self stdin = Builder_Data self.command self.arguments stdin
 
     ## UNSTABLE
 
@@ -114,18 +117,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
-    create : Result
-    create =
-        result = System.create_process this.command this.arguments.to_array this.stdin redirect_in=False redirect_out=False redirect_err=False
-        Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
-
-## UNSTABLE
-
-   The result of the process invocation.
-
-   Arguments:
-   - exit_code: The exit code for the process.
-   - stdout: The contents of the process' standard output.
-   - stderr: The contents of the process' standard error.
-type Result exit_code stdout stderr
-
+    create : System_Process_Result
+    create self =
+        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
+        System_Process_Result_Data (Exit_Code.from_number result.exit_code) result.stdout result.stderr

@@ -1,5 +1,6 @@
-#![cfg(test)]
 //! Module for support code for writing tests.
+
+#![cfg(test)]
 
 use crate::prelude::*;
 
@@ -16,6 +17,8 @@ use engine_protocol::types::Sha3_224;
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
 use json_rpc::expect_call;
+
+
 
 /// Utilities for mocking IDE components.
 pub mod mock {
@@ -65,7 +68,7 @@ pub mod mock {
 
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name:          "this".to_owned(),
+                name:          "self".to_owned(),
                 repr_type:     "Base".to_owned(),
                 is_suspended:  false,
                 has_default:   false,
@@ -85,7 +88,7 @@ pub mod mock {
 
         pub fn bar_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name:          "this".to_owned(),
+                name:          "self".to_owned(),
                 repr_type:     "Other".to_owned(),
                 is_suspended:  false,
                 has_default:   false,
@@ -94,37 +97,39 @@ pub mod mock {
         }
 
         pub fn suggestion_entry_foo() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
+            let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "foo".to_owned(),
                 module:             module::QualifiedName::from_segments(project_name, &["Main"])
                     .unwrap(),
-                self_type:          Some("std.Base.Main".to_owned().try_into().unwrap()),
+                self_type:          Some("Standard.Base.Main".to_owned().try_into().unwrap()),
                 arguments:          vec![foo_method_parameter(), foo_method_parameter2()],
                 return_type:        "Any".to_owned(),
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
+                icon_name:          None,
             }
         }
 
         pub fn suggestion_entry_bar() -> suggestion_database::Entry {
-            let project_name = project::QualifiedName::from_segments("std", "Base").unwrap();
+            let project_name = project::QualifiedName::standard_base_library();
             suggestion_database::Entry {
                 name:               "bar".to_owned(),
                 module:             module::QualifiedName::from_segments(project_name, &["Other"])
                     .unwrap(),
-                self_type:          Some("std.Base.Other".to_owned().try_into().unwrap()),
+                self_type:          Some("Standard.Base.Other".to_owned().try_into().unwrap()),
                 arguments:          vec![bar_method_parameter()],
                 return_type:        "Any".to_owned(),
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
+                icon_name:          None,
             }
         }
     }
 
-    /// This mock data represents a rudimentary enviromment consisting of a project with a single
+    /// This mock data represents a rudimentary environment consisting of a project with a single
     /// module. The module contents is provided by default by [data::CODE], can be overwritten by
     /// calling [set_code] or [set_inline_code].
     #[derive(Clone, Debug)]
@@ -134,7 +139,7 @@ pub mod mock {
         pub module_path:  model::module::Path,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
         pub context_id:   model::execution_context::Id,
-        pub parser:       parser::Parser,
+        pub parser:       parser_scala::Parser,
         code:             String,
         id_map:           ast::IdMap,
         metadata:         crate::model::module::Metadata,
@@ -172,7 +177,7 @@ pub mod mock {
                 metadata: default(),
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
-                parser: parser::Parser::new_or_panic(),
+                parser: parser_scala::Parser::new_or_panic(),
                 logger,
             }
         }
@@ -186,9 +191,7 @@ pub mod mock {
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
-            let logger = &self.logger;
-            let module =
-                Rc::new(model::module::Plain::new(logger, path, ast, metadata, repository));
+            let module = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
             urm.module_opened(module.clone());
             module
         }
@@ -225,8 +228,7 @@ pub mod mock {
         }
 
         pub fn execution_context(&self) -> Rc<model::execution_context::Plain> {
-            let logger = Logger::new_sub(&self.logger, "Mocked Execution Context");
-            Rc::new(model::execution_context::Plain::new(logger, self.method_pointer()))
+            Rc::new(model::execution_context::Plain::new(self.method_pointer()))
         }
 
         pub fn project(
@@ -277,7 +279,7 @@ pub mod mock {
             let urm = self.undo_redo_manager();
             let module = self.module(urm.clone());
             let suggestion_db =
-                Rc::new(model::SuggestionDatabase::new_from_entries(&logger, &self.suggestions));
+                Rc::new(model::SuggestionDatabase::new_from_entries(&self.suggestions));
             let graph = self.graph(&logger, module.clone_ref(), suggestion_db.clone_ref());
             let execution = self.execution_context();
             let project = self.project(
@@ -294,10 +296,13 @@ pub mod mock {
                 project.clone_ref(),
                 execution.clone_ref(),
             );
-            let executor = TestWithLocalPoolExecutor::set_up();
+            let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
-            let searcher_mode =
-                controller::searcher::Mode::NewNode { position: None, source_node: None };
+            let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
+            let searcher_mode = controller::searcher::Mode::NewNode {
+                node_id:     searcher_target,
+                source_node: None,
+            };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
@@ -306,6 +311,7 @@ pub mod mock {
                 searcher_mode,
             )
             .unwrap();
+            executor.run_until_stalled();
             Fixture {
                 logger,
                 executor,

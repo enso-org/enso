@@ -1,14 +1,16 @@
 //! This module defines FRP Graphviz bindings. It allows visualizing the FRP network as Graphviz
 //! diagram.
-
-#![allow(missing_docs)]
-#![allow(dead_code)]
-
 //! WARNING
 //! THIS MODULE IS IN A VERY WORK-IN-PROGRESS STATE. IT WILL BE CHANGED SOON.
 
+// === Non-Standard Linter Configuration ===
+#![allow(missing_docs)]
+#![allow(dead_code)]
 
 use crate::prelude::*;
+
+
+
 //use crate::DataType;
 //
 

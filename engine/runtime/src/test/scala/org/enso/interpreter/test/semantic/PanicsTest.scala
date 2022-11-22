@@ -15,7 +15,7 @@ class PanicsTest extends InterpreterTest {
 
     "be thrown and stop evaluation" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |
           |type Foo
           |type Bar
@@ -26,7 +26,6 @@ class PanicsTest extends InterpreterTest {
           |    Panic.throw Bar
           |    IO.println Baz
           |""".stripMargin
-
       val exception = the[InterpreterException] thrownBy eval(code)
       exception.isGuestException shouldEqual true
       exception.getGuestObject.toString shouldEqual "Bar"
@@ -35,30 +34,31 @@ class PanicsTest extends InterpreterTest {
 
     "be recoverable and transformed into errors" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |
           |type MyError
           |
           |main =
           |    thrower = x -> Panic.throw x
-          |    caught = Panic.recover (thrower MyError)
+          |    caught = Panic.catch_primitive (thrower MyError) .convert_to_dataflow_error 
           |    IO.println caught
           |""".stripMargin
 
+      eval(code)
       noException shouldBe thrownBy(eval(code))
       consumeOut shouldEqual List("(Error: MyError)")
     }
 
     "catch polyglot errors" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |polyglot java import java.lang.Long
           |
           |main =
-          |    caught = Panic.recover (Long.parseLong "oops")
+          |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
-          |        Polyglot_Error err -> err
+          |        Polyglot_Error_Data err -> err
           |        _ -> "fail"
           |    IO.println cause
           |    message = cause.getMessage
@@ -66,7 +66,7 @@ class PanicsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        """(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""",
+        """(Error: (Polyglot_Error_Data java.lang.NumberFormatException: For input string: "oops"))""",
         """java.lang.NumberFormatException: For input string: "oops"""",
         """For input string: "oops""""
       )

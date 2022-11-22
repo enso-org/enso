@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.*;
@@ -25,6 +26,10 @@ public class PanicException extends AbstractTruffleException {
    */
   public PanicException(Object payload, Node location) {
     super(location);
+    if (!InteropLibrary.isValidValue(payload)) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalArgumentException("Only interop values are supported: " + payload);
+    }
     this.payload = payload;
   }
 

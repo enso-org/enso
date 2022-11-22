@@ -39,7 +39,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    ir.mapExpressions(doExpression(_, bindings))
+    ir.copy(bindings = ir.bindings.map(doDefinition(_, bindings)))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -59,7 +59,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    doExpression(ir, bindings)
+    doExpression(ir, bindings, None)
   }
 
   /** @inheritdoc */
@@ -68,9 +68,27 @@ object Patterns extends IRPass {
     copyOfIr: T
   ): T = copyOfIr
 
+  private def doDefinition(
+    ir: IR.Module.Scope.Definition,
+    bindings: BindingsMap
+  ): IR.Module.Scope.Definition = {
+    ir match {
+      case method: IR.Module.Scope.Definition.Method.Explicit =>
+        val resolution = method.methodReference.typePointer
+          .flatMap(
+            _.getMetadata(MethodDefinitions)
+          )
+          .map(_.target)
+        val newBody = doExpression(method.body, bindings, resolution)
+        method.copy(body = newBody)
+      case _ => ir.mapExpressions(doExpression(_, bindings, None))
+    }
+  }
+
   private def doExpression(
     expr: IR.Expression,
-    bindings: BindingsMap
+    bindings: BindingsMap,
+    selfTypeResolution: Option[BindingsMap.ResolvedName]
   ): IR.Expression = {
     expr.transformExpressions { case caseExpr: IR.Case.Expr =>
       val newBranches = caseExpr.branches.map { branch =>
@@ -79,10 +97,25 @@ object Patterns extends IRPass {
             val consName = consPat.constructor
             val resolution = consName match {
               case qual: IR.Name.Qualified =>
-                val parts = qual.parts.map(_.name)
-                Some(bindings.resolveQualifiedName(parts))
+                qual.parts match {
+                  case (_: IR.Name.SelfType) :: (others :+ item) =>
+                    selfTypeResolution.map(
+                      bindings.resolveQualifiedNameIn(
+                        _,
+                        others.map(_.name),
+                        item.name
+                      )
+                    )
+                  case _ =>
+                    val parts = qual.parts.map(_.name)
+                    Some(
+                      bindings.resolveQualifiedName(parts)
+                    )
+                }
               case lit: IR.Name.Literal =>
-                Some(bindings.resolveUppercaseName(lit.name))
+                Some(bindings.resolveName(lit.name))
+              case _: IR.Name.SelfType =>
+                selfTypeResolution.map(Right(_))
               case _ => None
             }
             val resolvedName = resolution
@@ -100,13 +133,15 @@ object Patterns extends IRPass {
                   consName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
-                case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-                  IR.Error.Resolution(
-                    consName,
-                    IR.Error.Resolution.UnexpectedPolyglot(
-                      "a pattern match"
-                    )
+                case Right(value: BindingsMap.ResolvedType) =>
+                  consName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
                   )
+                case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+                  consName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+
                 case Right(_: BindingsMap.ResolvedMethod) =>
                   IR.Error.Resolution(
                     consName,
@@ -122,14 +157,12 @@ object Patterns extends IRPass {
               res.target match {
                 case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                 case BindingsMap.ResolvedModule(_)            => 0
-                case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                  throw new CompilerError(
-                    "Impossible, should be transformed into an error before."
-                  )
+                case BindingsMap.ResolvedPolyglotSymbol(_, _) => 0
                 case BindingsMap.ResolvedMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
+                case BindingsMap.ResolvedType(_, _) => 0
               }
             }
             expectedArity match {
@@ -148,11 +181,64 @@ object Patterns extends IRPass {
                 }
               case None => consPat.copy(constructor = resolvedName)
             }
+          case tpePattern @ IR.Pattern.Type(_, tpeName, _, _, _) =>
+            val resolution = tpeName match {
+              case qual: IR.Name.Qualified =>
+                val parts = qual.parts.map(_.name)
+                Some(
+                  bindings.resolveQualifiedName(parts)
+                )
+              case lit: IR.Name.Literal =>
+                Some(bindings.resolveName(lit.name))
+              case _: IR.Name.SelfType =>
+                selfTypeResolution.map(Right(_))
+              case _ => None
+            }
+            val resolvedTpeName = resolution
+              .map {
+                case Left(err) =>
+                  IR.Error.Resolution(
+                    tpePattern.tpe,
+                    IR.Error.Resolution.ResolverError(err)
+                  )
+                case Right(value: BindingsMap.ResolvedType) =>
+                  tpeName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+                case Right(_: BindingsMap.ResolvedConstructor) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution
+                      .UnexpectedConstructor(s"type pattern case")
+                  )
+                case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+                  tpeName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
+                /*IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedPolyglot(s"type pattern case")
+                  )*/
+                case Right(_: BindingsMap.ResolvedMethod) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedMethod(s"type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedModule) =>
+                  IR.Error.Resolution(
+                    tpeName,
+                    IR.Error.Resolution.UnexpectedModule(s"type pattern case")
+                  )
+              }
+              .getOrElse(tpeName)
+
+            tpePattern.copy(tpe = resolvedTpeName)
           case other => other
         }
         branch.copy(
-          pattern    = resolvedPattern,
-          expression = doExpression(branch.expression, bindings)
+          pattern = resolvedPattern,
+          expression =
+            doExpression(branch.expression, bindings, selfTypeResolution)
         )
       }
       caseExpr.copy(branches = newBranches)

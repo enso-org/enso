@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Json
-import Standard.Base.System.File
+## TODO Dubious constructor export
+from project.Network.Http.Response.Body.Body import all
+from project.Network.Http.Response.Body.Body export all
 
 type Body
 
@@ -9,7 +10,7 @@ type Body
 
        Arguments:
        - bytes: The body of the response as binary data.
-    type Body bytes
+    Body_Data bytes
 
     ## Convert response body to Text.
 
@@ -20,7 +21,7 @@ type Body
 
              example_to_text = Examples.get_geo_data.to_text
     to_text : Text
-    to_text = Text.from_utf_8 this.bytes
+    to_text self = Text.from_utf_8 self.bytes
 
     ## Convert response body to Json.
 
@@ -31,7 +32,7 @@ type Body
 
              example_to_text = Examples.get_geo_data.to_json
     to_json : Json
-    to_json = Json.parse this.to_text
+    to_json self = Json.parse self.to_text
 
     ## Write response body to a File.
 
@@ -48,7 +49,7 @@ type Body
              example_to_file =
                 Examples.get_geo_data.to_file Examples.scratch_file
     to_file : File -> File
-    to_file file =
-        file.write_bytes this.bytes
+    to_file self file =
+        self.bytes.write_bytes file
         file
 

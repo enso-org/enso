@@ -1,13 +1,16 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
-import Standard.Test
+from Standard.Table import Table
 import Standard.Visualization.Geo_Map
+
+from Standard.Test import Test
+
 import project.Helpers
 
-spec = 
-    expect value expected_json_text = 
+spec =
+    expect value expected_json_text =
         result = Geo_Map.process_to_json_text value
+        IO.println result
         Json.parse result . should_equal <| Json.parse expected_json_text
 
     Test.group "Geo_Map" <|
@@ -28,7 +31,7 @@ spec =
             table  = Table.from_rows header [row_1]
             expect table '{"df_color":["red"],"df_label":["name"],"df_latitude":[11],"df_longitude":[10],"df_radius":[195]}'
 
-        Test.specify "is case insensitive" <|
+        Test.specify "is case-insensitive" <|
             header = ['latitude' , 'LONGITUDE' , 'LaBeL']
             row_1  = [11         , 10          , 09     ]
             row_2  = [21         , 20          , 19     ]

@@ -1,40 +1,46 @@
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
-use ensogl_core::traits::*;
+use ensogl_core::display::world::*;
+use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
-use ensogl_core::display::world::*;
-use ensogl_core::prelude::*;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
-use wasm_bindgen::prelude::*;
 
 
-#[wasm_bindgen]
+
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_sprite_system_benchmark() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let sprite_system = SpriteSystem::new(&world);
+    let sprite_system = SpriteSystem::new();
 
     let sprite1 = sprite_system.new_instance();
     sprite1.size.set(Vector2::new(10.0, 10.0));
@@ -118,9 +124,11 @@ pub fn on_frame(
     let screen = camera.screen();
     let half_width = screen.width / 2.0;
     let half_height = screen.height / 2.0;
+    let x_offset = -600.0;
+    let y_offset = -150.0;
 
     if !frozen {
-        let t = time.local / 1000.0;
+        let t = time.since_animation_loop_started.unchecked_raw() / 1000.0;
         let length = sprites.len() as f32;
         for (i, sprite) in sprites.iter_mut().enumerate() {
             let i = i as f32;
@@ -136,8 +144,8 @@ pub fn on_frame(
             z += (x * 1.25 + t * 3.25).cos() * 0.5;
 
             let position = Vector3::new(
-                x * 150.0 + half_width - 75.0,
-                y * 150.0 + half_height - 75.0,
+                x * 150.0 + half_width - 75.0 + x_offset,
+                y * 150.0 + half_height - 75.0 + y_offset,
                 z * 150.0,
             );
             sprite.set_position(position);

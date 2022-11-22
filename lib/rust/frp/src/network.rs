@@ -1,8 +1,9 @@
 //! Definition of FRP Network – set of FRP nodes with a common lifetime.
 
-use crate::debug;
 use crate::node::*;
 use crate::prelude::*;
+
+use crate::debug;
 use crate::stream;
 use crate::stream::Stream;
 
@@ -61,8 +62,7 @@ pub struct NetworkData {
 
 impl NetworkData {
     /// Constructor.
-    pub fn new(label: impl Into<String>) -> Self {
-        let label = label.into();
+    pub fn new(label: String) -> Self {
         let nodes = default();
         let links = default();
         let bridges = default();
@@ -80,6 +80,11 @@ impl Drop for NetworkData {
 impl Network {
     /// Constructor.
     pub fn new(label: impl Into<String>) -> Self {
+        Self::new_with_string(label.into())
+    }
+
+    /// Non-generic constructor.
+    fn new_with_string(label: String) -> Self {
         let data = Rc::new(NetworkData::new(label));
         Self { data }
     }
@@ -98,23 +103,39 @@ impl Network {
     /// network, like animation instances.
     pub fn store<T: 'static + CloneRef>(&self, item: &T) {
         let item = item.clone_ref();
-        self.data.storage.borrow_mut().push(Box::new(item));
+        self.store_boxed(Box::new(item));
+    }
+
+    /// Store an arbitrary boxed item.
+    ///
+    /// Force the compiler to never inline this function, so the generated code (including two panic
+    /// handlers) can be shared across all registered items independent of their type.
+    #[inline(never)]
+    fn store_boxed(&self, item: Box<dyn Any>) {
+        self.data.storage.borrow_mut().push(item);
     }
 
     /// Register the node and return it's weak reference.
     pub fn register_raw<T: HasOutputStatic>(&self, node: stream::Node<T>) -> stream::WeakNode<T> {
         let weak = node.downgrade();
-        let node = Box::new(node);
-        self.data.nodes.borrow_mut().push(node);
+        self.register_boxed(Box::new(node));
         weak
     }
 
     /// Register the node and return a new `Stream` reference.
     pub fn register<Def: HasOutputStatic>(&self, node: stream::Node<Def>) -> Stream<Output<Def>> {
         let stream = node.clone_ref().into();
-        let node = Box::new(node);
-        self.data.nodes.borrow_mut().push(node);
+        self.register_boxed(Box::new(node));
         stream
+    }
+
+    /// Register a boxed node. Non-generic part of registration.
+    ///
+    /// Force the compiler to never inline this function, so the generated code (including two panic
+    /// handlers) can be shared across all registered nodes independent of their type.
+    #[inline(never)]
+    fn register_boxed(&self, node: Box<dyn Item>) {
+        self.data.nodes.borrow_mut().push(node);
     }
 
     /// Register a new link between nodes. Visualization purposes only.
@@ -143,9 +164,24 @@ impl WeakNetwork {
         self.data.upgrade().map(|data| Network { data })
     }
 
+    /// Upgrade to string reference, printing warning if returning `None`. To be used in places
+    /// where we assume the Network should still exist.
+    pub fn upgrade_or_warn(&self) -> Option<Network> {
+        let result = self.upgrade();
+        if result.is_none() {
+            tracing::warn!("The Network is dropped in a place where we don't expect.");
+        }
+        result
+    }
+
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
         NetworkId(self.data.as_ptr() as *const () as usize)
+    }
+
+    /// Gets the number of strong (Rc) pointers to this allocation.
+    pub fn strong_count(&self) -> usize {
+        self.data.strong_count()
     }
 }
 
@@ -177,7 +213,10 @@ impl BridgeNetwork {
     }
 
     fn destroy(&self) {
-        *self.data.borrow_mut() = None
+        self.data.take();
+        // Beware: doing it in another, also intuitive way
+        // *self.data.borrow_mut() = None
+        // May cause a panic, because the drop procedure is done while keeping data borrowed.
     }
 }
 

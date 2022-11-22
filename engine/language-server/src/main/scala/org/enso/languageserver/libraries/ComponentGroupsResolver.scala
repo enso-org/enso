@@ -5,7 +5,7 @@ import org.enso.pkg.{
   ComponentGroups,
   Config,
   ExtendedComponentGroup,
-  ModuleReference
+  GroupReference
 }
 
 import scala.collection.immutable.ListMap
@@ -46,7 +46,7 @@ final class ComponentGroupsResolver {
     * @param libraryComponents the associated list of component groups
     * @return the list of component groups with dependencies resolved
     */
-  private def resolveComponentGroups(
+  def resolveComponentGroups(
     libraryComponents: Map[LibraryName, ComponentGroups]
   ): Vector[LibraryComponentGroup] = {
     val newLibraryComponentGroups: View[LibraryComponentGroup] =
@@ -57,14 +57,15 @@ final class ComponentGroupsResolver {
           )
         }
     val newLibraryComponentGroupsMap
-      : Map[ModuleReference, LibraryComponentGroup] =
+      : Map[GroupReference, LibraryComponentGroup] =
       ComponentGroupsResolver
         .groupByKeepFirst(newLibraryComponentGroups) { libraryComponentGroup =>
-          ModuleReference(
+          GroupReference(
             libraryComponentGroup.library,
-            libraryComponentGroup.module
+            libraryComponentGroup.name
           )
         }
+        .to(ListMap)
 
     val extendedComponentGroups: View[ExtendedComponentGroup] =
       libraryComponents.view
@@ -72,9 +73,10 @@ final class ComponentGroupsResolver {
           componentGroups.extendedGroups
         }
     val extendedComponentGroupsMap
-      : Map[ModuleReference, Vector[ExtendedComponentGroup]] =
+      : Map[GroupReference, Vector[ExtendedComponentGroup]] =
       ComponentGroupsResolver
-        .groupByKeepOrder(extendedComponentGroups)(_.module)
+        .groupByKeepOrder(extendedComponentGroups)(_.group)
+        .to(ListMap)
 
     applyExtendedComponentGroups(
       newLibraryComponentGroupsMap,
@@ -92,8 +94,8 @@ final class ComponentGroupsResolver {
     * applied
     */
   private def applyExtendedComponentGroups(
-    libraryComponentGroups: Map[ModuleReference, LibraryComponentGroup],
-    extendedComponentGroups: Map[ModuleReference, Seq[ExtendedComponentGroup]]
+    libraryComponentGroups: Map[GroupReference, LibraryComponentGroup],
+    extendedComponentGroups: Map[GroupReference, Seq[ExtendedComponentGroup]]
   ): Vector[LibraryComponentGroup] =
     libraryComponentGroups.map { case (module, libraryComponentGroup) =>
       extendedComponentGroups
@@ -132,14 +134,15 @@ object ComponentGroupsResolver {
     * @param f the discriminator function
     * @return the grouped collection preserving the order of elements
     */
-  private def groupByKeepFirst[K, V](xs: Iterable[V])(f: V => K): Map[K, V] =
+  private def groupByKeepFirst[K, V](
+    xs: Iterable[V]
+  )(f: V => K): mutable.Map[K, V] =
     xs
       .foldLeft(mutable.LinkedHashMap.empty[K, V]) { (m, v) =>
         val k = f(v)
         if (m.contains(k)) m
         else m += k -> v
       }
-      .toMap
 
   /** Partitions this collection into a map according to some discriminator
     * function and preserving the order of elements.
@@ -150,7 +153,7 @@ object ComponentGroupsResolver {
     */
   private def groupByKeepOrder[K, V](
     xs: Iterable[V]
-  )(f: V => K): Map[K, Vector[V]] =
+  )(f: V => K): mutable.Map[K, Vector[V]] =
     xs
       .foldLeft(mutable.LinkedHashMap.empty[K, Vector[V]]) { (m, v) =>
         m.updateWith(f(v)) {
@@ -159,7 +162,6 @@ object ComponentGroupsResolver {
         }
         m
       }
-      .toMap
 
   /** Convert the collection of key-value pairs into a map, dropping duplicated
     * keys, and preserving the order of elements.
@@ -167,11 +169,11 @@ object ComponentGroupsResolver {
     * @param xs the collection of key-value pairs
     * @return the map preserving the order of elements
     */
-  private def toMapKeepFirst[K, V](xs: Iterable[(K, V)]): Map[K, V] =
+  private def toMapKeepFirst[K, V](xs: Iterable[(K, V)]): mutable.Map[K, V] =
     xs
       .foldLeft(mutable.LinkedHashMap.empty[K, V]) { case (m, (k, v)) =>
         if (m.contains(k)) m
         else m += k -> v
       }
-      .toMap
+
 }

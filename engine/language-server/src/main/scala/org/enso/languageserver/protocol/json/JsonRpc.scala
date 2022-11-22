@@ -23,6 +23,7 @@ import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
@@ -39,9 +40,11 @@ object JsonRpc {
     .registerRequest(ReadFile)
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
+    .registerRequest(OpenBuffer)
     .registerRequest(CloseFile)
     .registerRequest(SaveFile)
     .registerRequest(ApplyEdit)
+    .registerRequest(ApplyExpressionValue)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
@@ -50,6 +53,11 @@ object JsonRpc {
     .registerRequest(TreeFile)
     .registerRequest(InfoFile)
     .registerRequest(ChecksumFile)
+    .registerRequest(InitVcs)
+    .registerRequest(SaveVcs)
+    .registerRequest(StatusVcs)
+    .registerRequest(ListVcs)
+    .registerRequest(RestoreVcs)
     .registerRequest(RedirectStandardOutput)
     .registerRequest(RedirectStandardError)
     .registerRequest(SuppressStandardOutput)
@@ -60,6 +68,7 @@ object JsonRpc {
     .registerRequest(ExecutionContextPush)
     .registerRequest(ExecutionContextPop)
     .registerRequest(ExecutionContextRecompute)
+    .registerRequest(ExecutionContextGetComponentGroups)
     .registerRequest(ExecuteExpression)
     .registerRequest(AttachVisualisation)
     .registerRequest(DetachVisualisation)
@@ -90,6 +99,7 @@ object JsonRpc {
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
+    .registerNotification(FileAutoSaved)
     .registerNotification(EventFile)
     .registerNotification(ContentRootAdded)
     .registerNotification(ContentRootRemoved)

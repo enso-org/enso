@@ -1,0 +1,10 @@
+from Standard.Base import IO
+import project.A
+
+main =
+    a = A.B.C.c_mod_method 10
+    b = A.B.bar_mod_method 10
+
+    IO.println a.to_text
+    IO.println b.to_text
+    43

@@ -15,19 +15,19 @@ public abstract class SyntaxErrorToDisplayTextNode extends Node {
     return SyntaxErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this) {
+  Text doAtom(Atom self) {
     try {
-      return Text.create("Syntax error: ", TypesGen.expectText(_this.getFields()[0]));
+      return Text.create("Syntax error: ", TypesGen.expectText(self.getFields()[0]));
     } catch (UnexpectedResultException e) {
       return Text.create("Syntax error.");
     }
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Syntax error.");
   }
 }

@@ -2,11 +2,9 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -14,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle function application for the interop library. */
 @GenerateUncached
@@ -59,14 +58,17 @@ public abstract class InteropApplicationNode extends Node {
         InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
+  Context getContext() {
+    return Context.get(this);
+  }
+
   @Specialization(
-      guards = {"!context.isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
+      guards = {"!getContext().isInlineCachingDisabled()", "arguments.length == cachedArgsLength"},
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       Function function,
-      Object state,
+      State state,
       Object[] arguments,
-      @CachedContext(Language.class) Context context,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
       @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
@@ -74,7 +76,7 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return sorterNode.execute(function, null, state, args).getValue();
+    return sorterNode.execute(function, null, state, args);
   }
 
   @Specialization(replaces = "callCached")
@@ -88,16 +90,14 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return indirectInvokeFunctionNode
-        .execute(
-            function,
-            null,
-            state,
-            args,
-            buildSchema(arguments.length),
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-            BaseNode.TailStatus.NOT_TAIL)
-        .getValue();
+    return indirectInvokeFunctionNode.execute(
+        function,
+        null,
+        state,
+        args,
+        buildSchema(arguments.length),
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        BaseNode.TailStatus.NOT_TAIL);
   }
 }

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column
-import Standard.Table.Data.Table
-import Standard.Visualization.Helpers
+from Standard.Table import Table, Column
+
+import project.Helpers
 
 ## PRIVATE
 
@@ -25,56 +25,53 @@ label_field = 'label'
 ## PRIVATE
 
    Represents a recognized point data field for a scatter plot visualization.
-type PointData
+type Point_Data
 
     ## PRIVATE
-    type PointData
+    X
 
     ## PRIVATE
-    type X
+    Y
 
     ## PRIVATE
-    type Y
+    Color
 
     ## PRIVATE
-    type Color
+    Shape
 
     ## PRIVATE
-    type Shape
+    Label
 
     ## PRIVATE
-    type Label
-
-    ## PRIVATE
-    type Size
+    Size
 
     ## PRIVATE
 
        Returns all recognized point data fields.
     all_fields : Vector
-    all_fields = [X,Y,Color,Shape,Label,Size]
+    all_fields = [Point_Data.X, Point_Data.Y, Point_Data.Color, Point_Data.Shape, Point_Data.Label, Point_Data.Size]
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names = this.all_fields.map _.name
+    recognized_names = Point_Data.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized column = this.recognized_names.contains column.name
+    is_recognized self column = Point_Data.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
-    name = this.to_text.to_case Case.Lower
+    name self = self.to_text.to_case Case.Lower
 
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
-    fallback_column table = case this of
-        X -> table.index.catch_ <| this.iota table.row_count
-        Y ->
-            x_column = X.lookup_in table
+    fallback_column self table = case self of
+        Point_Data.X -> table.index.catch_ <| Point_Data.iota table.row_count
+        Point_Data.Y ->
+            x_column = Point_Data.X.lookup_in table
             candidates = table.all_columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
-            is_good c = is_good_enough c && (this.is_recognized c).not
+            is_good c = is_good_enough c && (self.is_recognized c).not
 
             candidates.find is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw No_Fallback_Column
@@ -85,30 +82,29 @@ type PointData
     iota : Number -> Vector
     iota count =
         range = 0.up_to count
-        Column.from_vector here.index_name range.to_vector
+        Column.from_vector index_name range.to_vector
 
     ## PRIVATE
     lookup_in : Table -> Column
-    lookup_in table =
-        named = table.lookup_ignore_case this.name
-        named.catch_ <| this.fallback_column table
+    lookup_in self table =
+        named = table.lookup_ignore_case self.name
+        named.catch_ <| self.fallback_column table
 
 ## PRIVATE
 type No_Fallback_Column
-
-## PRIVATE
-No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text =
-    "No fallback column found for the scatter plot."
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
    Generates JSON that describes points data.
-Table.Table.point_data : Table -> Object
-Table.Table.point_data =
-    get_point_data field = field.lookup_in this . rename field.name
-    columns = PointData.all_fields.filter_map get_point_data
-    (0.up_to this.row_count).to_vector.map <| row_n->
+Table.point_data : Table -> Json
+Table.point_data self =
+    get_point_data field = field.lookup_in self . rename field.name . catch Any (_->Nothing)
+    columns = Point_Data.all_fields.map get_point_data . filter (x -> x.is_nothing.not)
+    (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
             [column.name, value]
@@ -117,55 +113,95 @@ Table.Table.point_data =
 ## PRIVATE
 
    Generates JSON that describes plot axes.
-Table.Table.axes : Table -> Object
-Table.Table.axes =
+Table.axes : Table -> Json
+Table.axes self =
     describe_axis field =
-        col_name = field.lookup_in this . name
-        label = Json.from_pairs [[here.label_field, col_name]]
+        col_name = field.lookup_in self . name
+        label = Json.from_pairs [[label_field, col_name]]
         [field.name, label]
-    x_axis = describe_axis X
-    y_axis = describe_axis Y
+    x_axis = describe_axis Point_Data.X
+    y_axis = describe_axis Point_Data.Y
     is_valid axis_pair =
         label = axis_pair.at 1
-        label.is_valid && (this.all_columns.length > 0)
+        label.is_valid && (self.all_columns.length > 0)
     axes_obj = Json.from_pairs <| [x_axis, y_axis].filter is_valid
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data =
-        this.map_with_index <| i-> elem->
-            Json.from_pairs [[X.name,i],[Y.name,elem]]
+Vector.point_data : Vector -> Json
+Vector.point_data self  =
+    self.map_with_index <| i-> elem->
+        Json.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
 
 ## PRIVATE
-json_from_table : Table -> Json
-json_from_table table =
-    data = table.point_data
+bound_data bounds data = case bounds of
+    Nothing -> data
+    _ ->
+        min_x = bounds.at 0
+        min_y = bounds.at 1
+        max_x = bounds.at 2
+        max_y = bounds.at 3
+
+        data.filter <| datum->
+            x = datum.get "x" . unwrap
+            y = datum.get "y" . unwrap
+
+            min_x<=x && x<=max_x && min_y<=y && y<=max_y
+
+type Extreme
+    Value min_x max_x min_y max_y
+
+## PRIVATE
+limit_data limit data = case limit of
+    Nothing -> data
+    _ -> if ((data.length <= limit) || (data.length == 0)) then data else
+        x datum = (datum.get "x").unwrap
+        y datum = (datum.get "y").unwrap
+
+        update_extreme current idx point =
+            new_min_x = if x current.min_x.second > x point then [idx, point] else current.min_x
+            new_min_y = if y current.min_y.second > y point then [idx, point] else current.min_y
+            new_max_x = if x current.max_x.second < x point then [idx, point] else current.max_x
+            new_max_y = if y current.max_y.second < y point then [idx, point] else current.max_y
+            Extreme.Value new_min_x new_max_x new_min_y new_max_y
+
+        first = [0, data.first]
+        bounds = case data.fold_with_index (Extreme.Value first first first first) update_extreme of
+            Extreme.Value min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
+            _ -> []
+        extreme = Map.from_vector bounds . values
+
+        if limit <= extreme.length then extreme.take (First limit) else
+            extreme + data.take (Index_Sub_Range.Sample (limit - extreme.length))
+
+## PRIVATE
+json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_table table bounds limit =
+    data = table.point_data |> bound_data bounds |> limit_data limit
     axes = table.axes
-    Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
+    Json.from_pairs <| [[data_field,data], [axis_field, axes]]
 
 ## PRIVATE
-json_from_vector : Vector Any -> Json
-json_from_vector vec =
-    data = [here.data_field, vec.point_data]
-    axes = [here.axis_field, Nothing]
-    Json.from_pairs [data, axes]
+json_from_vector : Vector Any -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_vector vec bounds limit =
+    data = vec.point_data |> bound_data bounds |> limit_data limit
+    axes = [axis_field, Nothing]
+    Json.from_pairs <| [[data_field, data], axes]
 
 ## PRIVATE
 
-   Default preprocessor for the scatterplot visualization.
+   Default preprocessor for the scatter-plot visualization.
 
-   Generates JSON text describing the scatterplot visualization.
+   Generates JSON text describing the scatter-plot visualization.
 
    Arguments:
    - value: the value to be visualized.
-process_to_json_text : Any -> Text
-process_to_json_text value =
+process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
+process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        Column.Column _ -> here.json_from_table  value.to_table
-        Table.Table _   -> here.json_from_table  value
-        Vector.Vector _ -> here.json_from_vector value
-        _               -> here.json_from_vector value.to_vector
+        _ : Column -> json_from_table  value.to_table bounds limit
+        _ : Table  -> json_from_table  value bounds limit
+        _ : Vector -> json_from_vector value bounds limit
+        _          -> json_from_vector value.to_vector bounds limit
 
     json.to_text
-

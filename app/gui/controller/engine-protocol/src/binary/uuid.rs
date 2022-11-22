@@ -4,7 +4,10 @@
 use crate::prelude::*;
 
 use crate::generated::binary_protocol_generated::org::enso::languageserver::protocol::binary;
+
 use binary::EnsoUUID;
+
+
 
 impl EnsoUUID {
     /// Creates a new random EnsoUUID.

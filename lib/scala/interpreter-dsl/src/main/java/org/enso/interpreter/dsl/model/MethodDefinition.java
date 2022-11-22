@@ -1,9 +1,6 @@
 package org.enso.interpreter.dsl.model;
 
-import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
-import org.enso.interpreter.dsl.Suspend;
+import org.enso.interpreter.dsl.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -14,7 +11,9 @@ import java.util.*;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
-  private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
+  public static final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+  public static final String META_PATH =
+      "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinMethods.metadata";
 
   private final String packageName;
   private final String originalClassName;
@@ -25,7 +24,6 @@ public class MethodDefinition {
   private final ExecutableElement executeMethod;
   private final List<ArgumentDefinition> arguments;
   private final Set<String> imports;
-  private final boolean modifiesState;
   private final boolean needsCallerInfo;
   private final String constructorExpression;
 
@@ -47,8 +45,23 @@ public class MethodDefinition {
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
-    this.modifiesState = execute.getReturnType().toString().equals(STATEFUL);
     this.constructorExpression = initConstructor(element);
+  }
+
+  public boolean hasAliases() {
+    return !annotation.aliases().isEmpty();
+  }
+
+  public String[] aliases() {
+    if (annotation.aliases().isEmpty()) {
+      return new String[0];
+    } else {
+      String[] methodNames = annotation.aliases().split(",");
+      for (int i = 0; i < methodNames.length; i++) {
+        methodNames[i] = annotation.type() + "." + methodNames[i];
+      }
+      return methodNames;
+    }
   }
 
   private String initConstructor(TypeElement element) {
@@ -91,13 +104,28 @@ public class MethodDefinition {
   private List<ArgumentDefinition> initArguments(ExecutableElement method) {
     List<ArgumentDefinition> args = new ArrayList<>();
     List<? extends VariableElement> params = method.getParameters();
+    boolean noSelfDeclared =
+        params.stream()
+            .filter(e -> e.getSimpleName().toString().equals("self"))
+            .findFirst()
+            .isEmpty();
+    boolean needsSelf = noSelfDeclared;
     int position = 0;
     for (VariableElement param : params) {
-      ArgumentDefinition def = new ArgumentDefinition(param, position);
+      ArgumentDefinition def = new ArgumentDefinitionFromParameter(param, position);
+      if (needsSelf && def.isPositional()) {
+        args.add(new SelfArgumentDefinition());
+        position++;
+        def.incPosition();
+        needsSelf = false;
+      }
       args.add(def);
       if (def.isPositional()) {
         position++;
       }
+    }
+    if (needsSelf) {
+      args.add(new SelfArgumentDefinition());
     }
     return args;
   }
@@ -141,6 +169,11 @@ public class MethodDefinition {
     return annotation.type() + "." + annotation.name();
   }
 
+  /** @return the language-level owner type of this method. */
+  public String getType() {
+    return annotation.type();
+  }
+
   /** @return get the description of this method. */
   public String getDescription() {
     return annotation.description();
@@ -156,11 +189,6 @@ public class MethodDefinition {
     return imports;
   }
 
-  /** @return whether this method modifies the monadic state. */
-  public boolean modifiesState() {
-    return modifiesState;
-  }
-
   /** @return whether this method requires caller info to work properly. */
   public boolean needsCallerInfo() {
     return needsCallerInfo;
@@ -170,13 +198,189 @@ public class MethodDefinition {
     return constructorExpression;
   }
 
+  public boolean isStatic() {
+    return arguments.stream()
+        .filter(arg -> arg.isSelf())
+        .findFirst()
+        .map(arg -> arg.isSyntheticSelf())
+        .orElseGet(() -> false);
+  }
+
+  public boolean isAutoRegister() {
+    return annotation.autoRegister();
+  }
+
+  public interface ArgumentDefinition {
+
+    boolean validate(ProcessingEnvironment processingEnvironment);
+
+    /** @return whether this argument should be passed the monadic state. */
+    boolean isState();
+
+    /** @return whether this argument should be passed the execution frame. */
+    boolean isFrame();
+
+    /** @return whether this argument should be passed the caller info. */
+    boolean isCallerInfo();
+
+    /** @return whether this argument should be passed the next positional function argument. */
+    boolean isPositional();
+
+    /** @return the position of this argument in the positional arguments list. */
+    int getPosition();
+
+    /** @return any import this argument requires. */
+    Optional<String> getImport();
+
+    /** @return whether this argument needs to be type-casted on read. */
+    boolean requiresCast();
+
+    boolean isArray();
+
+    /** @return the name of the type of this argument. */
+    String getTypeName();
+
+    /** @return the name of this argument. */
+    String getName();
+
+    /** @return whether this argument is expected to be passed suspended. */
+    boolean isSuspended();
+
+    /** @return whether this argument accepts a dataflow error. */
+    boolean acceptsError();
+
+    boolean acceptsWarning();
+
+    boolean isSelf();
+
+    boolean isSyntheticSelf();
+
+    boolean shouldCheckErrors();
+
+    boolean shouldCheckWarnings();
+
+    void incPosition();
+
+    /**
+     * @return whether the argument should be implicitly added by the processor and is not present
+     *     in the signature
+     */
+    boolean isImplicit();
+  }
+
+  public class SelfArgumentDefinition implements ArgumentDefinition {
+
+    @Override
+    public boolean validate(ProcessingEnvironment processingEnvironment) {
+      return true;
+    }
+
+    @Override
+    public boolean isState() {
+      return false;
+    }
+
+    @Override
+    public boolean isFrame() {
+      return false;
+    }
+
+    @Override
+    public boolean isCallerInfo() {
+      return false;
+    }
+
+    @Override
+    public boolean isPositional() {
+      return true;
+    }
+
+    @Override
+    public int getPosition() {
+      return 0;
+    }
+
+    @Override
+    public Optional<String> getImport() {
+      return Optional.empty();
+    }
+
+    @Override
+    public boolean requiresCast() {
+      return false;
+    }
+
+    @Override
+    public boolean isArray() {
+      return false;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "Object";
+    }
+
+    @Override
+    public String getName() {
+      return "self";
+    }
+
+    @Override
+    public boolean isSuspended() {
+      return false;
+    }
+
+    @Override
+    public boolean acceptsError() {
+      return false;
+    }
+
+    @Override
+    public boolean acceptsWarning() {
+      return false;
+    }
+
+    @Override
+    public boolean isSelf() {
+      return true;
+    }
+
+    @Override
+    public boolean isSyntheticSelf() {
+      return true;
+    }
+
+    @Override
+    public boolean shouldCheckErrors() {
+      return false;
+    }
+
+    @Override
+    public boolean shouldCheckWarnings() {
+      return false;
+    }
+
+    @Override
+    public void incPosition() {
+      // noop
+    }
+
+    @Override
+    public boolean isImplicit() {
+      return true;
+    }
+  }
+
   /** A domain specific representation of a method argument. */
-  public static class ArgumentDefinition {
+  public static class ArgumentDefinitionFromParameter implements ArgumentDefinition {
     private static final String VIRTUAL_FRAME = "com.oracle.truffle.api.frame.VirtualFrame";
     private static final String OBJECT = "java.lang.Object";
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
+    private static final String SELF = "self";
+
+    private static final String STATE = "org.enso.interpreter.runtime.state.State";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -185,7 +389,8 @@ public class MethodDefinition {
     private final boolean isCallerInfo;
     private final boolean isSuspended;
     private final boolean acceptsError;
-    private final int position;
+    private final boolean acceptsWarning;
+    private int position;
     private final VariableElement element;
 
     /**
@@ -194,18 +399,18 @@ public class MethodDefinition {
      * @param element the element representing this argument.
      * @param position the position (0-indexed) of this argument in the arguments list.
      */
-    public ArgumentDefinition(VariableElement element, int position) {
+    public ArgumentDefinitionFromParameter(VariableElement element, int position) {
       this.element = element;
       type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
-      String originalName = element.getSimpleName().toString();
-      name = originalName.equals("_this") ? "this" : originalName;
-      isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
+      name = element.getSimpleName().toString();
+      isState = type.toString().equals(STATE);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
           (element.getAnnotation(AcceptsError.class) != null)
               || type.toString().equals(DATAFLOW_ERROR);
+      acceptsWarning = element.getAnnotation(AcceptsWarning.class) != null;
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
@@ -221,6 +426,37 @@ public class MethodDefinition {
                 element);
         return false;
       }
+
+      if (isSelf() && position != 0) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "Argument `self` must be the first positional argument.",
+                element);
+        return false;
+      }
+
+      if (isPositional() && position == 0 && !isSelf()) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "The first positional argument should be called `self`.",
+                element);
+        return false;
+      }
+
+      if (isState() && !type.toString().equals(STATE)) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "The monadic state argument must be typed as " + STATE,
+                element);
+        return false;
+      }
+
       return true;
     }
 
@@ -249,6 +485,10 @@ public class MethodDefinition {
       return position;
     }
 
+    public void incPosition() {
+      position = position + 1;
+    }
+
     /** @return any import this argument requires. */
     public Optional<String> getImport() {
       if (type.getKind() == TypeKind.DECLARED) {
@@ -264,14 +504,13 @@ public class MethodDefinition {
       return !type.toString().equals(OBJECT);
     }
 
+    public boolean isArray() {
+      return type.toString().endsWith("[]");
+    }
+
     /** @return the name of the type of this argument. */
     public String getTypeName() {
       return typeName;
-    }
-
-    /** @return the type of this argument. */
-    public TypeMirror getType() {
-      return type;
     }
 
     /** @return the name of this argument. */
@@ -287,6 +526,31 @@ public class MethodDefinition {
     /** @return whether thsi argument accepts a dataflow error. */
     public boolean acceptsError() {
       return acceptsError;
+    }
+
+    public boolean acceptsWarning() {
+      return acceptsWarning;
+    }
+
+    public boolean isSelf() {
+      return name.equals(SELF);
+    }
+
+    @Override
+    public boolean isSyntheticSelf() {
+      return false;
+    }
+
+    public boolean shouldCheckErrors() {
+      return isPositional() && !isSelf() && !acceptsError();
+    }
+
+    public boolean shouldCheckWarnings() {
+      return isPositional() && !isSelf() && !acceptsWarning();
+    }
+
+    public boolean isImplicit() {
+      return false;
     }
   }
 }

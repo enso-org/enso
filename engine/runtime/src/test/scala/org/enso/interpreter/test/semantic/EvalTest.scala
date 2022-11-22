@@ -11,7 +11,8 @@ class EvalTest extends InterpreterTest {
 
     "evaluate a string expression" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.Runtime.Debug
+           |import Standard.Base.IO
            |
            |main =
            |    Debug.eval $rawTQ
@@ -23,7 +24,8 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller scope" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.Runtime.Debug
+           |import Standard.Base.IO
            |
            |main =
            |    x = "Hello World!"
@@ -36,22 +38,24 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller module scope" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.Runtime.Debug
+           |import Standard.Base.IO
            |
-           |type MyType x
+           |type My_Type
+           |    Mk_My_Type x
            |
            |main =
            |    x = 10
            |    Debug.eval $rawTQ
-           |        IO.println (MyType x)
+           |        IO.println (My_Type.Mk_My_Type x)
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyType 10)")
+      consumeOut shouldEqual List("(Mk_My_Type 10)")
     }
 
     "return a value usable in the caller scope" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 1
@@ -65,7 +69,7 @@ class EvalTest extends InterpreterTest {
 
     "work in a recursive setting" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.Debug
           |
           |main =
           |    fn = sumTo ->
@@ -79,7 +83,7 @@ class EvalTest extends InterpreterTest {
 
     "work inside a thunk passed to another function" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.Debug
           |
           |main =
           |    fn = sumTo ->

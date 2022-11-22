@@ -1,14 +1,25 @@
 package org.enso.table.data.column.builder.object;
 
-import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 
+import java.util.BitSet;
+
 /** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
-  private final BitSet vals = new BitSet();
-  private final BitSet isNa = new BitSet();
+  private final BitSet vals;
+  private final BitSet isNa;
   int size = 0;
+
+  public BoolBuilder() {
+    vals = new BitSet();
+    isNa = new BitSet();
+  }
+
+  public BoolBuilder(int capacity) {
+    vals = new BitSet(capacity);
+    isNa = new BitSet(capacity);
+  }
 
   @Override
   public void appendNoGrow(Object o) {
@@ -20,6 +31,11 @@ public class BoolBuilder extends TypedBuilder {
       }
     }
     size++;
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    return o instanceof Boolean;
   }
 
   @Override
@@ -46,18 +62,13 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public Storage seal() {
+  public Storage<Boolean> seal() {
     return new BoolStorage(vals, isNa, size, false);
   }
 
   @Override
   public int getCurrentSize() {
     return size;
-  }
-
-  @Override
-  public int getCurrentCapacity() {
-    return vals.size();
   }
 
   @Override

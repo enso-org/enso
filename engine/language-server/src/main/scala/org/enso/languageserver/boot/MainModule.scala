@@ -9,10 +9,9 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
@@ -20,7 +19,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  NoopEventsMonitor
 }
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
@@ -36,6 +36,7 @@ import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
+import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
@@ -52,8 +53,8 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.URI
 import java.time.Clock
-
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -79,23 +80,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val languageServerConfig = Config(
     contentRoot,
     FileManagerConfig(timeout = 3.seconds),
+    VcsManagerConfig(timeout  = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    directoriesConfig
+    directoriesConfig,
+    serverConfig.profilingConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
-  val zioExec = ZioExec(zio.Runtime.default)
-  log.trace("Created ZIO executor [{}].", zioExec)
-
-  val fileSystem: FileSystem = new FileSystem
-  log.trace("Created file system [{}].", fileSystem)
-
-  implicit val versionCalculator: ContentBasedVersioning =
-    Sha3_224VersionCalculator
-  log.trace("Created Version Calculator [{}].", versionCalculator)
-
-  implicit val system =
+  implicit val system: ActorSystem =
     ActorSystem(
       serverConfig.name,
       None,
@@ -104,13 +97,22 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   log.trace(s"Created ActorSystem $system.")
 
-  val sqlDatabase =
-    DeploymentType.fromEnvironment() match {
-      case Desktop =>
-        SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
-      case Azure =>
-        SqlDatabase.inmem("memdb")
-    }
+  private val zioRuntime =
+    effect.Runtime.fromExecutionContext(system.dispatcher)
+  private val zioExec = effect.ZioExec(zioRuntime)
+  log.trace("Created ZIO executor [{}].", zioExec)
+
+  val fileSystem: FileSystem = new FileSystem
+  log.trace("Created file system [{}].", fileSystem)
+
+  val git = Git.withEmptyUserConfig()
+  log.trace("Created git [{}].", git)
+
+  implicit val versionCalculator: ContentBasedVersioning =
+    Sha3_224VersionCalculator
+  log.trace("Created Version Calculator [{}].", versionCalculator)
+
+  val sqlDatabase = SqlDatabase.inmem("memdb")
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
@@ -145,9 +147,28 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "lock-manager-service"
   )
 
+  val runtimeEventsMonitor =
+    languageServerConfig.profiling.runtimeEventsLogPath match {
+      case Some(path) =>
+        ApiEventsMonitor(path) match {
+          case Success(monitor) =>
+            monitor
+          case Failure(exception) =>
+            log.error(
+              s"Failed to create runtime events monitor for $path ($exception)."
+            )
+            new NoopEventsMonitor
+        }
+      case None =>
+        new NoopEventsMonitor
+    }
+  log.trace(
+    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+  )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService),
+      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
       "runtime-connector"
     )
 
@@ -170,9 +191,24 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "file-manager"
   )
 
+  lazy val vcsManager = system.actorOf(
+    VcsManager.props(
+      languageServerConfig.vcsManager,
+      git,
+      contentRootManagerWrapper,
+      zioExec
+    ),
+    "vcs-manager"
+  )
+
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(fileManager, runtimeConnector),
+      BufferRegistry.props(
+        fileManager,
+        vcsManager,
+        runtimeConnector,
+        TimingsConfig.default().withAutoSave(6.seconds)
+      ),
       "buffer-registry"
     )
 
@@ -334,6 +370,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     bufferRegistry         = bufferRegistry,
     capabilityRouter       = capabilityRouter,
     fileManager            = fileManager,
+    vcsManager             = vcsManager,
     contentRootManager     = contentRootManagerActor,
     contextRegistry        = contextRegistry,
     suggestionsHandler     = suggestionsHandler,

@@ -1,0 +1,3 @@
+type C
+    Mk_C a
+bar_mod_method x = C.Mk_C x+10

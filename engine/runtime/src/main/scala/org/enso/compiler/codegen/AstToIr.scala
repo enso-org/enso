@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 
 import cats.Foldable
 import cats.implicits._
+import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
@@ -145,33 +146,22 @@ object AstToIr {
             .head
           Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
         } else {
-          Module.Scope.Definition.Atom(
+          Module.Scope.Definition.SugaredType(
             buildName(consName),
             newArgs,
+            List(),
             getIdentifiedLocation(inputAst)
           )
         }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
-        val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom => true
-          case _: IR.Name.Literal                 => true
-          case _                                  => false
-        }
-        val hasArgs = args.nonEmpty
+        Module.Scope.Definition.SugaredType(
+          buildName(typeName),
+          args.map(translateArgumentDefinition(_)),
+          translatedBody,
+          getIdentifiedLocation(inputAst)
+        )
 
-        if (containsAtomDefOrInclude && !hasArgs) {
-          Module.Scope.Definition.Type(
-            buildName(typeName),
-            args.map(translateArgumentDefinition(_)),
-            translatedBody,
-            getIdentifiedLocation(inputAst)
-          )
-        } else if (!containsAtomDefOrInclude) {
-          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
-        } else {
-          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
-        }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name
@@ -191,18 +181,19 @@ object AstToIr {
           val typeSegments = methodSegments.init
 
           Name.MethodReference(
-            IR.Name.Qualified(
-              typeSegments,
-              MethodReference.genLocation(typeSegments)
+            Some(
+              IR.Name.Qualified(
+                typeSegments,
+                MethodReference.genLocation(typeSegments)
+              )
             ),
             methodSegments.last,
             MethodReference.genLocation(methodSegments)
           )
         } else {
-          val typeName   = Name.Here(None)
           val methodName = buildName(nameId)
           Name.MethodReference(
-            typeName,
+            None,
             methodName,
             methodName.location
           )
@@ -221,9 +212,8 @@ object AstToIr {
           ) =>
         translateForeignDefinition(header, body) match {
           case Right((name, arguments, body)) =>
-            val typeName = Name.Here(None)
             val methodRef =
-              Name.MethodReference(typeName, name, name.location)
+              Name.MethodReference(None, name, name.location)
             Module.Scope.Definition.Method.Binding(
               methodRef,
               arguments,
@@ -237,11 +227,10 @@ object AstToIr {
             )
         }
       case AstView.FunctionSugar(name, args, body) =>
-        val typeName   = Name.Here(None)
         val methodName = buildName(name)
 
         val methodReference = Name.MethodReference(
-          typeName,
+          None,
           methodName,
           methodName.location
         )
@@ -255,10 +244,9 @@ object AstToIr {
       case AST.Comment.any(comment) => translateComment(comment)
       case AstView.TypeAscription(typed, sig) =>
         def buildAscription(ident: AST.Ident): IR.Type.Ascription = {
-          val typeName   = Name.Here(None)
           val methodName = buildName(ident)
           val methodReference = Name.MethodReference(
-            typeName,
+            None,
             methodName,
             methodName.location
           )
@@ -316,10 +304,18 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAst match {
+      case AST.Ident.Cons.any(cons) =>
+        IR.Module.Scope.Definition
+          .Data(buildName(cons), List(), getIdentifiedLocation(inputAst))
+      case AstView.SpacedList(AST.Ident.Cons.any(cons) :: args) =>
+        IR.Module.Scope.Definition
+          .Data(
+            buildName(cons),
+            args.map(translateArgumentDefinition(_)),
+            getIdentifiedLocation(inputAst)
+          )
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include) => translateIdent(include)
-      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,
@@ -339,12 +335,19 @@ object AstToIr {
               IR.Error.Syntax.InvalidForeignDefinition(reason)
             )
         }
-      case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
-      case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      case fs @ AstView.FunctionSugar(_, _, _) =>
+        translateExpression(fs)
+      case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
+        val translatedArgs = arg match {
+          case AstView.FunctionParamList(items) =>
+            items.map(translateArgumentDefinition(_))
+          case _ =>
+            List(translateArgumentDefinition(arg))
+        }
         Function.Binding(
           buildName(opr),
-          List(translateArgumentDefinition(arg)),
+          translatedArgs,
           translateExpression(body),
           getIdentifiedLocation(inputAst)
         )
@@ -414,7 +417,9 @@ object AstToIr {
       case AstView.MethodReference(path, methodName) =>
         val typeParts = path.map(translateExpression(_).asInstanceOf[IR.Name])
         IR.Name.MethodReference(
-          IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts)),
+          Some(
+            IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts))
+          ),
           translateExpression(methodName).asInstanceOf[IR.Name],
           getIdentifiedLocation(inputAst)
         )
@@ -450,7 +455,7 @@ object AstToIr {
           case _ =>
             IR.Application.Prefix(
               IR.Name
-                .Literal("negate", isReferent = false, isMethod = true, None),
+                .Literal("negate", isMethod = true, None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -889,6 +894,11 @@ object AstToIr {
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
         )
+      case AST.App.Infix(l, AST.Ident.Opr("->"), r) if insideTypeAscription =>
+        translateFunctionType(
+          List(translateExpression(l, insideTypeSignature = true)),
+          r
+        )
       case AstView.Lambda(args, body) =>
         if (args.length > 1) {
           Error.Syntax(
@@ -947,6 +957,28 @@ object AstToIr {
     }
   }
 
+  @tailrec
+  private def translateFunctionType(
+    argsAcc: List[Expression],
+    next: AST
+  ): Expression =
+    skipParens(next) match {
+      case AST.App.Infix(nextArg, AST.Ident.Opr("->"), next) =>
+        translateFunctionType(
+          argsAcc :+ translateExpression(nextArg, insideTypeSignature = true),
+          next
+        )
+      case other =>
+        IR.Type.Function(
+          argsAcc,
+          translateExpression(other, insideTypeSignature = true),
+          None
+        )
+    }
+
+  private def skipParens(ast: AST): AST =
+    AstView.MaybeManyParensed.unapply(ast).getOrElse(ast)
+
   /** Translates an operator section from its [[AST]] representation into the
     * [[IR]] representation.
     *
@@ -1002,17 +1034,19 @@ object AstToIr {
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
       case AST.Ident.Var(name) =>
-        if (name == "this") {
-          Name.This(getIdentifiedLocation(identifier))
-        } else if (name == "here") {
-          Name.Here(getIdentifiedLocation(identifier))
+        if (name == Constants.Names.SELF_ARGUMENT) {
+          Name.Self(getIdentifiedLocation(identifier))
         } else {
           buildName(identifier)
         }
       case AST.Ident.Annotation(name) =>
         Name.Annotation(name, getIdentifiedLocation(identifier))
-      case AST.Ident.Cons(_) =>
-        buildName(identifier)
+      case AST.Ident.Cons(name) =>
+        if (name == Constants.Names.SELF_TYPE_ARGUMENT) {
+          Name.SelfType(getIdentifiedLocation(identifier))
+        } else {
+          buildName(identifier)
+        }
       case AST.Ident.Blank(_) =>
         Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
@@ -1107,6 +1141,22 @@ object AstToIr {
       case AstView.CatchAllPattern(name) =>
         Pattern.Name(
           translateIdent(name).asInstanceOf[IR.Name],
+          getIdentifiedLocation(pattern)
+        )
+      case AstView.LiteralPattern(literal) =>
+        Pattern.Literal(
+          translateLiteral(literal).asInstanceOf[IR.Literal],
+          getIdentifiedLocation(pattern)
+        )
+      case AstView.TypePattern(name, tpe) =>
+        val irConses = tpe.map(translateIdent(_).asInstanceOf[IR.Name])
+        val tpeName = irConses match {
+          case List(n) => n
+          case _       => IR.Name.Qualified(irConses, None)
+        }
+        Pattern.Type(
+          translateIdent(name).asInstanceOf[IR.Name],
+          tpeName,
           getIdentifiedLocation(pattern)
         )
       case _ =>
@@ -1226,20 +1276,14 @@ object AstToIr {
     }
   }
 
-  private def isReferant(ident: AST.Ident): Boolean =
-    ident match {
-      case AST.Ident.Cons.any(_) => true
-      case _                     => false
-    }
-
   private def buildName(
     ident: AST.Ident,
     isMethod: Boolean = false
-  ): IR.Name.Literal =
+  ): IR.Name.Literal = {
     IR.Name.Literal(
       ident.name,
-      isReferant(ident),
       isMethod || AST.Opr.any.unapply(ident).isDefined,
       getIdentifiedLocation(ident)
     )
+  }
 }

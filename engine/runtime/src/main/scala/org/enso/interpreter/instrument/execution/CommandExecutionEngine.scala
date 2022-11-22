@@ -1,14 +1,14 @@
 package org.enso.interpreter.instrument.execution
 
-import java.util.concurrent.Executors
-import java.util.logging.Level
-
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
 import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
 import org.enso.text.Sha3_224VersionCalculator
+
+import java.util.concurrent.Executors
+import java.util.logging.Level
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal

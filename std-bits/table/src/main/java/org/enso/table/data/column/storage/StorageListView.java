@@ -1,14 +1,17 @@
 package org.enso.table.data.column.storage;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 
 /**
  * Wraps a storage in a list. Used for exposing a polyglot array interface back to Enso. This list
  * is not modifiable.
  */
 public class StorageListView implements List<Object> {
-  private final Storage storage;
+  private final Storage<?> storage;
   private final int from;
   private final int to;
 
@@ -17,11 +20,11 @@ public class StorageListView implements List<Object> {
    *
    * @param storage the storage to wrap.
    */
-  public StorageListView(Storage storage) {
+  public StorageListView(Storage<?> storage) {
     this(storage, 0, storage.size());
   }
 
-  private StorageListView(Storage storage, int from, int to) {
+  private StorageListView(Storage<?> storage, int from, int to) {
     this.storage = storage;
     this.from = from;
     this.to = to;
@@ -70,10 +73,9 @@ public class StorageListView implements List<Object> {
   @SuppressWarnings("rawtypes")
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof List)) {
+    if (!(obj instanceof List that)) {
       return false;
     }
-    List that = (List) obj;
     if (that.size() != size()) {
       return false;
     }
@@ -168,6 +170,7 @@ public class StorageListView implements List<Object> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T[] toArray(T[] a) {
     T[] result =
         a.length >= size() ? a : (T[]) Array.newInstance(a.getClass().getComponentType(), size());

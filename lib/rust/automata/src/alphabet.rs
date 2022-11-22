@@ -1,8 +1,9 @@
 //! Exports an alphabet for an arbitrary finite state automaton.
 
+use crate::prelude::*;
+
 use crate::symbol::Symbol;
 
-use crate::prelude::*;
 use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
 

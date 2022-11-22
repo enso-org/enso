@@ -11,14 +11,16 @@
 //! make them more pleasant to work, however, the equations you will find here will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::excessive_precision)]
 
 use super::super::component::*;
 use super::super::data::*;
 use super::def::*;
-use super::white_point;
 use super::white_point::traits::*;
+
+use super::white_point;
 
 
 
@@ -349,7 +351,7 @@ mod tests {
     //    This should not happen (probably).
     //    https://github.com/enso-org/ide/issues/1403
     #[test]
-    #[allow(unused_variables)]
+    #[ignore]
     fn test_rgb_to_and_from_lch() {
         for r in 0..10 {
             for g in 0..10 {
@@ -360,10 +362,10 @@ mod tests {
                     let rgb = Rgb::new(nr, ng, nb);
                     let lch = Lch::from(rgb);
                     let rgb2 = Rgb::from(lch);
-                    let _r2 = (rgb2.red * 255.0) as i32;
-                    let _g2 = (rgb2.green * 255.0) as i32;
-                    let _b2 = (rgb2.blue * 255.0) as i32;
-                    // assert_eq!((r,g,b),(r2,g2,b2));
+                    let r2 = (rgb2.red * 255.0) as i32;
+                    let g2 = (rgb2.green * 255.0) as i32;
+                    let b2 = (rgb2.blue * 255.0) as i32;
+                    assert_eq!((r, g, b), (r2, g2, b2));
                 }
             }
         }

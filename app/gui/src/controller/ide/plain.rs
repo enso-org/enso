@@ -11,7 +11,7 @@ use crate::model::project::synchronized::Properties;
 
 use double_representation::project;
 use engine_protocol::project_manager::ProjectName;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 

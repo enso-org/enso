@@ -14,15 +14,15 @@ public abstract class NegateNode extends Node {
     return NegateNodeGen.create();
   }
 
-  abstract Object execute(long _this);
+  abstract Object execute(long self);
 
   @Specialization(rewriteOn = ArithmeticException.class)
-  long doNormal(long _this) {
-    return Math.negateExact(_this);
+  long doNormal(long self) {
+    return Math.negateExact(self);
   }
 
   @Specialization
-  Object doOverflow(long _this) {
-    return toEnsoNumberNode.execute(BigIntegerOps.negate(_this));
+  Object doOverflow(long self) {
+    return toEnsoNumberNode.execute(BigIntegerOps.negate(self));
   }
 }

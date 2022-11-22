@@ -2,13 +2,11 @@
 //! https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texImage2D
 
 use crate::prelude::*;
-
 use crate::system::gpu::data::gl_enum::*;
 use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::format::*;
 use crate::system::gpu::data::texture::gl_enums::*;
 use crate::system::gpu::data::texture::sampler::*;
-
 use nalgebra::*;
 
 

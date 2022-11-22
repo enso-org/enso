@@ -1,23 +1,24 @@
 package org.enso.table.data.table;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.IntStream;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.List;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
   private final String name;
-  private final Storage storage;
+  private final Storage<?> storage;
   private final Index index;
 
   /**
@@ -26,7 +27,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Index index, Storage storage) {
+  public Column(String name, Index index, Storage<?> storage) {
     this.name = name;
     this.storage = storage;
     this.index = index;
@@ -38,7 +39,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage storage) {
+  public Column(String name, Storage<?> storage) {
     this(name, new DefaultIndex(storage.size()), storage);
   }
 
@@ -57,7 +58,7 @@ public class Column {
   }
 
   /** @return the underlying storage */
-  public Storage getStorage() {
+  public Storage<?> getStorage() {
     return storage;
   }
 
@@ -85,12 +86,11 @@ public class Column {
    * @return the result of masking this column with the provided column
    */
   public Column mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage)) {
+    if (!(maskCol.getStorage() instanceof BoolStorage boolStorage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    BoolStorage storage = (BoolStorage) maskCol.getStorage();
-    var mask = BoolStorage.toMask(storage);
+    var mask = BoolStorage.toMask(boolStorage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, getStorage().size());
     mask.and(localStorageMask);
@@ -116,12 +116,14 @@ public class Column {
    * @param items the items contained in the column
    * @return a column with given name and items
    */
-  public static Column fromItems(String name, List<Object> items) {
+  public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
-    for (Object item : items) {
-      builder.appendNoGrow(item);
+    for (Value item : items) {
+      Object converted = Polyglot_Utils.convertPolyglotValue(item);
+      builder.appendNoGrow(converted);
     }
-    return new Column(name, new DefaultIndex(items.size()), builder.seal());
+    var storage = builder.seal();
+    return new Column(name, new DefaultIndex(items.size()), storage);
   }
 
   /**
@@ -141,7 +143,7 @@ public class Column {
    * @return a column indexed by {@code col}
    */
   public Column setIndex(Column col) {
-    Storage storage = col.getStorage();
+    Storage<?> storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     return this.withIndex(ix);
   }
@@ -152,37 +154,23 @@ public class Column {
   }
 
   /**
-   * Aggregates the values in this column, using a given aggregation operation.
-   *
-   * @param aggName name of a vectorized operation that can be used if possible. If null is passed,
-   *     this parameter is unused.
-   * @param aggregatorFunction the function to use if a vectorized operation is not available.
-   * @param skipNa whether missing values should be passed to the {@code fallback} function.
-   * @return a column indexed by the unique index of this aggregate, storing results of applying the
-   *     specified operation.
-   */
-  public Object aggregate(
-      String aggName, Function<List<Object>, Object> aggregatorFunction, boolean skipNa) {
-    Aggregator aggregator = storage.getAggregator(aggName, aggregatorFunction, skipNa, 1);
-
-    IntStream ixes = IntStream.range(0, storage.size());
-    aggregator.nextGroup(ixes);
-    return aggregator.seal().getItemBoxed(0);
-  }
-
-  /**
    * @param mask the reordering to apply
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
     Index newIndex = index.applyMask(mask);
-    Storage newStorage = storage.applyMask(mask);
+    Storage<?> newStorage = storage.applyMask(mask);
     return new Column(name, newIndex, newStorage);
   }
 
   /** @return a copy of the Column containing a slice of the original data */
   public Column slice(int offset, int limit) {
     return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
+  }
+
+  /** @return a copy of the Column consisting of slices of the original data */
+  public Column slice(List<SliceRange> ranges) {
+    return new Column(name, index.slice(ranges), storage.slice(ranges));
   }
 
   /** @return a column counting value repetitions in this column. */

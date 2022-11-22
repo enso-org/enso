@@ -1,20 +1,21 @@
 //! This module defines all primitive Signed Distance Field (SDF) shapes such as circle or
 //! rectangle. Learn more about SDFs: https://en.wikipedia.org/wiki/Signed_distance_function
 
+// === Non-Standard Linter Configuration ===
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
 use crate::prelude::*;
-
-use inflector::Inflector;
+use crate::system::gpu::shader::glsl::traits::*;
 
 use crate::display::shape::primitive::def::class::AnyShape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::Var;
-use crate::system::gpu::shader::glsl::traits::*;
 use crate::system::gpu::shader::glsl::Glsl;
+
+use inflector::Inflector;
 
 
 

@@ -2,15 +2,15 @@
 //! both selectors and can be configured to suit the needs of both.
 
 use crate::prelude::*;
+use crate::shape::*;
+use ensogl_core::display::shape::*;
 
 use crate::decimal_aligned::FloatLabel;
-use crate::shape::*;
 use crate::Bounds;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_text as text;
 
 
@@ -52,15 +52,15 @@ pub struct Model {
     /// that is centered on the decimal label.
     pub label:              FloatLabel,
     /// A label that is aligned to the left edge of the background
-    pub label_left:         text::Area,
+    pub label_left:         text::Text,
     /// A label that is aligned to the right edge of the background
-    pub label_right:        text::Area,
+    pub label_right:        text::Text,
     /// A label that is left aligned on the background. Meant to contain a caption describing the
     /// value that is selected. For example "Alpha", "Red", or "Size".
-    pub caption_left:       text::Area,
+    pub caption_left:       text::Text,
     /// A label that is centered on the background. Meant to contain a caption describing the
     /// range that is selected. For example "Allowed Size", or "Valid Price".
-    pub caption_center:     text::Area,
+    pub caption_center:     text::Text,
     /// Shape root that all other elements are parented to. Should be used to place the shapes as
     /// a group.
     pub root:               display::object::Instance,
@@ -77,19 +77,18 @@ pub struct Model {
 #[allow(missing_docs)]
 impl Model {
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new("selector::common::Model");
-        let root = display::object::Instance::new(&logger);
+        let root = display::object::Instance::new();
         let label = FloatLabel::new(app);
-        let label_left = app.new_view::<text::Area>();
-        let label_right = app.new_view::<text::Area>();
-        let caption_center = app.new_view::<text::Area>();
-        let caption_left = app.new_view::<text::Area>();
-        let background = background::View::new(&logger);
-        let track = track::View::new(&logger);
-        let track_handle_left = io_rect::View::new(&logger);
-        let track_handle_right = io_rect::View::new(&logger);
-        let left_overflow = left_overflow::View::new(&logger);
-        let right_overflow = right_overflow::View::new(&logger);
+        let label_left = app.new_view::<text::Text>();
+        let label_right = app.new_view::<text::Text>();
+        let caption_center = app.new_view::<text::Text>();
+        let caption_left = app.new_view::<text::Text>();
+        let background = background::View::new();
+        let track = track::View::new();
+        let track_handle_left = io_rect::View::new();
+        let track_handle_right = io_rect::View::new();
+        let left_overflow = left_overflow::View::new();
+        let right_overflow = right_overflow::View::new();
         let background_color = default();
         let track_color = default();
         let background_left_corner_roundness = default();
@@ -98,10 +97,6 @@ impl Model {
 
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        scene.layers.add_global_shapes_order_dependency::<background::View, track::View>();
-        scene.layers.add_global_shapes_order_dependency::<track::View, left_overflow::View>();
-        scene.layers.add_global_shapes_order_dependency::<track::View, right_overflow::View>();
-        scene.layers.add_global_shapes_order_dependency::<track::View, io_rect::View>();
 
         root.add_child(&label);
         root.add_child(&label_left);
@@ -112,13 +107,13 @@ impl Model {
         root.add_child(&track);
         root.add_child(&right_overflow);
 
-        label_left.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label_left);
         label_left.add_to_scene_layer(&scene.layers.label);
-        label_right.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&label_right);
         label_right.add_to_scene_layer(&scene.layers.label);
-        caption_left.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&caption_left);
         caption_left.add_to_scene_layer(&scene.layers.label);
-        caption_center.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&caption_center);
         caption_center.add_to_scene_layer(&scene.layers.label);
 
         Self {
@@ -285,9 +280,17 @@ impl Model {
         self.padding.set(padding);
     }
 
-    pub fn show_background(&self, value: bool) {
+    pub fn show_shadow(&self, value: bool) {
         if value {
             self.background.show_shadow.set(1.0);
+        } else {
+            self.background.show_shadow.set(0.0);
+        }
+    }
+
+    pub fn show_background(&self, value: bool) {
+        if value {
+            self.show_shadow(true);
             self.background.color.set(self.background_color.as_ref().clone().into_inner().into());
             let left_corner_roundness =
                 if self.background_left_corner_roundness.get() { 1.0 } else { 0.0 };
@@ -296,8 +299,8 @@ impl Model {
             self.track.corner_right.set(right_corner_roundness);
             self.track.corner_left.set(left_corner_roundness);
         } else {
-            self.background.color.set(HOVER_COLOR.into());
-            self.background.show_shadow.set(0.0);
+            self.show_shadow(false);
+            self.background.color.set(INVISIBLE_HOVER_COLOR.into());
             self.track.corner_right.set(0.0);
             self.track.corner_left.set(0.0);
         }

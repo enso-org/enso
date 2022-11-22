@@ -1,9 +1,12 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
+
+use crate::prelude::*;
 
 use crate::closure::storage::ClosureFn;
 use crate::closure::storage::OptionalFmMutClosure;
 
-use crate::prelude::*;
+use derivative::Derivative;
 
 
 
@@ -26,7 +29,6 @@ use crate::prelude::*;
 #[derive(Derivative)]
 #[derivative(Debug(bound = "EventType::Interface: Debug"))]
 pub struct Slot<EventType: crate::event::Type> {
-    logger:     Logger,
     #[derivative(Debug = "ignore")]
     target:     Option<EventType::Target>,
     js_closure: OptionalFmMutClosure<EventType::Interface>,
@@ -35,18 +37,14 @@ pub struct Slot<EventType: crate::event::Type> {
 impl<EventType: crate::event::Type> Slot<EventType> {
     /// Create a new `Slot`. As the initial target is provided, the listener will register once it
     /// gets a callback (see [[set_callback]]).
-    pub fn new(target: &EventType::Target, logger: impl AnyLogger) -> Self {
-        Self {
-            logger:     Logger::new_sub(logger, EventType::NAME),
-            target:     Some(target.clone()),
-            js_closure: default(),
-        }
+    pub fn new(target: &EventType::Target) -> Self {
+        Self { target: Some(target.clone()), js_closure: default() }
     }
 
     /// Register the event listener if both target and callback are set.
     fn add_if_active(&mut self) {
         if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
-            debug!(self.logger, "Attaching the callback.");
+            debug!("Attaching the callback.");
             EventType::add_listener(target, function)
         }
     }
@@ -54,7 +52,7 @@ impl<EventType: crate::event::Type> Slot<EventType> {
     /// Unregister the event listener if both target and callback are set.
     fn remove_if_active(&mut self) {
         if let (Some(target), Some(function)) = (self.target.as_ref(), self.js_closure.js_ref()) {
-            debug!(self.logger, "Detaching the callback.");
+            debug!("Detaching the callback.");
             EventType::remove_listener(target, function)
         }
     }

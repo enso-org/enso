@@ -8,6 +8,7 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -262,7 +263,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[IR.Function.Lambda]
       val secondLine = ir.body.children(1).asInstanceOf[IR.Expression.Binding]
-      val z          = secondLine.expression
+      val z          = secondLine.expression.asInstanceOf[IR.Application.Force].target
       val thirdLine =
         ir.body.children(2).asInstanceOf[IR.Application.Prefix]
       val y =
@@ -318,7 +319,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .asInstanceOf[IR.Expression.Binding]
       val body       = ir.expression.asInstanceOf[IR.Function.Lambda].body
       val secondLine = body.children(1).asInstanceOf[IR.Expression.Binding]
-      val z          = secondLine.expression
+      val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine  = body.children(2).asInstanceOf[IR.Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[IR.CallArgument.Specified].value

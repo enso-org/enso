@@ -1,18 +1,26 @@
 //! The fullscreen button in the Top Button panel.
 
-use crate::window_control_buttons::common::prelude::*;
+use ensogl_component::button::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use ensogl_hardcoded_theme::application::window_control_buttons::fullscreen as theme;
 
-/// The view component with the fullscreen button.
-pub type View = common::View<shape::DynamicShape>;
+
+
+// =============
+// === Shape ===
+// =============
 
 /// The shape for "fullscreen" button. The icon consists if two triangles ◤◢ centered around single
 /// point.
 pub mod shape {
     use super::*;
-    ensogl::define_shape_system! {
-        (background_color:Vector4<f32>, icon_color:Vector4<f32>) {
+    ensogl::shape! {
+        (style: Style, background_color: Vector4<f32>, icon_color: Vector4<f32>) {
             let size        = Var::canvas_size();
             let radius      = Min::min(size.x(),size.y()) / 2.0;
             let round       = &radius / 6.0;
@@ -25,7 +33,7 @@ pub mod shape {
     }
 }
 
-impl ButtonShape for shape::DynamicShape {
+impl ButtonShape for shape::Shape {
     fn debug_name() -> &'static str {
         "FullscreenButton"
     }
@@ -46,11 +54,24 @@ impl ButtonShape for shape::DynamicShape {
         }
     }
 
-    fn background_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn background_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.background_color
     }
 
-    fn icon_color(&self) -> &DynamicParam<Attribute<Vector4<f32>>> {
+    fn icon_color(&self) -> &ProxyParam<Attribute<Vector4<f32>>> {
         &self.icon_color
     }
 }
+
+
+
+// ============
+// === View ===
+// ============
+
+/// The view component with the fullscreen button.
+///
+/// The button styled after macOS, i.e. consists of an icon shape placed on top of a circle.
+/// The icon is visible when button or its neighborhood (as provided by `mouse_nearby` input) is
+/// hovered.
+pub type View = ensogl_component::button::View<shape::Shape>;

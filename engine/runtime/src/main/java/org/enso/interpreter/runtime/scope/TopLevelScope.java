@@ -1,8 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -29,7 +28,7 @@ import org.enso.polyglot.MethodNames;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
-public class TopLevelScope implements TruffleObject {
+public final class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final PackageRepository packageRepository;
 
@@ -68,6 +67,12 @@ public class TopLevelScope implements TruffleObject {
    */
   public Module createModule(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     Module module = new Module(name, pkg, sourceFile);
+    packageRepository.registerModuleCreatedInRuntime(module);
+    return module;
+  }
+
+  public Module createModule(QualifiedName name, Package<TruffleFile> pkg, String source) {
+    Module module = new Module(name, pkg, source);
     packageRepository.registerModuleCreatedInRuntime(module);
     return module;
   }
@@ -112,10 +117,8 @@ public class TopLevelScope implements TruffleObject {
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
-    private static Module getModule(
-        TopLevelScope scope,
-        Object[] arguments,
-        TruffleLanguage.ContextReference<Context> contextReference)
+    @CompilerDirectives.TruffleBoundary
+    private static Module getModule(TopLevelScope scope, Object[] arguments)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);
 
@@ -127,12 +130,14 @@ public class TopLevelScope implements TruffleObject {
       return module.get();
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName), null);
+      return Module.empty(QualifiedName.simpleName(moduleName), null, context);
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       Types.Pair<String, String> args =
@@ -144,17 +149,19 @@ public class TopLevelScope implements TruffleObject {
       return module;
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Object unregisterModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
       scope.packageRepository.deregisterModule(name);
-      return context.getNothing().newInstance();
+      return context.getNothing();
     }
 
     private static Object leakContext(Context context) {
       return context.getEnvironment().asGuestValue(context);
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, Context context)
         throws UnsupportedTypeException, ArityException {
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
@@ -164,25 +171,21 @@ public class TopLevelScope implements TruffleObject {
     }
 
     @Specialization
-    static Object doInvoke(
-        TopLevelScope scope,
-        String member,
-        Object[] arguments,
-        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
+    static Object doInvoke(TopLevelScope scope, String member, Object[] arguments)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case MethodNames.TopScope.GET_MODULE:
-          return getModule(scope, arguments, contextRef);
+          return getModule(scope, arguments);
         case MethodNames.TopScope.CREATE_MODULE:
-          return createModule(scope, arguments, contextRef.get());
+          return createModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.REGISTER_MODULE:
-          return registerModule(scope, arguments, contextRef.get());
+          return registerModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.UNREGISTER_MODULE:
-          return unregisterModule(scope, arguments, contextRef.get());
+          return unregisterModule(scope, arguments, Context.get(null));
         case MethodNames.TopScope.LEAK_CONTEXT:
-          return leakContext(contextRef.get());
+          return leakContext(Context.get(null));
         case MethodNames.TopScope.COMPILE:
-          return compile(arguments, contextRef.get());
+          return compile(arguments, Context.get(null));
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -232,7 +235,7 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   Object getScopeParent() throws UnsupportedMessageException {
-    return UnsupportedMessageException.create();
+    throw UnsupportedMessageException.create();
   }
 
   /**

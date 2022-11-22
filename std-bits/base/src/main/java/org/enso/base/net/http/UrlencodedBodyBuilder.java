@@ -49,10 +49,8 @@ public final class UrlencodedBodyBuilder {
   }
 
   private String encodePart(String name, String value) {
-    return
-        URLEncoder.encode(name, StandardCharsets.UTF_8)
-            + "="
-            + URLEncoder.encode(value, StandardCharsets.UTF_8);
+    return URLEncoder.encode(name, StandardCharsets.UTF_8)
+        + "="
+        + URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
-
 }

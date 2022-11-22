@@ -1,17 +1,18 @@
 //! Example visualisation showing the provided data as text.
 
+use crate::component::visualization::*;
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization;
-use crate::component::visualization::*;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme;
 
 
@@ -41,16 +42,16 @@ impl RawText {
     /// Definition of this visualization.
     pub fn definition() -> Definition {
         let path = Path::builtin("JSON");
-        Definition::new(Signature::new_for_any_type(path, Format::Json), |scene| {
-            Ok(Self::new(scene.clone_ref()).into())
+        Definition::new(Signature::new_for_any_type(path, Format::Json), |app| {
+            Ok(Self::new(app.clone_ref()).into())
         })
     }
 
     /// Constructor.
-    pub fn new(scene: Scene) -> Self {
+    pub fn new(app: Application) -> Self {
         let network = frp::Network::new("js_visualization_raw_text");
         let frp = visualization::instance::Frp::new(&network);
-        let model = RawTextModel::new(scene);
+        let model = RawTextModel::new(app);
         Self { model, frp, network }.init()
     }
 
@@ -82,7 +83,8 @@ pub struct RawTextModel {
 
 impl RawTextModel {
     /// Constructor.
-    fn new(scene: Scene) -> Self {
+    fn new(app: Application) -> Self {
+        let scene = app.display.default_scene.clone_ref();
         let logger = Logger::new("RawText");
         let div = web::document.create_div_or_panic();
         let dom = DomSymbol::new(&div);
@@ -132,10 +134,25 @@ impl RawTextModel {
             Data::Json { content } => content,
             _ => todo!(), // FIXME
         };
+        self.dom.dom().set_inner_html("");
         let data_str = serde_json::to_string_pretty(&**data_inner);
         let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
-        self.dom.dom().set_inner_text(&data_str);
-        Ok(())
+        let max_line_size = 1024;
+        if data_str.len() > max_line_size {
+            split_long_lines(&data_str, max_line_size, &mut |line| {
+                let node = web::document.create_div_or_panic();
+                node.set_inner_text(line);
+                let res = self.dom.dom().append_child(&node);
+                if res.is_err() {
+                    Err(DataError::InternalComputationError)
+                } else {
+                    Ok(())
+                }
+            })
+        } else {
+            self.dom.dom().set_inner_text(&data_str);
+            Ok(())
+        }
     }
 
     fn reload_style(&self) {
@@ -147,6 +164,22 @@ impl RawTextModel {
     }
 }
 
+fn split_long_lines(
+    data_str: &str,
+    max_line_size: usize,
+    process_line: &mut impl FnMut(&str) -> Result<(), DataError>,
+) -> Result<(), DataError> {
+    let chunks = data_str.char_indices().chunks(max_line_size);
+    let chunk_boundaries = chunks
+        .into_iter()
+        .filter_map(|mut chunk| chunk.next().map(|(ix, _)| ix))
+        .chain(std::iter::once(data_str.len()));
+    for (start, end) in chunk_boundaries.into_iter().tuple_windows() {
+        process_line(&data_str[start..end])?;
+    }
+    Ok(())
+}
+
 impl From<RawText> for Instance {
     fn from(t: RawText) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.dom.clone_ref()))
@@ -156,5 +189,55 @@ impl From<RawText> for Instance {
 impl display::Object for RawText {
     fn display_object(&self) -> &display::object::Instance {
         self.dom.display_object()
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use crate::component::visualization::DataError;
+
+    #[test]
+    fn test_split_long_lines() {
+        let str = "ABCDEFGH".to_string().repeat(1024);
+        let mut cnt = 0;
+        let res = super::split_long_lines(&str, 512, &mut |l| {
+            assert_eq!(l.len(), 512);
+            assert_eq!(&l[0..1], "A");
+            cnt += 1;
+            Ok(())
+        });
+        assert!(res.is_ok());
+        assert_eq!(cnt, 16);
+    }
+
+    #[test]
+    fn test_split_long_lines_with_failure() {
+        let str = "ABCDEFGH".to_string().repeat(1024);
+        let mut cnt = 0;
+        let res = super::split_long_lines(&str, 128, &mut |l| {
+            assert_eq!(l.len(), 128);
+            assert_eq!(&l[0..1], "A");
+            cnt += 1;
+            if cnt >= 4 {
+                Err(DataError::InvalidJsonText)
+            } else {
+                Ok(())
+            }
+        });
+        assert!(res.is_err());
+        assert_eq!(cnt, 4);
+    }
+
+    #[test]
+    fn test_emoticons() {
+        let str = "👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧👨‍👨‍👧‍👧"
+            .to_string()
+            .repeat(1024);
+        let res = super::split_long_lines(&str, 512, &mut |l| {
+            assert_eq!(l.chars().count(), 512);
+            Ok(())
+        });
+        assert!(res.is_ok());
     }
 }

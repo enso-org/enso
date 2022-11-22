@@ -8,4 +8,4 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-ensogl-core = { version = "0.1.0", path = "../../../core" }
+ensogl-core = { path = "../../../core" }

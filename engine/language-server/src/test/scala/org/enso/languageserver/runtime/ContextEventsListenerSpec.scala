@@ -3,6 +3,7 @@ package org.enso.languageserver.runtime
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
@@ -29,6 +30,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.nio.file.Files
 import java.util.UUID
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
@@ -61,7 +63,7 @@ class ContextEventsListenerSpec
         val (_, suggestionIds) = Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
@@ -191,7 +193,7 @@ class ContextEventsListenerSpec
         Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
@@ -407,7 +409,7 @@ class ContextEventsListenerSpec
               Seq(
                 ExecutionDiagnostic(
                   ExecutionDiagnosticKind.Error,
-                  message,
+                  Some(message),
                   None,
                   None,
                   None,
@@ -451,9 +453,11 @@ class ContextEventsListenerSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds),
+      VcsManagerConfig(timeout  = 5.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig.initialize(root.file)
+      ProjectDirectoriesConfig.initialize(root.file),
+      ProfilingConfig()
     )
   }
 

@@ -4,6 +4,7 @@ import org.enso.pkg.PackageManager
 import org.enso.runtimeversionmanager.runner.Project
 
 import java.nio.file.Path
+
 import scala.util.{Failure, Try}
 
 /** A helper class for project management.

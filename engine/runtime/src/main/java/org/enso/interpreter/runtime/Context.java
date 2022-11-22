@@ -6,6 +6,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -16,8 +17,10 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.librarymanager.ProjectLoadingFailure;
@@ -31,6 +34,7 @@ import scala.jdk.javaapi.OptionConverters;
 import java.io.*;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -62,6 +66,10 @@ public class Context {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
+  private final AtomicLong clock = new AtomicLong();
+
+  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  private final IOPermissions rootIOPermissions;
 
   /**
    * Creates a new Enso context.
@@ -94,6 +102,7 @@ public class Context {
         environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.rootIOPermissions = environment.getOptions().get(Language.IO_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -124,12 +133,14 @@ public class Context {
 
     Optional<String> languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =
         PackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
+            OptionConverters.toScala(editionOverride),
             distributionManager,
             resourceManager,
             this,
@@ -149,6 +160,10 @@ public class Context {
    */
   public static Context get(Node node) {
     return REFERENCE.get(node);
+  }
+
+  public static TruffleLanguage.ContextReference<Context> getReference() {
+    return REFERENCE;
   }
 
   /** Performs eventual cleanup before the context is disposed of. */
@@ -364,7 +379,7 @@ public class Context {
    *
    * @return the builtin {@code Nothing} atom constructor
    */
-  public AtomConstructor getNothing() {
+  public Type getNothing() {
     return getBuiltins().nothing();
   }
 
@@ -448,5 +463,26 @@ public class Context {
    */
   public TruffleLogger getLogger(Class<?> klass) {
     return TruffleLogger.getLogger(LanguageInfo.ID, klass);
+  }
+
+  /**
+   * Returns the current clock value and atomically increments the counter by one.
+   *
+   * <p>The counter is used to track the creation time of warnings.
+   */
+  public long clockTick() {
+    return clock.getAndIncrement();
+  }
+
+  public IOPermissions getRootIOPermissions() {
+    return rootIOPermissions;
+  }
+
+  public Shape getRootStateShape() {
+    return rootStateShape;
+  }
+
+  public State emptyState() {
+    return State.create(this);
   }
 }

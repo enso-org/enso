@@ -1,7 +1,6 @@
 //! This module defines bindings to every item data type which can be stored in a texture.
 
 use crate::prelude::*;
-
 use crate::system::gpu::data::gl_enum::*;
 use crate::system::gpu::data::prim::*;
 

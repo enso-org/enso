@@ -1,10 +1,10 @@
 //! Mocked bindings to the web-api allowing its compilation for the native target without throwing
 //! panics.
 
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::boxed_local)]
 
-
-use enso_prelude::*;
+use crate::prelude::*;
 
 use std::marker::Unsize;
 
@@ -78,13 +78,13 @@ macro_rules! mock_struct {
         }
 
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl$(<$($param $(:?$param_tp)?),*>)?
         $name $(<$($param),*>)? {
             /// Const constructor.
             pub const fn const_new() -> Self {
-                unsafe { mem::transmute(()) }
+                unsafe { std::mem::transmute(()) }
             }
         }
 
@@ -138,12 +138,12 @@ macro_rules! mock_struct_as_ref {
         $(=> $deref:ident)?
     ) => {
         /// # Safety
-        /// The usage of [`mem::transmute`] is safe here as we transmute ZST types.
+        /// The usage of [`std::mem::transmute`] is safe here as we transmute ZST types.
         #[allow(unsafe_code)]
         impl<__T__: MockData, $($($param $(:?$param_tp)? ),*)?>
         AsRef<__T__> for $name $(<$($param),*>)? {
             fn as_ref(&self) -> &__T__ {
-                unsafe { mem::transmute(self) }
+                unsafe { std::mem::transmute(self) }
             }
         }
     };
@@ -230,6 +230,7 @@ macro_rules! mock_fn_gen_print {
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
         #[allow(unused_variables)]
         #[allow(clippy::too_many_arguments)]
+        #[allow(clippy::should_implement_trait)]
         #[allow(missing_docs)]
         $($viz)? fn $name $(<$($fn_tp),*>)? ( $($args)* ) $(-> $out)? {
             $($body)*
@@ -316,6 +317,10 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
+    fn is_null(&self) -> bool;
+    fn from_str(s: &str) -> JsValue;
+    fn from_f64(n: f64) -> JsValue;
+    fn as_f64(&self) -> Option<f64>;
 }
 
 impl JsValue {
@@ -350,6 +355,13 @@ mock_data! { [NO_AS_REF] Closure<T: ?Sized>
 }
 
 #[allow(missing_docs)]
+impl Closure<dyn FnOnce()> {
+    pub fn once_into_js<F>(_fn_once: F) -> JsValue {
+        default()
+    }
+}
+
+#[allow(missing_docs)]
 impl<T: ?Sized> Closure<T> {
     pub fn new<F>(_t: F) -> Closure<T>
     where F: Unsize<T> + 'static {
@@ -363,7 +375,7 @@ impl<T: ?Sized> Closure<T> {
 #[allow(unsafe_code)]
 impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     fn as_ref(&self) -> &JsValue {
-        unsafe { mem::transmute(self) }
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -392,7 +404,13 @@ impl From<&JsString> for String {
 
 
 // === Array ===
-mock_data! { Array => Object }
+mock_data! { Array => Object
+    fn length(&self) -> u32;
+    fn of2(a: &JsValue, b: &JsValue) -> Array;
+    fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
+    fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
+    fn of5(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue, e: &JsValue) -> Array;
+}
 
 
 // === Error ===
@@ -444,8 +462,11 @@ mock_data! { EventTarget => Object
 // === Document ===
 mock_data! { Document => EventTarget
     fn body(&self) -> Option<HtmlElement>;
+    fn head(&self) -> Option<HtmlHeadElement>;
+    fn fonts(&self) -> FontFaceSet;
     fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
+    fn create_text_node(&self, data: &str) -> Text;
 }
 
 
@@ -457,6 +478,12 @@ mock_data! { Window => EventTarget
     fn cancel_animation_frame(&self, handle: i32) -> Result<(), JsValue>;
     fn performance(&self) -> Option<Performance>;
     fn device_pixel_ratio(&self) -> f64;
+    fn set_timeout_with_callback_and_timeout_and_arguments_0
+        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
+    fn set_interval_with_callback_and_timeout_and_arguments_0
+        (&self, handler: &Function, timeout: i32) -> Result<i32, JsValue>;
+    fn clear_timeout_with_handle(&self, handle: i32);
+    fn clear_interval_with_handle(&self, handle: i32);
 }
 
 
@@ -493,6 +520,7 @@ mock_data! { KeyboardEvent => Event
     fn code(&self) -> String;
     fn alt_key(&self) -> bool;
     fn ctrl_key(&self) -> bool;
+    fn shift_key(&self) -> bool;
 }
 
 
@@ -565,6 +593,22 @@ impl From<HtmlElement> for EventTarget {
 }
 
 
+// === HtmlHeadElement ===
+mock_data! { HtmlHeadElement => HtmlElement }
+
+
+// === HtmlHeadElement ===
+mock_data! { Promise
+    fn then(&self, cb: &Closure<dyn FnMut(JsValue)>) -> Promise;
+}
+
+
+// === HtmlHeadElement ===
+mock_data! { FontFaceSet
+    fn ready(&self) -> Result<Promise, JsValue>;
+}
+
+
 // === HtmlDivElement ===
 mock_data! { HtmlDivElement => HtmlElement }
 impl From<HtmlDivElement> for EventTarget {
@@ -572,6 +616,16 @@ impl From<HtmlDivElement> for EventTarget {
         default()
     }
 }
+
+
+// === HtmlDivElement ===
+mock_data! { Text => CharacterData }
+
+
+
+// === CharacterData ===
+mock_data! { CharacterData => Node }
+
 
 
 // === HtmlCanvasElement ===
@@ -588,10 +642,18 @@ mock_data! { HtmlCanvasElement => HtmlElement
         ) -> Result<Option<Object>, JsValue>;
 }
 
+// === HtmlCanvasElement ===
+mock_data! { TextMetrics
+    fn actual_bounding_box_right(&self) -> u32;
+    fn actual_bounding_box_left(&self) -> u32;
+    fn width(&self) -> u32;
+}
+
 
 // === CanvasRenderingContext2d ===
 mock_data! { CanvasRenderingContext2d
     fn save(&self);
+    fn measure_text(&self, text: &str) -> Result<TextMetrics, JsValue>;
     fn restore(&self);
     fn begin_path(&self);
     fn stroke(&self);
@@ -649,6 +711,7 @@ mock_data! { CssStyleDeclaration => Object
 // === Performance ===
 mock_data! { Performance => EventTarget
     fn now(&self) -> f64;
+    fn time_origin(&self) -> f64;
 }
 
 

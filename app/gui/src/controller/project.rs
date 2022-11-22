@@ -1,17 +1,17 @@
 //! A Project Controller.
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::model::module::QualifiedName;
-use crate::model::traits::*;
 
 use double_representation::project;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -21,12 +21,6 @@ use parser::Parser;
 
 /// The label of compiling stdlib message process.
 pub const COMPILING_STDLIB_LABEL: &str = "Compiling standard library. It can take up to 1 minute.";
-
-/// The name of the module initially opened in the project view.
-///
-/// Currently, this name is hardcoded in the engine services and is populated for each project
-/// created using engine's Project Picker service.
-pub const INITIAL_MODULE_NAME: &str = "Main";
 
 /// Name of the main definition.
 ///
@@ -50,12 +44,6 @@ pub fn main_method_ptr(
     module_path: &model::module::Path,
 ) -> MethodPointer {
     module_path.method_pointer(project_name, MAIN_DEFINITION_NAME)
-}
-
-/// The identifier of the project's main module.
-pub fn main_module_id() -> model::module::Id {
-    // We can just assume that `INITIAL_MODULE_NAME` is valid. This is verified by a test.
-    model::module::Id::try_new([INITIAL_MODULE_NAME]).unwrap()
 }
 
 
@@ -120,10 +108,11 @@ impl Project {
     /// warning about unsupported engine version).
     ///
     /// Returns the controllers of module and graph which should be displayed in the view.
+    #[profile(Task)]
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
         let project = self.model.clone_ref();
         let parser = self.model.parser();
-        let module_path = self.initial_module_path()?;
+        let module_path = self.initial_module_path();
         let file_path = module_path.file_path().clone();
 
         // TODO [mwu] This solution to recreate missing main file should be considered provisional
@@ -160,7 +149,7 @@ impl Project {
 
 impl Project {
     /// Returns the path to the initially opened module in the given project.
-    fn initial_module_path(&self) -> FallibleResult<model::module::Path> {
+    fn initial_module_path(&self) -> model::module::Path {
         crate::ide::initial_module_path(&self.model)
     }
 
@@ -213,6 +202,7 @@ impl Project {
         }
     }
 
+    #[profile(Detail)]
     fn notify_about_compiling_process(&self, graph: &controller::ExecutedGraph) {
         let status_notifier = self.status_notifications.clone_ref();
         let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
@@ -261,12 +251,6 @@ mod tests {
     }
 
     #[test]
-    fn main_module_id_test() {
-        // Should not panic.
-        main_module_id();
-    }
-
-    #[test]
     fn new_project_engine_version_fills_requirements() {
         let requirements = enso_config::engine_version_requirement();
         let version = semver::Version::parse(enso_config::engine_version_supported).unwrap();
@@ -276,7 +260,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn adding_missing_main() {
         let _ctx = TestWithLocalPoolExecutor::set_up();
-        let parser = parser::Parser::new_or_panic();
+        let parser = parser_scala::Parser::new_or_panic();
         let mut data = crate::test::mock::Unified::new();
         let module_name = data.module_path.module_name();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);
@@ -300,7 +284,6 @@ mod tests {
             assert_eq!(code, module.ast().repr());
         };
         expect_intact("main = 5");
-        expect_intact("here.main = 5");
         expect_intact(&format!("{}.main = 5", module_name));
     }
 }

@@ -1,0 +1,4 @@
+type Bar
+    Mk_Bar x
+
+bar_mod_method x = x+10

@@ -5,12 +5,10 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -18,14 +16,13 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -66,9 +63,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   public enum ArgumentsExecutionMode {
     /** Arguments are pre-executed for this call. */
     PRE_EXECUTED,
-    /**
-     * Arguments are passed as {@link Thunk}s and should be executed before calling the function.
-     */
+    /** Arguments are passed as thunks and should be executed before calling the function. */
     EXECUTE;
 
     /**
@@ -86,7 +81,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private InvokeConversionNode invokeConversionNode;
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
-  private final ConditionProfile functionErrorProfile = ConditionProfile.createCountingProfile();
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -112,9 +106,11 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.invokeMethodNode =
-        InvokeMethodNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+        InvokeMethodNode.build(
+            schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition);
     this.invokeConversionNode =
-        InvokeConversionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+        InvokeConversionNode.build(
+            schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);
   }
 
   public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
@@ -122,7 +118,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     for (; idx < schema.length; idx++) {
       CallArgumentInfo arg = schema[idx];
 
-      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
+      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.SELF_ARGUMENT);
       if (arg.isPositional() || isNamedThis) {
         return idx;
       }
@@ -143,9 +139,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     return null;
   }
 
-
   /**
-   *
    * Creates a new instance of this node.
    *
    * @param schema a description of the arguments being applied to the callable
@@ -160,32 +154,32 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Specialization
-  Stateful invokeFunction(
-      Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
+  Object invokeFunction(
+      Function function, VirtualFrame callerFrame, State state, Object[] arguments) {
     return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
   }
 
   @Specialization
-  Stateful invokeConstructor(
-      AtomConstructor constructor, VirtualFrame callerFrame, Object state, Object[] arguments) {
+  Object invokeConstructor(
+      AtomConstructor constructor, VirtualFrame callerFrame, State state, Object[] arguments) {
     return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
   }
 
   @Specialization
-  Stateful invokeDataflowError(
-      DataflowError error, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    return new Stateful(state, error);
+  Object invokeDataflowError(
+      DataflowError error, VirtualFrame callerFrame, State state, Object[] arguments) {
+    return error;
   }
 
   @Specialization
-  Stateful invokePanicSentinel(
-      PanicSentinel sentinel, VirtualFrame callerFrame, Object state, Object[] arguments) {
+  Object invokePanicSentinel(
+      PanicSentinel sentinel, VirtualFrame callerFrame, State state, Object[] arguments) {
     throw sentinel;
   }
 
   @Specialization
-  public Stateful invokeConversion(
-      UnresolvedConversion conversion, VirtualFrame callerFrame, Object state, Object[] arguments) {
+  public Object invokeConversion(
+      UnresolvedConversion conversion, VirtualFrame callerFrame, State state, Object[] arguments) {
     if (canApplyThis && canApplyThat) {
       Object selfArgument = arguments[thisArgumentPosition];
       Object thatArgument = arguments[thatArgumentPosition];
@@ -214,24 +208,24 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        Stateful selfResult = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
-        Stateful thatResult = thatExecutor.executeThunk(thatArgument, selfResult.getState(), TailStatus.NOT_TAIL);
-        selfArgument = selfResult.getValue();
-        thatArgument = thatResult.getValue();
-        state = thatResult.getState();
+        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
+        thatArgument = thatExecutor.executeThunk(thatArgument, state, TailStatus.NOT_TAIL);
+
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
       }
-      return invokeConversionNode.execute(callerFrame, state, conversion, selfArgument, thatArgument, arguments);
+      return invokeConversionNode.execute(
+          callerFrame, state, conversion, selfArgument, thatArgument, arguments);
     } else {
-      throw new RuntimeException("Conversion currying without `this` or `that` argument is not supported.");
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException(
+          "Conversion currying without `this` or `that` argument is not supported.");
     }
   }
 
-
   @Specialization
-  public Stateful invokeDynamicSymbol(
-      UnresolvedSymbol symbol, VirtualFrame callerFrame, Object state, Object[] arguments) {
+  public Object invokeDynamicSymbol(
+      UnresolvedSymbol symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
@@ -247,22 +241,20 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        Stateful selfResult = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
-        selfArgument = selfResult.getValue();
-        state = selfResult.getState();
+        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
   }
 
   @Fallback
-  public Stateful invokeGeneric(
-      Object callable, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    Context ctx = lookupContextReference(Language.class).get();
-    Atom error = ctx.getBuiltins().error().makeNotInvokableError(callable);
+  public Object invokeGeneric(
+      Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
+    Atom error = Context.get(this).getBuiltins().error().makeNotInvokableError(callable);
     throw new PanicException(error, this);
   }
 
@@ -275,8 +267,8 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @param arguments the arguments to evaluate {@code callable} on
    * @return the result of executing {@code callable} on the supplied {@code arguments}
    */
-  public abstract Stateful execute(
-      Object callable, VirtualFrame callerFrame, Object state, Object[] arguments);
+  public abstract Object execute(
+      Object callable, VirtualFrame callerFrame, State state, Object[] arguments);
 
   /**
    * Sets whether or not the current node is tail-recursive.

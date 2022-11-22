@@ -11,7 +11,7 @@ public final class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
-  private final Map<UUID, IdExecutionInstrument.FunctionCallInfo> calls = new HashMap<>();
+  private final Map<UUID, IdExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
   /**
@@ -73,8 +73,8 @@ public final class RuntimeCache {
    * @param call the function call.
    * @return the function call that was previously associated with this expression.
    */
-  public IdExecutionInstrument.FunctionCallInfo putCall(
-      UUID key, IdExecutionInstrument.FunctionCallInfo call) {
+  public IdExecutionService.FunctionCallInfo putCall(
+      UUID key, IdExecutionService.FunctionCallInfo call) {
     if (call == null) {
       return calls.remove(key);
     }
@@ -82,7 +82,7 @@ public final class RuntimeCache {
   }
 
   /** @return the cached function call associated with the expression. */
-  public IdExecutionInstrument.FunctionCallInfo getCall(UUID key) {
+  public IdExecutionService.FunctionCallInfo getCall(UUID key) {
     return calls.get(key);
   }
 

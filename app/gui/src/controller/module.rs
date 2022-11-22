@@ -7,12 +7,13 @@ use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
+use double_representation::import;
 use double_representation::module;
 use double_representation::project;
 use double_representation::text::apply_code_change_to_id_map;
 use engine_protocol::language_server;
 use engine_protocol::types::Sha3_224;
-use parser::Parser;
+use parser_scala::Parser;
 
 
 
@@ -45,6 +46,7 @@ pub struct Handle {
 
 impl Handle {
     /// Create a module controller for given path.
+    #[profile(Task)]
     pub async fn new(
         parent: impl AnyLogger,
         path: Path,
@@ -89,7 +91,6 @@ impl Handle {
         let my_code = self.code();
         if code != my_code {
             error!(
-                self.logger,
                 "The module controller ast was not synchronized with text editor \
                 content!\n >>> Module: {my_code}\n >>> Editor: {code}"
             );
@@ -154,7 +155,7 @@ impl Handle {
     ///
     /// May create duplicate entries if such import was already present.
     pub fn add_import(&self, target: &module::QualifiedName) -> FallibleResult {
-        let import = module::ImportInfo::from_qualified_name(target);
+        let import = import::Info::new_qualified(target);
         self.modify(|info| info.add_import(&self.parser, import))?;
         Ok(())
     }
@@ -163,12 +164,12 @@ impl Handle {
     ///
     /// Fails, if there was no such declaration found.
     pub fn remove_import(&self, target: &module::QualifiedName) -> FallibleResult {
-        let import = module::ImportInfo::from_qualified_name(target);
+        let import = import::Info::new_qualified(target);
         self.modify(|info| info.remove_import(&import))?
     }
 
     /// Retrieve a vector describing all import declarations currently present in the module.
-    pub fn imports(&self) -> Vec<module::ImportInfo> {
+    pub fn imports(&self) -> Vec<import::Info> {
         let module = self.module_info();
         module.iter_imports().collect()
     }
@@ -185,7 +186,7 @@ impl Handle {
         let logger = Logger::new("Mocked Module Controller");
         let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
         let metadata = default();
-        let model = Rc::new(model::module::Plain::new(&logger, path, ast, metadata, repository));
+        let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
         Ok(Handle { model, language_server, parser, logger })
     }
 
@@ -211,8 +212,8 @@ mod test {
     use ast;
     use ast::Ast;
     use ast::BlockLine;
-    use enso_text::traits::*;
-    use parser::Parser;
+    use enso_text::index::*;
+    use parser_scala::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -228,16 +229,16 @@ mod test {
             let uuid3 = Uuid::new_v4();
             let uuid4 = Uuid::new_v4();
             let id_map = ast::IdMap::new(vec![
-                ((0.bytes()..1.bytes()).into(), uuid1),
-                ((1.bytes()..2.bytes()).into(), uuid2),
-                ((2.bytes()..3.bytes()).into(), uuid3),
-                ((0.bytes()..3.bytes()).into(), uuid4),
+                ((0.byte()..1.byte()).into(), uuid1),
+                ((1.byte()..2.byte()).into(), uuid2),
+                ((2.byte()..3.byte()).into(), uuid3),
+                ((0.byte()..3.byte()).into(), uuid4),
             ]);
             let controller =
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
             // Change code from "2+2" to "22+2"
-            let change = enso_text::Change::inserted(0.bytes(), "2".to_string());
+            let change = enso_text::Change::inserted(0.byte(), "2".to_string());
             controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {

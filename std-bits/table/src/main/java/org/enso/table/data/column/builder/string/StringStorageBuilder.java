@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.StringStorage;
 /** A column builder appending all the values passed to it in an unchanged form. */
 public class StringStorageBuilder extends StorageBuilder {
 
-  private Object[] data;
+  private String[] data;
   private int size;
 
   /**
@@ -29,7 +29,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public StorageBuilder parseAndAppend(String value) {
+  public StringStorageBuilder parseAndAppend(String value) {
     ensureAppendable();
     data[size++] = value;
     return this;
@@ -37,7 +37,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   private void ensureAppendable() {
     if (size >= data.length) {
-      Object[] newData = new Object[2 * data.length];
+      String[] newData = new String[2 * data.length];
       System.arraycopy(data, 0, newData, 0, data.length);
       data = newData;
     }
@@ -45,7 +45,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public Storage seal() {
+  public Storage<String> seal() {
     return new StringStorage(data, size);
   }
 }

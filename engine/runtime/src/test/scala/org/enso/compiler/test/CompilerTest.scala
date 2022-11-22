@@ -3,7 +3,10 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
@@ -154,15 +157,6 @@ trait CompilerRunner {
     */
   def genId: IR.Identifier = IR.randomId
 
-  /** Creates an IR name from a string.
-    *
-    * @param str the string to turn into a name
-    * @return an IR name representing the name `str`
-    */
-  def nameFromString(str: String): IR.Name.Literal = {
-    IR.Name.Literal(str, isReferent = false, isMethod = false, None)
-  }
-
   // === IR Testing Utils =====================================================
 
   /** A variety of extension methods on IR expressions to aid testing.
@@ -178,15 +172,17 @@ trait CompilerRunner {
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
-          IR.Name.Qualified(
-            List(
-              IR.Name
-                .Literal("TestType", isReferent = true, isMethod = false, None)
-            ),
-            None
+          Some(
+            IR.Name.Qualified(
+              List(
+                IR.Name
+                  .Literal("TestType", isMethod = false, None)
+              ),
+              None
+            )
           ),
           IR.Name
-            .Literal("testMethod", isReferent = false, isMethod = false, None),
+            .Literal("testMethod", isMethod = false, None),
           None
         ),
         ir,
@@ -198,14 +194,14 @@ trait CompilerRunner {
       *
       * @return an atom with one argument `arg` with default value `ir`
       */
-    def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
-      IR.Module.Scope.Definition.Atom(
-        IR.Name.Literal("TestAtom", isReferent = true, isMethod = false, None),
+    def asAtomDefaultArg: IR.Module.Scope.Definition.Data = {
+      IR.Module.Scope.Definition.Data(
+        IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
             .Specified(
               IR.Name
-                .Literal("arg", isReferent = false, isMethod = false, None),
+                .Literal("arg", isMethod = false, None),
               None,
               Some(ir),
               suspended = false,
@@ -214,19 +210,6 @@ trait CompilerRunner {
         ),
         None
       )
-    }
-
-    /** Creates a module containing both an atom and a method that use the
-      * provided expression.
-      *
-      * The expression is used in the default for an atom argument, as in
-      * [[asAtomDefaultArg()]], and in the body of a method, as in
-      * [[asMethod()]].
-      *
-      * @return a module containing an atom def and method def using `expr`
-      */
-    def asModuleDefs: IR.Module = {
-      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
   }
 
@@ -245,7 +228,7 @@ trait CompilerRunner {
     isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName, null),
+      module            = Module.empty(moduleName, null, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -269,8 +252,17 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
-    mod.unsafeBuildIrStub()
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null, null)
+    mod.unsafeSetIr(
+      IR.Module(List(), List(), List(), None)
+        .updateMetadata(
+          BindingAnalysis -->> BindingsMap(
+            List(),
+            ModuleReference.Concrete(mod)
+          )
+        )
+    )
+    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

@@ -3,20 +3,14 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ManagedResource;
-import org.enso.interpreter.runtime.data.Ref;
+import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -39,21 +33,31 @@ import org.enso.polyglot.data.TypeGraph;
   Function.class,
   Atom.class,
   AtomConstructor.class,
-  Thunk.class,
+  Type.class,
   DataflowError.class,
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
+  ArrayProxy.class,
+  ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
   Ref.class,
   PanicException.class,
-  PanicSentinel.class
+  PanicSentinel.class,
+  Vector.class,
+  Warning.class,
+  EnsoFile.class,
+  EnsoDate.class,
+  EnsoDateTime.class,
+  EnsoTimeOfDay.class,
+  EnsoTimeZone.class,
+  EnsoDuration.class
 })
 public class Types {
 
-  private static TypeGraph typeHierarchy = buildTypeHierarchy();
+  private static final TypeGraph typeHierarchy = buildTypeHierarchy();
 
   /**
    * A simple pair type
@@ -62,8 +66,8 @@ public class Types {
    * @param <B> the type of the second element
    */
   public static class Pair<A, B> {
-    private A first;
-    private B second;
+    private final A first;
+    private final B second;
 
     private Pair(A first, B second) {
       this.first = first;
@@ -97,7 +101,7 @@ public class Types {
    */
   public static void extractArguments(Object[] arguments) throws ArityException {
     if (arguments.length != 0) {
-      throw ArityException.create(0, arguments.length);
+      throw ArityException.create(0, 0, arguments.length);
     }
   }
 
@@ -109,37 +113,55 @@ public class Types {
    */
   public static String getName(Object value) {
     if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
-      return Constants.INTEGER;
+      return ConstantsGen.INTEGER;
     } else if (TypesGen.isDouble(value)) {
-      return Constants.DECIMAL;
+      return ConstantsGen.DECIMAL;
     } else if (TypesGen.isBoolean(value)) {
-      return Constants.BOOLEAN;
+      return ConstantsGen.BOOLEAN;
     } else if (TypesGen.isText(value)) {
-      return Constants.TEXT;
+      return ConstantsGen.TEXT;
     } else if (TypesGen.isFunction(value)) {
-      return Constants.FUNCTION;
-    } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
-    } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
-    } else if (TypesGen.isThunk(value)) {
-      return Constants.THUNK;
+      return ConstantsGen.FUNCTION;
+    } else if (value instanceof Atom atom) {
+      return atom.getConstructor().getQualifiedTypeName().toString();
+    } else if (value instanceof AtomConstructor cons) {
+      return cons.getQualifiedName().toString();
+    } else if (value instanceof Type t) {
+      return t.getQualifiedName().toString();
     } else if (TypesGen.isDataflowError(value)) {
-      return Constants.ERROR;
+      return ConstantsGen.ERROR;
     } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
-      return Constants.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value)) {
-      return Constants.ARRAY;
+      return ConstantsGen.MANAGED_RESOURCE;
+    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value) || TypesGen.isArrayProxy(value)) {
+      return ConstantsGen.ARRAY;
+    } else if (TypesGen.isVector(value)) {
+      return ConstantsGen.VECTOR;
+    } else if (TypesGen.isEnsoDate(value)) {
+      return ConstantsGen.DATE;
+    } else if (TypesGen.isEnsoDateTime(value)) {
+      return ConstantsGen.DATE_TIME;
+    } else if (TypesGen.isEnsoTimeOfDay(value)) {
+      return ConstantsGen.TIME_OF_DAY;
+    } else if (TypesGen.isEnsoDuration(value)) {
+      return ConstantsGen.DURATION;
+    } else if (TypesGen.isEnsoTimeZone(value)) {
+      return ConstantsGen.TIME_ZONE;
+    } else if (TypesGen.isEnsoFile(value)) {
+      return ConstantsGen.FILE;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
-      return Constants.REF;
+      return ConstantsGen.REF;
     } else if (TypesGen.isPanicException(value)) {
-      return Constants.PANIC;
+      return ConstantsGen.PANIC;
     } else if (TypesGen.isPanicSentinel(value)) {
-      return Constants.PANIC;
+      return ConstantsGen.PANIC;
+    } else if (TypesGen.isWarning(value)) {
+      return ConstantsGen.WARNING;
+    } else if (value instanceof WithWarnings) {
+      return getName(((WithWarnings) value).getValue());
     } else {
       return null;
     }
@@ -147,7 +169,7 @@ public class Types {
 
   /** Check if the given type is a panic. */
   public static boolean isPanic(String typeName) {
-    return Constants.PANIC.equals(typeName);
+    return ConstantsGen.PANIC.equals(typeName);
   }
 
   /**
@@ -164,7 +186,7 @@ public class Types {
   public static <A> A extractArguments(Object[] arguments, Class<A> cls)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 1) {
-      throw ArityException.create(1, arguments.length);
+      throw ArityException.create(1, 1, arguments.length);
     }
 
     if (!(cls.isInstance(arguments[0]))) {
@@ -190,7 +212,7 @@ public class Types {
   public static <A, B> Pair<A, B> extractArguments(Object[] arguments, Class<A> cls1, Class<B> cls2)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 2) {
-      throw ArityException.create(2, arguments.length);
+      throw ArityException.create(2, 2, arguments.length);
     }
     if (!(cls1.isInstance(arguments[0]))) {
       throw UnsupportedTypeException.create(
@@ -203,26 +225,33 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /** @return the language type hierarchy */
+  /**
+   * @return the language type hierarchy
+   */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
   }
 
   private static TypeGraph buildTypeHierarchy() {
-    TypeGraph graph = TypeGraph.fromJava(Constants.ANY);
+    TypeGraph graph = TypeGraph.fromJava(ConstantsGen.ANY);
 
-    graph.insert(Constants.ARRAY, Constants.ANY);
-    graph.insert(Constants.BOOLEAN, Constants.ANY);
-    graph.insert(Constants.DECIMAL, Constants.NUMBER);
-    graph.insert(Constants.ERROR, Constants.ANY);
-    graph.insert(Constants.FUNCTION, Constants.ANY);
-    graph.insert(Constants.INTEGER, Constants.NUMBER);
-    graph.insert(Constants.MANAGED_RESOURCE, Constants.ANY);
-    graph.insert(Constants.NOTHING, Constants.ANY);
-    graph.insert(Constants.PANIC, Constants.ANY);
-    graph.insert(Constants.REF, Constants.ANY);
-    graph.insert(Constants.TEXT, Constants.ANY);
-    graph.insertWithoutParent(Constants.PANIC);
+    graph.insert(ConstantsGen.ARRAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.BOOLEAN, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DECIMAL, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.ERROR, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.FUNCTION, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.INTEGER, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.MANAGED_RESOURCE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.NOTHING, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.PANIC, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.REF, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TEXT, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DATE_TIME, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_OF_DAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DURATION, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TIME_ZONE, ConstantsGen.ANY);
+    graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);
     graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);
 

@@ -1,9 +1,9 @@
 //! This module defines `Material`, an abstraction for look and feel of a `Symbol`.
 
 use crate::prelude::*;
+use crate::system::gpu::types::*;
 
 use crate::display::symbol::shader::builder::CodeTemplate;
-use crate::system::gpu::types::*;
 
 
 

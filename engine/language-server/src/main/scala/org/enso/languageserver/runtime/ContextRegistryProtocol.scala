@@ -1,17 +1,18 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
 import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.libraries.LibraryComponentGroup
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
 import org.enso.logger.masking.ToLogString
 import org.enso.text.editing.model
+
+import java.util.UUID
 
 object ContextRegistryProtocol {
 
@@ -22,8 +23,12 @@ object ContextRegistryProtocol {
   /** A request to the context registry to create a new execution context.
     *
     * @param rpcSession reference to the client
+    * @param contextId the context id to create
     */
-  case class CreateContextRequest(rpcSession: JsonSession)
+  case class CreateContextRequest(
+    rpcSession: JsonSession,
+    contextId: Option[ContextId]
+  )
 
   /** A response about creation of a new execution context.
     *
@@ -106,6 +111,21 @@ object ContextRegistryProtocol {
     */
   case class RecomputeContextResponse(contextId: ContextId)
 
+  /** A request to the context registry to get the loaded component groups.
+    *
+    * @param clientId the internal id of the client
+    * @param contextId the execution context identifier
+    */
+  case class GetComponentGroupsRequest(clientId: ClientId, contextId: ContextId)
+
+  /** A response to the [[GetComponentGroupsRequest]].
+    *
+    * @param componentGroups the list of loaded component groups.
+    */
+  case class GetComponentGroupsResponse(
+    componentGroups: Seq[LibraryComponentGroup]
+  )
+
   /** A notification about updated expressions of execution context.
     *
     * @param contextId execution context identifier
@@ -141,6 +161,9 @@ object ContextRegistryProtocol {
       /** An information about computed expression. */
       case object Value extends Payload
 
+      case class Pending(message: Option[String], progress: Option[Double])
+          extends Payload;
+
       /** Indicates that the expression was computed to an error.
         *
         * @param trace the list of expressions leading to the root error.
@@ -166,6 +189,8 @@ object ContextRegistryProtocol {
 
         val Value = "Value"
 
+        val Pending = "Pending"
+
         val DataflowError = "DataflowError"
 
         val Panic = "Panic"
@@ -190,6 +215,13 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Panic.asJson)
               )
+
+          case m: Payload.Pending =>
+            Encoder[Payload.Pending]
+              .apply(m)
+              .deepMerge(
+                Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
+              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -203,6 +235,9 @@ object ContextRegistryProtocol {
 
             case PayloadType.Panic =>
               Decoder[Payload.Panic].tryDecode(cursor)
+
+            case PayloadType.Pending =>
+              Decoder[Payload.Pending].tryDecode(cursor)
           }
         }
     }
@@ -273,7 +308,7 @@ object ContextRegistryProtocol {
     */
   case class ExecutionDiagnostic(
     kind: ExecutionDiagnosticKind,
-    message: String,
+    message: Option[String],
     path: Option[Path],
     location: Option[model.Range],
     expressionId: Option[UUID],

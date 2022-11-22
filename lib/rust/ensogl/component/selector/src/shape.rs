@@ -1,8 +1,9 @@
 //! This module contains the shapes and shape related functionality required.
-use crate::prelude::*;
 
-use ensogl_core::data::color;
+use crate::prelude::*;
 use ensogl_core::display::shape::*;
+
+use ensogl_core::display::shape::system::Shape;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 
@@ -32,14 +33,17 @@ impl Background {
         let width = &sprite_width - shadow::size(style).px();
         let height = &sprite_height - shadow::size(style).px();
         let corner_radius = &height / 2.0;
-        let rect_left = Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_left);
-        let rect_left = rect_left.translate_x(-&width / 4.0);
-        let rect_right =
-            Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_right);
-        let rect_right = rect_right.translate_x(&width / 4.0);
-        let rect_center = Rect((&corner_radius * 2.0, &height));
+        let left_corner_radius = &corner_radius * corner_left;
+        let right_corner_radius = &corner_radius * corner_right;
 
-        let shape = (rect_left + rect_right + rect_center).into();
+        let shape = Rect((&width, &height))
+            .corners_radiuses(
+                &left_corner_radius,
+                &right_corner_radius,
+                &left_corner_radius,
+                &right_corner_radius,
+            )
+            .into();
 
         Background { width, height, corner_radius, shape }
     }
@@ -51,7 +55,7 @@ impl Background {
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style,corner_left:f32,corner_right:f32,color:Vector4,show_shadow:f32) {
             let background = Background::new(&corner_left,&corner_right,style);
             let shadow     = shadow::from_shape_with_alpha(background.shape.clone(),
@@ -72,13 +76,13 @@ pub mod background {
 pub mod io_rect {
     use super::*;
 
-    ensogl_core::define_shape_system! {
-        () {
+    ensogl_core::shape! {
+        (style: Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
 
             let rect  = Rect((&sprite_width,&sprite_height));
-            let shape = rect.fill(HOVER_COLOR);
+            let shape = rect.fill(INVISIBLE_HOVER_COLOR);
 
             shape.into()
         }
@@ -98,14 +102,15 @@ pub mod io_rect {
 pub mod track {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
+        above = [background];
+        below = [left_overflow, right_overflow, io_rect];
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
          track_color:Vector4) {
             let background    = Background::new(&corner_left,&corner_right,style);
             let width         = background.width;
             let height        = background.height;
             let corner_radius = corner_inner * &height/2.0;
-
 
             let track_width = (&right - &left) * &width;
             let track_start = left * &width;
@@ -132,7 +137,7 @@ pub mod track {
 struct OverflowShape {
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
-    pub width:  Var<Pixels>,
+    pub width: Var<Pixels>,
     #[allow(dead_code)]
     // This field is not used but should stay as part of the API for future use.
     pub height: Var<Pixels>,
@@ -148,10 +153,10 @@ impl OverflowShape {
         let height = &sprite_height - shadow::size(style).px();
         let overflow_color = style.get_color(theme::component::slider::overflow::color);
         let shape = Triangle(&sprite_height / 6.0, &sprite_height / 6.0);
-        let shape = shape.fill(&overflow_color);
+        let shape = shape.fill(overflow_color);
 
         let hover_area = Circle(&height);
-        let hover_area = hover_area.fill(HOVER_COLOR);
+        let hover_area = hover_area.fill(INVISIBLE_HOVER_COLOR);
 
         let shape = (shape + hover_area).into();
         OverflowShape { width, height, shape }
@@ -163,7 +168,7 @@ impl OverflowShape {
 pub mod left_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate((-90.0_f32).to_radians().radians());
@@ -177,7 +182,7 @@ pub mod left_overflow {
 pub mod right_overflow {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let overflow_shape = OverflowShape::new(style);
             let shape = overflow_shape.shape.rotate(90.0_f32.to_radians().radians());
@@ -194,12 +199,11 @@ pub mod right_overflow {
 
 use enso_frp::Network;
 use ensogl_core::frp::io::Mouse;
+use ensogl_core::gui::component::PointerTarget;
 use ensogl_core::gui::component::ShapeView;
-use ensogl_core::gui::component::ShapeViewEvents;
 
 pub use super::frp::*;
 pub use super::model::*;
-use ensogl_core::display;
 use ensogl_core::display::Scene;
 
 /// Return whether a dragging action has been started from the shape passed to this function. A
@@ -207,7 +211,7 @@ use ensogl_core::display::Scene;
 /// Dragging is ended by a mouse up.
 pub fn shape_is_dragged(
     network: &Network,
-    shape: &ShapeViewEvents,
+    shape: &PointerTarget,
     mouse: &Mouse,
 ) -> enso_frp::Stream<bool> {
     enso_frp::extend! { network
@@ -222,7 +226,7 @@ pub fn shape_is_dragged(
 
 /// Returns the position of a mouse down on a shape. The position is given in the shape's local
 /// coordinate system
-pub fn relative_shape_down_position<T: 'static + display::Object + CloneRef>(
+pub fn relative_shape_down_position<T: 'static + Shape>(
     network: &Network,
     scene: &Scene,
     shape: &ShapeView<T>,
@@ -258,7 +262,7 @@ mod tests {
     fn test_shape_is_dragged() {
         let network = enso_frp::Network::new("TestNetwork");
         let mouse = enso_frp::io::Mouse::default();
-        let shape = ShapeViewEvents::default();
+        let shape = PointerTarget::default();
 
         let is_dragged = shape_is_dragged(&network, &shape, &mouse);
         let _watch = is_dragged.register_watch();

@@ -1,9 +1,9 @@
 package org.enso.polyglot
 
-import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import org.enso.logger.masking.ToLogString
+
+import java.util.UUID
 
 /** A search suggestion. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -14,8 +14,12 @@ import org.enso.logger.masking.ToLogString
       name  = "suggestionModule"
     ),
     new JsonSubTypes.Type(
-      value = classOf[Suggestion.Atom],
-      name  = "suggestionAtom"
+      value = classOf[Suggestion.Type],
+      name  = "suggestionType"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.Constructor],
+      name  = "suggestionConstructor"
     ),
     new JsonSubTypes.Type(
       value = classOf[Suggestion.Method],
@@ -53,19 +57,23 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
-        case _: Module     => Module
-        case _: Atom       => Atom
-        case _: Method     => Method
-        case _: Conversion => Conversion
-        case _: Function   => Function
-        case _: Local      => Local
+        case _: Module      => Module
+        case _: Type        => Type
+        case _: Constructor => Constructor
+        case _: Method      => Method
+        case _: Conversion  => Conversion
+        case _: Function    => Function
+        case _: Local       => Local
       }
 
     /** The module suggestion. */
     case object Module extends Kind
 
-    /** The atom suggestion. */
-    case object Atom extends Kind
+    /** The type suggestion. */
+    case object Type extends Kind
+
+    /** The constructor suggestion. */
+    case object Constructor extends Kind
 
     /** The method suggestion. */
     case object Method extends Kind
@@ -83,17 +91,47 @@ object Suggestion {
     case object Local extends Kind
   }
 
+  /** Arguments extractor. */
+  object Arguments {
+
+    def apply(suggestion: Suggestion): Seq[Argument] =
+      suggestion match {
+        case _: Module                => Seq()
+        case tpe: Type                => tpe.params
+        case constructor: Constructor => constructor.arguments
+        case method: Method           => method.arguments
+        case conversion: Conversion   => conversion.arguments
+        case function: Function       => function.arguments
+        case _: Local                 => Seq()
+      }
+  }
+
   /** Self type extractor. */
   object SelfType {
 
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
         case _: Module      => None
-        case _: Atom        => None
+        case _: Type        => None
+        case _: Constructor => None
         case method: Method => Some(method.selfType)
         case _: Conversion  => None
         case _: Function    => None
         case _: Local       => None
+      }
+  }
+
+  /** Documentation extractor */
+  object Documentation {
+    def apply(suggestion: Suggestion): Option[String] =
+      suggestion match {
+        case module: Module           => module.documentation
+        case tpe: Type                => tpe.documentation
+        case constructor: Constructor => constructor.documentation
+        case method: Method           => method.documentation
+        case conv: Conversion         => conv.documentation
+        case _: Function              => None
+        case _: Local                 => None
       }
   }
 
@@ -110,7 +148,8 @@ object Suggestion {
     reprType: String,
     isSuspended: Boolean,
     hasDefault: Boolean,
-    defaultValue: Option[String]
+    defaultValue: Option[String],
+    tagValues: Option[Seq[String]] = None
   ) extends ToLogString {
 
     /** @inheritdoc */
@@ -148,8 +187,9 @@ object Suggestion {
   case class Module(
     module: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -169,32 +209,73 @@ object Suggestion {
       s",reexport=$reexport)"
   }
 
-  /** A value constructor.
+  /** A type definition.
     *
     * @param externalId the external id
     * @param module the module name
     * @param name the atom name
+    * @param params the list of parameters
+    * @param returnType the type of an atom
+    * @param parentType qualified name of the parent type
+    * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
+    * @param reexport the module re-exporting this atom
+    */
+  case class Type(
+    externalId: Option[ExternalId],
+    module: String,
+    name: String,
+    params: Seq[Argument],
+    returnType: String,
+    parentType: Option[String],
+    documentation: Option[String],
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
+  ) extends Suggestion
+      with ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Type(" +
+      s"externalId=$externalId," +
+      s"module=$module," +
+      s"name=$name," +
+      s"params=${params.map(_.toLogString(shouldMask))}," +
+      s"returnType=$returnType" +
+      s"parentType=$parentType" +
+      s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                            else documentation) +
+      s",reexport=$reexport)"
+  }
+
+  /** A value constructor.
+    *
+    * @param externalId the external id
+    * @param module the module name
+    * @param name the constructor name
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this atom
     */
-  case class Atom(
+  case class Constructor(
     externalId: Option[ExternalId],
     module: String,
     name: String,
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      "Atom(" +
+      "Constructor(" +
       s"externalId=$externalId," +
       s"module=$module," +
       s"name=$name," +
@@ -202,8 +283,6 @@ object Suggestion {
       s"returnType=$returnType" +
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -215,6 +294,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param selfType the self type of a method
     * @param returnType the return type of a method
+    * @param isStatic the flag indicating whether a method is static or instance
     * @param documentation the documentation string
     * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this method
@@ -226,9 +306,11 @@ object Suggestion {
     arguments: Seq[Argument],
     selfType: String,
     returnType: String,
+    isStatic: Boolean,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -240,10 +322,9 @@ object Suggestion {
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
       s"returnType=$returnType," +
+      s"isStatic=$isStatic," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -265,8 +346,9 @@ object Suggestion {
     sourceType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion {
 
     /** @inheritdoc */
@@ -282,8 +364,6 @@ object Suggestion {
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 

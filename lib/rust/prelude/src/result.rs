@@ -1,5 +1,7 @@
 //! This module defines utilities for working with the `Result` type.
 
+
+
 /// Adds utilities to the `Result` type.
 pub trait ResultOps {
     type Item;

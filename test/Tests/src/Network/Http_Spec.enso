@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Json
-import Standard.Base.Data.Time.Duration
 import Standard.Base.Network.Http
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
@@ -11,23 +9,27 @@ import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.Http.Status_Code
 import Standard.Base.Network.Http.Version
 import Standard.Base.Network.Proxy
-import Standard.Base.Network.Uri
-import Standard.Base.System.File
-import Standard.Test
+import Standard.Base.Network.URI
+
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.lang.System
 
 spec =
     base_url = System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending = if base_url != Nothing then Nothing else """
-        The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server
+    pending = if base_url != Nothing then Nothing else
+        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
     Test.group "Http" pending=pending <|
-        url_get = base_url + "/get"
-        url_post = base_url + "/post"
+        # httpbin is picky about slashes in URL path. We need exactly one at the
+        # beginning of path. Otherwise, POST request with double slash would
+        # fail with error 405. 
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
+        url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
-            http = Http.new (timeout = 30.seconds)
-            http.timeout.should_equal 30.seconds
+            http = Http.new (timeout = (Duration.new seconds=30))
+            http.timeout.should_equal (Duration.new seconds=30)
         Test.specify "should create HTTP client with follow_redirects setting" <|
             http = Http.new (follow_redirects = False)
             http.follow_redirects.should_equal False
@@ -39,8 +41,8 @@ spec =
             version_setting = Version.Http_2
             http = Http.new (version = version_setting)
             http.version.should_equal version_setting
-        Test.specify "should throw error when requesting invalid Uri" <|
-            Http.new.get "not a uri" . should_fail_with Uri.Syntax_Error
+        Test.specify "should throw error when requesting invalid URI" <|
+            Http.new.get "not a uri" . should_fail_with Syntax_Error_Data
 
         Test.specify "should send Get request" <|
             expected_response = Json.parse <| '''
@@ -85,7 +87,7 @@ spec =
             res = Http.fetch url_get
             res.to_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
-            Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error
+            Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error_Data
 
         Test.specify "should send Head request" <|
             res = Http.new.head url_get
@@ -191,12 +193,12 @@ spec =
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
-            test_file = Enso_Project.data / "sample.txt"
+            test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts
             res.code.should_equal Status_Code.ok
         Test.specify "should Post form multipart" <|
-            test_file = Enso_Project.data / "sample.txt"
+            test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok
@@ -332,3 +334,5 @@ spec =
             res = Http.new.request req_with_body
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+
+main = Test_Suite.run_main spec

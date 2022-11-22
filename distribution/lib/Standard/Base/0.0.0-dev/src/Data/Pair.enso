@@ -1,8 +1,7 @@
-from Standard.Base import all
+import project.Data.Any.Any
 
 ## A pair of elements.
 type Pair
-
     ## UNSTABLE
 
        A simple pair of elements.
@@ -10,7 +9,7 @@ type Pair
        Arguments:
        - first: The first element.
        - second: The second element.
-    type Pair first second
+    Value first second
 
     ## UNSTABLE
 
@@ -21,5 +20,5 @@ type Pair
 
          (Pair 1 2).map (+1) == (Pair 2 3)
     map : (Any -> Any) -> Pair
-    map fun =
-        Pair (fun this.first) (fun this.second)
+    map self fun =
+        Pair.Value (fun self.first) (fun self.second)

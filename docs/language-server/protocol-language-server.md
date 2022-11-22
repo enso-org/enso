@@ -27,12 +27,13 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
+  - [`VisualisationExpression`](#visualisationexpression)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
+  - [`DocSection`](#docsection)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
-  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
@@ -99,16 +100,23 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/event`](#fileevent)
   - [`file/rootAdded`](#filerootadded)
   - [`file/rootRemoved`](#filerootremoved)
+- [Version Control System](#vcs-operations)
+  - [`vcs/init`](#vcsinit)
+  - [`vcs/list`](#vcslist)
+  - [`vcs/restore`](#vcsrestore)
+  - [`vcs/save`](#vcssave)
+  - [`vcs/status`](#vcsstatus)
 - [Text Editing Operations](#text-editing-operations)
   - [`text/openFile`](#textopenfile)
+  - [`text/openBuffer`](#textopenbuffer)
   - [`text/closeFile`](#textclosefile)
   - [`text/save`](#textsave)
   - [`text/applyEdit`](#textapplyedit)
+  - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
+  - [`text/autoSave`](#textautosave)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
-  - [`workspace/undo`](#workspaceundo)
-  - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
   - [`heartbeat/init`](#heartbeatinit)
@@ -125,6 +133,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
@@ -241,8 +250,8 @@ A representation of an executable position in code, used by the execution APIs.
 `ExplicitCall` is a call performed at the top of the stack, to initialize the
 context with first execution. The `thisArgumentsPosition` field can be omitted,
 in which case the context will try to infer the argument on a best-effort basis.
-E.g. for a module-level method, or a method defined on a parameter-less atom
-type, `this` will be substituted for the unambiguous singleton instance.
+E.g. for a module-level method, or a method defined on a parameter-less type,
+`self` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
@@ -338,7 +347,7 @@ interface ExpressionUpdate {
 An information about the computed value.
 
 ```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | Panic;
+type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 
 /**
  * An empty payload. Indicates that the expression was computed to a value.
@@ -369,6 +378,22 @@ interface Panic {
    */
   trace: ExpressionId[];
 }
+
+/**
+ * Indicates the expression is currently being computed. Optionally it
+ * provides description and percentage (`0.0-1.0`) of completeness.
+ */
+interface Pending {
+  /**
+   * Optional message describing current operation.
+   */
+  message?: String;
+
+  /**
+   * Optional amount of already done work as a number between `0.0` to `1.0`.
+   */
+  progress?: Number;
+}
 ```
 
 ### `VisualisationConfiguration`
@@ -377,19 +402,20 @@ A configuration object for properties of the visualisation.
 
 ```typescript
 interface VisualisationConfiguration {
-  /**
-   * An execution context of the visualisation.
-   */
+  /** An execution context of the visualisation. */
   executionContextId: UUID;
+
   /**
    * A qualified name of the module containing the expression which creates
    * visualisation.
    */
-  visualisationModule: String;
-  /**
-   * The expression that creates a visualisation.
-   */
-  expression: String;
+  visualisationModule?: String;
+
+  /** An expression that creates a visualisation. */
+  expression: String | MethodPointer;
+
+  /** A list of arguments to pass to the visualization expression. */
+  positionalArgumentsExpressions?: string[];
 }
 ```
 
@@ -400,11 +426,11 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 #### Format
 
 ```typescript
-// The argument of an atom, method or function suggestion
+// The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
   // The argument name
   name: string;
-  // The arguement type. String 'Any' is used to specify genric types
+  // The argument type. String 'Any' is used to specify generic types
   type: string;
   // Indicates whether the argument is lazy
   isSuspended: bool;
@@ -433,17 +459,19 @@ interface SuggestionEntryScope {
 // A type of suggestion entries.
 type SuggestionEntry =
   // A module
-  | SuggestionEntryModule
-  // A value constructor
-  | SuggestionEntryAtom
+  | Module
+  // A type
+  | Type
+  // A type constructor
+  | Constructor
   // A method defined on a type
-  | SuggestionEntryMethod
+  | Method
   // A function
-  | SuggestionEntryFunction
+  | Function
   // A local value
-  | SuggestionEntryLocal;
+  | Local;
 
-interface SuggestionEntryModule {
+interface Module {
   /** The fully qualified module name. */
   module: string;
 
@@ -453,39 +481,72 @@ interface SuggestionEntryModule {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryAtom {
+interface Type {
   /** The external id. */
   externalId?: UUID;
 
-  /** The atom name. */
+  /** The type name. */
   name: string;
 
-  /** The module name where the atom is defined. */
+  /** The qualified module name where the type is defined. */
+  module: string;
+
+  /** The list of type parameters. */
+  params: SuggestionEntryArgument[];
+
+  /** Qualified name of the parent type. */
+  parentType?: string;
+
+  /** The fully qualified module name re-exporting this type. */
+  reexport?: string;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
+}
+
+interface Constructor {
+  /** The external id. */
+  externalId?: UUID;
+
+  /** The constructor name. */
+  name: string;
+
+  /** The qualified module name where this constructor is defined. */
   module: string;
 
   /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
 
-  /** The type of an atom. */
+  /** The type of the constructor. */
   returnType: string;
+
+  /** The fully qualified module name re-exporting this constructor. */
+  reexport?: string;
 
   /** The documentation string. */
   documentation?: string;
 
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
-
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryMethod {
+interface Method {
   /** The external id. */
   externalId?: UUID;
 
@@ -504,18 +565,23 @@ interface SuggestionEntryMethod {
   /** The return type of this method. */
   returnType: string;
 
+  /** The flag indicating whether this method is static or instance. */
+  isStatic: boolean;
+
+  /** The fully qualified module name re-exporting this method. */
+  reexport?: string;
+
   /** The documentation string. */
   documentation?: string;
 
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
-
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryFunction {
+interface Function {
   /** The external id. */
   externalId?: UUID;
 
@@ -533,13 +599,9 @@ interface SuggestionEntryFunction {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 
-interface SuggestionEntryLocal {
+interface Local {
   /** The external id. */
   externalId?: UUID;
 
@@ -554,10 +616,6 @@ interface SuggestionEntryLocal {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 ```
 
@@ -569,7 +627,13 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Module | Atom | Method | Function | Local;
+type SuggestionEntryType =
+  | Module
+  | Type
+  | Constructor
+  | Method
+  | Function
+  | Local;
 ```
 
 ### `SuggestionId`
@@ -582,11 +646,124 @@ The suggestion entry id of the suggestions database.
 type SuggestionId = number;
 ```
 
-### `SuggestionsDatabaseEntry`
+### `DocSection`
+
+A single section of the documentation.
 
 #### Format
 
+```typescript
+type DocSection = Tag | Paragraph | Keyed | Marked;
+
+/** The documentation tag.
+ *
+ * {{{
+ *   name text
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   UNSTABLE
+ *   DEPRECATED
+ *   ALIAS Length
+ * }}}
+ *
+ */
+interface Tag {
+  /** The tag name. */
+  name: string;
+
+  /** The tag text. */
+  body: HTMLString;
+}
+
+/** The paragraph of the text.
+ *
+ * @example
+ *
+ * {{{
+ *   Arbitrary text in the documentation comment.
+ *
+ *   This is another paragraph.
+ * }}}
+ *
+ */
+interface Paragraph {
+  /** The elements that make up this paragraph. */
+  body: HTMLString;
+}
+
+/** The section that starts with the key followed by the colon and the body.
+ *
+ * {{{
+ *   key: body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   Arguments:
+ *   - one: the first
+ *   - two: the second
+ * }}}
+ *
+ *
+ * {{{
+ *   Icon: table-from-rows
+ * }}}
+ *
+ */
+interface Keyed {
+  /** The section key. */
+  key: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** The section that starts with the mark followed by the header and the body.
+ *
+ * {{{
+ *   mark header
+ *   body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   > Example
+ *     This is how it's done.
+ *         foo = bar baz
+ * }}}
+ *
+ * {{{
+ *   ! Notice
+ *     This is important.
+ * }}}
+ */
+interface Marked {
+  /** The section mark. */
+  mark: Mark;
+
+  /** The section header. */
+  header?: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** Text rendered as HTML (may contain HTML tags). */
+type HTMLString = string;
+
+type Mark = "Important" | "Info" | "Example";
+```
+
+### `SuggestionsDatabaseEntry`
+
 The entry in the suggestions database.
+
+#### Format
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -599,32 +776,6 @@ interface SuggestionsDatabaseEntry {
    * The suggestion entry.
    */
   suggestion: SuggestionEntry;
-}
-```
-
-### `SuggestionsOrderDatabaseEntry`
-
-The entry in the suggestions order database.
-
-#### Format
-
-```typescript
-interface SuggestionsOrderDatabaseEntry {
-  /**
-   * The unique identifier of a suggestion referring to the `id` identifier of
-   * the suggestions database.
-   */
-  suggestionId: SuggestionId;
-
-  /**
-   * The suggestion that goes before this one in the source file.
-   */
-  prevId?: SuggestionId;
-
-  /**
-   * Ths suggestion that goes after this one in the source file.
-   */
-  nextId?: SuggestionId;
 }
 ```
 
@@ -1040,8 +1191,11 @@ A representation of a change to a text file at a given position.
 
 ```typescript
 interface TextEdit {
+  /** The range of text in a text file. */
   range: Range;
-  text: String;
+
+  /** The change to a text file. */
+  text: string;
 }
 ```
 
@@ -1446,17 +1600,17 @@ The component group provided by a library.
 ```typescript
 interface LibraryComponentGroup {
   /**
-   * Thf fully qualified module name. A string consisting of a namespace and
+   * The fully qualified library name. A string consisting of a namespace and
    * a library name separated by the dot <namespace>.<library name>,
    * i.e. `Standard.Base`.
    */
   library: string;
 
-  /** The module name without the library name prefix.
-   *  E.g. given the `Standard.Base.Data.Vector` module reference,
-   * the `module` field contains `Data.Vector`.
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `name` field contains `Group 1`.
    */
-  module: string;
+  name: string;
 
   color?: string;
 
@@ -2502,6 +2656,219 @@ removal of the content root in order to inform them of the removal of the root.
 
 TBC
 
+## Version Control System Operations
+
+The language server has a set of version control operations to keep track of
+changes made to the projects.
+
+### `vcs/init`
+
+This requests that the VCS manager component initializes version control for the
+project identified by the root directory.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that no prior VCS is present for the project at a specified
+location. If VCS has already been initialized once, the operation will fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSAlreadyPresent`](#vcsalreadyexistserror) to signal that the requested
+  project does not exist
+
+### `vcs/save`
+
+This requests that the VCS manager component record any changes made to the
+project, compared to the last save.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. If no changes have been
+recorded since the last save, the operation must still succeed. All saves
+include a timestamp when the request was made. For easier identification, the
+request has an optional `name` parameter that will prefix the timestamp.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  name?: String;
+}
+```
+
+#### Result
+
+```typescript
+{
+  commitId: String;
+  message: String;
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/status`
+
+This requests that the VCS manager component report the current status of the
+changes made to the project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. The status of the
+project includes:
+
+- `dirtty` flag, indicating if any of the project files has been modified, added
+  or deleted
+- list of paths to the modified files, if any
+- the metadata of a last save
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  dirty: Boolean;
+  changed: [Path];
+  lastSave: {
+    commitId: String;
+    message: String;
+  }
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/restore`
+
+This requests that the VCS manager component restores the project to a past
+state recorded in Enso's VCS. All unsaved changes will be lost.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+The request has an optional `commitId` parameter that refers to the past
+checkpoint recorded with `vcs/save`. If no save exists with a provided
+`commitId`, the request must fail. If no `commitId` exists, the operation will
+restore the project to the last saved state, will all current modifications
+forgotten.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  commitId?: String
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+- [`SaveNotFound`](#savenotfounderror) to signat that the requested save could
+  not be identified in the project's version control
+
+#### Result
+
+```typescript
+null;
+```
+
+### `vcs/list`
+
+This requests that the VCS manager component returns a list of project's saves.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+By default, the operation will return all project's saves. An optional `limit`
+parameter will ensure that only the last `limti` ones are reported.
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  limit?: Number
+}
+```
+
+#### Result
+
+```typescript
+{
+  saves: [
+    {
+      commitId: String;
+      message: String;
+    }
+  ]
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
 ## Text Editing Operations
 
 The language server also has a set of text editing operations to ensure that it
@@ -2547,6 +2914,51 @@ client that sent the `text/openFile` message.
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
+### `text/openBuffer`
+
+This requests the language server to open a specified in-memory buffer mapped to
+the provided path. If the path exists, this command behaves the same as
+[`text/openFile`](#textopenfile). If the path does not exist, the command
+creates empty in-memory buffer for the provided path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+If no client has write lock on the opened file, the capability is granted to the
+client that sent the `text/openBuffer` message. The in-memory buffers can be
+used to define hidden modules with visualization functions. In a nutshell, the
+request behaves the same as [`text/openFile`](#textopenfile) but does not
+require the file to exist.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  writeCapability?: CapabilityRegistration;
+  content: String;
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
+
 ### `text/closeFile`
 
 This requests the language server to close the specified file.
@@ -2555,6 +2967,8 @@ This requests the language server to close the specified file.
 - **Direction:** Client -> Server
 - **Connection:** Protocol
 - **Visibility:** Public
+
+Any pending changes to files will be saved before closing the file.
 
 #### Parameters
 
@@ -2585,7 +2999,9 @@ This requests for the language server to save the specified file.
 - **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
-that file, or if the client is requesting a save of an outdated version.
+that file, or if the client is requesting a save of an outdated version. Note
+that language-server autosaves changes to the file, making this operation
+obsolete.
 
 #### Parameters
 
@@ -2635,7 +3051,13 @@ that some edits are applied and others are not.
 
 ```typescript
 {
+  /** The file edit. */
   edit: FileEdit;
+
+  /** The flag indicating whether we should re-execute the program after
+    * applying the edit. Default value is `true`, to re-execute the program.
+    */
+  execute?: boolean;
 }
 ```
 
@@ -2651,6 +3073,61 @@ null;
   open.
 - [`TextEditValidationError`](#texteditvalidationerror) to signal that
   validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version
+  provided by the client doesn't match the version computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
+  write lock for the buffer.
+
+### `text/applyExpressionValue`
+
+This requests to set an expression to a new value. For example, it can update a
+literal value, like changing `98` to `99`, `true` to `false` or `"Hello"` to
+`"World!"`. This method is a more specific version of
+[`text/applyEdit`](#textapplyedit) and guarantees that the syntax tree is not
+changed after applying the edit. This way the engine can perform a more
+efficient value swap instead of reparsing and recompiling the whole module.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This operation may fail if the requesting client does not have permission to
+edit the resources for which edits are sent.
+
+#### Parameters
+
+```typescript
+interface TextApplyExpressionValue {
+  /** The expression id to update. */
+  expressionId: ExpressionId;
+
+  /** The path to a file. */
+  path: Path;
+
+  /** The file edit containing the new expression value. */
+  edit: TextEdit;
+
+  /** The current version of a buffer. */
+  oldVersion: SHA3-224;
+
+  /** The version of a buffer after applying the edit. */
+  newVersion: SHA3-224;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+  open.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that
+  validation has failed for this edit.
 - [`InvalidVersionError`](#invalidversionerror) to signal that the version
   provided by the client doesn't match the version computed by the server.
 - [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
@@ -2673,6 +3150,32 @@ This notification must _only_ be sent for files that the client has open.
 ```typescript
 {
   edits: [FileEdit];
+}
+```
+
+#### Errors
+
+```typescript
+null;
+```
+
+### `text/autoSave`
+
+This is a notification sent from the server to the clients to inform them of any
+successful auto-save action.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This notification must _only_ be sent for files that the client has open.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
 }
 ```
 
@@ -2724,68 +3227,6 @@ project in situations where it does not have a project manager to connect to.
 - [`CannotDecode`](#cannotdecode) if the project configuration cannot be
   decoded.
 - [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
-
-### `workspace/undo`
-
-This request is sent from the client to the server to request that an operation
-be undone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server undoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it undoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
-### `workspace/redo`
-
-This request is sent from the client to the server to request that an operation
-be redone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server redoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it redoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
 
 ## Monitoring
 
@@ -3091,7 +3532,10 @@ stack is empty.
 
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates). The
+command takes optional `contextId` parameter with the id to create. The command
+is idempotent and returns success if the context with provided id already
+exists.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3101,7 +3545,9 @@ capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 #### Parameters
 
 ```typescript
-null;
+{
+  contextId?: ContextId
+}
 ```
 
 #### Result
@@ -3281,6 +3727,44 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+The engine is started with an empty list of libraries loaded. It means that the
+request should be sent after the first
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+notification indicating that all the libraries are loaded, and the component
+group list is populated. If the request is sent before the first notification,
+the response may be empty or not contain all available components.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when context with the provided id
+  does not exist.
 
 ### `executionContext/expressionUpdates`
 
@@ -3689,7 +4173,7 @@ main =
 #### MyType
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "MyType",
   arguments: [],
   returnType: "MyType",
@@ -3699,7 +4183,7 @@ main =
 #### Maybe.Nothing
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Nothing",
   arguments: [],
   returnType: "Maybe",
@@ -3709,7 +4193,7 @@ main =
 #### Maybe.Just
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Just",
   arguments: [
     {
@@ -3726,7 +4210,7 @@ main =
 #### Maybe.is_just
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "is_just",
   arguments: [],
   selfType: "Maybe",
@@ -3737,7 +4221,7 @@ main =
 #### foo
 
 ```typescript
-<SuggestionEntryFunction>{
+<Function>{
   name: "foo",
   arguments: [
     {
@@ -3754,7 +4238,7 @@ main =
 #### Number.baz
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "baz",
   arguments: [
     {
@@ -3772,7 +4256,7 @@ main =
 #### Local x
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "x",
   returnType: "Number",
 };
@@ -3781,7 +4265,7 @@ main =
 #### Local y
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "y",
   returnType: "Number",
 };

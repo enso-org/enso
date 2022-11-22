@@ -15,19 +15,19 @@ public abstract class ArithmeticErrorToDisplayTextNode extends Node {
     return ArithmeticErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this) {
+  Text doAtom(Atom self) {
     try {
-      return Text.create("Arithmetic error: ", TypesGen.expectText(_this.getFields()[0]));
+      return Text.create("Arithmetic error: ", TypesGen.expectText(self.getFields()[0]));
     } catch (UnexpectedResultException e) {
       return Text.create("Arithmetic error.");
     }
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Arithmetic error.");
   }
 }

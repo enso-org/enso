@@ -1,45 +1,84 @@
 package org.enso.languageserver.search
 
-import java.util.UUID
-
+import org.enso.docs.generator.DocsGenerator
 import org.enso.polyglot.Suggestion
+
+import java.util.UUID
 
 /** Suggestion instances used in tests. */
 object Suggestions {
 
+  object comment {
+
+    val atom =
+      """ PRIVATE
+        |
+        | A key-value store. This type assumes all keys are pairwise comparable,
+        | using the `<`, `>` and `==` operators.
+        |
+        | Arguments:
+        | - one: The first.
+        | - two_three: The *second*.
+        |
+        | ? Info
+        |   Here is a thing.
+        |""".stripMargin.linesIterator.mkString("\n")
+  }
+
+  val htmlDocsGenerator: DocsGenerator =
+    DocsGenerator
+  val docSectionsBuilder: DocSectionsBuilder =
+    DocSectionsBuilder()
+
   val module: Suggestion.Module = Suggestion.Module(
-    module            = "Test.Main",
-    documentation     = Some("Module doc"),
-    documentationHtml = Some("<html></html>")
+    module                = "local.Test.Main",
+    documentation         = Some("Module doc"),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
-  val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId        = None,
-    module            = "Test.Main",
-    name              = "MyType",
-    arguments         = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType        = "MyAtom",
-    documentation     = None,
-    documentationHtml = None
+  val tpe: Suggestion.Type = Suggestion.Type(
+    externalId            = None,
+    module                = "local.Test.Main",
+    name                  = "Newtype",
+    params                = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "Newtype",
+    parentType            = Some("Any"),
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
+  )
+
+  val constructor: Suggestion.Constructor = Suggestion.Constructor(
+    externalId            = None,
+    module                = "local.Test.Main",
+    name                  = "MyType",
+    arguments             = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "MyAtom",
+    documentation         = Some(comment.atom),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build(comment.atom))
   )
 
   val method: Suggestion.Method = Suggestion.Method(
     externalId = Some(UUID.fromString("ea9d7734-26a7-4f65-9dd9-c648eaf57d63")),
-    module     = "Test.Main",
+    module     = "local.Test.Main",
     name       = "foo",
     arguments = Vector(
       Suggestion.Argument("this", "MyType", false, false, None),
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
-    selfType          = "MyType",
-    returnType        = "Number",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "MyType",
+    returnType            = "Number",
+    isStatic              = false,
+    documentation         = Some("Lovely"),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val function: Suggestion.Function = Suggestion.Function(
     externalId = Some(UUID.fromString("78d452ce-ed48-48f1-b4f2-b7f45f8dff89")),
-    module     = "Test.Main",
+    module     = "local.Test.Main",
     name       = "print",
     arguments = Vector(
       Suggestion.Argument("a", "Any", false, false, None),
@@ -53,7 +92,7 @@ object Suggestions {
 
   val local: Suggestion.Local = Suggestion.Local(
     externalId = Some(UUID.fromString("dc077227-d9b6-4620-9b51-792c2a69419d")),
-    module     = "Test.Main",
+    module     = "local.Test.Main",
     name       = "x",
     returnType = "Number",
     scope =
@@ -68,10 +107,12 @@ object Suggestions {
       Suggestion.Argument("this", "Any", false, false, None),
       Suggestion.Argument("that", "Any", false, false, None)
     ),
-    selfType          = "Any",
-    returnType        = "Any",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "Any",
+    returnType            = "Any",
+    isStatic              = false,
+    documentation         = Some("Lovely"),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -81,28 +122,33 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("this", "Number", false, false, None)
     ),
-    selfType          = "Number",
-    returnType        = "Number",
-    documentation     = None,
-    documentationHtml = None
+    selfType              = "Number",
+    returnType            = "Number",
+    isStatic              = false,
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
     externalId = Some(UUID.fromString("2849c0f0-3c27-44df-abcb-5c163dd7ac91")),
-    module     = "Builtins.Main",
+    module     = "Standard.Builtins.Main",
     name       = "+",
     arguments = Vector(
       Suggestion.Argument("that", "Number", false, false, None)
     ),
-    selfType          = "Integer",
-    returnType        = "Number",
-    documentation     = Some("Blah, blah"),
-    documentationHtml = Some("<p>Blah, blah</p>")
+    selfType              = "Integer",
+    returnType            = "Number",
+    isStatic              = false,
+    documentation         = Some("Blah, blah"),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
   )
 
   val all = Seq(
     module,
-    atom,
+    tpe,
+    constructor,
     method,
     function,
     local,

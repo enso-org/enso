@@ -1,28 +1,33 @@
 //! A debug scene showing the bug described in https://github.com/enso-org/ide/issues/757
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::DEPRECATED_Animation;
-use ensogl_text_msdf_sys::run_once_initialized;
-use logger::TraceLogger as Logger;
-use wasm_bindgen::prelude::*;
+use ensogl_text_msdf::run_once_initialized;
 
 
 
@@ -31,19 +36,18 @@ use wasm_bindgen::prelude::*;
 // ===================
 
 /// An entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_animation() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
-        let logger: Logger = Logger::new("AnimationTest");
         let network = enso_frp::Network::new("test");
         let animation = DEPRECATED_Animation::<f32>::new(&network);
         animation.set_target_value(-259_830.0);
 
         enso_frp::extend! {network
-            eval animation.value([logger](value) {
-                info!(logger, "Value {value}")
+            eval animation.value([](value) {
+                info!("Value {value}")
             });
         }
 

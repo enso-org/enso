@@ -160,26 +160,26 @@ trait FileSystemApi[F[_, _]] {
   ): F[FileSystemFailure, SHA3_224]
 
   /** Reads the bytes specified by `segment` from the specified `segment.file`.
-   *
-   * @param segment a description of the portion of a file to checksum
-   * @return either [[FileSystemFailure]] or the bytes representing the checksum
-   */
+    *
+    * @param segment a description of the portion of a file to checksum
+    * @return either [[FileSystemFailure]] or the bytes representing the checksum
+    */
   def readBytes(segment: FileSegment): F[FileSystemFailure, ReadBytesResult]
 }
 
 object FileSystemApi {
 
   /** A SHA3-224 digest on the filesystem.
-   *
-   * @param bytes the bytes that represent the value of the digest
-   */
+    *
+    * @param bytes the bytes that represent the value of the digest
+    */
   case class SHA3_224(bytes: Array[Byte])
 
   /** The bytes read from the file.
-   *
-   * @param checksum the checksum of `bytes`
-   * @param bytes the bytes that were read
-   */
+    *
+    * @param checksum the checksum of `bytes`
+    * @param bytes the bytes that were read
+    */
   case class ReadBytesResult(checksum: SHA3_224, bytes: Array[Byte])
 
   /** A representation of a segment in the file.

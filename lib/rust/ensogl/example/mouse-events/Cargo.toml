@@ -7,9 +7,12 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-
 [dependencies]
 enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
-ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
-wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

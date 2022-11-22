@@ -1,7 +1,6 @@
 //! This module defines texture sampler types.
 
 use crate::prelude::*;
-
 use crate::system::gpu::types::*;
 
 

@@ -1,17 +1,21 @@
 //! This module defines several useful string variants, including copy-on-write and immutable
 //! implementations.
-use std::borrow::Cow;
 
-use crate::clone::*;
-use crate::impls;
 use derive_more::*;
+use enso_shapely::clone_ref::*;
 use itertools::*;
+
+use crate::impls;
+
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 #[cfg(feature = "serde")]
 use serde::Serialize;
+use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
+
+
 
 // =================
 // === StringOps ===
@@ -97,7 +101,7 @@ impl AsRef<str> for CowString {
 // ================
 
 /// Immutable string implementation with a fast clone implementation.
-#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ImString {
     content: Rc<String>,
@@ -210,15 +214,85 @@ impl PartialEq<ImString> for String {
     }
 }
 
+
+
+// ==================
+// === ToImString ===
+// ==================
+
+/// Conversion of a value to [`ImString`].
+#[allow(missing_docs)]
+pub trait ToImString {
+    fn to_im_string(&self) -> ImString;
+}
+
+impl<T: core::fmt::Display> ToImString for T {
+    default fn to_im_string(&self) -> ImString {
+        format!("{}", self).into()
+    }
+}
+
+impl ToImString for ImString {
+    fn to_im_string(&self) -> ImString {
+        self.clone()
+    }
+}
+
+impl ToImString for String {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for &String {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for str {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+impl ToImString for &str {
+    fn to_im_string(&self) -> ImString {
+        self.into()
+    }
+}
+
+
+
 // === Macros ===
 
 /// Defines a newtype for `ImString`.
+#[cfg(not(feature = "serde"))]
 #[macro_export]
 macro_rules! im_string_newtype {
+    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
+        im_string_newtype_without_serde!{ $($(#$meta)* $name),* }
+    };
+}
+
+/// Defines a newtype for `ImString`.
+#[cfg(feature = "serde")]
+#[macro_export]
+macro_rules! im_string_newtype {
+    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
+        im_string_newtype_without_serde!{ $(
+            #[derive($crate::serde_reexports::Serialize,$crate::serde_reexports::Deserialize)]
+            $(#$meta)* $name
+        ),* }
+    };
+}
+
+#[macro_export]
+macro_rules! im_string_newtype_without_serde {
     ($($(#$meta:tt)* $name:ident),* $(,)?) => {$(
         $(#$meta)*
         #[derive(Clone,CloneRef,Debug,Default,Eq,Hash,PartialEq)]
-        #[derive($crate::serde_reexports::Serialize,$crate::serde_reexports::Deserialize)]
+
         pub struct $name {
             content : ImString
         }
@@ -280,6 +354,12 @@ macro_rules! im_string_newtype {
             }
         }
 
+        impl From<ImString> for $name {
+            fn from(t:ImString) -> Self {
+                Self::new(t)
+            }
+        }
+
         impl From<&str> for $name {
             fn from(t:&str) -> Self {
                 Self::new(t)
@@ -289,6 +369,12 @@ macro_rules! im_string_newtype {
         impl From<&&str> for $name {
             fn from(t:&&str) -> Self {
                 Self::new(t)
+            }
+        }
+
+        impl From<&$name> for String {
+            fn from(t:&$name) -> Self {
+                t.content.to_string()
             }
         }
     )*};

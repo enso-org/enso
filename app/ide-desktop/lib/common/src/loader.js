@@ -1,7 +1,7 @@
-import * as animation from './animation'
-import * as html_utils from './html_utils'
-import * as math from './math'
-import * as svg from './svg'
+import * as animation from './animation.js'
+import * as html_utils from './html_utils.js'
+import * as math from './math.js'
+import * as svg from './svg.js'
 
 // =========================
 // === ProgressIndicator ===

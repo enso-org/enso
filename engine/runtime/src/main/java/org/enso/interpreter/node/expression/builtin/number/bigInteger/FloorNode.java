@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "floor", description = "Big integer floor.")
 public class FloorNode extends Node {
-  Object execute(EnsoBigInteger _this) {
-    return _this;
+  Object execute(EnsoBigInteger self) {
+    return self;
   }
 }

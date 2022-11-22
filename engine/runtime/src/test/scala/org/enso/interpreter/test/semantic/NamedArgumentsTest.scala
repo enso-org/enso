@@ -15,25 +15,25 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in function bodies" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.a = 10
           |Nothing.add_ten = b -> Nothing.a + b
           |
           |main = Nothing.add_ten (b = 10)
-      """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 20
     }
 
     "be passed when given out of order" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.subtract = a -> b -> a - b
           |
           |main = Nothing.subtract (b = 10) (a = 5)
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual -5
     }
@@ -46,26 +46,26 @@ class NamedArgumentsTest extends InterpreterTest {
           |    addTen = num -> num + a
           |    res = addTen (num = a)
           |    res
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 20
     }
 
     "be definable" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
           |main = Nothing.add_num 5
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 15
     }
 
     "be able to default to complex expressions" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.add = a -> b -> a + b
           |Nothing.do_thing = a -> (b = Nothing.add 1 2) -> a + b
@@ -91,31 +91,31 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in functions when no arguments are supplied" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.add_together = (a = 5) -> (b = 6) -> a + b
           |
           |main = Nothing.add_together
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 11
     }
 
     "be overridable by name" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
           |main = Nothing.add_num 1 (num = 1)
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 2
     }
 
     "overridable by position" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
@@ -127,7 +127,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work in a recursive context" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.summer = sumTo ->
           |  summator = (acc = 0) -> current ->
@@ -136,7 +136,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |  res
           |
           |main = Nothing.summer 100
-    """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 5050
     }
@@ -158,7 +158,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be applied in a sequence compatible with Eta-expansions" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.foo = a -> b -> c -> a -> a
           |main = Nothing.foo 20 (a = 10) 0 0
@@ -169,7 +169,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to depend on prior arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.double_or_add = a -> (b = a) -> a + b
           |
@@ -181,7 +181,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "not be able to depend on later arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.bad_arg_fn = a -> (b = c) -> (c = a) -> a + b + c
           |
@@ -194,18 +194,19 @@ class NamedArgumentsTest extends InterpreterTest {
     "be usable with constructors" in {
       val code =
         """
-          |type Cons2 head rest
+          |type C2
+          |    Cons2 head rest
           |type Nil2
           |
           |main =
-          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else C2.Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + sum t
+          |        C2.Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
           |    sum (gen_list 10)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 55
     }
@@ -214,17 +215,18 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """
           |type Nil2
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |
           |main =
-          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else C2.Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + sum t
+          |        C2.Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
           |    sum (gen_list 5)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 15
     }
@@ -232,10 +234,11 @@ class NamedArgumentsTest extends InterpreterTest {
     "be resolved dynamically in constructors" in {
       val code =
         """
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |type Nil2
           |
-          |main = Cons2 5
+          |main = C2.Cons2 5
           |""".stripMargin
 
       eval(code).toString shouldEqual "(Cons2 5 Nil2)"
@@ -243,19 +246,34 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work with constructors" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
-          |type Cons2 head (rest = Nil2)
+          |type C2
+          |    Cons2 head (rest = Nil2)
           |type Nil2
           |
           |Nothing.sum_list = list -> case list of
-          |  Cons2 h t -> h + Nothing.sum_list t
+          |  C2.Cons2 h t -> h + Nothing.sum_list t
           |  Nil2 -> 0
           |
-          |main = Nothing.sum_list (Cons2 10)
-        """.stripMargin
+          |main = Nothing.sum_list (C2.Cons2 10)
+          |""".stripMargin
 
       eval(code) shouldEqual 10
+    }
+
+    "work with constructors when no other arguments passed" in {
+      val code =
+        """
+          |import Standard.Base.IO
+          |
+          |type My_Tp
+          |    Mk_My_Tp a=10 b="hello"
+          |
+          |main = IO.println My_Tp.Mk_My_Tp
+          |""".stripMargin
+      eval(code)
+      consumeOut should equal(List("(Mk_My_Tp 10 'hello')"))
     }
   }
 }

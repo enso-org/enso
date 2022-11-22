@@ -9,6 +9,7 @@
 use crate::prelude::*;
 
 use crate::types::UTCDateTime;
+
 use json_rpc::api::Result;
 use json_rpc::make_rpc_methods;
 use json_rpc::Handler;
@@ -89,7 +90,7 @@ trait API {
 // =============
 
 /// Address consisting of host and port.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IpWithSocket {
     /// Host name.
     pub host: String,
@@ -130,7 +131,7 @@ impl From<ProjectName> for String {
 }
 
 /// Project information, such as name, its id and last time it was opened.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
     /// Project's name.
@@ -163,14 +164,14 @@ pub mod response {
     use super::*;
 
     /// Response of `list_projects` and `list_samples`.
-    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
     pub struct ProjectList {
         /// List of projects.
         pub projects: Vec<ProjectMetadata>,
     }
 
     /// Response of `create_project`.
-    #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "camelCase")]
     pub struct CreateProject {
         /// Created project uuid.
@@ -178,7 +179,7 @@ pub mod response {
     }
 
     /// Response of `open_project`.
-    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "camelCase")]
     pub struct OpenProject {
         /// The version of the started language server represented by a semver version string.

@@ -15,8 +15,14 @@ trait JobProcessor {
     */
   def run[A](job: Job[A]): Future[A]
 
-  /** Stops the job processor.
+  /** Runs a job with the provided context in the background.
+    *
+    * @param job a job to execute
+    * @return the future result of an asynchronous computation
     */
+  def runBackground[A](job: Job[A]): Future[A]
+
+  /** Stops the job processor. */
   def stop(): Unit
 
 }

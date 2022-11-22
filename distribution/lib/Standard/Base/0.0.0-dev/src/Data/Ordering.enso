@@ -1,32 +1,21 @@
-from Standard.Base import all
-
-from Standard.Builtins import Less, Equal, Greater
-
-from Standard.Builtins export Less, Equal, Greater
-
-## Converts a sign-based representation of ordering to Enso's native ordering.
-
-   Arguments:
-   - sign: The number representing the relative ordering of two entities.
-
-   > Example
-     Convert the number 0 to an Enso ordering.
-
-         Ordering.from_sign 0
-from_sign : Integer -> Ordering
-from_sign sign = if sign == 0 then Equal else
-    if sign > 0 then Greater else Less
+import project.Data.Numbers.Integer
 
 ## Types representing the ordering of values.
 
    These are intended to be returned from the `compare_to` function, that has a
    type as follows for a type `A`: `A.compare_to : A -> Ordering`.
 
-   The result should be returned in terms of how `this` orders in comparison to
-   `that`. So, if `this` is greater than `that`, you should return `Greater.`
+   The result should be returned in terms of how `self` orders in comparison to
+   `that`. So, if `self` is greater than `that`, you should return `Greater.`
+@Builtin_Type
 type Ordering
+    ## A representation that the first value orders as less than the second.
     Less
+
+    ## A representation that the first value orders as equal to the second.
     Equal
+
+    ## A representation that the first value orders as greater than the second.
     Greater
 
     ## Converts the ordering to the signed notion of ordering based on integers.
@@ -38,8 +27,20 @@ type Ordering
 
              example_to_sign = Ordering.Equal.to_sign
     to_sign : Integer
-    to_sign = case this of
-        Less -> -1
-        Greater -> 1
-        Equal -> 0
+    to_sign self = case self of
+        Ordering.Less -> -1
+        Ordering.Greater -> 1
+        Ordering.Equal -> 0
 
+    ## Converts a sign-based representation of ordering to Enso's native ordering.
+
+       Arguments:
+       - sign: The number representing the relative ordering of two entities.
+
+       > Example
+         Convert the number 0 to an Enso ordering.
+
+             Ordering.from_sign 0
+    from_sign : Integer -> Ordering
+    from_sign sign = if sign == 0 then Ordering.Equal else
+        if sign > 0 then Ordering.Greater else Ordering.Less

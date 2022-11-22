@@ -14,7 +14,7 @@
          example_where =
              table = Examples.inventory_table
              mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
-             table.where mask
+             table.filter mask
 
    > Example
      Multiply each element of the column by itself.
@@ -24,14 +24,14 @@
          example_map = Examples.integer_column.map (x -> x * x)
 
    > Example
-     Sort the shop inventory based on the per-item price in descending order and
-     placing missing values at the top of the table.
+     Sort the shop inventory based on the per-item price in descending order.
 
          import Standard.Examples
+         from Standard.Table import Sort_Column_Selector, Sort_Column
 
          example_sort =
             table = Examples.inventory_table
-            table.sort by="price" order=Sort_Order.Descending missing_last=false
+            table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price" Sort_Direction.Descending])
 
    > Example
      Add two columns to each other.

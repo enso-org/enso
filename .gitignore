@@ -25,13 +25,11 @@ generated/
 /target
 /build/rust/target/
 
-#############
-## Haskell ##
-#############
+###########
+## Scala ##
+###########
 
-dist
-cabal-dev
-.stack-work/
+.metals/
 
 ############
 ## NodeJS ##
@@ -59,12 +57,17 @@ package-lock.json
 ## Tooling Specific ##
 ######################
 
-.idea/
+!.idea
+.idea/*
+!.idea/runConfigurations/
 .vscode/
+.metals/
 *.swp
 .projections.json
 .nvmrc
 *.iml
+.enso-sources*
+.metals
 
 ############################
 ## Rendered Documentation ##
@@ -103,6 +106,9 @@ bench-report*.xml
 .bloop/
 .bsp/
 project/metals.sbt
+/app/ide-desktop/build.json
+/app/ide-desktop/lib/client/electron-builder-config.json
+
 
 #################
 ## Build Cache ##
@@ -115,11 +121,12 @@ build-cache/
 ##################
 
 *.build_artifacts.txt
+/runner
 
 ######################
 ## Enso-Development ##
 ######################
-
+dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
@@ -129,8 +136,14 @@ distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 distribution/lib/*/*/*/manifest.yaml
 
+# Resources that are downloaded during the build.
+/lib/scala/pkg/src/main/resources/*
+
 test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
+
+# Ignore test output folder
+test-results
 
 #################
 ## Enso-Caches ##
@@ -138,3 +151,4 @@ test/Database_Tests/data/redshift_credentials.json
 
 *.ir
 *.meta
+.enso/

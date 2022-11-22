@@ -8,13 +8,17 @@ import HTML._
 
 /** Defines methods for generating and glue-ing together doc content.
   */
-object DocsGenerator {
+class DocsGenerator {
 
   /** Generates list of HTML docs from given doc comments in AST.
     */
   def generateFromAst(ast: List[AST.Comment]): List[String] = {
     generate(ast.map(_.show()))
   }
+
+  /** Generate an HTML doc from the given doc comment. */
+  def generate(comment: String, title: String): String =
+    runOnPureDoc(comment, title)
 
   /** Generates list of HTML docs from given doc comments.
     */
@@ -41,3 +45,4 @@ object DocsGenerator {
     docs.zip(astList).map(e => connectHtmlToAst(e._1, e._2)).mkString
   }
 }
+object DocsGenerator extends DocsGenerator

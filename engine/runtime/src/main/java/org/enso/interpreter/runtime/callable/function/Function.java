@@ -5,39 +5,30 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
@@ -80,6 +71,10 @@ public final class Function implements TruffleObject {
    */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
     this(callTarget, scope, schema, null, null);
+  }
+
+  public static Function thunk(RootCallTarget callTarget, MaterializedFrame scope) {
+    return new Function(callTarget, scope, FunctionSchema.THUNK);
   }
 
   /**
@@ -191,8 +186,8 @@ public final class Function implements TruffleObject {
         Function function,
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
-        @CachedContext(Language.class) Context context) {
-      return interopApplicationNode.execute(function, EmptyMap.create(), arguments);
+        @CachedLibrary("function") InteropLibrary thisLib) {
+      return interopApplicationNode.execute(function, Context.get(thisLib).emptyState(), arguments);
     }
   }
 
@@ -208,6 +203,7 @@ public final class Function implements TruffleObject {
    * @throws UnknownIdentifierException when an invalid member is requested.
    */
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   Object invokeMember(String member, Object... args)
       throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
     switch (member) {
@@ -312,7 +308,7 @@ public final class Function implements TruffleObject {
      * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Thunk thunk, Object state) {
+    public static Object[] buildArguments(Function thunk, Object state) {
       return new Object[] {thunk.getScope(), null, state, new Object[0]};
     }
 
@@ -334,8 +330,8 @@ public final class Function implements TruffleObject {
      *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
      * @return the state for the function
      */
-    public static Object getState(Object[] arguments) {
-      return arguments[2];
+    public static State getState(Object[] arguments) {
+      return (State) arguments[2];
     }
 
     /**
@@ -366,94 +362,20 @@ public final class Function implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(context.getBuiltins().function(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Function _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(context, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Function _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return Context.get(thisLib).getBuiltins().function();
   }
 
-  @ExportMessage
-  boolean canConvertFrom() {
-    return true;
+  public boolean isThunk() {
+    return schema == FunctionSchema.THUNK;
   }
 
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, AtomConstructor target, UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, context.getBuiltins().function(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-            guards = {
-                    "!context.isInlineCachingDisabled()",
-                    "cachedTarget == target",
-                    "cachedConversion == conversion",
-                    "function != null"
-            },
-            limit = "CACHE_SIZE")
-    static Function resolveCached(
-            Function _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion,
-            @CachedContext(Language.class) Context context,
-            @Cached("conversion") UnresolvedConversion cachedConversion,
-            @Cached("target") AtomConstructor cachedTarget,
-            @Cached("doResolve(context, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-            Function _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion,
-            @CachedContext(Language.class) Context context)
-            throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(context, target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  public boolean isFullyApplied() {
+    return schema.isFullyApplied();
   }
 }

@@ -6,6 +6,12 @@
 //! [Datatype-Generic Programming](http://www.cs.ox.ac.uk/jeremy.gibbons/publications/dgp.pdf), or
 //! the [Libraries for Generic Programming](http://dreixel.net/research/pdf/lgph.pdf) paper.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
@@ -16,7 +22,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![feature(const_fn_trait_bound)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 

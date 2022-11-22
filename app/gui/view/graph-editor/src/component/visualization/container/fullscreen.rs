@@ -1,14 +1,14 @@
 //! A module containing the fullscreen view of visualization.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+use ensogl::system::web::traits::*;
 
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -27,7 +27,7 @@ use ensogl_hardcoded_theme as theme;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,selected:f32,radius:f32,roundness:f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -62,7 +62,7 @@ impl Panel {
     /// Constructor.
     pub fn new(logger: &Logger, scene: &Scene) -> Self {
         let logger = Logger::new_sub(logger, "fullscreen_view");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)

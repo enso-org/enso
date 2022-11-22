@@ -3,17 +3,23 @@
 //! The IDE controller expose functionality bound to the application as a whole, not to specific
 //! component or opened project.
 
-pub mod desktop;
-pub mod plain;
-
 use crate::prelude::*;
 
 use crate::notification;
 
+use mockall::automock;
+use parser_scala::Parser;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod desktop;
+pub mod plain;
+
 pub use engine_protocol::project_manager::ProjectMetadata;
 pub use engine_protocol::project_manager::ProjectName;
-use mockall::automock;
-use parser::Parser;
 
 
 
@@ -50,6 +56,7 @@ impl StatusNotificationPublisher {
     }
 
     /// Publish a new status event (see [`StatusNotification::Event`])
+    #[profile(Debug)]
     pub fn publish_event(&self, label: impl Into<String>) {
         let label = label.into();
         let notification = StatusNotification::Event { label };
@@ -59,6 +66,7 @@ impl StatusNotificationPublisher {
     /// Publish a notification about new process (see [`StatusNotification::ProcessStarted`]).
     ///
     /// Returns the handle to be used when notifying about process finishing.
+    #[profile(Debug)]
     pub fn publish_background_task(&self, label: impl Into<String>) -> BackgroundTaskHandle {
         let label = label.into();
         let handle = self.next_process_handle.get();
@@ -70,6 +78,7 @@ impl StatusNotificationPublisher {
 
     /// Publish a notfication that process has finished (see
     /// [`StatusNotification::ProcessFinished`])
+    #[profile(Debug)]
     pub fn published_background_task_finished(&self, handle: BackgroundTaskHandle) {
         let notification = StatusNotification::BackgroundTaskFinished { handle };
         executor::global::spawn(self.publisher.publish(notification));

@@ -1,9 +1,8 @@
 //! This module defines the class of all shapes.
 
-use crate::prelude::*;
-
 use super::modifier::*;
 use super::unit::*;
+use crate::prelude::*;
 
 use crate::data::color;
 use crate::display::shape::primitive::def::var::Var;

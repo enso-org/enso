@@ -217,7 +217,7 @@ Enso has a concept of _extension methods_. These are methods that are _not_
 defined "alongside" the type (in the same compilation unit). Currently, we have
 no way to define methods that are _not_ extensions on builtin types without
 defining them in Java. This is awkward, and leads to a poor experience for both
-developers of Enso, and the users (where there is a special case rule rule for
+developers of Enso, and the users (where there is a special case rule for
 certain types, and also a hacky form of documentation for these same types).
 
 For types defined in Java, their methods defined in Enso are extensions and are

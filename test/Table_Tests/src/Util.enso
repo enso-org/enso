@@ -1,10 +1,24 @@
 from Standard.Base import all
+import Standard.Base.System
 
-import Standard.Table
-import Standard.Test
+from Standard.Table import Table, Column
 
-Table.Table.should_equal expected =
-    this_cols = this.columns
+from Standard.Test import Test
+
+Table.should_equal self expected =
+    self_cols = self.columns
     that_cols = expected.columns
-    this_cols.map .name . should_equal (that_cols.map .name)
-    this_cols.map .to_vector . should_equal (that_cols.map .to_vector)
+    self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
+    self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
+
+Column.should_equal self expected =
+    if self.name != expected.name then
+        Test.fail "Expected column name "+expected.name+", but got "+self.name+"."
+    if self.length != expected.length then
+        Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+"."
+    self.to_vector.should_equal expected.to_vector
+
+normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
+    case newline_at_end of
+        True -> string.lines.join line_separator suffix=line_separator
+        False -> string.lines.join line_separator

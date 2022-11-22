@@ -157,7 +157,7 @@ case class Package[F](
     */
   def listSources: List[SourceFile[F]] = {
     val sources = sourceDir.walk
-      .filter(_.isRegularFile)
+      .filter(f => f.isRegularFile && f.getName.endsWith(".enso"))
       .iterator
       .asScala
       .toList

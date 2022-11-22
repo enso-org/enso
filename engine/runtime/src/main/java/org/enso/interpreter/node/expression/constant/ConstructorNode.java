@@ -1,10 +1,8 @@
 package org.enso.interpreter.node.expression.constant;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -15,6 +13,9 @@ public abstract class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 
   ConstructorNode(AtomConstructor constructor) {
+    if (constructor == null) {
+      throw new NullPointerException("Constructor cannot be null");
+    }
     this.constructor = constructor;
   }
 
@@ -35,11 +36,12 @@ public abstract class ConstructorNode extends ExpressionNode {
    * @return the constructor of the type defined
    */
   @Specialization
-  Object doExecute(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
-    if (constructor == ctx.getBuiltins().bool().getTrue()) {
+  Object doExecute(VirtualFrame frame) {
+    var builtins = Context.get(this).getBuiltins();
+    if (constructor == builtins.bool().getTrue()) {
       return true;
     }
-    if (constructor == ctx.getBuiltins().bool().getFalse()) {
+    if (constructor == builtins.bool().getFalse()) {
       return false;
     }
     if (constructor.getArity() == 0) {

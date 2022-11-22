@@ -1,9 +1,11 @@
 //! Helper macros to generate RemoteClient and MockClient.
 
+
+
 // TODO[dg]: Make it possible to create an API which accepts pass both references and ownership.
 /// This macro reads a `trait API` item and generates asynchronous methods for RPCs. Each method
 /// should be signed with `MethodInput`, `rpc_name`, `result` and `set_result` attributes. e.g.:
-/// ```rust,compile_fail
+/// ```text
 /// make_rpc_method!{
 ///     trait API {
 ///         #[MethodInput=CallMePleaseInput,camelCase=callMePlease,result=call_me_please_result,
@@ -16,7 +18,7 @@
 /// This macro generates an `API` trait and creates two structs implementing `API`
 /// called `Client`, with the actual RPC methods, and `MockClient`, with mocked methods with
 /// return types setup by:
-/// ```rust,compile_fail
+/// ```text
 ///     fn expect_call_me_please
 ///     (&mut self, my_number_is:String,result:json_rpc::api::Result<()>) { /* impl */ }
 /// ```
@@ -87,11 +89,30 @@ macro_rules! make_rpc_methods {
             $(fn $method<'a>(&'a self, $($param_name:&'a $param_ty),*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
                 use json_rpc::api::RemoteMethodCall;
+                use $crate::enso_profiler as profiler;
+                use $crate::enso_profiler::internal::StartState;
+                use $crate::enso_profiler::internal::Profiler;
+
+                let label = profiler::internal::Label(stringify!($method));
+                let parent = profiler::internal::EventId::implicit();
+                let now = Some(profiler::internal::Timestamp::now());
+                let profiler = profiler::Task::start(parent, label, now, StartState::Active);
+
+                json_rpc::log::rpc_request(stringify!($method));
+
                 let phantom    = std::marker::PhantomData;
                 let input      = $method_input { phantom, $($param_name:&$param_name),* };
                 let input_json = serde_json::to_value(input).unwrap();
                 let name       = $method_input::NAME;
                 let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
+
+                profiler.pause();
+
+                let result_fut = result_fut.map(move |value| {
+                    profiler.resume();
+                    profiler.finish();
+                    value
+                });
                 Box::pin(result_fut)
             })*
 
@@ -102,7 +123,7 @@ macro_rules! make_rpc_methods {
 
         $(
             /// Structure transporting method arguments.
-            #[derive(Serialize,Debug,PartialEq)]
+            #[derive(Serialize,Debug,PartialEq, Eq)]
             #[serde(rename_all="camelCase")]
             struct $method_input<'a> {
                 #[serde(skip)]
@@ -131,7 +152,7 @@ macro_rules! make_rpc_methods {
             ///
             /// You may specify expected calls and their return values by setting appropriate call
             /// handler as in the following example:
-            /// ```rust,compile_fail
+            /// ```text
             ///     let mock = MockClient::default();
             ///     mock.expect.some_method(|param1, param2| result);
             /// ```
@@ -180,8 +201,11 @@ macro_rules! make_rpc_methods {
             impl Drop for Client {
                 fn drop(&mut self) {
                     if self.require_all_calls.get() && !std::thread::panicking() {
-                        $(assert!(self.expect.$method.borrow().is_empty(),
-                            "Didn't make expected call");)* //TODO[ao] print method name.
+                        $(
+                            let method = stringify!($method);
+                            let msg = iformat!("An expected call to {method} was not made.");
+                            assert!(self.expect.$method.borrow().is_empty(), "{}", msg);
+                        )*
                     }
                 }
             }
@@ -216,7 +240,7 @@ macro_rules! make_rpc_methods {
 
 /// A shortcut for creating call's handlers for client mocks; when you want to just check if call's
 /// parameters are equal to some expected values and then return specific value, you can call:
-/// ```rust,compile_fail
+/// ```text
 /// expect_call!(client.method(param1=value1,param2=value2) => Ok(result));
 /// ```
 #[macro_export]

@@ -17,4 +17,10 @@ public @interface BuiltinMethod {
 
   /** @return a short description of this method. */
   String description() default "";
+
+  /** @return a list of aliases (names) of this method */
+  String aliases() default "";
+
+  /** @return whether a method should be registered automatically with a type */
+  boolean autoRegister() default true;
 }

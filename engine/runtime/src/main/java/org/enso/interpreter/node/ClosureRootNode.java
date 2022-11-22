@@ -10,7 +10,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node represents the root of Enso closures and closure-like structures.
@@ -23,6 +22,8 @@ import org.enso.interpreter.runtime.state.Stateful;
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
+  private final boolean subjectToInstrumentation;
+  private final boolean usedInBinding;
 
   ClosureRootNode(
       Language language,
@@ -30,9 +31,13 @@ public class ClosureRootNode extends EnsoRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
+      String name,
+      Boolean subjectToInstrumentation,
+      boolean usedInBinding) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
+    this.subjectToInstrumentation = Boolean.TRUE.equals(subjectToInstrumentation);
+    this.usedInBinding = usedInBinding;
   }
 
   /**
@@ -44,6 +49,8 @@ public class ClosureRootNode extends EnsoRootNode {
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
+   * @param subjectToInstrumentation shall this node be instrumented
+   * @param usedInBinding is this node directly used in a variable binding
    * @return a node representing the specified closure
    */
   public static ClosureRootNode build(
@@ -52,8 +59,18 @@ public class ClosureRootNode extends EnsoRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
-    return new ClosureRootNode(language, localScope, moduleScope, body, section, name);
+      String name,
+      Boolean subjectToInstrumentation,
+      boolean usedInBinding) {
+    return new ClosureRootNode(
+        language,
+        localScope,
+        moduleScope,
+        body,
+        section,
+        name,
+        subjectToInstrumentation,
+        usedInBinding);
   }
 
   /**
@@ -67,10 +84,18 @@ public class ClosureRootNode extends EnsoRootNode {
     if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
       com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    frame.setObject(this.getStateFrameSlot(), state);
-    Object result = body.executeGeneric(frame);
-    state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
-    return new Stateful(state, result);
+    return body.executeGeneric(frame);
+  }
+
+  final ExpressionNode getBody() {
+    return body;
+  }
+
+  public boolean isSubjectToInstrumentation() {
+    return subjectToInstrumentation;
+  }
+
+  public boolean isUsedInBinding() {
+    return usedInBinding;
   }
 }

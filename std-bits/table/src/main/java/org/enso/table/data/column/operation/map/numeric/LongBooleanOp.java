@@ -10,7 +10,7 @@ import org.enso.table.error.UnexpectedTypeException;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a boolean. */
-public abstract class LongBooleanOp extends MapOperation<LongStorage> {
+public abstract class LongBooleanOp extends MapOperation<Long, LongStorage> {
   public LongBooleanOp(String name) {
     super(name);
   }
@@ -61,9 +61,8 @@ public abstract class LongBooleanOp extends MapOperation<LongStorage> {
   }
 
   @Override
-  public Storage runZip(LongStorage storage, Storage arg) {
-    if (arg instanceof DoubleStorage) {
-      DoubleStorage v = (DoubleStorage) arg;
+  public BoolStorage runZip(LongStorage storage, Storage<?> arg) {
+    if (arg instanceof DoubleStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -76,8 +75,7 @@ public abstract class LongBooleanOp extends MapOperation<LongStorage> {
         }
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
-    } else if (arg instanceof LongStorage) {
-      LongStorage v = (LongStorage) arg;
+    } else if (arg instanceof LongStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {

@@ -61,6 +61,13 @@ impl<Out> FutureEvent<Out> {
     pub fn expect(self) -> Out {
         self.value.take().unwrap_or_else(|| ipanic!("Expected {self.label} event"))
     }
+
+    /// Panics if any event was received.
+    pub fn expect_not(&self) {
+        if self.value.borrow().is_some() {
+            ipanic!("Expected not {self.label} event");
+        }
+    }
 }
 
 impl<Out: node::Data> std::future::Future for FutureEvent<Out> {

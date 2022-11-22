@@ -3,16 +3,18 @@
 //! The component is currently rather a stub: it has endpoints for setting many events and
 //! processes and keep them in a list, but it shows only a label of the last event/process
 //! added.
+
 //TODO[ao] Implement the status bar according to https://github.com/enso-org/ide/issues/1193
 //    description
+
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::graph_editor::component::node::input::area::TEXT_SIZE;
 
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
-use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl_component::shadow;
@@ -91,7 +93,7 @@ pub mod process {
 mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let theme             = ensogl_hardcoded_theme::application::status_bar::background;
             let theme             = style::Path::from(theme);
@@ -149,7 +151,7 @@ struct Model {
     display_object:  display::object::Instance,
     root:            display::object::Instance,
     background:      background::View,
-    label:           text::Area,
+    label:           text::Text,
     events:          Rc<RefCell<Vec<event::Label>>>,
     processes:       Rc<RefCell<HashMap<process::Id, process::Label>>>,
     next_process_id: Rc<RefCell<process::Id>>,
@@ -160,24 +162,24 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let logger = Logger::new("StatusBar");
-        let display_object = display::object::Instance::new(&logger);
-        let root = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let label = text::Area::new(app);
+        let display_object = display::object::Instance::new();
+        let root = display::object::Instance::new();
+        let background = background::View::new();
+        let label = text::Text::new(app);
         let events = default();
         let processes = default();
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
         let camera = scene.camera();
 
-        scene.layers.panel.add_exclusive(&background);
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.panel.add(&background);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = style.get_color(text_color_path);
-        label.frp.set_color_all.emit(text_color);
-        label.frp.set_default_color.emit(text_color);
+        label.frp.set_property(.., text_color);
+        label.frp.set_property_default(text_color);
 
         Self {
             logger,
@@ -206,27 +208,23 @@ impl Model {
 
     fn camera_changed(&self) {
         let screen = self.camera.screen();
-        let x = -screen.width / 2.0 + MARGIN;
-        let y = -screen.height / 2.0 + MARGIN;
-        self.root.set_position_x(x.round());
+        let y = screen.height / 2.0 - MARGIN;
         self.root.set_position_y(y.round());
     }
 
     fn update_layout(&self) {
-        self.label.set_position_x(PADDING);
-        self.label.set_position_y(HEIGHT / 2.0 + TEXT_SIZE / 2.0);
+        let label_width = self.label.width.value();
+        self.label.set_position_x(-label_width / 2.0);
+        self.label.set_position_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
-        let bg_width = if self.label.width.value() > 0.0 {
-            PADDING + self.label.width.value() + PADDING
+        let bg_width = if label_width > 0.0 {
+            label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
         } else {
             0.0
         };
-        let bg_height = HEIGHT;
-        self.background.size.set(Vector2(
-            bg_width + 2.0 * MAGIC_SHADOW_MARGIN,
-            bg_height + 2.0 * MAGIC_SHADOW_MARGIN,
-        ));
-        self.background.set_position(Vector3(bg_width / 2.0, bg_height / 2.0, 0.0));
+        let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
+        self.background.size.set(Vector2(bg_width, bg_height));
+        self.background.set_position_y(-HEIGHT / 2.0);
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {

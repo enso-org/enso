@@ -152,7 +152,7 @@ class TypeSignaturesTest extends CompilerTest {
       val ir =
         """
           |type MyType
-          |    type MyAtom
+          |    MyAtom
           |
           |    ## is atom
           |    is_atom : this -> Boolean
@@ -162,7 +162,7 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Type]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
       ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined

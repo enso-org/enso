@@ -4,7 +4,7 @@ import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
-import scala.sys.process.Process
+import java.io.File
 
 object StdBits {
 
@@ -22,19 +22,18 @@ object StdBits {
   def copyDependencies(
     destination: File,
     baseJarName: Option[String],
-    ignoreScalaLibrary: Boolean,
-    unpackedDeps: Set[String] = Set()
+    ignoreScalaLibrary: Boolean
   ): Def.Initialize[Task[Unit]] =
     Def.task {
       val libraryUpdates = (Compile / update).value
       val log            = streams.value.log
 
-      val ignoredConfigurations: NameFilter =
-        if (ignoreScalaLibrary)
-          new ExactFilter(Configurations.ScalaTool.name)
-        else NothingFilter
+      val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
+      val validConfig =
+        if (ignoreScalaLibrary) baseFilter - new ExactFilter(Configurations.ScalaTool.name)
+        else baseFilter
       val configFilter: ConfigurationFilter =
-        DependencyFilter.configurationFilter(-ignoredConfigurations)
+        DependencyFilter.configurationFilter(name = validConfig)
 
       val graalOrg = new ExactFilter("org.graalvm.sdk")
       val relevantFiles =
@@ -51,7 +50,7 @@ object StdBits {
         report =>
           val expectedFileNames =
             report.checked.map(
-              getDestinationFileName(_, unpackedDeps)
+              file => file.getName
             ) ++ baseJarName.toSeq
           for (existing <- IO.listFiles(destination)) {
             if (!expectedFileNames.contains(existing.getName)) {
@@ -65,52 +64,60 @@ object StdBits {
             log.info(
               s"Updating changed std-bits dependency ${changed.getName}."
             )
-            updateDependency(changed, unpackedDeps, destination, log)
+            updateDependency(changed, destination, log)
           }
           for (file <- report.unmodified) {
-            val dest = destination / getDestinationFileName(file, unpackedDeps)
+            val dest = destination / file.getName
             if (!dest.exists()) {
               log.info(s"Adding missing std-bits dependency ${file.getName}.")
-              updateDependency(file, unpackedDeps, destination, log)
+              updateDependency(file, destination, log)
             }
           }
       }
     }
 
-  private def shouldUnpack(jar: File, unpacked: Set[String]): Boolean = {
-    // Maven stores dependencies like this:
-    // .../repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/5.0.1/xmlbeans-5.0.1.jar
-    // therefore, the parent of the parent of the jar file is the directory
-    // named with the un-versioned library name.
-    unpacked.contains(jar.getParentFile.getParentFile.getName)
-  }
-
   private def updateDependency(
     jar: File,
-    unpacked: Set[String],
     destinationDir: File,
     logger: ManagedLogger
   ): Unit = {
-    val destination = destinationDir / getDestinationFileName(jar, unpacked)
-    if (shouldUnpack(jar, unpacked)) {
-      destination.mkdirs()
-      val exitCode = Process(s"jar xf ${jar.getAbsolutePath}", destination).!
-      if (exitCode != 0) {
-        logger.err(s"Could not unpack a dependency jar: $jar.")
-        throw new RuntimeException(s"Could not unpack a dependency jar: $jar.")
-      }
-    } else {
-      IO.copyFile(jar, destination)
-    }
+    val destination = destinationDir / jar.getName
+    IO.copyFile(jar, destination)
   }
 
-  private def getDestinationFileName(
-    file: File,
-    unpacked: Set[String]
-  ): String = {
-    if (shouldUnpack(file, unpacked)) {
-      val name = file.getName
-      name.stripSuffix(".jar")
-    } else file.getName
+  /**
+   * Builds a single standard library package `name`. Should only be used
+   * in tasks used in local development.
+   *
+   * @param name name of the package, see `stdBitsProjects` in build.sbt
+   * @param root top directory where distribution is being built
+   * @param cache used for persisting the cached information
+   * @param log logger used in the task
+   * @param defaultDevEnsoVersion default `dev` version
+   */
+  def buildStdLibPackage(
+    name: String,
+    root: File,
+    cacheFactory: sbt.util.CacheStoreFactory,
+    log: sbt.Logger,
+    defaultDevEnsoVersion: String
+  ) = {
+    log.info(s"Building standard library package for '$name'")
+    val prefix = "Standard"
+    val targetPkgRoot = root / "lib" / prefix / name / defaultDevEnsoVersion
+    val sourceDir = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion")
+    if (!sourceDir.exists) {
+      throw new RuntimeException("Invalid standard library package " + name)
+    }
+    val result = DistributionPackage.copyDirectoryIncremental(
+      source      = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion"),
+      destination = targetPkgRoot,
+      cache = cacheFactory.sub("engine-libraries").make(s"$prefix.$name"),
+    )
+    if (result) {
+      log.info(s"Package '$name' has been updated")
+    } else {
+      log.info(s"No changes detected for '$name' package")
+    }
   }
 }

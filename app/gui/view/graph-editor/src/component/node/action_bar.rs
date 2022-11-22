@@ -1,5 +1,7 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
+
+
 mod icon;
 
 use crate::prelude::*;
@@ -34,13 +36,13 @@ const HOVER_EXTENSION_X: f32 = 15.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (corner_radius:f32) {
+    ensogl::shape! {
+        (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));
             let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(HOVER_COLOR);
+            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
             rect_filled.into()
         }
     }
@@ -78,18 +80,17 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 struct Icons {
     display_object: display::object::Instance,
-    freeze:         ToggleButton<icon::freeze::DynamicShape>,
-    visibility:     ToggleButton<icon::visibility::DynamicShape>,
-    skip:           ToggleButton<icon::skip::DynamicShape>,
+    freeze:         ToggleButton<icon::freeze::Shape>,
+    visibility:     ToggleButton<icon::visibility::Shape>,
+    skip:           ToggleButton<icon::skip::Shape>,
 }
 
 impl Icons {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "Icons");
-        let display_object = display::object::Instance::new(&logger);
-        let freeze = ToggleButton::new(&logger);
-        let visibility = ToggleButton::new(&logger);
-        let skip = ToggleButton::new(&logger);
+    fn new() -> Self {
+        let display_object = display::object::Instance::new();
+        let freeze = ToggleButton::new();
+        let visibility = ToggleButton::new();
+        let skip = ToggleButton::new();
         display_object.add_child(&visibility);
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
@@ -133,12 +134,11 @@ struct Model {
 }
 
 impl Model {
-    fn new(logger: impl AnyLogger, app: &Application) -> Self {
+    fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new_sub(logger, "ActionBar");
-        let display_object = display::object::Instance::new(&logger);
-        let hover_area = hover_area::View::new(&logger);
-        let icons = Icons::new(&logger);
+        let display_object = display::object::Instance::new();
+        let hover_area = hover_area::View::new();
+        let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
         let size = default();
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -254,8 +254,8 @@ impl Deref for ActionBar {
 
 impl ActionBar {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let model = Rc::new(Model::new(logger, app));
+    pub fn new(app: &Application) -> Self {
+        let model = Rc::new(Model::new(app));
         let frp = Frp::new();
         ActionBar { frp, model }.init_frp()
     }

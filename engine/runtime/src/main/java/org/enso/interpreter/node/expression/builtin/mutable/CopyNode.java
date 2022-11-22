@@ -15,32 +15,28 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(type = "Array", name = "copy", description = "Copies one array to another.")
+@BuiltinMethod(
+    type = "Array",
+    name = "copy",
+    description = "Copies one array to another.",
+    autoRegister = false)
 public abstract class CopyNode extends Node {
 
   static CopyNode build() {
     return CopyNodeGen.create();
   }
 
-  abstract Object execute(
-      Object _this, Object src, long source_index, Array dest, long dest_index, long count);
+  abstract Object execute(Object src, long source_index, Array dest, long dest_index, long count);
 
   @Specialization
-  Object doArray(
-      Object _this,
-      Array src,
-      long source_index,
-      Array dest,
-      long dest_index,
-      long count) {
+  Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Specialization(guards = "arrays.hasArrayElements(src)")
   Object doPolyglotArray(
-      Object _this,
       Object src,
       long source_index,
       Array dest,
@@ -50,23 +46,25 @@ public abstract class CopyNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       for (int i = 0; i < count; i++) {
-        dest.getItems()[(int) dest_index + i] = hostValueToEnsoNode.execute(
-            arrays.readArrayElement(src, source_index + i));
+        dest.getItems()[(int) dest_index + i] =
+            hostValueToEnsoNode.execute(arrays.readArrayElement(src, source_index + i));
       }
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Unreachable");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(src, e.getInvalidIndex()), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeInvalidArrayIndexError(src, e.getInvalidIndex()),
+          this);
     }
-    return  Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Fallback
-  Object doOther(
-      Object _this, Object src, long source_index, Array dest, long dest_index, long count) {
+  Object doOther(Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = Context.get(this).getBuiltins();
-    throw new PanicException(
-        builtins.error().makeTypeError(builtins.mutable().array().newInstance(), src, "src"), this);
+    throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
   }
 }

@@ -54,7 +54,7 @@ public class ProgramRootNode extends RootNode {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       QualifiedName name = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
-      Context ctx = lookupContextReference(Language.class).get();
+      Context ctx = Context.get(this);
       if (sourceCode.getPath() != null) {
         TruffleFile src = ctx.getTruffleFile(new File(sourceCode.getPath()));
         Package<TruffleFile> pkg = ctx.getPackageOf(src).orElse(null);

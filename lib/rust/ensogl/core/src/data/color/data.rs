@@ -1,12 +1,11 @@
 //! This module defines `Color` and `Alpha`, generic data types used to define specific color
 //! implementations.
 
+use super::component::*;
 use crate::prelude::*;
-
 use enso_generics::*;
 
 use super::component::HasComponents;
-use super::component::*;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 
@@ -27,7 +26,7 @@ use nalgebra::Vector4;
 /// just want it, for example to match the behavior of color mixing in web browsers, which is
 /// broken for many years already:
 /// https://stackoverflow.com/questions/60179850/webgl-2-0-canvas-blending-with-html-in-linear-color-space
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub struct Color<D> {
     /// The underlying color representation. It is either `Alpha` or a color space instance.
     pub data: D,
@@ -108,6 +107,12 @@ impl<C> From<Color<C>> for Color<Alpha<C>> {
     fn from(color: Color<C>) -> Self {
         let data = color.data.into();
         Self { data }
+    }
+}
+
+impl<C> From<Color<Alpha<C>>> for Color<C> {
+    fn from(color: Color<Alpha<C>>) -> Self {
+        color.data.opaque
     }
 }
 

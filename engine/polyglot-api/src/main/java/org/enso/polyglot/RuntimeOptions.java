@@ -29,9 +29,6 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(ENABLE_AUTO_PARALLELISM_KEY, ENABLE_AUTO_PARALLELISM).build();
 
   public static final String LOG_LEVEL = "log.level";
-  public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
-  private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
-      OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
   public static final String LOG_MASKING = optionName("log.masking");
   public static final OptionKey<Boolean> LOG_MASKING_KEY = new OptionKey<>(true);
@@ -69,6 +66,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor LANGUAGE_HOME_OVERRIDE_DESCRIPTOR =
       OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
+  public static final String EDITION_OVERRIDE = optionName("editionOverride");
+  public static final OptionKey<String> EDITION_OVERRIDE_KEY = new OptionKey<>("");
+  private static final OptionDescriptor EDITION_OVERRIDE_DESCRIPTOR =
+      OptionDescriptor.newBuilder(EDITION_OVERRIDE_KEY, EDITION_OVERRIDE).build();
+
   public static final String DISABLE_IR_CACHES = optionName("disableIrCaches");
   public static final OptionKey<Boolean> DISABLE_IR_CACHES_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_IR_CACHES_DESCRIPTOR =
@@ -94,7 +96,6 @@ public class RuntimeOptions {
           Arrays.asList(
               PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
-              LOG_LEVEL_DESCRIPTOR,
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
@@ -102,6 +103,7 @@ public class RuntimeOptions {
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
+              EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,

@@ -19,6 +19,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -53,7 +54,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
 
   /** A simple value class for function call information. */
   @ExportLibrary(InteropLibrary.class)
-  public static class FunctionCall implements TruffleObject {
+  public static final class FunctionCall implements TruffleObject {
     private final Function function;
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
@@ -92,8 +93,13 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
           FunctionCall functionCall,
           Object[] arguments,
           @Cached InteropApplicationNode interopApplicationNode) {
+        Object[] callArguments =
+            Arrays.copyOf(
+                functionCall.getArguments(), functionCall.getArguments().length + arguments.length);
+        System.arraycopy(
+            arguments, 0, callArguments, functionCall.getArguments().length, arguments.length);
         return interopApplicationNode.execute(
-            functionCall.function, functionCall.state, functionCall.arguments);
+            functionCall.function, functionCall.state, callArguments);
       }
     }
 

@@ -11,7 +11,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyError
           |
@@ -29,7 +31,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through specialized pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyError
           |
@@ -48,7 +52,7 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "be catchable by a user-provided special handling function" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
           |    intError = Error.throw 1
@@ -59,34 +63,40 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "accept a constructor handler in catch function" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
-          |type MyCons err
+          |type My_Cons
+          |    Mk_My_Cons err
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch_primitive MyCons)
+          |    IO.println (unitErr.catch_primitive My_Cons.Mk_My_Cons)
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyCons Nothing)")
+      consumeOut shouldEqual List("(Mk_My_Cons Nothing)")
     }
 
     "accept a method handle in catch function" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
-          |type MyRecovered x
-          |type MyError x
+          |type My_Recovered
+          |    Mk_My_Recovered x
+          |type My_Error
+          |    Mk_My_Error x
           |
-          |MyError.recover = case this of
-          |    MyError x -> MyRecovered x
+          |My_Error.recover self = case self of
+          |    My_Error.Mk_My_Error x -> My_Recovered.Mk_My_Recovered x
           |
           |main =
-          |    myErr = Error.throw (MyError 20)
+          |    myErr = Error.throw (My_Error.Mk_My_Error 20)
           |    IO.println(myErr.catch_primitive .recover)
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyRecovered 20)")
+      consumeOut shouldEqual List("(Mk_My_Recovered 20)")
     }
 
     "make the catch method an identity for non-error values" in {
@@ -96,14 +106,16 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through atom construction" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
-          |type My_Atom a
+          |type My_Atom
+          |    Mk_My_Atom a
           |type My_Error
           |
           |main =
           |    broken_val = Error.throw My_Error
-          |    atom = My_Atom broken_val
+          |    atom = My_Atom.Mk_My_Atom broken_val
           |
           |    IO.println atom
           |""".stripMargin
@@ -113,7 +125,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through method resolution" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Atom
           |type My_Error
@@ -132,7 +145,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through function calls" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -148,7 +162,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through builtin methods" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -163,7 +178,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "not propagate when explicitly accepted by type and by annotation" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -174,6 +190,23 @@ class DataflowErrorsTest extends InterpreterTest {
 
       eval(code)
       consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    // TODO: Make sure this is expected
+    "catch and pretty-print semantic errors" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+          |    IO.println x
+          |    IO.println (x.catch Any .to_text)
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List(
+        "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
+        "(Syntax_Error_Data 'Unrecognized token.')"
+      )
     }
   }
 }

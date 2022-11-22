@@ -1,18 +1,18 @@
 //! Defines `Theme`, a smart style manager on top of style sheets.
 
+use crate::control::callback::traits::*;
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
+use crate::control::callback;
 use crate::data::color;
+use crate::data::dirty;
 use crate::data::HashMapTree;
 
 use super::sheet as style;
 use super::sheet::Change;
 use super::sheet::Path;
 use super::sheet::Value;
-use crate::control::callback;
-use crate::control::callback::traits::*;
-use crate::data::dirty;
-use crate::data::dirty::traits::*;
 
 
 
@@ -26,7 +26,7 @@ use crate::data::dirty::traits::*;
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct Theme {
     tree:   Rc<RefCell<HashMapTree<String, Option<Value>>>>,
-    on_mut: callback::registry::MutNoArgs,
+    on_mut: callback::registry::NoArgs,
 }
 
 impl Theme {
@@ -42,26 +42,31 @@ impl Theme {
         Self { tree, on_mut }
     }
 
-    /// Insert a new style in the theme. Returns [`true`] if the operation was successful. It can
-    /// fail if provided with malformed value, for example with a string "rgba(foo)". In such a
-    /// case, the value will not be applied and the function will return [`false`].
-    pub fn set<P, E>(&self, path: P, value: E) -> bool
-    where
-        P: Into<Path>,
-        E: TryInto<Value>, {
-        let path = path.into();
-        let value = value.try_into();
-        if let Ok(value) = value {
-            self.tree.borrow_mut().set(&path.rev_segments, Some(value));
-            self.on_mut.run_all();
+    /// Insert or modify a style in the theme. Sets the style and returns [`true`] if `value` was
+    /// successfully parsed to [`Data`], or returns [`false`] otherwise.
+    pub fn parse_and_set(&self, path: impl Into<Path>, value: &str) -> bool {
+        let parsed_value = style::Data::parse(value);
+        if let Some(value) = parsed_value {
+            self.set(path, value);
             true
         } else {
             false
         }
     }
 
+    /// Insert or modify a style in the theme.
+    pub fn set<P, E>(&self, path: P, value: E)
+    where
+        P: Into<Path>,
+        E: Into<Value>, {
+        let path = path.into();
+        let value = value.into();
+        self.tree.borrow_mut().set(&path.rev_segments, Some(value));
+        self.on_mut.run_all();
+    }
+
     /// Add a new callback which will be triggered everytime this theme is modified.
-    pub fn on_mut(&self, callback: impl callback::MutNoArgs) -> callback::Handle {
+    pub fn on_mut(&self, callback: impl callback::NoArgs) -> callback::Handle {
         self.on_mut.add(callback)
     }
 
@@ -230,8 +235,8 @@ impl Manager {
     /// Constructor.
     pub fn new() -> Self {
         let logger = Logger::new("Theme Manager");
-        let current_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "dirty"), ());
-        let enabled_dirty = dirty::SharedVector::new(Logger::new_sub(&logger, "enabled_dirty"), ());
+        let current_dirty = dirty::SharedBool::new(());
+        let enabled_dirty = dirty::SharedVector::new(());
         let data = default();
         let handles = default();
         let initialized = default();
@@ -355,5 +360,5 @@ pub fn test() {
     theme_manager.register("theme2", theme2);
 
     theme_manager.set_enabled(&["theme1".to_string()]);
-    theme_manager.set_enabled(&["theme1", "theme2"]);
+    theme_manager.set_enabled(["theme1", "theme2"]);
 }

@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.Storage;
  *
  * @param <I> the supported storage type.
  */
-public abstract class MapOperation<I extends Storage> {
+public abstract class MapOperation<T, I extends Storage<? super T>> {
   private final String name;
 
   /**
@@ -26,7 +26,7 @@ public abstract class MapOperation<I extends Storage> {
    * @param arg the argument passed to the operation
    * @return the result of running the operation
    */
-  public abstract Storage runMap(I storage, Object arg);
+  public abstract Storage<?> runMap(I storage, Object arg);
 
   /**
    * Run the operation in zip mode
@@ -35,7 +35,7 @@ public abstract class MapOperation<I extends Storage> {
    * @param arg the storage providing second arguments to the operation
    * @return the result of running the operation
    */
-  public abstract Storage runZip(I storage, Storage arg);
+  public abstract Storage<?> runZip(I storage, Storage<?> arg);
 
   /** @return the name of this operation */
   public String getName() {

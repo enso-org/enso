@@ -1,6 +1,7 @@
 //! This module defines utilities for working with PhantomData.
 
 use super::std_reexports::*;
+
 use derivative::Derivative;
 use shrinkwraprs::Shrinkwrap;
 
@@ -9,6 +10,9 @@ use shrinkwraprs::Shrinkwrap;
 // ===================
 // === PhantomData ===
 // ===================
+
+/// Replacement for the default phantom data, that provides a default type argument.
+pub type PhantomData0<T = ()> = std::marker::PhantomData<T>;
 
 /// The following `PhantomData` implementations allow each argument to be non
 /// Sized. Unfortunately, this is not equivalent to `PhantomData<(T1,T2,...)>`,
@@ -66,7 +70,7 @@ impl<T, P> WithPhantom<T, P> {
 /// `Int` or `Float` to the `GlEnum` we do not need the instance of the types, only the information
 /// what type it was. So we can define:
 ///
-/// ```compile_fail
+/// ```text
 /// impl From<PhantomData<Int>> for u32 {
 ///     from(_:PhantomData<Int>>) {
 ///         GlEnum(WebGlContext::Int)
@@ -76,13 +80,13 @@ impl<T, P> WithPhantom<T, P> {
 ///
 /// And use it like:
 ///
-/// ```compile_fail
+/// ```text
 /// let val = GlEnum::from(PhantomData::<Int>)
 /// ```
 ///
 /// Using this utility we can always write the following code instead:
 ///
-/// ```compile_fail
+/// ```text
 /// let val = GlEnum::phantom_from::<Int>()
 /// ```
 pub trait PhantomConversions: Sized {

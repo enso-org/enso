@@ -10,11 +10,12 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_source_location",
-    description = "Returns a textual representation of the location of the callsite.")
+    name = "get_source_location_builtin",
+    description = "Returns a textual representation of the location of the callsite.",
+    autoRegister = false)
 public class GetSourceLocationNode extends Node {
 
-  Text execute(Object _this, long frames_to_skip) {
+  Text execute(long frames_to_skip) {
     var location = renderSourceLocation(frames_to_skip);
     return Text.create(location);
   }

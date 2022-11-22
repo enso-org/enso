@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.error.displaytext;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -13,19 +14,30 @@ public abstract class ArityErrorToDisplayTextNode extends Node {
     return ArityErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this) {
+  @CompilerDirectives.TruffleBoundary
+  Text doAtom(Atom self) {
+    Object[] fields = self.getFields();
+
+    Text expected = Text.create(String.valueOf(fields[0]));
+    if (!fields[0].equals(fields[1])) {
+      expected = expected.add("-");
+      if (!fields[1].equals(-1)) {
+        expected = expected.add(String.valueOf(fields[1]));
+      }
+    }
+
     return Text.create("Wrong number of arguments. Expected ")
-        .add(String.valueOf(_this.getFields()[0]))
+        .add(expected)
         .add(", but got ")
-        .add(String.valueOf(_this.getFields()[1]))
+        .add(String.valueOf(fields[2]))
         .add(".");
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Wrong number of arguments.");
   }
 }

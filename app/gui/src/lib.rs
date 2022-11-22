@@ -27,36 +27,50 @@
 //! - **Presenter** (the [`presenter`] module): Synchronizes the state of the engine entities with
 //!   the view, and passes the user interations to the controllers.
 
-#![feature(arbitrary_self_types)]
+#![recursion_limit = "512"]
+// === Features ===
+#![feature(arc_unwrap_or_clone)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
-#![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(drain_filter)]
 #![feature(exact_size_is_empty)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-#![feature(result_into_ok_or_err)]
+#![feature(result_option_inspect)]
 #![feature(map_try_insert)]
 #![feature(assert_matches)]
-#![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
-#![recursion_limit = "512"]
+#![feature(unwrap_infallible)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+use prelude::*;
+use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod config;
 pub mod constants;
 pub mod controller;
 pub mod executor;
 pub mod ide;
+pub mod integration_test;
 pub mod model;
 pub mod notification;
 pub mod presenter;
@@ -67,13 +81,7 @@ pub mod transport;
 pub use crate::ide::*;
 pub use ide_view as view;
 
-use wasm_bindgen::prelude::*;
 
-// Those imports are required to have all EnsoGL examples entry points visible in IDE.
-#[allow(unused_imports)]
-use enso_debug_scene::*;
-#[allow(unused_imports)]
-use ensogl_examples::*;
 
 #[cfg(test)]
 mod tests;
@@ -89,6 +97,9 @@ pub mod prelude {
     pub use crate::executor;
     pub use crate::model;
     pub use crate::model::traits::*;
+
+    pub use enso_profiler;
+    pub use enso_profiler::prelude::*;
 
     pub use engine_protocol::prelude::BoxFuture;
     pub use engine_protocol::prelude::StaticBoxFuture;
@@ -110,27 +121,47 @@ pub mod prelude {
     pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
-/// IDE startup function.
-#[wasm_bindgen]
-#[allow(dead_code)]
-pub fn entry_point_ide() {
-    ensogl_text_msdf_sys::run_once_initialized(|| {
-        // Logging of build information.
-        #[cfg(debug_assertions)]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(true),
-        );
-        #[cfg(not(debug_assertions))]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(false),
-        );
+// Those imports are required to have all examples entry points visible in IDE.
+#[allow(unused_imports)]
+mod examples {
+    use enso_debug_scene::*;
+    use ensogl_examples::*;
+}
+#[allow(unused_imports)]
+use examples::*;
+mod profile_workflow;
 
-        let config =
-            crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
-        crate::ide::Initializer::new(config).start_and_forget();
+
+
+// ===================
+// === Entry Point ===
+// ===================
+
+/// IDE startup function.
+#[entry_point(ide)]
+#[profile(Objective)]
+#[allow(dead_code)]
+pub fn main() {
+    // Logging of build information.
+    #[cfg(debug_assertions)]
+    let debug_mode = true;
+    #[cfg(not(debug_assertions))]
+    let debug_mode = false;
+    analytics::remote_log_value(
+        "debug_mode",
+        "debug_mode_is_active",
+        analytics::AnonymousData(debug_mode),
+    );
+    let config =
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration");
+    let executor = crate::ide::initializer::setup_global_executor();
+    let initializer = crate::ide::initializer::Initializer::new(config);
+    executor::global::spawn(async move {
+        let ide = initializer.start().await;
+        ensogl::system::web::document
+            .get_element_by_id("loader")
+            .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
+        std::mem::forget(ide);
     });
+    std::mem::forget(executor);
 }

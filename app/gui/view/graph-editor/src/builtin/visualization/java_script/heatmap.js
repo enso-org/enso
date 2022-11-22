@@ -12,8 +12,7 @@ class Heatmap extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessorModule('Standard.Visualization.Table.Visualization')
-        this.setPreprocessorCode(`x -> here.prepare_visualization x 1000`)
+        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization')
     }
 
     onDataReceived(data) {
@@ -177,7 +176,7 @@ class Heatmap extends Visualization {
             .tickSize(0)
             .tickValues(
                 myGroups.filter((d, i) => {
-                    if (i == myGroups.length - 1) {
+                    if (i === myGroups.length - 1) {
                         return 1
                     }
                     let divisor = (5 * self.canvas.outer.width) / 200
@@ -200,7 +199,7 @@ class Heatmap extends Visualization {
             .tickSize(0)
             .tickValues(
                 myVars.filter((d, i) => {
-                    if (i == myVars.length - 1) {
+                    if (i === myVars.length - 1) {
                         return 1
                     }
                     let divisor = (9 * self.canvas.outer.height) / 200

@@ -1,8 +1,16 @@
 //! Implements the segmented output port area.
-use crate::prelude::*;
 
+use crate::prelude::*;
 use ensogl::display::traits::*;
 
+use crate::component::node;
+use crate::component::node::input;
+use crate::component::node::output::port;
+use crate::tooltip;
+use crate::view;
+use crate::Type;
+
+use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::hysteretic::HystereticAnimation;
@@ -14,14 +22,6 @@ use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use span_tree;
-
-use crate::component::node;
-use crate::component::node::input;
-use crate::component::node::output::port;
-use crate::tooltip;
-use crate::view;
-use crate::Type;
-use enso_config::ARGS;
 
 
 
@@ -42,10 +42,10 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
 
-/// Specialized `SpanTree` for the input ports model.
+/// Specialized `SpanTree` for the output ports model.
 pub type SpanTree = span_tree::SpanTree<port::Model>;
 
-/// Mutable reference to port inside of a `SpanTree`.
+/// Reference to port inside of a `SpanTree`.
 pub type PortRef<'a> = span_tree::node::Ref<'a, port::Model>;
 
 /// Mutable reference to port inside of a `SpanTree`.
@@ -99,6 +99,7 @@ impl Debug for Expression {
 // === Conversions ===
 
 impl From<node::Expression> for Expression {
+    #[profile(Debug)]
     fn from(expr: node::Expression) -> Self {
         let code = expr.pattern.clone();
         let whole_expr_type = expr.input_span_tree.root.tp().map(|t| t.to_owned().into());
@@ -107,7 +108,7 @@ impl From<node::Expression> for Expression {
         span_tree.root_ref_mut().dfs_with_layer_data((), |node, ()| {
             let span = node.span();
             let port = node.payload_mut();
-            port.index = span.start;
+            port.index = span.start.into();
             port.length = span.size();
         });
         Expression { code, span_tree, whole_expr_type, whole_expr_id }
@@ -120,6 +121,8 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
+// FIXME: Update to `define_endpoints_2`. Note that `Model` must not own the `api::Private`,
+// because `api::Private` owns the network, which contains (strong) references to the model.
 ensogl::define_endpoints! {
     Input {
         set_size                  (Vector2),
@@ -145,17 +148,17 @@ ensogl::define_endpoints! {
         expression_label_visibility (bool),
         tooltip                     (tooltip::Style),
         view_mode                   (view::Mode),
+        size                        (Vector2),
     }
 }
 
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
-    label:          text::Area,
+    label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
     port_count:     Cell<usize>,
@@ -166,12 +169,12 @@ pub struct Model {
 
 impl Model {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, app: &Application, frp: &Frp) -> Self {
-        let logger = Logger::new_sub(&logger, "output_ports");
-        let display_object = display::object::Instance::new(&logger);
-        let ports = display::object::Instance::new(&Logger::new_sub(&logger, "ports"));
+    #[profile(Debug)]
+    pub fn new(app: &Application, frp: &Frp) -> Self {
+        let display_object = display::object::Instance::new();
+        let ports = display::object::Instance::new();
         let app = app.clone_ref();
-        let label = app.new_view::<text::Area>();
+        let label = app.new_view::<text::Text>();
         let id_crumbs_map = default();
         let expression = default();
         let port_count = default();
@@ -181,7 +184,6 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
-            logger,
             app,
             display_object,
             ports,
@@ -196,19 +198,20 @@ impl Model {
         .init()
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
         let scene = &self.app.display.default_scene;
-        self.label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.main.remove(&self.label);
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
-        self.label.single_line(true);
+        self.label.set_single_line_mode(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(text_color);
-        self.label.set_default_text_size(text::Size(input::area::TEXT_SIZE));
+        self.label.set_property_default(text_color);
+        self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
 
         self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
@@ -216,6 +219,24 @@ impl Model {
         self
     }
 
+    /// Return a list of Node's output ports.
+    pub fn ports(&self) -> Vec<port::Model> {
+        let port_count = self.port_count.get();
+        let mut ports = Vec::with_capacity(port_count);
+        self.traverse_borrowed_expression(|is_a_port, node, _| {
+            if is_a_port {
+                ports.push(node.payload.clone());
+            }
+        });
+        ports
+    }
+
+    #[profile(Debug)]
+    fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.label.add_to_scene_layer(layer);
+    }
+
+    #[profile(Debug)]
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
@@ -223,6 +244,7 @@ impl Model {
     }
 
     /// Update expression type for the particular `ast::Id`.
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
             if let Some(frp) = &port.frp {
@@ -233,6 +255,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -246,6 +269,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -258,6 +282,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -277,6 +302,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -302,19 +328,17 @@ impl Model {
         count
     }
 
+    #[profile(Debug)]
     fn set_size(&self, size: Vector2) {
         self.ports.set_position_x(size.x / 2.0);
-        self.traverse_borrowed_expression_mut(|is_a_port, node, _| {
-            if is_a_port {
-                node.payload_mut().set_size(size)
-            }
-        })
     }
 
+    #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.set_label(expression.code());
     }
 
+    #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self) {
         let mut port_index = 0;
         let mut id_crumbs_map = HashMap::new();
@@ -336,9 +360,8 @@ impl Model {
             if is_a_port {
                 let port   = &mut node;
                 let crumbs = port.crumbs.clone_ref();
-                let logger = &self.logger;
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,&self.app,&self.styles,&self.styles_frp,port_index
+                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index
                     ,port_count);
                 let port_network = &port_frp.network;
 
@@ -352,10 +375,12 @@ impl Model {
                     port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
                     self.frp.source.tooltip             <+ port_frp.tooltip;
                     port_frp.set_view_mode              <+ self.frp.view_mode;
+                    port_frp.set_size                   <+ self.frp.size;
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
                 port_frp.set_view_mode.emit(self.frp.view_mode.value());
+                port_frp.set_size.emit(self.frp.size.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -363,6 +388,7 @@ impl Model {
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
 
+    #[profile(Debug)]
     fn init_definition_types(&self) {
         let port_count = self.port_count.get();
         let whole_expr_type = self.expression.borrow().whole_expr_type.clone();
@@ -383,6 +409,7 @@ impl Model {
         }
     }
 
+    #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let new_expression = Expression::from(new_expression.into());
         if DEBUG {
@@ -417,10 +444,10 @@ impl Model {
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Area {
-    #[allow(missing_docs)]
-    pub frp: Frp,
-    model:   Rc<Model>,
+    pub frp:   Frp,
+    pub model: Rc<Model>,
 }
 
 impl Deref for Area {
@@ -433,9 +460,9 @@ impl Deref for Area {
 
 impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::new(logger, app, &frp));
+        let model = Rc::new(Model::new(app, &frp));
         let network = &frp.network;
         let label_color = color::Animation::new(network);
 
@@ -454,6 +481,7 @@ impl Area {
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
+            frp.source.size <+ frp.set_size;
 
             frp.source.type_label_visibility <+ frp.set_type_label_visibility;
 
@@ -479,7 +507,7 @@ impl Area {
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
-            eval new_label_color ((color) model.label.set_color_all(color::Rgba::from(color)));
+            eval new_label_color ((color) model.label.set_property(.., color::Rgba::from(color)));
 
 
             // === View Mode ===
@@ -491,6 +519,11 @@ impl Area {
         label_color.target_color(label_vis_color.opaque);
 
         Self { frp, model }
+    }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.set_label_layer(layer);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

@@ -1,27 +1,43 @@
 package org.enso.compiler.context
 
 import java.util.UUID
-
+import org.enso.syntax.text.Parser
 import org.enso.compiler.core.IR
+import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.syntax.text.Location
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
 
+/** Simple editing change description.
+  *
+  * @param ir the current literal
+  * @param edit the editor change
+  * @param newIr the new literal
+  */
+case class SimpleUpdate(
+  ir: IR.Literal,
+  edit: TextEdit,
+  newIr: IR.Literal
+)
+
 /** The changeset of a module containing the computed list of invalidated
   * expressions.
   *
   * @param source the module source
   * @param ir the IR node of the module
+  * @param simpleUpdate description of a simple editing change (usually in a literal)
   * @param invalidated the list of invalidated expressions
   * @tparam A the source type
   */
 case class Changeset[A](
   source: A,
   ir: IR,
+  simpleUpdate: Option[SimpleUpdate],
   invalidated: Set[IR.ExternalId]
 )
 
@@ -42,8 +58,63 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     * @return the computed changeset
     */
   @throws[CompilerError]
-  def build(edits: Seq[TextEdit]): Changeset[A] =
-    Changeset(source, ir, compute(edits))
+  def build(edits: Seq[PendingEdit]): Changeset[A] = {
+
+    val simpleEditOptionFromSetValue: Option[PendingEdit.SetExpressionValue] =
+      edits.collect { case edit: PendingEdit.SetExpressionValue =>
+        edit
+      }.lastOption
+
+    // Try to detect if the text edit is a simple edit
+    val simpleEditFromTextEditOption = edits match {
+      case Seq(first) => Some(first)
+      case Seq(head, realEdit) =>
+        val firstAffected = invalidated(Seq(head.edit))
+        if (firstAffected.isEmpty) {
+          Some(realEdit)
+        } else {
+          None
+        }
+      case _ => None
+    }
+
+    val simpleEditOption =
+      simpleEditOptionFromSetValue.orElse(simpleEditFromTextEditOption)
+
+    val simpleUpdateOption = simpleEditOption
+      .filter(e => e.edit.range.start.line == e.edit.range.end.line)
+      .map(e => (e, invalidated(Seq(e.edit))))
+      .filter(_._2.size == 1)
+      .flatMap { case (pending, directlyAffected) =>
+        val directlyAffectedId = directlyAffected.head.externalId
+        val literals =
+          ir.preorder.filter(_.getExternalId == directlyAffectedId)
+        val oldIr = literals.head
+
+        def newIR(edit: PendingEdit): Option[IR.Literal] = {
+          val value = edit match {
+            case pending: PendingEdit.SetExpressionValue => pending.value
+            case other: PendingEdit.ApplyEdit            => other.edit.text
+          }
+          AstToIr
+            .translateInline(Parser().run(value))
+            .flatMap(_ match {
+              case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
+              case _              => None
+            })
+        }
+
+        oldIr match {
+          case node: IR.Literal.Number =>
+            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
+          case node: IR.Literal.Text =>
+            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
+          case _ => None
+        }
+      }
+
+    Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)))
+  }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
     * using the [[DataflowAnalysis]] information.
@@ -90,8 +161,8 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         )
       }
 
-    val direct =
-      invalidated(edits).flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val nodeIds = invalidated(edits)
+    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
     val transitive =
       go(
         mutable.Queue().addAll(direct),

@@ -1,0 +1,33 @@
+from Standard.Base import all
+
+type Quote_Style
+    ## Does not handle quotes at all.
+
+       No quote parsing is done when reading the file.
+       In write mode, values are not quoted even if this would result in an
+       invalid file.
+    No_Quotes
+
+    ## Specifies the style of quotes when reading or writing a `Delimited` file.
+
+       Arguments:
+       - always_quote: Applies only to write mode. Specifies if all values
+         should be quoted even if the quotes are not necessary. If set to
+         `False`, only empty values and values containing the delimiter or the
+         quote character are quoted.
+       - quote: The quote character denotes the start and end of a quoted value.
+         Quoted items are not split on the delimiter and can also contain
+         newlines. Empty input strings must be quoted (e.g. "") as otherwise an
+         empty value is treated as `Nothing`.
+       - quote_escape: The character to escape the quote character in a quoted
+         value. For example, if both `quote` and `quote_escape` are set to `"`,
+         then escaping quotes is done by double quotes: `"ab""cd"` will yield
+         the text `ab"cd`. Another popular choice for `quote_escape` is the `\`
+         character. Then `"ab\"cd"` will yield the same text.
+
+       ! Quote Character
+
+         The quote and escape characters must consist of exactly one code-point
+         (i.e. it can be only one character and complex characters like emojis
+         may not be used).
+    With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = '"')

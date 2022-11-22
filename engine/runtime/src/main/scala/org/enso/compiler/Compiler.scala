@@ -1,8 +1,5 @@
 package org.enso.compiler
 
-import java.io.StringReader
-import java.util.logging.Level
-
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
@@ -23,10 +20,13 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
+import java.io.StringReader
+import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -46,14 +46,15 @@ class Compiler(
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
-    new RuntimeStubsGenerator()
+    new RuntimeStubsGenerator(builtins)
   private val irCachingEnabled = !context.isIrCachingDisabled
   private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
     RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger = context.getLogger(getClass)
+  private val logger: TruffleLogger           = context.getLogger(getClass)
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -111,10 +112,9 @@ class Compiler(
     * given scope.
     *
     * @param module the scope into which new bindings are registered
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
+    * @return a compiler result containing the list of compiled modules
     */
-  def run(module: Module): Unit = {
+  def run(module: Module): CompilerResult = {
     runInternal(
       List(module),
       generateCode              = true,
@@ -180,15 +180,62 @@ class Compiler(
     module
   }
 
+  /** Run the compiler on the list of modules.
+    *
+    * The compilation may load the libraries defining component groups. To ensure
+    * that the symbols defined by the component groups are also compiled, this
+    * method is called recursively.
+    */
   private def runInternal(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
-  ): Unit = {
+  ): CompilerResult = {
+    @scala.annotation.tailrec
+    def go(
+      modulesToCompile: List[Module],
+      compiledModules: List[Module]
+    ): CompilerResult =
+      if (modulesToCompile.isEmpty) CompilerResult(compiledModules)
+      else {
+        val newCompiled =
+          runCompilerPipeline(
+            modulesToCompile,
+            generateCode,
+            shouldCompileDependencies
+          )
+        val pending = packageRepository.getPendingModules.toList
+        go(pending, compiledModules ++ newCompiled)
+      }
+
+    go(modules, List())
+  }
+
+  private def runCompilerPipeline(
+    modules: List[Module],
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): List[Module] = {
     initialize()
     modules.foreach(m => parseModule(m))
 
-    var requiredModules = modules.flatMap(runImportsAndExportsResolution)
+    var requiredModules = modules.flatMap { module =>
+      val modules = runImportsAndExportsResolution(module)
+      if (
+        module
+          .wasLoadedFromCache() && modules.exists(!_.wasLoadedFromCache())
+      ) {
+        logger.log(
+          Compiler.defaultLogLevel,
+          s"Some imported modules' caches were invalided, forcing invalidation of ${module.getName.toString}"
+        )
+        module.getCache.invalidate(context)
+        parseModule(module)
+        runImportsAndExportsResolution(module)
+      } else {
+        modules
+      }
+    }
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
@@ -309,6 +356,8 @@ class Compiler(
         }
       }
     }
+
+    requiredModules
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {
@@ -362,7 +411,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Parsing the module [${module.getName}]."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     if (irCachingEnabled && !module.isInteractive) {
@@ -380,7 +429,7 @@ class Compiler(
       Compiler.defaultLogLevel,
       s"Loading module `${module.getName}` from source."
     )
-    module.ensureScopeExists()
+    module.ensureScopeExists(context)
     module.getScope.reset()
 
     val moduleContext = ModuleContext(
@@ -389,11 +438,33 @@ class Compiler(
       compilerConfig   = config,
       isGeneratingDocs = isGenDocs
     )
-    val parsedAST        = parse(module.getSource)
-    val expr             = generateIR(parsedAST)
-    val discoveredModule = recognizeBindings(expr, moduleContext)
+
+    val src = module.getSource
+    def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
+      val tree = parse(src)
+      generateIR(tree)
+    }
+    val expr =
+      if (
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
+
+    val exprWithModuleExports =
+      if (module.isSynthetic)
+        expr
+      else
+        injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
+    val discoveredModule =
+      recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.setLoadedFromCache(false)
     module.setHasCrossModuleLinks(true)
   }
 
@@ -523,6 +594,77 @@ class Compiler(
   def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
 
+  /** Enhances the provided IR with import/export statements for the provided list
+    * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
+    * That way one can access modules using fully qualified names.
+    * E.g.,
+    * Given module A/B/C.enso
+    * ````
+    *   type C
+    *       type C a
+    * ````
+    * it is possible to
+    * ```
+    * import A
+    * ...
+    *   x = A.B.C 0
+    * ```
+    * because the compiler will inject synthetic modules A and A.B such that
+    * A.enso:
+    * ````
+    *   import project.A.B
+    *   export project.A.B
+    * ````
+    * and A/B.enso:
+    * ````
+    *   import project.A.B.C
+    *   export project.A.B.C
+    * ````
+    *
+    * @param ir IR to be enhanced
+    * @param modules fully qualified names of modules
+    * @return enhanced
+    */
+  private def injectSyntheticModuleExports(
+    ir: IR.Module,
+    modules: java.util.List[QualifiedName]
+  ): IR.Module = {
+    import scala.jdk.CollectionConverters._
+
+    val moduleNames = modules.asScala.map { q =>
+      val name = q.path.foldRight(
+        List(IR.Name.Literal(q.item, isMethod = false, location = None))
+      ) { case (part, acc) =>
+        IR.Name.Literal(part, isMethod = false, location = None) :: acc
+      }
+      IR.Name.Qualified(name, location = None)
+    }.toList
+    ir.copy(
+      imports = ir.imports ::: moduleNames.map(m =>
+        IR.Module.Scope.Import.Module(
+          m,
+          rename      = None,
+          isAll       = false,
+          onlyNames   = None,
+          hiddenNames = None,
+          location    = None,
+          isSynthetic = true
+        )
+      ),
+      exports = ir.exports ::: moduleNames.map(m =>
+        IR.Module.Scope.Export.Module(
+          m,
+          rename      = None,
+          isAll       = false,
+          onlyNames   = None,
+          hiddenNames = None,
+          location    = None,
+          isSynthetic = true
+        )
+      )
+    )
+  }
+
   private def recognizeBindings(
     module: IR.Module,
     moduleContext: ModuleContext
@@ -615,6 +757,13 @@ class Compiler(
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
+        val count =
+          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+        val warnCount =
+          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+        context.getErr.println(
+          s"Aborting due to ${count} errors and ${warnCount} warnings."
+        )
         throw new CompilationAbortedException
       }
     }
@@ -689,15 +838,18 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    val results = diagnostics.map { case (mod, diags) =>
-      if (diags.nonEmpty) {
-        context.getOut.println(s"In module ${mod.getName}:")
-        reportDiagnostics(diags, mod.getSource)
-      } else {
-        false
+    // It may be tempting to replace `.foldLeft(..)` with
+    // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
+    // not just the first one.
+    diagnostics
+      .foldLeft(false) { case (result, (mod, diags)) =>
+        if (diags.nonEmpty) {
+          context.getOut.println(s"In module ${mod.getName}:")
+          reportDiagnostics(diags, mod.getSource) || result
+        } else {
+          result
+        }
       }
-    }
-    results.exists(r => r)
   }
 
   /** Reports compilation diagnostics to the standard output and throws an

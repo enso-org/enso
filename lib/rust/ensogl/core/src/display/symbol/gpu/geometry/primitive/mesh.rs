@@ -1,16 +1,15 @@
 //! This module defines a [polygon mesh](https://en.wikipedia.org/wiki/Polygon_mesh).
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug::stats::Stats;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
+use enso_shapely::shared2;
 use num_enum::IntoPrimitive;
-
-use enso_shapely::shared;
 
 
 
@@ -51,7 +50,7 @@ pub struct Scopes {
 }
 
 /// A singleton for each of scope types.
-#[derive(Copy, Clone, Debug, Display, IntoPrimitive, PartialEq)]
+#[derive(Copy, Clone, Debug, Display, IntoPrimitive, PartialEq, Eq)]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum ScopeType {
@@ -71,7 +70,7 @@ impl From<ScopeType> for usize {
 // === Types ===
 
 /// Dirty flag remembering which scopes were mutated.
-pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn Fn()>>;
+pub type ScopesDirty = dirty::SharedEnum<u8, ScopeType, Box<dyn FnMut()>>;
 
 
 // === Implementation ===
@@ -91,9 +90,9 @@ macro_rules! update_scopes {
 
 // === Definition ===
 
-shared! { Mesh
+shared2! { Mesh
 /// A polygon mesh is a collection of vertices, edges and faces that defines the shape of a
-/// polyhedral object. Mesh describes the shape of the display element. It consist of several
+/// polyhedral object. Mesh describes the shape of the display element. It consists of several
 /// scopes containing sets of variables. See the documentation of `Scopes` to learn more.
 ///
 /// Please note, that there are other, higher-level scopes defined by other structures, including:
@@ -102,7 +101,7 @@ shared! { Mesh
 ///     Object refers to the whole geometry with all of its instances.
 ///
 ///   - Global Scope
-///     Global scope is shared by all objects and it contains some universal global variables, like
+///     Global scope is shared by all objects, and it contains some universal global variables, like
 ///     the current 'time' counter.
 ///
 /// Each scope can contain named attributes which can be accessed from within materials. If the same
@@ -113,30 +112,27 @@ shared! { Mesh
 pub struct MeshData {
     scopes       : Scopes,
     scopes_dirty : ScopesDirty,
-    logger       : Logger,
     stats        : Stats,
 }
 
 impl {
     /// Creates new mesh with attached dirty callback.
     pub fn new<OnMut:callback::NoArgs>
-    (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    (stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
-        let scopes_logger = Logger::new_sub(&logger,"scopes_dirty");
-        let scopes_dirty  = ScopesDirty::new(scopes_logger,Box::new(on_mut));
-        let scopes        = debug!(logger, "Initializing.", || {
+        let scopes_dirty  = ScopesDirty::new(Box::new(on_mut));
+        let scopes        = debug_span!("Initializing.").in_scope(|| {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
-                let sub_logger = Logger::new_sub(&logger,stringify!($name));
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
                 let callback   = move || {scs_dirty.set(status_mod)};
-                let $name      = AttributeScope::new(sub_logger,&stats,callback);
+                let $name      = AttributeScope::new(&stats, callback);
             )*}}
             new_scope! ({point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
             Scopes {point,vertex,primitive,instance}
         });
-        Self {scopes,scopes_dirty,logger,stats}
+        Self {scopes, scopes_dirty, stats}
     }
 
     /// Point scope accessor.
@@ -161,7 +157,7 @@ impl {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        debug!(self.logger, "Updating.", || {
+        debug_span!("Updating.").in_scope(|| {
             if self.scopes_dirty.check_all() {
                 update_scopes!{
                     self.{point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance}
@@ -192,7 +188,8 @@ impl {
         }.clone_ref()
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&self, context:Option<&Context>) {
         macro_rules! set_scope_context { ($($name:ident),*) => {
             $( self.scopes.$name.set_context(context); )*

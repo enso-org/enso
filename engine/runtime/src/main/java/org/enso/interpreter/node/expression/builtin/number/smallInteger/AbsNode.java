@@ -6,7 +6,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 
-@BuiltinMethod(type = "Small_Integer", name = "negate", description = "Negation for numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "abs", description = "Negation for numbers.")
 public abstract class AbsNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
@@ -14,19 +14,19 @@ public abstract class AbsNode extends Node {
     return AbsNodeGen.create();
   }
 
-  abstract Object execute(long _this);
+  abstract Object execute(long self);
 
   @Specialization(rewriteOn = ArithmeticException.class)
-  long doNormal(long _this) {
-    if (_this < 0) {
-      return Math.negateExact(_this);
+  long doNormal(long self) {
+    if (self < 0) {
+      return Math.negateExact(self);
     } else {
-      return _this;
+      return self;
     }
   }
 
   @Specialization
-  Object doOverflow(long _this) {
-    return toEnsoNumberNode.execute(BigIntegerOps.abs(_this));
+  Object doOverflow(long self) {
+    return toEnsoNumberNode.execute(BigIntegerOps.abs(self));
   }
 }

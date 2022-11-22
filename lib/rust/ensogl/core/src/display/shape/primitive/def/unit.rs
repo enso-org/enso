@@ -4,6 +4,11 @@ use super::var::*;
 
 use crate::types::topology;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use crate::types::topology::Degrees;
 pub use crate::types::topology::Pixels;
 pub use crate::types::topology::Radians;
@@ -32,6 +37,16 @@ impl PixelDistance for f32 {
     type Output = Var<Pixels>;
     fn px(&self) -> Self::Output {
         topology::pixels::Into::pixels(self).into()
+    }
+}
+
+impl PixelDistance for Var<f32> {
+    type Output = Var<Pixels>;
+    fn px(&self) -> Self::Output {
+        match self {
+            Var::Static(v) => v.px(),
+            Var::Dynamic(v) => Var::Dynamic(v.clone()),
+        }
     }
 }
 

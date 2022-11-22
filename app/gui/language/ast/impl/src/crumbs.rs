@@ -2,6 +2,7 @@
 //! possible in a constant time.
 
 use crate::prelude::*;
+use enso_text::index::*;
 
 use crate::enumerate_non_empty_lines;
 use crate::known;
@@ -13,8 +14,6 @@ use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
 use enso_text as text;
-use enso_text::traits::*;
-use enso_text::unit::*;
 
 
 
@@ -1464,9 +1463,9 @@ pub trait TraversableAst: Sized {
         self.get_traversing(&[])
     }
 
-    /// Calculate the span of the descendent AST node described by given crumbs..
-    fn range_of_descendant_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Bytes>> {
-        let mut position = 0.bytes();
+    /// Calculate the span of the descendent AST node described by given crumbs.
+    fn range_of_descendant_at(&self, crumbs: &[Crumb]) -> FallibleResult<text::Range<Byte>> {
+        let mut position = 0.byte();
         let mut ast = self.my_ast()?;
         for crumb in crumbs {
             let child = ast.get(crumb)?;
@@ -2238,7 +2237,7 @@ mod tests {
         assert_eq!(two.repr(), "2");
 
         let two_span = ast.range_of_descendant_at(&crumbs_to_two).unwrap();
-        assert_eq!(two_span, 4.bytes()..5.bytes());
+        assert_eq!(two_span, 4.byte()..5.byte());
         assert_eq!(&expected_code[two_span], "2");
     }
 }

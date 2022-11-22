@@ -1,0 +1,195 @@
+import project.Data.Any.Any
+import project.Data.Text.Extensions
+import project.Data.Text.Regex
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+from project.Data.Boolean import all
+
+polyglot java import org.enso.base.Regex_Utils
+
+from project.Data.Filter_Condition.Filter_Condition import all
+
+type Filter_Condition
+    ## Is less than a value (or another column, in case of Table operations)?
+    Less than:Any
+
+    ## Is less than or equal to a value (or another column, in case of Table operations)?
+    Equal_Or_Less than:Any
+
+    ## Is equal to a value (or another column, in case of Table operations)?
+    Equal to:Any
+
+    ## Is greater than or equal to a value (or another column, in case of Table operations)?
+    Equal_Or_Greater than:Any
+
+    ## Is greater than a value (or another column, in case of Table operations)?
+    Greater than:Any
+
+    ## Is not equal to a value (or another column, in case of Table operations)?
+    Not_Equal to:Any
+
+    ## Is between (inclusive) two values (or columns, in case of Table operations)?
+    Between lower:Any upper:Any
+
+    ## Does the value start with a prefix (Text only)?
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+    Starts_With (prefix:Text)
+
+    ## Does the value end with a suffix (Text only)?
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+    Ends_With (suffix:Text)
+
+    ## Does the value contain the needle (Text only)?
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+    Contains (substring:Text)
+
+    ## Is equal to Nothing?
+    Is_Nothing
+
+    ## Is not equal to Nothing?
+    Not_Nothing
+
+    ## Is the value equal to True (Boolean only)?
+    Is_True
+
+    ## Is the value equal to False (Boolean only)?
+    Is_False
+
+    ## Is equal to "" or Nothing (Text only)?
+    Is_Empty
+
+    ## Is not equal to "" and Nothing (Text only)?
+    Not_Empty
+
+    ## Does the value match the SQL pattern (Text only)?
+
+       The pattern is interpreted according to the standard SQL convention:
+       - the `%` character matches any sequence of characters,
+       - the `_` character matches any single character,
+       - any other character is matched literally.
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+
+       ! Known Bugs
+         There is a known bug in Java Regex where escape characters are not
+         handled properly in Unicode-normalized matching mode. Due to this
+         limitation, Unicode normalization has been disabled for this function,
+         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
+         not be matched.
+         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+    Like pattern:Text
+
+    ## Does the value not match the SQL pattern (Text only)?
+
+       The pattern is interpreted according to the standard SQL convention:
+       - the `%` character matches any sequence of characters,
+       - the `_` character matches any single character,
+       - any other character is matched literally.
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+
+       ! Known Bugs
+         There is a known bug in Java Regex where escape characters are not
+         handled properly in Unicode-normalized matching mode. Due to this
+         limitation, Unicode normalization has been disabled for this function,
+         so beware that some equivalent graphemes like 'ś' and 's\u0301' will
+         not be matched.
+         See https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+    Not_Like pattern:Text
+
+    ## Is the value contained in `values`?
+
+       ? Table Operations
+         It accepts a `Vector` of values. In case of Table operations, it can
+         also accept another column - then it acts as if `column.to_vector` was
+         passed - i.e. every element of the original table's column is checked
+         if it is contained in the provided column. The columns can have
+         different lengths.
+
+         Using Columns can be particularly useful for Database operations, as
+         uploading a temporary table and using its column for an `Is_In` check
+         will likely be faster than using the vector directly.
+    Is_In values:Vector
+
+    ## Is the value not contained in `values`?
+
+       ? Table Operations
+         It accepts a `Vector` of values. In case of Table operations, it can
+         also accept another column - then it acts as if `column.to_vector` was
+         passed - i.e. every element of the original table's column is checked
+         if it is contained in the provided column. The columns can have
+         different lengths.
+
+         Using Columns can be particularly useful for Database operations, as
+         uploading a temporary table and using its column for an `Not_In` check
+         will likely be faster than using the vector directly.
+    Not_In values:Vector
+
+    ## Converts a `Filter_Condition` condition into a predicate taking an
+       element and returning a value indicating whether the element should be
+       accepted by the filter.
+    to_predicate self = case self of
+        Less value -> <value
+        Equal_Or_Less value -> <=value
+        Equal value -> ==value
+        Equal_Or_Greater value -> >=value
+        Greater value -> >value
+        Not_Equal value -> !=value
+        Between lower upper -> elem ->
+            (lower <= elem) && (elem <= upper)
+        Starts_With prefix -> _.starts_with prefix
+        Ends_With suffix -> _.ends_with suffix
+        Contains substring -> _.contains substring
+        Is_Nothing -> elem -> case elem of
+            Nothing -> True
+            _ -> False
+        Not_Nothing -> elem -> case elem of
+            Nothing -> False
+            _ -> True
+        Is_True -> ==True
+        Is_False -> ==False
+        Is_Empty -> elem -> case elem of
+            Nothing -> True
+            "" -> True
+            _ -> False
+        Not_Empty -> elem -> case elem of
+            Nothing -> False
+            "" -> False
+            _ -> True
+        Like sql_pattern ->
+            regex = sql_like_to_regex sql_pattern
+            regex.matches
+        Not_Like sql_pattern ->
+            regex = sql_like_to_regex sql_pattern
+            elem -> regex.matches elem . not
+        ## TODO once we have proper hashing we could create a hashmap and
+           answer quicker, currently we need to do a full scan for each element.
+        Is_In values -> values.contains
+        Not_In values -> elem -> values.contains elem . not
+
+## PRIVATE
+sql_like_to_regex sql_pattern =
+    regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
+    ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
+       https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926
+       Once that bug is fixed, `match_ascii` may be set back to `False`.
+    Regex.compile regex_pattern dot_matches_newline=True match_ascii=True

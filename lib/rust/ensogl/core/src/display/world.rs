@@ -1,30 +1,38 @@
 //! This module implements `World`, the main object responsible for handling what you see on the
 //! screen.
 
-pub use crate::display::symbol::types::*;
-
+use crate::control::callback::traits::*;
+use crate::data::dirty::traits::*;
+use crate::display::render::*;
 use crate::prelude::*;
+use crate::system::web::traits::*;
 
 use crate::animation;
+use crate::application::command::FrpNetworkProvider;
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
+use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
-use crate::display::render::*;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::system::web;
-use crate::system::web::traits::*;
 
+use enso_types::unit2::Duration;
 use web::prelude::Closure;
 use web::JsCast;
 use web::JsValue;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::display::symbol::types::*;
 
 
 
@@ -47,6 +55,13 @@ impl Uniforms {
         Self { time, display_mode }
     }
 }
+
+
+// =========================
+// === Metadata Profiler ===
+// =========================
+
+profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
 
 
 
@@ -82,7 +97,7 @@ impl World {
 impl Deref for World {
     type Target = WorldDataWithLoop;
     fn deref(&self) -> &Self::Target {
-        &*self.rc
+        &self.rc
     }
 }
 
@@ -99,13 +114,23 @@ impl<'t> From<&'t World> for &'t Scene {
 }
 
 
+// ===========
+// === FRP ===
+// ===========
+
+crate::define_endpoints_2! {
+    Output {
+        after_rendering(),
+    }
+}
+
 
 // =========================
 // === WorldDataWithLoop ===
 // =========================
 
 /// Main loop closure type.
-pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
+pub type MainLoop = animation::Loop;
 
 /// World data with a main loop implementation.
 ///
@@ -122,16 +147,24 @@ pub type MainLoop = animation::Loop<Box<dyn FnMut(animation::TimeInfo)>>;
 /// metric, impacting Users' experience with the application.
 #[derive(Debug)]
 pub struct WorldDataWithLoop {
-    main_loop: MainLoop,
-    data:      WorldData,
+    frp:  Frp,
+    data: WorldData,
 }
 
 impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
-        let data = WorldData::new();
-        let main_loop = MainLoop::new(Box::new(f!([data](t) data.go_to_next_frame_with_time(t))));
-        Self { main_loop, data }
+        let frp = Frp::new();
+        let data = WorldData::new(&frp.private.output);
+        let on_frame_start = animation::on_frame_start();
+        let on_before_rendering = animation::on_before_rendering();
+        let network = frp.network();
+        crate::frp::extend! {network
+            eval on_frame_start ((t) data.run_stats(*t));
+            eval on_before_rendering ((t) data.run_next_frame(*t));
+        }
+
+        Self { frp, data }
     }
 }
 
@@ -154,13 +187,31 @@ impl Deref for WorldDataWithLoop {
 // === Callbacks ===
 // =================
 
+// FIXME[WD]: move these callbacks to the FRP interface one day.
 /// Callbacks that are run during rendering of the frame.
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    pub prev_frame_stats: callback::registry::RefMut1<StatsData>,
-    pub before_frame:     callback::registry::CopyMut1<animation::TimeInfo>,
-    pub after_frame:      callback::registry::CopyMut1<animation::TimeInfo>,
+    pub prev_frame_stats: callback::registry::Ref1<StatsData>,
+    pub before_frame:     callback::registry::Copy1<animation::TimeInfo>,
+    pub after_frame:      callback::registry::Copy1<animation::TimeInfo>,
+}
+
+
+
+// ======================
+// === Scene Instance ===
+// ======================
+
+thread_local! {
+    /// Global scene reference. See the [`scene`] function to learn more.
+    pub static SCENE: RefCell<Option<Scene>> = RefCell::new(None);
+}
+
+/// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
+/// and should be instantiated before any callback is run.
+pub fn scene() -> Scene {
+    SCENE.with_borrow(|t| t.clone().unwrap())
 }
 
 
@@ -170,10 +221,11 @@ pub struct Callbacks {
 // =================
 
 /// The data kept by the [`World`].
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct WorldData {
-    logger:               Logger,
+    #[deref]
+    frp:                  api::private::Output,
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
     uniforms:             Uniforms,
@@ -182,27 +234,31 @@ pub struct WorldData {
     stats_draw_handle:    callback::Handle,
     pub on:               Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+    garbage_collector:    garbage::Collector,
 }
 
 impl WorldData {
     /// Create and initialize new world instance.
-    pub fn new() -> Self {
-        let logger = Logger::new("world");
+    pub fn new(frp: &api::private::Output) -> Self {
+        let frp = frp.clone_ref();
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
-        let scene_dirty = dirty::SharedBool::new(Logger::new_sub(&logger, "scene_dirty"), ());
+        let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let default_scene = Scene::new(&logger, &stats, on_change);
+        let default_scene = Scene::new(&stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
-
+        let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
+            log_render_stats(*stats)
         }));
 
+        SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+
         Self {
-            logger,
+            frp,
             default_scene,
             scene_dirty,
             uniforms,
@@ -211,6 +267,7 @@ impl WorldData {
             debug_hotkeys_handle,
             stats_monitor,
             stats_draw_handle,
+            garbage_collector,
         }
         .init()
     }
@@ -223,8 +280,7 @@ impl WorldData {
     }
 
     fn init_environment(&self) {
-        web::forward_panic_hook_to_console();
-        web::set_stack_trace_limit();
+        init_global();
     }
 
     fn init_debug_hotkeys(&self) {
@@ -242,6 +298,11 @@ impl WorldData {
                     display_mode.set(1)
                 } else if key == "Digit2" {
                     display_mode.set(2)
+                } else if key == "KeyP" {
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                } else if key == "KeyQ" {
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 }
             }
         });
@@ -250,24 +311,33 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
-        let mouse_hover_ids = self.default_scene.mouse.hover_ids.clone_ref();
+        let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let garbage_collector = &self.garbage_collector;
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(move |v| {
-            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
-        });
+        pixel_read_pass.set_callback(f!([garbage_collector](v) {
+            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            garbage_collector.pixel_updated();
+        }));
+        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
-                &self.default_scene,
                 self.default_scene.symbols(),
                 &self.default_scene.layers,
             ))
-            .add(ScreenRenderPass::new(&self.default_scene))
+            .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);
+    }
+
+    fn run_stats(&self, time: Duration) {
+        let previous_frame_stats = self.stats.begin_frame(time);
+        if let Some(stats) = previous_frame_stats {
+            self.on.prev_frame_stats.run_all(&stats);
+        }
     }
 
     /// Perform to the next frame with the provided time information.
@@ -276,24 +346,26 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
-    pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
-        let previous_frame_stats = self.stats.begin_frame();
-        if let Some(stats) = previous_frame_stats {
-            self.on.prev_frame_stats.run_all(&stats);
-        }
+    #[profile(Objective)]
+    pub fn run_next_frame(&self, time: animation::TimeInfo) {
         self.on.before_frame.run_all(time);
-        self.uniforms.time.set(time.local);
+        self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        self.default_scene.update(time);
-        self.default_scene.render();
+        let update_status = self.default_scene.update(time);
+        self.garbage_collector.mouse_events_handled();
+        self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
+        self.after_rendering.emit(());
     }
-}
 
-impl Default for WorldData {
-    fn default() -> Self {
-        Self::new()
+    /// Pass object for garbage collection.
+    ///
+    /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
+    /// structure with static timeline may be put. For details, see docs of [`garbage::Collector`].
+    #[profile(Debug)]
+    pub fn collect_garbage<T: 'static>(&self, object: T) {
+        self.garbage_collector.collect(object);
     }
 }
 

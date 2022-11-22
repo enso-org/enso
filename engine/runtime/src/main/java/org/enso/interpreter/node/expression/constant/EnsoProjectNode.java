@@ -6,10 +6,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.pkg.Package;
 
 import java.util.Optional;
@@ -23,19 +21,23 @@ public class EnsoProjectNode extends RootNode {
     super(language);
     if (pkgOpt.isPresent()) {
       Package<TruffleFile> pkg = pkgOpt.get();
-      Object rootPath = context.getEnvironment().asGuestValue(new EnsoFile(pkg.root().normalize()));
+      EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
       Object cfg = context.getEnvironment().asGuestValue(pkg.config());
-      result = context.getBuiltins().getProjectDescription().newInstance(rootPath, cfg);
+      result =
+          context
+              .getBuiltins()
+              .getProjectDescription()
+              .getUniqueConstructor()
+              .newInstance(rootPath, cfg);
     } else {
       result =
           DataflowError.withoutTrace(
-              context.getBuiltins().error().moduleNotInPackageError().newInstance(), this);
+              context.getBuiltins().error().makeModuleNotInPackageError(), this);
     }
   }
 
   @Override
-  public Stateful execute(VirtualFrame frame) {
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    return new Stateful(state, result);
+  public Object execute(VirtualFrame frame) {
+    return result;
   }
 }

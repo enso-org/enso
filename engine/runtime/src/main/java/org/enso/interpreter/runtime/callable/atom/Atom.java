@@ -1,8 +1,8 @@
 package org.enso.interpreter.runtime.callable.atom;
 
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -10,25 +10,20 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
-public class Atom implements TruffleObject {
+@ExportLibrary(TypesLibrary.class)
+public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
 
@@ -61,32 +56,27 @@ public class Atom implements TruffleObject {
     return fields;
   }
 
-  private String toString(boolean shouldParen) {
-    StringBuilder builder = new StringBuilder();
+  private void toString(StringBuilder builder, boolean shouldParen, int depth) {
+    if (depth <= 0) {
+      builder.append("...");
+      return;
+    }
     boolean parensNeeded = shouldParen && fields.length > 0;
     if (parensNeeded) {
       builder.append("(");
     }
     builder.append(getConstructor().getName());
-    if (fields.length > 0) {
-      builder.append(" ");
+    for (var obj : fields) {
+        builder.append(" ");
+        if (obj instanceof Atom atom) {
+          atom.toString(builder, true, depth - 1);
+        } else {
+          builder.append(obj);
+        }
     }
-    List<String> fieldStrings =
-        Arrays.stream(fields)
-            .map(
-                obj -> {
-                  if (obj instanceof Atom) {
-                    return ((Atom) obj).toString(true);
-                  } else {
-                    return obj.toString();
-                  }
-                })
-            .collect(Collectors.toList());
-    builder.append(String.join(" ", fieldStrings));
     if (parensNeeded) {
       builder.append(")");
     }
-    return builder.toString();
   }
 
   /**
@@ -95,9 +85,15 @@ public class Atom implements TruffleObject {
    * @return a textual representation of this Atom.
    */
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return toString(false);
+    return toString(10);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String toString(int depth) {
+    StringBuilder sb = new StringBuilder();
+    toString(sb, false, depth);
+    return sb.toString();
   }
 
   @ExportMessage
@@ -108,7 +104,7 @@ public class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Array getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     if (members == null) {
       return new Array(0);
     }
@@ -119,7 +115,7 @@ public class Atom implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
     return members != null && members.containsKey(member);
   }
 
@@ -191,112 +187,17 @@ public class Atom implements TruffleObject {
         | UnknownIdentifierException
         | UnsupportedTypeException
         | UnexpectedResultException e) {
-      return Text.create(this.toString());
+      return Text.create(this.toString(10));
     }
   }
 
   @ExportMessage
-  boolean isNull(@CachedContext(Language.class) Context ctx) {
-    return this.getConstructor() == ctx.getBuiltins().nothing();
-  }
-
-  @ExportMessage
-  boolean hasFunctionalDispatch() {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  static class GetFunctionalDispatch {
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "_this.constructor == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Atom _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("_this.constructor") AtomConstructor cachedConstructor,
-        @Cached("doResolve(context, cachedConstructor, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, _this.constructor, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
-  }
-
-  @ExportMessage
-  boolean canConvertFrom() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetConversionFunction {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context,
-        AtomConstructor cons,
-        AtomConstructor target,
-        UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isInlineCachingDisabled()",
-          "cachedConversion == conversion",
-          "cachedTarget == target",
-          "_this.constructor == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Atom _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("_this.constructor") AtomConstructor cachedConstructor,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(context, cachedConstructor, cachedTarget, cachedConversion)")
-            Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion,
-        @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(context, _this.constructor, target, conversion);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchConversionException();
-      }
-      return function;
-    }
+  Type getType() {
+    return getConstructor().getType();
   }
 }

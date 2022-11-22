@@ -29,7 +29,7 @@ object CacheInvalidation {
   sealed trait IndexSelector
   object IndexSelector {
 
-    /** Invalidate value from indexes. */
+    /** Invalidate value from all indexes. */
     case object All extends IndexSelector
 
     /** Invalidate the types index. */
@@ -118,6 +118,38 @@ object CacheInvalidation {
   ): Unit =
     instructions.foreach(run(stack, _))
 
+  /** Run a sequence of invalidation instructions on all visualisations.
+    *
+    * @param visualisations the list of available visualisations
+    * @param instructions the list of cache invalidation instructions
+    */
+  def runAllVisualisations(
+    visualisations: Iterable[Visualisation],
+    instructions: Iterable[CacheInvalidation]
+  ): Unit =
+    instructions.foreach { instruction =>
+      runVisualisations(
+        visualisations,
+        instruction.command,
+        instruction.indexes
+      )
+    }
+
+  /** Run cache invalidation of a multiple visualisations
+    *
+    * @param visualisations visualisations cache should be invalidated
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
+    */
+  def runVisualisations(
+    visualisations: Iterable[Visualisation],
+    command: Command,
+    indexes: Set[IndexSelector] = Set()
+  ): Unit =
+    visualisations.foreach { visualisation =>
+      run(visualisation.cache, command, indexes)
+    }
+
   /** Run a cache invalidation instruction on an execution stack.
     *
     * @param stack the runtime stack
@@ -147,6 +179,36 @@ object CacheInvalidation {
   ): Unit = {
     frames.foreach(frame => run(frame.cache, frame.syncState, command, indexes))
   }
+
+  /** Run cache invalidation of a single instrument frame.
+    *
+    * @param cache the cache to invalidate
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
+    */
+  private def run(
+    cache: RuntimeCache,
+    command: Command,
+    indexes: Set[IndexSelector]
+  ): Unit =
+    command match {
+      case Command.InvalidateAll =>
+        cache.clear()
+        indexes.foreach(clearIndex(_, cache))
+      case Command.InvalidateKeys(keys) =>
+        keys.foreach { key =>
+          cache.remove(key)
+          indexes.foreach(clearIndexKey(key, _, cache))
+        }
+      case Command.InvalidateStale(scope) =>
+        val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
+        staleKeys.foreach { key =>
+          cache.remove(key)
+          indexes.foreach(clearIndexKey(key, _, cache))
+        }
+      case Command.SetMetadata(metadata) =>
+        cache.setWeights(metadata.asJavaWeights)
+    }
 
   /** Run cache invalidation of a single instrument frame.
     *

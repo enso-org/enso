@@ -1,17 +1,34 @@
 ## Represents different types of underlying storage for Columns.
-type Type
+type Storage
 
     ## A column storing text data.
-    type Text
+    Text
 
     ## A column storing integer data.
-    type Integer
+    Integer
 
     ## A column storing decimal data.
-    type Decimal
+    Decimal
 
     ## A column storing boolean data.
-    type Boolean
+    Boolean
+
+    ## A column storing dates.
+    Date
+
+    ## A column storing date-times.
+    Date_Time
+
+    ## A column storing time-of-day.
+    Time_Of_Day
 
     ## A column storing arbitrary data.
-    type Any
+    Any
+
+    ## PRIVATE
+       Enumerates storage types in a way that is consistent with
+       `org.enso.table.data.Storage.Storage`, i.e.
+       `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
+       corresponding `Storage.Integer`.
+    types : Vector Storage
+    types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]

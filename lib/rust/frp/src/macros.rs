@@ -1,5 +1,7 @@
 //! This module defines common macros for FRP network definition.
 
+
+
 /// # Overview
 ///
 /// Utility for an easy definition of a new FRP network. In order to keep the network easy to debug
@@ -18,60 +20,66 @@
 ///
 /// The following elements are available:
 ///
-/// - Variable definition. ```compile_fail def src = source::<()>(); ``` Desugars to:
-///   ```compile_fail let src = network.source::<()>("src")(); ```
+/// - Variable definition. ```text def src = source::<()>(); ``` Desugars to: ```text let src =
+///   network.source::<()>("src")(); ```
 ///
 ///
-/// - Value trace. ```compile_fail trace my_var; ``` Desugars to: ```compile_fail
-///   network.trace("my_var")(&my_var); ```
+/// - Value trace. ```text trace my_var; ``` Desugars to: ```text network.trace("my_var")(&my_var);
+///   ```
 ///
 /// - Eval. You should use it to indicate that the line is meant to be the end of the FRP network.
-///   Currently, it is a simple sugar, but might become something more complex in FRP 3.0.
-///   ```compile_fail eval node_selected ((id) model.select(id)); ``` Desugars to: ```compile_fail
-///   def _eval = node_selected.map(f!((id) model.select(id))); ```
+///   Currently, it is a simple sugar, but might become something more complex in FRP 3.0. ```text
+///   eval node_selected ((id) model.select(id)); ``` Desugars to: ```text def _eval =
+///   node_selected.map(f!((id) model.select(id))); ```
 ///
 ///
-/// - Chained operations. ```compile_fail amount <- source.count().inc(); ``` Desugars to:
-///   ```compile_fail def amount = source.count(); def amount = amount.inc(); ```
+/// - Chained operations. ```text amount <- source.count().inc(); ``` Desugars to: ```text def
+///   amount = source.count(); def amount = amount.inc(); ```
 ///
 ///
-/// - Variable definition. ```compile_fail amount <- source.count(); ``` Desugars to:
-///   ```compile_fail def amount = source.count(); ```
+/// - Variable definition. ```text amount <- source.count(); ``` Desugars to: ```text def amount =
+///   source.count(); ```
 ///
 ///
-/// - Stream merge. ```compile_fail all_nodes <- any (selected_nodes,non_selected_nodes); ```
-///   Desugars to: ```compile_fail def all_nodes = any2 (&selected_nodes,&non_selected_nodes); ```
+/// - Stream merge. ```text all_nodes <- any (selected_nodes,non_selected_nodes); ``` Desugars to:
+///   ```text def all_nodes = any2 (&selected_nodes,&non_selected_nodes); ```
 ///
 ///
-/// - Stream merge dropping input values. ```compile_fail all_nodes <- any_
-///   (selected_nodes,non_selected_nodes); ``` Desugars to: ```compile_fail def all_nodes = any2_
+/// - Stream merge dropping input values. ```text all_nodes <- any_
+///   (selected_nodes,non_selected_nodes); ``` Desugars to: ```text def all_nodes = any2_
 ///   (&selected_nodes,&non_selected_nodes); ```
 ///
 ///
-/// - Stream dynamic merge. ```compile_fail each_node <+ some_nodes; ``` Desugars to:
-///   ```compile_fail each_node.attach(&some_nodes); ```
+/// - Stream dynamic merge. ```text each_node <+ some_nodes; ``` Desugars to: ```text
+///   each_node.attach(&some_nodes); ```
 ///
 ///
-/// - Stream iteration. ```compile_fail each_node <= all_nodes; ``` Desugars to: ```compile_fail def
-///   each_node = all_nodes.iter(); ```
+/// - Stream iteration. ```text each_node <= all_nodes; ``` Desugars to: ```text def each_node =
+///   all_nodes.iter(); ```
 #[macro_export]
 macro_rules! new_network {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_new_network! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_new_network! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_new_network! { NO_TRACE $($ts)* } };
 }
 
 /// Just like `new_network` but for the dynamic FRP mode.
 #[macro_export]
 macro_rules! new_dynamic_network {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
 }
 
 /// Extends the provided network with new rules. See documentation of `new_network` to learn more.
 #[macro_export]
 macro_rules! extend {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_extend! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_extend! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_extend! { NO_TRACE $($ts)* } };
 }
 
 
@@ -207,6 +215,7 @@ macro_rules! extend_line2 {
 
     ([] $net:ident $name:ident <= $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* . iter()} };
     ([] $net:ident $name:ident <- $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* } };
+    ([] $net:ident $($tgt:ident).+ <+_ $($toks:tt)*) => { $crate::extend_line2! { [] $net $($tgt).+ <+ $($toks)*.constant(()) }  };
     ([] $net:ident $($tgt:ident).+ <+ $($src:ident).+) => { $($tgt).+.attach(&$($src).+); };
     ([] $net:ident $($tgt:ident).+ <+ $($toks:tt)*) => {
         $crate::extend_line2! { [] $net __unnamed__ <- $($toks)* }
@@ -225,7 +234,7 @@ macro_rules! extend_line2 {
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident               ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4         . map (f_!($($args)*)) $($ts)* } };
     ([] $net:ident eval_ $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident . $tgt5:ident ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2 . $tgt3 . $tgt4 . $tgt5 . map (f_!($($args)*)) $($ts)* } };
 
-    ([] $net:ident trace $($path:ident).*) => { $net.trace(stringify!($($path).*),&$($path).*); };
+    ([] $net:ident trace $($ts:tt)*) => { $net.trace(stringify!($($ts)*),&$($ts)*); };
     ([] $net:ident $($ts:tt)*) => { $($ts)*; }
 }
 
@@ -233,6 +242,17 @@ macro_rules! extend_line2 {
 // === Utils ===
 
 /// Internal helper for `extend` macro.
+///
+/// Divide input tokens into groups separated by semicolons, expand to a call
+/// of provided $f macro with those groups passed as individual token trees.
+///
+/// ```text
+/// divide_on_terminator!([[path::to::my_macro] [arg1 arg2]] a b c; d e; f g h i;)
+/// ```
+/// Expands into
+/// ```text
+/// path::to::my_macro!([arg1 arg2] [[a b c] [d e] [f g h i]]);
+/// ```
 #[macro_export]
 macro_rules! divide_on_terminator {
     ($f:tt $($ts:tt)*) => { $crate::_divide_on_terminator! { $f [] [] $($ts)* } };

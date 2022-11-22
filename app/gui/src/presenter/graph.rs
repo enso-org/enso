@@ -1,26 +1,31 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-pub mod call_stack;
-pub mod state;
-pub mod visualization;
-
-pub use call_stack::CallStack;
-pub use visualization::Visualization;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
 use enso_frp as frp;
-use enso_web::traits::*;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod call_stack;
+pub mod state;
+pub mod visualization;
+
+pub use call_stack::CallStack;
+pub use visualization::Visualization;
 
 
 
@@ -96,7 +101,7 @@ impl Model {
             state.clone_ref(),
         );
         let execution_stack =
-            CallStack::new(&logger, controller.clone_ref(), view.clone_ref(), state.clone_ref());
+            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
             logger,
             project,
@@ -110,7 +115,7 @@ impl Model {
 
     /// Node position was changed in view.
     fn node_position_changed(&self, id: ViewNodeId, position: Vector2) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id = self.state.update_from_view().set_node_position(id, position)?;
                 Some(self.controller.graph().set_node_position(ast_id, position))
@@ -120,7 +125,7 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id =
                     self.state.update_from_view().set_node_visualization(id, path.clone())?;
@@ -132,13 +137,19 @@ impl Model {
                 };
                 Some(result)
             },
-            "update node position",
+            "update node visualization",
         );
+    }
+
+    /// Node expression was edited in the view. Should be called whenever the user changes the
+    /// contents of a node during editing.
+    fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
+        self.state.update_from_view().set_node_expression(id, expression);
     }
 
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 Some(self.controller.graph().remove_node(ast_id))
@@ -149,7 +160,7 @@ impl Model {
 
     /// Connection was created in view.
     fn new_connection_created(&self, id: ViewConnection) {
-        self.update_ast(
+        self.log_action(
             || {
                 let connection = self.view.model.edges.get_cloned_ref(&id)?;
                 let ast_to_create = self.state.update_from_view().create_connection(connection)?;
@@ -161,7 +172,7 @@ impl Model {
 
     /// Connection was removed in view.
     fn connection_removed(&self, id: ViewConnection) {
-        self.update_ast(
+        self.log_action(
             || {
                 let ast_to_remove = self.state.update_from_view().remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove))
@@ -171,9 +182,9 @@ impl Model {
     }
 
     fn nodes_collapsed(&self, collapsed: &[ViewNodeId]) {
-        self.update_ast(
+        self.log_action(
             || {
-                debug!(self.logger, "Collapsing node.");
+                debug!("Collapsing node.");
                 let ids = collapsed.iter().filter_map(|node| self.state.ast_node_id_of_view(*node));
                 let new_node_id = self.controller.graph().collapse(ids, COLLAPSED_FUNCTION_NAME);
                 // TODO [mwu] https://github.com/enso-org/ide/issues/760
@@ -185,10 +196,10 @@ impl Model {
         );
     }
 
-    fn update_ast<F>(&self, f: F, action: &str)
+    fn log_action<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
         if let Some(Err(err)) = f() {
-            error!(self.logger, "Failed to {action} in AST: {err}");
+            error!("Failed to {action} in AST: {err}");
         }
     }
 
@@ -285,7 +296,7 @@ impl Model {
         let position = model::module::Position { vector: position };
         let handler = NodeFromDroppedFileHandler::new(&self.logger, project, graph);
         if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
-            error!(self.logger, "Error when creating node from dropped file: {err}");
+            error!("Error when creating node from dropped file: {err}");
         }
     }
 
@@ -376,9 +387,11 @@ impl ViewUpdate {
     /// input for nodes where expression changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Task)]
     fn set_node_expressions(&self) -> Vec<(ViewNodeId, node_view::Expression)> {
         self.nodes
             .iter()
+            .filter(|node| self.state.should_receive_expression_auto_updates(node.id()))
             .filter_map(|node| {
                 let id = node.main_line.id();
                 let trees = self.trees.get(&id).cloned().unwrap_or_default();
@@ -454,6 +467,7 @@ pub struct Graph {
 impl Graph {
     /// Create graph presenter. The returned structure is working and does not require any
     /// initialization.
+    #[profile(Task)]
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
@@ -465,8 +479,8 @@ impl Graph {
         Self { network, model }.init(project_view)
     }
 
+    #[profile(Detail)]
     fn init(self, project_view: &view::project::View) -> Self {
-        let logger = &self.model.logger;
         let network = &self.network;
         let model = &self.model;
         let view = &self.model.view.frp;
@@ -475,10 +489,10 @@ impl Graph {
             // Position initialization should go before emitting `update_data` event.
             update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
             eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
-            update_data <- update_view.map(f_!([logger,model] match ViewUpdate::new(&*model) {
+            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
-                    error!(logger,"Failed to update view: {err:?}");
+                    error!("Failed to update view: {err:?}");
                     Rc::new(default())
                 }
             }));
@@ -500,7 +514,7 @@ impl Graph {
             view.disable_visualization <+ disable_vis;
 
             view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
-            added_node_update <- view.node_added.filter_map(f!((view_id)
+            added_node_update <- view.node_added.filter_map(f!(((view_id, _, _))
                 model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));
@@ -541,6 +555,7 @@ impl Graph {
             eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
+            eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
 
 
             // === Dropping Files ===
@@ -565,8 +580,8 @@ impl Graph {
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, graph_notifications, move |notification, model| {
-            info!(model.logger, "Received controller notification {notification:?}");
+        spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
+            tracing::debug!("Received controller notification {notification:?}");
             match notification {
                 executed::Notification::Graph(graph) => match graph {
                     Notification::Invalidate => update_view.emit(()),
@@ -600,6 +615,16 @@ impl Graph {
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
+    }
+
+    /// Indicate whether the given node should be automatically synced with its view.
+    ///
+    /// The auto sync can be disabled, for cases where it is desirable to manually update the
+    /// content of a node. For example, the searcher uses this to allow the edit field to have a
+    /// preview that is different from the actual node AST.
+    pub fn allow_expression_auto_updates(&self, id: AstNodeId, allow: bool) {
+        tracing::debug!("Setting auto updates for {id:?} to {allow}");
+        self.model.state.allow_expression_auto_updates(id, allow);
     }
 }
 

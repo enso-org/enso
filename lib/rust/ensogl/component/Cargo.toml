@@ -5,15 +5,18 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+ensogl-button = { path = "button" }
 ensogl-drop-down-menu = { path = "drop-down-menu" }
 ensogl-drop-manager = { path = "drop-manager" }
 ensogl-file-browser = { path = "file-browser" }
 ensogl-flame-graph = { path = "flame-graph" }
 ensogl-label = { path = "label" }
 ensogl-list-view = { path = "list-view" }
+ensogl-grid-view = { path = "grid-view" }
 ensogl-scroll-area = { path = "scroll-area" }
 ensogl-scrollbar = { path = "scrollbar" }
 ensogl-selector = { path = "selector" }
 ensogl-shadow = { path = "shadow" }
 ensogl-text = { path = "text" }
+ensogl-tooltip = { path = "tooltip" }
 ensogl-toggle-button = { path = "toggle-button" }

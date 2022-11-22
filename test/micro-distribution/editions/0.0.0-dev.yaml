@@ -1,0 +1,8 @@
+engine-version: 0.0.0-dev
+repositories:
+  - name: main
+    url: https://libraries.release.enso.org/libraries
+libraries:
+  - name: Standard.Base
+    repository: main
+    version: 0.0.0-dev

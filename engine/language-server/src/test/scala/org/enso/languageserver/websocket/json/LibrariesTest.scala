@@ -1,34 +1,30 @@
 package org.enso.languageserver.websocket.json
 
+import akka.testkit._
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
-import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
+import org.enso.languageserver.libraries.{
+  LibraryComponentGroup,
+  LibraryComponentGroups,
+  LibraryEntry
+}
+import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
   EmptyRepository,
   ExampleRepository,
   LibraryManifest
 }
-import org.enso.pkg.{
-  Component,
-  ComponentGroup,
-  ComponentGroups,
-  Config,
-  Contact,
-  ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference,
-  Package,
-  PackageManager,
-  Shortcut
-}
+import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
+
+import scala.concurrent.duration._
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
@@ -255,30 +251,6 @@ class LibrariesTest extends BaseServerTest {
 
     "get the package config" in {
       val client = getInitialisedWsClient()
-      val testComponentGroups = ComponentGroups(
-        newGroups = List(
-          ComponentGroup(
-            module = ModuleName("Foo"),
-            color  = Some("#32a852"),
-            icon   = None,
-            exports = Seq(
-              Component("foo", Some(Shortcut("abc"))),
-              Component("bar", None)
-            )
-          )
-        ),
-        extendedGroups = List(
-          ExtendedComponentGroup(
-            module = ModuleReference(
-              LibraryName("Standard", "Base"),
-              ModuleName("Data")
-            ),
-            exports = List(
-              Component("bar", None)
-            )
-          )
-        )
-      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -311,7 +283,8 @@ class LibrariesTest extends BaseServerTest {
           .load[Config](packageFile)
           .get
           .copy(
-            componentGroups = Right(testComponentGroups)
+            componentGroups =
+              Right(TestComponentGroups.testLibraryComponentGroups)
           )
       Files.writeString(packageFile, packageConfig.toYaml)
 
@@ -342,7 +315,7 @@ class LibrariesTest extends BaseServerTest {
         .as[LibraryComponentGroups]
         .rightValue shouldEqual LibraryComponentGroups.fromComponentGroups(
         LibraryName("user", "Get_Package_Test_Lib"),
-        testComponentGroups
+        TestComponentGroups.testLibraryComponentGroups
       )
     }
 
@@ -464,7 +437,7 @@ class LibrariesTest extends BaseServerTest {
 
         var found = false
         while (!found) {
-          val rawResponse = client.expectSomeJson()
+          val rawResponse = client.expectSomeJson(timeout = 8.seconds.dilated)
           val response    = rawResponse.asObject.value
           val idMatches = response("id")
             .flatMap(_.asNumber)
@@ -583,7 +556,7 @@ class LibrariesTest extends BaseServerTest {
         var waitingForResult = true
 
         while (waitingForTask || waitingForResult) {
-          val msg = client.expectSomeJson().asObject.value
+          val msg = client.expectSomeJson(10.seconds.dilated).asObject.value
 
           msg("id") match {
             case Some(json) =>
@@ -783,20 +756,23 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "availableComponents" : [ ]
-            }
-          }
-          """)
+      val response = client.expectSomeJson()
+      val components = response.hcursor
+        .downField("result")
+        .downField("availableComponents")
+        .as[List[LibraryComponentGroup]]
+        .rightValue
+
+      components should not be empty
+      components.map(_.library).toSet should contain theSameElementsAs Seq(
+        LibraryName("Standard", "Base")
+      )
 
       val currentEditionName = buildinfo.Info.currentEdition
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "editions/listDefinedComponents",
-            "id": 0,
+            "id": 1,
             "params": {
               "edition": {
                 "type": "NamedEdition",
@@ -806,14 +782,18 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "availableComponents" : [ ]
-            }
-          }
-          """)
+      val response2 = client.expectSomeJson()
+      val components2 = response2.hcursor
+        .downField("result")
+        .downField("availableComponents")
+        .as[List[LibraryComponentGroup]]
+        .rightValue
+
+      components2 should not be empty
+      components2.map(_.library).toSet should contain theSameElementsAs Seq(
+        LibraryName("Standard", "Base")
+      )
+
     }
   }
 

@@ -86,6 +86,15 @@ labels:
   - name: "CI: Ready to merge"
     color: "#ffffff"
     description: This PR is eligible for automatic merge
+  - name: "CI: Keep up to date"
+    color: "#ffffff"
+    description: Automatically update this PR to the latest develop.
+  - name: "CI: No changelog needed"
+    color: "#ffffff"
+    description: Do not require a changelog entry for this PR.
+  - name: "CI: Clean build required"
+    color: "#ffffff"
+    description: CI runners will be cleaned before and after this PR is built.
 
   - name: "Difficulty: Beginner"
     color: "#d1e9c4"
@@ -214,50 +223,30 @@ branches:
         # Require branches to be up-to-date before merging.
         strict: true
         contexts:
-          - "Engine (Linux)"
-          - "Engine (Windows)"
+          - "Engine (linux)"
+          - "Engine (windows)"
           # The macOS job is intentionally omitted.
-          - "Docs Check"
-          - "Verify Notice Package"
+          - "Test Formatting"
           - "license/cla"
 
           # GUI jobs
-          - "Build Info (macOS-latest)"
-          - "Assertions (macOS-latest)"
-          - "Linter (Linux, linter)"
-          - "Native Tests (Linux, test_native)"
-          - "WASM Tests (Linux, test_wasm)"
-          - "Build WASM (Linux, build_wasm)"
-          - "Build package (macOS-latest)"
-          - "Build package (windows-latest)"
-          - "Build package (Linux, package)"
-      enforce_admins: null
-      restrictions: null
-  - name: "release/*.x"
-    protection:
-      required_pull_request_reviews:
-        required_approving_review_count: 1
-        dismiss_stale_reviews: false
-        require_code_owner_reviews: true
-        dismissal_restrictions: {}
-
-      required_status_checks:
-        # Require branches to be up-to-date before merging.
-        strict: true
-        contexts:
-          - "Build and Test (macOS-latest)"
-          - "Build and Test (ubuntu-18.04)"
-          - "Build and Test (windows-latest)"
-          - "Docs Check"
-          - "Build Engine"
-          - "Rust Check"
-          - "Rust Lint"
-          - "Rust Test Native (macOS-latest)"
-          - "Rust Test Native (ubuntu-latest)"
-          - "Rust Test Native (windows-latest)"
-          - "Rust Test WASM"
-          - "Verify Notice Package"
-          - "license/cla"
-      #          - "Vulnerability Scan" # CodeQL is temporarily disabled due to incompatibility
+          # macOS is not required because it is slow and not as reliable as other checks.
+          # - "Build Project Manager (macos)"
+          # - "Build GUI (WASM) (macos)"
+          # - "Package IDE (macos)"
+          - "Native GUI tests (linux)"
+          - "Cancel Previous Runs"
+          - "Build GUI (WASM) (linux)"
+          - "Lint (linux)"
+          - "Build GUI (WASM) (windows)"
+          - "Build Backend (windows)"
+          - "Changelog"
+          - "WASM GUI tests (linux)"
+          - "Build Backend (linux)"
+          - "Package IDE (windows)"
+          - "Package IDE (linux)"
+          # Integration tests are currently not reliable.
+          # TODO [mwu]: Restore once https://www.pivotaltracker.com/story/show/182278293 is fixed.
+          # - "IDE integration tests (linux)"
       enforce_admins: null
       restrictions: null

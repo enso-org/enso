@@ -9,6 +9,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::style::Path;
 
 use enso_frp as frp;
+use enso_prelude::tracing::log;
 
 
 
@@ -84,24 +85,53 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet value for a number.  Returns 0.0 if not found.
+    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
     pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
         let network = &self.network;
+        let path = path.into();
+        let warning = format!("Tried to access undefined number from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.number().unwrap_or(0.0));
+            value <- source.map(move |t| t.number().unwrap_or_else(|| {
+                log::warn!("{}", warning);
+                0.0
+            }));
             sampler <- value.sampler();
         }
         source.emit(current);
         sampler
     }
 
-    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
     pub fn get_color<T: Into<Path>>(&self, path: T) -> frp::Sampler<color::Rgba> {
         let network = &self.network;
+        let path = path.into();
+        let warning = format!("Tried to access undefined color from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.color().unwrap_or(FALLBACK_COLOR));
+            value <- source.map(move |t| t.color().unwrap_or_else(|| {
+                log::warn!("{}", warning);
+                FALLBACK_COLOR
+            }));
+            sampler <- value.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
+
+    /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
+    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<ImString> {
+        let network = &self.network;
+        let path = path.into();
+        let warning = format!("Tried to access undefined text from theme: {}", &path);
+        let (source, current) = self.get_internal(path);
+        frp::extend! { network
+            value <- source.map(move |t| {
+                t.im_string_or_else(|| {
+                    log::warn!("{}", warning);
+                    default()
+                })
+            });
             sampler <- value.sampler();
         }
         source.emit(current);
@@ -127,7 +157,7 @@ impl StyleWatchFrp {
 // === StyleWatch ===
 // ==================
 
-/// Style watch utility. It's reference is passed to shapes defined with the `define_shape_system`
+/// Style watch utility. It's reference is passed to shapes defined with the `shape`
 /// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
 /// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
 #[derive(Clone, CloneRef, Derivative)]
@@ -152,7 +182,7 @@ impl StyleWatch {
     }
 
     /// Resets the state of style manager. Should be used on each new shape definition. It is
-    /// called automatically when used by `define_shape_system`.
+    /// called automatically when used by `shape`.
     pub fn reset(&self) {
         *self.vars.borrow_mut() = default();
         *self.handles.borrow_mut() = default();
@@ -178,6 +208,12 @@ impl StyleWatch {
     /// Queries style sheet number value, if not found gets fallback.
     pub fn get_number_or(&self, path: impl Into<Path>, fallback: f32) -> f32 {
         self.get(path).number().unwrap_or(fallback)
+    }
+
+    /// Queries style sheet number value, if not found computes it from a closure.
+    pub fn get_number_or_else<F>(&self, path: impl Into<Path>, fallback: F) -> f32
+    where F: FnOnce() -> f32 {
+        self.get(path).number().unwrap_or_else(fallback)
     }
 
     /// Queries style sheet number value. Returns 0 if not found.

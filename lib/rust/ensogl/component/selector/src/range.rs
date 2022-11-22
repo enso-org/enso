@@ -1,5 +1,6 @@
 ///! Frp of the range selector.
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use crate::bounds::absolute_value;
 use crate::bounds::normalise_value;
@@ -11,7 +12,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::shape::*;
 use ensogl_hardcoded_theme as theme;
 
 

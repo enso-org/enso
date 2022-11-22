@@ -1,8 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.number.decimal;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -14,12 +16,17 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class CeilNode extends Node {
   private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
-  Object execute(double _this) {
-    double ceil = Math.ceil(_this);
+  Object execute(double self) {
+    double ceil = Math.ceil(self);
     if (fitsProfile.profile(BigIntegerOps.fitsInLong(ceil))) {
       return (long) ceil;
     } else {
-      return new EnsoBigInteger(BigDecimal.valueOf(ceil).toBigIntegerExact());
+      return new EnsoBigInteger(ceil(ceil));
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static BigInteger ceil(double ceil) {
+    return BigDecimal.valueOf(ceil).toBigIntegerExact();
   }
 }

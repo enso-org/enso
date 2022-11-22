@@ -1,15 +1,20 @@
 //! Logger entry. Entry can contain message, grouping, time information, etc.
 
+use crate::prelude::*;
+
+use message::Message;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod level;
 pub mod message;
 
 pub use level::filter_from;
 pub use level::DefaultFilter;
 pub use level::DefaultLevels;
-
-use crate::prelude::*;
-
-use message::Message;
 
 
 

@@ -1,29 +1,16 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.projectmanager.boot.configuration.{
-  BootloaderConfig,
-  NetworkConfig,
-  SupervisionConfig,
-  TimeoutConfig
-}
+import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.Retry
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
-  CheckIfServerIsRunning,
-  KillThemAll,
-  ProjectNotOpened,
-  RenameProject,
-  ServerNotRunning,
-  StartServer,
-  StopServer
-}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+
+import java.util.UUID
 
 import scala.concurrent.duration._
 
@@ -36,6 +23,7 @@ import scala.concurrent.duration._
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param processConfig the configuration of the main process
   * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param executor an executor service used to start the language server
   *                 process
@@ -46,6 +34,7 @@ class LanguageServerRegistry(
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
   distributionConfiguration: DistributionConfiguration,
+  processConfig: MainProcessConfig,
   loggingServiceDescriptor: LoggingServiceDescriptor,
   executor: LanguageServerExecutor
 ) extends Actor
@@ -72,6 +61,7 @@ class LanguageServerRegistry(
               supervisionConfig,
               timeoutConfig,
               distributionConfiguration,
+              processConfig,
               loggingServiceDescriptor,
               executor
             ),
@@ -140,9 +130,10 @@ object LanguageServerRegistry {
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
     * @param distributionConfiguration configuration of the distribution
+    * @param processConfig the configuration of the main process
+    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @param executor an executor service used to start the language server
     *                 process
-    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
   def props(
@@ -151,6 +142,7 @@ object LanguageServerRegistry {
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
     distributionConfiguration: DistributionConfiguration,
+    processConfig: MainProcessConfig,
     loggingServiceDescriptor: LoggingServiceDescriptor,
     executor: LanguageServerExecutor
   ): Props =
@@ -161,6 +153,7 @@ object LanguageServerRegistry {
         supervisionConfig,
         timeoutConfig,
         distributionConfiguration,
+        processConfig,
         loggingServiceDescriptor,
         executor
       )

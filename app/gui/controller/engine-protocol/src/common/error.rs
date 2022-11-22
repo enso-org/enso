@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+
+
 /// When trying to parse a line, not a single line was produced.
 #[derive(Debug, Fail, Clone, Copy)]
 #[fail(display = "No active request by id {}", _0)]

@@ -1,8 +1,11 @@
 //! This module defines utilities for working with the `Rc` and `Weak` types.
 
 use super::option::*;
+
 use std::rc::Rc;
 use std::rc::Weak;
+
+
 
 // TODO[WD,AO]: Think about merging it with `OptionOps`.
 /// Mapping methods to the `Weak` type.

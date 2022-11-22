@@ -1,8 +1,9 @@
 package org.enso.docs.generator
 
-import java.io.File
 import org.enso.syntax.text.{DocParser, Parser}
 import org.enso.syntax.text.docparser._
+
+import java.io.File
 
 /** Defines useful wrappers for Doc Parser.
   */

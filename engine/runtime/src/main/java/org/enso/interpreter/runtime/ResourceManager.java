@@ -116,6 +116,7 @@ public class ResourceManager {
    * @param function the finalizer action to call on the underlying resource
    * @return a wrapper object, containing the resource and serving as a reachability probe
    */
+  @CompilerDirectives.TruffleBoundary
   public ManagedResource register(Object object, Object function) {
     if (isClosed) {
       throw new IllegalStateException(

@@ -3,7 +3,6 @@ package org.enso.searcher.sql
 import java.util.UUID
 
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsAction,
   ExportsUpdate,
@@ -41,7 +40,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(initQuery.transactionally)
+    db.run(initQuery)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
@@ -58,7 +57,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(getAllMethodsQuery(calls))
 
   override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery)
+    db.run(getAllModulesQuery.transactionally)
 
   /** @inheritdoc */
   override def search(
@@ -68,9 +67,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(
-      searchQuery(module, selfType, returnType, kinds, position)
-    )
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -88,7 +85,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def applyTree(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): Future[Seq[QueryResult[SuggestionUpdate]]] =
     db.run(applyTreeQuery(tree).transactionally)
 
@@ -125,7 +122,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    documentationHtml: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): Future[(Long, Option[Long])] =
@@ -136,7 +132,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         arguments,
         returnType,
         documentation,
-        documentationHtml,
         scope,
         reexport
       )
@@ -387,9 +382,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the result of applying updates with the new database version
     */
   private def applyTreeQuery(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): DBIO[Seq[QueryResult[SuggestionUpdate]]] = {
-    val queries = tree.toVector.map {
+    val queries = tree.map {
       case update @ SuggestionUpdate(suggestion, action) =>
         val query = action match {
           case SuggestionAction.Add() =>
@@ -401,7 +396,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
                 args,
                 returnType,
                 doc,
-                docHtml,
                 scope,
                 reexport
               ) =>
@@ -411,7 +405,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               args,
               returnType,
               doc,
-              docHtml,
               scope,
               reexport
             )
@@ -611,7 +604,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
-    * @param documentationHtml the Html documentation string to update
     * @param scope the scope to update
     */
   private def updateQuery(
@@ -620,7 +612,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    documentationHtml: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[(Long, Option[Long])] =
@@ -631,7 +622,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         arguments,
         returnType,
         documentation,
-        documentationHtml,
         scope,
         reexport
       )
@@ -645,7 +635,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @param arguments the arguments to update
     * @param returnType the return type to update
     * @param documentation the documentation string to update
-    * @param documentationHtml the Html documentation string to update
     * @param scope the scope to update
     */
   private def updateSuggestionQuery(
@@ -654,7 +643,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    documentationHtml: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): DBIO[Option[Long]] = {
@@ -681,9 +669,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         documentation.map(doc => query.map(_.documentation).update(doc))
       }
       r4 <- DBIO.sequenceOption {
-        documentationHtml.map(doc => query.map(_.documentationHtml).update(doc))
-      }
-      r5 <- DBIO.sequenceOption {
         scope.map { s =>
           query
             .map(r =>
@@ -699,7 +684,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             )
         }
       }
-      r6 <- DBIO.sequenceOption {
+      r5 <- DBIO.sequenceOption {
         arguments.map { args =>
           def updateArgs(suggestionId: Long): DBIO[Seq[Int]] =
             DBIO.sequence(
@@ -711,12 +696,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           } yield r.map(_.sum)
         }
       }
-      r7 <- DBIO.sequenceOption {
+      r6 <- DBIO.sequenceOption {
         reexport.map { reexportOpt =>
           query.map(_.reexport).update(reexportOpt)
         }
       }
-    } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5 ++ r6.flatten ++ r7).sum
+    } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5.flatten ++ r6).sum
     for {
       id <- query.map(_.id).result.headOption
       n  <- updateQ
@@ -812,28 +797,34 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ] = {
     def updateQuery(column: String) =
       sqlu"""update suggestions
-          set #$column = $newName || substr(#$column, length($oldName) + 1)
-          where #$column like '#$oldName.%'"""
+          set #$column =
+            substr(#$column, 0, instr(#$column, $oldName)) ||
+            $newName ||
+            substr(#$column, instr(#$column, $oldName) + length($oldName))
+          where #$column like '%.#$oldName.%'"""
     val argumentsUpdateQuery =
       sqlu"""update arguments
-          set type = $newName || substr(type, length($oldName) + 1)
-          where type like '#$oldName.%'"""
+          set type =
+            substr(type, 0, instr(type, $oldName)) ||
+            $newName ||
+            substr(type, instr(type, $oldName) + length($oldName))
+          where type like '%.#$oldName.%'"""
     def noop[A] = DBIO.successful(Seq[A]())
 
     val selectUpdatedModulesQuery = Suggestions
-      .filter(row => row.module.like(s"$newName.%"))
+      .filter(row => row.module.like(s"%.$newName.%"))
       .map(row => (row.id, row.module))
       .result
     val selectUpdatedSelfTypesQuery = Suggestions
-      .filter(_.selfType.like(s"$newName.%"))
+      .filter(_.selfType.like(s"%.$newName.%"))
       .map(row => (row.id, row.selfType))
       .result
     val selectUpdatedReturnTypesQuery = Suggestions
-      .filter(_.returnType.like(s"$newName.%"))
+      .filter(_.returnType.like(s"%.$newName.%"))
       .map(row => (row.id, row.returnType))
       .result
     val selectUpdatedArgumentsQuery = Arguments
-      .filter(_.tpe.like(s"$newName.%"))
+      .filter(_.tpe.like(s"%.$newName.%"))
       .map(row => (row.suggestionId, row.index, row.tpe))
       .result
 
@@ -950,9 +941,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         (row.scopeStartLine === ScopeColumn.EMPTY) ||
         (
           row.scopeStartLine <= value.line &&
-          row.scopeStartOffset <= value.character &&
-          row.scopeEndLine >= value.line &&
-          row.scopeEndOffset >= value.character
+          row.scopeEndLine >= value.line
         )
       }
   }
@@ -990,51 +979,85 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Module(module, doc, docHtml, reexport) =>
+      case Suggestion.Module(module, doc, _, _, reexport) =>
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = None,
-          externalIdMost    = None,
-          kind              = SuggestionKind.MODULE,
-          module            = module,
-          name              = module,
-          selfType          = SelfTypeColumn.EMPTY,
-          returnType        = "",
-          scopeStartLine    = ScopeColumn.EMPTY,
-          scopeStartOffset  = ScopeColumn.EMPTY,
-          scopeEndLine      = ScopeColumn.EMPTY,
-          scopeEndOffset    = ScopeColumn.EMPTY,
-          documentation     = doc,
-          documentationHtml = docHtml,
-          reexport          = reexport
+          id               = None,
+          externalIdLeast  = None,
+          externalIdMost   = None,
+          kind             = SuggestionKind.MODULE,
+          module           = module,
+          name             = module,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = "",
+          parentType       = None,
+          isStatic         = false,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          documentation    = doc,
+          reexport         = reexport
         )
         row -> Seq()
-      case Suggestion.Atom(
+      case Suggestion.Type(
+            expr,
+            module,
+            name,
+            params,
+            returnType,
+            parentType,
+            doc,
+            _,
+            _,
+            reexport
+          ) =>
+        val row = SuggestionRow(
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.TYPE,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = parentType,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
+        )
+        row -> params
+      case Suggestion.Constructor(
             expr,
             module,
             name,
             args,
             returnType,
             doc,
-            docHtml,
+            _,
+            _,
             reexport
           ) =>
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = expr.map(_.getLeastSignificantBits),
-          externalIdMost    = expr.map(_.getMostSignificantBits),
-          kind              = SuggestionKind.ATOM,
-          module            = module,
-          name              = name,
-          selfType          = SelfTypeColumn.EMPTY,
-          returnType        = returnType,
-          documentation     = doc,
-          documentationHtml = docHtml,
-          scopeStartLine    = ScopeColumn.EMPTY,
-          scopeStartOffset  = ScopeColumn.EMPTY,
-          scopeEndLine      = ScopeColumn.EMPTY,
-          scopeEndOffset    = ScopeColumn.EMPTY,
-          reexport          = reexport
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.CONSTRUCTOR,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
         )
         row -> args
       case Suggestion.Method(
@@ -1044,26 +1067,29 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             args,
             selfType,
             returnType,
+            isStatic,
             doc,
-            docHtml,
+            _,
+            _,
             reexport
           ) =>
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = expr.map(_.getLeastSignificantBits),
-          externalIdMost    = expr.map(_.getMostSignificantBits),
-          kind              = SuggestionKind.METHOD,
-          module            = module,
-          name              = name,
-          selfType          = selfType,
-          returnType        = returnType,
-          documentation     = doc,
-          documentationHtml = docHtml,
-          scopeStartLine    = ScopeColumn.EMPTY,
-          scopeStartOffset  = ScopeColumn.EMPTY,
-          scopeEndLine      = ScopeColumn.EMPTY,
-          scopeEndOffset    = ScopeColumn.EMPTY,
-          reexport          = reexport
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.METHOD,
+          module           = module,
+          name             = name,
+          selfType         = selfType,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = isStatic,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
         )
         row -> args
       case Suggestion.Conversion(
@@ -1073,7 +1099,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             sourceType,
             returnType,
             doc,
-            docHtml,
+            _,
+            _,
             reexport
           ) =>
         val firstArg = Suggestion.Argument(
@@ -1084,59 +1111,62 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           None
         )
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = expr.map(_.getLeastSignificantBits),
-          externalIdMost    = expr.map(_.getMostSignificantBits),
-          kind              = SuggestionKind.CONVERSION,
-          module            = module,
-          name              = toConversionMethodName(sourceType, returnType),
-          selfType          = SelfTypeColumn.EMPTY,
-          returnType        = returnType,
-          documentation     = doc,
-          documentationHtml = docHtml,
-          scopeStartLine    = ScopeColumn.EMPTY,
-          scopeStartOffset  = ScopeColumn.EMPTY,
-          scopeEndLine      = ScopeColumn.EMPTY,
-          scopeEndOffset    = ScopeColumn.EMPTY,
-          reexport          = reexport
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.CONVERSION,
+          module           = module,
+          name             = toConversionMethodName(sourceType, returnType),
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
         )
         row -> (firstArg +: args)
       case Suggestion.Function(expr, module, name, args, returnType, scope) =>
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = expr.map(_.getLeastSignificantBits),
-          externalIdMost    = expr.map(_.getMostSignificantBits),
-          kind              = SuggestionKind.FUNCTION,
-          module            = module,
-          name              = name,
-          selfType          = SelfTypeColumn.EMPTY,
-          returnType        = returnType,
-          documentation     = None,
-          documentationHtml = None,
-          scopeStartLine    = scope.start.line,
-          scopeStartOffset  = scope.start.character,
-          scopeEndLine      = scope.end.line,
-          scopeEndOffset    = scope.end.character,
-          reexport          = None
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.FUNCTION,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character,
+          reexport         = None
         )
         row -> args
       case Suggestion.Local(expr, module, name, returnType, scope) =>
         val row = SuggestionRow(
-          id                = None,
-          externalIdLeast   = expr.map(_.getLeastSignificantBits),
-          externalIdMost    = expr.map(_.getMostSignificantBits),
-          kind              = SuggestionKind.LOCAL,
-          module            = module,
-          name              = name,
-          selfType          = SelfTypeColumn.EMPTY,
-          returnType        = returnType,
-          documentation     = None,
-          documentationHtml = None,
-          scopeStartLine    = scope.start.line,
-          scopeStartOffset  = scope.start.character,
-          scopeEndLine      = scope.end.line,
-          scopeEndOffset    = scope.end.character,
-          reexport          = None
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.LOCAL,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character,
+          reexport         = None
         )
         row -> Seq()
     }
@@ -1180,47 +1210,66 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.MODULE =>
         Suggestion.Module(
-          module            = suggestion.module,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
-      case SuggestionKind.ATOM =>
-        Suggestion.Atom(
+      case SuggestionKind.TYPE =>
+        Suggestion.Type(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module            = suggestion.module,
-          name              = suggestion.name,
-          arguments         = arguments.sortBy(_.index).map(toArgument),
-          returnType        = suggestion.returnType,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          params                = arguments.sortBy(_.index).map(toArgument),
+          returnType            = suggestion.returnType,
+          parentType            = suggestion.parentType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
+        )
+      case SuggestionKind.CONSTRUCTOR =>
+        Suggestion.Constructor(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          arguments             = arguments.sortBy(_.index).map(toArgument),
+          returnType            = suggestion.returnType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module            = suggestion.module,
-          name              = suggestion.name,
-          arguments         = arguments.sortBy(_.index).map(toArgument),
-          selfType          = suggestion.selfType,
-          returnType        = suggestion.returnType,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          arguments             = arguments.sortBy(_.index).map(toArgument),
+          selfType              = suggestion.selfType,
+          returnType            = suggestion.returnType,
+          isStatic              = suggestion.isStatic,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
         Suggestion.Conversion(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module            = suggestion.module,
-          arguments         = arguments.sortBy(_.index).tail.map(toArgument),
-          sourceType        = arguments.minBy(_.index).tpe,
-          returnType        = suggestion.returnType,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          arguments             = arguments.sortBy(_.index).tail.map(toArgument),
+          sourceType            = arguments.minBy(_.index).tpe,
+          returnType            = suggestion.returnType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(

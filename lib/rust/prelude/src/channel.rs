@@ -1,8 +1,11 @@
 //! General-purpose code for dealing with futures channels, sinks and streams.
+
 use crate::*;
 
 use futures::channel::mpsc::UnboundedSender;
 use futures::StreamExt;
+
+
 
 /// Emit message using `UnboundedSender`. Does not care if there are listeners.
 pub fn emit<T>(sender: &UnboundedSender<T>, message: T) {

@@ -1,22 +1,25 @@
 from Standard.Base import all
 
-from Standard.Database import all
-import Standard.Database.Data.Table as Database_Table
-import Standard.Table.Data.Table as Dataframe_Table
-import Standard.Visualization.Table.Visualization as Visualization
-import Standard.Test
+from Standard.Table import Table, Aggregate_Column
+
+from Standard.Database import SQLite
+from Standard.Database import Database
+import Standard.Database.Data.Table.Table as Database_Table
+
+import Standard.Visualization.Table.Visualization
+
+from Standard.Test import Test
+
+polyglot java import java.util.UUID
 
 type Foo
-    type Foo x
+    Value x
+
     to_json : Json
-    to_json = Json.from_pairs [["x", this.x]]
+    to_json self = Json.from_pairs [["x", self.x]]
 
 visualization_spec connection =
-    connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
-    t = connection.access_table "T"
-    t.insert ['a', 2, 3]
-    t.insert ['a', 2, 5]
-    t.insert ['a', 3, 6]
+    t = connection.upload_table "T" <| Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
 
     make_json header data all_rows ixes_header ixes =
         p_header      = ["header", header]
@@ -29,7 +32,7 @@ visualization_spec connection =
 
     Test.group "Table Visualization" <|
         Test.specify "should wrap internal errors" <|
-            bad_table = Database_Table.Table Nothing Nothing Nothing Nothing
+            bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             vis = Visualization.prepare_visualization bad_table 2
             json = Json.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
             vis . should_equal json.to_text
@@ -49,22 +52,12 @@ visualization_spec connection =
             json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[]
             vis . should_equal json
 
-            g = t.group by=["A", "B"] . at "C" . mean
+            g = t.aggregate [Aggregate_Column.Group_By "A", Aggregate_Column.Group_By "B", Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["C_mean"] data=[[4]] all_rows=2 ixes_header=["A", "B"] ixes=[['a'], [2]]
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[]
             vis2 . should_equal json2
 
-        Test.specify "should visualize database aggregates" <|
-            agg = t.group by="A"
-            vis = Visualization.prepare_visualization agg 1
-            json = make_json header=["B", "C"] data=[[2], [3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
-            vis . should_equal json
-
-            vis2 = Visualization.prepare_visualization (agg.at "C") 1
-            json2 = make_json header=["C"] data=[[3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
-            vis2 . should_equal json2
-
-        t2 = Dataframe_Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
+        t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
         Test.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization t2 1
             json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=[""] ixes=[[0]]
@@ -79,21 +72,6 @@ visualization_spec connection =
             vis = Visualization.prepare_visualization (t2.at "A") 2
             json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=[""] ixes=[[0, 1]]
             vis . should_equal json
-
-            g = t2.group by="A" . at "C" . mean
-            vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["C_mean"] data=[[7.0]] all_rows=3 ixes_header=["A"] ixes=[[1]]
-            vis2 . should_equal json2
-
-        Test.specify "should visualize dataframe aggregates" <|
-            agg = t2.group by="A"
-            vis = Visualization.prepare_visualization agg 1
-            json = make_json header=["B", "C"] data=[[4], [7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
-            vis . should_equal json
-
-            vis2 = Visualization.prepare_visualization (agg.at "C") 1
-            json2 = make_json header=["C"] data=[[7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
-            vis2 . should_equal json2
 
 
         Test.specify "should handle Vectors" <|
@@ -111,15 +89,15 @@ visualization_spec connection =
             vis . should_equal json.to_text
 
         Test.specify "should handle other datatypes" <|
-            vis = Visualization.prepare_visualization (Foo 42) 2
-            json = Json.from_pairs [["json", (Foo 42)]]
+            vis = Visualization.prepare_visualization (Foo.Value 42) 2
+            json = Json.from_pairs [["json", (Foo.Value 42)]]
             vis . should_equal json.to_text
 
 spec =
-    Enso_Project.data.create_directory
-    file = Enso_Project.data / "sqlite_test.db"
+    enso_project.data.create_directory
+    file = enso_project.data / "sqlite_test.db"
     file.delete_if_exists
-    connection = Database.open_sqlite_file file
-    here.visualization_spec connection
+    connection = Database.connect (SQLite file)
+    visualization_spec connection
     connection.close
     file.delete

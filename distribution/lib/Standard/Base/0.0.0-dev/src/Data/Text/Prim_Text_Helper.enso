@@ -1,0 +1,9 @@
+## Internal text utilities for inspecting text primitives.
+
+from Standard.Base import Text
+
+## PRIVATE
+
+   Forces flattening of a text value.
+optimize : Text
+optimize text = @Builtin_Method "Prim_Text_Helper.optimize"

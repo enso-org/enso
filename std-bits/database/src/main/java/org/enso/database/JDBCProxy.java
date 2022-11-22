@@ -2,7 +2,10 @@ package org.enso.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -20,8 +23,7 @@ public class JDBCProxy {
    *
    * @return an array of JDBC drivers that are currently registered
    */
-  public static Object[] getDrivers() throws SQLException {
-    initialize();
+  public static Object[] getDrivers() {
     return DriverManager.drivers().toArray();
   }
 
@@ -36,16 +38,6 @@ public class JDBCProxy {
    * @return a connection
    */
   public static Connection getConnection(String url, Properties properties) throws SQLException {
-    initialize();
     return DriverManager.getConnection(url, properties);
-  }
-
-  private static void initialize() throws SQLException {
-    if (!org.postgresql.Driver.isRegistered()) {
-      org.postgresql.Driver.register();
-    }
-    if (!com.amazon.redshift.jdbc.Driver.isRegistered()) {
-      com.amazon.redshift.jdbc.Driver.register();
-    }
   }
 }

@@ -10,13 +10,13 @@ class CompileDiagnosticsTest extends InterpreterTest {
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
-          |    x = Panic.recover ()
+          |    x = Panic.catch_primitive () .convert_to_dataflow_error
           |    x.catch_primitive err->
           |        case err of
-          |            Syntax_Error msg -> "Oopsie, it's a syntax error: " + msg
+          |            Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
           |""".stripMargin
       eval(
         code
@@ -25,39 +25,43 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface parsing errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
-          |    x = Panic.recover @
-          |    x.catch_primitive .to_text
+          |    x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
+          |    x.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
+      eval(code) shouldEqual "(Syntax_Error_Data 'Unrecognized token.')"
     }
 
     "surface redefinition errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |foo =
           |    x = 1
           |    x = 2
           |
-          |main = Panic.recover here.foo . catch_primitive .to_text
+          |main = Panic.catch_primitive foo caught_panic->caught_panic.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
+      eval(
+        code
+      ) shouldEqual "(Compile_Error_Data 'Variable x is being redefined.')"
     }
 
     "surface non-existent variable errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |foo =
           |    my_var = 10
           |    my_vra
           |
-          |main = Panic.recover here.foo . catch_primitive .to_text
+          |main = Panic.catch_primitive foo caught_panic-> caught_panic.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Compile_Error 'Variable `my_vra` is not defined.')"
+      eval(
+        code
+      ) shouldEqual "(Compile_Error_Data 'The name `my_vra` could not be found.')"
     }
   }
 }

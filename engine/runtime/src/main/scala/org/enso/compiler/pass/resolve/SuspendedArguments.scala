@@ -99,7 +99,7 @@ case object SuspendedArguments extends IRPass {
   /** Resolves suspended arguments for a module binding.
     *
     * It is expected that module-level type signatures _do not_ include the
-    * `this` argument.
+    * `self` argument.
     *
     * @param binding the top-level binding to resolve suspensions in
     * @return `binding`, with any suspended arguments resolved
@@ -130,17 +130,25 @@ case object SuspendedArguments extends IRPass {
                   )
                 }
               case None =>
-                if (args(1).suspended) {
-                  IR.Error.Conversion(
-                    method,
-                    IR.Error.Conversion.SuspendedSourceArgument(
-                      args(1).name.name
+                args match {
+                  case _ :: Nil =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        "unknown"
+                      )
                     )
-                  )
-                } else {
-                  method.copy(
-                    body = lam.copy(body = resolveExpression(body))
-                  )
+                  case _ :: sourceArg :: _ if sourceArg.suspended =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        sourceArg.name.name
+                      )
+                    )
+                  case _ =>
+                    method.copy(
+                      body = lam.copy(body = resolveExpression(body))
+                    )
                 }
             }
           case _ =>
@@ -174,10 +182,10 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Method.Binding     => throw new CompilerError("")
-      case atom: Definition.Atom => atom
-      case err: IR.Error         => err
-      case _: Definition.Type =>
+      case _: Method.Binding  => throw new CompilerError("")
+      case _: Definition.Type => binding
+      case err: IR.Error      => err
+      case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present."
         )
@@ -238,18 +246,8 @@ case object SuspendedArguments extends IRPass {
     */
   def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
-      case IR.Application.Operator.Binary(
-            l,
-            IR.Name.Literal("->", _, _, _, _, _),
-            r,
-            _,
-            _,
-            _
-          ) =>
-        l.value :: toSegments(r.value)
-      case IR.Function.Lambda(args, body, _, _, _, _) =>
-        args.map(_.name) ::: toSegments(body)
-      case _ => List(signature)
+      case IR.Type.Function(args, ret, _, _, _) => args :+ ret
+      case _                                    => List(signature)
     }
   }
 
@@ -261,8 +259,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: IR.Expression): Boolean = {
     value match {
-      case IR.Name.Literal("Suspended", _, _, _, _, _) => true
-      case _                                           => false
+      case IR.Name.Literal("Suspended", _, _, _, _) => true
+      case _                                        => false
     }
   }
 

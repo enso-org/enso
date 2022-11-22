@@ -1,20 +1,22 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::api;
-use crate::api::Ast;
 use crate::api::Error::*;
-use crate::api::Metadata;
-use crate::api::ParsedSourceFile;
 use crate::prelude::*;
 
-use websocket::stream::sync::TcpStream;
-use websocket::ClientBuilder;
-use websocket::Message;
+use crate::api;
+use crate::api::Ast;
+use crate::api::Metadata;
+use crate::api::ParsedSourceFile;
 
 use ast::id_map::JsonIdMap;
 use ast::IdMap;
 use serde::de::DeserializeOwned;
 use std::fmt::Formatter;
+use websocket::stream::sync::TcpStream;
+use websocket::ClientBuilder;
+use websocket::Message;
+
+
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
 
@@ -238,7 +240,7 @@ impl Client {
 
     /// Sends a request to parser service to parse Enso code.
     pub fn parse(&mut self, program: String, ids: IdMap) -> api::Result<Ast> {
-        let ids = JsonIdMap::from_id_map(&ids, &program);
+        let ids = JsonIdMap::from_id_map(&ids, &program.as_str().into());
         let request = Request::ParseRequest { program, ids };
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {

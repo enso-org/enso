@@ -17,7 +17,7 @@ use std::iter::Extend;
 /// Mutable Semigroup definition. Impls should satisfy the associativity law:
 /// `x.concat(y.concat(z)) = x.concat(y).concat(z)`, in symbolic form:
 /// `x <> (y <> z) = (x <> y) <> z`
-pub trait PartialSemigroup<T>: Clone {
+pub trait PartialSemigroup<T = Self>: Clone {
     /// An associative operation.
     fn concat_mut(&mut self, other: T);
 
@@ -68,7 +68,7 @@ impl<T: Semigroup> PartialSemigroup<&Option<T>> for Option<T> {
     }
 }
 
-impl<T: Semigroup> PartialSemigroup<Option<T>> for Option<T> {
+impl<T: PartialSemigroup> PartialSemigroup<Option<T>> for Option<T> {
     fn concat_mut(&mut self, other: Self) {
         if let Some(r) = other {
             match self {

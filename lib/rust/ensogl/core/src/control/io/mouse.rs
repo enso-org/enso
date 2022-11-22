@@ -1,17 +1,22 @@
 //! This module contains implementation of a mouse manager and related utilities.
 
+use crate::control::callback::traits::*;
 use crate::prelude::*;
 
-pub mod event;
-
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::system::web;
 
 use std::rc::Rc;
 use web::Closure;
 use web::JsCast;
 use web::JsValue;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod event;
 
 pub use crate::frp::io::mouse::*;
 pub use event::*;
@@ -48,7 +53,7 @@ macro_rules! define_bindings {
         #[derive(Clone,CloneRef,Debug,Default)]
         #[allow(missing_docs)]
         pub struct MouseManagerDispatchers {
-            $(pub $name : callback::registry::RefMut1<$target>),*
+            $(pub $name : callback::registry::Ref1<$target>),*
         }
 
         impl MouseManager {

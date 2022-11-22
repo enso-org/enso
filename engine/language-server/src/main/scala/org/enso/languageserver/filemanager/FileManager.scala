@@ -7,6 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data.FileManagerConfig
 import org.enso.languageserver.effect._
+import org.enso.languageserver.filemanager.FileManagerProtocol.TextualFileContent
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
@@ -68,6 +69,24 @@ class FileManager(
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
+        .pipeTo(sender())
+
+    case FileManagerProtocol.OpenBuffer(path) =>
+      val result =
+        for {
+          file   <- resolvePath(path)
+          exists <- fs.exists(file)
+        } yield (file, exists)
+      exec
+        .execTimed(config.timeout, result)
+        .map { result =>
+          FileManagerProtocol.ReadTextualFileResult(
+            result.flatMap { case (file, exists) =>
+              if (exists) Left(FileExists)
+              else Right(TextualFileContent(file, ""))
+            }
+          )
+        }
         .pipeTo(sender())
 
     case FileManagerProtocol.ReadFile(path) =>

@@ -3,17 +3,26 @@
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
 //! visualisations, retrieving types on ports, etc.
+
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
+use double_representation::module;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::controller::graph::Connection;
 pub use crate::controller::graph::Connections;
@@ -43,7 +52,7 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 /// Notification about change in the executed graph.
 ///
 /// It may pertain either the state of the graph itself or the notifications from the execution.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Notification {
     /// The notification passed from the graph controller.
     Graph(controller::graph::Notification),
@@ -81,6 +90,7 @@ pub struct Handle {
 
 impl Handle {
     /// Create handle for the executed graph that will be running the given method.
+    #[profile(Task)]
     pub async fn new(
         parent: impl AnyLogger,
         project: model::Project,
@@ -133,18 +143,20 @@ impl Handle {
     pub fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<model::module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        self.execution_ctx.modify_visualization(id, expression, module)
+        self.execution_ctx.modify_visualization(id, method_pointer, arguments)
     }
 
     /// See [`model::ExecutionContext::detach_visualization`].
+    #[profile(Detail)]
     pub async fn detach_visualization(&self, id: VisualizationId) -> FallibleResult<Visualization> {
         self.execution_ctx.detach_visualization(id).await
     }
 
     /// See [`model::ExecutionContext::detach_all_visualizations`].
+    #[profile(Detail)]
     pub async fn detach_all_visualizations(&self) -> Vec<FallibleResult<Visualization>> {
         self.execution_ctx.detach_all_visualizations().await
     }
@@ -154,15 +166,9 @@ impl Handle {
         self.execution_ctx.computed_value_info_registry()
     }
 
-    /// Modify preprocessor code in visualization. See also
-    /// [`model::ExecutionContext::modify_visualization`].
-    pub async fn set_visualization_preprocessor(
-        &self,
-        id: VisualizationId,
-        code: String,
-        module: model::module::QualifiedName,
-    ) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
+    /// See [`model::ExecutionContext::component_groups`].
+    pub fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.execution_ctx.component_groups()
     }
 
     /// Subscribe to updates about changes in this executed graph.
@@ -218,14 +224,14 @@ impl Handle {
     ///
     /// Fails if method graph cannot be created (see `graph_for_method` documentation).
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
-        debug!(self.logger, "Entering node {local_call.call}.");
+        debug!("Entering node {}.", local_call.call);
         let method_ptr = &local_call.definition;
         let graph = controller::Graph::new_method(&self.logger, &self.project, method_ptr);
         let graph = graph.await?;
         self.execution_ctx.push(local_call.clone()).await?;
-        debug!(self.logger, "Replacing graph with {graph:?}.");
+        debug!("Replacing graph with {graph:?}.");
         self.graph.replace(graph);
-        debug!(self.logger, "Sending graph invalidation signal.");
+        debug!("Sending graph invalidation signal.");
         self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
 
         Ok(())
@@ -283,6 +289,15 @@ impl Handle {
     /// Note that the controller returned by this method may change as the nodes are stepped into.
     pub fn graph(&self) -> controller::Graph {
         self.graph.borrow().clone_ref()
+    }
+
+    /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name(
+        &self,
+        project: &dyn model::project::API,
+    ) -> module::QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.
@@ -361,7 +376,7 @@ pub mod tests {
     impl MockData {
         pub fn controller(&self) -> Handle {
             let logger = Logger::new("test");
-            let parser = parser::Parser::new_or_panic();
+            let parser = parser_scala::Parser::new_or_panic();
             let repository = Rc::new(model::undo_redo::Repository::new(&logger));
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();

@@ -1,12 +1,11 @@
 //! This module defines an owned texture storage type. It keeps the texture data in a local memory.
 
-use crate::prelude::*;
-
-use crate::system::gpu::data::buffer::item::JsBufferViewArr;
-use crate::system::gpu::data::texture;
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
+
+use crate::system::gpu::data::buffer::item::JsBufferViewArr;
+use crate::system::gpu::data::texture;
 
 
 

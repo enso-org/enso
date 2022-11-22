@@ -679,7 +679,8 @@ object LauncherApplication {
           logLevel,
           connectLogger,
           globalCLIOptions.colorMode,
-          !disableLogMasking
+          !disableLogMasking,
+          None
         )
         initializeApp()
 

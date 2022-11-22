@@ -1,13 +1,8 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.UUID
-
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument.IdExecutionInstrument.{
+import org.enso.interpreter.instrument.IdExecutionService.{
   ExpressionCall,
   ExpressionValue
 }
@@ -18,28 +13,26 @@ import org.enso.interpreter.instrument.execution.{
   RuntimeContext
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.instrument.{
-  InstrumentFrame,
-  MethodCallsCache,
-  RuntimeCache,
-  UpdatesSynchronizationState,
-  Visualisation
-}
+import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
-import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.service.error.{
-  ConstructorNotFoundException,
-  MethodNotFoundException,
-  ModuleNotFoundForExpressionIdException,
-  ServiceException,
-  VisualisationException
+import org.enso.interpreter.runtime.data.text.Text
+import org.enso.interpreter.runtime.error.{
+  DataflowError,
+  PanicSentinel,
+  WithWarnings
 }
+import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.util.UUID
+import java.util.function.Consumer
+import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
 
@@ -95,12 +88,43 @@ object ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
 
+    def notifyPendingCacheItems(cache: RuntimeCache): Unit = {
+      val knownKeys   = cache.getWeights.entrySet
+      val cachedKeys  = cache.getKeys
+      val pendingKeys = new collection.mutable.HashSet[UUID]()
+
+      knownKeys.forEach { e =>
+        if (e.getValue > 0) {
+          if (!cachedKeys.contains(e.getKey)) {
+            pendingKeys.add(e.getKey)
+          }
+        }
+      }
+      if (pendingKeys.nonEmpty) {
+        val ids = pendingKeys.map { key =>
+          Api.ExpressionUpdate(
+            key,
+            None,
+            None,
+            Vector.empty,
+            true,
+            Api.ExpressionUpdate.Payload.Pending(None, None)
+          )
+        }
+        val msg = Api.Response(
+          Api.ExpressionUpdates(contextId, ids.toSet)
+        )
+        ctx.endpoint.sendToClient(msg)
+      }
+    }
+
     executionFrame match {
       case ExecutionFrame(
             ExecutionItem.Method(module, cons, function),
             cache,
             syncState
           ) =>
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module.toString,
           cons.item,
@@ -125,6 +149,7 @@ object ProgramExecutionSupport {
             .orElseThrow(() =>
               new ModuleNotFoundForExpressionIdException(expressionId)
             )
+        notifyPendingCacheItems(cache)
         ctx.executionService.execute(
           module,
           callData,
@@ -243,11 +268,12 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
+    val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
         s"Execution of function $itemName interrupted."
       case _ =>
-        s"Execution of function $itemName failed. ${error.getMessage}"
+        s"Execution of function $itemName failed ($reason)."
     }
     ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
@@ -290,7 +316,7 @@ object ProgramExecutionSupport {
   def getFailureOutcome(implicit
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
-    case ex: ConstructorNotFoundException =>
+    case ex: TypeNotFoundException =>
       Api.ExecutionResult.Failure(
         ex.getMessage,
         findFileByModuleName(ex.getModule)
@@ -387,6 +413,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
+  @com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
   private def sendVisualisationUpdates(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
@@ -429,28 +456,17 @@ object ProgramExecutionSupport {
       Either
         .catchNonFatal {
           ctx.executionService.getLogger.log(
-            Level.FINEST,
+            Level.FINE,
             s"Executing visualisation ${visualisation.expressionId}"
           )
-          ctx.executionService.callFunction(
+          ctx.executionService.callFunctionWithInstrument(
+            visualisation.cache,
+            visualisation.module,
             visualisation.callback,
-            expressionValue
+            expressionValue +: visualisation.arguments: _*
           )
         }
-        .flatMap {
-          case text: String =>
-            Right(text.getBytes("UTF-8"))
-          case text: Text =>
-            Right(text.toString.getBytes("UTF-8"))
-          case bytes: Array[Byte] =>
-            Right(bytes)
-          case other =>
-            Left(
-              new VisualisationException(
-                s"Cannot encode ${other.getClass} to byte array"
-              )
-            )
-        }
+        .flatMap(visualizationResultToBytes)
     val result = errorOrVisualisationData match {
       case Left(_: ThreadInterruptedException) =>
         ctx.executionService.getLogger.log(
@@ -502,6 +518,33 @@ object ProgramExecutionSupport {
       syncState.setVisualisationSync(expressionId)
     }
   }
+
+  /** Convert the result of Enso visualization function to a byte array.
+    *
+    * @param value the result of Enso visualization function
+    * @return either a byte array representing the visualization result or an
+    *         error
+    */
+  @scala.annotation.tailrec
+  private def visualizationResultToBytes(
+    value: AnyRef
+  ): Either[VisualisationException, Array[Byte]] =
+    value match {
+      case text: String =>
+        Right(text.getBytes(StandardCharsets.UTF_8))
+      case text: Text =>
+        Right(text.toString.getBytes(StandardCharsets.UTF_8))
+      case bytes: Array[Byte] =>
+        Right(bytes)
+      case withWarnings: WithWarnings =>
+        visualizationResultToBytes(withWarnings.getValue)
+      case other =>
+        Left(
+          new VisualisationException(
+            s"Cannot encode ${other.getClass} to byte array."
+          )
+        )
+    }
 
   /** Extract method pointer information from the expression value.
     *

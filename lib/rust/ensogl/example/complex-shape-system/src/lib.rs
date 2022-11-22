@@ -1,15 +1,21 @@
 //! Example scene showing simple usage of a shape system.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
+use ensogl_core::display::shape::*;
+use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style::theme;
-use ensogl_core::display::world::*;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -19,7 +25,7 @@ use wasm_bindgen::prelude::*;
 
 mod shape {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
@@ -35,7 +41,7 @@ mod shape {
 
 mod mask {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style) {
             let shape = Circle(60.px());
             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));
@@ -51,15 +57,13 @@ mod mask {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_complex_shape_system() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let logger = Logger::new("ShapeView");
-
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
     let theme1 = theme::Theme::new();
@@ -85,19 +89,24 @@ pub fn entry_point_complex_shape_system() {
     // style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
     style_watch.get("base_color");
 
-    let view1 = shape::View::new(&logger);
+    let view1 = shape::View::new();
     view1.size.set(Vector2::new(300.0, 300.0));
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    let mask = mask::View::new(&logger);
+    let mask_layer = scene::layer::Layer::new("MaskLayer");
+    scene.layers.node_searcher.set_mask(&mask_layer);
+
+    let mask = mask::View::new();
     mask.size.set(Vector2::new(300.0, 300.0));
     mask.mod_position(|t| *t = Vector3::new(-50.0, 0.0, 0.0));
 
+    // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
+    //     affected by the camera position.
     let scissor_box =
-        scene::layer::ScissorBox::new_with_position_and_size(default(), Vector2(600, 600));
+        scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
     scene.layers.main.set_scissor_box(Some(&scissor_box));
 
-    let view2 = shape::View::new(&logger);
+    let view2 = shape::View::new();
     view2.size.set(Vector2::new(300.0, 300.0));
     view2.mod_position(|t| *t = Vector3::new(50.0, 0.0, 0.0));
 
@@ -113,7 +122,6 @@ pub fn entry_point_complex_shape_system() {
         .before_frame
         .add(move |_time| {
             mask.set_position_x(((frame as f32) / 30.0).sin() * 100.0);
-
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;
@@ -147,9 +155,9 @@ pub fn entry_point_complex_shape_system() {
                 // DEBUG!("{scene.layers.node_searcher_mask:#?}");
                 // DEBUG!("{scene.layers.viz:#?}");
 
-                scene.layers.node_searcher.add_exclusive(&view1);
-                scene.layers.node_searcher.add_exclusive(&view2);
-                scene.layers.node_searcher_mask.add_exclusive(&mask);
+                scene.layers.node_searcher.add(&view1);
+                scene.layers.node_searcher.add(&view2);
+                mask_layer.add(&mask);
             }
             if frame == 200 {
                 DEBUG!("Changing the theme.");

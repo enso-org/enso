@@ -1,11 +1,19 @@
 //! Native bindings to the web-api.
 
-use enso_prelude::*;
+use crate::prelude::*;
 
+
+// ==============
+// === Export ===
+// ==============
+
+pub use js_sys::Array;
 pub use js_sys::Error;
 pub use js_sys::Function;
 pub use js_sys::JsString;
 pub use js_sys::Object;
+pub use std::time::Duration;
+pub use std::time::Instant;
 pub use wasm_bindgen::prelude::Closure;
 pub use wasm_bindgen::prelude::*;
 pub use wasm_bindgen::JsCast;
@@ -29,9 +37,6 @@ pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
 
-pub use std::time::Duration;
-pub use std::time::Instant;
-
 
 
 // ================
@@ -44,7 +49,7 @@ pub use std::time::Instant;
     }
 ")]
 extern "C" {
-    /// See the docs of [`crate::FunctionOps`].
+    // See the docs of [`crate::FunctionOps`].
     #[allow(unsafe_code)]
     #[wasm_bindgen(catch)]
     pub fn new_function_with_args(args: &str, body: &str) -> Result<Function, JsValue>;

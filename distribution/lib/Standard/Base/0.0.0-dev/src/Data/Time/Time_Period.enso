@@ -1,0 +1,41 @@
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Date_Time.Date_Time
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import org.enso.base.Time_Utils
+polyglot java import java.time.temporal.ChronoUnit
+polyglot java import java.time.temporal.TemporalUnit
+
+## Represents a unit of time of a day or shorter.
+type Time_Period
+    Day
+
+    Hour
+
+    Minute
+
+    Second
+
+    ## PRIVATE
+       This method could be replaced with matching on `Date_Period` supertype
+       if/when that is supported.
+    is_date_period : Boolean
+    is_date_period self = False
+
+    ## PRIVATE
+    to_java_unit : TemporalUnit
+    to_java_unit self = case self of
+        Time_Period.Day -> ChronoUnit.DAYS
+        Time_Period.Hour -> ChronoUnit.HOURS
+        Time_Period.Minute -> ChronoUnit.MINUTES
+        Time_Period.Second -> ChronoUnit.SECONDS
+
+    ## PRIVATE
+    adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
+    adjust_start self date =
+        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit
+
+    ## PRIVATE
+    adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
+    adjust_end self date =
+        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit

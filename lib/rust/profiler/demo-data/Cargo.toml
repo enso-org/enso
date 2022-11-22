@@ -1,0 +1,9 @@
+[package]
+name = "enso-profiler-demo-data"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[dependencies]
+futures = "0.3"
+enso-profiler = { path = ".." }

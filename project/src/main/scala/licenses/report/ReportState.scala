@@ -3,11 +3,8 @@ package src.main.scala.licenses.report
 import java.security.MessageDigest
 
 import sbt.{File, IO, Logger}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  FilesHelper,
-  PortablePath
-}
+import src.main.scala.licenses.frontend.DependencyFilter
+import src.main.scala.licenses.{DistributionDescription, FilesHelper, PortablePath}
 
 import scala.util.control.NonFatal
 
@@ -87,7 +84,7 @@ object ReportState {
       digest.update(sbtComponent.name.getBytes)
       val dependencies =
         sbtComponent.licenseReport.licenses.sortBy(_.module.toString)
-      for (dep <- dependencies) {
+      for (dep <- dependencies.filter(d => DependencyFilter.shouldKeep(d.module))) {
         digest.update(dep.module.toString.getBytes)
         digest.update(dep.license.name.getBytes)
       }

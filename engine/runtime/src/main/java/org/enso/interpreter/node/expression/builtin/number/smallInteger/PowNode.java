@@ -1,18 +1,18 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "^", description = "Exponentation of numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
   private @Child org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode
@@ -25,21 +25,21 @@ public abstract class PowNode extends Node {
       bigIntPowNode =
           org.enso.interpreter.node.expression.builtin.number.bigInteger.PowNode.build();
 
-  abstract Object execute(long _this, Object that);
+  abstract Object execute(long self, Object that);
 
   static PowNode build() {
     return PowNodeGen.create();
   }
 
   @Specialization
-  Object doLong(long _this, long that) {
+  Object doLong(long self, long that) {
     if (that < 0) {
-      return Math.pow(_this, that);
+      return Math.pow(self, that);
     } else if (that == 0) {
       return 1L;
     } else {
       Object res = 1L;
-      Object base = _this;
+      Object base = self;
       while (that > 0) {
         if (that % 2 == 0) {
           if (base instanceof Long) {
@@ -62,19 +62,24 @@ public abstract class PowNode extends Node {
   }
 
   @Specialization
-  double doDouble(long _this, double that) {
-    return Math.pow(_this, that);
+  double doDouble(long self, double that) {
+    return Math.pow(self, that);
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
-    return bigIntPowNode.execute(new EnsoBigInteger(BigInteger.valueOf(_this)), that);
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    return bigIntPowNode.execute(toBigInteger(self), that);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static EnsoBigInteger toBigInteger(long self) {
+    return new EnsoBigInteger(BigInteger.valueOf(self));
   }
 
   @Fallback
-  Object doOther(long _this, Object that) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
-    Atom number = builtins.number().getNumber().newInstance();
+  Object doOther(long self, Object that) {
+    Builtins builtins = Context.get(this).getBuiltins();
+    var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }

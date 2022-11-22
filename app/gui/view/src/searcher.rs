@@ -2,10 +2,9 @@
 //!
 //! This component wraps the plain ListView in some searcher-specific logic, like committing
 //! editing, or picking suggestion with Tab.
-pub mod icons;
-pub mod new;
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::documentation;
 
@@ -14,10 +13,14 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::list_view;
 use ensogl_component::list_view::ListView;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use ensogl_component::list_view::entry;
 
@@ -33,12 +36,12 @@ pub const SEARCHER_WIDTH: f32 = 480.0;
 ///
 /// Because we don't implement clipping yet, the best UX is when searcher height is almost multiple
 /// of entry height + padding.
-pub const SEARCHER_HEIGHT: f32 = 184.5;
+pub const SEARCHER_HEIGHT: f32 = 183.5;
 
-const ACTION_LIST_GAP: f32 = 180.0;
+const ACTION_LIST_WIDTH: f32 = 180.0;
 const LIST_DOC_GAP: f32 = 15.0;
-const DOCUMENTATION_WIDTH: f32 = SEARCHER_WIDTH - ACTION_LIST_GAP - LIST_DOC_GAP;
-const ACTION_LIST_X: f32 = (ACTION_LIST_GAP - SEARCHER_WIDTH) / 2.0;
+const DOCUMENTATION_WIDTH: f32 = SEARCHER_WIDTH - ACTION_LIST_WIDTH - LIST_DOC_GAP;
+const ACTION_LIST_X: f32 = (ACTION_LIST_WIDTH - SEARCHER_WIDTH) / 2.0;
 const DOCUMENTATION_X: f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
 
 
@@ -108,7 +111,6 @@ struct Model {
     logger:         Logger,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
-    new_view:       new::View<usize>,
     documentation:  documentation::View,
     doc_provider:   Rc<CloneRefCell<AnyDocumentationProvider>>,
 }
@@ -118,12 +120,12 @@ impl Model {
         let scene = &app.display.default_scene;
         let app = app.clone_ref();
         let logger = Logger::new("SearcherView");
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
-        let new_view = new::View::new();
-        let documentation = documentation::View::new(scene);
+        list.deprecated_focus();
+        let documentation = documentation::View::new(&app);
         let doc_provider = default();
-        scene.layers.above_nodes.add_exclusive(&list);
+        scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 
@@ -132,12 +134,12 @@ impl Model {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
-        list.set_label_layer(scene.layers.above_nodes_text.id());
+        list.set_label_layer(&scene.layers.node_searcher_text);
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
         documentation.set_position_y(-action_list_gap);
-        Self { app, logger, display_object, list, new_view, documentation, doc_provider }
+        Self { app, logger, display_object, list, documentation, doc_provider }
     }
 
     fn docs_for(&self, id: Option<entry::Id>) -> String {
@@ -147,7 +149,7 @@ impl Model {
     }
 
     fn set_height(&self, h: f32) {
-        self.list.resize(Vector2(ACTION_LIST_GAP, h));
+        self.list.resize(Vector2(ACTION_LIST_WIDTH, h));
         self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH, h));
     }
 }
@@ -227,37 +229,35 @@ impl View {
                 model.doc_provider.set(docs.clone_ref());
                 model.list.set_entries(entries);
             });
+            selected_entry <- model.list.selected_entry.on_change();
             eval frp.select_action ((id) model.list.select_entry(id));
-            source.selected_entry <+ model.list.selected_entry;
+            source.selected_entry <+ selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
-            source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
+            // source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
             source.is_empty       <+ frp.set_actions.map(|(entries,_)| entries.entry_count() == 0);
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
             eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
-            is_selected               <- model.list.selected_entry.map(|e| e.is_some());
+            is_selected               <- selected_entry.map(|e| e.is_some());
             is_enabled                <- bool(&frp.hide,&frp.show);
             is_entry_enabled          <- is_selected && is_enabled;
-            displayed_doc             <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
-            opt_picked_entry          <- model.list.selected_entry.sample(&frp.use_as_suggestion);
+            displayed_doc             <- selected_entry.map(f!((id) model.docs_for(*id)));
+            opt_picked_entry          <- selected_entry.sample(&frp.use_as_suggestion);
             source.used_as_suggestion <+ opt_picked_entry.gate(&is_entry_enabled);
             source.editing_committed  <+ model.list.chosen_entry.gate(&is_entry_enabled);
-
-            // New searcher
-            let is_selected           =  model.new_view.focused.clone_ref();
-            selected_id               <- model.new_view.highlight.map(|id| id.last().copied());
-            opt_picked_entry          <- selected_id.sample(&frp.use_as_suggestion);
-            source.used_as_suggestion <+ opt_picked_entry.gate(&is_selected);
-            opt_chosen_id             <- model.new_view.entry_chosen.map(|id| id.last().copied());
-            source.editing_committed  <+ opt_chosen_id.gate(&is_selected);
 
             eval displayed_doc ((data) model.documentation.frp.display_documentation(data));
         };
 
         self
+    }
+
+    /// The Documentation Panel View.
+    pub fn documentation(&self) -> &documentation::View {
+        &self.model.documentation
     }
 
     /// Set the action list displayed in searcher.
@@ -280,11 +280,6 @@ impl View {
         let provider = Rc::new(list_view::entry::EmptyProvider);
         self.set_actions(provider);
     }
-
-    /// The FRP interface of new searcher.
-    pub fn new_frp(&self) -> &new::Frp<usize> {
-        &self.model.new_view.frp
-    }
 }
 
 impl display::Object for View {
@@ -293,7 +288,7 @@ impl display::Object for View {
     }
 }
 
-impl application::command::FrpNetworkProvider for View {
+impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
     }
@@ -311,7 +306,7 @@ impl application::View for View {
     }
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[(Press, "tab", "use_as_suggestion")])
+        [(Press, "tab", "use_as_suggestion")]
             .iter()
             .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
             .collect()

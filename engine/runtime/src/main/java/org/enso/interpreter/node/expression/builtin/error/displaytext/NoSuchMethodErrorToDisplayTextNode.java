@@ -17,15 +17,15 @@ public abstract class NoSuchMethodErrorToDisplayTextNode extends Node {
     return NoSuchMethodErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
     try {
       return Text.create("Method `")
-          .add(TypesGen.expectUnresolvedSymbol(_this.getFields()[1]).getName())
+          .add(TypesGen.expectUnresolvedSymbol(self.getFields()[1]).getName())
           .add("` of ")
-          .add(displayTypeNode.execute(_this.getFields()[0]))
+          .add(displayTypeNode.execute(self.getFields()[0]))
           .add(" could not be found.");
     } catch (UnexpectedResultException e) {
       return Text.create("Method could not be found.");
@@ -33,7 +33,7 @@ public abstract class NoSuchMethodErrorToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Method could not be found.");
   }
 }

@@ -1,6 +1,8 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::node;
 use crate::component::visualization;
@@ -11,9 +13,7 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::system::DynamicShape;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
+use ensogl::display::shape::system::Shape;
 use ensogl::gui::component::ShapeView;
 use ensogl_component::drop_down_menu;
 use ensogl_hardcoded_theme as theme;
@@ -39,9 +39,9 @@ const ACTION_ICON_SIZE: f32 = 20.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         below = [drop_down_menu::arrow];
-        () {
+        (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let background           = Rect((&width,&height));
@@ -56,7 +56,7 @@ mod hover_area {
 mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         below = [hover_area];
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
@@ -86,7 +86,7 @@ mod four_arrow_icon {
     use std::f32::consts::PI;
     const ARROW_LINE_WIDTH: f32 = 1.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
@@ -126,7 +126,7 @@ mod pin_icon {
     use std::f32::consts::PI;
     const PIN_THORN_WIDTH: f32 = 1.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
@@ -165,12 +165,11 @@ struct Icons {
 }
 
 impl Icons {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "Icons");
-        let display_object = display::object::Instance::new(&logger);
-        let icon_root = display::object::Instance::new(&logger);
-        let reset_position_icon = pin_icon::View::new(&logger);
-        let drag_icon = four_arrow_icon::View::new(&logger);
+    fn new() -> Self {
+        let display_object = display::object::Instance::new();
+        let icon_root = display::object::Instance::new();
+        let reset_position_icon = pin_icon::View::new();
+        let drag_icon = four_arrow_icon::View::new();
         let size = default();
 
         display_object.add_child(&icon_root);
@@ -179,11 +178,11 @@ impl Icons {
         Self { display_object, icon_root, reset_position_icon, drag_icon, size }.init_layout()
     }
 
-    fn place_shape_in_slot<T: DynamicShape>(&self, view: &ShapeView<T>, index: usize) {
+    fn place_shape_in_slot<S: Shape>(&self, view: &ShapeView<S>, index: usize) {
         let icon_size = self.icon_size();
         let index = index as f32;
         view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
-        view.size().set(icon_size)
+        view.size.set(icon_size)
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -262,18 +261,17 @@ struct Model {
 
 impl Model {
     fn new(app: &Application, vis_registry: visualization::Registry) -> Self {
-        let logger = Logger::new("ActionBarModel");
-        let background = background::View::new(&logger);
-        let hover_area = hover_area::View::new(&logger);
+        let background = background::View::new();
+        let hover_area = hover_area::View::new();
         let visualization_chooser = VisualizationChooser::new(app, vis_registry);
-        let display_object = display::object::Instance::new(&logger);
+        let display_object = display::object::Instance::new();
         let size = default();
-        let icons = Icons::new(logger);
+        let icons = Icons::new();
         let shapes = compound::events::MouseEvents::default();
 
-        app.display.default_scene.layers.below_main.add_exclusive(&hover_area);
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
-        app.display.default_scene.layers.above_nodes.add_exclusive(&icons);
+        app.display.default_scene.layers.below_main.add(&hover_area);
+        app.display.default_scene.layers.below_main.add(&background);
+        app.display.default_scene.layers.above_nodes.add(&icons);
 
         shapes.add_sub_shape(&hover_area);
         shapes.add_sub_shape(&background);
@@ -394,15 +392,16 @@ impl ActionBar {
             frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
 
             let reset_position_icon = &model.icons.reset_position_icon.events;
-            frp.source.on_container_reset_position <+ reset_position_icon.mouse_down;
+            let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();
+            frp.source.on_container_reset_position <+ reset_position_icon_down;
 
             let drag_icon      = &model.icons.drag_icon.events;
-            let start_dragging = drag_icon.mouse_down.clone_ref();
+            let start_dragging = &drag_icon.mouse_down_primary;
             end_dragging       <- mouse.up.gate(&frp.source.container_drag_state);
-            should_drag        <- bool(&end_dragging,&start_dragging);
+            should_drag        <- bool(&end_dragging,start_dragging);
             frp.source.container_drag_state <+ should_drag;
 
-            show_reset_icon <- bool(&reset_position_icon.mouse_down,&start_dragging);
+            show_reset_icon <- bool(&reset_position_icon_down,start_dragging);
             eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
         }
         self

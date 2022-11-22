@@ -1,4 +1,5 @@
 //! An utility builder to be used in tests.
+
 use crate::node;
 use crate::node::Payload;
 use crate::Node;

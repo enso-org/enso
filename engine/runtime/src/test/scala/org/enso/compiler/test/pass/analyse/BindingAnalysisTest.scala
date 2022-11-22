@@ -3,7 +3,14 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{Cons, ModuleMethod, ModuleReference, PolyglotSymbol}
+import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.data.BindingsMap.{
+  Cons,
+  ModuleMethod,
+  ModuleReference,
+  PolyglotSymbol,
+  Type
+}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -52,7 +59,8 @@ class BindingAnalysisTest extends CompilerTest {
           |polyglot java import foo.bar.baz.MyClass
           |polyglot java import foo.bar.baz.OtherClass as Renamed_Class
           |
-          |type Foo a b c
+          |type Foo
+          |    Mk_Foo a b c
           |type Bar
           |type Baz x y
           |
@@ -69,16 +77,12 @@ class BindingAnalysisTest extends CompilerTest {
 
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
-      metadata.types shouldEqual List(
-        Cons("Foo", 3),
-        Cons("Bar", 0),
-        Cons("Baz", 2)
-      )
-      metadata.polyglotSymbols shouldEqual List(
+      metadata.definedEntities should contain theSameElementsAs List(
+        Type("Foo", List(Cons("Mk_Foo", 3, false)), false),
+        Type("Bar", List(), false),
+        Type("Baz", List(), false),
         PolyglotSymbol("MyClass"),
-        PolyglotSymbol("Renamed_Class")
-      )
-      metadata.moduleMethods shouldEqual List(
+        PolyglotSymbol("Renamed_Class"),
         ModuleMethod("enso_project"),
         ModuleMethod("foo")
       )
@@ -98,7 +102,10 @@ class BindingAnalysisTest extends CompilerTest {
            |
            |$moduleName.baz = 65
            |""".stripMargin.preprocessModule.analyse
-      ir.getMetadata(BindingAnalysis).get.moduleMethods shouldEqual List(
+      ir.getMetadata(BindingAnalysis)
+        .get
+        .definedEntities
+        .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
         ModuleMethod("enso_project"),
         ModuleMethod("bar")
       )

@@ -1,16 +1,14 @@
 //! This module defines abstraction for items in buffers stored on GPU.
 
 use crate::prelude::*;
+use crate::system::gpu::data::gl_enum::traits::*;
+use nalgebra::*;
 
 use crate::system::gpu::data::gl_enum::GlEnum;
 use crate::system::gpu::data::sized::GpuKnownSize;
 use crate::system::gpu::data::GpuDefault;
 use crate::system::gpu::shader::glsl;
 use crate::system::gpu::shader::glsl::Glsl;
-
-use crate::system::gpu::data::gl_enum::traits::*;
-
-use nalgebra::*;
 
 
 
@@ -72,6 +70,11 @@ pub trait Storable: BufferItemBounds {
 
     /// The number of columns of the type encoded as 2d matrix.
     type Cols: DimName;
+
+    /// Checks if the type should be interpreted as integer. This is important when binding the
+    /// buffer to the shader. See WebGL's `vertexAttribPointer` vs `vertexAttribIPointer` to learn
+    /// more.
+    fn is_integer() -> bool;
 
 
     // === Size ===
@@ -144,6 +147,10 @@ impl Storable for bool {
     type Rows = U1;
     type Cols = U1;
 
+    fn is_integer() -> bool {
+        false
+    }
+
     fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
         buffer
     }
@@ -162,6 +169,10 @@ impl Storable for i32 {
     type Cell = Self;
     type Rows = U1;
     type Cols = U1;
+
+    fn is_integer() -> bool {
+        true
+    }
 
     fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
         buffer
@@ -182,6 +193,10 @@ impl Storable for u32 {
     type Rows = U1;
     type Cols = U1;
 
+    fn is_integer() -> bool {
+        true
+    }
+
     fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
         buffer
     }
@@ -200,6 +215,10 @@ impl Storable for f32 {
     type Cell = Self;
     type Rows = U1;
     type Cols = U1;
+
+    fn is_integer() -> bool {
+        false
+    }
 
     fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
         buffer
@@ -224,6 +243,10 @@ where
     type Cell = T;
     type Rows = R;
     type Cols = C;
+
+    fn is_integer() -> bool {
+        T::is_integer()
+    }
 
     #[allow(unsafe_code)]
     fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {

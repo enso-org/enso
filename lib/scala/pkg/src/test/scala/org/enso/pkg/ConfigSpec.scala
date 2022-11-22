@@ -121,9 +121,9 @@ class ConfigSpec
       val expectedComponentGroups = ComponentGroups(
         newGroups = List(
           ComponentGroup(
-            module = ModuleName("Group 1"),
-            color  = Some("#C047AB"),
-            icon   = Some("icon-name"),
+            group = GroupName("Group 1"),
+            color = Some("#C047AB"),
+            icon  = Some("icon-name"),
             exports = List(
               Component("foo", Some(Shortcut("f"))),
               Component("bar", None)
@@ -132,9 +132,9 @@ class ConfigSpec
         ),
         extendedGroups = List(
           ExtendedComponentGroup(
-            module = ModuleReference(
+            group = GroupReference(
               LibraryName("Standard", "Base"),
-              ModuleName("Group 2")
+              GroupName("Group 2")
             ),
             exports = List(
               Component("baz", Some(Shortcut("k"))),
@@ -231,9 +231,9 @@ class ConfigSpec
       val expectedComponentGroups = ComponentGroups(
         newGroups = List(
           ComponentGroup(
-            module = ModuleName("Group 1"),
-            color  = None,
-            icon   = None,
+            group = GroupName("Group 1"),
+            color = None,
+            icon  = None,
             exports = List(
               Component("foo", Some(Shortcut("f"))),
               Component("bar", Some(Shortcut("fgh"))),

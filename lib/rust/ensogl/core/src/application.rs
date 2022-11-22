@@ -1,15 +1,9 @@
 //! Application top-level structure definition. Handles views, keyboard shortcuts and more.
 
-pub mod args;
-pub mod command;
-pub mod frp;
-pub mod shortcut;
-pub mod view;
-
-pub use view::View;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::control::callback;
 use crate::display;
 use crate::display::scene::DomPath;
@@ -17,7 +11,41 @@ use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
-use enso_web::traits::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod args;
+pub mod command;
+pub mod frp;
+pub mod shortcut;
+pub mod tooltip;
+pub mod view;
+
+pub use view::View;
+
+
+
+/// A module with commonly used traits to mass import.
+pub mod traits {
+    pub use crate::application::view::View as TRAIT_View;
+}
+
+
+// ===========
+// === Frp ===
+// ===========
+
+crate::define_endpoints_2! {
+    Input {
+        set_tooltip(tooltip::Style),
+    }
+    Output {
+        tooltip(tooltip::Style)
+    }
+}
 
 
 
@@ -27,9 +55,15 @@ use enso_web::traits::*;
 
 /// A top level structure for an application. It combines a view, keyboard shortcut manager, and is
 /// intended to also manage layout of visible panes.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Application {
+    inner: Rc<ApplicationData>,
+}
+
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ApplicationData {
     pub logger:           Logger,
     pub cursor:           Cursor,
     pub display:          World,
@@ -37,6 +71,7 @@ pub struct Application {
     pub shortcuts:        shortcut::Registry,
     pub views:            view::Registry,
     pub themes:           theme::Manager,
+    pub frp:              Frp,
     update_themes_handle: callback::Handle,
 }
 
@@ -56,7 +91,25 @@ impl Application {
         display.add_child(&cursor);
         web::document.body_or_panic().set_style_or_warn("cursor", "none");
         let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
-        Self { logger, cursor, display, commands, shortcuts, views, themes, update_themes_handle }
+        let frp = Frp::new();
+        let _network = frp.network();
+        enso_frp::extend! { _network
+            frp.private.output.tooltip <+ frp.private.input.set_tooltip;
+        }
+
+        let data = ApplicationData {
+            logger,
+            cursor,
+            display,
+            commands,
+            shortcuts,
+            views,
+            themes,
+            update_themes_handle,
+            frp,
+        };
+
+        Self { inner: Rc::new(data) }
     }
 
     /// Create a new instance of a view.
@@ -77,6 +130,39 @@ impl AsRef<theme::Manager> for Application {
     }
 }
 
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Test-specific API.
+pub mod test_utils {
+    use super::*;
+
+    /// Screen size for unit and integration tests.
+    const TEST_SCREEN_SIZE: (f32, f32) = (1920.0, 1080.0);
+
+    /// Extended API for tests.
+    pub trait ApplicationExt {
+        /// Set "fake" screen dimensions for unit and integration tests. This is important for a lot
+        /// of position and screen size related computations in the IDE.
+        fn set_screen_size_for_tests(&self);
+    }
+
+    impl ApplicationExt for Application {
+        fn set_screen_size_for_tests(&self) {
+            let (screen_width, screen_height) = TEST_SCREEN_SIZE;
+            let scene = &self.display.default_scene;
+            scene.layers.iter_sublayers_and_masks_nested(|layer| {
+                let camera = layer.camera();
+                camera.set_screen(screen_width, screen_height);
+                camera.reset_zoom();
+                camera.update(scene);
+            });
+        }
+    }
+}
 
 // =============
 // === Tests ===

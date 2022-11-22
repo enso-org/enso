@@ -6,6 +6,8 @@
 
 use wasm_bindgen::JsValue;
 
+
+
 /// Trait that allows us to log an object remotely.
 pub trait Loggable {
     /// Return the log message as JsValue.

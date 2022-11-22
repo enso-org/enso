@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
+import org.enso.compiler.data.BindingsMap.{ModuleReference, Type}
 import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -74,55 +74,55 @@ class MethodDefinitionsTest extends CompilerTest {
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
+        .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(
+          BindingsMap.ResolvedType(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Type("Foo", List(), false)
           )
         )
       )
       ir.bindings(3)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
-        .typePointer
-        .getMetadata(MethodDefinitions) shouldEqual Some(
-        BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
-        )
-      )
+        .typePointer shouldBe None
+
       ir.bindings(4)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
+        .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
         )
       )
+
       ir.bindings(5)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
-        .typePointer shouldBe a[IR.Error.Resolution]
+        .typePointer
+        .get shouldBe a[IR.Error.Resolution]
 
       val conv1 = ir
         .bindings(6)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv1.methodReference.typePointer.getMetadata(
+      conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(
+          BindingsMap.ResolvedType(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Type("Foo", List(), false)
           )
         )
       )
       conv1.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(
+          BindingsMap.ResolvedType(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Type("Bar", List(), false)
           )
         )
       )
@@ -130,13 +130,13 @@ class MethodDefinitionsTest extends CompilerTest {
       val conv2 = ir
         .bindings(7)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv2.methodReference.typePointer.getMetadata(
+      conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(
+          BindingsMap.ResolvedType(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Type("Bar", List(), false)
           )
         )
       )
@@ -145,12 +145,12 @@ class MethodDefinitionsTest extends CompilerTest {
       val conv3 = ir
         .bindings(8)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv3.methodReference.typePointer shouldBe an[IR.Error.Resolution]
+      conv3.methodReference.typePointer.get shouldBe an[IR.Error.Resolution]
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(
+          BindingsMap.ResolvedType(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Type("Foo", List(), false)
           )
         )
       )

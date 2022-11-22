@@ -1,12 +1,18 @@
 //! Logger processor implementation.
 
-pub mod consumer;
-pub mod formatter;
+use crate::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use crate::entry::level::DefaultLevels;
 use crate::entry::Entry;
-use crate::prelude::*;
-use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod consumer;
+pub mod formatter;
 
 
 
@@ -40,9 +46,9 @@ mod js {
         #[allow(unsafe_code)]
         pub fn show_logs();
 
-        /// When the `showLogs` function is evaluated, the `autoFlush` flag is set to true. This
-        /// may happen even before the WASM file is loaded, so it's worth checking whether it
-        /// happened on startup.
+        // When the `showLogs` function is evaluated, the `autoFlush` flag is set to true. This
+        // may happen even before the WASM file is loaded, so it's worth checking whether it
+        // happened on startup.
         #[allow(unsafe_code)]
         pub fn check_auto_flush() -> bool;
     }
@@ -396,13 +402,13 @@ macro_rules! define_global_processor {
         /// Global processor definition.
         #[derive(Copy, Clone, Debug, Default)]
         pub struct $name;
-        paste::item! {
+        paste! {
             #[allow(non_upper_case_globals)]
             static mut [<$name _STATIC_MUT>]: Option<$tp> = None;
         }
         impl GlobalProcessor for $name {
             type Processor = $tp;
-            paste::item! {
+            paste! {
                 #[allow(unsafe_code)]
                 fn get_mut() -> &'static mut Self::Processor {
                     unsafe {

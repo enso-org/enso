@@ -1,10 +1,12 @@
 package org.enso.languageserver.data
 
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import java.io.File
 import java.nio.file.Files
+
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -51,6 +53,12 @@ object FileManagerConfig {
       parallelism = Runtime.getRuntime.availableProcessors()
     )
 }
+
+/** Configuration of the VCS manager.
+  *
+  * @param timeout vcs operation timeout
+  */
+case class VcsManagerConfig(timeout: FiniteDuration)
 
 /** Configuration of the execution context.
   *
@@ -122,13 +130,16 @@ object ProjectDirectoriesConfig {
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories
+  * @param profiling the profiling configuration
   */
 case class Config(
   projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
+  vcsManager: VcsManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
-  directories: ProjectDirectoriesConfig
+  directories: ProjectDirectoriesConfig,
+  profiling: ProfilingConfig
 ) extends ToLogString {
 
   /** @inheritdoc */
@@ -142,6 +153,7 @@ case class Config(
     s"Config(" +
     s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
+    s"vcsManager=$vcsManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +

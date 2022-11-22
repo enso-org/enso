@@ -1,11 +1,8 @@
 //! Helpers for the Web Streaming API in Rust, mostly the missing bindings in the [`web_sys`] crate.
 
-use crate::prelude::*;
-
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-
-use wasm_bindgen::prelude::wasm_bindgen;
 
 
 
@@ -20,9 +17,9 @@ extern "C" {
     /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader.
     pub type ReadableStreamDefaultReader;
 
-    /// Returns a Promise providing access to the next chunk in the stream's internal queue.
-    ///
-    /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read.
+    // Returns a Promise providing access to the next chunk in the stream's internal queue.
+    //
+    // See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read.
     #[allow(unsafe_code)]
     #[wasm_bindgen(method)]
     pub fn read(this: &ReadableStreamDefaultReader) -> js_sys::Promise;

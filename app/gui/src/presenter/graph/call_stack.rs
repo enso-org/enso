@@ -19,7 +19,6 @@ use ide_view as view;
 
 #[derive(Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::ExecutedGraph,
     view:       view::graph_editor::GraphEditor,
     state:      Rc<State>,
@@ -27,13 +26,11 @@ struct Model {
 
 impl Model {
     fn new(
-        parent: impl AnyLogger,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
-        let logger = parent.sub("presenter::graph::CallStack");
-        Self { logger, controller, view, state }
+        Self { controller, view, state }
     }
 
     fn expression_entered(&self, local_call: &view::graph_editor::LocalCall) {
@@ -45,7 +42,7 @@ impl Model {
     }
 
     fn node_entered(&self, node_id: ViewNodeId) {
-        debug!(self.logger, "Requesting entering the node {node_id}.");
+        debug!("Requesting entering the node {node_id}.");
         analytics::remote_log_event("integration::node_entered");
         if let Some(call) = self.state.ast_node_id_of_view(node_id) {
             match self.controller.node_method_pointer(call) {
@@ -54,31 +51,29 @@ impl Model {
                     let local_call = LocalCall { call, definition };
                     self.enter_expression(local_call);
                 }
-                Err(_) =>
-                    info!(self.logger, "Ignoring request to enter non-enterable node {call}."),
+                Err(_) => info!("Ignoring request to enter non-enterable node {call}."),
             }
         } else {
-            error!(self.logger, "Cannot enter {node_id:?}: no AST node bound to the view.");
+            error!("Cannot enter {node_id:?}: no AST node bound to the view.");
         }
     }
 
     fn node_exited(&self) {
-        debug!(self.logger, "Requesting exiting the current node.");
+        debug!("Requesting exiting the current node.");
         analytics::remote_log_event("integration::node_exited");
         let controller = self.controller.clone_ref();
-        let logger = self.logger.clone_ref();
         let store_stack = self.store_updated_stack_task();
         executor::global::spawn(async move {
-            info!(logger, "Exiting node.");
+            info!("Exiting node.");
             match controller.exit_node().await {
                 Ok(()) =>
                     if let Err(err) = store_stack() {
                         // We cannot really do anything when updating metadata fails.
                         // Can happen in improbable case of serialization failure.
-                        error!(logger, "Failed to store an updated call stack: {err}");
+                        error!("Failed to store an updated call stack: {err}");
                     },
                 Err(err) => {
-                    error!(logger, "Exiting node failed: {err}");
+                    error!("Exiting node failed: {err}");
 
                     let event = "integration::exiting_node_failed";
                     let field = "error";
@@ -91,19 +86,18 @@ impl Model {
 
     fn enter_expression(&self, local_call: LocalCall) {
         let controller = self.controller.clone_ref();
-        let logger = self.logger.clone_ref();
         let store_stack = self.store_updated_stack_task();
         executor::global::spawn(async move {
-            info!(logger, "Entering expression {local_call:?}.");
+            info!("Entering expression {local_call:?}.");
             match controller.enter_method_pointer(&local_call).await {
                 Ok(()) =>
                     if let Err(err) = store_stack() {
                         // We cannot really do anything when updating metadata fails.
                         // Can happen in improbable case of serialization failure.
-                        error!(logger, "Failed to store an updated call stack: {err}");
+                        error!("Failed to store an updated call stack: {err}");
                     },
                 Err(err) => {
-                    error!(logger, "Entering node failed: {err}.");
+                    error!("Entering node failed: {err}.");
                     let event = "integration::entering_node_failed";
                     let field = "error";
                     let data = analytics::AnonymousData(|| err.to_string());
@@ -149,13 +143,12 @@ pub struct CallStack {
 impl CallStack {
     /// Constructor. The returned presenter works right away.
     pub fn new(
-        parent: impl AnyLogger,
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
         state: Rc<State>,
     ) -> Self {
         let network = frp::Network::new("presenter::graph::CallStack");
-        let model = Rc::new(Model::new(parent, controller, view, state));
+        let model = Rc::new(Model::new(controller, view, state));
         let view = &model.view;
         let breadcrumbs = &view.model.breadcrumbs;
 
@@ -181,7 +174,7 @@ impl CallStack {
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, graph_notifications, move |notification, model| {
-            info!(model.logger, "Received controller notification {notification:?}");
+            info!("Received controller notification {notification:?}");
             match notification {
                 Notification::EnteredNode(frame) => model.add_breadcrumb_in_view(frame),
                 Notification::SteppedOutOfNode(_) => model.view.model.breadcrumbs.pop_breadcrumb(),

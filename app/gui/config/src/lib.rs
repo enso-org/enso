@@ -1,16 +1,22 @@
 //! Startup arguments definition.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_logger::DefaultWarningLogger as Logger;
 use enso_logger::*;
 use enso_prelude::*;
+
+use enso_logger::DefaultWarningLogger as Logger;
 use ensogl::system::web;
 
 
@@ -26,6 +32,7 @@ pub use generated::*;
 pub fn engine_version_requirement() -> semver::VersionReq {
     semver::VersionReq::parse(&format!("^{}", engine_version_supported)).unwrap()
 }
+
 
 
 // ============
@@ -56,5 +63,11 @@ ensogl::read_args! {
         authentication_enabled : bool,
         email                  : String,
         application_config_url : String,
+        /// When profiling the application (e.g. with the `./run profile` command), this argument
+        /// chooses what is profiled.
+        test_workflow            : String,
+        skip_min_version_check   : bool,
+        preferred_engine_version : semver::Version,
+        enable_new_component_browser : bool,
     }
 }

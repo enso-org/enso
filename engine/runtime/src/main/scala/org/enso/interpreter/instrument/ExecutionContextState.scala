@@ -37,6 +37,11 @@ case class InstrumentFrame(
 
 case object InstrumentFrame {
 
+  /** Create an instrument frame.
+    *
+    * @param item the stack item
+    * @return an instance of [[InstrumentFrame]]
+    */
   def apply(item: StackItem): InstrumentFrame =
     new InstrumentFrame(item, new RuntimeCache, new UpdatesSynchronizationState)
 }

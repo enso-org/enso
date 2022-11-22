@@ -1,6 +1,252 @@
-from Standard.Base import all
+from Standard.Base import all hiding Java
+import Standard.Base
 
-import Standard.Builtins
+# TODO Dubious constructor export
+from project.Meta.Atom import all
+from project.Meta.Atom export all
+
+## UNSTABLE
+   ADVANCED
+
+   An Atom meta-representation.
+
+   Arguments:
+   - value: The value of the atom in the meta representation.
+type Atom
+    Atom_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Constructor import all
+from project.Meta.Constructor export all
+
+## UNSTABLE
+   ADVANCED
+
+   A constructor meta-representation.
+
+   Arguments:
+   - value: The value of the constructor in the meta representation.
+type Constructor
+    Constructor_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Primitive import all
+from project.Meta.Primitive export all
+
+## UNSTABLE
+   ADVANCED
+
+   A primitive value meta-prepresentation.
+
+   Arguments:
+   - value: The value of the primitive object in the meta representation.
+type Primitive
+    Primitive_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Unresolved_Symbol import all
+from project.Meta.Unresolved_Symbol export all
+
+## UNSTABLE
+   ADVANCED
+
+   An unresolved symbol meta-representation.
+
+   Arguments:
+   - value: The value of the unresolved symbol in the meta representation.
+type Unresolved_Symbol
+    Unresolved_Symbol_Data value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a new unresolved symbol with its name changed to the provided
+       argument.
+
+       Arguments:
+       - new_name: The new name for the unresolved symbol.
+    rename : Text -> Any
+    rename self new_name =
+        create_unresolved_symbol new_name self.scope
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the name of an unresolved symbol.
+    name : Text
+    name self = get_unresolved_symbol_name self.value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the definition scope of an unresolved symbol.
+    scope : Any
+    scope self = get_unresolved_symbol_scope self.value
+
+# TODO Dubious constructor export
+from project.Meta.Error import all
+from project.Meta.Error export all
+
+## UNSTABLE
+   ADVANCED
+
+   An error meta-representation, containing the payload of a dataflow error.
+
+   Arguments:
+   - value: The payload of the error.
+type Error
+    Error_Data value
+
+# TODO Dubious constructor export
+from project.Meta.Polyglot import all
+from project.Meta.Polyglot export all
+
+## UNSTABLE
+   ADVANCED
+
+   A polyglot value meta-representation.
+
+   Arguments:
+   - value: The polyglot value contained in the meta representation.
+type Polyglot
+    Polyglot_Data value
+
+
+## Atom methods
+## PRIVATE
+
+   Gets the atom constructor instance for the provided atom.
+
+   Arguments:
+   - atom: The atom to obtain the constructor for.
+get_atom_constructor : Atom -> Constructor
+get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
+
+## PRIVATE
+
+   Get the fields for the provided atom.
+
+   Arguments:
+   - atom: The atom to obtain the fields for.
+get_atom_fields : Atom -> Array
+get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a vector of field values of the given atom.
+Atom.fields : Vector
+Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a constructor value of the given atom.
+Atom.constructor : Constructor
+Atom.constructor self = get_atom_constructor self.value ...
+
+# Polyglot methods
+## PRIVATE
+
+   Get a textual representation of the language from which an object comes.
+
+   Arguments:
+   - value: The value to obtain the source language for.
+get_polyglot_language : Any -> Text
+get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
+
+## UNSTABLE
+   ADVANCED
+
+   Returns the language with which a polyglot value is associated.
+Polyglot.get_language : Language
+Polyglot.get_language self =
+    lang_str = get_polyglot_language self.value
+    if lang_str == "java" then Java else Unknown
+
+# UnresolvedSymbol methods
+## PRIVATE
+
+   Creates an unresolved symbol for the name name in the scope.
+
+   Arguments:
+   - name: The name of the unresolved symbol.
+   - scope: The scope in which the symbol name is unresolved.
+create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
+create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
+
+## PRIVATE
+
+   Obtains the name of the provided unresolved symbol.
+
+   Arguments:
+   - symbol: The unresolved symbol from which to get the name.
+get_unresolved_symbol_name : Unresolved_Symbol -> Text
+get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
+
+## PRIVATE
+
+   Obtains the scope in which the provided unresolved symbol was created.
+
+   Arguments:
+   - symbol: The unresolved symbol from which to get the scope.
+get_unresolved_symbol_scope : Unresolved_Symbol -> Any
+get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
+
+# Constructor methods
+## PRIVATE
+
+   Get the fields of an atom constructor.
+
+   Arguments:
+   - atom_constructor: The constructor from which to get the fields.
+get_constructor_fields : Constructor -> Array
+get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
+
+## PRIVATE
+
+   Get the name of an atom constructor.
+
+   Arguments:
+   - atom_constructor: The atom constructor from which to obtain the name.
+get_constructor_name : Constructor -> Text
+get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
+
+## PRIVATE
+
+   Constructs a new atom using the provided constructor and fields.
+
+   Arguments:
+   - constructor: The constructor for the atom to create.
+   - fields: The arguments to pass to constructor.
+new_atom : Constructor -> Array -> Atom
+new_atom constructor fields = @Builtin_Method "Meta.new_atom"
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a vector of field names defined by a constructor.
+Constructor.fields : Vector
+Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
+
+## UNSTABLE
+   ADVANCED
+
+   Returns the name of a constructor.
+Constructor.name : Text
+Constructor.name self = get_constructor_name self.value
+
+## UNSTABLE
+   ADVANCED
+
+   Creates a new atom of the given constructor.
+
+   Arguments:
+   - fields: A vector of arguments to pass to the constructor when creating the
+     new atom.
+Constructor.new : Vector -> Any
+Constructor.new self fields = new_atom self.value fields.to_array
+
 
 ## UNSTABLE
    ADVANCED
@@ -10,12 +256,12 @@ import Standard.Builtins
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Meta
-meta value = if Builtins.Meta.is_atom value then Atom value else
-    if Builtins.Meta.is_constructor value then Constructor value else
-        if Builtins.Meta.is_polyglot value then Polyglot value else
-            if Builtins.Meta.is_unresolved_symbol value then Unresolved_Symbol value else
-                if Builtins.Meta.is_error value then Error value.catch else
-                    Primitive value
+meta value = if is_atom value then Atom_Data value else
+    if is_atom_constructor value then Constructor_Data value else
+        if is_polyglot value then Polyglot_Data value else
+            if is_unresolved_symbol value then Unresolved_Symbol_Data value else
+                if is_error value then Error_Data value.catch else
+                    Primitive_Data value
 
 ## UNSTABLE
    ADVANCED
@@ -26,47 +272,38 @@ meta value = if Builtins.Meta.is_atom value then Atom value else
    - value_1: The first value.
    - value_2: The second value.
 is_same_object : Any -> Any -> Boolean
-is_same_object value_1 value_2 = Builtins.Meta.is_same_object value_1 value_2
+is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
 
 ## UNSTABLE
    ADVANCED
 
-   Checks if `this` is an instance of `typ`.
+   Checks whether `self` represents the same underlying reference as `value`.
 
    Arguments:
-   - typ: The type to check `this` against.
+   - value_1: The first value.
+   - value_2: The second value.
+Any.is_same_object_as : Any -> Boolean
+Any.is_same_object_as self value = is_same_object self value
+
+## UNSTABLE
+   ADVANCED
+
+   Checks if `self` is an instance of `typ`.
+
+   Arguments:
+   - typ: The type to check `self` against.
 Any.is_a : Any -> Boolean
-Any.is_a typ = here.is_a this typ
+Any.is_a self typ = is_a self typ
 
 ## UNSTABLE
    ADVANCED
 
-   Checks if `this` is an instance of `typ`.
+   Checks if `self` is an instance of `typ`.
 
    Arguments:
-   - typ: The type to check `this` against.
-Any.is_an : Any -> Boolean
-Any.is_an typ = here.is_a this typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `this` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `this` against.
+   - typ: The type to check `self` against.
 Base.Error.is_a : Any -> Boolean
-Base.Error.is_a typ = this.is_an typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `this` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `this` against.
-Base.Error.is_an : Any -> Boolean
-Base.Error.is_an typ = typ == Base.Error
+Base.Error.is_a self typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED
@@ -75,43 +312,60 @@ Base.Error.is_an typ = typ == Base.Error
 
    Arguments:
    - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `this` against.
+   - typ: The type to check `self` against.
 is_a : Any -> Any -> Boolean
-is_a value typ = if typ == Any then True else
-    if Builtins.Meta.is_error value then typ == Base.Error else
-        case value of
-            Array -> typ == Array
-            Boolean -> if typ == Boolean then True else value == typ
-            Text -> typ == Text
-            Number -> if typ == Number then True else case value of
-                Integer -> typ == Integer
-                Decimal -> typ == Decimal
-            Base.Polyglot -> typ == Base.Polyglot
-            _ ->
-                meta_val = here.meta value
-                case meta_val of
-                    Atom _ -> if Builtins.meta.is_atom typ then typ == value else
-                        meta_val.constructor == typ
-                    Constructor _ ->
-                        meta_typ = here.meta typ
-                        case meta_typ of
-                            Atom _ -> meta_val.constructor == meta_typ.constructor
-                            Constructor _ -> meta_val.constructor == meta_typ
-                            _ -> False
-                    Error _ -> typ == Error
-                    Unresolved_Symbol _ -> typ == Unresolved_Symbol
-                    _ -> False
+is_a value typ = if is_same_object value typ then True else
+    if typ == Any then True else
+        if is_error value then typ == Base.Error else
+            case value of
+                _ : Vector -> typ.is_same_object_as Vector
+                _ : Array -> typ == Array
+                _ : Boolean -> if typ == Boolean then True else value == typ
+                _ : Text -> typ == Text
+                _ : Number -> if typ == Number then True else case value of
+                    _ : Integer -> typ == Integer
+                    _ : Decimal -> typ == Decimal
+                _ : Date_Time -> typ.is_same_object_as Date_Time
+                _ : Date      -> typ.is_same_object_as Date
+                _ : Duration -> typ.is_same_object_as Duration
+                _ : Time_Of_Day -> typ.is_same_object_as Time_Of_Day
+                _ : Time_Zone -> typ.is_same_object_as Time_Zone
+                Base.Polyglot.Polyglot ->
+                    typ==Base.Polyglot.Polyglot || java_instance_check value typ
+                _ ->
+                    meta_val = meta value
+                    case meta_val of
+                        Atom_Data _ -> if is_atom typ then typ == value else
+                            meta_val.constructor == typ
+                        Constructor_Data _ ->
+                            meta_typ = meta typ
+                            case meta_typ of
+                                Atom_Data _ -> meta_val == meta_typ.constructor
+                                Constructor_Data _ -> meta_val == meta_typ
+                                _ -> False
+                        Error_Data _ -> typ == Error
+                        Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
+                        _ -> False
+
+## PRIVATE
+java_instance_check value typ =
+    val_java = get_polyglot_language value == "java"
+    typ_java = get_polyglot_language typ == "java"
+    val_java && typ_java && Base.Java.is_instance value typ
 
 ## UNSTABLE
    ADVANCED
 
-   Checks if `value` is an instance of `typ`.
+   Returns the type of the given value.
 
    Arguments:
-   - value: The value to check for being an instance of `typ`.
-   - typ: The type to check `this` against.
-is_an : Any -> Any -> Boolean
-is_an value typ = here.is_a value typ
+   - value: the value to get the type of.
+type_of : Any -> Any
+type_of value = @Builtin_Method "Meta.type_of"
+
+# TODO Dubious constructor export
+from project.Meta.Language import all
+from project.Meta.Language export all
 
 ## Represents a polyglot language.
 type Language
@@ -119,153 +373,59 @@ type Language
     ## UNSTABLE
        ADVANCED
 
-       The Java laguage.
-    type Java
+       The Java language.
+    Java
 
     ## UNSTABLE
        ADVANCED
 
        An unknown language.
-    type Unknown
+    Unknown
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
-   A meta-representation of a runtime value.
-
-   ! Warning
-     The functionality contained in this module exposes certain implementation
-     details of the language. As such, the API has no stability guarantees and
-     is subject to change as the Enso interpreter evolves.
-type Meta
-
-    ## UNSTABLE
-       ADVANCED
-
-       An Atom meta-representation.
-
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    type Atom value
-
-    ## UNSTABLE
-       ADVANCED
-
-       A constructor meta-representation.
-
-       Arguments:
-       - value: The value of the constructor in the meta representation.
-    type Constructor value
-
-    ## UNSTABLE
-       ADVANCED
-
-       A primitive value meta-prepresentation.
-
-       Arguments:
-       - value: The value of the primitive object in the meta representation.
-    type Primitive value
-
-    ## UNSTABLE
-       ADVANCED
-
-       An unresolved symbol meta-representation.
-
-       Arguments:
-       - value: The value of the unresolved symbol in the meta representation.
-    type Unresolved_Symbol value
-
-    ## UNSTABLE
-       ADVANCED
-
-       An error meta-representation, containing the payload of a dataflow error.
-
-       Arguments:
-       - value: The payload of the error.
-    type Error value
-
-    ## UNSTABLE
-       ADVANCED
-
-       A polyglot value meta-representation.
-
-       Arguments:
-       - value: The polyglot value contained in the meta representation.
-    type Polyglot value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a vector of field values of the given atom.
-Atom.fields : Vector.Vector
-Atom.fields = Vector.Vector (Builtins.Meta.get_atom_fields this.value)
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a constructor value of the given atom.
-Atom.constructor : Any
-Atom.constructor = Builtins.Meta.get_atom_constructor this.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a new unresolved symbol with its name changed to the provided
-   argument.
+   Checks if the provided value is an atom constructor.
 
    Arguments:
-   - new_name: The new name for the unresolved symbol.
-Unresolved_Symbol.rename : Text -> Any
-Unresolved_Symbol.rename new_name =
-    Builtins.Meta.create_unresolved_symbol new_name this.scope
+   - value: The value to check.
+is_atom_constructor : Any -> Boolean
+is_atom_constructor value = @Builtin_Method "Meta.is_atom_constructor"
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
-   Returns the name of an unresolved symbol.
-Unresolved_Symbol.name : Text
-Unresolved_Symbol.name = Builtins.Meta.get_unresolved_symbol_name this.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the definition scope of an unresolved symbol.
-Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope = Builtins.Meta.get_unresolved_symbol_scope this.value
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a vector of field names defined by a constructor.
-Constructor.fields : Vector.Vector
-Constructor.fields = Vector.Vector (Builtins.Meta.get_constructor_fields this.value)
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the name of a constructor.
-Constructor.name : Text
-Constructor.name = Builtins.Meta.get_constructor_name this.value
-
-## UNSTABLE
-   ADVANCED
-
-   Creates a new atom of the given constructor.
+   Checks if the provided value is an atom.
 
    Arguments:
-   - fields: A vector of arguments to pass to the constructor when creating the
-     new atom.
-Constructor.new : Vector.Vector -> Any
-Constructor.new fields = Builtins.Meta.new_atom this.value fields.to_array
+   - value: The value to check.
+is_atom : Any -> Boolean
+is_atom value = @Builtin_Method "Meta.is_atom"
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
-   Returns the language with which a polyglot value is associated.
-Polyglot.get_language : Language
-Polyglot.get_language =
-    lang_str = Builtins.Meta.get_polyglot_language
-    if lang_str == "java" then Java else Unknown
+   Checks if the provided value is a runtime error.
+
+   Arguments:
+   - value: The value to check.
+is_error : Any -> Boolean
+is_error value = @Builtin_Method "Meta.is_error"
+
+## PRIVATE
+
+   Checks if the provided value is a polyglot value.
+
+   Arguments:
+   - value: The value to check.
+is_polyglot : Any -> Boolean
+is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+
+## PRIVATE
+
+   Checks if the provided value is an unresolved symbol.
+
+   Arguments:
+   - value: The value to check.
+is_unresolved_symbol : Any -> Boolean
+is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
 
 ## PRIVATE
 
@@ -282,7 +442,18 @@ Polyglot.get_language =
    used carefully.
 get_source_location : Integer -> Text
 get_source_location skip_frames =
-    Builtins.Meta.get_source_location skip_frames+1
+    get_source_location_builtin skip_frames+1
+
+## PRIVATE
+
+   Returns a Text representing the source location of a stack frame above
+   the call.
+
+   Arguments:
+   - frames_to_skip: how many frames on the stack to skip. Called with 0
+     will return exact location of the call.
+get_source_location_builtin : Integer -> Text
+get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
 
 ## PRIVATE
 
@@ -291,7 +462,7 @@ get_source_location skip_frames =
    Arguments:
    - value: The value for which to display the type.
 get_simple_type_name : Any -> Text
-get_simple_type_name value = Builtins.Meta.get_simple_type_name value
+get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
 
 ## PRIVATE
 
@@ -300,4 +471,4 @@ get_simple_type_name value = Builtins.Meta.get_simple_type_name value
    Arguments:
    - value: the value to get the type of.
 get_qualified_type_name : Any -> Text
-get_qualified_type_name value = Builtins.Meta.get_qualified_type_name value
+get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"

@@ -17,17 +17,17 @@ public abstract class TypeErrorToDisplayTextNode extends Node {
     return TypeErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
     try {
       return Text.create("Type error: expected `")
-          .add(TypesGen.expectText(_this.getFields()[2]))
+          .add(TypesGen.expectText(self.getFields()[2]))
           .add("` to be ")
-          .add(displayTypeNode.execute(_this.getFields()[0]))
+          .add(displayTypeNode.execute(self.getFields()[0]))
           .add(", but got ")
-          .add(displayTypeNode.execute(_this.getFields()[1]))
+          .add(displayTypeNode.execute(self.getFields()[1]))
           .add(".");
     } catch (UnexpectedResultException e) {
       return Text.create("Type error.");
@@ -35,7 +35,7 @@ public abstract class TypeErrorToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Type error.");
   }
 }

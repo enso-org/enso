@@ -2,12 +2,13 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
-use crate::model::module;
 
 use engine_protocol::language_server;
 
@@ -61,21 +62,21 @@ impl ExecutionContext {
     ///
     /// NOTE: By itself this execution context will not be able to receive any updates from the
     /// language server.
+    #[profile(Debug)]
     pub fn create(
         parent: impl AnyLogger,
         language_server: Rc<language_server::Connection>,
         root_definition: language_server::MethodPointer,
     ) -> impl Future<Output = FallibleResult<Self>> {
-        let logger = Logger::new_sub(&parent, "ExecutionContext");
         async move {
-            info!(logger, "Creating.");
+            info!("Creating.");
             let id = language_server.client.create_execution_context().await?.context_id;
             let logger = Logger::new_sub(&parent, iformat! {"ExecutionContext {id}"});
-            let model = model::execution_context::Plain::new(&logger, root_definition);
-            info!(logger, "Created. Id: {id}.");
+            let model = model::execution_context::Plain::new(root_definition);
+            info!("Created. Id: {id}.");
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
-            info!(this.logger, "Pushed root frame.");
+            info!("Pushed root frame.");
             Ok(this)
         }
     }
@@ -95,6 +96,35 @@ impl ExecutionContext {
         result.map(|res| res.map_err(|err| err.into()))
     }
 
+    /// Load the component groups defined in libraries imported into the execution context.
+    async fn load_component_groups(&self) {
+        let log_group_parsing_error = |err: &failure::Error| {
+            let msg = iformat!(
+                "Failed to parse a component group returned by the Engine. The group will not \
+                appear in the Favorites section of the Component Browser. Error: {err}"
+            );
+            error!("{msg}");
+        };
+        match self.language_server.get_component_groups(&self.id).await {
+            Ok(ls_response) => {
+                let ls_groups = ls_response.component_groups;
+                let groups = ls_groups
+                    .into_iter()
+                    .filter_map(|group| group.try_into().inspect_err(log_group_parsing_error).ok())
+                    .collect();
+                *self.model.component_groups.borrow_mut() = Rc::new(groups);
+                info!("Loaded component groups.");
+            }
+            Err(err) => {
+                let msg = iformat!(
+                    "Failed to load component groups. No groups will appear in the Favorites \
+                    section of the Component Browser. Error: {err}"
+                );
+                error!("{msg}");
+            }
+        }
+    }
+
     /// Detach visualization from current execution context.
     ///
     /// Necessary because the Language Server requires passing both visualization ID and expression
@@ -108,7 +138,7 @@ impl ExecutionContext {
         let ast_id = vis.expression_id;
         let ls = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
-        info!(logger, "About to detach visualization by id: {vis_id}.");
+        info!("About to detach visualization by id: {vis_id}.");
         ls.detach_visualisation(&exe_id, &vis_id, &ast_id).await?;
         if let Err(err) = self.model.detach_visualization(vis_id) {
             warning!(logger, "Failed to update model after detaching visualization: {err:?}.")
@@ -117,11 +147,15 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(self: &Rc<Self>, notification: Notification) -> FallibleResult {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
-                    info!(self.logger, "Context {self.id} Became ready");
+                    info!("Context {} Became ready", self.id);
+                    let this = self.clone();
+                    executor::global::spawn(async move {
+                        this.load_component_groups().await;
+                    });
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
@@ -150,6 +184,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn active_visualizations(&self) -> Vec<VisualizationId> {
         self.model.active_visualizations()
+    }
+
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.model.component_groups()
     }
 
     /// Access the registry of computed values information, like types or called method pointers.
@@ -230,10 +268,10 @@ impl model::execution_context::API for ExecutionContext {
     fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
+        arguments: Option<Vec<String>>,
     ) -> BoxFuture<FallibleResult> {
-        let result = self.model.modify_visualization(id, expression, module);
+        let result = self.model.modify_visualization(id, method_pointer, arguments);
         let new_config = self.model.visualization_config(id, self.id);
         async move {
             result?;
@@ -248,7 +286,7 @@ impl model::execution_context::API for ExecutionContext {
         visualization_id: VisualizationId,
         data: VisualizationUpdateData,
     ) -> FallibleResult {
-        debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
+        debug!("Dispatching visualization update through the context {}", self.id());
         self.model.dispatch_visualization_update(visualization_id, data)
     }
 }
@@ -257,11 +295,10 @@ impl Drop for ExecutionContext {
     fn drop(&mut self) {
         let id = self.id;
         let ls = self.language_server.clone_ref();
-        let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {
-                error!(logger, "Error when destroying Execution Context: {result:?}.");
+                error!("Error when destroying Execution Context: {result:?}.");
             }
         });
     }
@@ -276,13 +313,16 @@ impl Drop for ExecutionContext {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use double_representation::identifier::Identifier;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
+    use crate::model::execution_context::ComponentGroup;
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use engine_protocol::language_server::response::CreateExecutionContext;
+    use double_representation::project;
+    use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
     use json_rpc::expect_call;
@@ -302,9 +342,15 @@ pub mod test {
         fn new_customized(
             ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
         ) -> Fixture {
-            let data = MockData::new();
+            Self::new_customized_with_data(MockData::new(), ls_setup)
+        }
+
+        fn new_customized_with_data(
+            data: MockData,
+            ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
+        ) -> Fixture {
             let mut ls_client = language_server::MockClient::default();
-            Self::mock_create_push_destroy_calls(&data, &mut ls_client);
+            Self::mock_default_calls(&data, &mut ls_client);
             ls_setup(&mut ls_client, &data);
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
@@ -317,13 +363,13 @@ pub mod test {
         }
 
         /// What is expected server's response to a successful creation of this context.
-        fn expected_creation_response(data: &MockData) -> CreateExecutionContext {
+        fn expected_creation_response(data: &MockData) -> response::CreateExecutionContext {
             let context_id = data.context_id;
             let can_modify =
                 CapabilityRegistration::create_can_modify_execution_context(context_id);
             let receives_updates =
                 CapabilityRegistration::create_receives_execution_context_updates(context_id);
-            CreateExecutionContext { context_id, can_modify, receives_updates }
+            response::CreateExecutionContext { context_id, can_modify, receives_updates }
         }
 
         /// Sets up mock client expectations for context creation and destruction.
@@ -334,12 +380,9 @@ pub mod test {
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
         }
 
-        /// Sets up mock client expectations for context creation, initial frame push
-        /// and destruction.
-        pub fn mock_create_push_destroy_calls(
-            data: &MockData,
-            ls: &mut language_server::MockClient,
-        ) {
+        /// Sets up mock client expectations for all the calls issued by default by the
+        /// [`ExecutionContext::create`] and [`ExecutionContext::drop`] methods.
+        pub fn mock_default_calls(data: &MockData, ls: &mut language_server::MockClient) {
             Self::mock_create_destroy_calls(data, ls);
             let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
@@ -405,11 +448,16 @@ pub mod test {
 
     #[test]
     fn attaching_visualizations_and_notifying() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            Identifier::from_text("foo").unwrap(),
+        );
+        let arguments = vec![];
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
+            arguments,
         };
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
@@ -449,11 +497,16 @@ pub mod test {
     #[ignore]
     #[test]
     fn detaching_all_visualizations() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            Identifier::from_text("foo").unwrap(),
+        );
+        let arguments = vec!["foo".to_owned()];
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
+            arguments,
         };
         let vis2 = Visualization { id: VisualizationId::new_v4(), ..vis.clone() };
 
@@ -481,15 +534,22 @@ pub mod test {
 
     #[test]
     fn modifying_visualizations() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            Identifier::from_text("foo").unwrap(),
+        );
+        let arguments = vec!["bar".to_owned()];
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "x -> x.to_json.to_string".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
+            arguments: arguments.clone(),
         };
         let vis_id = vis.id;
-        let new_expression = "x -> x";
-        let new_module = "Test.Test_Module";
+        let new_expression = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            Identifier::from_text("quux").unwrap(),
+        );
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
             let ast_id = vis.expression_id;
@@ -497,8 +557,8 @@ pub mod test {
 
             let expected_config = language_server::types::VisualisationConfiguration {
                 execution_context_id: data.context_id,
-                visualisation_module: new_module.to_owned(),
-                expression:           new_expression.to_owned(),
+                expression: new_expression.clone().into(),
+                positional_arguments_expressions: arguments.clone(),
             };
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
@@ -507,9 +567,78 @@ pub mod test {
 
         test.run_task(async move {
             context.attach_visualization(vis.clone()).await.unwrap();
-            let expression = Some(new_expression.to_owned());
-            let module = Some(QualifiedName::from_text(new_module).unwrap());
-            context.modify_visualization(vis_id, expression, module).await.unwrap();
+            let method_pointer = Some(new_expression);
+            context.modify_visualization(vis_id, method_pointer, Some(arguments)).await.unwrap();
+        });
+    }
+
+    /// Check that the [`ExecutionContext::load_component_groups`] method correctly parses
+    /// a mocked Language Server response and loads the result into a field of the
+    /// [`ExecutionContext`].
+    #[test]
+    fn loading_component_groups() {
+        // Prepare sample component groups to be returned by a mock Language Server client.
+        fn library_component(name: &str) -> language_server::LibraryComponent {
+            language_server::LibraryComponent { name: name.to_string(), shortcut: None }
+        }
+        let sample_ls_component_groups = vec![
+            // A sample component group in local namespace, with non-empty color, and with exports
+            // from the local namespace as well as from the standard library.
+            language_server::LibraryComponentGroup {
+                library: "local.Unnamed_10".to_string(),
+                name:    "Test Group 1".to_string(),
+                color:   Some("#C047AB".to_string()),
+                icon:    None,
+                exports: vec![
+                    library_component("Standard.Base.System.File.new"),
+                    library_component("local.Unnamed_10.Main.main"),
+                ],
+            },
+            // A sample component group from the standard library, without a predefined color.
+            language_server::LibraryComponentGroup {
+                library: "Standard.Base".to_string(),
+                name:    "Input".to_string(),
+                color:   None,
+                icon:    None,
+                exports: vec![library_component("Standard.Base.System.File.new")],
+            },
+        ];
+
+        // Create a test fixture based on the sample data.
+        let fixture = Fixture::new_customized(move |client, data| {
+            let component_groups = language_server::response::GetComponentGroups {
+                component_groups: sample_ls_component_groups,
+            };
+            let id = data.context_id;
+            expect_call!(client.get_component_groups(id) => Ok(component_groups));
+        });
+        let Fixture { mut test, context, .. } = fixture;
+
+        // Run a test and verify that the sample component groups were parsed correctly and have
+        // expected contents.
+        test.run_task(async move {
+            context.load_component_groups().await;
+            let groups = context.model.component_groups.borrow();
+            assert_eq!(groups.len(), 2);
+
+            // Verify that the first component group was parsed and has expected contents.
+            let first_group = &groups[0];
+            assert_eq!(first_group.name, "Test Group 1".to_string());
+            let color = first_group.color.unwrap();
+            assert_eq!((color.red * 255.0) as u8, 0xC0);
+            assert_eq!((color.green * 255.0) as u8, 0x47);
+            assert_eq!((color.blue * 255.0) as u8, 0xAB);
+            let expected_components =
+                vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
+            assert_eq!(first_group.components, expected_components);
+
+            // Verify that the second component group was parsed and has expected contents.
+            assert_eq!(groups[1], ComponentGroup {
+                project:    project::QualifiedName::standard_base_library(),
+                name:       "Input".into(),
+                color:      None,
+                components: vec!["Standard.Base.System.File.new".into(),],
+            });
         });
     }
 }

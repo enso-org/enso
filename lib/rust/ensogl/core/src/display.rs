@@ -1,7 +1,13 @@
 //! Root module for all display-related abstractions, including display objects, shapes, geometries,
 //! rendering utilities, etc.
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod camera;
+pub mod garbage;
 pub mod layout;
 pub mod navigation;
 pub mod object;
@@ -22,6 +28,7 @@ pub mod world;
 pub mod traits {
     use super::*;
     pub use object::traits::*;
+    pub use object::ObjectOps;
 }
 
 /// Common types.
@@ -33,4 +40,6 @@ pub mod types {
     pub use scene::dom::DomScene;
     pub use scene::Scene;
 }
+
+pub use object::event;
 pub use types::*;

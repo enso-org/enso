@@ -39,8 +39,12 @@ class CreateHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! CreateContextRequest(session)
+    case Request(
+          ExecutionContextCreate,
+          id,
+          params: ExecutionContextCreate.Params
+        ) =>
+      contextRegistry ! CreateContextRequest(session, params.contextId)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))

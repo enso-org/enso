@@ -3,13 +3,14 @@
 use super::std_reexports::*;
 
 
+
 // ================
 // === Anything ===
 // ================
 
 /// Placeholder type used to represent any value type. It is useful to define type-level relations
 /// like defining an unit with any quantity, let it be distance or mass.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Anything {}
 
 

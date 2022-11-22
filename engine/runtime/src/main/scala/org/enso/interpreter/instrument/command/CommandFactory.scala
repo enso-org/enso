@@ -28,6 +28,9 @@ object CommandFactory {
       case payload: Api.RecomputeContextRequest =>
         new RecomputeContextCmd(request.requestId, payload)
 
+      case _: Api.GetComponentGroupsRequest =>
+        new GetComponentGroupsCmd(request.requestId)
+
       case payload: Api.AttachVisualisation =>
         new AttachVisualisationCmd(request.requestId, payload)
 
@@ -43,6 +46,8 @@ object CommandFactory {
       case payload: Api.OpenFileNotification  => new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
       case payload: Api.EditFileNotification  => new EditFileCmd(payload)
+      case payload: Api.SetExpressionValueNotification =>
+        new SetExpressionValueCmd(payload)
 
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)

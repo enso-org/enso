@@ -1,0 +1,4 @@
+@Builtin_Type
+type Ref
+
+new value = @Builtin_Method "Ref.new"

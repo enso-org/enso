@@ -4,7 +4,7 @@ import java.util.Optional;
 import org.enso.interpreter.node.ExpressionNode;
 
 /** Tracks the specifics about how arguments are defined at the callable definition site. */
-public class ArgumentDefinition {
+public final class ArgumentDefinition {
 
   /** Represents the mode of passing this argument to the function. */
   public enum ExecutionMode {

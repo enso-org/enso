@@ -1,11 +1,19 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use crate::prelude::*;
 
+use derivative::Derivative;
 use js_sys::Function;
 use wasm_bindgen::convert::FromWasmAbi;
-pub use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use wasm_bindgen::prelude::Closure;
 
 
 

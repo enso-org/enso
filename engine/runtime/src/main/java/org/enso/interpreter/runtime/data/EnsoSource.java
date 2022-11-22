@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.source.SourceSection;
 
 /** Wrapper for exposing sources to Enso. Delegates to original methods with no behavior changes. */
 public class EnsoSource {

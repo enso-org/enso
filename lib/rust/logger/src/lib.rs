@@ -20,7 +20,7 @@
 //!
 //! First of all, logging macros (like [`info!`]) accept [`AnyLogger`] type as the first argument:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -35,7 +35,7 @@
 //!
 //! The second argument of the logging macros might be any type implementing [`Message`] trait:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -54,7 +54,7 @@
 //! Also, a third argument may be provided. It groups log messages in the DevTools console under a
 //! group with the provided name. For example:
 //!
-//! ```no_run
+//! ```text
 //! # use enso_logger::DefaultInfoLogger as Logger;
 //! # use enso_logger::{AnyLogger, info};
 //! # use enso_prelude::iformat;
@@ -69,13 +69,12 @@
 //! or `expanded` just before `||` to print the group collapsed or expanded by default,
 //! respectively. If not provided, the [`warning`] and [`error`] group macros are collapsed by
 //! default, while all other group macros are expanded by default.
-
 //! #### Compile-time Log Level Filtering
 //!
 //! The crate provides a set of predefined loggers that can be used together with reexport
 //! mechanism to easily control log level filtering with zero run-time overhead.
 //!
-//! ```no_run
+//! ```text
 //! mod prelude {
 //!     // Reexport needed loggers in the crate prelude.
 //!     pub use enso_logger::DefaultInfoLogger as Logger;
@@ -100,6 +99,12 @@
 //! [`define_compile_time_filtering_rules!`] macros), formatters (see [`processor::formatter`]), and
 //! log processing pipelines (see [`processor`]).
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
@@ -128,6 +133,7 @@ use crate::processor::Processor;
 
 use enso_shapely::CloneRef;
 
+pub use ifmt::iformat;
 
 
 // ==============

@@ -23,13 +23,30 @@ use ide_view::graph_editor::EdgeEndpoint;
 
 /// A single node data.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Node {
     pub view_id:       Option<ViewNodeId>,
     pub position:      Vector2,
     pub expression:    node_view::Expression,
     pub error:         Option<node_view::Error>,
     pub visualization: Option<visualization_view::Path>,
+
+    /// Indicate whether this node view is updated automatically by changes from the controller
+    /// or view, or will be explicitly updated..
+    expression_auto_update: bool,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            view_id:                None,
+            position:               Vector2::default(),
+            expression:             node_view::Expression::default(),
+            error:                  None,
+            visualization:          None,
+            expression_auto_update: true,
+        }
+    }
 }
 
 /// The set of node states.
@@ -282,7 +299,7 @@ impl Expressions {
 ///
 /// This structure keeps the information how the particular graph elements received from controllers
 /// are represented in the view. It also handles updates from the controllers and
-/// the view in `update_from_controller` and `update_from_view` respectively.  
+/// the view in `update_from_controller` and `update_from_view` respectively.
 #[derive(Clone, Debug, Default)]
 pub struct State {
     nodes:       RefCell<Nodes>,
@@ -357,6 +374,19 @@ impl State {
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
         self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
     }
+
+    /// Checks if the node should be synced with its AST automatically.
+    pub fn should_receive_expression_auto_updates(&self, node: ast::Id) -> bool {
+        // When node is in process of being created, it is not yet present in the state. In that
+        // case the initial expression update needs to be processed. Otherwise the node would be
+        // created without any expression.
+        self.nodes.borrow().get(node).map_or(true, |node| node.expression_auto_update)
+    }
+
+    /// Set the flag that indicates if the node should be synced with its AST automatically.
+    pub fn allow_expression_auto_updates(&self, node: ast::Id, allow: bool) {
+        self.nodes.borrow_mut().get_mut(node).for_each(|node| node.expression_auto_update = allow);
+    }
 }
 
 // ========================
@@ -410,14 +440,19 @@ impl<'a> ControllerChange<'a> {
         let ast_id = node.main_line.id();
         let new_displayed_expr = node_view::Expression {
             pattern:             node.info.pattern().map(|t| t.repr()),
-            code:                node.info.expression().repr(),
+            code:                node.info.expression().repr().into(),
             whole_expression_id: node.info.expression().id,
             input_span_tree:     trees.inputs,
             output_span_tree:    trees.outputs.unwrap_or_else(default),
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
+
         if displayed.expression != new_displayed_expr {
+            debug!(
+                "Setting node expression from controller: {} -> {}",
+                displayed.expression, new_displayed_expr
+            );
             displayed.expression = new_displayed_expr.clone();
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
@@ -459,6 +494,7 @@ impl<'a> ControllerChange<'a> {
             None | Some(Value) => None,
             Some(DataflowError { trace }) => Some((Kind::Dataflow, None, trace)),
             Some(Panic { message, trace }) => Some((Kind::Panic, Some(message), trace)),
+            Some(Pending { .. }) => None,
         }?;
         let propagated = if kind == Kind::Panic {
             let nodes = self.nodes.borrow();
@@ -623,6 +659,23 @@ impl<'a> ViewChange<'a> {
             None
         }
     }
+
+    /// Set the node expression.
+    pub fn set_node_expression(&self, id: ViewNodeId, expression: ImString) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+
+        let expression_has_changed = displayed.expression.code != expression;
+        if expression_has_changed {
+            let expression = node_view::Expression::new_plain(expression);
+            debug!("Setting node expression from view: {} -> {}", displayed.expression, expression);
+            displayed.expression = expression;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
 }
 
 
@@ -630,7 +683,7 @@ impl<'a> ViewChange<'a> {
 
 impl<'a> ViewChange<'a> {
     /// If the connections does not already exist, it is created and corresponding to-be-created
-    /// Ast connection is returned.  
+    /// Ast connection is returned.
     pub fn create_connection(&self, connection: view::graph_editor::Edge) -> Option<AstConnection> {
         let source = connection.source()?;
         let target = connection.target()?;
@@ -638,7 +691,7 @@ impl<'a> ViewChange<'a> {
     }
 
     /// If the connections with provided endpoints does not already exist, it is created and
-    /// corresponding to-be-created Ast connection is returned.  
+    /// corresponding to-be-created Ast connection is returned.
     pub fn create_connection_from_endpoints(
         &self,
         connection: ViewConnection,
@@ -668,7 +721,7 @@ impl<'a> ViewChange<'a> {
 mod tests {
     use super::*;
     use engine_protocol::language_server::MethodPointer;
-    use parser::Parser;
+    use parser_scala::Parser;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {
         let parser = Parser::new_or_panic();
@@ -730,9 +783,9 @@ mod tests {
         assert_eq!(state.view_id_of_ast_node(node2.id()), None);
 
         let assigned = state.assign_node_view(node_view_2);
-        assert_eq!(assigned.map(|node| node.expression.code), Some("node1 + 2".to_owned()));
+        assert_eq!(assigned.as_ref().map(|node| node.expression.code.as_str()), Some("node1 + 2"));
         let assigned = state.assign_node_view(node_view_1);
-        assert_eq!(assigned.map(|node| node.expression.code), Some("2 + 2".to_owned()));
+        assert_eq!(assigned.as_ref().map(|node| node.expression.code.as_str()), Some("2 + 2"));
 
         assert_eq!(state.view_id_of_ast_node(node1.id()), Some(node_view_1));
         assert_eq!(state.view_id_of_ast_node(node2.id()), Some(node_view_2));
@@ -823,7 +876,7 @@ mod tests {
         let view = nodes[0].view;
         let expected_new_expression = view::graph_editor::component::node::Expression {
             pattern:             None,
-            code:                "foo baz".to_string(),
+            code:                "foo baz".into(),
             whole_expression_id: Some(node_id),
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),

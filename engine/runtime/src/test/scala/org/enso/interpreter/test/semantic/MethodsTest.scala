@@ -22,11 +22,12 @@ class MethodsTest extends InterpreterTest {
       eval(code) shouldEqual 11
     }
 
-    "execute `this` argument once" in {
+    "execute `self` argument once" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
-          |Nothing.foo = 0
+          |Nothing.Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
@@ -87,30 +88,16 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Any import all
           |
-          |Any.method =
-          |    x = this * this
+          |Any.Any.method self =
+          |    x = self * self
           |    y = x * 2
           |    y + 1
           |
           |main = 3.method
           |""".stripMargin
       eval(code) shouldEqual 19
-    }
-
-    "be dispatched to the proper constructor" in {
-      val code =
-        """from Standard.Builtins import all
-          |
-          |Nil.sum = acc -> acc
-          |Cons.sum = acc -> case this of
-          |  Cons h t -> t.sum (h + acc)
-          |
-          |main = Cons 1 (Cons 2 Nil) . sum 0
-          |""".stripMargin
-
-      eval(code) shouldEqual 3
     }
 
     "throw an exception when non-existent" in {
@@ -125,17 +112,19 @@ class MethodsTest extends InterpreterTest {
 
     "be callable for any type when defined on Any" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Any import all
+          |import Standard.Base.IO
+          |import Standard.Base.Nothing
           |
           |type Foo
           |type Bar
           |type Baz
           |
-          |Any.method = case this of
-          |  Foo -> 1
-          |  Bar -> 2
-          |  Baz -> 3
-          |  _ -> 0
+          |Any.Any.method self = case self of
+          |    Foo -> 1
+          |    Bar -> 2
+          |    Baz -> 3
+          |    _ -> 0
           |
           |main =
           |    IO.println Foo.method
@@ -149,20 +138,67 @@ class MethodsTest extends InterpreterTest {
       consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
     }
 
-    "work as expected when defined across different constructors" in {
-      val code =
-        """from Standard.Builtins import all
+    "be callable for any type when defined on Any (resolved as a type name)" in {
+      import annotation.unused
+      @unused val code =
+        """from Standard.Base.Data.Any import all
           |
-          |Nil.sum = 0
-          |Cons.sum = case this of
-          |  Cons h t -> h + t.sum
+          |Any.method self = 1
           |
           |main =
-          |    myList = Cons 1 (Cons 2 (Cons 3 Nil))
-          |    myList.sum
+          |    2.method
           |""".stripMargin
+//      eval(code) shouldEqual 1
+      pending
+    }
 
-      eval(code) shouldEqual 6
+    "be callable on types when static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    new a = Foo.Mk_Foo a
+          |
+          |main = Foo.new 123
+          |""".stripMargin
+      eval(code).toString shouldEqual "(Mk_Foo 123)"
+    }
+
+    "be callable on types when non-static, with additional self arg" in {
+      val code =
+        """from Standard.Base.IO import all
+          |
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    inc self = Foo.Mk_Foo self.a+1
+          |
+          |main = 
+          |    IO.println (Foo.inc (Foo.Mk_Foo 12))
+          |    IO.println (Foo.Mk_Foo 13).inc
+          |    IO.println (.inc self=Foo self=(Foo.Mk_Foo 14))
+          |    IO.println (Foo.inc self=(Foo.Mk_Foo 15))
+          |""".stripMargin
+      eval(code)
+      consumeOut.shouldEqual(
+        List("(Mk_Foo 13)", "(Mk_Foo 14)", "(Mk_Foo 15)", "(Mk_Foo 16)")
+      )
+    }
+
+    "not be callable on instances when static" in {
+      val code =
+        """
+          |type Foo
+          |    Mk_Foo a
+          |
+          |    new a = Foo.Mk_Foo a
+          |
+          |main = Foo.Mk_Foo 123 . new 123
+          |""".stripMargin
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "Method `new` of Mk_Foo could not be found."
     }
   }
 }

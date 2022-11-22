@@ -1,11 +1,12 @@
 //! JavaScript console consumer implementation.
 
-use web_sys::console;
+use wasm_bindgen::prelude::*;
 
 use crate::entry;
 use crate::entry::Entry;
 use crate::processor::consumer;
-use wasm_bindgen::prelude::*;
+
+use web_sys::console;
 
 
 
@@ -17,11 +18,11 @@ mod js {
         }
     ")]
     extern "C" {
-        /// FIXME[WD]: Issue https://github.com/rustwasm/wasm-bindgen/issues/2376
-        /// This is just the same as `wasm_bindgen::console::group_end` with one important
-        /// difference. It seems that `wasm_bindgen` somehow caches all functions without args on
-        /// initialization, and thus, as we are redefining what `console.group_end` is in JS, the
-        /// function provided by the library, unlike this one, does not reflect the change.
+        // FIXME[WD]: Issue https://github.com/rustwasm/wasm-bindgen/issues/2376
+        // This is just the same as `wasm_bindgen::console::group_end` with one important
+        // difference. It seems that `wasm_bindgen` somehow caches all functions without args on
+        // initialization, and thus, as we are redefining what `console.group_end` is in JS, the
+        // function provided by the library, unlike this one, does not reflect the change.
         #[allow(unsafe_code)]
         pub fn console_group_end();
     }

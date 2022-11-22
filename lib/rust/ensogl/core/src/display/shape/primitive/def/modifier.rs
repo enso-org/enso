@@ -1,12 +1,13 @@
 //! This module contains definitions of all shape modifiers, such as transformations, boolean
 //! operations, growing / shrinking shapes, etc.
 
+// === Non-Standard Linter Configuration ===
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+use crate::data::color::*;
 use crate::prelude::*;
 
-use crate::data::color::*;
 use crate::display::shape::primitive::def::class::AnyShape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::def::var::Var;

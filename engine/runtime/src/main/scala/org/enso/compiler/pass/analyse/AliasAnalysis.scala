@@ -108,10 +108,17 @@ case object AliasAnalysis extends IRPass {
       .map { localScope =>
         val scope =
           if (shouldWriteState) localScope.scope
-          else localScope.scope.deepCopy(mutable.Map())
+          else
+            localScope.scope
+              .deepCopy(mutable.Map())
+              .withParent(localScope.scope)
+
         val graph =
           if (shouldWriteState) localScope.aliasingGraph
-          else localScope.aliasingGraph.copy
+          else {
+            val mapping = mutable.Map(localScope.scope -> scope)
+            localScope.aliasingGraph.deepCopy(mapping)
+          }
         val result = analyseExpression(ir, graph, scope)
 
         result
@@ -128,48 +135,62 @@ case object AliasAnalysis extends IRPass {
     sourceIr: T,
     copyOfIr: T
   ): T = {
+    def doCopy(sourceBinding: IR, copyBinding: IR): Unit = {
+      val sourceRootScopeGraphOpt = sourceBinding
+        .getMetadata(this)
+
+      sourceRootScopeGraphOpt.foreach { sourceRootScopeGraphScope =>
+        val sourceRootScopeGraph =
+          sourceRootScopeGraphScope.asInstanceOf[Info.Scope.Root].graph
+
+        val scopeMapping = mutable.Map[Scope, Scope]()
+        val copyRootScopeGraph =
+          sourceRootScopeGraph.deepCopy(scopeMapping)
+
+        val sourceNodes = sourceBinding.preorder
+        val copyNodes   = copyBinding.preorder
+
+        val matchedNodes = sourceNodes.lazyZip(copyNodes)
+
+        matchedNodes.foreach { case (sourceNode, copyNode) =>
+          sourceNode.getMetadata(this) match {
+            case Some(meta) =>
+              val newMeta = meta match {
+                case root: Info.Scope.Root =>
+                  root.copy(graph = copyRootScopeGraph)
+                case child: Info.Scope.Child =>
+                  child.copy(
+                    graph = copyRootScopeGraph,
+                    scope = child.scope.deepCopy(scopeMapping)
+                  )
+                case occ: Info.Occurrence =>
+                  occ.copy(graph = copyRootScopeGraph)
+              }
+              copyNode.updateMetadata(this -->> newMeta)
+            case None =>
+          }
+        }
+      }
+    }
+
     (sourceIr, copyOfIr) match {
       case (sourceIr: IR.Module, copyOfIr: IR.Module) =>
         val sourceBindings = sourceIr.bindings
         val copyBindings   = copyOfIr.bindings
         val zippedBindings = sourceBindings.lazyZip(copyBindings)
 
-        zippedBindings.foreach { case (sourceBinding, copyBinding) =>
-          val sourceRootScopeGraphOpt = sourceBinding
-            .getMetadata(this)
-
-          sourceRootScopeGraphOpt.map { sourceRootScopeGraphScope =>
-            val sourceRootScopeGraph =
-              sourceRootScopeGraphScope.asInstanceOf[Info.Scope.Root].graph
-
-            val scopeMapping = mutable.Map[Scope, Scope]()
-            val copyRootScopeGraph =
-              sourceRootScopeGraph.deepCopy(scopeMapping)
-
-            val sourceNodes = sourceBinding.preorder
-            val copyNodes   = copyBinding.preorder
-
-            val matchedNodes = sourceNodes.lazyZip(copyNodes)
-
-            matchedNodes.foreach { case (sourceNode, copyNode) =>
-              sourceNode.getMetadata(this) match {
-                case Some(meta) =>
-                  val newMeta = meta match {
-                    case root: Info.Scope.Root =>
-                      root.copy(graph = copyRootScopeGraph)
-                    case child: Info.Scope.Child =>
-                      child.copy(
-                        graph = copyRootScopeGraph,
-                        scope = child.scope.deepCopy(scopeMapping)
-                      )
-                    case occ: Info.Occurrence =>
-                      occ.copy(graph = copyRootScopeGraph)
-                  }
-                  copyNode.updateMetadata(this -->> newMeta)
-                case None =>
-              }
+        zippedBindings.foreach {
+          case (
+                source: IR.Module.Scope.Definition.Type,
+                copy: IR.Module.Scope.Definition.Type
+              ) =>
+            doCopy(source, copy)
+            source.members.lazyZip(copy.members).foreach {
+              case (source, copy) =>
+                doCopy(source, copy)
             }
-          }
+          case (sourceBinding, copyBinding) =>
+            doCopy(sourceBinding, copyBinding)
         }
         copyOfIr.asInstanceOf[T]
       case _ => copyOfIr
@@ -227,12 +248,25 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Method definition sugar should not occur during alias analysis."
         )
-      case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
-        a.copy(
-          arguments =
-            analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
+      case t: IR.Module.Scope.Definition.Type =>
+        t.copy(
+          params = analyseArgumentDefs(
+            t.params,
+            topLevelGraph,
+            topLevelGraph.rootScope
+          ),
+          members = t.members.map(d => {
+            val graph = new Graph
+            d.copy(arguments =
+              analyseArgumentDefs(
+                d.arguments,
+                graph,
+                graph.rootScope
+              )
+            ).updateMetadata(this -->> Info.Scope.Root(graph))
+          })
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "alias analysis."
@@ -280,7 +314,13 @@ case object AliasAnalysis extends IRPass {
       case fn: IR.Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
       case name: IR.Name =>
-        analyseName(name, isInPatternContext = false, graph, parentScope)
+        analyseName(
+          name,
+          isInPatternContext                = false,
+          isConstructorNameInPatternContext = false,
+          graph,
+          parentScope
+        )
       case cse: IR.Case => analyseCase(cse, graph, parentScope)
       case block @ IR.Expression.Block(
             expressions,
@@ -384,7 +424,8 @@ case object AliasAnalysis extends IRPass {
             value      = analyseExpression(value, graph, valueScope)
           )
           .updateMetadata(this -->> Info.Occurrence(graph, labelId))
-      case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
+      case x =>
+        x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
 
@@ -410,6 +451,18 @@ case object AliasAnalysis extends IRPass {
     scope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
+      case arg @ IR.DefinitionArgument.Specified(
+            IR.Name.Self(_, true, _, _),
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        // Synthetic `self` must not be added to the scope
+        val occurrenceId = graph.nextId()
+        arg.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
       case arg @ IR.DefinitionArgument.Specified(
             name,
             _,
@@ -437,7 +490,10 @@ case object AliasAnalysis extends IRPass {
             .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
           throw new CompilerError(
-            "Arguments should never be redefined. This is a bug."
+            s"""
+                Arguments should never be redefined. This is a bug.
+                ${}
+                """
           )
         }
     }
@@ -493,12 +549,11 @@ case object AliasAnalysis extends IRPass {
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
-    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
         case _: IR.Literal => parentScope
         case _             => parentScope.addChild()
       }
-
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))
         .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -547,6 +602,8 @@ case object AliasAnalysis extends IRPass {
     * @param name the name to analyse
     * @param isInPatternContext whether or not the name is occurring in a
     *                           pattern context
+    * @param isConstructorNameInPatternContext whether or not the name is
+    *                           constructor name occurring in a pattern context
     * @param graph the graph in which the analysis is taking place
     * @param parentScope the scope in which `name` is delcared
     * @return `name`, with alias analysis information attached
@@ -554,12 +611,13 @@ case object AliasAnalysis extends IRPass {
   def analyseName(
     name: IR.Name,
     isInPatternContext: Boolean,
+    isConstructorNameInPatternContext: Boolean,
     graph: Graph,
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
 
-    if (isInPatternContext && name.isVariable) {
+    if (isInPatternContext && !isConstructorNameInPatternContext) {
       val occurrence =
         Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
@@ -567,7 +625,7 @@ case object AliasAnalysis extends IRPass {
       val occurrence =
         Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
-      if (name.isVariable) {
+      if (!isConstructorNameInPatternContext && !name.isMethod) {
         graph.resolveLocalUsage(occurrence)
       } else {
         graph.resolveGlobalUsage(occurrence)
@@ -640,16 +698,14 @@ case object AliasAnalysis extends IRPass {
   ): IR.Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
-        if (name.isReferent) {
-          throw new CompilerError(
-            "Nested patterns should be desugared by the point of alias " +
-            "analysis."
-          )
-        }
-
         named.copy(
-          name =
-            analyseName(name, isInPatternContext = true, graph, parentScope)
+          name = analyseName(
+            name,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          )
         )
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
         if (!cons.isDesugared) {
@@ -662,11 +718,31 @@ case object AliasAnalysis extends IRPass {
         cons.copy(
           constructor = analyseName(
             constructor,
-            isInPatternContext = true,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = true,
             graph,
             parentScope
           ),
           fields = fields.map(analysePattern(_, graph, parentScope))
+        )
+      case literalPattern: Pattern.Literal =>
+        literalPattern
+      case typePattern @ Pattern.Type(name, tpe, _, _, _) =>
+        typePattern.copy(
+          name = analyseName(
+            name,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          ),
+          tpe = analyseName(
+            tpe,
+            isInPatternContext                = false,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          )
         )
       case _: Pattern.Documentation =>
         throw new CompilerError(
@@ -1084,6 +1160,18 @@ case object AliasAnalysis extends IRPass {
         */
       def scopesToRoot: Int = {
         parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
+      }
+
+      /** Sets the parent of the scope.
+        *
+        * The parent scope must not be redefined.
+        *
+        * @return this scope with parent scope set
+        */
+      def withParent(parentScope: Scope): this.type = {
+        assert(parent.isEmpty)
+        this.parent = Some(parentScope)
+        this
       }
 
       /** Creates a structural copy of this scope, ensuring that replicated

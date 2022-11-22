@@ -2,7 +2,7 @@
 
 use crate::*;
 
-use std::str::FromStr;
+
 
 /// Gets the string with conents of given environment variable.
 /// If the variable wasn't set, returns a default value from a second argument.

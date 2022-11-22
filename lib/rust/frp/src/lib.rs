@@ -143,6 +143,11 @@
 //! with `true` and not `false` (`Default` for `bool`).
 //! ```
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 #![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -153,13 +158,18 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![feature(associated_type_defaults)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(unboxed_closures)]
+#![feature(downcast_unchecked)]
 #![recursion_limit = "512"]
 
+pub mod any_data;
 pub mod data;
 pub mod debug;
+pub mod fan;
 pub mod future;
 pub mod io;
 pub mod macros;
@@ -172,7 +182,9 @@ pub use network::*;
 pub use node::*;
 pub use nodes::*;
 
+pub use any_data::AnyData;
 pub use enso_web as web;
+pub use fan::Fan;
 pub use stream::Stream;
 
 /// Set of often used types and functions.
@@ -180,6 +192,8 @@ pub mod prelude {
     pub use enso_logger::WarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 }
 
 #[cfg(test)]

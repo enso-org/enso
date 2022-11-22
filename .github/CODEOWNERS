@@ -1,40 +1,43 @@
-# Catch All
-* @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
-
 # Change log
 CHANGELOG.md
 
+# Build script & utilities
+/run @mwu-tow
+/run.bat @mwu-tow
+/build @mwu-tow
+
 # Rust Libraries and Related Files
-rust-toolchain.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
-rustfmt.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
-Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon
-Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
-/lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
+rust-toolchain.toml @MichaelMauderer @mwu-tow @farmaazon
+rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon
+Cargo.lock
+Cargo.toml
+/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
+/lib/rust/metamodel/ @kazcw @wdanilo @jaroslavtulach
+/lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
+/lib/rust/profiler/ @kazcw @MichaelMauderer @wdanilo
+/lib/rust/reflect/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw @wdanilo @jaroslavtulach
+/integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
+/tools/build-performance/ @kazcw @mwu-tow @wdanilo
 
 # Scala Libraries
-/lib/scala/ @4e6
+/lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/run @MichaelMauderer @wdanilo
-/build/ @MichaelMauderer @wdanilo
 /app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow
 /app/gui/view/ @MichaelMauderer @wdanilo @farmaazon
 /app/ide-desktop/ @MichaelMauderer @wdanilo
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
-/build.sbt @4e6
-/distribution/ @4e6
-/engine/ @4e6
-/project/ @4e6
-/test/ @4e6 @jdunkerley @radeusgd
-/tools/ @4e6
+/build.sbt @4e6 @jaroslavtulach @hubertp
+/distribution/ @4e6 @jdunkerley @radeusgd
+/engine/ @4e6 @jaroslavtulach @hubertp
+/project/ @4e6 @jaroslavtulach @hubertp
+/test/ @jdunkerley @radeusgd
+/tools/ @4e6 @jaroslavtulach @radeusgd
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @4e6 @jdunkerley @radeusgd
-/std-bits/ @4e6 @jdunkerley @radeusgd
-
-# Engine
-/app/engine/ @4e6
+/distribution/lib/ @jdunkerley @radeusgd
+/std-bits/ @jdunkerley @radeusgd

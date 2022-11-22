@@ -5,22 +5,21 @@
 //! * [visualization documentation](https://enso.org/docs/developer/ide/product/visualizations.html).
 
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
-use super::binding;
-use super::instance::Instance;
 use crate::component::visualization;
 use crate::component::visualization::InstantiationError;
 use crate::component::visualization::InstantiationResult;
 use crate::visualization::foreign::java_script::Sources;
 
-use ensogl::display::Scene;
+use super::binding;
+use super::instance::Instance;
+use ensogl::application::Application;
 use ensogl::system::web;
-use ensogl::system::web::traits::*;
 use ensogl::system::web::Function;
 use ensogl::system::web::JsString;
 use ensogl::system::web::JsValue;
 use fmt::Formatter;
-use std::str::FromStr;
 
 
 
@@ -79,16 +78,16 @@ impl Definition {
         Self::new(visualization::path::Project::Builtin, sources)
     }
 
-    fn new_instance(&self, scene: &Scene) -> InstantiationResult {
+    fn new_instance(&self, app: &Application) -> InstantiationResult {
         let instance =
-            Instance::new(&self.class, scene).map_err(InstantiationError::ConstructorError)?;
+            Instance::new(&self.class, app).map_err(InstantiationError::ConstructorError)?;
         Ok(instance.into())
     }
 }
 
 impl From<Definition> for visualization::Definition {
     fn from(t: Definition) -> Self {
-        Self::new(t.signature.clone_ref(), move |scene| t.new_instance(scene))
+        Self::new(t.signature.clone_ref(), move |app| t.new_instance(app))
     }
 }
 

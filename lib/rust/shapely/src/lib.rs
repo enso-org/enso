@@ -1,24 +1,37 @@
 // README README README README README README README README README README README
 // README README README README README README README README README README README
 // README README README README README README README README README README README
-
 // This library is in a very early stage. It will be refactored and improved
 // soon. It should not be reviewed now.
 
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+// === Features ===
 #![feature(generators, generator_trait)]
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod cartesian;
+pub mod clone_ref;
 pub mod generator;
 pub mod shared;
 pub mod singleton;
 
 pub use enso_shapely_macros::*;
 pub use generator::GeneratingIterator;
+
+
 
 /// Replaces the first argument with the second one. It is useful when creating macros which match
 /// a pattern and you want to generate as many repetitions of a token as there was matches. For
@@ -80,21 +93,21 @@ macro_rules! newtype_prim_no_derives {
 /// including Copy, Clone, Debug, Default, Display, From, Into, Deref, and DerefMut.
 ///
 /// For the following input:
-/// ```ignore
+/// ```text
 /// newtype_prim! {
 ///     AttributeIndex(usize);
 /// }
 /// ```
 ///
 /// The following code is generated:
-/// ```ignore
-/// #[derive(Copy,Clone,CloneRef,Debug,Default,Display,Eq,Hash,Ord,PartialOrd,PartialEq)]
+/// ```text
+/// #[derive(Copy, Clone, CloneRef, Debug, Default, Display, Eq, Hash, Ord, PartialOrd, PartialEq)]
 /// pub struct AttributeIndex {
-///     raw: usize
+///     raw: usize,
 /// }
 /// impl AttributeIndex {
 ///     /// Constructor.
-///     pub fn new(raw:usize) -> Self {
+///     pub fn new(raw: usize) -> Self {
 ///         Self { raw }
 ///     }
 /// }
@@ -109,12 +122,36 @@ macro_rules! newtype_prim_no_derives {
 ///         &mut self.raw
 ///     }
 /// }
-/// impl From<usize>   for AttributeIndex { fn from(t:usize)   -> Self { Self::new(t)   } }
-/// impl From<&usize>  for AttributeIndex { fn from(t:&usize)  -> Self { Self::new(*t)  } }
-/// impl From<&&usize> for AttributeIndex { fn from(t:&&usize) -> Self { Self::new(**t) } }
-/// impl From<AttributeIndex>   for usize { fn from(t:AttributeIndex)   -> Self { t.raw } }
-/// impl From<&AttributeIndex>  for usize { fn from(t:&AttributeIndex)  -> Self { t.raw } }
-/// impl From<&&AttributeIndex> for usize { fn from(t:&&AttributeIndex) -> Self { t.raw } }
+/// impl From<usize> for AttributeIndex {
+///     fn from(t: usize) -> Self {
+///         Self::new(t)
+///     }
+/// }
+/// impl From<&usize> for AttributeIndex {
+///     fn from(t: &usize) -> Self {
+///         Self::new(*t)
+///     }
+/// }
+/// impl From<&&usize> for AttributeIndex {
+///     fn from(t: &&usize) -> Self {
+///         Self::new(**t)
+///     }
+/// }
+/// impl From<AttributeIndex> for usize {
+///     fn from(t: AttributeIndex) -> Self {
+///         t.raw
+///     }
+/// }
+/// impl From<&AttributeIndex> for usize {
+///     fn from(t: &AttributeIndex) -> Self {
+///         t.raw
+///     }
+/// }
+/// impl From<&&AttributeIndex> for usize {
+///     fn from(t: &&AttributeIndex) -> Self {
+///         t.raw
+///     }
+/// }
 /// ```
 #[macro_export]
 macro_rules! newtype_prim {

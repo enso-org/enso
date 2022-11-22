@@ -1,27 +1,31 @@
 //! Toggle Button implementation.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::shape::system::Shape;
+use ensogl_core::display::shape::system::ShapeWithDefaultableData;
 use ensogl_core::gui::component::ShapeView;
-
-// The 'internals' import is used to allow manual creation of [`ShapeView`]. Normally, this is
-// automatically used by the [`define_shape_system!`] macro, and it's not exposed to the developer.
-use ensogl_core::display::shape::system::DynamicShapeInternals;
 
 
 
@@ -30,7 +34,11 @@ use ensogl_core::display::shape::system::DynamicShapeInternals;
 // =================
 
 /// A shape that can have a single color.
-pub trait ColorableShape: DynamicShapeInternals {
+///
+/// The [`DynamicShapeInternals`] is used to allow manual creation of [`ShapeView`]. Normally, this
+/// is automatically used by the [`shape!`] macro, and it's not exposed to the
+/// developer.
+pub trait ColorableShape: ShapeWithDefaultableData {
     /// Set the color of the shape.
     fn set_color(&self, color: color::Rgba);
 }
@@ -65,16 +73,15 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug, Derivative)]
-#[clone_ref(bound = "Shape:CloneRef")]
-struct Model<Shape> {
-    icon: ShapeView<Shape>,
+#[derive(Clone, CloneRef, Debug)]
+#[clone_ref(bound = "S: CloneRef")]
+struct Model<S: Shape> {
+    icon: ShapeView<S>,
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
-    fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "ToggleButton");
-        let icon = ShapeView::new(&logger);
+    fn new() -> Self {
+        let icon = ShapeView::new();
         Self { icon }
     }
 }
@@ -186,27 +193,27 @@ impl ColorScheme {
 
 /// A UI component that acts as a toggle which can be toggled on and of. Has a visible shape
 /// that acts as button and changes color depending on the toggle state.
-#[derive(CloneRef, Debug, Derivative)]
+#[derive(CloneRef, Debug, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
-pub struct ToggleButton<Shape> {
+pub struct ToggleButton<S: Shape> {
+    #[deref]
     pub frp: Frp,
-    model:   Rc<Model<Shape>>,
+    model:   Rc<Model<S>>,
 }
 
-impl<Shape> Deref for ToggleButton<Shape> {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
+impl<Shape: ColorableShape + 'static> Default for ToggleButton<Shape> {
+    fn default() -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(Model::<Shape>::new());
+        Self { frp, model }.init_frp()
     }
 }
 
 impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let frp = Frp::new();
-        let model = Rc::new(Model::<Shape>::new(logger));
-        Self { frp, model }.init_frp()
+    pub fn new() -> Self {
+        default()
     }
 
     fn init_frp(self) -> Self {
@@ -220,12 +227,12 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) model.icon.size().set(*size));
+            eval frp.set_size ((size) model.icon.size.set(*size));
 
 
             // === State ===
 
-            toggle <- any(frp.toggle,icon.mouse_down);
+            toggle <- any_(frp.toggle,icon.mouse_down_primary);
             frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 
@@ -243,7 +250,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             frp.source.visible    <+ frp.set_visibility;
             frp.source.is_hovered <+ bool(&icon.mouse_out,&icon.mouse_over);
-            frp.source.is_pressed <+ bool(&icon.mouse_up,&icon.mouse_down);
+            frp.source.is_pressed <+ bool(&icon.mouse_up_primary,&icon.mouse_down_primary);
 
             button_state <- all_with4(&frp.visible,&frp.state,&frp.is_hovered,&frp.is_pressed,
                 |a,b,c,d| ButtonState::new(*a,*b,*c,*d));
@@ -267,7 +274,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     }
 }
 
-impl<T: display::Object> display::Object for ToggleButton<T> {
+impl<S: Shape> display::Object for ToggleButton<S> {
     fn display_object(&self) -> &display::object::Instance {
         self.model.icon.display_object()
     }

@@ -85,9 +85,7 @@ dependency of `compileInputs` which runs _strictly before_ actual compilation.
 
 To check some invariants _after_ compilation, we can replace the original
 `Compile / compile` task with a custom one which does its post-compile checks
-and returns the result of `(Compile / compile).value`. An example of such a
-'patched' compile task is implemented in
-[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala).
+and returns the result of `(Compile / compile).value`.
 
 ## Helper Tasks
 
@@ -122,26 +120,17 @@ information is used by `enso --version`.
 Truffle annotation processor generates a file that registers instruments
 provided by the runtime. Unfortunately, with incremental compilation, only the
 changed instruments are recompiled and the annotation processor does not detect
-this, so un-changed instruments get un-registered.
+this, so un-changed instruments get overwritten.
 
-To fix this, the pre-compile task defined in
-[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala)
-detects changes to instruments and if only one of them should be recompiled, it
-forces recompilation of all of them, to ensure consistency.
-
-For unclear reasons, if this task is attached to
-`Compile / compile / compileInputs`, while it runs strictly _before_
-compilation, the deleted class files are not always all recompiled. So instead,
-it is attached directly to `Compile / compile`. This technically could allow for
-a data race between this task and the actual compilation that happens in
-`compileIncremental`, but in practice it seems to be a stable solution.
-
-Sometimes it is unable to detect the need for recompilation before it takes
-place. To help that, there is another task that replaces the default `compile`
-task, which executes the default compilation task and after it, verifies the
-consistency of instruments files. As it cannot restart compilation, to preserve
-consistency it ensures the instruments will be recompiled the next time and
-stops the current compilation task, asking the user to restart it.
+In the past we had a pre-compile task (see
+[FixInstrumentsGeneration](https://github.com/enso-org/enso/blob/8ec2a92b770dea35e47fa9287dbdd1363aabc3c0/project/FixInstrumentsGeneration.scala))
+that detected changes to instruments and if only one of them was to be
+recompiled, it forced recompilation of all of them, to ensure consistency. This
+workaround helped to avoid later runtime issues but sometimes triggered a
+cascade of recompilations, which weren't clear to the end user. Instead, to
+avoid overwriting entries in META-INF files, individual services were moved to
+separate subprojects and during assembly of uber jar we concatenate meta files
+with the same service name.
 
 ### Flatbuffers Generation
 

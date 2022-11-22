@@ -26,4 +26,12 @@ public class TestClass {
   public void method1() {}
 
   public void method2() {}
+
+  public static long raiseException(int type) {
+    return switch (type) {
+      case 0 -> throw new NullPointerException();
+      case 1 -> throw new NullPointerException("NPE!");
+      default -> 2;
+    };
+  }
 }

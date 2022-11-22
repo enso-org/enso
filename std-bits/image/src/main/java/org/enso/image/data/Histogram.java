@@ -9,9 +9,7 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A histogram calculated for a single channel of an image.
- */
+/** A histogram calculated for a single channel of an image. */
 public class Histogram {
 
   private static final int BINS = 256;
@@ -45,12 +43,7 @@ public class Histogram {
     Core.split(image, images);
 
     Imgproc.calcHist(
-        images,
-        new MatOfInt(channel),
-        new Mat(),
-        histogram,
-        new MatOfInt(BINS),
-        valuesRange);
+        images, new MatOfInt(channel), new Mat(), histogram, new MatOfInt(BINS), valuesRange);
     Core.normalize(histogram, histogram, 0, MAX_VALUE, Core.NORM_MINMAX);
 
     float[] histogramData = new float[(int) histogram.total() * histogram.channels()];

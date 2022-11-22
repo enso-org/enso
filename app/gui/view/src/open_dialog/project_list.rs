@@ -1,11 +1,11 @@
 //! A module containing [`ProjectList`] component and all related structures.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::list_view;
 use ensogl_component::shadow;
 use ensogl_hardcoded_theme::application::project_list as theme;
@@ -31,7 +31,7 @@ mod background {
     pub const SHADOW_PX: f32 = 10.0;
     pub const CORNER_RADIUS_PX: f32 = 16.0;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -69,7 +69,7 @@ pub struct ProjectList {
     network:        frp::Network,
     display_object: display::object::Instance,
     background:     background::View, //TODO[ao] use Card instead.
-    caption:        text::Area,
+    caption:        text::Text,
     list:           list_view::ListView<Entry>,
     style_watch:    StyleWatchFrp,
 }
@@ -87,17 +87,17 @@ impl ProjectList {
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new("ProjectList");
         let network = frp::Network::new("ProjectList");
-        let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let caption = app.new_view::<text::Area>();
+        let display_object = display::object::Instance::new();
+        let background = background::View::new();
+        let caption = app.new_view::<text::Text>();
         let list = app.new_view::<list_view::ListView<Entry>>();
         display_object.add_child(&background);
         display_object.add_child(&caption);
         display_object.add_child(&list);
-        app.display.default_scene.layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
-        list.set_label_layer(app.display.default_scene.layers.panel_text.id());
+        list.set_label_layer(&app.display.default_scene.layers.panel_text);
 
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
@@ -132,8 +132,8 @@ impl ProjectList {
             eval list_size  ((size)  list.resize(*size));
             eval list_y     ((y)     list.set_position_y(*y));
             eval caption_xy ((xy)    caption.set_position_xy(*xy));
-            eval color      ((color) caption.set_default_color(color));
-            eval label_size ((size)  caption.set_default_text_size(text::Size(*size)));
+            eval color      ((color) caption.set_property_default(color));
+            eval label_size ((size)  caption.set_property_default(text::Size(*size)));
         };
         init.emit(());
 

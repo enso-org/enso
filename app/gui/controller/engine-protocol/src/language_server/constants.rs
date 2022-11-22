@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+
+
 /// Recognized error codes used by the Language Server messages.
 ///
 /// They follow `org.enso.jsonrpc.Error` object defined in the `enso` repository.

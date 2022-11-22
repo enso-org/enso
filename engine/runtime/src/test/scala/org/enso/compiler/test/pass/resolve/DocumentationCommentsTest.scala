@@ -73,7 +73,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     */
   def getDoc(ir: IR): String = {
     val meta = ir.getMetadata(DocumentationComments)
-    meta shouldBe defined
+//    meta.shouldBe(defined)
     meta.get.documentation
   }
 
@@ -95,7 +95,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
     "be associated with atoms and methods" in {
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
       getDoc(ir.bindings.head) shouldEqual " This is doc for My_Atom"
@@ -224,8 +224,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Do another thing
           |    z = x * y
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -247,8 +246,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Return thing
           |    f 1
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -281,7 +279,8 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val tp =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"
@@ -325,7 +324,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |## the type Foo
           |type Foo
           |    ## the constructor Bar
-          |    type Bar
+          |    Bar
           |
           |    ## a method
           |    foo : Any -> Any
@@ -343,7 +342,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |""".stripMargin.preprocessModule
 
       val t1 = ir.bindings.head
-      getDoc(t1) shouldEqual " the constructor Bar"
+      getDoc(t1) shouldEqual " the type Foo"
       inside(ir.bindings(1)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           getDoc(method) shouldEqual " a method"

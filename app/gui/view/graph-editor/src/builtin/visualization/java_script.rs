@@ -1,4 +1,5 @@
 //! Example of the visualization JS wrapper API usage
+
 // TODO remove once we have proper visualizations or replace with a nice d3 example.
 // These implementations are neither efficient nor pretty, but get the idea across.
 

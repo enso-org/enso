@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+type Case_Sensitivity
+    ## Represents a case-sensitive comparison mode.
+    Sensitive
+
+    ## Represents a case-insensitive comparison mode.
+
+       Arguments:
+       - locale: The locale used for the comparison.
+    Insensitive locale=Locale.default

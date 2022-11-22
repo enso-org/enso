@@ -1,14 +1,14 @@
-#![allow(missing_docs)]
-
 //! This module contains implementation of various dirty flags. A dirty flag is a structure which
 //! remembers that something was changed, but not updated yet. For example, dirty flags are useful
 //! when defining OpenGL buffer management. When a data in CPU-buffer changes, dirty flags can keep
 //! a set of changed indexes and bulk-update the GPU-buffers every animation frame. You can think
 //! of dirty flags like about a way to introduce laziness to the program evaluation mechanisms.
 
-use crate::prelude::*;
+// === Non-Standard Linter Configuration ===
+#![allow(missing_docs)]
 
 use crate::data::function::traits::*;
+use crate::prelude::*;
 
 use rustc_hash::FxHashSet;
 use std::hash::Hash;
@@ -99,7 +99,6 @@ pub use traits::*;
 #[derivative(Debug(bound = "T:Debug"))]
 pub struct DirtyFlag<T, OnMut> {
     pub data: T,
-    logger:   Logger,
     #[derivative(Debug = "ignore")]
     on_set:   OnMut,
 }
@@ -108,9 +107,9 @@ pub struct DirtyFlag<T, OnMut> {
 // === Basics ===
 
 impl<OnMut, T: Default> DirtyFlag<T, OnMut> {
-    pub fn new(logger: Logger, on_set: OnMut) -> Self {
+    pub fn new(on_set: OnMut) -> Self {
         let data = default();
-        Self { data, logger, on_set }
+        Self { data, on_set }
     }
 
     pub fn take(&mut self) -> T {
@@ -163,7 +162,7 @@ impl<T: DirtyFlagOps0, OnMut: FnMut0> HasSet0 for DirtyFlag<T, OnMut> {
         let is_set = self.data.check_all();
         if !is_set {
             self.data.set();
-            debug!(self.logger, "Setting.", || {
+            debug_span!("Setting.").in_scope(|| {
                 self.on_set.call();
             })
         }
@@ -176,7 +175,7 @@ impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
         let is_set = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            debug!(self.logger, "Setting to {self.data:?}.", || {
+            debug_span!("Setting to {self.data:?}.").in_scope(|| {
                 if first_set {
                     self.on_set.call();
                 }
@@ -190,7 +189,7 @@ impl<T: DirtyFlagOps1, OnMut: FnMut0> HasSet1 for DirtyFlag<T, OnMut> {
 
 impl<T: HasUnset0, OnMut> HasUnset0 for DirtyFlag<T, OnMut> {
     fn unset(&mut self) {
-        info!(self.logger, "Unsetting.");
+        trace!("Unsetting.");
         self.data.unset()
     }
 }
@@ -199,7 +198,7 @@ impl<T: HasUnset1, OnMut> HasUnset1 for DirtyFlag<T, OnMut>
 where Arg<T>: Display
 {
     fn unset(&mut self, arg: &Self::Arg) {
-        info!(self.logger, "Unsetting {arg}.");
+        trace!("Unsetting {arg}.");
         self.data.unset(arg)
     }
 }
@@ -225,8 +224,8 @@ pub struct SharedDirtyFlag<T, OnMut> {
 // === API ===
 
 impl<T: Default, OnMut> SharedDirtyFlag<T, OnMut> {
-    pub fn new(logger: Logger, on_set: OnMut) -> Self {
-        Self { rc: Rc::new(RefCell::new(DirtyFlag::new(logger, on_set))) }
+    pub fn new(on_set: OnMut) -> Self {
+        Self { rc: Rc::new(RefCell::new(DirtyFlag::new(on_set))) }
     }
 
     pub fn take(&self) -> T {
@@ -319,6 +318,27 @@ where Arg<T>: Display
 }
 
 
+// === Weak References ===
+
+#[derive(Derivative)]
+#[derivative(Debug(bound = "T:Debug"))]
+#[derivative(Clone(bound = ""))]
+pub struct WeakSharedDirtyFlag<T, OnMut> {
+    weak: Weak<RefCell<DirtyFlag<T, OnMut>>>,
+}
+impl<T, OnMut> SharedDirtyFlag<T, OnMut> {
+    pub fn downgrade(&self) -> WeakSharedDirtyFlag<T, OnMut> {
+        let weak = self.rc.downgrade();
+        WeakSharedDirtyFlag { weak }
+    }
+}
+impl<T, OnMut> WeakSharedDirtyFlag<T, OnMut> {
+    pub fn upgrade(&self) -> Option<SharedDirtyFlag<T, OnMut>> {
+        self.weak.upgrade().map(|rc| SharedDirtyFlag { rc })
+    }
+}
+
+
 
 // =============================================================================
 // === Flags ===================================================================
@@ -333,6 +353,7 @@ where Arg<T>: Display
 
 pub type Bool<OnMut = ()> = DirtyFlag<BoolData, OnMut>;
 pub type SharedBool<OnMut = ()> = SharedDirtyFlag<BoolData, OnMut>;
+pub type WeakSharedBool<OnMut = ()> = WeakSharedDirtyFlag<BoolData, OnMut>;
 pub trait BoolCtx<OnMut> = where OnMut: FnMut0;
 
 #[derive(Clone, Copy, Debug, Display, Default)]
@@ -462,11 +483,13 @@ pub struct SetData<Item> {
 impl<Item> HasArg for SetData<Item> {
     type Arg = Item;
 }
+
 impl<Item> HasCheckAll for SetData<Item> {
     fn check_all(&self) -> bool {
         !self.set.is_empty()
     }
 }
+
 impl<Item> HasUnsetAll for SetData<Item> {
     fn unset_all(&mut self) {
         self.set.clear();
@@ -501,7 +524,7 @@ impl<'t, Item: SetItem> IntoIterator for &'t SetData<Item> {
     type Item = &'t Item;
     type IntoIter = <&'t FxHashSet<Item> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.set).iter()
+        (self.set).iter()
     }
 }
 
@@ -564,7 +587,7 @@ impl<'t, Item> IntoIterator for &'t VectorData<Item> {
     type Item = &'t Item;
     type IntoIter = <&'t Vec<Item> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.vec).iter()
+        (self.vec).iter()
     }
 }
 
