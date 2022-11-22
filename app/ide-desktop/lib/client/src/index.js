@@ -9,6 +9,7 @@ import path from 'node:path'
 import * as Server from './server.js'
 import util from 'node:util'
 import yargs from 'yargs'
+import { hideBin } from 'yargs/helpers'
 import remoteMain from '@electron/remote/main/index.js'
 
 import { project_manager_bundle } from '../paths.js'
@@ -74,7 +75,8 @@ let epilogue = `
 Arguments that follow the two dashes (\`--\`) will be passed to the backend process. They are used\
  if IDE spawns backend, i.e. if '--backend false' has not been set.`
 
-let optParser = yargs
+let argv = hideBin(process.argv)
+let optParser = yargs(argv)
     .scriptName('')
     .usage(usage)
     .epilogue(epilogue)
@@ -257,8 +259,7 @@ optParser.options('skip-min-version-check', {
 // === Parsing ===
 
 function parseCmdArgs() {
-    let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv
-    return optParser.parse(argv)
+    return optParser.parse()
 }
 
 let args = parseCmdArgs()
