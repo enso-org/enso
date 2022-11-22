@@ -85,6 +85,9 @@ pub mod prelude {
     pub use platforms::target::OS;
     pub use semver::Version;
     pub use shrinkwraprs::Shrinkwrap;
+    pub use sysinfo::PidExt as _;
+    pub use sysinfo::ProcessExt as _;
+    pub use sysinfo::SystemExt as _;
     pub use tokio::io::AsyncWriteExt as _;
     pub use url::Url;
     pub use uuid::Uuid;
