@@ -1,9 +1,9 @@
 //! Model for the slider component.
 
-use crate::SliderOrientation;
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+
+use crate::SliderOrientation;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
