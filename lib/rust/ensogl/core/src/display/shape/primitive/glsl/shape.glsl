@@ -248,7 +248,7 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
 
 Shape resample (Shape s, float multiplier) {
     Id id = s.id;
-    BoundSdf sdf = resample(s.sdf,multiplier);
+    BoundSdf sdf = resample(s.sdf, multiplier);
     Srgba color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
     return shape(id, sdf, color);
@@ -293,7 +293,7 @@ Shape set_color(Shape shape, Srgba t) {
     return shape;
 }
 
-Shape withInfiniteBounds (Shape s) {
+Shape with_infinite_bounds (Shape s) {
     Id id = s.id;
     Color color = s.color;
     BoundSdf sdf = s.sdf;
@@ -323,7 +323,7 @@ vec2 translate (vec2 position, vec2 t) {
 
 vec2 rotate (vec2 position, Radians angle) {
     float v_angle = value(angle);
-    return position*cos(-v_angle) + vec2(position.y, -position.x) * sin(-v_angle);
+    return position * cos(-v_angle) + vec2(position.y, -position.x) * sin(-v_angle);
 }
 
 vec2 scale (vec2 position, float value) {
