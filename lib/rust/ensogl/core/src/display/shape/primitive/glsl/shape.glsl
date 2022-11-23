@@ -5,6 +5,8 @@
 // === Color ===
 // =============
 
+/// The default color used for [`Shape`]s. The LCHA representation was chosen because it gives good
+/// results for color blending (better than RGB and way better than sRGB).
 struct Color {
     Lcha repr;
 };
@@ -27,6 +29,7 @@ Srgba srgba(Color color) {
 // === PremultipliedColor ===
 // ==========================
 
+/// The premultiplied version of [`Color`] (the `xyz` components are multiplied by its alpha).
 struct PremultipliedColor {
     Lcha repr;
 };
