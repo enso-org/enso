@@ -1,5 +1,9 @@
 ## Builtin IO operations.
 
+import project.Data.Any.Any
+import project.Data.Text.Text
+import project.Nothing.Nothing
+
 ## Prints the provided message to standard error.
 
    Arguments:

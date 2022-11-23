@@ -117,7 +117,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
-    create : Result
+    create : System_Process_Result
     create self =
         result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
         System_Process_Result_Data (Exit_Code.from_number result.exit_code) result.stdout result.stderr

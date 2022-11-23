@@ -1,8 +1,4 @@
-from Standard.Base import all
-
-# TODO Dubious constructor export
-from project.Data.Ordering.Sort_Direction.Sort_Direction import all
-from project.Data.Ordering.Sort_Direction.Sort_Direction export all
+import project.Data.Numbers.Integer
 
 ## Specifies the direction of ordering.
 type Sort_Direction
@@ -26,5 +22,5 @@ type Sort_Direction
     ## Convert into the sign of the direction
     to_sign : Integer
     to_sign self = case self of
-        Ascending -> 1
-        Descending -> -1
+        Sort_Direction.Ascending -> 1
+        Sort_Direction.Descending -> -1

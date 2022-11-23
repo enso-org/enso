@@ -1,66 +1,14 @@
-from Standard.Base import all
-from Standard.Base.Error.Common import Time_Error
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Panic, Error, Time_Error, Time_Error_Data
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import org.enso.base.Time_Utils
-
-## The system default timezone.
-
-   > Example
-     Get the system default timezone.
-
-         from Standard.Base import Time_Zone
-
-         example_system = Time_Zone.system
-system : Time_Zone
-system = @Builtin_Method "Time_Zone.system"
-
-## ALIAS Current Time Zone
-
-   The system's local timezone.
-
-   > Example
-     Get the system's local timezone.
-
-         from Standard.Base import Time_Zone
-
-         example_local = Time_Zone.local
-local : Time_Zone
-local = system
-
-## ALIAS UTC Time Zone
-
-   The UTC timezone.
-
-   > Example
-     Get the UTC timezone.
-
-         from Standard.Base import Time_Zone
-
-         example_utc = Time_Zone.utc
-utc : Time_Zone
-utc = parse "UTC"
-
-## Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
-   from the UTC zone.
-
-   Arguments:
-   - hours: The timezone offset in hours from UTC, from -18 to +18.
-   - minutes: The timezone offset in minutes from the nearest hour, from 0 to
-     ±59. The sign must match that of the hours argument.
-   - seconds: The timezone offset in seconds from the nearest minute, from 0 to
-     ±59. The sign must match that of the minutes argument.
-
-   > Example
-     Get time zone 1 hour 1 minute and 50 seconds from UTC.
-
-         from Standard.Base import Zone
-
-         example_new = Zone.new 1 1 50
-new : Integer -> Integer -> Integer -> Time_Zone
-new (hours = 0) (minutes = 0) (seconds = 0) =
-    new_builtin hours minutes seconds
 
 ## PRIVATE
    Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
@@ -77,45 +25,6 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
 new_builtin : Integer -> Integer -> Integer -> Time_Zone
 new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"
 
-## ALIAS Time Zone from Text
-
-   This method parses the ID producing a `Time_Zone`.
-
-   Arguments:
-   - text: The text representing a zone identifier.
-
-   > Example
-     Get Central European Time.
-
-         from Standard.Base import Time_Zone
-
-         example_parse = Time_Zone.parse "CET"
-
-   > Example
-     Get Moscow time.
-
-         from Standard.Base import Time_Zone
-
-         example_parse = Time_Zone.parse "Europe/Moscow"
-
-   > Example
-     Get time zone -06:00.
-
-         from Standard.Base import Time_Zone
-
-         example_parse = Time_Zone.parse "-06:00"
-
-   > Example
-     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
-
-         from Standard.Base import Time_Zone
-
-         example_parse = Time_Zone.parse "+03:02:01"
-parse : Text -> Time_Zone ! Time_Error
-parse text =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
-        parse_builtin text
-
 ## PRIVATE
 
    This method parses the ID producing a `Time_Zone`.
@@ -127,9 +36,7 @@ parse text =
 parse_builtin : Text -> Time_Zone
 parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
 
-## PRIVATE
-
-   A type representing a time zone.
+## A type representing a time zone.
 
    Arguments:
    - internal_zone_id: The identifier for the internal zone of the
@@ -139,8 +46,101 @@ parse_builtin text = @Builtin_Method "Time_Zone.parse_builtin"
    "Europe/Paris".
 @Builtin_Type
 type Time_Zone
+    ## The system default timezone.
 
+       > Example
+         Get the system default timezone.
 
+             from Standard.Base import Time_Zone
+
+             example_system = Time_Zone.system
+    system : Time_Zone
+    system = @Builtin_Method "Time_Zone.system"
+
+    ## ALIAS Current Time Zone
+
+       The system's local timezone.
+
+       > Example
+         Get the system's local timezone.
+
+             from Standard.Base import Time_Zone
+
+             example_local = Time_Zone.local
+    local : Time_Zone
+    local = Time_Zone.system
+
+    ## ALIAS UTC Time Zone
+
+       The UTC timezone.
+
+       > Example
+         Get the UTC timezone.
+
+             from Standard.Base import Time_Zone
+
+             example_utc = Time_Zone.utc
+    utc : Time_Zone
+    utc = Time_Zone.parse "UTC"
+
+    ## Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds
+       from the UTC zone.
+
+       Arguments:
+       - hours: The timezone offset in hours from UTC, from -18 to +18.
+       - minutes: The timezone offset in minutes from the nearest hour, from 0 to
+         ±59. The sign must match that of the hours argument.
+       - seconds: The timezone offset in seconds from the nearest minute, from 0 to
+         ±59. The sign must match that of the minutes argument.
+
+       > Example
+         Get time zone 1 hour 1 minute and 50 seconds from UTC.
+
+             from Standard.Base import Zone
+
+             example_new = Zone.new 1 1 50
+    new : Integer -> Integer -> Integer -> Time_Zone
+    new (hours = 0) (minutes = 0) (seconds = 0) =
+        new_builtin hours minutes seconds
+
+    ## ALIAS Time Zone from Text
+
+       This method parses the ID producing a `Time_Zone`.
+
+       Arguments:
+       - text: The text representing a zone identifier.
+
+       > Example
+         Get Central European Time.
+
+             from Standard.Base import Time_Zone
+
+             example_parse = Time_Zone.parse "CET"
+
+       > Example
+         Get Moscow time.
+
+             from Standard.Base import Time_Zone
+
+             example_parse = Time_Zone.parse "Europe/Moscow"
+
+       > Example
+         Get time zone -06:00.
+
+             from Standard.Base import Time_Zone
+
+             example_parse = Time_Zone.parse "-06:00"
+
+       > Example
+         Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+
+             from Standard.Base import Time_Zone
+
+             example_parse = Time_Zone.parse "+03:02:01"
+    parse : Text -> Time_Zone ! Time_Error
+    parse text =
+        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+            parse_builtin text
 
     ## Get the unique timezone ID.
 
@@ -161,7 +161,7 @@ type Time_Zone
              from Standard.Base import Time_Zone
 
              example_to_json = Time_Zone.system.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Time_Zone"], ["id", self.zone_id]]
 
     ## Compares two Zones for equality.

@@ -105,7 +105,11 @@ class Compiler(
     */
   def runImportsResolution(module: Module): List[Module] = {
     initialize()
-    importResolver.mapImports(module)
+    try {
+      importResolver.mapImports(module)
+    } catch {
+      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+    }
   }
 
   /** Processes the provided language sources, registering any bindings in the
@@ -368,7 +372,12 @@ class Compiler(
   }
 
   private def runImportsAndExportsResolution(module: Module): List[Module] = {
-    val importedModules = importResolver.mapImports(module)
+    val importedModules =
+      try {
+        importResolver.mapImports(module)
+      } catch {
+        case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+      }
 
     val requiredModules =
       try { new ExportsResolution().run(importedModules) }
@@ -812,6 +821,16 @@ class Compiler(
           )
         case _ =>
       }
+      throw new CompilationAbortedException
+    } else {
+      throw exception
+    }
+  }
+
+  private def reportExportConflicts(exception: Throwable): Nothing = {
+    if (context.isStrictErrors) {
+      context.getOut.println("Compiler encountered errors:")
+      context.getOut.println(exception.getMessage)
       throw new CompilationAbortedException
     } else {
       throw exception

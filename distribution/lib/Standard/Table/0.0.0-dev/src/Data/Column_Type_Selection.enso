@@ -14,11 +14,12 @@ from Standard.Base import all
      without parsing.
 type Auto
 
-## Specifies the desired datatype for parsing a particular column.
+type Column_Type_Selection
+    ## Specifies the desired datatype for parsing a particular column.
 
-   Arguments:
-   - column: the column selector which can either be the column name or the
-     index.
-   - datatype: The desired datatype for the column or `Auto` to infer the type
-     from the data.
-type Column_Type_Selection (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean)=Auto
+       Arguments:
+       - column: the column selector which can either be the column name or the
+         index.
+       - datatype: The desired datatype for the column or `Auto` to infer the type
+         from the data.
+    Value (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean)=Auto

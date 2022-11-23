@@ -174,10 +174,10 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
     is_valid = (Range_Data 0 len+1).contains
 
-    case (Pair_Data (is_valid start) (is_valid end)) of
-        Pair_Data False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
-        Pair_Data True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
-        Pair_Data True True ->
+    case (Pair.Value (is_valid start) (is_valid end)) of
+        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
+        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
+        Pair.Value True True ->
             if start>=end then (Range_Data 0 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text

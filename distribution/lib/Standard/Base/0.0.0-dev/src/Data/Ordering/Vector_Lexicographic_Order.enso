@@ -1,4 +1,8 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Ordering.Ordering
+import project.Data.Vector.Vector
+
+from project.Data.Boolean import True, False
 
 ## Compares two Vectors according to the lexicographic ordering.
 
@@ -46,4 +50,3 @@ compare vector1 vector2 (element_comparator = _.compare_to _) =
                length that means they must have been equal.
             vector1.length . compare_to vector2.length
     go 0
-
