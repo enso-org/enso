@@ -19,7 +19,7 @@ cfg-if = "1.0.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env", "wrap_help"] }
 derivative = "2.2.0"
-derive_more = "0.99.17"
+derive_more = "0.99"
 dirs = "4.0.0"
 filetime = "0.2.15"
 flate2 = "1.0.22"
@@ -80,7 +80,7 @@ uuid = { version = "1.1.0", features = ["v4"] }
 walkdir = "2.3.2"
 which = "4.2.2"
 whoami = "1.2.1"
-zip = "0.6.2"
+zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
 ide-ci = { path = "../ci_utils" }

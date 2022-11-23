@@ -21,6 +21,7 @@ class JsonConnectionControllerFactory(
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
+  vcsManager: ActorRef,
   contentRootManager: ActorRef,
   contextRegistry: ActorRef,
   suggestionsHandler: ActorRef,
@@ -48,6 +49,7 @@ class JsonConnectionControllerFactory(
         bufferRegistry         = bufferRegistry,
         capabilityRouter       = capabilityRouter,
         fileManager            = fileManager,
+        vcsManager             = vcsManager,
         contentRootManager     = contentRootManager,
         contextRegistry        = contextRegistry,
         suggestionsHandler     = suggestionsHandler,
@@ -59,6 +61,7 @@ class JsonConnectionControllerFactory(
         projectSettingsManager = projectSettingsManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = config
-      )
+      ),
+      s"json-connection-controller-$clientId"
     )
 }

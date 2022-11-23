@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.Throwable
 
 ## A type representing dataflow errors.
 
@@ -115,7 +116,7 @@ type Error
              import Standard.Examples
 
              example_to_json = Examples.throw_error.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self =
         error_type = ["type", "Error"]
         caught = self.catch
@@ -149,7 +150,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -265,7 +266,7 @@ type Caught_Panic
     convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -335,7 +336,7 @@ type Panic
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic_Data _ internal_original_exception -> internal_original_exception
@@ -464,10 +465,10 @@ type Panic
          Converting one of many expected panic types to a dataflow error.
 
              Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
-    recover : (Vector.Vector Any | Any) -> Any -> Any
+    recover : (Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            _ : Vector.Vector -> expected_types
+            _ : Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->
@@ -745,7 +746,7 @@ type Unimplemented_Error
          import Standard.Base.Error.Common as Errors
 
          example_unimplemented = Errors.unimplemented
-unimplemented : Text -> Void
+unimplemented : Text -> Nothing
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
 
 ## TODO Dubious constructor export
@@ -766,6 +767,8 @@ type Time_Error
     epoch_start : Time_Error
     epoch_start = Time_Error_Data "Epoch start underflow"
 
+    to_display_text : Text
+    to_display_text self = self.error_message
 
 ## TODO Dubious constructor export
 from project.Error.Common.Unsupported_File_Type import all

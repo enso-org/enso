@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -8,7 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
@@ -21,7 +22,7 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(long self, Object that);
+  abstract Object execute(long self, Object that);
 
   @Specialization
   Atom doLong(long self, long that) {
@@ -50,12 +51,11 @@ public abstract class CompareToNode extends Node {
     }
   }
 
-  @Specialization
-  Atom doOther(long self, Object that) {
-    CompilerDirectives.transferToInterpreter();
-    var number = Context.get(this).getBuiltins().number().getNumber();
-    var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
-    throw new PanicException(typeError, this);
+  @Fallback
+  DataflowError doOther(long self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
   }
 
   Ordering getOrdering() {

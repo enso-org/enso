@@ -19,7 +19,7 @@ clap = { version = "3.1.5", features = ["derive", "env"] }
 cron = "0.12.0"
 data-encoding = "2.3.2"
 derivative = "2.2.0"
-derive_more = "0.99.17"
+derive_more = "0.99"
 dirs = "4.0.0"
 enso-build-base = { path = "../base" }
 filetime = "0.2.15"
@@ -53,8 +53,8 @@ platforms = "3.0.0"
 pin-project = "1.0.8"
 port_check = "0.1.5"
 pretty_env_logger = "0.4.0"
-proc-macro2 = "1.0.36"
-quote = "1.0.15"
+proc-macro2 = "1.0"
+quote = "1.0"
 rand = "0.8.4"
 regex = "1.5.4"
 reqwest = { version = "0.11.5", default-features = false, features = [
@@ -69,7 +69,7 @@ sha2 = "0.10.2"
 shrinkwraprs = "0.3.0"
 strum = { version = "0.24.0", features = ["derive"] }
 symlink = "0.1.0"
-syn = "1.0.86"
+syn = "1.0"
 sysinfo = "0.26.2"
 tar = "0.4.37"
 tempfile = "3.2.0"
@@ -83,7 +83,7 @@ uuid = { version = "1.1.0", features = ["v4", "serde"] }
 walkdir = "2.3.2"
 which = "4.2.2"
 whoami = "1.2.1"
-zip = "0.6.2"
+zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 warp = "0.3.2"

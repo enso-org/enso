@@ -25,6 +25,7 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
    * @param value the value to wrap.
    */
   public EnsoBigInteger(BigInteger value) {
+    assert (value.bitLength() > 63);
     this.value = value;
   }
 

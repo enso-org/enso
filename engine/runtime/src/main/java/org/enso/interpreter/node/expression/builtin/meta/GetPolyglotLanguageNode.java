@@ -9,7 +9,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Meta",
     name = "get_polyglot_language",
-    description = "Returns a text representation of a language of origin of a given value.")
+    description = "Returns a text representation of a language of origin of a given value.",
+    autoRegister = false)
 public abstract class GetPolyglotLanguageNode extends Node {
   static GetPolyglotLanguageNode build() {
     return GetPolyglotLanguageNodeGen.create();

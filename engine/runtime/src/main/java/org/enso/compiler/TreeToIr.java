@@ -17,6 +17,7 @@ import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidForeignDefinition;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
@@ -62,11 +63,10 @@ import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
 import org.enso.syntax2.DocComment;
 import org.enso.syntax2.Line;
-import org.enso.syntax2.MultiSegmentAppSegment;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.Tree.MultiSegmentApp;
+import org.enso.syntax2.TypeDefStatement;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -132,28 +132,31 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
       case Tree.TypeDef def -> {
+        List<IR> irBody = nil();
         var typeName = buildName(def.getName(), true);
-        var translatedBody = translateTypeBody(def.getBlock());
-        var irConstructors = new java.util.ArrayList<IR>();
-        for (var constructorLine : def.getConstructors()) {
-          var definition = constructorLine.getExpression();
-          if (definition == null) {
-            continue;
+        for (var line : def.getBody()) {
+          var definition = line.getStatement();
+          switch (definition) {
+            case null -> {}
+            case TypeDefStatement.Binding bind -> irBody = translateTypeBodyExpression(bind.getStatement(), irBody);
+            case TypeDefStatement.TypeConstructorDef cons -> {
+              if (cons.getDocumentation() != null) {
+                irBody = cons(translateComment(def, cons.getDocumentation()), irBody);
+              }
+              var constructorName = buildName(inputAst, cons.getConstructor());
+              List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
+              var cAt = getIdentifiedLocation(inputAst);
+              var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+              irBody = cons(ir, irBody);
+            }
+            default -> {}
           }
-          if (definition.getDocumentation() != null) {
-            irConstructors.add(translateComment(def, definition.getDocumentation()));
-          }
-          var constructorName = buildName(inputAst, definition.getConstructor());
-          List<IR.DefinitionArgument> args = translateArgumentsDefinition(definition.getArguments());
-          var cAt = getIdentifiedLocation(inputAst);
-          irConstructors.add(new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag()));
         }
-        var translatedConstructors = CollectionConverters.asScala(irConstructors.iterator()).toList();
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
           typeName,
           args,
-          translatedConstructors.appendedAll(translatedBody),
+          irBody.reverse(),
           getIdentifiedLocation(inputAst),
           meta(), diag()
         );
@@ -188,13 +191,14 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Module$Scope$Definition$Method$Binding(
                 methodRef, args, def, getIdentifiedLocation(inputAst), meta(), diag()
         );
         yield cons(binding, appendTo);
       }
+
       case Tree.Annotated anno -> {
         var annotation = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
@@ -235,19 +239,6 @@ final class TreeToIr {
 
   private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> args) {
     return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
-  }
-
-  /** Translates the body of a type expression.
-    *
-    * @param body the body to be translated
-    * @return the [[IR]] representation of `body`
-    */
-  private List<IR> translateTypeBody(java.util.List<Line> block) {
-    List<IR> res = nil();
-    for (var line : block) {
-      res = translateTypeBodyExpression(line.getExpression(), res);
-    }
-    return res.reverse();
   }
 
   /** Translates any expression that can be found in the body of a type
@@ -301,11 +292,12 @@ final class TreeToIr {
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
           yield cons(error, appendTo);
         }
-        var text = buildTextConstant(body.getElements(), true);
+        var text = buildTextConstant(body, body.getElements(), true);
         var def = new IR$Foreign$Definition(language, text, getIdentifiedLocation(fn.getBody()), meta(), diag());
         var binding = new IR$Function$Binding(name, args, def, getIdentifiedLocation(fn), true, meta(), diag());
         yield cons(binding, appendTo);
       }
+
       case Tree.Documented doc -> {
         var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
@@ -558,7 +550,14 @@ final class TreeToIr {
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
-            yield buildQualifiedName(app, loc, false);
+            try {
+              yield buildQualifiedName(app, loc, false);
+            } catch (UnhandledEntity ex) {
+              if (ex.entity() instanceof IR.Expression expr) {
+                yield expr;
+              }
+              throw ex;
+            }
           }
 
           case "->" -> {
@@ -682,7 +681,7 @@ final class TreeToIr {
           expressions.remove(expressions.size()-1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 1, null);
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined() && last.location().get().end() != locationWithANewLine.get().end()) {
             var patched = new Location(last.location().get().start(), locationWithANewLine.get().end() - 1);
             var id = new IdentifiedLocation(patched, last.location().get().id());
@@ -717,11 +716,10 @@ final class TreeToIr {
           List<IR.CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
-            if (expr != null) {
-              continue;
+            if (expr instanceof Tree.Ident) {
+                var call = translateCallArgument(expr);
+                args = cons(call, args);
             }
-            var call = translateCallArgument(expr);
-            args = cons(call, args);
           }
           yield switch (fn) {
             case IR$Application$Prefix pref -> patchPrefixWithBlock(pref, block, args);
@@ -742,7 +740,16 @@ final class TreeToIr {
               case IR.Expression in -> in;
           };
       }
-      case Tree.TextLiteral txt -> translateLiteral(txt);
+      case Tree.TextLiteral txt -> {
+        try {
+          yield translateLiteral(txt);
+        } catch (UnhandledEntity ex) {
+          if (ex.entity() instanceof IR.Expression expr) {
+            yield expr;
+          }
+          throw ex;
+        }
+      }
       case Tree.CaseOf cas -> {
         var expr = translateExpression(cas.getExpression(), false);
         List<IR$Case$Branch> branches = nil();
@@ -909,6 +916,9 @@ final class TreeToIr {
 
   @SuppressWarnings("unchecked")
   private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+    if (block.expressions().isEmpty() && block.returnValue() instanceof IR$Name$Blank) {
+      return pref;
+    }
     if (args.nonEmpty() && args.head() == null) {
         args = (List<IR.CallArgument>) args.tail();
     }
@@ -959,24 +969,49 @@ final class TreeToIr {
   IR.Literal translateLiteral(Tree.TextLiteral txt) {
     var stripComments = txt.getOpen().codeRepr().length() > 1;
     // Splices are not yet supported in the IR.
-    var value = buildTextConstant(txt.getElements(), stripComments);
+    var value = buildTextConstant(txt, txt.getElements(), stripComments);
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String buildTextConstant(Iterable elements, boolean stripComments) {
-    StringBuilder sb = new StringBuilder();
+  String buildTextConstant(Tree at, Iterable<TextElement> elements, boolean stripComments) {
+    var sb = new StringBuilder();
+    TextElement error = null;
     for (var t : elements) {
       switch (t) {
         case TextElement.Section s -> {
           var text = s.getText().codeRepr();
           if (stripComments) {
             // Reproduce an AstToIr bug for testing.
-            text = text.replaceAll("#[^\n\r]*", "");
+            var quotedSegments = text.split("\"", -1);
+            for (int i = 0; i < quotedSegments.length; i++) {
+              var seg = quotedSegments[i];
+              if (i % 2 == 0) {
+                sb.append(seg.replaceAll("#[^\n\r]*", ""));
+              } else {
+                sb.append('"');
+                sb.append(seg);
+                if (i + 1 < quotedSegments.length) {
+                  sb.append('"');
+                }
+              }
+            }
+          } else {
+            sb.append(text);
           }
-          sb.append(text);
         }
-        case TextElement.Escape e -> sb.appendCodePoint(e.getToken().getValue());
+        case TextElement.Escape e -> {
+          var val = e.getToken().getValue();
+          if (val == -1) {
+            error = t;
+          } else {
+            sb.appendCodePoint(val);
+          }
+        }
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
+    }
+    if (error != null) {
+      var ir = translateSyntaxError(at, IR$Error$Syntax$InvalidEscapeSequence$.MODULE$.apply(sb.toString()));
+      throw new UnhandledEntity(ir, "buildTextConstant");
     }
     return sb.toString();
   }
@@ -1133,7 +1168,12 @@ final class TreeToIr {
       if (app.getOpr().getRight() == null || !operator.equals(app.getOpr().getRight().codeRepr())) {
         break;
       }
-      segments.add(app.getRhs());
+      if (app.getRhs() != null) {
+        segments.add(app.getRhs());
+      } else {
+        var ir = translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        throw new UnhandledEntity(ir, "unrollOprRhs");
+      }
       list = app.getLhs();
     }
     segments.add(list);
@@ -1270,7 +1310,7 @@ final class TreeToIr {
     * @return the [[IR]] representation of `comment`
     */
   IR$Comment$Documentation translateComment(Tree where, DocComment doc) {
-    var text = buildTextConstant(doc.getElements(), true);
+    var text = buildTextConstant(where, doc.getElements(), true);
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
@@ -1438,13 +1478,13 @@ final class TreeToIr {
     }
   }
 
-    private void checkArgs(List<IR.CallArgument> args) {
-        LinearSeq<IR.CallArgument> a = args;
-        while (!a.isEmpty()) {
-            if (a.head() == null) {
-                throw new IllegalStateException("Problem: " + args);
-            }
-            a = (LinearSeq<IR.CallArgument>) a.tail();
-        }
+  private void checkArgs(List<IR.CallArgument> args) {
+    LinearSeq<IR.CallArgument> a = args;
+    while (!a.isEmpty()) {
+      if (a.head() == null) {
+        throw new IllegalStateException("Problem: " + args);
+      }
+      a = (LinearSeq<IR.CallArgument>) a.tail();
     }
+  }
 }

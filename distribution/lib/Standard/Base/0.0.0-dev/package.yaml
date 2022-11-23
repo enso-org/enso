@@ -29,7 +29,7 @@ component-groups:
           - Standard.Base.Network.Http.options
     - Parse:
         exports:
-          - Standard.Base.Data.Json.parse
+          - Standard.Base.Data.Json.Json.parse
           - Standard.Base.Data.Text.Regex.compile
           - Standard.Base.Data.Text.Regex.escape
           - Standard.Base.Data.Text.Regex.from_flags

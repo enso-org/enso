@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.Context;
 @BuiltinMethod(
     type = "Polyglot",
     name = "is_language_installed",
-    description = "Checks if a polyglot language is installed in the runtime environment.")
+    description = "Checks if a polyglot language is installed in the runtime environment.",
+    autoRegister = false)
 public abstract class IsLanguageInstalledNode extends Node {
 
   static IsLanguageInstalledNode build() {

@@ -42,5 +42,4 @@ futures = { version = "0.3.1" }
 reqwest = { version = "0.11.12" }
 tokio = { workspace = true }
 # Zip is needed because the build script downloads and extracts artifacts from the Engine.
-zip = { version = "0.6.2" }
-zip-extensions = { version = "0.6.1" }
+zip = { version = "0.6.2", default-features = false, features = ["deflate"] }

@@ -15,7 +15,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Meta",
     name = "get_unresolved_symbol_name",
-    description = "Gets the name of an unresolved symbol")
+    description = "Gets the name of an unresolved symbol",
+    autoRegister = false)
 public abstract class GetUnresolvedSymbolNameNode extends Node {
   static GetUnresolvedSymbolNameNode build() {
     return GetUnresolvedSymbolNameNodeGen.create();

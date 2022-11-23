@@ -299,7 +299,8 @@ lazy val enso = (project in file("."))
     `std-database`,
     `std-google-api`,
     `std-image`,
-    `std-table`
+    `std-table`,
+    `simple-httpbin`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -464,6 +465,8 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
+val jgitVersion             = "6.3.0.202209071007-r"
+val diffsonVersion          = "4.1.1"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.12"
 val newtypeVersion          = "0.4.4"
@@ -1047,7 +1050,8 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-literal" % circeVersion,
       akkaTestkit,
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion,
+      "org.gnieh"     %% "diffson-circe" % diffsonVersion
     )
   )
   .dependsOn(`json-rpc-server`)
@@ -1168,7 +1172,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -2077,6 +2082,17 @@ val stdBitsProjects =
   List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val `simple-httpbin` = project
+  .in(file("tools") / "simple-httpbin")
+  .settings(
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions ++= Seq("-XDignore.symbol.file", "-Xlint:all"),
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-text" % commonsTextVersion
+    )
+  )
+  .configs(Test)
 
 lazy val buildStdLib =
   inputKey[Unit]("Build an individual standard library package")
