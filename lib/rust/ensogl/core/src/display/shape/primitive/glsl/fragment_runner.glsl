@@ -30,11 +30,11 @@ if (pointer_events_enabled) {
 // =======================
 
 if (input_display_mode == DISPLAY_MODE_NORMAL) {
-    output_color      = srgba(unpremultiply(shape.color)).raw;
+    output_color      = srgba(shape.color.color).raw;
     output_color.rgb *= alpha;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
-   output_color = srgba(unpremultiply(shape.color)).raw;
+   output_color = srgba(shape.color.color).raw;
    output_color.rgb *= alpha;
    if (input_uv.x < 0.0 || input_uv.x > 1.0 || input_uv.y < 0.0 || input_uv.y > 1.0) {
        output_color = vec4(1.0,0.0,0.0,1.0);

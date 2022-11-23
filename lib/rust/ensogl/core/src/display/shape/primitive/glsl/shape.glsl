@@ -191,26 +191,32 @@ Id new_id_layer (BoundSdf sdf, int i) {
 }
 
 // Premultiplied
-struct Color {
-    Srgba color;
+struct PremultipliedColor {
+    Lcha color;
 };
 
-Color premultiply(Srgba t) {
-    float alpha = a(t);
-    vec3 rgb = t.raw.rgb * alpha;
-    return Color(srgba(rgb,alpha));
+struct Color {
+    Lcha color;
+};
+
+PremultipliedColor premultiply(Color t) {
+    float alpha = a(t.color);
+    vec3 rgb = t.color.raw.rgb * alpha;
+    return PremultipliedColor(lcha(rgb,alpha));
 }
 
-Srgba unpremultiply(Color t) {
+Color unpremultiply(PremultipliedColor t) {
     float alpha = t.color.raw.a;
     vec3  rgb   = t.color.raw.rgb / alpha;
-    return srgba(rgb,alpha);
+    return Color(lcha(rgb, alpha));
 }
 
-// Implements glBlendFuncSeparate(GL_ONE,GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 Color blend(Color bg, Color fg) {
-    vec4 raw = fg.color.raw + (1.0 - fg.color.raw.a) * bg.color.raw;
-    return Color(srgba(raw));
+    PremultipliedColor fg_premul = premultiply(fg);
+    PremultipliedColor bg_premul = premultiply(bg);
+    vec4 raw = fg_premul.color.raw + (1.0 - fg_premul.color.raw.a) * bg_premul.color.raw;
+    return unpremultiply(PremultipliedColor(lcha(raw)));
 }
 
 
@@ -234,40 +240,45 @@ struct Shape {
 Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
     float alpha = render(bound_sdf);
     rgba.raw.a *= alpha;
-    Color color = premultiply(rgba);
+    Color color = Color(lcha(rgba));
+    return Shape(id, bound_sdf, color, alpha);
+}
+
+Shape shape (Id id, BoundSdf bound_sdf, Lcha rgba) {
+    float alpha = render(bound_sdf);
+    rgba.raw.a *= alpha;
+    Color color = Color(rgba);
     return Shape(id, bound_sdf, color, alpha);
 }
 
 Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     float alpha = render(bound_sdf);
-    Srgba rgba = unpremultiply(color);
-    rgba.raw.a *= alpha;
-    Color color2 = premultiply(rgba);
-    return Shape(id, bound_sdf, color2, alpha);
+    color.color.raw.a *= alpha;
+    return Shape(id, bound_sdf, color, alpha);
 }
 
-Shape resample (Shape s, float multiplier) {
-    Id id = s.id;
-    BoundSdf sdf = resample(s.sdf, multiplier);
-    Srgba color = unpremultiply(s.color);
-    color.raw.a /= s.alpha;
-    return shape(id, sdf, color);
-}
-
-Shape pixel_snap (Shape s) {
-    Id id = s.id;
-    BoundSdf sdf = pixel_snap(s.sdf);
-    Srgba color = unpremultiply(s.color);
-    color.raw.a /= s.alpha;
-    return shape(id, sdf, color);
-}
+//Shape resample (Shape s, float multiplier) {
+//    Id id = s.id;
+//    BoundSdf sdf = resample(s.sdf, multiplier);
+//    Srgba color = unpremultiply(s.color);
+//    color.raw.a /= s.alpha;
+//    return shape(id, sdf, color);
+//}
+//
+//Shape pixel_snap (Shape s) {
+//    Id id = s.id;
+//    BoundSdf sdf = pixel_snap(s.sdf);
+//    Srgba color = unpremultiply(s.color);
+//    color.raw.a /= s.alpha;
+//    return shape(id, sdf, color);
+//}
 
 Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
-    Srgba color = unpremultiply(s.color);
-    color.raw.a /= s.alpha;
-    return shape(id, sdf, color);
+//    Lcha color = unpremultiply(s.color);
+//    color.raw.a /= s.alpha;
+    return shape(id, sdf, s.color);
 }
 
 Shape inverse (Shape s1) {
@@ -288,7 +299,7 @@ Shape intersection (Shape s1, Shape s2) {
 
 Shape set_color(Shape shape, Srgba t) {
     t.raw.a *= shape.alpha;
-    Color color = premultiply(t);
+    Color color = Color(lcha(t));
     shape.color = color;
     return shape;
 }

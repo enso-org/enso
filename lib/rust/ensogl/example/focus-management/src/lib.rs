@@ -37,7 +37,7 @@ mod rectangle {
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
             let inside = rect.shrink(BORDER_SIZE.px());
             let border = &inside.grow((border_size - 1.0).px()) - &inside;
-            let shape = inside.fill(color) + border.fill(border_color);
+            let shape = inside.fill(color::Rgba(0.0,0.0,0.0,0.2)) + border.fill(border_color);
             shape.into()
         }
     }
@@ -47,11 +47,8 @@ mod rectangle2 {
     use super::*;
     ensogl_core::shape! {
         (style: Style) {
-            let height = Var::<Pixels>::from("xxxx");
-            let shape = Rect((10.px(), 10.px()));
-            let small_rect = Rect((4.px(), 4.px()));
-            let shape = shape.fill(color::Rgba::new(0.0, 1.0, 0.0, 1.0));
-            let shape = shape - small_rect;
+            let rect = Rect((10.px(), 10.px()));
+            let shape = rect.fill(color::Rgba::new(0.0, 1.0, 0.0, 1.0));
             shape.into()
         }
     }
@@ -118,21 +115,21 @@ pub fn main() {
     let navigator = Navigator::new(scene, &camera);
     let network = &scene.frp.network;
 
-    // let container_size = RECT_SIZE + RECT_DIFF;
-    // let container = define_rect(container_size * 2.0, container_size, network);
-    // let left_stack = define_stack(network);
-    // let right_stack = define_stack(network);
-    // left_stack.mod_x(|x| x - (container_size) / 2.0);
-    // right_stack.mod_x(|x| x + (container_size) / 2.0);
+    let container_size = RECT_SIZE + RECT_DIFF;
+    let container = define_rect(container_size * 2.0, container_size, network);
+    let left_stack = define_stack(network);
+    let right_stack = define_stack(network);
+    left_stack.mod_x(|x| x - (container_size) / 2.0);
+    right_stack.mod_x(|x| x + (container_size) / 2.0);
 
     let rect = rectangle2::View::new();
-    rect.size.set(Vector2::new(20.0, 20.0));
+    rect.size.set(Vector2::new(2.0, 2.0));
     world.add_child(&rect);
     mem::forget(rect);
 
-    // world.add_child(&container);
-    // container.add_child(&left_stack);
-    // container.add_child(&right_stack);
+    world.add_child(&container);
+    container.add_child(&left_stack);
+    container.add_child(&right_stack);
     world.keep_alive_forever();
     mem::forget(navigator);
 }
