@@ -269,7 +269,7 @@ impl RunContext {
                 ret.packages.engine = Some(self.paths.engine.clone());
             }
             if build_native_runner {
-                tasks.push("engine-runner-native/buildNativeImage");
+                tasks.push("engine-runner/buildNativeImage");
             }
 
             if TARGET_OS != OS::Windows {
@@ -391,7 +391,7 @@ impl RunContext {
 
         let enso = BuiltEnso { paths: self.paths.clone() };
         if self.config.test_standard_library {
-            enso.run_tests(IrCaches::No, PARALLEL_ENSO_TESTS).await?;
+            enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
 
         if self.config.build_engine_package() {
@@ -406,7 +406,7 @@ impl RunContext {
         }
 
         if self.config.test_standard_library {
-            enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
+            enso.run_tests(IrCaches::Yes, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
 
         // if build_native_runner {
