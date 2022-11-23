@@ -284,23 +284,16 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
         })) => syntax::Token(left_offset, code, ident),
         _ => return Tree::ident(header).with_error("Expected identifier after `type` keyword."),
     };
-    let params = operator::Precedence::new()
+    let mut precedence = operator::Precedence::new();
+    let params = precedence
         .resolve_non_section(tokens)
         .map(crate::collect_arguments_inclusive)
         .unwrap_or_default();
     let mut builder = TypeDefBodyBuilder::default();
-    let mut beginning_of_line = true;
-    for item in &mut block {
-        match item {
-            syntax::Item::Token(syntax::Token {
-                variant: syntax::token::Variant::Newline(_),
-                ..
-            }) => {
-                beginning_of_line = true;
-                continue;
-            }
-            syntax::Item::Token(syntax::Token { variant, .. })
-                if beginning_of_line && matches!(variant, syntax::token::Variant::Operator(_)) =>
+    for syntax::item::Line { newline, mut items } in block {
+        match items.first_mut() {
+            Some(syntax::Item::Token(syntax::Token { variant, .. }))
+                if matches!(variant, syntax::token::Variant::Operator(_)) =>
             {
                 let opr_ident =
                     syntax::token::variant::Ident { is_operator_lexically: true, ..default() };
@@ -308,9 +301,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
             }
             _ => (),
         }
-        beginning_of_line = false;
-    }
-    for block::Line { newline, expression } in block::lines(block) {
+        let expression = precedence.resolve(items);
         builder.line(newline, expression);
     }
     let body = builder.finish();
@@ -471,13 +462,19 @@ fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let expression = resolve_operator_precedence_if_non_empty(expression);
     let of_ = into_ident(of.header);
     let mut case_builder = CaseBuilder::default();
+    let mut initial_case = vec![];
+    let mut block = default();
     for item in of.result.tokens() {
-        if let syntax::Item::Block(items) = item {
-            items.into_iter().for_each(|item| case_builder.push(item));
-        } else {
-            case_builder.push(item);
+        match item {
+            syntax::Item::Block(lines) => block = lines,
+            _ => initial_case.push(item),
         }
     }
+    if !initial_case.is_empty() {
+        let newline = syntax::token::newline("", "");
+        case_builder.push(syntax::item::Line { newline, items: initial_case });
+    }
+    block.into_iter().for_each(|line| case_builder.push(line));
     let (case_lines, any_invalid) = case_builder.finish();
     let tree = Tree::case_of(case_, expression, of_, case_lines);
     if any_invalid {
@@ -502,31 +499,25 @@ struct CaseBuilder<'s> {
 }
 
 impl<'s> CaseBuilder<'s> {
-    fn push(&mut self, token: syntax::Item<'s>) {
-        if let syntax::Item::Token(syntax::Token {
-            left_offset,
-            code,
-            variant: syntax::token::Variant::Newline(_),
-        }) = token
-        {
-            self.finish_line();
-            let newline = syntax::token::newline(left_offset, code).into();
-            self.case_lines.push(syntax::tree::CaseLine { newline, ..default() });
-            return;
+    fn push(&mut self, line: syntax::item::Line<'s>) {
+        let syntax::item::Line { newline, items } = line;
+        self.case_lines.push(syntax::tree::CaseLine { newline: newline.into(), ..default() });
+        for token in items {
+            if self.arrow.is_none() &&
+                    let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
+                    && op.properties.is_arrow()
+                    && !left_offset.is_empty() {
+                self.resolver.extend(self.tokens.drain(..));
+                self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
+                self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
+                continue;
+            }
+            if let syntax::Item::Token(syntax::Token { left_offset, .. }) = &token {
+                self.spaces = self.spaces || (!left_offset.is_empty() && !self.tokens.is_empty());
+            }
+            self.tokens.push(token);
         }
-        if self.arrow.is_none() &&
-                let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
-                && op.properties.is_arrow()
-                && !left_offset.is_empty() {
-            self.resolver.extend(self.tokens.drain(..));
-            self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
-            self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
-            return;
-        }
-        if let syntax::Item::Token(syntax::Token { left_offset, .. }) = &token {
-            self.spaces = self.spaces || (!left_offset.is_empty() && !self.tokens.is_empty());
-        }
-        self.tokens.push(token);
+        self.finish_line();
     }
 
     fn finish_line(&mut self) {
