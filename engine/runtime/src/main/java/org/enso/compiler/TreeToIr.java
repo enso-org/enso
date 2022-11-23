@@ -550,7 +550,14 @@ final class TreeToIr {
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
-            yield buildQualifiedName(app, loc, false);
+            try {
+              yield buildQualifiedName(app, loc, false);
+            } catch (UnhandledEntity ex) {
+              if (ex.entity() instanceof IR.Expression expr) {
+                yield expr;
+              }
+              throw ex;
+            }
           }
 
           case "->" -> {
@@ -1161,7 +1168,12 @@ final class TreeToIr {
       if (app.getOpr().getRight() == null || !operator.equals(app.getOpr().getRight().codeRepr())) {
         break;
       }
-      segments.add(app.getRhs());
+      if (app.getRhs() != null) {
+        segments.add(app.getRhs());
+      } else {
+        var ir = translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        throw new UnhandledEntity(ir, "unrollOprRhs");
+      }
       list = app.getLhs();
     }
     segments.add(list);

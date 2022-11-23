@@ -9,10 +9,10 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "Module_Does_Not_Exist_Error", name = "to_display_text")
-public abstract class ModuleDoesNotExistErrorToDisplayTextNode extends Node {
-  static ModuleDoesNotExistErrorToDisplayTextNode build() {
-    return ModuleDoesNotExistErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "Module_Does_Not_Exist", name = "to_display_text")
+public abstract class ModuleDoesNotExistToDisplayTextNode extends Node {
+  static ModuleDoesNotExistToDisplayTextNode build() {
+    return ModuleDoesNotExistToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);

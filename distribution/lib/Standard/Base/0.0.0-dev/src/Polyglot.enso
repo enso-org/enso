@@ -2,6 +2,14 @@
     Polyglot is a term that refers to other languages (such as Java) that are
     running on the same JVM.
 
+import project.Data.Any.Any
+import project.Data.Array.Array
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Data.Numbers.Integer
+import project.Runtime.Extensions.Source_Location
+
 @Builtin_Type
 type Polyglot
 
@@ -98,7 +106,7 @@ get_source_location value = @Builtin_Method "Polyglot.get_source_location"
 
     Arguments:
     - langauge_name: The name of the language to test
-is_language_installed : Text -> Bool
+is_language_installed : Text -> Boolean
 is_language_installed language_name = @Builtin_Method "Polyglot.is_language_installed"
 
 ## ADVANCED

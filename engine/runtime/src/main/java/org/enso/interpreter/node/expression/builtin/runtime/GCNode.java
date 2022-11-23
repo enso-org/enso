@@ -6,10 +6,14 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 
-@BuiltinMethod(type = "Runtime", name = "gc", description = "Forces garbage collection")
+@BuiltinMethod(
+    type = "Runtime",
+    name = "gc",
+    description = "Forces garbage collection",
+    autoRegister = false)
 public abstract class GCNode extends Node {
 
-  public abstract Object execute(Object self);
+  public abstract Object execute();
 
   /** @return A new GCNode. */
   public static GCNode build() {

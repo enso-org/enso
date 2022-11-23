@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -52,7 +53,7 @@ public final class UnresolvedSymbol implements TruffleObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
-   * @param constructors the constructors hierarchy for which this symbol should be resolved
+   * @param type the type for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(Type type) {
@@ -73,6 +74,7 @@ public final class UnresolvedSymbol implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     return this.toString();
   }

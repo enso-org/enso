@@ -105,7 +105,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-      return getProperFrame(frame, ptr).getValue(ptr.getFrameSlot());
+      return getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
     }
 
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {

@@ -14,15 +14,11 @@ get_default_seed = System.nano_time
 ## Constructs a new random number generator.
 new : Integer -> Random_Number_Generator
 new seed=get_default_seed =
-    Random_Number_Generator_Data (Java_Random.new seed)
-
-# TODO Dubious constructor export
-from project.Random.Random_Number_Generator import all
-from project.Random.Random_Number_Generator export all
+    Random_Number_Generator.Value (Java_Random.new seed)
 
 type Random_Number_Generator
     ## A random number generator.
-    Random_Number_Generator_Data java_random
+    Value java_random
 
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.

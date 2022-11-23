@@ -16,14 +16,14 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for simple patterns" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |main =
           |    f = case _ of
-          |        Cons a _ -> a
-          |        Nil -> -10
+          |        List.Cons a _ -> a
+          |        List.Nil -> -10
           |
-          |    f (Cons 10 Nil) - f Nil
+          |    f (List.Cons 10 List.Nil) - f List.Nil
           |""".stripMargin
 
       eval(code) shouldEqual 20
@@ -31,7 +31,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |type My_Atom
           |    Mk a
@@ -41,7 +41,7 @@ class PatternMatchTest extends InterpreterTest {
           |        My_Atom.Mk a -> a
           |        _ -> -100
           |
-          |    f (My_Atom.Mk 50) + f Nil
+          |    f (My_Atom.Mk 50) + f List.Nil
           |""".stripMargin
 
       eval(code) shouldEqual -50
@@ -79,16 +79,16 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for level one nested patterns" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |type MyAtom
           |
           |main =
           |    f = case _ of
-          |        Cons MyAtom _ -> 30
+          |        List.Cons MyAtom _ -> 30
           |        _ -> -30
           |
-          |    f (Cons MyAtom Nil)
+          |    f (List.Cons MyAtom List.Nil)
           |""".stripMargin
 
       eval(code) shouldEqual 30
@@ -96,21 +96,21 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for deeply nested patterns" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |type MyAtom
           |
           |main =
           |    f = case _ of
-          |        Cons (Cons MyAtom Nil) Nil -> 100
-          |        Cons _ Nil -> 50
+          |        List.Cons (List.Cons MyAtom List.Nil) List.Nil -> 100
+          |        List.Cons _ List.Nil -> 50
           |        y -> case y of
-          |            Cons _ Nil -> 30
+          |            List.Cons _ List.Nil -> 30
           |            _ -> 0
           |
-          |    val1 = f (Cons MyAtom Nil)            # 50
-          |    val2 = f (Cons (Cons MyAtom Nil) Nil) # 100
-          |    val3 = f 40                           # 0
+          |    val1 = f (List.Cons MyAtom List.Nil)                      # 50
+          |    val2 = f (List.Cons (List.Cons MyAtom List.Nil) List.Nil) # 100
+          |    val3 = f 40                                               # 0
           |
           |    val1 + val2 + val3
           |""".stripMargin
@@ -120,13 +120,13 @@ class PatternMatchTest extends InterpreterTest {
 
     "correctly result in errors for incomplete matches" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |type MyAtom
           |
           |main =
           |    f = case _ of
-          |        Nil -> 30
+          |        List.Nil -> 30
           |
           |    f MyAtom
           |""".stripMargin
@@ -137,7 +137,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for pattern matches in pattern matches" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |type My_Atom
           |    Mk a
@@ -149,11 +149,11 @@ class PatternMatchTest extends InterpreterTest {
           |main =
           |    f = case _ of
           |        My_Atom.Mk a -> case a of
-          |            One.Mk Nil -> 50
+          |            One.Mk List.Nil -> 50
           |            _ -> 30
           |        _ -> 20
           |
-          |    f (My_Atom.Mk (One.Mk Nil))
+          |    f (My_Atom.Mk (One.Mk List.Nil))
           |""".stripMargin
 
       eval(code) shouldEqual 50

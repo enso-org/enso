@@ -2,14 +2,10 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.*;
-import org.enso.interpreter.epb.node.CoercePrimitiveNode;
+import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
-import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -18,7 +14,8 @@ import org.enso.interpreter.runtime.data.Vector;
 @BuiltinMethod(
     type = "Vector",
     name = "from_array",
-    description = "Creates a Vector by copying Array content.")
+    description = "Creates a Vector by copying Array content.",
+    autoRegister = false)
 public abstract class FromArrayBuiltinVectorNode extends Node {
   static FromArrayBuiltinVectorNode build() {
     return FromArrayBuiltinVectorNodeGen.create();

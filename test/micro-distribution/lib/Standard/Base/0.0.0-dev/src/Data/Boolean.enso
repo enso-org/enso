@@ -6,3 +6,6 @@ type Boolean
     True
     False
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+    && self ~that = @Builtin_Method "Boolean.&&"
+    || self ~that = @Builtin_Method "Boolean.||"
+    not self = @Builtin_Method "Boolean.not"

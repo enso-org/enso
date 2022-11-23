@@ -61,6 +61,7 @@ class JsonConnectionControllerFactory(
         projectSettingsManager = projectSettingsManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = config
-      )
+      ),
+      s"json-connection-controller-$clientId"
     )
 }

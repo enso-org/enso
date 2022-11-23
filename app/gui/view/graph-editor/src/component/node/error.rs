@@ -6,6 +6,7 @@ use ensogl::system::web::traits::*;
 use crate::builtin::visualization::native::error as error_visualization;
 use crate::component::visualization;
 
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::DomSymbol;
@@ -90,12 +91,12 @@ impl Deref for Container {
 
 impl Container {
     /// Constructor of error container.
-    pub fn new(scene: &Scene) -> Self {
-        let scene = scene.clone_ref();
+    pub fn new(app: &Application) -> Self {
+        let scene = app.display.default_scene.clone_ref();
         let logger = Logger::new("error::Container");
         let display_object = display::object::Instance::new();
         let background_dom = Self::create_background_dom(&scene);
-        let visualization = error_visualization::Error::new(&scene);
+        let visualization = error_visualization::Error::new(app);
 
         display_object.add_child(&background_dom);
         display_object.add_child(&visualization);

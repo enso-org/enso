@@ -1,4 +1,4 @@
-from Standard.Base import IO, Integer, Vector, Statistics
+from Standard.Base import IO, Integer, Vector
 from Standard.Base.Data.Statistics import all
 
 from Standard.Test import Bench, Faker
@@ -20,4 +20,4 @@ main =
     vector = create_vector vector_size
 
     IO.println <| "Testing..."
-    Bench.measure (vector.compute_bulk [Count, Minimum, Maximum]) "Count Min Max" iter_size num_iterations
+    Bench.measure (vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]) "Count Min Max" iter_size num_iterations

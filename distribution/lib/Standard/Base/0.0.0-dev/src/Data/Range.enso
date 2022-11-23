@@ -257,7 +257,7 @@ type Range
          Getting a vector of the numbers 1 to 5.
 
              1.up_to 6 . to_vector
-    to_vector : Vector.Vector
+    to_vector : Vector
     to_vector self = self.map x->x
 
     ## Checks if the range contains the specified value.
