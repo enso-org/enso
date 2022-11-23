@@ -248,44 +248,15 @@ impl AliasAnalyzer {
         } else if let Ok(ambiguous) = ast::known::Ambiguous::try_from(ast) {
             self.process_given_subtrees(ambiguous.shape(), ambiguous.iter_pat_match_subcrumbs())
         } else if self.is_in_pattern() {
-            // We are in the pattern (be it a lambda's or assignment's left side). Three options:
-            // 1) This is a destructuring pattern match using infix syntax, like `head,tail`.
-            // 2) This is a destructuring pattern match with prefix syntax, like `Point x y`.
-            // 3) This is a single AST node, like `foo` or `Foo`.
+            // We are in the pattern (be it a lambda's or assignment's left side): it can be only
+            // a single AST node, like `foo` or `Foo`.
             // (the possibility of definition has been already excluded)
-            if let Some(infix_chain) = ast::opr::Chain::try_new(ast) {
-                // Infix always acts as pattern-match in left-side.
-                for operand in infix_chain.enumerate_non_empty_operands() {
-                    self.process_located_ast(&operand.map(|operand| &operand.arg))
+            match ast.shape() {
+                ast::Shape::Cons(_) | ast::Shape::Var(_) => {
+                    self.try_recording_identifier(OccurrenceKind::Introduced, ast);
                 }
-                for operator in infix_chain.enumerate_operators() {
-                    // Operators in infix positions are treated as constructors, i.e. they are used.
-                    self.store_if_name(OccurrenceKind::Used, operator);
-                }
-            } else if let Some(prefix_chain) = ast::prefix::Chain::from_ast(ast) {
-                // Constructor we match against is used. Its arguments introduce names.
-                if ast::known::Cons::try_from(&prefix_chain.func).is_ok() {
-                    self.store_if_name(OccurrenceKind::Used, prefix_chain.located_func());
-                }
-
-                // Arguments introduce names, we ignore function name.
-                // Arguments will just introduce names in pattern context.
-                for argument in prefix_chain.enumerate_args() {
-                    self.process_located_ast(&argument)
-                }
-            } else {
-                // Single AST node on the assignment LHS. Deal with identifiers, otherwise
-                // recursively process subtrees.
-                match ast.shape() {
-                    ast::Shape::Cons(_) => {
-                        self.try_recording_identifier(OccurrenceKind::Used, ast);
-                    }
-                    ast::Shape::Var(_) => {
-                        self.try_recording_identifier(OccurrenceKind::Introduced, ast);
-                    }
-                    _ => {
-                        self.process_subtrees(ast);
-                    }
+                _ => {
+                    self.process_subtrees(ast);
                 }
             }
         } else {
@@ -409,14 +380,14 @@ mod tests {
         let test_cases = [
             "»foo«",
             "«five» = 5",
-            "»Five« = 5",
+            "«Five» = 5",
             "«foo» = »bar«",
             "«foo» = »foo« »+« »bar«",
             "«foo» = »Bar«",
             "5 = »Bar«",
             "«sum» = »a« »+« »b«",
-            "»Point« «x» «u» = »point«",
-            "«x» »,« «y» = »pair«",
+            "«Point» «x» «u» = »point«",
+            "«x» , «y» = »pair«",
             r"«inc» =
                 »foo« »+« 1",
             r"«inc» =
@@ -430,28 +401,27 @@ mod tests {
             // === Macros Match ===
             "a -> a",
             "a -> »b«",
-            "»A« -> »b«",
+            "A -> »b«",
             "a -> A -> a",
-            "a -> a -> A",
-            "x»,«y -> »B«",
-            "x»,«y -> y",
-            "x »,« »Y« -> _",
+            "a -> a -> »A«",
+            "x,y -> »B«",
+            "x,y -> y",
+            "x , Y -> _",
             "(»foo«)",
             "(«foo») = (»bar«)",
             "if »A« then »B«",
             "if »a« then »b« else »c«",
-            "case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
+            "case »foo« of\n    Number a -> a\n    Wildcard -> »bar«\n    a,b -> a",
             // === Macros Ambiguous ===
             "(»foo«",
             "if »a«",
             "case »a«",
             // "->»a«", // TODO [mwu] restore (and implement) when parser is able to parse this
-            // "a ->",  // TODO [mwu] restore (and implement) when parser is able to parse this
-
+            // "a ->",    // TODO [mwu] restore (and implement) when parser is able to parse this
             // === Definition ===
             "«foo» a b c = »foo« a »d«",
             "«foo» a b c = d -> a d",
-            "«foo» a (»Point« x y) c = »foo« a x »d«",
+            "«foo» a (Point x y) c = »foo« a x »d«",
         ];
         for case in &test_cases {
             run_markdown_case(&parser, case)
