@@ -84,9 +84,9 @@ type SQL_Type
         _ : Integer -> SQL_Type.integer
         _ : Decimal -> SQL_Type.double
         _ : Text -> SQL_Type.varchar
-        _ : Date.Date -> SQL_Type.date
-        _ : Time_Of_Day.Time_Of_Day -> SQL_Type.time_of_day
-        _ : Date_Time.Date_Time -> SQL_Type.date_time
+        _ : Date -> SQL_Type.date
+        _ : Time_Of_Day -> SQL_Type.time_of_day
+        _ : Date_Time -> SQL_Type.date_time
             _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
 
     ## PRIVATE

@@ -48,7 +48,7 @@ macro_rules! test {
 
 #[test]
 fn nothing() {
-    test("", block![]);
+    test("", block![()]);
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn else_block() {
 
 #[test]
 fn plain_comments() {
-    test!("# a b c", ());
+    test!("# a b c", ()());
     test!("main = # define main\n 4",
         (Function (Ident main) #() "=" (BodyBlock #(() (Number () "4" ())))));
 }

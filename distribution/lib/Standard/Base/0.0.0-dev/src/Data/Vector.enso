@@ -375,12 +375,12 @@ type Vector a
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition self predicate =
-        pair = self.fold (Pair_Data Vector.new_builder Vector.new_builder) acc-> elem->
+        pair = self.fold (Pair.Value Vector.new_builder Vector.new_builder) acc-> elem->
             case predicate elem of
                 True ->
-                    Pair_Data (acc.first.append elem) acc.second
+                    Pair.Value (acc.first.append elem) acc.second
                 False ->
-                    Pair_Data acc.first (acc.second.append elem)
+                    Pair.Value acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
@@ -403,10 +403,10 @@ type Vector a
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair_Data Vector.new_builder Vector.new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair.Value Vector.new_builder Vector.new_builder) acc-> ix-> elem->
             case predicate ix elem of
-                True -> Pair_Data (acc.first.append elem) acc.second
-                False -> Pair_Data acc.first (acc.second.append elem)
+                True -> Pair.Value (acc.first.append elem) acc.second
+                False -> Pair.Value acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Applies a function to each element of the vector, returning the vector of

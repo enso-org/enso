@@ -200,7 +200,7 @@ detach_selected_warnings value predicate =
     result = warnings.partition w-> predicate w.value
     matched = result.first
     remaining = result.second
-    Pair_Data (set remaining value) matched
+    Pair.Value (set remaining value) matched
 
 ## UNSTABLE
    A helper function which gathers warnings matching some predicate and passes
