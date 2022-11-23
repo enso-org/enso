@@ -256,9 +256,13 @@ ensogl_core::define_endpoints_2! {
         cancel_value_editing(),
     }
     Output {
+        /// The component's width.
         width(f32),
+        /// The component's height.
         height(f32),
+        /// The slider's value.
         value(f32),
+        /// The slider's precision.
         precision(f32),
         /// The slider value's lower limit. This takes into account limit extension if an adaptive
         /// slider limit is set.
@@ -274,6 +278,8 @@ ensogl_core::define_endpoints_2! {
         disabled(bool),
         /// Indicates whether the slider's value is being edited currently.
         editing(bool),
+        /// The orientation of the slider, either horizontal or vertical.
+        orientation(SliderOrientation),
     }
 }
 
@@ -377,7 +383,6 @@ impl Slider {
             );
             output.hovered <+ bool(&component_events.mouse_out, &component_events.mouse_over);
             output.dragged <+ component_drag;
-            output.disabled <+ input.set_slider_disabled;
 
 
             // === Precision calculation ===
@@ -624,6 +629,8 @@ impl Slider {
                 &input.set_orientation,
             );
             eval label_position((p) model.set_label_position(p));
+
+            output.orientation <+ input.set_orientation;
         };
     }
 
@@ -650,6 +657,8 @@ impl Slider {
             label_color <- all2(&input.set_label_color, &input.set_slider_disabled);
             label_color_anim.target <+ label_color.map(desaturate_color);
             eval label_color_anim.value((color) model.label.set_property_default(color));
+
+            output.disabled <+ input.set_slider_disabled;
         };
     }
 
@@ -694,8 +703,7 @@ impl Slider {
         };
     }
 
-    /// Initialize the precision adjustment areas above/below the slider and the default precision
-    /// value.
+    /// Initialize the compinent with default values.
     fn init_slider_defaults(&self) {
         self.frp.set_default_precision(PRECISION_DEFAULT);
         self.frp.set_precision_adjustment_margin(PRECISION_ADJUSTMENT_MARGIN);
