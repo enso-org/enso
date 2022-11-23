@@ -438,14 +438,15 @@
 - [Fix performance of method calls on polyglot arrays][3781]
 - [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
+- [Connecting IGV 4 Enso with Engine sources][3810]
 - [Made Vector performance to be on par with Array][3811]
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
-- [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
-- [Connecting IGV 4 Enso with Engine sources][3810]
+- [Add the `Self` keyword referring to current type][3844]
 - [Support VCS for projects in Language Server][3851]
+- [Support multiple exports of the same module][3897]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -502,14 +503,15 @@
 [3781]: https://github.com/enso-org/enso/pull/3781
 [3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
+[3810]: https://github.com/enso-org/enso/pull/3810
 [3811]: https://github.com/enso-org/enso/pull/3811
-[3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
-[3844]: https://github.com/enso-org/enso/pull/3844
+[3828]: https://github.com/enso-org/enso/pull/3828
 [3835]: https://github.com/enso-org/enso/pull/3835
-[3810]: https://github.com/enso-org/enso/pull/3810
+[3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
+[3897]: https://github.com/enso-org/enso/pull/3897
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
