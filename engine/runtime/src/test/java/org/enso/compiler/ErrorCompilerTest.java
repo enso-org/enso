@@ -326,6 +326,19 @@ public class ErrorCompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidEscapeSequence$.MODULE$.apply("wrong  sequence"), "Invalid escape sequence wrong  sequence.", 9, 28);
   }
 
+  @Test
+  public void testNPE183814303() throws Exception {
+    var ir = parseTest("""
+    from Standard.Base import all
+
+    main =
+        x = "foo"
+        z = x. length
+        IO.println z
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 60, 62);
+  }
+
   private void assertSingleSyntaxError(
       IR.Module ir, IR$Error$Syntax$Reason type,
       String msg, int start, int end

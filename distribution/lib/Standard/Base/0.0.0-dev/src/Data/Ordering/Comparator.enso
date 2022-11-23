@@ -1,4 +1,11 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Ordering.Natural_Order
+import project.Data.Ordering.Ordering
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Text_Ordering.Text_Ordering
+import project.Nothing.Nothing
+
+from project.Data.Boolean import True, False
 from project.Data.Vector import handle_incomparable_value
 
 polyglot java import org.enso.base.ObjectComparator

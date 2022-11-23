@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Time import Duration, Period, Time_Period
 from Standard.Base.Error.Common import Time_Error_Data
 
 from Standard.Test import Test, Test_Suite
@@ -82,26 +81,26 @@ specWith name create_new_time parse_time =
             datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should add time-based interval" <|
-            time = create_new_time 0 + (Duration.minutes 1)
+            time = create_new_time 0 + (Duration.new minutes=1)
             time . to_seconds . should_equal 60
 
         Test.specify "should subtract time-based interval" <|
-            time = create_new_time 0 - (Duration.minutes 1)
+            time = create_new_time 0 - (Duration.new minutes=1)
             time . to_seconds . should_equal 86340
 
         Test.specify "should support mixed interval operators" <|
-            time = create_new_time 0 + (Duration.hours 1) - (Duration.seconds 1)
+            time = create_new_time 0 + (Duration.new hours=1) - (Duration.new seconds=1)
             time . to_seconds . should_equal 3599
 
         Test.specify "should throw error when adding date-based interval" <|
-            case (create_new_time 0 + (Period.days 1)) . catch of
+            case (create_new_time 0 + (Period.new days=1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting date-based interval" <|
-            case (create_new_time 0 - (Period.days 1)) . catch of
+            case (create_new_time 0 - (Period.new days=1)) . catch of
                 Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
@@ -122,8 +121,8 @@ specWith name create_new_time parse_time =
             new_timeofday = create_new_time 15 37 58
             parsed_timeofday =  parse_time "10:00:00"
 
-            Meta.type_of new_timeofday . should_equal_type Time_Of_Day.Time_Of_Day
-            Meta.type_of parsed_timeofday . should_equal_type Time_Of_Day.Time_Of_Day
+            Meta.type_of new_timeofday . should_equal_type Time_Of_Day
+            Meta.type_of parsed_timeofday . should_equal_type Time_Of_Day
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Time_Period containing the current time of day" <|

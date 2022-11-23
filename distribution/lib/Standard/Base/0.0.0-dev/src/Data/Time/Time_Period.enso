@@ -1,17 +1,19 @@
-from Standard.Base import all
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Date_Time.Date_Time
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoUnit
+polyglot java import java.time.temporal.TemporalUnit
 
-# TODO Dubious constructor export
-from project.Data.Time.Time_Period.Time_Period import all
-from project.Data.Time.Time_Period.Time_Period export all
-
-## Represents a period of time of a day or shorter.
+## Represents a unit of time of a day or shorter.
 type Time_Period
     Day
+
     Hour
+
     Minute
+
     Second
 
     ## PRIVATE
@@ -23,10 +25,10 @@ type Time_Period
     ## PRIVATE
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
-        Day -> ChronoUnit.DAYS
-        Hour -> ChronoUnit.HOURS
-        Minute -> ChronoUnit.MINUTES
-        Second -> ChronoUnit.SECONDS
+        Time_Period.Day -> ChronoUnit.DAYS
+        Time_Period.Hour -> ChronoUnit.HOURS
+        Time_Period.Minute -> ChronoUnit.MINUTES
+        Time_Period.Second -> ChronoUnit.SECONDS
 
     ## PRIVATE
     adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)

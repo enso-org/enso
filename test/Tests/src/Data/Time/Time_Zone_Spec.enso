@@ -39,7 +39,7 @@ spec =
                     Test.fail ("Unexpected result: " + result.to_text)
         Test.specify "should correctly determine the type of zone" <|
             zone = Time_Zone.parse "Europe/Warsaw"
-            Meta.type_of zone . should_equal_type Time_Zone.Time_Zone
+            Meta.type_of zone . should_equal_type Time_Zone
     Test.group "JavaZoneId" <|
         Test.specify "should get system zone id" <|
             defaultZone = ZoneId.systemDefault
@@ -67,6 +67,6 @@ spec =
                 Json.from_pairs [["type", "Time_Zone"], ["id", "UTC"]]
         Test.specify "should correctly determine the type of zone" <|
             zone = ZoneId.systemDefault
-            Meta.type_of zone . should_equal_type Time_Zone.Time_Zone
+            Meta.type_of zone . should_equal_type Time_Zone
 
 main = Test_Suite.run_main spec
