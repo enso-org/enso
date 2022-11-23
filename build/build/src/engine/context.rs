@@ -391,7 +391,7 @@ impl RunContext {
 
         let enso = BuiltEnso { paths: self.paths.clone() };
         if self.config.test_standard_library {
-            enso.run_tests(IrCaches::No, PARALLEL_ENSO_TESTS).await?;
+            enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
 
         if self.config.build_engine_package() {
@@ -406,7 +406,7 @@ impl RunContext {
         }
 
         if self.config.test_standard_library {
-            enso.run_tests(IrCaches::Yes, PARALLEL_ENSO_TESTS).await?;
+            enso.run_tests(IrCaches::Yes, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
 
         // if build_native_runner {
