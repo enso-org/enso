@@ -6,7 +6,6 @@ use std::env::consts::EXE_EXTENSION;
 use std::fmt::Formatter;
 
 
-
 #[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
 pub mod generated {
     include!(concat!(env!("OUT_DIR"), "/paths.rs"));

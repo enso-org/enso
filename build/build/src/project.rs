@@ -39,7 +39,6 @@ pub use runtime::Runtime;
 pub use wasm::Wasm;
 
 
-
 // FIXME: this works for Project Manager bundle-style archives only, not all.
 pub fn path_to_extract() -> Option<PathBuf> {
     Some("enso".into())

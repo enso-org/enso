@@ -15,7 +15,6 @@ use crate::version::promote::Designation;
 use crate::version::Versions;
 
 use ide_ci::github;
-use ide_ci::github::release::ReleaseHandle;
 use ide_ci::io::web::handle_error_response;
 use ide_ci::programs::Docker;
 use ide_ci::programs::SevenZip;
@@ -27,9 +26,31 @@ use tempfile::tempdir;
 
 
 
-pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
-    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-    Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
+pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
+    // Generate the release notes.
+    let changelog_contents = ide_ci::fs::read_to_string(&context.repo_root.changelog_md)?;
+    let latest_changelog_body =
+        crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
+
+
+    let mut available_variables = BTreeMap::<&str, String>::new();
+    available_variables.insert("version", context.triple.versions.version.to_string());
+    available_variables.insert("edition", context.triple.versions.edition_name());
+    available_variables.insert("repo_name", context.remote_repo.name.clone());
+    available_variables.insert("repo_owner", context.remote_repo.owner.clone());
+    available_variables.insert(
+        "download_prefix",
+        format!(
+            "https://github.com/{}/releases/download/{}",
+            context.remote_repo, context.triple.versions.version
+        ),
+    );
+    available_variables.insert("changelog", latest_changelog_body.contents);
+
+    let handlebars = handlebars::Handlebars::new();
+    let template = include_str!("../release-body.md");
+    let body = handlebars.render_template(template, &available_variables)?;
+    Ok(body)
 }
 
 // #[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(),
@@ -66,12 +87,7 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
         bail!("Tag {} already exists on remote as {:?}.", tag, colliding_remote_tag.object);
     }
 
-    // Generate the release notes.
-    let changelog_contents = ide_ci::fs::read_to_string(&context.repo_root.changelog_md)?;
-    let latest_changelog_body =
-        crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
-
-    let is_prerelease = version::Kind::Stable.matches(&versions.version);
+    let is_prerelease = version::Kind::deduce(&versions.version)?.is_prerelease();
 
     debug!("Preparing release {} for commit {}", versions.version, commit);
     let release = context
@@ -81,7 +97,7 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
         .create(&versions.tag())
         .target_commitish(&commit)
         .name(&versions.pretty_name())
-        .body(&latest_changelog_body.contents)
+        .body(&generate_release_body(context).await?)
         .prerelease(is_prerelease)
         .draft(true)
         .send()

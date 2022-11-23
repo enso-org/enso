@@ -347,6 +347,11 @@ impl Kind {
             .find(|kind| kind.matches(version))
             .with_context(|| format!("Failed to deduce build kind for version {version}"))
     }
+
+    /// Check if this is one of the prerelease kinds.
+    pub fn is_prerelease(self) -> bool {
+        self != Kind::Stable
+    }
 }
 
 #[cfg(test)]
