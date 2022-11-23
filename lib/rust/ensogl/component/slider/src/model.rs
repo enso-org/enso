@@ -3,6 +3,9 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+
+
+use crate::LabelPosition;
 use crate::SliderOrientation;
 
 use ensogl_core::application::Application;
@@ -205,32 +208,6 @@ impl Model {
         self.track.size.set(size + margin);
     }
 
-    /// Set the fraction of the slider filled by the track.
-    pub fn set_track_fraction(&self, (fraction, orientation): &(f32, SliderOrientation)) {
-        match orientation {
-            SliderOrientation::Horizontal => {
-                self.track.slider_fraction_horizontal.set(*fraction);
-                self.track.slider_fraction_vertical.set(1.0);
-                self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
-                self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
-            }
-            SliderOrientation::Vertical => {
-                self.track.slider_fraction_horizontal.set(1.0);
-                self.track.slider_fraction_vertical.set(*fraction);
-                self.overflow_lower.set_rotation_z(std::f32::consts::PI);
-                self.overflow_upper.set_rotation_z(0.0);
-            }
-        }
-    }
-
-    /// Set the size of the overflow markers.
-    pub fn set_overflow_marker_size(&self, size: f32) {
-        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        let size = Vector2(size, size) + margin;
-        self.overflow_lower.size.set(size);
-        self.overflow_upper.size.set(size);
-    }
-
     /// Set the color of the slider track.
     pub fn set_track_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
@@ -239,6 +216,38 @@ impl Model {
     /// Set the color of the slider background.
     pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
+    }
+
+    /// Set the fraction of the slider filled by the track.
+    pub fn set_track_fraction(&self, (fraction, orientation): &(f32, SliderOrientation)) {
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.track.slider_fraction_horizontal.set(*fraction);
+                self.track.slider_fraction_vertical.set(1.0);
+            }
+            SliderOrientation::Vertical => {
+                self.track.slider_fraction_horizontal.set(1.0);
+                self.track.slider_fraction_vertical.set(*fraction);
+            }
+        }
+    }
+
+    /// Set the size and orientation of the overflow markers.
+    pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, SliderOrientation)) {
+        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
+        let size = Vector2(*size, *size) + margin;
+        self.overflow_lower.size.set(size);
+        self.overflow_upper.size.set(size);
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
+                self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
+            }
+            SliderOrientation::Vertical => {
+                self.overflow_lower.set_rotation_z(std::f32::consts::PI);
+                self.overflow_upper.set_rotation_z(0.0);
+            }
+        }
     }
 
     /// Set whether the lower overfow marker is visible.
@@ -257,6 +266,35 @@ impl Model {
         } else {
             self.root.remove_child(&self.overflow_upper);
         }
+    }
+
+    /// Set the position of the slider's label.
+    pub fn set_label_position(
+        &self,
+        (comp_width, comp_height, lab_width, lab_height, position, orientation): &(
+            f32,
+            f32,
+            f32,
+            f32,
+            LabelPosition,
+            SliderOrientation,
+        ),
+    ) {
+        let label_position_x = match orientation {
+            SliderOrientation::Horizontal => match position {
+                LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
+                LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
+            },
+            SliderOrientation::Vertical => -lab_width / 2.0,
+        };
+        let label_position_y = match orientation {
+            SliderOrientation::Horizontal => lab_height / 2.0,
+            SliderOrientation::Vertical => match position {
+                LabelPosition::Inside => comp_height / 2.0 - comp_width / 2.0,
+                LabelPosition::Outside => comp_height / 2.0 + comp_width / 2.0 + lab_height,
+            },
+        };
+        self.label.set_position_xy(Vector2(label_position_x, label_position_y));
     }
 
     /// Set whether the slider label is hidden.
