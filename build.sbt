@@ -2100,8 +2100,8 @@ buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
   val root: File  = engineDistributionRoot.value
   // Ensure that a complete distribution was built at least once.
-  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
-  // delegate to another task defintion (sbt restriction).
+  // Because of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task definition (sbt restriction).
   if ((root / "manifest.yaml").exists) {
     pkgStdLibInternal.toTask(cmd)
   } else buildEngineDistribution

@@ -255,46 +255,48 @@ case class BindingsMap(
     *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
-    resolvedImports.collect { case ResolvedImport(_, Some(exp), mod) =>
-      val hidingEnsoProject =
-        SymbolRestriction.Hiding(Set(Generated.ensoProjectMethodName))
-      val restriction = if (exp.isAll) {
-        val definedRestriction = if (exp.onlyNames.isDefined) {
-          SymbolRestriction.Only(
-            exp.onlyNames.get
-              .map(name =>
-                SymbolRestriction
-                  .AllowedResolution(name.name.toLowerCase, None)
-              )
-              .toSet
-          )
-        } else if (exp.hiddenNames.isDefined) {
-          SymbolRestriction.Hiding(
-            exp.hiddenNames.get.map(_.name.toLowerCase).toSet
+    resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
+      exports.map { exp =>
+        val hidingEnsoProject =
+          SymbolRestriction.Hiding(Set(Generated.ensoProjectMethodName))
+        val restriction = if (exp.isAll) {
+          val definedRestriction = if (exp.onlyNames.isDefined) {
+            SymbolRestriction.Only(
+              exp.onlyNames.get
+                .map(name =>
+                  SymbolRestriction
+                    .AllowedResolution(name.name.toLowerCase, None)
+                )
+                .toSet
+            )
+          } else if (exp.hiddenNames.isDefined) {
+            SymbolRestriction.Hiding(
+              exp.hiddenNames.get.map(_.name.toLowerCase).toSet
+            )
+          } else {
+            SymbolRestriction.All
+          }
+          SymbolRestriction.Intersect(
+            List(hidingEnsoProject, definedRestriction)
           )
         } else {
-          SymbolRestriction.All
-        }
-        SymbolRestriction.Intersect(
-          List(hidingEnsoProject, definedRestriction)
-        )
-      } else {
-        SymbolRestriction.Only(
-          Set(
-            SymbolRestriction.AllowedResolution(
-              exp.getSimpleName.name.toLowerCase,
-              Some(mod)
+          SymbolRestriction.Only(
+            Set(
+              SymbolRestriction.AllowedResolution(
+                exp.getSimpleName.name.toLowerCase,
+                Some(mod)
+              )
             )
           )
-        )
+        }
+        val rename = if (!exp.isAll) {
+          Some(exp.getSimpleName.name)
+        } else {
+          None
+        }
+        ExportedModule(mod, rename, restriction)
       }
-      val rename = if (!exp.isAll) {
-        Some(exp.getSimpleName.name)
-      } else {
-        None
-      }
-      ExportedModule(mod, rename, restriction)
-    }
+    }.flatten
 }
 
 object BindingsMap {
@@ -675,7 +677,7 @@ object BindingsMap {
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,
-    exports: Option[IR.Module.Scope.Export.Module],
+    exports: List[IR.Module.Scope.Export.Module],
     target: ImportTarget
   ) {
 
