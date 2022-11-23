@@ -47,7 +47,7 @@ public class BigNumberTest {
   public void evaluation() throws Exception {
     final URI facUri = new URI("memory://choose.enso");
     final Source facSrc = Source.newBuilder("enso", """
-    import Standard.Base.Data.Vector
+    from Standard.Base.Data.Vector import Vector
 
     powers n =
         go x v b = if x > n then b.to_vector else
