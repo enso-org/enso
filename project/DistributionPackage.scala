@@ -514,11 +514,17 @@ object DistributionPackage {
       graalDir: File,
       arguments: String*
     ): String = {
+      val shallowFile = graalDir / "bin" / "gu"
+      val deepFile = graalDir / "Contents" / "Home" / "bin" / "gu"
       val executableFile = os match {
         case OS.Linux =>
-          graalDir / "bin" / "gu"
+          shallowFile
         case OS.MacOS =>
-          graalDir / "Contents" / "Home" / "bin" / "gu"
+          if (deepFile.exists) {
+            deepFile
+          } else {
+            shallowFile
+          }
         case OS.Windows =>
           graalDir / "bin" / "gu.cmd"
       }
