@@ -1,9 +1,8 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -13,21 +12,25 @@ import org.enso.interpreter.runtime.Context;
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
-@NodeField(name = "frameSlot", type = FrameSlot.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
-  AssignmentNode() {}
+  private final int frameSlotIdx;
+
+  AssignmentNode(int frameSlotIdx) {
+    this.frameSlotIdx = frameSlotIdx;
+  }
 
   /**
    * Creates an instance of this node.
    *
    * @param expression the expression being assigned
-   * @param slot the slot to which {@code expression} is being assigned
+   * @param frameSlotIdx the slot index to which {@code expression} is being assigned
    * @return a node representing an assignment
    */
-  public static AssignmentNode build(ExpressionNode expression, FrameSlot slot) {
-    return AssignmentNodeGen.create(expression, slot);
+  public static AssignmentNode build(ExpressionNode expression, int frameSlotIdx) {
+    return AssignmentNodeGen.create(frameSlotIdx, expression);
   }
+
   /**
    * Writes a long value into the provided frame.
    *
@@ -37,8 +40,8 @@ public abstract class AssignmentNode extends ExpressionNode {
    */
   @Specialization(guards = "isLongOrIllegal(frame)")
   protected Object writeLong(VirtualFrame frame, long value) {
-    frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
-    frame.setLong(getFrameSlot(), value);
+    frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Long);
+    frame.setLong(frameSlotIdx, value);
 
     return Context.get(this).getNothing();
   }
@@ -50,23 +53,16 @@ public abstract class AssignmentNode extends ExpressionNode {
    * @param value the value to write
    * @return the unit type
    */
-  @Specialization
+  @Fallback
   protected Object writeObject(VirtualFrame frame, Object value) {
-    frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Object);
-    frame.setObject(getFrameSlot(), value);
+    frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
+    frame.setObject(frameSlotIdx, value);
 
     return Context.get(this).getNothing();
   }
 
   boolean isLongOrIllegal(VirtualFrame frame) {
-    FrameSlotKind kind = frame.getFrameDescriptor().getFrameSlotKind(getFrameSlot());
+    FrameSlotKind kind = frame.getFrameDescriptor().getSlotKind(frameSlotIdx);
     return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
   }
-
-  /**
-   * Gets the current frame slot
-   *
-   * @return the frame slot being written to
-   */
-  public abstract FrameSlot getFrameSlot();
 }

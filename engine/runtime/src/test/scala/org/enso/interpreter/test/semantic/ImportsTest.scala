@@ -88,12 +88,39 @@ class ImportsTest extends PackageTest {
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
-    the[InterpreterException] thrownBy (evalTestProject(
+    the[InterpreterException] thrownBy evalTestProject(
       "TestSubmodulesNameConflict"
-    )) should have message "Method `c_mod_method` of C could not be found."
+    ) should have message "Method `c_mod_method` of C could not be found."
     val outLines = consumeOut
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+  }
+
+  "Compiler" should "accept exports of the same module" in {
+    evalTestProject("Test_Multiple_Exports") shouldEqual 0
+    val outLines = consumeOut
+    outLines(0) shouldEqual "z"
+    outLines(1) shouldEqual "42"
+  }
+
+  "Compiler" should "reject qualified exports of the same module with conflicting hidden names" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Multiple_Conflicting_Exports_1"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines(
+      1
+    ) shouldEqual "Hidden 'foo' name of the exported module local.Test_Multiple_Conflicting_Exports_1.F1 conflicts with the qualified export"
+  }
+
+  "Compiler" should "reject unqualified exports of the same module with conflicting hidden names" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Multiple_Conflicting_Exports_2"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines(
+      1
+    ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
   }
 
   "Constructors" should "be importable" in {
