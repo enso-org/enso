@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.List;
@@ -32,8 +33,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @ExportLibrary(InteropLibrary.class)
 public class DebugLocalScope implements TruffleObject {
   private final EnsoRootNode rootNode;
+
   /** All the bindings, including the parent scopes. */
   private final Map<String, FramePointer> allBindings;
+
   /**
    * The inner lists represent particular scope in a scope hierarchy. For example, for the following
    * snippet:
@@ -50,6 +53,7 @@ public class DebugLocalScope implements TruffleObject {
    * the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
    */
   private final List<List<String>> bindingsByLevels;
+
   /** Index of the current scope into {@link #bindingsByLevels} list. */
   private final int bindingsByLevelsIdx;
 
@@ -60,18 +64,19 @@ public class DebugLocalScope implements TruffleObject {
       MaterializedFrame frame,
       List<List<String>> bindingsByLevels,
       int bindingsByLevelsIdx) {
+    assert bindingsByLevels != null;
     this.rootNode = rootNode;
     this.frame = frame;
     this.allBindings = rootNode.getLocalScope().flattenBindings();
-    this.bindingsByLevels =
-        bindingsByLevels != null ? bindingsByLevels : gatherBindingsByLevels(allBindings);
+    this.bindingsByLevels = bindingsByLevels;
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
     assert !this.bindingsByLevels.isEmpty();
     assert 0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size();
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
-    return new DebugLocalScope(rootNode, frame, null, 0);
+    return new DebugLocalScope(
+        rootNode, frame, gatherBindingsByLevels(rootNode.getLocalScope().flattenBindings()), 0);
   }
 
   private static DebugLocalScope createParent(DebugLocalScope childScope) {
@@ -83,13 +88,11 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
-    int maxParentLevel = -1;
-    for (var framePointer : bindings.values()) {
-      if (framePointer.getParentLevel() > maxParentLevel) {
-        maxParentLevel = framePointer.getParentLevel();
-      }
-    }
-    assert maxParentLevel >= 0;
+    int maxParentLevel =
+        bindings.values().stream()
+            .max(Comparator.comparingInt(FramePointer::getParentLevel))
+            .orElseThrow()
+            .getParentLevel();
 
     // Get all binding names for a particular parent level
     List<List<String>> bindingsByLevels = new ArrayList<>(maxParentLevel + 1);
@@ -129,9 +132,7 @@ public class DebugLocalScope implements TruffleObject {
   @ExportMessage
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
-    for (int i = bindingsByLevelsIdx; i < bindingsByLevels.size(); i++) {
-      members.addAll(bindingsByLevels.get(i));
-    }
+    bindingsByLevels.stream().skip(bindingsByLevelsIdx).forEach(members::addAll);
     return new ScopeMembers(members);
   }
 
