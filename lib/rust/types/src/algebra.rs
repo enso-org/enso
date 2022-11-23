@@ -478,6 +478,7 @@ impl Acos for f32 {
 
 /// Saturating addition. Computes self + rhs, saturating at the numeric bounds instead of
 /// overflowing.
+#[const_trait]
 #[allow(missing_docs)]
 pub trait SaturatingAdd<Rhs = Self> {
     type Output;
@@ -487,6 +488,7 @@ pub trait SaturatingAdd<Rhs = Self> {
 /// Saturating subtraction. Computes self - rhs, saturating at the numeric bounds instead of
 /// overflowing.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait SaturatingSub<Rhs = Self> {
     type Output;
     fn saturating_sub(self, rhs: Rhs) -> Self::Output;
@@ -495,6 +497,7 @@ pub trait SaturatingSub<Rhs = Self> {
 /// Saturating multiplication. Computes self * rhs, saturating at the numeric bounds instead of
 /// overflowing.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait SaturatingMul<Rhs = Self> {
     type Output;
     fn saturating_mul(self, rhs: Rhs) -> Self::Output;
@@ -502,6 +505,7 @@ pub trait SaturatingMul<Rhs = Self> {
 
 /// Saturating power. Computes self ^ exp, saturating at the numeric bounds instead of overflowing.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait SaturatingPow {
     type Output;
     fn saturating_pow(self, exp: u32) -> Self::Output;

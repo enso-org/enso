@@ -19,7 +19,7 @@
 #![feature(const_deref)]
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
-#![feature(is_some_with)]
+#![feature(is_some_and)]
 #![feature(pin_macro)]
 #![feature(result_option_inspect)]
 #![feature(extend_one)]

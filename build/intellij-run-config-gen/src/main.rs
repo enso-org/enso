@@ -146,7 +146,7 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
             for config in configs {
                 let file_name_suffix = config.to_file_name_suffix();
                 let file_name = format!("{command_name}-{name}{file_name_suffix}.xml");
-                let path = run_config_path.join(&file_name);
+                let path = run_config_path.join(file_name);
                 let xml = generate_run_config_xml(
                     command_name,
                     command,
@@ -154,7 +154,7 @@ fn process_paths<T: AsRef<Path>>(paths: &[T]) {
                     config,
                     *cfg_type,
                 );
-                fs::write(&path, xml).expect("Unable to write the run configuration to {path:?}.");
+                fs::write(path, xml).expect("Unable to write the run configuration to {path:?}.");
             }
         }
     }
