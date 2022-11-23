@@ -127,8 +127,10 @@ class ImportResolver(compiler: Compiler) {
     fromAllExports match {
       case _ :: _ :: _ =>
         // Detect potential conflicts when importing all and hiding names for the exports of the same module
-        val all = fromAllExports.collect { case e if e.onlyNames.isEmpty => e }
-        val onlyNames = fromAllExports.collect {
+        val unqualifiedImports = fromAllExports.collect {
+          case e if e.onlyNames.isEmpty => e
+        }
+        val qualifiedImports = fromAllExports.collect {
           case IR.Module.Scope.Export.Module(
                 _,
                 _,
@@ -142,7 +144,7 @@ class ImportResolver(compiler: Compiler) {
               ) =>
             onlyNames.map(_.name)
         }
-        val withHiddenNames = fromAllExports.collect {
+        val importsWithHiddenNames = fromAllExports.collect {
           case e @ IR.Module.Scope.Export.Module(
                 _,
                 _,
@@ -156,21 +158,24 @@ class ImportResolver(compiler: Compiler) {
               ) =>
             (e, hiddenNames)
         }
-        withHiddenNames.foreach { case (e, hidden) =>
-          val conflictsWithAll = all.filter(_ != e)
-          if (conflictsWithAll.nonEmpty) {
+        importsWithHiddenNames.foreach { case (e, hidden) =>
+          val unqualifiedConflicts = unqualifiedImports.filter(_ != e)
+          if (unqualifiedConflicts.nonEmpty) {
             throw HiddenNamesShadowUnqualifiedExport(
               e.name.name,
               hidden.map(_.name)
             )
           }
 
-          val conflictsWithNames =
-            onlyNames.filter(_ != e).flatten.intersect(hidden.map(_.name))
-          if (conflictsWithNames.nonEmpty) {
+          val qualifiedConflicts =
+            qualifiedImports
+              .filter(_ != e)
+              .flatten
+              .intersect(hidden.map(_.name))
+          if (qualifiedConflicts.nonEmpty) {
             throw HiddenNamesShadowQualifiedExport(
               e.name.name,
-              conflictsWithNames
+              qualifiedConflicts
             )
           }
         }
