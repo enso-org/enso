@@ -35,8 +35,9 @@ to perform the following tasks:
   configuration. This is both a version number and (if it is changed), the
   associated version of Java.
 - Change the expected GraalVM version in the
-  [`scala.yml`](../../.github/workflows/scala.yml) and
-  [`release.yml`](../../.github/workflows/release.yml) workflows.
+  [`release-publish-edition`](../../.github/workflows/release-publish-edition.yml)
+  workflow.
 - Change the base image in the [`Dockerfile`](../../tools/ci/docker/Dockerfile)
   to contain the correct GraalVM version.
+- Just to be sure, search for the version regex in all the files in the repo.
 - Ensure that all deprecations have been handled.

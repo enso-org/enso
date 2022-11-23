@@ -269,7 +269,7 @@ impl RunContext {
                 ret.packages.engine = Some(self.paths.engine.clone());
             }
             if build_native_runner {
-                tasks.push("engine-runner-native/buildNativeImage");
+                tasks.push("engine-runner/buildNativeImage");
             }
 
             if TARGET_OS != OS::Windows {
