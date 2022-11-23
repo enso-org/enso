@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all

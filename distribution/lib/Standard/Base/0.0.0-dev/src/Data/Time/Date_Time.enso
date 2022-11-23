@@ -1,7 +1,25 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+import project.Data.Time.Day_Of_Week_From
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Period.Time_Period
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Vector
+import project.Meta
+import project.Nothing.Nothing
+import project.Warning
 
-from Standard.Base.Data.Time import Duration, Period, Date_Period, Time_Period
-from Standard.Base.Error.Common import Time_Error
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
@@ -10,21 +28,6 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
-
-## Obtains the start of the epoch for Enso.
-
-    ? Start of the epoch
-    For Enso, start of the epoch is equal to the start of the Gregorian calendar,
-    which is on 15th October 1582.
-
-    Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
-    is computed for all the date times, including those before an epoch start,
-    with today's rules. Trying to get some Gregorian calendar related properties
-    for a historical date times that is defined before the epoch is likely an error,
-    as the Gregorian calendar had not yet been introduced. Therefore, for such
-    historical date times, a warning is attached to the result.
-enso_epoch_start : Date_Time
-enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 
 ## PRIVATE
 unix_epoch_start : Date_Time
@@ -35,62 +38,12 @@ ensure_in_epoch : (Date_Time | Date) -> (Any -> Any) -> Any
 ensure_in_epoch date ~action =
     datetime = case date of
         x : Date_Time -> x
-        x : Date.Date -> x.to_date_time
+        x : Date -> x.to_date_time
     ret_value = action
-    case enso_epoch_start <= datetime of
+    case Date_Time.enso_epoch_start <= datetime of
         True -> ret_value
         False ->
             Warning.attach (Time_Error_Data ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
-
-## ALIAS Current Time
-
-   Obtains the current date-time from the system clock in the system timezone.
-
-   > Example
-     Get the current time
-
-         from Standard.Base import Date_Time
-
-         example_now = Date_Time.now
-now : Date_Time
-now = @Builtin_Method "Date_Time.now"
-
-## Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
-   second, nanosecond and timezone.
-
-   Arguments:
-   - year: The year to represent, any Integer is valid.
-   - month: the month-of-year to represent, from 1 (January) to 12 (December)
-   - day: the day-of-month to represent, from 1 to 31 and must be valid for the
-     year and month
-   - hour: the hour-of-day to represent, from 0 to 23
-   - minute: the minute-of-hour to represent, from 0 to 59
-   - second: the second-of-minute to represent, from 0 to 59
-   - millisecond: the millisecond-of-second to represent, from 0 to 999.
-   - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
-   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
-   - zone: the timezone
-
-   Returns a `Time_Error` if the provided time cannot be represented.
-
-   > Example
-     Create a new zoned date time at Unix epoch.
-
-         from Standard.Base import Date_Time, Time_Zone
-
-         example_new = Date_Time.new 1970 (zone = Time_Zone.utc)
-
-   > Example
-     Get the 5 August 1986 at midnight.
-
-         from Standard.Base import Date_Time, Time_Zone
-
-         example_new = Date_Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
-new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
-    total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-    Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
-        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## PRIVATE
 
@@ -111,91 +64,6 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond
    Recommended to use `Date_Time.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
 new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
-
-## ALIAS Time from Text
-
-   Obtains an instance of `Time` from a text such as
-   "2007-12-03T10:15:30+01:00 Europe/Paris".
-
-   Arguments:
-   - text: The text representing the time to be parsed.
-   - pattern: The pattern to use for parsing the input text.
-   - locale: The locale in which the pattern should be interpreted.
-
-   ? Pattern Syntax
-     For the list of accepted symbols in pattern refer to `Time.format` doc.
-
-   ? Default Date_Time Format
-     The text must represent a valid date-time and is parsed using the ISO-8601
-     extended offset date-time format to add the timezone. The section in square
-     brackets is not part of the ISO-8601 standard. The format consists of:
-
-     - The ISO offset date time.
-     - If the zone ID is not available or is a zone offset then the format is
-       complete.
-     - An open square bracket '['.
-     - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
-       sensitive.
-     - A close square bracket ']'.
-
-   This method will return a `Time_Error` if the provided time cannot be parsed
-   using the above format.
-
-   > Example
-     Parse UTC time.
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-10-01T04:11:12Z"
-
-   > Example
-     Parse UTC-04:00 time.
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00"
-
-   > Example
-     Parse UTC-04:00 time specifying New York timezone.
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00[America/New_York]"
-
-   > Example
-     Parse UTC-04:00 time with nanoseconds.
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-10-01T04:11:12.177528-04:00"
-
-   > Example
-     Recover from the parse error.
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-10-01" . catch Time_Error (_->Date_Time.now)
-
-   > Example
-     Parse "2020-05-06 04:30:20" as Date_Time
-
-         from Standard.Base import Date_Time
-
-         example_parse = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
-
-   > Example
-     Parse "06 of May 2020 at 04:30AM" as Date_Tme
-
-         from Standard.Base import Date_Time
-
-         example_parse =
-            Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
-parse text pattern=Nothing locale=Locale.default =
-    Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
-        case pattern of
-            Nothing -> parse_builtin text
-            _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
 ## PRIVATE
 
@@ -224,6 +92,156 @@ parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
    the Europe/Paris timezone" can be stored as `Time`.
 @Builtin_Type
 type Date_Time
+    ## Obtains the start of the epoch for Enso.
+
+        ? Start of the epoch
+        For Enso, start of the epoch is equal to the start of the Gregorian calendar,
+        which is on 15th October 1582.
+
+        Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
+        is computed for all the date times, including those before an epoch start,
+        with today's rules. Trying to get some Gregorian calendar related properties
+        for a historical date times that is defined before the epoch is likely an error,
+        as the Gregorian calendar had not yet been introduced. Therefore, for such
+        historical date times, a warning is attached to the result.
+    enso_epoch_start : Date_Time
+    enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
+
+    ## ALIAS Current Time
+
+       Obtains the current date-time from the system clock in the system timezone.
+
+       > Example
+         Get the current time
+
+             from Standard.Base import Date_Time
+
+             example_now = Date_Time.now
+    now : Date_Time
+    now = @Builtin_Method "Date_Time.now"
+
+    ## Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
+       second, nanosecond and timezone.
+
+       Arguments:
+       - year: The year to represent, any Integer is valid.
+       - month: the month-of-year to represent, from 1 (January) to 12 (December)
+       - day: the day-of-month to represent, from 1 to 31 and must be valid for the
+         year and month
+       - hour: the hour-of-day to represent, from 0 to 23
+       - minute: the minute-of-hour to represent, from 0 to 59
+       - second: the second-of-minute to represent, from 0 to 59
+       - millisecond: the millisecond-of-second to represent, from 0 to 999.
+       - microsecond: the microsecond-of-second to represent, from 0 to 999,999.
+       - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+       - zone: the timezone
+
+       Returns a `Time_Error` if the provided time cannot be represented.
+
+       > Example
+         Create a new zoned date time at Unix epoch.
+
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_new = Date_Time.new 1970 (zone = Time_Zone.utc)
+
+       > Example
+         Get the 5 August 1986 at midnight.
+
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_new = Date_Time.new 1986 8 5
+    new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
+    new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
+        total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
+        Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
+            Error.throw (Time_Error_Data java_exception.getMessage)
+
+    ## ALIAS Time from Text
+
+       Obtains an instance of `Time` from a text such as
+       "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+       Arguments:
+       - text: The text representing the time to be parsed.
+       - pattern: The pattern to use for parsing the input text.
+       - locale: The locale in which the pattern should be interpreted.
+
+       ? Pattern Syntax
+         For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+       ? Default Date_Time Format
+         The text must represent a valid date-time and is parsed using the ISO-8601
+         extended offset date-time format to add the timezone. The section in square
+         brackets is not part of the ISO-8601 standard. The format consists of:
+
+         - The ISO offset date time.
+         - If the zone ID is not available or is a zone offset then the format is
+           complete.
+         - An open square bracket '['.
+         - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+           sensitive.
+         - A close square bracket ']'.
+
+       This method will return a `Time_Error` if the provided time cannot be parsed
+       using the above format.
+
+       > Example
+         Parse UTC time.
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-10-01T04:11:12Z"
+
+       > Example
+         Parse UTC-04:00 time.
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00"
+
+       > Example
+         Parse UTC-04:00 time specifying New York timezone.
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-10-01T04:11:12-04:00[America/New_York]"
+
+       > Example
+         Parse UTC-04:00 time with nanoseconds.
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-10-01T04:11:12.177528-04:00"
+
+       > Example
+         Recover from the parse error.
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-10-01" . catch Time_Error (_->Date_Time.now)
+
+       > Example
+         Parse "2020-05-06 04:30:20" as Date_Time
+
+             from Standard.Base import Date_Time
+
+             example_parse = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+
+       > Example
+         Parse "06 of May 2020 at 04:30AM" as Date_Tme
+
+             from Standard.Base import Date_Time
+
+             example_parse =
+                Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
+    parse text pattern=Nothing locale=Locale.default =
+        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+            case pattern of
+                Nothing -> parse_builtin text
+                _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
+
 
     ## Get the year portion of the time.
 
@@ -346,14 +364,14 @@ type Date_Time
        See `Date_Time.enso_epoch_start`.
     to_enso_epoch_seconds : Integer
     to_enso_epoch_seconds self =
-        (Duration.between enso_epoch_start self).total_seconds.floor
+        (Duration.between Date_Time.enso_epoch_start self).total_seconds.floor
 
     ## Return the number of milliseconds from the Enso epoch start.
 
        See `Date_Time.enso_epoch_start`.
     to_enso_epoch_milliseconds : Integer
     to_enso_epoch_milliseconds self =
-        (Duration.between enso_epoch_start self).total_milliseconds.floor
+        (Duration.between Date_Time.enso_epoch_start self).total_milliseconds.floor
 
     ## Convert this point in time to time of day, discarding the time zone
        information.
@@ -483,16 +501,16 @@ type Date_Time
        > Example
          Add 15 years and 3 hours to a zoned date time.
 
-             from Standard.Base import Date_Time
-             from Standard.Base.Data.Time import Duration, Period
+             from Standard.Base import Date_Time, Period
+             from Standard.Base.Data.Time import Duration
 
-             example_plus = Date_Time.new 2020 + (Period.years 15) + (Duration.hours 3)
+             example_plus = Date_Time.new 2020 + (Period.new years=15) + (Duration.new hours=3)
     + : (Duration | Period) -> Date_Time ! Time_Error
     + self amount =
         case amount of
-            duration : Duration.Duration ->
+            duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
-            period : Period.Period ->
+            period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
 
     ## Shift the date by the specified amount of business days.
@@ -552,13 +570,13 @@ type Date_Time
              from Standard.Base import Date_Time
              import Standard.Base.Data.Time.Duration
 
-             example_minus = Date_Time.new 2020 - (Period.years 1) - (Period.months 9) - (Duration.hours 5)
+             example_minus = Date_Time.new 2020 - (Period.new years=1) - (Period.new months=9) - (Duration.new hours=5)
     - : (Duration | Period) -> Date_Time ! Time_Error
     - self amount =
         result = case amount of
-            duration : Duration.Duration ->
+            duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
-            period : Period.Period ->
+            period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
 
@@ -672,7 +690,7 @@ type Date_Time
          Compare two times for their ordering.
 
          (Date_Time.new 2000).compare_to (Date_Time.new 2001)
-    compare_to : Time -> Ordering
+    compare_to : Date_Time -> Ordering
     compare_to self that = case that of
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
@@ -682,6 +700,7 @@ type Date_Time
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean
     == self that = case that of
+        Date_Time -> Meta.is_same_object self Date_Time
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             0 == sign

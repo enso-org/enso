@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Runtime.State
-import Standard.Base.Data.Time.Duration
 
 import project.Test_Reporter
 import project.Test_Result.Test_Result
@@ -69,7 +68,7 @@ type Test
     specify label ~behavior pending=Nothing =
         pair = case pending of
             Nothing -> Duration.time_execution (run_spec behavior)
-            reason -> Pair_Data Duration.zero (Test_Result.Pending reason)
+            reason -> Pair.Value Duration.zero (Test_Result.Pending reason)
         result = pair.second
         time_taken = pair.first
         spec = State.get Spec

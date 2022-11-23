@@ -11,6 +11,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
 from project.Errors import Unsupported_Database_Operation_Error_Data

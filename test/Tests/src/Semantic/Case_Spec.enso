@@ -132,48 +132,48 @@ spec = Test.group "Pattern Matches" <|
         new_zone = Time_Zone.system
 
         case new_date of
-            Date_Time.Date_Time -> Test.fail "Expected date value to match Date type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date type."
-            Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date type."
-            Date.Date -> Test.fail "Expected date value to match Date type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected date value to match Date type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected date value to match Date type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected date value to match Date type."
-            _ : Date.Date -> Nothing
+            Date_Time -> Test.fail "Expected date value to match Date type."
+            Time_Of_Day -> Test.fail "Expected date value to match Date type."
+            Time_Zone -> Test.fail "Expected date value to match Date type."
+            Date -> Test.fail "Expected date value to match Date type."
+            _ : Date_Time -> Test.fail "Expected date value to match Date type."
+            _ : Time_Of_Day -> Test.fail "Expected date value to match Date type."
+            _ : Time_Zone -> Test.fail "Expected date value to match Date type."
+            _ : Date -> Nothing
             _ -> Test.fail "Expected date value to match Date type."
 
         case new_date_time of
-            Date.Date -> Test.fail "Expected datetime value to match Date_Time type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
-            Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
-            Date_Time.Date_Time -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Date.Date -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
-            _ : Date_Time.Date_Time -> Nothing
+            Date -> Test.fail "Expected datetime value to match Date_Time type."
+            Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
+            Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
+            Date_Time -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Date -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Time_Of_Day -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Time_Zone -> Test.fail "Expected datetime value to match Date_Time type."
+            _ : Date_Time -> Nothing
 
             _ -> Test.fail "Expected datetime value to match Date_Time type."
 
         case new_time of
-            Date.Date -> Test.fail "Expected time value to match Time_Of_Day type."
-            Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
-            Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Date.Date -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Time_Zone.Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
-            _ : Time_Of_Day.Time_Of_Day -> Nothing
+            Date -> Test.fail "Expected time value to match Time_Of_Day type."
+            Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
+            Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
+            Time_Of_Day -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Date -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Date_Time -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Time_Zone -> Test.fail "Expected time value to match Time_Of_Day type."
+            _ : Time_Of_Day -> Nothing
             _ -> Test.fail "Expected time value to match Time_Of_Day type."
 
         case new_zone of
-            Date.Date -> Test.fail "Expected timezone value to match Time_Zone type."
-            Date_Time.Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
-            Time_Of_Day.Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
-            Time_Zone.Time_Zone -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Date.Date -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Date_Time.Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Time_Of_Day.Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
-            _ : Time_Zone.Time_Zone -> Nothing
+            Date -> Test.fail "Expected timezone value to match Time_Zone type."
+            Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
+            Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
+            Time_Zone -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Date -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Date_Time -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Time_Of_Day -> Test.fail "Expected timezone value to match Time_Zone type."
+            _ : Time_Zone -> Nothing
             _ -> Test.fail "Expected timezone value to match Time_Zone type."
 
     Test.specify "should be able to match on literal values" <|
