@@ -44,7 +44,8 @@ public abstract class IsSameObjectNode extends Node {
   }
 
   @Fallback
-  boolean isIdenticalObjects(Object left, Object right, @CachedLibrary(limit = "2") InteropLibrary interop) {
+  boolean isIdenticalObjects(
+      Object left, Object right, @CachedLibrary(limit = "2") InteropLibrary interop) {
     return (left == right) || interop.isIdentical(left, right, interop);
   }
 }

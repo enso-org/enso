@@ -1350,7 +1350,8 @@ def installedGuComponents(logger: ManagedLogger): Seq[String] = {
   components
 }
 
-lazy val installGraalJs = Def.task {
+lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
+ThisBuild / installGraalJs := {
   val logger = streams.value.log
   if (!installedGuComponents(logger).contains("js")) {
     logger.info("Installing js GraalVM component")
@@ -1360,8 +1361,8 @@ lazy val installGraalJs = Def.task {
     )
   }
 }
-lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM compoent")
 
+lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM component")
 ThisBuild / installNativeImage := {
   val logger = streams.value.log
   if (!installedGuComponents(logger).contains("native-image")) {

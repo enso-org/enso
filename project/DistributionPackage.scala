@@ -506,7 +506,7 @@ object DistributionPackage {
       * @param os the system type
       * @param graalDir the directory with a GraalVM distribution
       * @param arguments the command arguments
-     *                  @return Stdout from the `gu` command.
+      * @return Stdout from the `gu` command.
       */
     def gu(
       log: ManagedLogger,

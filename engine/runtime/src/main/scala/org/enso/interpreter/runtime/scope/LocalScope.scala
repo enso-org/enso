@@ -8,7 +8,10 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Scope => AliasScope
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
-import org.enso.interpreter.runtime.scope.LocalScope.internalSlots
+import org.enso.interpreter.runtime.scope.LocalScope.{
+  internalSlots,
+  monadicStateSlotName
+}
 
 import scala.jdk.CollectionConverters._
 
@@ -83,11 +86,11 @@ class LocalScope(
     */
   def monadicStateSlotIdx: Int = {
     internalSlots.zipWithIndex
-      .find { case ((_, name), _) => name == "<<monadic_state>>" }
+      .find { case ((_, name), _) => name == monadicStateSlotName }
       .map(_._2)
       .getOrElse(
         throw new IllegalStateException(
-          "<<monadic_state>> slot should be present in every frame descriptor"
+          s"$monadicStateSlotName slot should be present in every frame descriptor"
         )
       )
   }
@@ -222,11 +225,13 @@ object LocalScope {
     )
   }
 
+  private val monadicStateSlotName = "<<monadic_state>>"
+
   /** Internal slots are prepended at the beginning of every [[FrameDescriptor]].
     * Every tuple of the list denotes frame slot kind and its name.
     * Note that `info` for a frame slot is not used by Enso.
     */
   def internalSlots: List[(FrameSlotKind, String)] = List(
-    (FrameSlotKind.Object, "<<monadic_state>>")
+    (FrameSlotKind.Object, monadicStateSlotName)
   )
 }
