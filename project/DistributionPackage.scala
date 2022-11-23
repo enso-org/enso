@@ -506,34 +506,47 @@ object DistributionPackage {
       * @param os the system type
       * @param graalDir the directory with a GraalVM distribution
       * @param arguments the command arguments
+      * @return Stdout from the `gu` command.
       */
     def gu(
       log: ManagedLogger,
       os: OS,
       graalDir: File,
       arguments: String*
-    ): Unit = {
+    ): String = {
+      val shallowFile = graalDir / "bin" / "gu"
+      val deepFile = graalDir / "Contents" / "Home" / "bin" / "gu"
       val executableFile = os match {
         case OS.Linux =>
-          graalDir / "bin" / "gu"
+          shallowFile
         case OS.MacOS =>
-          graalDir / "Contents" / "Home" / "bin" / "gu"
+          if (deepFile.exists) {
+            deepFile
+          } else {
+            shallowFile
+          }
         case OS.Windows =>
           graalDir / "bin" / "gu.cmd"
       }
       val javaHomeFile = executableFile.getParentFile.getParentFile
+      val javaHome = javaHomeFile.toPath.toAbsolutePath
       val command =
         executableFile.toPath.toAbsolutePath.toString +: arguments
-      val exitCode = Process(
-        command,
-        Some(graalDir),
-        ("JAVA_HOME", javaHomeFile.toPath.toAbsolutePath.toString),
-        ("GRAALVM_HOME", javaHomeFile.toPath.toAbsolutePath.toString)
-      ).!
-      if (exitCode != 0) {
-        throw new RuntimeException(
-          s"Failed to run '${command.mkString(" ")}'"
-        )
+
+      log.debug(s"Running $command in $graalDir with JAVA_HOME=${javaHome.toString}")
+
+      try {
+        Process(
+          command,
+          Some(graalDir),
+          ("JAVA_HOME", javaHome.toString),
+          ("GRAALVM_HOME", javaHome.toString)
+        ).!!
+      } catch {
+        case _: RuntimeException =>
+          throw new RuntimeException(
+            s"Failed to run '${command.mkString(" ")}'"
+          )
       }
     }
 
