@@ -235,7 +235,7 @@ Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
     float alpha = render(bound_sdf);
     rgba.raw.a *= alpha;
     Color color = premultiply(rgba);
-    return Shape(id,bound_sdf,color,alpha);
+    return Shape(id, bound_sdf, color, alpha);
 }
 
 Shape shape (Id id, BoundSdf bound_sdf, Color color) {
@@ -243,47 +243,47 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     Srgba rgba = unpremultiply(color);
     rgba.raw.a *= alpha;
     Color color2 = premultiply(rgba);
-    return Shape(id,bound_sdf,color2,alpha);
+    return Shape(id, bound_sdf, color2, alpha);
 }
 
 Shape resample (Shape s, float multiplier) {
-    Id       id    = s.id;
-    BoundSdf sdf   = resample(s.sdf,multiplier);
-    Srgba    color = unpremultiply(s.color);
+    Id id = s.id;
+    BoundSdf sdf = resample(s.sdf,multiplier);
+    Srgba color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
-    return shape(id,sdf,color);
+    return shape(id, sdf, color);
 }
 
 Shape pixel_snap (Shape s) {
-    Id       id    = s.id;
-    BoundSdf sdf   = pixel_snap(s.sdf);
-    Srgba    color = unpremultiply(s.color);
+    Id id = s.id;
+    BoundSdf sdf = pixel_snap(s.sdf);
+    Srgba color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
-    return shape(id,sdf,color);
+    return shape(id, sdf, color);
 }
 
 Shape grow (Shape s, float value) {
-    Id       id    = s.id;
-    BoundSdf sdf   = grow(s.sdf,value);
-    Srgba    color = unpremultiply(s.color);
+    Id id = s.id;
+    BoundSdf sdf = grow(s.sdf,value);
+    Srgba color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
-    return shape(id,sdf,color);
+    return shape(id, sdf, color);
 }
 
 Shape inverse (Shape s1) {
-    return shape(s1.id,inverse(s1.sdf),s1.color);
+    return shape(s1.id, inverse(s1.sdf), s1.color);
 }
 
 Shape unify (Shape s1, Shape s2) {
-    return shape(s1.id,unify(s1.sdf,s2.sdf),blend(s1.color,s2.color));
+    return shape(s1.id, unify(s1.sdf, s2.sdf), blend(s1.color, s2.color));
 }
 
 Shape difference (Shape s1, Shape s2) {
-    return shape(s1.id,difference(s1.sdf,s2.sdf),s1.color);
+    return shape(s1.id, difference(s1.sdf, s2.sdf), s1.color);
 }
 
 Shape intersection (Shape s1, Shape s2) {
-    return shape(s1.id,intersection(s1.sdf,s2.sdf),blend(s1.color,s2.color));
+    return shape(s1.id, intersection(s1.sdf, s2.sdf), blend(s1.color, s2.color));
 }
 
 Shape set_color(Shape shape, Srgba t) {
@@ -294,10 +294,10 @@ Shape set_color(Shape shape, Srgba t) {
 }
 
 Shape withInfiniteBounds (Shape s) {
-    Id       id    = s.id;
-    Color    color = s.color;
-    BoundSdf sdf   = s.sdf;
-    sdf.bounds     = infinite();
+    Id id = s.id;
+    Color color = s.color;
+    BoundSdf sdf = s.sdf;
+    sdf.bounds = infinite();
     return shape(id, sdf, color);
 }
 
@@ -323,7 +323,7 @@ vec2 translate (vec2 position, vec2 t) {
 
 vec2 rotate (vec2 position, Radians angle) {
     float v_angle = value(angle);
-    return position*cos(-v_angle) + vec2(position.y,-position.x)*sin(-v_angle);
+    return position*cos(-v_angle) + vec2(position.y, -position.x) * sin(-v_angle);
 }
 
 vec2 scale (vec2 position, float value) {
