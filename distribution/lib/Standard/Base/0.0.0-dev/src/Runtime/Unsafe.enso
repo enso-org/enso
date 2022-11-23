@@ -1,10 +1,10 @@
-## Unsafe operations.
-   A container for unsafe operations that operate based on implementation
-   details of the language.
-
 import project.Data.Any.Any
 import project.Data.Numbers.Integer
 import Standard.Base.Meta.Atom
+
+## Unsafe operations.
+   A container for unsafe operations that operate based on implementation
+   details of the language.
 
 ## PRIVATE
 

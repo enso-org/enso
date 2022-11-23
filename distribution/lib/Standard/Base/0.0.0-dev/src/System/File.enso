@@ -1,12 +1,13 @@
 from Standard.Base import all
-
 import Standard.Base.Data.Array.Array
-from Standard.Base.Error.Common import Unsupported_File_Type
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.Runtime.Resource
-from Standard.Base.Runtime.Resource import Managed_Resource
+
+import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
+
+from project.Error.Common import Unsupported_File_Type
+from project.Error.Problem_Behavior import Report_Warning
+
 
 polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
@@ -223,7 +224,7 @@ type File
                  file.with_output_stream [File_Access.Create, File_Access.Write] action
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self open_options action =
-        Resource.bracket (self.new_output_stream open_options) (_.close) action
+        Managed_Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
 
@@ -271,7 +272,7 @@ type File
                  file.with_input_stream [File_Access.Create, File_Access.Read] action
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
-        Resource.bracket (self.new_input_stream open_options) (_.close) action
+        Managed_Resource.bracket (self.new_input_stream open_options) (_.close) action
 
     ## Read a file using the specified file format
 
