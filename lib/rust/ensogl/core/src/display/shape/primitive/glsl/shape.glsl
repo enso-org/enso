@@ -237,6 +237,13 @@ struct Shape {
     float    alpha;
 };
 
+Shape shape (Id id, BoundSdf bound_sdf) {
+    float alpha = render(bound_sdf);
+    Srgba rgba = srgba(1.0, 0.0, 0.0, alpha);
+    Color color = Color(lcha(rgba));
+    return Shape(id, bound_sdf, color, alpha);
+}
+
 Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
     float alpha = render(bound_sdf);
     rgba.raw.a *= alpha;
@@ -255,6 +262,11 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     float alpha = render(bound_sdf);
     color.color.raw.a *= alpha;
     return Shape(id, bound_sdf, color, alpha);
+}
+
+Shape debug_shape (BoundSdf bound_sdf) {
+    Id id = new_id_layer(bound_sdf, 0);
+    return shape(id, bound_sdf);
 }
 
 //Shape resample (Shape s, float multiplier) {
@@ -277,7 +289,7 @@ Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
 //    Lcha color = unpremultiply(s.color);
-//    color.raw.a /= s.alpha;
+    s.color.color.raw.a /= s.alpha;
     return shape(id, sdf, s.color);
 }
 
@@ -295,6 +307,10 @@ Shape difference (Shape s1, Shape s2) {
 
 Shape intersection (Shape s1, Shape s2) {
     return shape(s1.id, intersection(s1.sdf, s2.sdf), blend(s1.color, s2.color));
+}
+
+Shape intersection_no_blend (Shape s1, Shape s2) {
+    return shape(s1.id, intersection(s1.sdf, s2.sdf), s1.color);
 }
 
 Shape set_color(Shape shape, Srgba t) {
