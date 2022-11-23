@@ -18,7 +18,7 @@ import buildCfg from '../../../build.json'
 // @ts-ignore
 import firebase from 'firebase/compat/app'
 // @ts-ignore
-import  'firebase/auth'
+import 'firebase/auth'
 // @ts-ignore
 import firebase_config from '../firebase.yaml'
 
