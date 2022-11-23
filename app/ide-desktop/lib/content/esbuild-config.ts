@@ -64,6 +64,7 @@ function git(command: string): string {
  */
 const always_copied_files = [
     path.resolve(thisPath, 'src', 'index.html'),
+    path.resolve(thisPath, 'src', 'login.html'),
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),

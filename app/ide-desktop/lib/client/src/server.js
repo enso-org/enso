@@ -50,10 +50,12 @@ class Server {
 
     process(resource, response) {
         let resource_file = `${this.dir}${resource}`
+        console.log('Server.process', resource_file)
         fs.readFile(
             resource_file,
             function (err, data) {
                 if (err) {
+                    console.log('Falling back', resource, this.fallback)
                     let fallback = this.fallback
                     if (fallback) {
                         if (resource === fallback) {

@@ -17,6 +17,10 @@ import child_process from 'child_process'
 import fss from 'node:fs'
 import fsp from 'node:fs/promises'
 
+import opener from 'opener'
+import { amplifyConfig } from '../../content/src/amplify.js'
+import { Auth } from 'aws-amplify'
+
 // =============
 // === Paths ===
 // =============
@@ -479,26 +483,67 @@ let origin = null
 async function main(args) {
     // Note [Main error handling]
     try {
-        runBackend()
+        //runBackend()
+
+        let cfg = amplifyConfig
+
+        console.log('amplifyConfig', cfg)
+        // cfg.oauth.options.urlOpener = async (url, redirectSignIn) => {
+        //     console.log('urlOpener', url, redirectSignIn)
+        //     opener(url)
+        //     //var childProcess = require("child_process");
+        //     //childProcess.execFile('xclock')
+        // }
+
+        console.log('Auth.configure', cfg)
+        Auth.configure(cfg);
+
+        let session;
+        let jwt;
+        try {
+            session = await Auth.currentSession();
+            jwt = session.getAccessToken().getJwtToken();
+        } catch (error) { }
+
+        console.log('session', session)
+        console.log('jwt', jwt)
+
+        let serverFallback = jwt ? '/assets/index.html' : '/assets/login.html'
 
         console.log('Starting the IDE service.')
         if (args.server !== false) {
             let serverCfg = Object.assign({}, args)
             serverCfg.dir = root
-            serverCfg.fallback = '/assets/index.html'
+            serverCfg.fallback = serverFallback
+            console.log('Server.create', serverCfg)
             server = await Server.create(serverCfg)
             origin = `http://localhost:${server.port}`
         }
         if (args.window !== false) {
             console.log('Starting the IDE client.')
             mainWindow = createWindow()
+            console.log('Window created.')
             mainWindow.on('close', evt => {
                 if (hideInsteadOfQuit) {
                     evt.preventDefault()
                     mainWindow.hide()
                 }
             })
+            mainWindow.once('ready-to-show', () => {
+                mainWindow.show()
+                console.log('mainWindow ready')
+                if (!jwt) {
+                    console.log('Auth.federatedSignIn');
+                    Auth.federatedSignIn({ provider: 'google' });
+                    console.log('Auth.federatedSignIn AFTER')
+                } else {
+                    console.log('!!! logged in !!!')
+                }
+            })
+            console.log('IDE client started.')
         }
+
+
     } catch (err) {
         // Note [Main error handling]
         console.error('Failed to setup IDE. Error:', err)
