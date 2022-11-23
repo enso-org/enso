@@ -4,7 +4,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Runtime.Extensions.Source_Location
+import project.Runtime.Source_Location.Source_Location
 
 ## A type representing interactions with polyglot languages.
     Polyglot is a term that refers to other languages (such as Java) that are

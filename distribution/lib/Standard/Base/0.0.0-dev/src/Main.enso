@@ -11,6 +11,7 @@ import project.Math
 import project.Nothing.Nothing
 import project.Polyglot
 import project.Polyglot.Java
+import project.Runtime
 import project.System
 import project.System.Environment
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
@@ -33,6 +34,7 @@ export project.Math
 export project.Nothing.Nothing
 export project.Polyglot
 export project.Polyglot.Java
+export project.Runtime
 export project.System
 export project.System.Environment
 export project.System.File.Existing_File_Behavior.Existing_File_Behavior
@@ -118,15 +120,8 @@ from project.Data.Index_Sub_Range export First, Last
 
 
 # Not refactored modules below:
-
-import project.Runtime
-import project.Runtime.Extensions
 import project.System.File
-
-export project.Runtime
 export project.System.File
-from project.Runtime.Extensions export all
-
 
 import project.Data.Text
 import project.Data.Text.Case
