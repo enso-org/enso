@@ -1932,8 +1932,6 @@ mod tests {
 
     #[test]
     fn focus_event_propagation_test() {
-        let world = World::new();
-
         let obj_1 = Instance::new();
         let obj_2 = Instance::new();
         let obj_3 = Instance::new();

@@ -60,6 +60,13 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color.a = alpha_no_aa;
     output_color.rgb *= alpha_no_aa;
 
+} else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_OVERVIEW) {
+    float object_hue = float(((input_global_instance_id * 7 + int(input_time/100.0) ) * 17) % 100) / 100.0;
+    Srgb object_color = srgb(hsv(object_hue, 1.0, 1.0));
+    output_color.rgb = object_color.raw.rgb;
+    output_color.a = alpha_no_aa * float(int(((input_time + 17.0 * float(input_global_instance_id))/100.0)) % 80 + 20)/100.0;
+    output_color.rgb *= alpha_no_aa;
+
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_UV) {
      bool overflow = input_uv.x >= 1.0 || input_uv.y >= 1.0;
      float blue = overflow? .5 : .0;

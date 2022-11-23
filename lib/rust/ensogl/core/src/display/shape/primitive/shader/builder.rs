@@ -4,7 +4,7 @@
 use crate::prelude::*;
 
 use crate::display::shape::primitive::def::primitive;
-use crate::display::shape::primitive::glsl::Codes;
+use crate::display::shape::primitive::glsl::codes;
 use crate::display::shape::primitive::shader::overload;
 use crate::display::symbol::shader::builder::CodeTemplate;
 
@@ -75,13 +75,15 @@ lazy_static! {
 }
 
 fn generate_codes_glsl_code() -> String {
-    let codes = Codes::all();
+    let codes = codes::DisplayModes::all();
     let header = header("Codes");
-    let code = codes
+    let display_modes = codes
         .iter()
         .map(|code| format!("const int {} = {};", code.name().to_uppercase(), code.value()))
         .join("\n");
-    format!("{}\n\n{}", header, code)
+    let error_codes =
+        format!("const int ID_ENCODING_OVERFLOW_ERROR = {};", codes::ID_ENCODING_OVERFLOW_ERROR);
+    format!("{}\n\n{}\n{}", header, display_modes, error_codes)
 }
 
 fn gen_glsl_boilerplate() -> String {

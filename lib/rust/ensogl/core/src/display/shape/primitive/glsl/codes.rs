@@ -2,6 +2,7 @@
 //! between Rust and GLSL code.
 
 use crate::prelude::*;
+use inflector::Inflector;
 
 
 
@@ -9,56 +10,47 @@ use crate::prelude::*;
 // === Codes ===
 // =============
 
-macro_rules! include_codes {
-    ($($name:ident),* $(,)?) => { paste! {
-        /// Enum describing possible GLSL codes.
-        #[derive(Clone, Copy, Debug)]
-        #[allow(missing_docs)]
-        pub enum Codes {
-            $([<$name:camel>]),*
-        }
+/// The error code used for ID encoding errors.
+pub const ID_ENCODING_OVERFLOW_ERROR: u32 = 100;
 
-        impl Codes {
-            /// The numeric representation of the code.
-            pub const fn value(&self) -> u32 {
-                match self {$(
-                    Self::[<$name:camel>] => include!(concat!("codes/", stringify!($name), ".txt")),
-                )*}
-            }
-
-            /// Conversion from the numeric representation of the code to the code variant.
-            ///
-            /// This is implemented as multiple ifs because macros don't allow usage of the
-            /// [`include!`] macro as a pattern match arm.
-            pub const fn from_value(number:u32) -> Option<Self> {
-                $(
-                    if Self::[<$name:camel>].value() == number {
-                        return Some(Self::[<$name:camel>])
-                    }
-                )*
-                return None;
-            }
-
-            /// Name of the code.
-            pub const fn name(&self) -> &'static str {
-                match self {$(
-                    Self::[<$name:camel>] => stringify!($name),
-                )*}
-            }
-
-            /// All registered codes.
-            pub const fn all() -> &'static [Self] {
-                &[$( Self::[<$name:camel>] ),*]
-            }
-        }
-    }};
+/// Enum describing possible GLSL display modes.
+#[derive(Clone, Copy, Debug, num_enum::IntoPrimitive, num_enum::TryFromPrimitive)]
+#[repr(u32)]
+pub enum DisplayModes {
+    Normal,
+    DebugSpriteUv,
+    DebugSpriteOverview,
+    DebugSdf,
+    DebugShapeAaSpan,
+    DebugInstanceId,
 }
 
-include_codes!(
-    display_mode_debug_instance_id,
-    display_mode_debug_sdf,
-    display_mode_debug_shape_aa_span,
-    display_mode_debug_sprite_uv,
-    display_mode_normal,
-    id_encoding_overflow_error
-);
+impl DisplayModes {
+    /// The numeric representation of the code.
+    pub const fn value(&self) -> u32 {
+        *self as u32
+    }
+
+    /// Conversion from the numeric representation of the code to the code variant.
+    pub fn from_value(number: u32) -> Option<Self> {
+        Self::try_from(number).ok()
+    }
+
+    /// Name of the code.
+    pub fn name(&self) -> String {
+        format!("display_mode_{:?}", self).to_snake_case()
+    }
+
+    /// All registered codes.
+    pub fn all() -> Vec<Self> {
+        let mut codes = vec![];
+        for i in 0.. {
+            if let Some(code) = Self::from_value(i) {
+                codes.push(code);
+            } else {
+                break;
+            }
+        }
+        codes
+    }
+}
