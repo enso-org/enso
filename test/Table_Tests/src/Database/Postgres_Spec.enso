@@ -1,7 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Ref
-import Standard.Base.System.Platform
-import Standard.Base.System.Process
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First

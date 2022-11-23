@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
-import Standard.Base.System
 import Standard.Base.System.File.Output_Stream
 
 import project.Data.Table.Table

@@ -1,8 +1,6 @@
 from Standard.Base import all
 
 from Standard.Base.System.File import File_Already_Exists_Error
-import Standard.Base.System.Platform
-import Standard.Base.System.Process
 
 from Standard.Test import Test, Test_Suite, Problems
 

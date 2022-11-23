@@ -5,7 +5,6 @@ import Standard.Base.Error.Common as Errors
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
-import Standard.Base.System.Platform
 # TODO[DB] Fix composite types #183857386
 import Standard.Base.System.File.File as File_Type
 
@@ -1309,7 +1308,7 @@ ansi_bold : Boolean -> Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.
-        Platform.Windows -> txt
+        Platform.OS.Windows -> txt
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
