@@ -122,14 +122,15 @@ impl QualifiedName {
     ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
-    /// let name = QualifiedName::from_text("ns.Project.Module.Type");
+    /// let name = QualifiedName::from_text("ns.Project.Module.Type").unwrap();
     /// assert_eq!(name.project().namespace, "ns");
     /// assert_eq!(name.project().project, "Project");
     /// assert_eq!(name.path()[0], "Module");
     /// assert_eq!(name.path()[1], "Type");
     ///
     /// // The "Main" module segment is removed.
-    /// assert_eq!(QualifiedName::from_text("ns.Project.Main.Type").to_string(), "ns.Project.Type");
+    /// let main_module_name = QualifiedName::from_text("ns.Project.Main.Type").unwrap();
+    /// assert_eq!(main_module_name.to_string(), "ns.Project.Type");
     /// ```
     pub fn from_text(text: impl AsRef<str>) -> FallibleResult<Self> {
         let text = text.as_ref();
@@ -139,9 +140,9 @@ impl QualifiedName {
     /// Build a module's full qualified name from its name segments and the project name.
     ///
     /// ```
-    /// # use double_representation::module::QualifiedName;
+    /// # use double_representation::name::QualifiedName;
     ///
-    /// let name = QualifiedName::from_all_segments(&["Project", "Main"]).unwrap();
+    /// let name = QualifiedName::from_all_segments(["Project", "Main"]).unwrap();
     /// assert_eq!(name.to_string(), "Project.Main");
     /// ```
     pub fn from_all_segments<Seg>(segments: impl IntoIterator<Item = Seg>) -> FallibleResult<Self>
@@ -223,9 +224,9 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
-    /// let name = QualifiedName::from_text("ns.Project.Module.Type");
-    /// let parent = QualifiedName::from_text("ns.Project.Module");
-    /// assert_eq!(name.parent(), Some(parent));
+    /// let name = QualifiedName::from_text("ns.Project.Module.Type").unwrap();
+    /// let parent = QualifiedName::from_text("ns.Project.Module").unwrap();
+    /// assert_eq!(name.parent(), Some(parent.as_ref()));
     /// ```
     pub fn parent(&self) -> Option<QualifiedNameRef> {
         let shorter_len = self.path.as_ref().len().checked_sub(1)?;
@@ -236,7 +237,7 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
-    /// let name = QualifiedName::from_text("ns.Project.Module.Type");
+    /// let name = QualifiedName::from_text("ns.Project.Module.Type").unwrap();
     /// let parents: Vec<String> = name.parents().map(|qn| qn.to_string()).collect();
     /// assert_eq!(parents, vec!["ns.Project.Module", "ns.Project"]);
     /// ```
@@ -262,8 +263,8 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
     /// of main module.
     ///
     /// ```rust
-    /// use double_representation::name::project::QualifiedName;
-    /// let name = QualifiedName::from_text("ns.Project");
+    /// use double_representation::name::QualifiedName;
+    /// let name = QualifiedName::from_text("ns.Project").unwrap();
     /// assert_eq!(name.to_string_with_main_segment(), "ns.Project.Main");
     /// ```
     pub fn to_string_with_main_segment(&self) -> String {
@@ -301,8 +302,10 @@ impl QualifiedName {
     ///
     /// ```rust
     /// use double_representation::name::QualifiedName;
+    /// use enso_prelude::ImString;
+    ///
     /// let mut name = QualifiedName::from_text("ns.Proj.Foo").unwrap();
-    /// assert_eq!(name.pop_segment(), Some("Foo"));
+    /// assert_eq!(name.pop_segment(), Some(ImString::new("Foo")));
     /// assert_eq!(name.pop_segment(), None);
     /// ```
     pub fn pop_segment(&mut self) -> Option<ImString> {

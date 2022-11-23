@@ -101,7 +101,7 @@ impl Info {
     pub fn new_single_name(module: impl Into<NamePath>, name: impl Into<String>) -> Self {
         Self {
             module:   module.into(),
-            imported: ImportedNames::List { names: iter::once(name.into()).collect() },
+            imported: ImportedNames::List { names: [name.into()].into() },
         }
     }
 

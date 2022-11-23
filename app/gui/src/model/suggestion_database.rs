@@ -140,7 +140,7 @@ pub enum Notification {
 /// often-called Language Server methods returns the list of keys of this database instead of the
 /// whole entries. Additionally the suggestions contains information about functions and their
 /// argument names and types.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SuggestionDatabase {
     entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
@@ -152,12 +152,7 @@ pub struct SuggestionDatabase {
 impl SuggestionDatabase {
     /// Create a database with no entries.
     pub fn new_empty() -> Self {
-        let entries = default();
-        let qualified_name_to_id_map = default();
-        let examples = default();
-        let version = default();
-        let notifications = default();
-        Self { entries, qualified_name_to_id_map, examples, version, notifications }
+        default()
     }
 
     /// Create a database filled with entries provided by the given iterator.

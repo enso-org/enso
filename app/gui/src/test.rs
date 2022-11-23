@@ -104,7 +104,7 @@ pub mod mock {
                 "Standard.Base.Main".try_into().unwrap(),
                 "foo",
                 "Standard.Base.Any".try_into().unwrap(),
-                false,
+                true,
             );
             entry.with_arguments(vec![foo_method_parameter(), foo_method_parameter2()])
         }
