@@ -62,6 +62,7 @@ pub mod os;
 pub mod path;
 pub mod paths;
 pub mod platform;
+pub mod process;
 pub mod program;
 pub mod programs;
 pub mod reqwest;
