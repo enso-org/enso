@@ -73,7 +73,7 @@ fn init(app: &Application) {
     slider1.inner().frp.set_width(400.0);
     slider1.inner().frp.set_height(50.0);
     slider1.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-    slider1.inner().frp.set_label("Soft limits");
+    slider1.inner().frp.set_label("Soft limits + tooltip");
     slider1.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
     slider1.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
     slider1.inner().frp.set_tooltip("Slider information tooltip.");
@@ -84,7 +84,7 @@ fn init(app: &Application) {
     slider2.inner().set_position_y(60.0);
     slider2.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider2.inner().frp.set_slider_disabled(true);
-    slider2.inner().frp.set_label("Hard limits");
+    slider2.inner().frp.set_label("Disabled");
 
     let slider3 = make_slider(app);
     slider3.inner().frp.set_width(400.0);
@@ -100,15 +100,28 @@ fn init(app: &Application) {
     slider4.inner().set_position_y(180.0);
     slider4.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider4.inner().frp.set_label("Adaptive upper limit");
+    slider4.inner().frp.set_label_position(slider::LabelPosition::Inside);
     slider4.inner().frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
 
 
     let slider5 = make_slider(app);
-    slider5.inner().frp.set_width(100.0);
+    slider5.inner().frp.set_width(75.0);
     slider5.inner().frp.set_height(300.0);
     slider5.inner().set_position_y(100.0);
-    slider5.inner().set_position_x(400.0);
+    slider5.inner().set_position_x(275.0);
     slider5.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
-    slider5.inner().frp.set_label("Vertical slider");
+    slider5.inner().frp.set_label("Hard limits");
     slider5.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
+
+    let slider6 = make_slider(app);
+    slider6.inner().frp.set_width(75.0);
+    slider6.inner().frp.set_height(300.0);
+    slider6.inner().set_position_y(100.0);
+    slider6.inner().set_position_x(375.0);
+    slider6.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider6.inner().frp.set_label("Soft\nlimits");
+    slider6.inner().frp.set_label_position(slider::LabelPosition::Inside);
+    slider6.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
+    slider6.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
+    slider6.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
 }
