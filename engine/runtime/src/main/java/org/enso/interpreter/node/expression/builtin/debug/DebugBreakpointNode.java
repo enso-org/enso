@@ -13,7 +13,11 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(type = "Debug", name = "breakpoint", description = "Instrumentation marker node.")
+@BuiltinMethod(
+    type = "Debug",
+    name = "breakpoint",
+    description = "Instrumentation marker node.",
+    autoRegister = false)
 @GenerateWrapper
 public abstract class DebugBreakpointNode extends Node implements InstrumentableNode {
   /**

@@ -72,11 +72,6 @@ impl<T> PlainArtifact<T> {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self { path: path.into(), phantom: default() }
     }
-
-    fn from_existing(path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self>>
-    where T: Send + Sync + 'static {
-        ready(Ok(Self::new(path.as_ref()))).boxed()
-    }
 }
 
 /// State available to all project-related operations.
@@ -224,15 +219,18 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
         let CiRunSource { run_id, artifact_name, repository } = ci_run;
+        let repository = repository.handle(&octocrab);
         let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_str());
         let this = self.clone();
         async move {
-            let artifact =
-                repository.find_artifact_by_name(&octocrab, run_id, &artifact_name).await?;
+            let artifact = repository.find_artifact_by_name(run_id, &artifact_name).await?;
             info!("Will download artifact: {:#?}", artifact);
             let artifact_to_get = cache::artifact::ExtractedArtifact {
                 client: octocrab.clone(),
-                key:    cache::artifact::Key { artifact_id: artifact.id, repository },
+                key:    cache::artifact::Key {
+                    artifact_id: artifact.id,
+                    repository:  repository.repo,
+                },
             };
             let artifact = cache.get(artifact_to_get).await?;
             let inner_archive_path =
@@ -244,9 +242,33 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         .boxed()
     }
 
-    fn find_asset(&self, _assets: Vec<Asset>) -> Result<Asset> {
+    fn find_asset<'a>(&self, release: &'a octocrab::models::repos::Release) -> Result<&'a Asset> {
+        release.assets.iter().find(|asset| self.matches_asset(asset)).with_context(|| {
+            let asset_names = release.assets.iter().map(|asset| &asset.name).join(", ");
+            format!(
+                "No matching asset for target {:?} in release {:?}. Available assets: {}",
+                self, release, asset_names
+            )
+        })
+    }
+
+    fn matches_asset(&self, _asset: &Asset) -> bool {
         todo!("Not implemented for target {self:?}!")
     }
+
+    // /// Upload the artifact as an asset to the GitHub release.
+    // fn upload_asset(
+    //     &self,
+    //     release_handle: ReleaseHandle,
+    //     output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
+    // ) -> BoxFuture<'static, Result> {
+    //     async move {
+    //         let artifact = output.await?;
+    //         release_handle.upload_compressed_dir(&artifact).await?;
+    //         Ok(())
+    //     }
+    //     .boxed()
+    // }
 
     fn download_asset(
         &self,
@@ -261,7 +283,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let this = self.clone();
         async move {
             let ReleaseSource { asset_id, repository } = &source;
-            let archive_source = repository.download_asset_job(&octocrab, *asset_id);
+            let repository = repository.handle(&octocrab);
+            let archive_source = repository.download_asset_job(*asset_id);
             let extract_job = cache::archive::ExtractedArchive {
                 archive_source,
                 path_to_extract: path_to_extract(),

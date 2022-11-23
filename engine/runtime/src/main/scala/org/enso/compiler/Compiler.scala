@@ -53,8 +53,8 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger      = context.getLogger(getClass)
-  private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private val logger: TruffleLogger           = context.getLogger(getClass)
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -105,7 +105,11 @@ class Compiler(
     */
   def runImportsResolution(module: Module): List[Module] = {
     initialize()
-    importResolver.mapImports(module)
+    try {
+      importResolver.mapImports(module)
+    } catch {
+      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+    }
   }
 
   /** Processes the provided language sources, registering any bindings in the
@@ -368,7 +372,12 @@ class Compiler(
   }
 
   private def runImportsAndExportsResolution(module: Module): List[Module] = {
-    val importedModules = importResolver.mapImports(module)
+    val importedModules =
+      try {
+        importResolver.mapImports(module)
+      } catch {
+        case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+      }
 
     val requiredModules =
       try { new ExportsResolution().run(importedModules) }
@@ -441,17 +450,19 @@ class Compiler(
 
     val src = module.getSource
     def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
       val tree = parse(src)
       generateIR(tree)
     }
-    def newParser() = {
-      System.err.println("Using new parser to process " + src.getURI())
-      val tree = ensoCompiler.parse(src)
-      ensoCompiler.generateIR(tree)
-    }
-    val size = src.getCharacters().length()
-    // change the condition to use old or new parser
-    val expr = if (size >= 0) oldParser() else newParser()
+    val expr =
+      if (
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
 
     val exprWithModuleExports =
       if (module.isSynthetic)
@@ -810,6 +821,16 @@ class Compiler(
           )
         case _ =>
       }
+      throw new CompilationAbortedException
+    } else {
+      throw exception
+    }
+  }
+
+  private def reportExportConflicts(exception: Throwable): Nothing = {
+    if (context.isStrictErrors) {
+      context.getOut.println("Compiler encountered errors:")
+      context.getOut.println(exception.getMessage)
       throw new CompilationAbortedException
     } else {
       throw exception

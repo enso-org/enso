@@ -7,7 +7,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
@@ -16,12 +15,12 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "type_of_builtin",
-    description = "Returns the type of a value.")
+    name = "type_of",
+    description = "Returns the type of a value.",
+    autoRegister = false)
 public abstract class TypeOfNode extends Node {
 
   public abstract Object execute(@AcceptsError Object value);

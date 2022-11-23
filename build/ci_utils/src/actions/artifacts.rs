@@ -151,7 +151,7 @@ pub async fn upload_compressed_directory(
     let archive_path = tempdir.path().join(format!("{artifact_name}.tar.gz"));
 
     info!("Packing {} to {}", path_to_upload.as_ref().display(), archive_path.display());
-    crate::archive::pack_directory_contents(&archive_path, path_to_upload).await?;
+    crate::archive::compress_directory(&archive_path, path_to_upload).await?;
 
     info!("Starting upload of {artifact_name}.");
     upload_single_file(&archive_path, artifact_name).await?;

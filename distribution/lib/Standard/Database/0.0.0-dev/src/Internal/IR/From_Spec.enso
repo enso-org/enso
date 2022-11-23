@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Join_Kind.Join_Kind
 
 ## PRIVATE
@@ -44,7 +44,7 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector Expression)
+    Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector SQL_Expression)
 
     ## PRIVATE
 
@@ -57,4 +57,4 @@ type From_Spec
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    Sub_Query (columns : Vector (Pair Text Expression)) (context : Context) (alias : Text)
+    Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)

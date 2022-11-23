@@ -80,7 +80,7 @@ Any.should_equal self that frames_to_skip=0 = case self == that of
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_equal = Examples.some_tpe . should_equal_tpe Vector.Vector
+         example_should_equal = Examples.some_type . should_equal_type Vector
 Any.should_equal_type : Any -> Integer -> Test_Result
 Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that) of
     True -> Test_Result.Success
@@ -124,7 +124,7 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
          import Standard.Examples
          from Standard.Test import Test
 
-         example_should_not_equal = Examples.some_tpe . should_not_equal_tpe Vector.Vector
+         example_should_not_equal = Examples.some_type . should_not_equal_type Vector
 Any.should_not_equal_type : Any -> Integer -> Test_Result
 Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that . not) of
     True -> Test_Result.Success

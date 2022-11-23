@@ -7433,6 +7433,7 @@ object IR {
     ) extends Error
         with Diagnostic.Kind.Interactive
         with IR.Module.Scope.Definition
+        with IR.Module.Scope.Export
         with IR.Module.Scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId

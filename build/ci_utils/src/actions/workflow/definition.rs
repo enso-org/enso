@@ -3,10 +3,13 @@ use crate::prelude::*;
 use crate::env::new::RawVariable;
 
 use heck::ToKebabCase;
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 
+
+pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
 
 pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
@@ -86,7 +89,12 @@ pub fn shell_os(os: OS, command_line: impl Into<String>) -> Step {
 }
 
 pub fn shell(command_line: impl Into<String>) -> Step {
-    Step { run: Some(command_line.into()), env: once(github_token_env()).collect(), ..default() }
+    Step {
+        run: Some(command_line.into()),
+        env: once(github_token_env()).collect(),
+        timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES),
+        ..default()
+    }
 }
 
 /// Invoke our entry point to the build scripts, i.e. the `./run` script.
@@ -428,22 +436,28 @@ impl Event {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Job {
-    pub name:     String,
+    pub name:            String,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-    pub needs:    BTreeSet<String>,
-    pub runs_on:  Vec<RunnerLabel>,
-    pub steps:    Vec<Step>,
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub outputs:  BTreeMap<String, String>,
+    pub needs:           BTreeSet<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub strategy: Option<Strategy>,
+    pub r#if:            Option<String>,
+    pub runs_on:         Vec<RunnerLabel>,
+    pub steps:           Vec<Step>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub concurrency:     Option<Concurrency>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env:      BTreeMap<String, String>,
+    pub outputs:         BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub env:             BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strategy:        Option<Strategy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout_minutes: Option<u32>,
 }
 
 impl Job {
     pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), ..default() }
+        Self { name: name.into(), timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES), ..default() }
     }
 
     pub fn expose_output(&mut self, step_id: impl AsRef<str>, output_name: impl Into<String>) {
@@ -525,21 +539,25 @@ impl Strategy {
 #[serde(rename_all = "kebab-case")]
 pub struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id:    Option<String>,
+    pub id:                Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name:  Option<String>,
+    pub r#if:              Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub uses:  Option<String>,
+    pub name:              Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub run:   Option<String>,
+    pub uses:              Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#if:  Option<String>,
+    pub run:               Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub with:  Option<step::Argument>,
+    pub shell:             Option<Shell>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub with:              Option<step::Argument>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env:   BTreeMap<String, String>,
+    pub env:               BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shell: Option<Shell>,
+    pub continue_on_error: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout_minutes:   Option<u32>,
 }
 
 impl Step {
@@ -553,7 +571,20 @@ impl Step {
     }
 
     pub fn with_env(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.env.insert(name.into(), value.into());
+        let name = name.into();
+        let value = value.into();
+        let entry = self.env.entry(name);
+        if let Entry::Occupied(mut entry) = entry {
+            warn!(
+                "Overriding environment variable `{}` with value `{}` (old value was `{}`)",
+                entry.key(),
+                value,
+                entry.get(),
+            );
+            *entry.get_mut() = value;
+        } else {
+            entry.or_insert(value);
+        }
         self
     }
 

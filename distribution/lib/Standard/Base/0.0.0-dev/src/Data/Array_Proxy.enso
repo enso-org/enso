@@ -1,4 +1,6 @@
-from Standard.Base import Any, Array, Integer
+import project.Data.Any.Any
+import project.Data.Array.Array
+import project.Data.Numbers.Integer
 
 ## A helper type used for creating an array from a length and a callback
    providing its elements.

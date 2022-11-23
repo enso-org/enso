@@ -2,20 +2,14 @@
 
 //use crate::prelude::*;
 
-use ide_ci::env::Variable;
+use ide_ci::define_env_var;
 
 
 
-#[derive(Clone, Copy, Debug)]
-pub struct CiTestTimeFactor;
-impl Variable for CiTestTimeFactor {
-    const NAME: &'static str = "CI_TEST_TIMEFACTOR";
-    type Value = usize;
-}
+define_env_var! {
+    /// Factor applied to timeouts in tests. 1.0 means no change, 2.0 means double the timeout.
+    CI_TEST_TIMEFACTOR, usize;
 
-#[derive(Clone, Copy, Debug)]
-pub struct CiFlakyTestEnable;
-impl Variable for CiFlakyTestEnable {
-    const NAME: &'static str = "CI_TEST_FLAKY_ENABLE";
-    type Value = bool;
+    /// Whether flaku tests should be run.
+    CI_TEST_FLAKY_ENABLE, bool;
 }

@@ -10,7 +10,7 @@ import project.Helpers
 
    Arguments:
    - table: the Table to be visualized.
-json_from_table : Table -> Object
+json_from_table : Table -> Json
 json_from_table table =
     names = ['label', 'latitude', 'longitude', 'radius', 'color']
     pairs = names.map <| name->
