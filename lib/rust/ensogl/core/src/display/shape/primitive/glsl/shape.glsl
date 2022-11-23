@@ -1,3 +1,59 @@
+//! GLSL shape definition boilerplate.
+
+
+// =============
+// === Color ===
+// =============
+
+struct Color {
+    Lcha repr;
+};
+
+Color color (Lcha color) {
+    return Color(color);
+}
+
+Color color(vec3 lch, float a) {
+    return Color(lcha(lch, a));
+}
+
+Srgba srgba(Color color) {
+    return srgba(color.repr);
+}
+
+
+
+// ==========================
+// === PremultipliedColor ===
+// ==========================
+
+struct PremultipliedColor {
+    Lcha repr;
+};
+
+PremultipliedColor premultiply(Color t) {
+    float alpha = a(t.repr);
+    vec3 rgb = t.repr.raw.rgb * alpha;
+    return PremultipliedColor(lcha(rgb, alpha));
+}
+
+Color unpremultiply(PremultipliedColor c) {
+    float alpha = c.repr.raw.a;
+    vec3 rgb = c.repr.raw.rgb / alpha;
+    return color(rgb, alpha);
+}
+
+/// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
+/// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
+Color blend(Color bg, Color fg) {
+    PremultipliedColor fg_premul = premultiply(fg);
+    PremultipliedColor bg_premul = premultiply(bg);
+    vec4 raw = fg_premul.repr.raw + (1.0 - fg_premul.repr.raw.a) * bg_premul.repr.raw;
+    return unpremultiply(PremultipliedColor(lcha(raw)));
+}
+
+
+
 // ===================
 // === BoundingBox ===
 // ===================
@@ -113,6 +169,10 @@ struct BoundSdf {
     BoundingBox bounds;
 };
 
+float render(BoundSdf sdf) {
+    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * zoom());
+}
+
 
 // === Getters ===
 
@@ -190,106 +250,70 @@ Id new_id_layer (BoundSdf sdf, int i) {
     return Id((sdf.distance <= 0.0) ? i : 0);
 }
 
-// Premultiplied
-struct PremultipliedColor {
-    Lcha color;
-};
-
-struct Color {
-    Lcha color;
-};
-
-PremultipliedColor premultiply(Color t) {
-    float alpha = a(t.color);
-    vec3 rgb = t.color.raw.rgb * alpha;
-    return PremultipliedColor(lcha(rgb,alpha));
-}
-
-Color unpremultiply(PremultipliedColor t) {
-    float alpha = t.color.raw.a;
-    vec3  rgb   = t.color.raw.rgb / alpha;
-    return Color(lcha(rgb, alpha));
-}
-
-// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-Color blend(Color bg, Color fg) {
-    PremultipliedColor fg_premul = premultiply(fg);
-    PremultipliedColor bg_premul = premultiply(bg);
-    vec4 raw = fg_premul.color.raw + (1.0 - fg_premul.color.raw.a) * bg_premul.color.raw;
-    return unpremultiply(PremultipliedColor(lcha(raw)));
-}
-
 
 
 // =============
 // === Shape ===
 // =============
 
-float render(BoundSdf sdf) {
-    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * zoom());
-}
-
-// Note: the color is premultiplied.
+/// A visual shape that can be displayed on the screen or combined with other shapes.
 struct Shape {
-    Id       id;
+    /// The ID of the shape. It is used to identify shapes after rendering to an non-antialiased ID
+    /// texture.
+    Id id;
+    /// The Signed Distance Field, describing the shape boundaries.
     BoundSdf sdf;
-    Color    color;
-    float    alpha;
+    /// The color of the shape. It is multiplied by [`alpha`].
+    Color color;
+    /// The opacity of the shape. It is the result of rendering of the [`sdf`].
+    float alpha;
 };
 
-Shape shape (Id id, BoundSdf bound_sdf) {
+
+Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     float alpha = render(bound_sdf);
-    Srgba rgba = srgba(1.0, 0.0, 0.0, alpha);
-    Color color = Color(lcha(rgba));
+    color.repr.raw.a *= alpha;
     return Shape(id, bound_sdf, color, alpha);
 }
 
 Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
-    float alpha = render(bound_sdf);
-    rgba.raw.a *= alpha;
-    Color color = Color(lcha(rgba));
-    return Shape(id, bound_sdf, color, alpha);
+    return shape(id, bound_sdf, Color(lcha(rgba)));
 }
 
-Shape shape (Id id, BoundSdf bound_sdf, Lcha rgba) {
-    float alpha = render(bound_sdf);
-    rgba.raw.a *= alpha;
-    Color color = Color(rgba);
-    return Shape(id, bound_sdf, color, alpha);
+Shape shape (Id id, BoundSdf bound_sdf) {
+    return shape(id, bound_sdf, srgba(1.0, 0.0, 0.0, 1.0));
 }
 
-Shape shape (Id id, BoundSdf bound_sdf, Color color) {
-    float alpha = render(bound_sdf);
-    color.color.raw.a *= alpha;
-    return Shape(id, bound_sdf, color, alpha);
+Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
+    return shape(id, bound_sdf, Color(lcha));
 }
 
+/// A debug [`Shape`] constructor. Should not be used to create shapes that are rendered to the
+/// screen as it's ID is always 0. It can be used to create temporary shapes. For example, it can
+/// be used to create a clipping rectangle, that will be intersected with another shape.
 Shape debug_shape (BoundSdf bound_sdf) {
     Id id = new_id_layer(bound_sdf, 0);
     return shape(id, bound_sdf);
 }
 
-//Shape resample (Shape s, float multiplier) {
-//    Id id = s.id;
-//    BoundSdf sdf = resample(s.sdf, multiplier);
-//    Srgba color = unpremultiply(s.color);
-//    color.raw.a /= s.alpha;
-//    return shape(id, sdf, color);
-//}
-//
-//Shape pixel_snap (Shape s) {
-//    Id id = s.id;
-//    BoundSdf sdf = pixel_snap(s.sdf);
-//    Srgba color = unpremultiply(s.color);
-//    color.raw.a /= s.alpha;
-//    return shape(id, sdf, color);
-//}
+Shape resample (Shape s, float multiplier) {
+    Id id = s.id;
+    BoundSdf sdf = resample(s.sdf, multiplier);
+    s.color.repr.raw.a /= s.alpha;
+    return shape(id, sdf, s.color);
+}
+
+Shape pixel_snap (Shape s) {
+    Id id = s.id;
+    BoundSdf sdf = pixel_snap(s.sdf);
+    s.color.repr.raw.a /= s.alpha;
+    return shape(id, sdf, s.color);
+}
 
 Shape grow (Shape s, float value) {
     Id id = s.id;
     BoundSdf sdf = grow(s.sdf,value);
-//    Lcha color = unpremultiply(s.color);
-    s.color.color.raw.a /= s.alpha;
+    s.color.repr.raw.a /= s.alpha;
     return shape(id, sdf, s.color);
 }
 
@@ -330,19 +354,9 @@ Shape with_infinite_bounds (Shape s) {
 
 
 
-// ===========
-// === Env ===
-// ===========
-
-struct Env {
-    int test;
-};
-
-
-
-///////////////////////
-////// Transform //////
-///////////////////////
+// =================
+// === Transform ===
+// =================
 
 vec2 translate (vec2 position, vec2 t) {
     return position - t;
