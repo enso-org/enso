@@ -7,6 +7,7 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
+import sbt.internal.util.ManagedLogger
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -20,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.8"
-val graalVersion          = "21.3.0"
+val graalVersion          = "22.3.0"
 val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -983,6 +984,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         initializeAtRuntime = Seq("scala.util.Random")
       )
       .dependsOn(VerifyReflectionSetup.run)
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1303,6 +1305,79 @@ lazy val `runtime-language-epb` =
       instrumentationSettings
     )
 
+/**
+ * Runs gu (GraalVM updater) command with given `args`.
+ * For example `runGu(Seq("install", "js"))`.
+ * @param logger Logger for the `gu` command.
+ * @param args Arguments for the `gu` command.
+ */
+def runGu(logger: ManagedLogger, args: Seq[String]): String = {
+  val javaHome = new File(
+    System.getProperty("java.home")
+  )
+  val os = {
+    if (Platform.isLinux) DistributionPackage.OS.Linux
+    else if (Platform.isMacOS) DistributionPackage.OS.MacOS
+    else if (Platform.isWindows) DistributionPackage.OS.Windows
+    else throw new RuntimeException("Unknown platform")
+  }
+  packageBuilder.gu(
+    logger,
+    os,
+    javaHome,
+    args:_*
+  )
+}
+
+def installedGuComponents(logger: ManagedLogger): Seq[String] = {
+  val componentList = runGu(
+    logger,
+    Seq("list")
+  )
+  val components = componentList
+    .linesIterator
+    .drop(2)
+    .map { line =>
+      line
+        .split(" ")
+        .head
+    }
+    .toList
+  logger.debug(s"Installed GU components = $components")
+  if (!components.contains("graalvm")) {
+    throw new RuntimeException(s"graalvm components is not in $components")
+  }
+  components
+}
+
+lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
+ThisBuild / installGraalJs := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("js")) {
+    logger.info("Installing js GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "js")
+    )
+  }
+}
+
+lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM component")
+ThisBuild / installNativeImage := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("native-image")) {
+    logger.info("Installing native-image GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "native-image")
+    )
+  }
+}
+
+ThisBuild / installNativeImage := {
+  (ThisBuild / installNativeImage).result.value
+}
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1381,6 +1456,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1555,34 +1631,8 @@ lazy val `engine-runner` = project
   .settings(
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
-      .value
-  )
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
-  .dependsOn(`library-manager`)
-  .dependsOn(`language-server`)
-  .dependsOn(`polyglot-api`)
-  .dependsOn(`logging-service`)
-
-// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
-// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
-// image of the runner.
-lazy val `engine-runner-native` = project
-  .in(file("engine/runner-native"))
-  .settings(
-    assembly / assemblyExcludedJars := {
-      val cp = (assembly / fullClasspath).value
-      (assembly / assemblyExcludedJars).value ++
-      cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
-    },
-    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
-    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
-    assembly / assemblyJarName := "runner-native.jar",
-    assembly / assemblyOutputPath := file("runner-native.jar"),
-    assembly := assembly
-      .dependsOn(`engine-runner` / assembly)
       .value,
+
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
@@ -1590,7 +1640,6 @@ lazy val `engine-runner-native` = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
-          "--allow-incomplete-classpath",
           "--macro:truffle",
           "--language:js",
           //          "-g",
@@ -1606,9 +1655,10 @@ lazy val `engine-runner-native` = project
           "io.methvin.watchservice.jna.CarbonAPI"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
-      .dependsOn(VerifyReflectionSetup.run)
       .value,
+
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
@@ -1616,7 +1666,13 @@ lazy val `engine-runner-native` = project
       )
       .value
   )
-  .dependsOn(`engine-runner`)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
+  .dependsOn(cli)
+  .dependsOn(`library-manager`)
+  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1646,6 +1702,7 @@ lazy val launcher = project
           "org.enso.loggingservice.WSLoggerManager$"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
