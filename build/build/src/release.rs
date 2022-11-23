@@ -71,6 +71,8 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
     let latest_changelog_body =
         crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
 
+    let is_prerelease = version::Kind::Stable.matches(&versions.version);
+
     debug!("Preparing release {} for commit {}", versions.version, commit);
     let release = context
         .remote_repo_handle()
@@ -80,7 +82,7 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
         .target_commitish(&commit)
         .name(&versions.pretty_name())
         .body(&latest_changelog_body.contents)
-        .prerelease(true)
+        .prerelease(is_prerelease)
         .draft(true)
         .send()
         .await?;
