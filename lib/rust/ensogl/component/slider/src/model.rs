@@ -3,8 +3,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-
-
 use crate::LabelPosition;
 use crate::SliderOrientation;
 
@@ -251,11 +249,10 @@ impl Model {
     }
 
     /// Set the position of the overflow markers.
-    pub fn set_overflow_marker_position(&self, (comp_width, comp_height, orientation): &(f32, f32, SliderOrientation)) {
-        //marker_pos_x <- all2(&input.set_width, &input.set_height);
-        //overflow_marker_pos_x <- overflow_marker_pos_x.map(|(w, h)| w / 2.0 - h / 4.0);
-        //eval overflow_marker_pos_x((x) model.overflow_lower.set_position_x(-*x));
-        //eval overflow_marker_pos_x((x) model.overflow_upper.set_position_x(*x));
+    pub fn set_overflow_marker_position(
+        &self,
+        (comp_width, comp_height, orientation): &(f32, f32, SliderOrientation),
+    ) {
         match orientation {
             SliderOrientation::Horizontal => {
                 let pos_x = comp_width / 2.0 - comp_height / 4.0;
@@ -263,14 +260,14 @@ impl Model {
                 self.overflow_lower.set_position_y(0.0);
                 self.overflow_upper.set_position_x(pos_x);
                 self.overflow_upper.set_position_y(0.0);
-            },
+            }
             SliderOrientation::Vertical => {
                 let pos_y = comp_height / 2.0 - comp_width / 4.0;
                 self.overflow_lower.set_position_x(0.0);
                 self.overflow_lower.set_position_y(-pos_y);
                 self.overflow_upper.set_position_x(0.0);
                 self.overflow_upper.set_position_y(pos_y);
-            },
+            }
         }
     }
 

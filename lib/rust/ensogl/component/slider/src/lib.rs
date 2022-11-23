@@ -611,8 +611,8 @@ impl Slider {
             );
             eval overflow_marker_position((p) model.set_overflow_marker_position(p));
             overflow_marker_shape <- all2(&model.value_text_left.height, &input.set_orientation);
-            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));            
-            
+            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
+
             eval input.set_label_hidden((v) model.set_label_hidden(*v));
             model.label.set_content <+ input.set_label;
             label_position <- all6(
