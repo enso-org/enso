@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -82,6 +83,7 @@ public class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
+  @TruffleBoundary
   public String toDisplayString(
       boolean allowSideEffects,
       @CachedLibrary(limit = "3") InteropLibrary displays,
