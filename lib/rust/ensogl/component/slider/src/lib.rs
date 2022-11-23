@@ -604,15 +604,17 @@ impl Slider {
             eval model.value_text_edit.width((w) model.value_text_edit.set_position_x(-*w / 2.0));
             eval model.value_text_edit.height((h) model.value_text_edit.set_position_y(*h / 2.0));
 
+            overflow_marker_position <- all3(
+                &input.set_width,
+                &input.set_height,
+                &input.set_orientation,
+            );
+            eval overflow_marker_position((p) model.set_overflow_marker_position(p));
             overflow_marker_shape <- all2(&model.value_text_left.height, &input.set_orientation);
-            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));
-            overflow_marker_pos_x <- all2(&input.set_width, &input.set_height);
-            overflow_marker_pos_x <- overflow_marker_pos_x.map(|(w, h)| w / 2.0 - h / 4.0);
-            eval overflow_marker_pos_x((x) model.overflow_lower.set_position_x(-*x));
-            eval overflow_marker_pos_x((x) model.overflow_upper.set_position_x(*x));
-
-            model.label.set_content <+ input.set_label;
+            eval overflow_marker_shape((s) model.set_overflow_marker_shape(s));            
+            
             eval input.set_label_hidden((v) model.set_label_hidden(*v));
+            model.label.set_content <+ input.set_label;
             label_position <- all6(
                 &input.set_width,
                 &input.set_height,
