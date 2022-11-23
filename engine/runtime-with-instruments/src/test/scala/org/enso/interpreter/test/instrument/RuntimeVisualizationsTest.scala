@@ -82,7 +82,7 @@ class RuntimeVisualizationsTest
       .asHostObject[EnsoContext]
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -2518,13 +2518,13 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(37, 76)
+    val idMain = metadata.addItem(37, 26)
 
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |    Warning.attach 42 "y"
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2605,13 +2605,13 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(37, 78)
+    val idMain = metadata.addItem(37, 28)
 
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    [Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace]
+        |    [Warning.attach 42 "y"]
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2692,8 +2692,8 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idX   = metadata.addItem(81, 71)
-    val idRes = metadata.addItem(157, 20)
+    val idX   = metadata.addItem(81, 21)
+    val idRes = metadata.addItem(107, 20)
 
     val code =
       """from Standard.Base import all
@@ -2702,7 +2702,7 @@ class RuntimeVisualizationsTest
         |    Mk_Newtype value
         |
         |main =
-        |    x = Warning.attach_with_stacktrace 42 "x" Runtime.primitive_get_stack_trace
+        |    x = Warning.attach 42 "x"
         |    Newtype.Mk_Newtype x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
