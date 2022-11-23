@@ -13,6 +13,9 @@ import project.Polyglot
 import project.Polyglot.Java
 import project.Runtime.State
 import project.System.Environment
+import project.System.File.File_Access.File_Access
+import project.System.File.File_Permissions.File_Permissions
+import project.System.File.File_Permissions.Permission
 import project.Warning.Warning
 
 export project.Data.Any.Any
@@ -27,6 +30,9 @@ export project.Polyglot
 export project.Polyglot.Java
 export project.Runtime.State
 export project.System.Environment
+export project.System.File.File_Access.File_Access
+export project.System.File.File_Permissions.File_Permissions
+export project.System.File.File_Permissions.Permission
 export project.Warning.Warning
 
 from project.Data.Boolean export Boolean, True, False

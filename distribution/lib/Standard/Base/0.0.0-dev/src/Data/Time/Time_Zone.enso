@@ -4,7 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Panic, Error, Time_Error, Time_Error_Data
+from project.Error.Common import Panic, Error, Time_Error
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
@@ -139,7 +139,7 @@ type Time_Zone
              example_parse = Time_Zone.parse "+03:02:01"
     parse : Text -> Time_Zone ! Time_Error
     parse text =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
             parse_builtin text
 
     ## Get the unique timezone ID.

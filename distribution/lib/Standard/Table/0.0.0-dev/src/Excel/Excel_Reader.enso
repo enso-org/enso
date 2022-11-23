@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.System.File.Option.Option
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
@@ -45,7 +44,7 @@ handle_reader file reader =
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
-        file.with_input_stream [File.Option.Read] stream->
+        file.with_input_stream [File_Access.Read] stream->
             stream.with_java_stream reader
 
 ## PRIVATE

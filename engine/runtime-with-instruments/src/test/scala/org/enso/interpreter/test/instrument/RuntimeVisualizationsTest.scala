@@ -2524,7 +2524,7 @@ class RuntimeVisualizationsTest
       """from Standard.Base import all
         |
         |main =
-        |    Warning.attach 42 "y"
+        |    Warning.attach "y" 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2611,7 +2611,7 @@ class RuntimeVisualizationsTest
       """from Standard.Base import all
         |
         |main =
-        |    [Warning.attach 42 "y"]
+        |    [Warning.attach "y" 42]
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2702,7 +2702,7 @@ class RuntimeVisualizationsTest
         |    Mk_Newtype value
         |
         |main =
-        |    x = Warning.attach 42 "x"
+        |    x = Warning.attach "x" 42
         |    Newtype.Mk_Newtype x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)

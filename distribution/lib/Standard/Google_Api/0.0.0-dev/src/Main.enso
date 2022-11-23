@@ -54,7 +54,7 @@ type Spreadsheets
      Google Admin Console when generating a key.
 initialize : File_Type -> Google_Api_Client
 initialize secret_file =
-    credential = secret_file.with_input_stream [File.Option.Read] stream->
+    credential = secret_file.with_input_stream [File_Access.Read] stream->
         stream.with_java_stream is->
             GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
     http_transport = GoogleNetHttpTransport.newTrustedTransport

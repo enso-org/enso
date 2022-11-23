@@ -42,7 +42,7 @@ read_file format file on_problems =
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
-    file.with_input_stream [File.Option.Read] stream->
+    file.with_input_stream [File_Access.Read] stream->
         read_stream format stream on_problems related_file=file
 
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
@@ -168,7 +168,7 @@ detect_metadata file format =
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         trailing_line_separator = newline_at_eof file format.encoding
         has_trailing_line_separator = trailing_line_separator.is_nothing.not
-        file.with_input_stream [File.Option.Read] stream->
+        file.with_input_stream [File_Access.Read] stream->
             stream.with_stream_decoder format.encoding on_problems java_reader->
                 ## We don't need to close this one, as closing the parent stream
                    will suffice.

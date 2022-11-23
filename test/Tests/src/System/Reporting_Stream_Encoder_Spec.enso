@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.System.File.Option.Option
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
@@ -13,7 +12,7 @@ spec =
             f.delete_if_exists
             f.exists.should_be_false
             contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
-            f.with_output_stream [Option.Write, Option.Create_New] stream->
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder Encoding.utf_8 Problem_Behavior.Report_Error reporting_stream_encoder->
                     contents.char_vector.each char->
                         reporting_stream_encoder.write char
@@ -25,7 +24,7 @@ spec =
             f.exists.should_be_false
             encoding = Encoding.utf_16_be
             big = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
-            f.with_output_stream [Option.Write, Option.Create_New] stream->
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write "A"
                     reporting_stream_encoder.write "Abc"
@@ -45,7 +44,7 @@ spec =
             contents = "Hello World! $¢¤¥"
 
             f.delete_if_exists
-            f.with_output_stream [Option.Write, Option.Create_New] stream->
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write contents
 
@@ -56,7 +55,7 @@ spec =
             encoding = Encoding.ascii
             contents = 'Sło\u0301wka!'
             f.delete_if_exists
-            result = f.with_output_stream [Option.Write, Option.Create_New] stream->
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write contents
             result.should_succeed
@@ -64,7 +63,7 @@ spec =
             f.read_text encoding . should_equal "S?o?wka!"
 
             f.delete_if_exists
-            result_2 = f.with_output_stream [Option.Write, Option.Create_New] stream->
+            result_2 = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write "ABC"
                     reporting_stream_encoder.write "ą"
@@ -80,7 +79,7 @@ spec =
             f = enso_project.data / "transient" / "empty.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
-            result = f.with_output_stream [Option.Write, Option.Create_New] stream->
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
                 stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
             result.should_succeed
             f.read_text encoding . should_equal ""

@@ -20,7 +20,7 @@ import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
-from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -133,7 +133,7 @@ type Date
            https://github.com/enso-org/enso/pull/3559
            Then this should be switched to use `Panic.catch_java`.
         Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
-            Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
+            Polyglot_Error_Data err -> Error.throw (Time_Error.Error err.getMessage)
             ex -> ex
 
     ## ALIAS Date from Text
@@ -203,9 +203,9 @@ type Date
         result = Panic.recover Any <| case pattern of
             Nothing -> parse_builtin text 0
             _ : Text -> parse_builtin text pattern
-            _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+            _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error_Data err -> Time_Error_Data err.getMessage
+            Polyglot_Error_Data err -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.
@@ -391,7 +391,7 @@ type Date
             _ : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
             _ : Duration ->
-                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
@@ -537,7 +537,7 @@ type Date
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
             _ : Duration ->
-                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 

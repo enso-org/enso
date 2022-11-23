@@ -1,7 +1,7 @@
 import project.Data.Any.Any
 import project.System.File.File
 import project.System.File.File_Error
-import project.System.File.Option.Option
+import project.System.File.File_Access.File_Access
 import project.System.File.Output_Stream
 import project.Nothing.Nothing
 
@@ -45,9 +45,9 @@ type Existing_File_Behavior
     write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
     write self file action =
         case self of
-            Existing_File_Behavior.Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
-            Existing_File_Behavior.Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
-            Existing_File_Behavior.Error -> file.with_output_stream [Option.Write, Option.Create_New] action
+            Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
+            Existing_File_Behavior.Append -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
+            Existing_File_Behavior.Error -> file.with_output_stream [File_Access.Write, File_Access.Create_New] action
             Existing_File_Behavior.Backup -> Panic.recover [File_Error.IO_Error, File_Error.File_Not_Found] <|
                 handle_existing_file _ =
                     write_file_backing_up_old_one file action
@@ -60,7 +60,7 @@ type Existing_File_Behavior
                    existing, we will run the alternative algorithm which uses a
                    temporary file and creates a backup.
                 handle_file_already_exists <| handle_internal_dataflow <|
-                    Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                    Panic.rethrow <| file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
                         action output_stream . catch Any dataflow_error->
                             Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
 
@@ -88,7 +88,7 @@ write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, 
         handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked.Panic handler=handle_write_failure_panic
         handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
             Panic.rethrow <|
-                new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
                     result = Panic.catch Any (action output_stream) caught_panic->
                         Panic.throw (Internal_Write_Operation_Panicked.Panic caught_panic)
                     result.catch Any dataflow_error->

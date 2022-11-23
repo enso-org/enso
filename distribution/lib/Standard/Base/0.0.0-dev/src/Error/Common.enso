@@ -745,10 +745,6 @@ type Unimplemented_Error
 unimplemented : Text -> Nothing
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
 
-## TODO Dubious constructor export
-from project.Error.Common.Time_Error import all
-from project.Error.Common.Time_Error export all
-
 type Time_Error
 
     ## UNSTABLE
@@ -757,11 +753,11 @@ type Time_Error
 
        Arguments:
        - error_message: The message for the error.
-    Time_Error_Data error_message
+    Error error_message
 
     ## PRIVATE
     epoch_start : Time_Error
-    epoch_start = Time_Error_Data "Epoch start underflow"
+    epoch_start = Time_Error.Error "Epoch start underflow"
 
     to_display_text : Text
     to_display_text self = self.error_message
