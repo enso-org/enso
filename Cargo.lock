@@ -2882,6 +2882,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ensogl-tooltip",
 ]
 
 [[package]]
