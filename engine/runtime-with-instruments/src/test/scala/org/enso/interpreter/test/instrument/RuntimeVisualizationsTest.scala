@@ -6,7 +6,7 @@ import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -2686,11 +2686,13 @@ class RuntimeVisualizationsTest
   }
 
   it should "emit visualisation update for values in atom annotated with warnings" in {
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
-    val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val contextId         = UUID.randomUUID()
+    val requestId         = UUID.randomUUID()
+    val visualisationId   = UUID.randomUUID()
+    val moduleName        = "Enso_Test.Test.Main"
+    val warningTypeName   = QualifiedName.fromString(ConstantsGen.WARNING)
+    val warningModuleName = warningTypeName.getParent.get
+    val metadata          = new Metadata
 
     val idX   = metadata.addItem(81, 21)
     val idRes = metadata.addItem(107, 20)
@@ -2733,7 +2735,16 @@ class RuntimeVisualizationsTest
       4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(
+          warningModuleName.toString,
+          warningTypeName.toString,
+          "attach"
+        )
+      ),
       TestMessages.update(contextId, idRes, s"$moduleName.Newtype"),
       context.executionComplete(contextId)
     )
