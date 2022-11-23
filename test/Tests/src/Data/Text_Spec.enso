@@ -246,8 +246,8 @@ spec =
         Test.specify "should escape special characters when debug-printing text" <|
             text_1 = '''
                 foo
-                bar\tbaz
-            (text_1.replace '\r' "").to_text.should_equal "'foo\nbar\tbaz'"
+                bar\r\tbaz
+            text_1.to_text.should_equal "'foo\nbar\r\tbaz'"
             text_2 = '\n\t\a\b\f\r\v\e\''
             text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
 
@@ -830,8 +830,8 @@ spec =
             long_text = """
                 Hello from a long text. EOL
                 SOL Hmm...
-            (long_text.replace '\r' "") . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
-            (long_text.replace '\r' "") . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
+            long_text . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
@@ -917,8 +917,8 @@ spec =
             long_text = """
                 EOL
                 SOL Hmm...
-            (long_text.replace '\r' "") . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
-            (long_text.replace '\r' "") . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
+            long_text . starts_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
 
             "aaazzz" . starts_with "a|b" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
             "bbbzzz" . starts_with "a|b" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
@@ -997,8 +997,8 @@ spec =
             long_text = """
                 Hnnnn EOL
                 SOL
-            (long_text.replace '\r' "") . ends_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data dot_matches_newline=True) . should_be_true
-            (long_text.replace '\r' "") . ends_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data dot_matches_newline=False) . should_be_false
+            long_text . ends_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data dot_matches_newline=True) . should_be_true
+            long_text . ends_with "EOL.SOL" (Regex_Matcher.Regex_Matcher_Data dot_matches_newline=False) . should_be_false
 
             "zzzaaa" . ends_with "a|b" Regex_Matcher.Regex_Matcher_Data . should_be_true
             "zzzbbb" . ends_with "a|b" Regex_Matcher.Regex_Matcher_Data . should_be_true
@@ -1604,7 +1604,7 @@ spec =
             text = """
                 Foo
                 bar
-            r4 = text.replace "(\n|\r)" ""  matcher=(Regex_Matcher.Regex_Matcher_Data multiline=True)
+            r4 = text.replace '\n' ""  matcher=(Regex_Matcher.Regex_Matcher_Data multiline=True)
             r4 . should_equal "Foobar"
 
             r5 = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher.Regex_Matcher_Data comments=True)
