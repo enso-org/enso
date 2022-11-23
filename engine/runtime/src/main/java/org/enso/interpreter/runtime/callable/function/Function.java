@@ -378,4 +378,23 @@ public final class Function implements TruffleObject {
   public boolean isFullyApplied() {
     return schema.isFullyApplied();
   }
+
+  @ExportMessage
+  String toDisplayString(boolean sideEffects) {
+    return toString();
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    var n = callTarget.getRootNode();
+    var ss = n.getSourceSection();
+    if (ss == null) {
+      return super.toString();
+    }
+    var s = ss.getSource();
+    var start = ss.getStartLine();
+    final int end = start + s.getLineCount();
+    return n.getName() + "[" + s.getName() + ":" + start + "-" + end + "]";
+  }
 }
