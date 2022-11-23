@@ -638,6 +638,7 @@ impl Slider {
     fn init_component_colors(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
+        let output = &self.frp.private.output;
         let model = &self.model;
         let background_color_anim = color::Animation::new(network);
         let track_color_anim = color::Animation::new(network);
