@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System.Platform
 import Standard.Base.System.Process
-import Standard.Base.System.Process.Exit_Code
 
 from Standard.Image import Image, Read_Flag, Write_Flag
 
@@ -19,9 +18,9 @@ spec =
     pending = case is_ci of
         True ->
             case fetch rgba_addr rgba_file of
-                Exit_Code.Exit_Failure _ ->
+                Exit_Code.Failure _ ->
                     "The Image.Read spec was not able to fetch the file from " + rgba_addr
-                Exit_Code.Exit_Success ->
+                Exit_Code.Success ->
                     Nothing
         False ->
             "The Image.Read spec only run when the `CI` environment variable is set to true"

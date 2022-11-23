@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import Standard.Base.System.Platform
 import Standard.Base.System.Process
-from Standard.Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
 
 from Standard.Test import Test, Test_Suite
 
@@ -13,15 +12,15 @@ spec = Test.group "Process" <|
                 Process.run "PowerShell" ["-Command", "exit 0"]
             _ ->
                 Process.run "bash" ["-c", "exit 0"]
-        result.should_equal Exit_Success
+        result.should_equal Exit_Code.Success
     Test.specify "should return exit code" <|
         case Platform.os of
             Platform.Windows ->
                 r = Process.run "PowerShell" ["-Command", "exit 42"]
-                r.should_equal <| Exit_Failure 42
+                r.should_equal <| Exit_Code.Failure 42
             _ ->
                 r = Process.run "bash" ["-c", "exit 42"]
-                r.should_equal <| Exit_Failure 42
+                r.should_equal <| Exit_Code.Failure 42
     Test.specify "should return stdout" <|
         case Platform.os of
             Platform.Linux ->

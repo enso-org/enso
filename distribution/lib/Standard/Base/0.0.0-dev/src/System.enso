@@ -1,8 +1,8 @@
-## Functionality for interacting with the host system.
-
 from Standard.Base import all
 
 polyglot java import java.lang.System as Java_System
+
+## Functionality for interacting with the host system.
 
 ## PRIVATE
 
