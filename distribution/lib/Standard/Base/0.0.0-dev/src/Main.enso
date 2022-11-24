@@ -77,8 +77,8 @@ from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marsha
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
 
-from project.Data.Index_Sub_Range import First, Last
-from project.Data.Index_Sub_Range export First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 
 
 
