@@ -3,9 +3,12 @@ package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -16,7 +19,9 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -34,6 +39,7 @@ import java.util.Map;
 public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
+  private Integer hashCode;
 
   /**
    * Creates a new Atom for a given constructor.
@@ -201,10 +207,16 @@ public final class Atom implements TruffleObject {
 
   @ExportMessage
   int identityHashCode(
-      @CachedLibrary(limit = "5") InteropLibrary fieldsInterop,
-      @Cached(value = "computeIdentityHashCode(this, fieldsInterop)", allowUncached = true) int cachedHashCode
+      @Cached ConditionProfile isHashCodeComputedProfile,
+      @Cached("createIdentityProfile()") ValueProfile hashValueProfile
   ) {
-    return cachedHashCode;
+    if (isHashCodeComputedProfile.profile(hashCode != null)) {
+      return hashValueProfile.profile(hashCode);
+    } else {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      hashCode = computeIdentityHashCode(this);
+      return hashCode;
+    }
   }
 
   @ExportMessage
@@ -213,11 +225,20 @@ public final class Atom implements TruffleObject {
     static TriState isIdenticalOrUndefined(
         Atom thisAtom,
         Atom otherAtom,
-        @CachedLibrary(limit = "5") InteropLibrary fieldsInterop,
-        @Cached(value = "computeIdentityHashCode(thisAtom, fieldsInterop)", allowUncached = true) int thisHashCode,
-        @Cached(value = "computeIdentityHashCode(otherAtom, fieldsInterop)", allowUncached = true) int otherHashCode
+        @Cached("createCountingProfile()") ConditionProfile thisAtomHasNotHash,
+        @Cached("createCountingProfile()") ConditionProfile otherAtomHasNotHash
     ) {
-      return thisHashCode == otherHashCode ? TriState.TRUE : TriState.FALSE;
+      if (thisAtomHasNotHash.profile(thisAtom.hashCode == null)) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        thisAtom.hashCode = computeIdentityHashCode(thisAtom);
+      }
+      int thisAtomHash = thisAtom.hashCode;
+      if (otherAtomHasNotHash.profile(otherAtom.hashCode == null)) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        otherAtom.hashCode = computeIdentityHashCode(otherAtom);
+      }
+      int otherAtomHash = otherAtom.hashCode;
+      return thisAtomHash == otherAtomHash ? TriState.TRUE : TriState.FALSE;
     }
 
     @Fallback
@@ -226,21 +247,22 @@ public final class Atom implements TruffleObject {
     }
   }
 
-  @ExplodeLoop
-  static int computeIdentityHashCode(Atom atom, InteropLibrary fieldsInterop) {
-    int[] hashCodes = new int[atom.fields.length];
-    for (int i = 0; i < atom.fields.length; i++) {
-      Object field = atom.fields[i];
-      if (fieldsInterop.hasIdentity(field)) {
-        try {
-          hashCodes[i] = fieldsInterop.identityHashCode(field);
-        } catch (UnsupportedMessageException e) {
-          throw new PanicException(atom, fieldsInterop);
-        }
-      } else {
-        hashCodes[i] = field.hashCode();
-      }
-    }
+  @TruffleBoundary
+  static int computeIdentityHashCode(Atom atom) {
+    InteropLibrary interop = InteropLibrary.getUncached();
+    int[] hashCodes =  Arrays.stream(atom.fields)
+        .mapToInt((Object field) -> {
+          if (interop.hasIdentity(field)) {
+            try {
+              return interop.identityHashCode(field);
+            } catch (UnsupportedMessageException e) {
+              throw new IllegalStateException(e);
+            }
+          } else {
+            return field.hashCode();
+          }
+        })
+        .toArray();
     return Arrays.hashCode(hashCodes);
   }
 

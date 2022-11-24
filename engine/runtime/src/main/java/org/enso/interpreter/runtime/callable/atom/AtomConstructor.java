@@ -253,10 +253,8 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
-  int identityHashCode(
-      @Cached(value = "computeIdentityHashCode(this)", allowUncached = true) int cachedHashCode
-  ) {
-    return cachedHashCode;
+  int identityHashCode() {
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @ExportMessage
@@ -264,11 +262,8 @@ public final class AtomConstructor implements TruffleObject {
     @Specialization(limit = "3")
     static TriState isIdenticalOrUndefined(
         AtomConstructor thisAtomCtor,
-        AtomConstructor otherAtomCtor,
-        @Cached(value = "computeIdentityHashCode(thisAtomCtor)", allowUncached = true) int thisHashCode,
-        @Cached(value = "computeIdentityHashCode(otherAtomCtor)", allowUncached = true) int otherHashCode
-    ) {
-      return thisHashCode == otherHashCode ? TriState.TRUE : TriState.FALSE;
+        AtomConstructor otherAtomCtor) {
+      throw new UnsupportedOperationException("unimplemented");
     }
 
     @Fallback
