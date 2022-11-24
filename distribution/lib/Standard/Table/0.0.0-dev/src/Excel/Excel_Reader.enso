@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.System.File import handle_java_exceptions
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
@@ -43,7 +44,7 @@ handle_reader file reader =
     bad_argument caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
-    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+    handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File_Access.Read] stream->
             stream.with_java_stream reader
 
