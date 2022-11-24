@@ -13,6 +13,8 @@ class GraalVMComponentConfiguration extends RuntimeComponentConfiguration {
     os: OS
   ): Seq[GraalVMComponent] =
     version.graalVersion match {
+      case GraalVersions.Major(v) if v >= 22 =>
+        Seq(GraalVMComponent.js, GraalVMComponent.python, GraalVMComponent.R)
       case GraalVersions.Major(v) if v > 20 && os.hasSulongSupport =>
         Seq(GraalVMComponent.python, GraalVMComponent.R)
       case _ =>
