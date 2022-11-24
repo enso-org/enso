@@ -392,7 +392,7 @@ spec = Test.group "Vectors" <|
         vec.drop (By_Index []) . should_equal vec
         vec.drop (By_Index [-1, -1]) . should_equal [1, 2, 3, 4, 5]
         vec.drop (By_Index [0, 0, 3.up_to 100]) . should_equal [2, 3]
-        vec.drop (0.up_to 100 2) . should_equal [2, 4, 6]
+        vec.drop (0.up_to 100 . with_step 2) . should_equal [2, 4, 6]
         vec.drop (By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . should_equal []
         vec.drop (By_Index [1.up_to 3, 2.up_to 5]) . should_equal [1, 6]
         vec.drop (By_Index [2.up_to 5, 1.up_to 3]) . should_equal [1, 6]
