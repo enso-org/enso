@@ -24,7 +24,7 @@ polyglot java import org.enso.base.Array_Builder
 
    If a character cannot be converted to a byte, an `Encoding_Error` is raised.
    If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
-   a substitute (either � (if Unicode) or ? depending on the encoding).
+   a substitute (either '�' (if Unicode) or '?' depending on the encoding).
    Otherwise, the process is aborted.
    If the path to the parent location cannot be found or the filename is
    invalid, a `File_Error.Not_Found` is raised.
