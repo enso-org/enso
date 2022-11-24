@@ -125,16 +125,8 @@ type Date
 
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year (month = 1) (day = 1) =
-        ## TODO This is left using the old error handling approach, because
-           magically, changing this to the `catch_java` (which is now preferred way
-           of catching Polyglot_Errors) lead to the "should format local date using
-           provided pattern" test failing because it called the `LocalDate.format`
-           instead of Enso format. Hopefully this will be fixed with
-           https://github.com/enso-org/enso/pull/3559
-           Then this should be switched to use `Panic.catch_java`.
-        Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
-            Polyglot_Error_Data err -> Error.throw (Time_Error.Error err.getMessage)
-            ex -> ex
+        Panic.catch_java Any (new_builtin year month day) java_exception->
+            Error.throw (Time_Error.Error java_exception.getMessage)
 
     ## ALIAS Date from Text
 
