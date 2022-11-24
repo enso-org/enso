@@ -1,5 +1,5 @@
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Main as Test_Module
+import Standard.Test.Extensions
 
 type Generator
     Value h t
