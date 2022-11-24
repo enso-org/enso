@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Vector import Empty_Error
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Main as Test_Module
 
 # === Test Resources ===
 

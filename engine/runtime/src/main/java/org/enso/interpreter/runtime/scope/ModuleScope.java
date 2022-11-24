@@ -30,6 +30,12 @@ public final class ModuleScope implements TruffleObject {
    * @param context the current langauge context
    */
   public ModuleScope(Module module, EnsoContext context) {
+    this.polyglotSymbols = new HashMap<>();
+    this.types = new HashMap<>();
+    this.methods = new HashMap<>();
+    this.conversions = new HashMap<>();
+    this.imports = new HashSet<>();
+    this.exports = new HashSet<>();
     this.module = module;
     this.associatedType =
         Type.createSingleton(
@@ -37,6 +43,25 @@ public final class ModuleScope implements TruffleObject {
             this,
             context == null ? null : context.getBuiltins().any(),
             false);
+  }
+
+  public ModuleScope(
+      Module module,
+      Type associatedType,
+      Map<String, Object> polyglotSymbols,
+      Map<String, Type> types,
+      Map<Type, Map<String, Function>> methods,
+      Map<Type, Map<Type, Function>> conversions,
+      Set<ModuleScope> imports,
+      Set<ModuleScope> exports) {
+    this.module = module;
+    this.associatedType = associatedType;
+    this.polyglotSymbols = polyglotSymbols;
+    this.types = types;
+    this.methods = methods;
+    this.conversions = conversions;
+    this.imports = imports;
+    this.exports = exports;
   }
 
   public void registerType(Type type) {
@@ -261,5 +286,44 @@ public final class ModuleScope implements TruffleObject {
     types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
+  }
+
+  /**
+   * Create a copy of this `ModuleScope` while taking into account only the provided list of types.
+   *
+   * @param only list of types to copy to the new scope
+   * @return a copy of this scope modulo the requested types
+   */
+  public ModuleScope copyOnly(List<String> only) {
+    Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
+    Map<String, Type> types = new HashMap<>(this.types);
+    Map<Type, Map<String, Function>> methods = new HashMap<>();
+    Map<Type, Map<Type, Function>> conversions = new HashMap<>();
+    Set<ModuleScope> imports = new HashSet<>(this.imports);
+    Set<ModuleScope> exports = new HashSet<>(this.exports);
+    this.types
+        .entrySet()
+        .forEach(
+            entry -> {
+              if (only.contains(entry.getKey())) {
+                types.put(entry.getKey(), entry.getValue());
+              }
+            });
+    Collection<Type> validTypes = types.values();
+    this.methods.forEach(
+        (tpe, meths) -> {
+          if (validTypes.contains(tpe)) {
+            methods.put(tpe, meths);
+          }
+        });
+    this.conversions.forEach(
+        (tpe, meths) -> {
+          if (validTypes.contains(tpe)) {
+            conversions.put(tpe, meths);
+          }
+        });
+
+    return new ModuleScope(
+        module, associatedType, polyglotSymbols, types, methods, conversions, imports, exports);
   }
 }

@@ -1,0 +1,6 @@
+name: Test_Extension_Methods_Success
+license: APLv2
+enso-version: default
+version: "0.0.1"
+author: "Enso Team <contact@enso.org>"
+maintainer: "Enso Team <contact@enso.org>"
