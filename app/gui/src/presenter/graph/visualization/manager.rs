@@ -493,9 +493,8 @@ impl Manager {
 mod tests {
     use super::*;
 
-    use crate::model::module;
-
     use double_representation::identifier::Identifier;
+    use double_representation::name::QualifiedName;
     use futures::future::ready;
     use ide_view::graph_editor::component::visualization::instance::PreprocessorConfiguration;
     use std::assert_matches::assert_matches;
@@ -557,7 +556,7 @@ mod tests {
             let qualified_module = inner.project.qualified_module_name(inner.module.path());
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
-                defined_on_type: qualified_module.into(),
+                defined_on_type: qualified_module,
                 name:            Identifier::from_text("faux").unwrap(),
             };
             let arguments = vec!["foo".to_owned()];
@@ -610,7 +609,7 @@ mod tests {
 
     fn matching_metadata(visualization: &Visualization, metadata: &Metadata) -> bool {
         let PreprocessorConfiguration { module, method, .. } = &metadata.preprocessor;
-        let qualified_module: module::QualifiedName = module.deref().try_into().unwrap();
+        let qualified_module: QualifiedName = module.deref().try_into().unwrap();
         visualization.method_pointer.module == qualified_module
             && visualization.method_pointer.name.name() == method.deref()
     }
