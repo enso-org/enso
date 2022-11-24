@@ -102,8 +102,18 @@ mod overflow {
             let height = height - COMPONENT_MARGIN.px() * 2.0;
 
             let color = style.get_color(theme::component::slider::overflow::color);
-            let triangle = Triangle(width, height);
+            let triangle = Triangle(width.clone(), height.clone());
             let triangle = triangle.fill(color);
+
+            let point_a = (-width.clone() / 2.0, -height.clone() / 2.0);
+            let point_b = (width.clone() / 2.0, -height.clone() / 2.0);
+            let point_c = (0.0.px(), height.clone() / 2.0);
+            let segment_ab = Segment(point_a.clone(), point_b.clone(), 3.0.px()).fill(color);
+            let segment_bc = Segment(point_b.clone(), point_c.clone(), 3.0.px()).fill(color);
+            let segment_cd = Segment(point_c.clone(), point_a.clone(), 3.0.px()).fill(color);
+            let triangle = triangle.union(segment_ab);
+            let triangle = triangle.union(segment_bc);
+            let triangle = triangle.union(segment_cd);
 
             triangle.into()
         }
