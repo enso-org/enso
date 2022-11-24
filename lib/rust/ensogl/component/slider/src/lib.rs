@@ -692,6 +692,8 @@ impl Slider {
             edit_success <- value_after_edit.map(|v| v.is_some());
             value_after_edit <- value_after_edit.map(|v| v.unwrap_or_default());
             prec_after_edit <- value_text_after_edit.map(|s| get_value_text_precision(s));
+            prec_after_edit <- all2(&prec_after_edit, &input.set_default_precision);
+            prec_after_edit <- prec_after_edit.map(|(prec, default_prec)| prec.min(*default_prec));
             value_after_edit <- all5(
                 &value_after_edit,
                 &input.set_min_value,
