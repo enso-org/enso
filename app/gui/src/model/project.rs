@@ -7,8 +7,8 @@ use crate::prelude::*;
 
 use crate::model::module::ProjectMetadata;
 
-use double_representation::identifier::ReferentName;
-use double_representation::project::QualifiedName;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::binary;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ContentRoot;
@@ -34,11 +34,10 @@ pub mod synchronized;
 #[automock]
 pub trait API: Debug {
     /// Project's name
-    // TODO [mwu] This should return Rc<ReferentName>.
-    fn name(&self) -> ReferentName;
+    fn name(&self) -> ImString;
 
     /// Project's qualified name
-    fn qualified_name(&self) -> QualifiedName;
+    fn qualified_name(&self) -> project::QualifiedName;
 
     /// Get Language Server JSON-RPC Connection for this project.
     fn json_rpc(&self) -> Rc<language_server::Connection>;
@@ -89,26 +88,23 @@ pub trait API: Debug {
     }
 
     /// Generates full module's qualified name that includes the leading project name segment.
-    fn qualified_module_name(
-        &self,
-        path: &model::module::Path,
-    ) -> crate::model::module::QualifiedName {
+    fn qualified_module_name(&self, path: &model::module::Path) -> QualifiedName {
         path.qualified_module_name(self.qualified_name())
     }
 
     /// Get qualified name of the project's `Main` module.
     ///
     /// This module is special, as it needs to be referred by the project name itself.
-    fn main_module(&self) -> model::module::QualifiedName {
+    fn main_module(&self) -> QualifiedName {
         let name = self.qualified_name();
-        model::module::QualifiedName::new_main(name)
+        QualifiedName::new_main(name)
     }
 
     /// Get the file path of the project's `Main` module.
     fn main_module_path(&self) -> model::module::Path {
         let main_name = self.main_module();
         let content_root_id = self.project_content_root_id();
-        model::module::Path::from_id(content_root_id, &main_name.id)
+        model::module::Path::from_id(content_root_id, &main_name.module_id())
     }
 
     /// Get a model of the project's main module.
@@ -243,12 +239,12 @@ pub mod test {
     }
 
     /// Sets up name expectation on the mock project, returning a given name.
-    pub fn expect_name(project: &mut MockAPI, name: impl Into<String>) {
-        let name = ReferentName::new(name.into()).unwrap();
+    pub fn expect_name(project: &mut MockAPI, name: impl Into<ImString>) {
+        let name = name.into();
         project.expect_name().returning_st(move || name.clone());
     }
 
-    pub fn expect_qualified_name(project: &mut MockAPI, name: &QualifiedName) {
+    pub fn expect_qualified_name(project: &mut MockAPI, name: &project::QualifiedName) {
         let name = name.clone();
         project.expect_qualified_name().returning_st(move || name.clone());
     }

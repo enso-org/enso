@@ -4,8 +4,8 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 
-use double_representation::module;
-use model::suggestion_database::entry::QualifiedName;
+use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
 use model::suggestion_database::Entry;
 
 
@@ -135,15 +135,14 @@ impl<'a> Builder<'a> {
     /// Returns an empty vector if the [`module`] is not found in the database or in the
     /// components list.
     pub fn build(self, module: &component::Id) -> Box<dyn Iterator<Item = BreadcrumbEntry>> {
-        let (module_name, entry) = match self.module_name_and_entry(module) {
-            Some(name_and_entry) => name_and_entry,
-            None => return Box::new(iter::empty()),
+        let Some((module_name, entry)) = self.module_name_and_entry(module) else {
+            return Box::new(iter::empty());
         };
-        let project_name = module_name.project_name.clone();
-        let main_module_name = module::QualifiedName::new_main(project_name.clone());
+        let project_name = module_name.project();
+        let main_module_name = QualifiedName::new_main(project_name.clone_ref());
         let main_module = self.lookup(&main_module_name);
         let to_main_module_entry = |entry: (component::Id, Rc<Entry>)| BreadcrumbEntry {
-            displayed_name: String::from(project_name.project).into(),
+            displayed_name: String::from(project_name.project.clone_ref()).into(),
             ..entry.into()
         };
         let main_module = main_module.map(to_main_module_entry).into_iter();
@@ -155,22 +154,25 @@ impl<'a> Builder<'a> {
     fn module_name_and_entry(
         &self,
         module: &component::Id,
-    ) -> Option<(Rc<module::QualifiedName>, BreadcrumbEntry)> {
+    ) -> Option<(Rc<QualifiedName>, BreadcrumbEntry)> {
         let module_name = self.components.module_qualified_name(*module)?;
-        let entry = BreadcrumbEntry::from(self.lookup(&module_name)?);
+        let entry = BreadcrumbEntry::from(self.lookup(&*module_name)?);
         Some((module_name, entry))
     }
 
-    fn lookup(&self, name: &module::QualifiedName) -> Option<(component::Id, Rc<Entry>)> {
-        self.database.lookup_by_qualified_name(name.into_iter())
+    fn lookup<'b>(
+        &self,
+        name: impl Into<QualifiedNameRef<'b>>,
+    ) -> Option<(component::Id, Rc<Entry>)> {
+        self.database.lookup_by_qualified_name(name)
     }
 
     /// Collect all parent modules of the given module.
     ///
     /// Panics if the module is not found in the database.
-    fn collect_parents(&self, name: &module::QualifiedName) -> Vec<BreadcrumbEntry> {
-        let parents = name.parent_modules();
-        let database_entries = parents.filter_map(|name| self.lookup(&name));
+    fn collect_parents(&self, name: &QualifiedName) -> Vec<BreadcrumbEntry> {
+        let parents = name.parents();
+        let database_entries = parents.filter_map(|name| self.lookup(name));
         // Note: it would be nice to avoid allocation here, but we need to reverse the
         // iterator later, so returning `impl Iterator` is not an option. We can only reverse
         // `DoubleEndedIterator`.
