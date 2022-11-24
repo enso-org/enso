@@ -258,11 +258,7 @@ optParser.options('skip-min-version-check', {
 
 // === Parsing ===
 
-function parseCmdArgs() {
-    return optParser.parse()
-}
-
-let args = parseCmdArgs()
+let args = optParser.parse()
 
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
