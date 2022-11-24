@@ -775,3 +775,32 @@ type Unsupported_File_Type
    An error indicating that some elements are incomparable.
 
 type Incomparable_Values_Error
+
+## Errors when reading or writing to a file.
+type File_Error
+
+    ## An error that indicates that the requested file does not exist.
+
+       Arguments:
+       - file: The file that doesn't exist.
+    Not_Found file
+
+    ## Indicates that a destination file already exists.
+    Already_Exists file
+
+    ## A generic IO error.
+
+       Arguments:
+       - file: The file that couldn't be read.
+       - message: The message for the error.
+    IO_Error file message
+
+    ## UNSTABLE
+
+       Convert the File error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
+        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+

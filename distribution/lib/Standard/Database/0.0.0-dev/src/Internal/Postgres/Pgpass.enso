@@ -83,7 +83,7 @@ parse_file file =
             if elements.length != 5 then Nothing else
                 Pgpass_Entry.Value (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
 
-    File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
+    File.new file . read_text . lines . map parse . filter (x -> x.is_nothing.not)
 
 ## PRIVATE
 parse_line line =

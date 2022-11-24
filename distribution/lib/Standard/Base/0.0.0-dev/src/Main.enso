@@ -14,10 +14,12 @@ import project.Polyglot.Java
 import project.Runtime
 import project.System
 import project.System.Environment
+import project.System.File.File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 import project.System.File.File_Permissions.Permission
+import project.System.File.Write_Extensions
 import project.System.File_Format
 import project.System.Platform
 import project.System.Process
@@ -37,10 +39,12 @@ export project.Polyglot.Java
 export project.Runtime
 export project.System
 export project.System.Environment
+export project.System.File.File
 export project.System.File.Existing_File_Behavior.Existing_File_Behavior
 export project.System.File.File_Access.File_Access
 export project.System.File.File_Permissions.File_Permissions
 export project.System.File.File_Permissions.Permission
+export project.System.File.Write_Extensions
 export project.System.Platform
 export project.System.Process
 export project.System.Process.Exit_Code.Exit_Code
@@ -51,6 +55,7 @@ from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
 
+import project.Data
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
@@ -82,6 +87,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Problem_Behavior
 import project.Random
 
+export project.Data
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
@@ -117,12 +123,7 @@ from project.Error.Problem_Behavior export all
 from project.Data.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range export First, Last
 
-
-
 # Not refactored modules below:
-import project.System.File
-export project.System.File
-
 import project.Data.Text
 import project.Data.Text.Case
 import project.Data.Text.Encoding
@@ -148,6 +149,6 @@ export project.Meta
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
 from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
-from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
+from project.Data.Text.Encoding export Encoding, Encoding_Error
 from project.Data.Text.Span export all
 from project.Error.Common export all

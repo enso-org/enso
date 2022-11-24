@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 import Standard.Base.System.File.Input_Stream
+from Standard.Base.System.File import wrap_io_exception
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -197,7 +198,7 @@ detect_metadata file format =
                     False -> trailing_line_separator
                 has_any_content = reader.getVisitedCharactersCount > 0
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
-    result.catch File.File_Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
+    result.catch File_Error.Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
 
 ## PRIVATE
    Checks if the file has a newline at the end.
@@ -230,7 +231,7 @@ handle_parsing_exception =
 
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
-    Error.throw (File.wrap_io_exception related_file java_exception)
+    Error.throw (wrap_io_exception related_file java_exception)
 
 ## PRIVATE
 default_max_columns = 4096

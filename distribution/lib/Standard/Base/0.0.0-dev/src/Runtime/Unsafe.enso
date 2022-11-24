@@ -1,6 +1,6 @@
 import project.Data.Any.Any
 import project.Data.Numbers.Integer
-import Standard.Base.Meta.Atom
+import project.Meta.Atom
 
 ## Unsafe operations.
    A container for unsafe operations that operate based on implementation

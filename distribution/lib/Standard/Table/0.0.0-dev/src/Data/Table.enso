@@ -5,8 +5,6 @@ import Standard.Base.Error.Common as Errors
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
-# TODO[DB] Fix composite types #183857386
-import Standard.Base.System.File.File as File_Type
 
 import project.Data.Column.Column
 from project.Data.Column import get_item_string
@@ -1218,9 +1216,9 @@ type Table
        - If an unsupported `File_Format` is specified, an
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
-         invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `IO_Error` is
-         raised.
+         invalid, a `File_Error.Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an
+         `File_Error.IO_Error` is raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
@@ -1252,7 +1250,7 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File_Type|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of

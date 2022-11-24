@@ -1,10 +1,8 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-import project.System.File
-# TODO[DB] Fix composite types #183857386
-import project.System.File.File as File_Type
+import project.System.File.File
 
-
+from project.Data.Boolean import Boolean, True, False
 
 ## ADVANCED
    UNSTABLE
@@ -69,5 +67,5 @@ type Source_Location
     ## UNSTABLE
 
        Return the source file corresponding to this location.
-    file : File_Type
+    file : File
     file self = File.new self.prim_location.getSource.getPath

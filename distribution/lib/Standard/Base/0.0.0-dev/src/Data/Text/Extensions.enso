@@ -515,7 +515,7 @@ Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
-        on_problems.attach_problems_after vector [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
 
 ## Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
@@ -537,7 +537,7 @@ Text.from_bytes : Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
