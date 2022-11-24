@@ -14,3 +14,7 @@ float zoom() {
 float aa_side_padding() {
     return max(1.0, ceil(1.0 / zoom()));
 }
+
+bool outside_of_uv() {
+    return input_uv.x < 0.0 || input_uv.x > 1.0 || input_uv.y < 0.0 || input_uv.y > 1.0;
+}

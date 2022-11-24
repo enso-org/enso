@@ -302,7 +302,7 @@ impl WorldData {
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
                     if let Some(code) = glsl::codes::DisplayModes::from_value(code_value) {
-                        debug!("Setting display mode to {:?}", code.name());
+                        warn!("Setting display mode to {:?}.", code.name());
                     } else {
                         warn!("Invalid display mode code: {code_value}.");
                     }

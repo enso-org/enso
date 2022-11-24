@@ -41,9 +41,7 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
     output_color = srgba(clipped_shape.color).raw;
     output_color.rgb *= alpha;
-    if (input_uv.x < 0.0 || input_uv.x > 1.0 || input_uv.y < 0.0 || input_uv.y > 1.0) {
-        output_color = vec4(1.0,0.0,0.0,1.0);
-    }
+    output_color = outside_of_uv() ? vec4(1.0,0.0,0.0,1.0) : output_color;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SDF) {
     float zoom = zoom();
@@ -54,18 +52,19 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color.rgb *= alpha_no_aa;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_INSTANCE_ID) {
-    float object_hue = float((input_global_instance_id * 7) % 100) / 100.0;
-    Srgb object_color = srgb(hsv(object_hue, 1.0, 0.5));
-    output_color.rgb = object_color.raw.rgb;
+    float hue = float((input_global_instance_id * 7) % 100) / 100.0;
+    Srgb color = srgb(hsv(hue, 1.0, 0.5));
+    output_color.rgb = color.raw.rgb;
     output_color.a = alpha_no_aa;
     output_color.rgb *= alpha_no_aa;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_OVERVIEW) {
-    float object_hue = float(((input_global_instance_id * 7 + int(input_time/100.0) ) * 17) % 100) / 100.0;
-    Srgb object_color = srgb(hsv(object_hue, 1.0, 1.0));
-    output_color.rgb = object_color.raw.rgb;
-    output_color.a = alpha_no_aa * float(int(((input_time + 17.0 * float(input_global_instance_id))/100.0)) % 80 + 20)/100.0;
-    output_color.rgb *= alpha_no_aa;
+    float hue_seed = float(input_global_instance_id + input_mouse_click_count % 10) * 17.0;
+    float hue = mod(hue_seed, 100.0) / 100.0;
+    output_color = srgba(hsva(hue, 1.0, 1.0, alpha_no_aa)).raw;
+    output_color = outside_of_uv() ? vec4(output_color.rgb, 1.0) : output_color;
+    output_color.a *= clamp(float(input_mouse_position.x)/1000.0, 0.1, 1.0);
+    output_color.rgb *= output_color.a;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_UV) {
      bool overflow = input_uv.x >= 1.0 || input_uv.y >= 1.0;

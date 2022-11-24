@@ -442,9 +442,9 @@ impl Model {
     /// methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
-        self.dirty.new_layer.set();
         let mut assigned_layer = self.assigned_layer.borrow_mut();
         if assigned_layer.as_ref() != Some(&layer) {
+            self.dirty.new_layer.set();
             *assigned_layer = Some(layer);
         }
     }

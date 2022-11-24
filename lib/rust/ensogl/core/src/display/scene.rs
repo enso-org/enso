@@ -122,6 +122,7 @@ pub struct Mouse {
     pub mouse_manager: MouseManager,
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
+    pub click_count:   Uniform<i32>,
     pub hover_rgba:    Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTargetId>>,
     pub handles:       Rc<[callback::Handle; 4]>,
@@ -140,18 +141,19 @@ impl Mouse {
         let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
         let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let click_count = variables.add_or_panic("mouse_click_count", 0);
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
-                    let shape       = scene_frp.shape.value();
+            f!([frp, scene_frp, position, last_position] (event:&mouse::OnMove) {
+                    let shape = scene_frp.shape.value();
                     let pixel_ratio = shape.pixel_ratio;
-                    let screen_x    = event.client_x();
-                    let screen_y    = event.client_y();
+                    let screen_x = event.client_x();
+                    let screen_y = event.client_y();
 
-                    let new_pos     = Vector2::new(screen_x,screen_y);
+                    let new_pos = Vector2::new(screen_x,screen_y);
                     let pos_changed = new_pos != last_position.get();
                     if pos_changed {
                         last_position.set(new_pos);
@@ -163,10 +165,12 @@ impl Mouse {
                 }
             ),
         ));
-        let on_down = mouse_manager.on_down.add(
-            current_js_event
-                .make_event_handler(f!((event:&mouse::OnDown) frp.down.emit(event.button()))),
-        );
+        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
+            f!([frp, click_count] (event:&mouse::OnDown) {
+                click_count.modify(|v| *v += 1);
+                frp.down.emit(event.button());
+            }),
+        ));
         let on_up = mouse_manager.on_up.add(
             current_js_event
                 .make_event_handler(f!((event:&mouse::OnUp) frp.up.emit(event.button()))),
@@ -175,7 +179,17 @@ impl Mouse {
             .on_wheel
             .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
         let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
-        Self { mouse_manager, last_position, position, hover_rgba, target, handles, frp, scene_frp }
+        Self {
+            mouse_manager,
+            last_position,
+            position,
+            click_count,
+            hover_rgba,
+            target,
+            handles,
+            frp,
+            scene_frp,
+        }
     }
 
     /// Re-emits FRP mouse changed position event with the last mouse position value.

@@ -74,7 +74,7 @@ lazy_static! {
     static ref GLSL_BOILERPLATE: String = gen_glsl_boilerplate();
 }
 
-fn generate_codes_glsl_code() -> String {
+fn glsl_codes() -> String {
     let codes = codes::DisplayModes::all();
     let header = header("Codes");
     let display_modes = codes
@@ -86,25 +86,29 @@ fn generate_codes_glsl_code() -> String {
     format!("{}\n\n{}\n{}", header, display_modes, error_codes)
 }
 
+pub fn glsl_prelude_and_codes() -> String {
+    let codes = glsl_codes();
+    format!("{}\n\n{}", GLSL_PRELUDE, codes)
+}
+
 fn gen_glsl_boilerplate() -> String {
     let redirections = overload::builtin_redirections();
     let math = overload::allow_overloading(MATH);
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
-    let err_codes = generate_codes_glsl_code();
+    let codes_and_prelude = glsl_prelude_and_codes();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
     [
-        &redirections,
-        &err_codes,
-        GLSL_PRELUDE,
-        &math,
-        &color,
-        &debug,
-        &shape,
-        &defs_header,
-        &sdf_defs,
+        redirections.as_str(),
+        codes_and_prelude.as_str(),
+        math.as_str(),
+        color.as_str(),
+        debug.as_str(),
+        shape.as_str(),
+        defs_header.as_str(),
+        sdf_defs.as_str(),
     ]
     .join("\n\n")
 }

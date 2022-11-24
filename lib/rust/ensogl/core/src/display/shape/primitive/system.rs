@@ -394,6 +394,8 @@ impl ShapeSystemModel {
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("time", 0.0);
+        material.add_input_def::<Vector2<i32>>("mouse_position");
+        material.add_input_def::<i32>("mouse_click_count");
         material.add_input("display_mode", 0);
         material.add_output("id", Vector4::<f32>::zero());
         material
@@ -401,7 +403,7 @@ impl ShapeSystemModel {
 
     fn default_geometry_material() -> Material {
         let mut material = SpriteSystem::default_geometry_material();
-        material.set_before_main(GLSL_PRELUDE);
+        material.set_before_main(shader::builder::glsl_prelude_and_codes());
         // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
         // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
         //
@@ -430,6 +432,10 @@ impl ShapeSystemModel {
 
                 // We are now able to compute the padding and grow the canvas by its value.
                 vec2 padding = vec2(aa_side_padding());
+                if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_OVERVIEW) {
+                    padding = vec2(float(input_mouse_position.y) / 10.0);
+                }
+
                 vec2 padding2 = 2.0 * padding;
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
