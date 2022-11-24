@@ -106,7 +106,18 @@ impl Handle {
                     language_server.write_file(&path, &content).await?,
                 FileHandle::Module { controller } => {
                     controller.check_code_sync(content)?;
-                    controller.save_file().await?
+                    controller.save_file().await?;
+
+                    // VCS test
+                    let path = controller.model.path().clone_ref();
+                    let path = path.parent().unwrap();
+                    let language_server = controller.language_server.clone_ref();
+                    warn!("{}", path);
+                    //language_server.init_vcs(&path).await?;
+                    language_server.write_vcs(&path, &Some("test".into())).await?;
+                    let list = language_server.list_vcs(&path, &Some(10)).await?;
+                    warn!("{:?}", list);
+                    ()
                 }
             }
             Ok(())
