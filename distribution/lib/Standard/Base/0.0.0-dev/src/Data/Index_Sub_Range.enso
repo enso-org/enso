@@ -71,8 +71,8 @@ resolve_ranges ranges length =
                 if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error_Data "Range start and end must not be negative.") else
                     if start >= length then Panic.throw (Index_Out_Of_Bounds_Error_Data start length) else
                         actual_end = Math.min end length
-                        if actual_end < start then start.up_to start step else
-                            start.up_to actual_end step
+                        if actual_end < start then start.up_to start . with_step step else
+                            start.up_to actual_end . with_step step
     ranges.map trim
 
 ## PRIVATE
@@ -177,7 +177,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 0 else
-                range = start.up_to length step
+                range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
 
 ## PRIVATE
@@ -229,5 +229,5 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 length else
-                range = start.up_to length step
+                range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)

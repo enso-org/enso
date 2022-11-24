@@ -21,15 +21,19 @@ spec = Test.group "Range" <|
         range_3.end . should_equal 0
         range_3.step  . should_equal -1
 
+    Test.specify "should allow creation with Range.new" <|
+        Range.new . should_equal (Range.Value 0 100 1)
+        Range.new 5 20 . should_equal (Range.Value 5 20 1)
+        Range.new 20 5 . should_equal (Range.Value 20 5 -1)
+        Range.new 5 20 5 . should_equal (Range.Value 5 20 5)
+        Range.new 20 5 5 . should_equal (Range.Value 20 5 -5)
+
     Test.specify "should allow setting a new step magnitude" <|
-        1.up_to 2 3 . should_equal (Range.Value 1 2 3)
         1.up_to 2 . with_step 3 . should_equal (Range.Value 1 2 3)
 
         0.up_to 10 . with_step 2 . should_equal (Range.Value 0 10 2)
         0.up_to 10 . with_step 2 . to_vector . should_equal [0, 2, 4, 6, 8]
 
-        10.down_to 0 2 . should_equal (Range.Value 10 0 -2)
-        10.down_to 0 -2 . should_equal (Range.Value 10 0 -2)
         10.down_to 0 . with_step 2 . should_equal (Range.Value 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 

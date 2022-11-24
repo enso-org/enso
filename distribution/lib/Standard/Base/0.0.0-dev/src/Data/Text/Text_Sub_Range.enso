@@ -94,7 +94,7 @@ find_codepoint_ranges text subrange =
             if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 len = text.length
                 if start >= len then 0.up_to 0 else
-                    range = start.up_to text.length step
+                    range = start.up_to text.length . with_step step
                     find_codepoint_ranges text (Index_Sub_Range.By_Index range)
         _ : Range ->
             find_codepoint_ranges text (Index_Sub_Range.By_Index subrange)
@@ -233,5 +233,5 @@ normalize_range range length =
         Panic.throw (Illegal_Argument_Error_Data "Ranges with negative indices are not supported for indexing.")
     if (range.start >= length) then
         Panic.throw (Index_Out_Of_Bounds_Error_Data range.start length)
-    if range.end >= length then range.start.up_to length range.step else
+    if range.end >= length then range.start.up_to length . with_step range.step else
         range

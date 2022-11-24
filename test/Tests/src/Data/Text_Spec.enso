@@ -313,15 +313,15 @@ spec =
             "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range.Value 6*ix+1 6*ix+3)) . should_equal "1456"*1000
             "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range.Value ix+1 ix+5)) . should_equal "ACDABCD"
 
-            "ABCD"*1000 . take (0.up_to 4000 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (0.up_to 4000 . with_step 4) . should_equal "A"*1000
             "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
-            "ABCD"*1000 . take (By_Index [0.up_to 4000 4, 1.up_to 4000 4]) . should_equal ("A"*1000 + "B"*1000)
-            "ABCD"*1000 . take (By_Index [0.up_to 4000 4, 2.up_to 4000 4]) . should_equal ("A"*1000 + "C"*1000)
+            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "C"*1000)
 
-            "ABCD"*1000 . drop (0.up_to 4000 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (0.up_to 4000 . with_step 4) . should_equal "BCD"*1000
             "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
-            "ABCD"*1000 . drop (By_Index [0.up_to 4000 4, 1.up_to 4000 4]) . should_equal "CD"*1000
-            "ABCD"*1000 . drop (By_Index [0.up_to 4000 4, 2.up_to 4000 4]) . should_equal "BD"*1000
+            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal "BD"*1000
 
             "0123456789".take (By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "0123458"
             "0123456789".take (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "45012300"
@@ -345,7 +345,7 @@ spec =
             txt.take (Every 2) . should_equal (kshi + accent_1)
             txt.take (Every 2 first=1) . should_equal (facepalm + accent_2)
             txt.drop (Every 2) . should_equal (facepalm + accent_2)
-            txt.take (0.up_to 4 2) . should_equal (kshi + accent_1)
+            txt.take (0.up_to 4 . with_step 2) . should_equal (kshi + accent_1)
             txt.take (By_Index [0, 3]) . should_equal (kshi + accent_2)
             txt.take (By_Index 0) . should_equal kshi
             txt.take (By_Index 1) . should_equal facepalm
@@ -383,12 +383,12 @@ spec =
             "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
             "Hello World!".take (3.up_to 5) . should_equal "lo"
             "Hello World!".take (5.up_to 12) . should_equal " World!"
-            "Hello World!".take (6.up_to 12 2) . should_equal "Wrd"
+            "Hello World!".take (6.up_to 12 . with_step 2) . should_equal "Wrd"
             "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
             "Hello World!".take (Every 3) . should_equal "HlWl"
             "Hello World!".take (By_Index 0) . should_equal "H"
             "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
-            "Hello World!".take (By_Index [0.up_to 3, 6, 6.up_to 12 2]) . should_equal "HelWWrd"
+            "Hello World!".take (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "HelWWrd"
             "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
         Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
@@ -407,19 +407,19 @@ spec =
             txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
-            txt.take (By_Index [0, 1, 6.up_to 100 2]) . should_equal "HeWrd"
+            txt.take (By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
             txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (13.up_to 20 2) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 2]) . should_equal ""
-            txt.take (By_Index [0.up_to 2 2, 13.up_to 20 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [0.up_to 2 2, 13.up_to 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 13 12)
-            txt.take (By_Index [0.up_to 2 2, txt.length.up_to 100 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 13 12)
+            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "take should work on grapheme clusters" <|
@@ -527,12 +527,12 @@ spec =
             "Hello World!".drop (While c->c!="z") . should_equal ""
             "Hello World!".drop (3.up_to 5) . should_equal "Hel World!"
             "Hello World!".drop (5.up_to 12) . should_equal "Hello"
-            "Hello World!".drop (6.up_to 12 2) . should_equal "Hello ol!"
+            "Hello World!".drop (6.up_to 12 . with_step 2) . should_equal "Hello ol!"
             "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
             "Hello World!".drop (Every 3) . should_equal "elo ord!"
             "Hello World!".drop (By_Index 0) . should_equal "ello World!"
             "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
-            "Hello World!".drop (By_Index [0.up_to 3, 6, 6.up_to 12 2]) . should_equal "lo ol!"
+            "Hello World!".drop (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "lo ol!"
             "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
         Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
@@ -554,8 +554,8 @@ spec =
             "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
             txt.drop (0.up_to 0) . should_equal txt
             txt.drop (5.up_to 100) . should_equal "Hello"
-            txt.drop (5.up_to 100 2) . should_equal "HelloWrd"
-            txt.drop (By_Index [0, 1, 0, 5.up_to 100 2]) . should_equal "lloWrd"
+            txt.drop (5.up_to 100 . with_step 2) . should_equal "HelloWrd"
+            txt.drop (By_Index [0, 1, 0, 5.up_to 100 . with_step 2]) . should_equal "lloWrd"
 
         Test.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'

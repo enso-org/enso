@@ -31,7 +31,7 @@ from project.Error.Common import Unsupported_File_Type, File_Error
          from Standard.Table import all
          import Standard.Examples
 
-         example_xlsx_to_table = Examples.xlsx.read
+         example_xlsx_to_table = Data.read Examples.xlsx
 
    > Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
@@ -40,7 +40,7 @@ from project.Error.Common import Unsupported_File_Type, File_Error
          from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
-         example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
+         example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
 read_file : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
 read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
@@ -57,11 +57,6 @@ read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) 
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 
-   ? Module or Instance?
-     If you have a variable `file` of type `File`, we recommend calling the
-     `.read_text` method on it directly, rather than using
-     `Data.read_text file`. The later, however, will still work.
-
    > Example
      Read the `data.csv` file in the project directory's `data` directory. You
      will need to create the file `data.csv` manually in that directory.
@@ -69,7 +64,7 @@ read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) 
          import Standard.Base.Data
          import Standard.Examples
 
-         example_read = Data.read_text Examples.csv_path
+         example_read = Data.read_text_file Examples.csv_path
 read_text_file : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text_file path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read_text encoding on_problems
