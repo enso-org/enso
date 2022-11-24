@@ -75,7 +75,8 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
                 }
                 if let Some(dst_layer) = destination {
                     dst_layer.add_sublayer(layer.as_ref());
-                }
+                    layer.as_ref().set_camera_parent(dst_layer.clone_ref());
+            }
             });
         }
         Self { instance, layer }

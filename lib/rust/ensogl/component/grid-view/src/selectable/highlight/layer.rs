@@ -56,7 +56,7 @@ impl<InnerGridView> Handler<InnerGridView> {
         let text = parent_layer.create_sublayer("text");
         let header = default();
         let header_text = default();
-        let mask = Layer::new_with_cam("mask", &parent_layer.camera());
+        let mask = Layer::new_with_cam_parent("mask", &parent_layer);
         entries.set_mask(&mask);
         text.set_mask(&mask);
         entries.add(&grid);

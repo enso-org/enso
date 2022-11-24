@@ -1,6 +1,7 @@
 //! Scene layers implementation. See docs of [`Group`] to learn more.
 
 use crate::data::dirty::traits::*;
+use crate::display::camera;
 use crate::prelude::*;
 
 use crate::data::dirty;
@@ -174,6 +175,21 @@ impl Layer {
         this
     }
 
+    /// Create a new layer that will follow camera changes of another layer.
+    #[profile(Detail)]
+    pub fn new_with_cam_parent(name: impl Into<String>, camera_parent: &Layer) -> Self {
+        let this = Self::new(name);
+        this.set_camera_parent(camera_parent.downgrade());
+        this
+    }
+
+    /// Create a new sublayer to this layer, with the same camera.
+    pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
+        let layer = Layer::new_with_cam_parent(name, &self);
+        self.add_sublayer(&layer);
+        layer
+    }
+
     /// Create a new weak pointer to this layer.
     pub fn downgrade(&self) -> WeakLayer {
         let model = Rc::downgrade(&self.model);
@@ -208,11 +224,11 @@ impl Layer {
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
     /// visited before their corresponding sublayers. Does not visit masks. If you want to visit
     /// masks, use [`iter_sublayers_and_masks_nested`] instead.
-    pub fn iter_sublayers_nested(&self, f: impl Fn(&Layer)) {
-        self.iter_sublayers_nested_internal(&f)
+    pub fn iter_sublayers_nested(&self, mut f: impl FnMut(&Layer)) {
+        self.iter_sublayers_nested_internal(&mut f)
     }
 
-    fn iter_sublayers_nested_internal(&self, f: &impl Fn(&Layer)) {
+    fn iter_sublayers_nested_internal(&self, f: &mut impl FnMut(&Layer)) {
         f(self);
         for layer in self.sublayers() {
             layer.iter_sublayers_nested_internal(f)
@@ -221,11 +237,11 @@ impl Layer {
 
     /// Iterate over all layers, sublayers, masks, and their sublayers of this layer hierarchically.
     /// Parent layers will be visited before their corresponding sublayers.
-    pub fn iter_sublayers_and_masks_nested(&self, f: impl Fn(&Layer)) {
-        self.iter_sublayers_and_masks_nested_internal(&f)
+    pub fn iter_sublayers_and_masks_nested(&self, mut f: impl FnMut(&Layer)) {
+        self.iter_sublayers_and_masks_nested_internal(&mut f)
     }
 
-    fn iter_sublayers_and_masks_nested_internal(&self, f: &impl Fn(&Layer)) {
+    fn iter_sublayers_and_masks_nested_internal(&self, f: &mut impl FnMut(&Layer)) {
         f(self);
         if let Some(mask) = &*self.mask.borrow() {
             if let Some(layer) = mask.upgrade() {
@@ -327,7 +343,8 @@ impl PartialEq for WeakLayer {
 #[allow(missing_docs)]
 pub struct LayerModel {
     pub name: String,
-    pub camera: RefCell<Camera2d>,
+    camera: RefCell<Camera2d>,
+    camera_parent: RefCell<Option<WeakLayer>>,
     pub shape_system_registry: ShapeSystemRegistry,
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
@@ -368,7 +385,8 @@ impl Drop for LayerModel {
 impl LayerModel {
     fn new(name: impl Into<String>) -> Self {
         let name = name.into();
-        let camera = RefCell::new(Camera2d::new());
+        let camera = default();
+        let camera_parent = default();
         let shape_system_registry = default();
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();
@@ -386,6 +404,7 @@ impl LayerModel {
         Self {
             name,
             camera,
+            camera_parent,
             shape_system_registry,
             shape_system_to_symbol_info_map,
             symbol_to_shape_system_map,
@@ -488,13 +507,18 @@ impl LayerModel {
 
     /// Camera getter of this layer.
     pub fn camera(&self) -> Camera2d {
-        self.camera.borrow().clone_ref()
+        let camera_parent = self.camera_parent.borrow().as_ref().and_then(|t| t.upgrade());
+        camera_parent.map_or_else(|| self.camera.borrow().clone_ref(), |l| l.camera())
     }
 
     /// Camera setter of this layer.
     pub fn set_camera(&self, camera: impl Into<Camera2d>) {
-        let camera = camera.into();
-        *self.camera.borrow_mut() = camera;
+        *self.camera.borrow_mut() = camera.into();
+        *self.camera_parent.borrow_mut() = None;
+    }
+
+    pub fn set_camera_parent(&self, layer: WeakLayer) {
+        *self.camera_parent.borrow_mut() = Some(layer);
     }
 
     /// Add the symbol to this layer.
@@ -691,11 +715,6 @@ impl LayerModel {
     }
 
     fn remove_mask(&self) {
-        if let Some(mask) = &*self.mask.borrow() {
-            if let Some(mask) = mask.upgrade() {
-                mask.remove_parent(&self.sublayers)
-            }
-        }
         mem::take(&mut *self.mask.borrow_mut());
     }
 
@@ -708,8 +727,20 @@ impl LayerModel {
     }
 
     /// Create a new sublayer to this layer, with the same camera.
-    pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
-        let layer = Layer::new_with_cam(name, &self.camera.borrow());
+    pub fn create_sublayer_with_cam_parent(
+        &self,
+        name: impl Into<String>,
+        parent: &Layer,
+    ) -> Layer {
+        let layer = Layer::new_with_cam_parent(name, parent);
+        self.add_sublayer(&layer);
+        layer
+    }
+
+
+    /// Create a new sublayer to this layer, with the same camera.
+    pub fn create_sublayer_with_cam(&self, name: impl Into<String>, camera: &Camera2d) -> Layer {
+        let layer = Layer::new_with_cam(name, camera);
         self.add_sublayer(&layer);
         layer
     }
@@ -723,7 +754,7 @@ impl LayerModel {
     pub fn set_mask(&self, mask: &Layer) {
         self.remove_mask();
         *self.mask.borrow_mut() = Some(mask.downgrade());
-        mask.add_parent(&self.sublayers);
+        // mask.add_parent(&self.sublayers);
     }
 
     /// The layer's [`ScissorBox`], if any.
@@ -971,7 +1002,7 @@ impl Masked {
     /// Constructor.
     pub fn new() -> Self {
         let masked_layer = Layer::new("MaskedLayer");
-        let mask_layer = Layer::new("MaskLayer");
+        let mask_layer = Layer::new_with_cam_parent("MaskLayer", &masked_layer);
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }
@@ -979,7 +1010,7 @@ impl Masked {
     /// Constructor.
     pub fn new_with_cam(camera: &Camera2d) -> Self {
         let masked_layer = Layer::new_with_cam("MaskedLayer", camera);
-        let mask_layer = Layer::new_with_cam("MaskLayer", camera);
+        let mask_layer = Layer::new_with_cam_parent("MaskLayer", &masked_layer);
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }

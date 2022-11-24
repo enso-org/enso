@@ -13,6 +13,7 @@ use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::scene::Layer;
 use ensogl_scroll_area::ScrollArea;
 
@@ -123,7 +124,7 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         E: Entry,
         InnerGridView: AsRef<crate::GridView<E>> + display::Object, {
         let area = ScrollArea::new(app);
-        area.set_camera(app.display.default_scene.layers.node_searcher.camera());
+        // area.set_camera(app.display.default_scene.layers.node_searcher.camera());
         let base_grid = inner_grid.as_ref();
         area.content().add_child(&inner_grid);
         let base_network = base_grid.network();

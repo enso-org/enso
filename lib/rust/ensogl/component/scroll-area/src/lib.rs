@@ -404,16 +404,6 @@ impl ScrollArea {
         &self.model.display_object.layer.mask_layer
     }
 
-    /// Set camera in the every layer handled by this Scroll Area.
-    pub fn set_camera(&self, camera: impl Into<Camera2d>) {
-        let camera = camera.into();
-        self.model.display_object.layer.masked_layer.set_camera(camera.clone_ref());
-        self.model.display_object.layer.mask_layer.set_camera(camera.clone_ref());
-        self.model.ui_layer.set_camera(camera.clone_ref());
-        self.model.content_layer.set_camera(camera.clone_ref());
-    }
-
-
     /// Return whether some object with the given position and size is visible in the scoll area.
     pub fn is_visible(&self, pos: Vector2, size: Vector2) -> bool {
         use enso_frp::stream::ValueProvider;

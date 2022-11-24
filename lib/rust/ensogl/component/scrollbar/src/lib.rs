@@ -151,7 +151,7 @@ impl Frp {
             thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
             thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
             thumb_position.set_max_bound <+ all_with(&frp.set_thumb_size, &frp.set_max,
-                |thumb_size, max| max - thumb_size);
+                |thumb_size, max| (max - thumb_size).max(0.0));
             thumb_position.skip <+_ frp.jump_to;
 
             frp.source.thumb_position_target <+ thumb_position.target;

@@ -128,7 +128,7 @@ struct Layers {
 impl Layers {
     /// Constructor.
     pub fn new(base_layer: &Layer) -> Self {
-        let mask = Layer::new_with_cam("mask", &base_layer.camera());
+        let mask = Layer::new_with_cam_parent("mask", &base_layer);
         let main = base_layer.create_sublayer("main");
         let text = main.create_sublayer("text");
         main.set_mask(&mask);

@@ -2612,6 +2612,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-text",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-drop-manager"
 version = "0.1.0"
 dependencies = [
@@ -2789,6 +2804,7 @@ dependencies = [
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
+ "ensogl-example-drop-down",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
