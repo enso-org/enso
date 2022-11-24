@@ -2680,7 +2680,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
- "ensogl-selector",
+ "ensogl-slider",
  "ensogl-text-msdf",
  "wasm-bindgen",
 ]
@@ -2872,6 +2872,16 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
+]
+
+[[package]]
+name = "ensogl-slider"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
