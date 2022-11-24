@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 from Standard.Test import Test, Test_Suite
 
-spec = Test.group ".Managed_Resource" <|
+spec = Test.group "Managed_Resource" <|
     Test.specify "should call the destructor even if the action fails" <|
         log_1 = Vector.new_builder
         r_1 = Managed_Resource.bracket 42 log_1.append x->
