@@ -26,6 +26,8 @@ const COMPONENT_MARGIN: f32 = 4.0;
 const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
 /// Default component height on initialization.
 const COMPONENT_HEIGHT_DEFAULT: f32 = 50.0;
+/// Overflow marker size as fraction of the text height.
+const OVERFLOW_MARKER_SIZE: f32 = 0.5;
 
 
 
@@ -233,7 +235,7 @@ impl Model {
     /// Set the size and orientation of the overflow markers.
     pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, SliderOrientation)) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        let size = Vector2(*size, *size) + margin;
+        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
         self.overflow_lower.size.set(size);
         self.overflow_upper.size.set(size);
         match orientation {
