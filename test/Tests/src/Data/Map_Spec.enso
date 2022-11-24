@@ -109,7 +109,7 @@ spec = Test.group "Maps" <|
         m.last . should_equal Nothing
     Test.specify "should be able to add a Nothing key to the map" <|
         m = Map.empty . insert Nothing 1
-        m.last . should_equal (Pair_Data Nothing 1)
+        m.last . should_equal (Pair.Value Nothing 1)
     Test.specify "should be able to add a Nothing key to the map of Text" <|
         m = Map.empty . insert "A" 2 . insert Nothing 1 . insert "B" 3
         m.get "A" . should_equal 2

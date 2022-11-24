@@ -1,25 +1,31 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeField;
+import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
+import com.oracle.truffle.api.interop.NodeLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.UUID;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.tag.IdentifiedTag;
-import org.enso.interpreter.runtime.type.TypesGen;
-
-import java.util.UUID;
-import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A base class for all Enso expressions.
@@ -32,11 +38,21 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
  * executeGeneric} method for various scenarios in order to improve performance.
  */
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
+@ExportLibrary(NodeLibrary.class)
 @GenerateWrapper
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
   private @CompilerDirectives.CompilationFinal int sourceStartIndex;
   private @CompilerDirectives.CompilationFinal int sourceLength;
   private @CompilerDirectives.CompilationFinal UUID id = null;
+
+  public static boolean isWrapper(ExpressionNode node) {
+    return node instanceof ExpressionNodeWrapper;
+  }
+
+  public static ExpressionNode unwrapDelegate(ExpressionNode wrapperNode) {
+    assert isWrapper(wrapperNode);
+    return ((ExpressionNodeWrapper) wrapperNode).getDelegateNode();
+  }
 
   /** Creates a new instance of this node. */
   public ExpressionNode() {
@@ -63,7 +79,11 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public SourceSection getSourceSection() {
-    return EnsoRootNode.findSourceSection(getRootNode(), sourceStartIndex, sourceLength);
+    if (this instanceof ExpressionNodeWrapper wrapper) {
+      return wrapper.getDelegateNode().getSourceSection();
+    } else {
+      return EnsoRootNode.findSourceSection(getRootNode(), sourceStartIndex, sourceLength);
+    }
   }
 
   /**
@@ -187,5 +207,20 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   @Override
   public WrapperNode createWrapper(ProbeNode probe) {
     return new ExpressionNodeWrapper(this, probe);
+  }
+
+  @ExportMessage
+  boolean hasScope(Frame frame) {
+    return isInstrumentable();
+  }
+
+  @ExportMessage
+  Object getScope(Frame frame, boolean onEnter) {
+    RootNode rootNode = getRootNode();
+    if (!isInstrumentable() || rootNode == null) {
+      return null;
+    } else {
+      return DebugLocalScope.createFromFrame((EnsoRootNode) rootNode, frame.materialize());
+    }
   }
 }

@@ -59,7 +59,7 @@ reverse_list list =
 
    Arguments:
    - list: The list of numbers to sum.
-sum_list : List -> Sum
+sum_list : List -> Number
 sum_list list =
     go = list -> acc -> case list of
         List.Cons a b -> @Tail_Call go b (acc + a)

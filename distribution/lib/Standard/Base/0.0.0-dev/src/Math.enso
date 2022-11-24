@@ -1,4 +1,5 @@
-from Standard.Base import all
+import project.Data.Numbers.Decimal
+import project.Data.Numbers.Number
 
 ## Alias Pi (Constant)
 

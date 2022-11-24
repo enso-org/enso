@@ -74,7 +74,12 @@ impl BuiltEnso {
         Ok(command)
     }
 
-    pub async fn run_tests(&self, ir_caches: IrCaches, async_policy: AsyncPolicy) -> Result {
+    pub async fn run_tests(
+        &self,
+        ir_caches: IrCaches,
+        sbt: &crate::engine::sbt::Context,
+        async_policy: AsyncPolicy,
+    ) -> Result {
         let paths = &self.paths;
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
@@ -84,7 +89,7 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), &gdoc_key)?;
         }
 
-        let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port().await?;
+        let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
         let _postgres = match TARGET_OS {
             OS::Linux => {
                 let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME

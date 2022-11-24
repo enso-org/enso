@@ -39,7 +39,12 @@ public class EpbContext {
     if (!isInner) {
       innerContext =
           new GuardedTruffleContext(
-              env.newContextBuilder().config(INNER_OPTION, "yes").build(), true);
+              env.newInnerContextBuilder()
+                  .initializeCreatorContext(true)
+                  .inheritAllAccess(true)
+                  .config(INNER_OPTION, "yes")
+                  .build(),
+              true);
     }
   }
 

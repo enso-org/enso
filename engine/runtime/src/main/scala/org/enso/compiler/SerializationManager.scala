@@ -51,7 +51,7 @@ class SerializationManager(compiler: Compiler) {
     TimeUnit.SECONDS,
     new LinkedBlockingDeque[Runnable](),
     (runnable: Runnable) => {
-      env.createThread(runnable)
+      env.createSystemThread(runnable)
     }
   )
 

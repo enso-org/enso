@@ -1,0 +1,7 @@
+from Standard.Base import IO
+from project.F2 import all
+
+main =
+    IO.println F1.bar
+    IO.println foo
+

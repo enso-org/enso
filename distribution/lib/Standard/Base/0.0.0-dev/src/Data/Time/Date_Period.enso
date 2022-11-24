@@ -1,18 +1,19 @@
-from Standard.Base import all
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Day_Of_Week.Day_Of_Week
+from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
 
-# TODO Dubious constructor export
-from project.Data.Time.Date_Period.Date_Period import all
-from project.Data.Time.Date_Period.Date_Period export all
-
-## Represents a period of time longer on the scale of days (longer than a day).
+## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
     Year
+
     Quarter
+
     Month
 
     ## Represents a 7-day week starting at a given day.
@@ -31,18 +32,18 @@ type Date_Period
     adjust_start : (Date | Date_Time) -> (Date | Date_Time)
     adjust_start self date =
         adjuster = case self of
-            Year -> TemporalAdjusters.firstDayOfYear
-            Quarter -> Date_Period_Utils.quarter_start
-            Month -> TemporalAdjusters.firstDayOfMonth
-            Week first_day -> TemporalAdjusters.previousOrSame first_day.to_java
+            Date_Period.Year -> TemporalAdjusters.firstDayOfYear
+            Date_Period.Quarter -> Date_Period_Utils.quarter_start
+            Date_Period.Month -> TemporalAdjusters.firstDayOfMonth
+            Date_Period.Week first_day -> TemporalAdjusters.previousOrSame first_day.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
     adjust_end self date =
         adjuster = case self of
-            Year -> TemporalAdjusters.lastDayOfYear
-            Quarter -> Date_Period_Utils.quarter_end
-            Month -> TemporalAdjusters.lastDayOfMonth
-            Week first_day -> Date_Period_Utils.end_of_week first_day.to_java
+            Date_Period.Year -> TemporalAdjusters.lastDayOfYear
+            Date_Period.Quarter -> Date_Period_Utils.quarter_end
+            Date_Period.Month -> TemporalAdjusters.lastDayOfMonth
+            Date_Period.Week first_day -> Date_Period_Utils.end_of_week first_day.to_java
         (Time_Utils.utils_for date).apply_adjuster date adjuster

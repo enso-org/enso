@@ -137,8 +137,8 @@ find_sub_range_end text predicate =
     iterator.setText text
 
     loop index start end =
-        if end == -1 then (Pair.Pair_Data Nothing start) else
-            if predicate index start end then (Pair.Pair_Data start end) else
+        if end == -1 then (Pair.Value Nothing start) else
+            if predicate index start end then (Pair.Value start end) else
                 @Tail_Call loop (index + 1) end iterator.next
 
     loop 0 0 iterator.next
