@@ -176,7 +176,7 @@ public class MethodDefinition {
 
   /** @return get the description of this method. */
   public String getDescription() {
-    return annotation.description();
+    return annotation.description().replace("\n", "\\n");
   }
 
   /** @return the arguments this method declares. */

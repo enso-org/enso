@@ -16,7 +16,7 @@ import java.math.BigInteger;
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class EnsoBigInteger implements TruffleObject {
+public final class EnsoBigInteger extends Number implements TruffleObject {
   private final BigInteger value;
 
   /**
@@ -82,33 +82,39 @@ public final class EnsoBigInteger implements TruffleObject {
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final byte asByte() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return byteValue();
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final short asShort() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return shortValue();
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final int asInt() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return intValue();
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final long asLong() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return longValue();
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final float asFloat() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return floatValue();
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final double asDouble() throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+    return doubleValue();
   }
 
   @ExportMessage
@@ -119,5 +125,25 @@ public final class EnsoBigInteger implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return Context.get(thisLib).getBuiltins().number().getBigInteger();
+  }
+
+  @Override
+  public int intValue() {
+    return value.intValue();
+  }
+
+  @Override
+  public long longValue() {
+    return value.longValue();
+  }
+
+  @Override
+  public float floatValue() {
+    return value.floatValue();
+  }
+
+  @Override
+  public double doubleValue() {
+    return value.doubleValue();
   }
 }
