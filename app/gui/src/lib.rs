@@ -57,6 +57,10 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+
+
+extern crate core;
+
 use prelude::*;
 use wasm_bindgen::prelude::*;
 
