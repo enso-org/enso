@@ -120,8 +120,8 @@ from project.Data.Range export all hiding throw_zero_step_error
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
 from project.Error.Problem_Behavior export all
 
-from project.Data.Index_Sub_Range import First, Last
-from project.Data.Index_Sub_Range export First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
 import project.Data.Text
