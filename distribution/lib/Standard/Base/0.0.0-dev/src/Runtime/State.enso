@@ -1,10 +1,10 @@
+## The runtime's integrated monadic state management.
+   A container type for functionality for working with the runtime's
+   integrated state functionality.
+
 import project.Data.Any.Any
 
 from project.Error.Common import Uninitialized_State
-
-## The runtime's integrated monadic state management.
-## A container type for functionality for working with the runtime's
-   integrated state functionality.
 
 ## Executes a stateful computation in a local state environment.
 

@@ -1,3 +1,5 @@
+## Functionality for interacting with the host system.
+
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
@@ -5,8 +7,6 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 
 polyglot java import java.lang.System as Java_System
-
-## Functionality for interacting with the host system.
 
 ## PRIVATE
 
