@@ -3,7 +3,7 @@ import project.Data.Array.Array
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
-from project.Data.Index_Sub_Range import First, Last
+from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 
 import Standard.Base.Polyglot
 from Standard.Base.Runtime.Extensions import Source_Location, Source_Location_Data

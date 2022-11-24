@@ -9,9 +9,6 @@ from project.Data.Range import all
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data
 
-from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
-from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
-
 type Index_Sub_Range
     ## Select the first `count` items.
 
