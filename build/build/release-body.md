@@ -1,7 +1,10 @@
-{# 
+{{!-- 
 This is a template of the markdown text that is used as a release body.
 
-#}
+Please see [this](src/release.rs) for the code that uses this template and available placeholders.
+
+--}}
+
 
 # Download
 

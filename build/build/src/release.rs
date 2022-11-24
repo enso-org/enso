@@ -24,7 +24,22 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
-
+/// Get the prefix of URL of the release's asset in GitHub.
+///
+/// By joining it with the asset name, we can get the URL of the asset.
+///
+/// ```
+/// # use enso_build::prelude::*;
+/// # use enso_build::release::download_asset_prefix;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let prefix = download_asset_prefix(&repo, &version);
+/// assert_eq!(prefix, "https://github.com/enso-org/enso/releases/download/2020.1.1");
+/// ```
+pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> String {
+    format!("https://github.com/{repo}/releases/download/{version}",)
+}
 
 pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
     // Generate the release notes.
@@ -33,19 +48,23 @@ pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
         crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
 
 
-    let mut available_variables = BTreeMap::<&str, String>::new();
-    available_variables.insert("version", context.triple.versions.version.to_string());
-    available_variables.insert("edition", context.triple.versions.edition_name());
-    available_variables.insert("repo_name", context.remote_repo.name.clone());
-    available_variables.insert("repo_owner", context.remote_repo.owner.clone());
+    let mut available_variables = BTreeMap::<&str, serde_json::Value>::new();
+    available_variables.insert(
+        "is_stable",
+        (!version::Kind::deduce(&context.triple.versions.version)?.is_prerelease()).into(),
+    );
+    available_variables.insert("version", context.triple.versions.version.to_string().into());
+    available_variables.insert("edition", context.triple.versions.edition_name().into());
+    available_variables.insert("repo", serde_json::to_value(&context.remote_repo)?);
     available_variables.insert(
         "download_prefix",
         format!(
             "https://github.com/{}/releases/download/{}",
             context.remote_repo, context.triple.versions.version
-        ),
+        )
+        .into(),
     );
-    available_variables.insert("changelog", latest_changelog_body.contents);
+    available_variables.insert("changelog", latest_changelog_body.contents.into());
 
     let handlebars = handlebars::Handlebars::new();
     let template = include_str!("../release-body.md");
