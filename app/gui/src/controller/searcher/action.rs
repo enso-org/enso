@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
-use crate::model::suggestion_database::entry::CodeToInsert;
+use crate::model::SuggestionDatabase;
 
-use double_representation::module;
+use double_representation::name::QualifiedNameRef;
 
 
 // ==============
@@ -31,15 +31,21 @@ pub enum Suggestion {
 
 impl Suggestion {
     /// Return the code to be inserted in searcher input upon picking suggestion.
-    pub fn code_to_insert(
-        &self,
-        current_module: Option<&module::QualifiedName>,
-        generate_this: bool,
-    ) -> CodeToInsert {
+    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
         match self {
-            Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
-            Suggestion::Hardcoded(s) =>
-                CodeToInsert { code: s.code.to_owned(), imports: default() },
+            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
+            Suggestion::Hardcoded(s) => s.code.into(),
+        }
+    }
+
+    pub(crate) fn required_imports(
+        &self,
+        db: &SuggestionDatabase,
+        current_module: QualifiedNameRef,
+    ) -> impl IntoIterator<Item = model::suggestion_database::entry::Import> {
+        match self {
+            Suggestion::FromDatabase(s) => s.required_imports(db, current_module),
+            Suggestion::Hardcoded(_) => default(),
         }
     }
 
@@ -102,15 +108,7 @@ impl Display for Action {
         match self {
             Self::Suggestion(Suggestion::FromDatabase(suggestion)) =>
                 if let Some(self_type) = suggestion.self_type.as_ref() {
-                    let should_put_project_name = self_type.name
-                        == ast::constants::PROJECTS_MAIN_MODULE
-                        && self_type.module_segments.is_empty();
-                    let self_type_name = if should_put_project_name {
-                        self_type.project_name.project.as_ref()
-                    } else {
-                        &self_type.name
-                    };
-                    write!(f, "{}.{}", self_type_name, suggestion.name)
+                    write!(f, "{}.{}", self_type.alias_name(), suggestion.name)
                 } else {
                     write!(f, "{}", suggestion.name.clone())
                 },
