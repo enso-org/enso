@@ -5,8 +5,6 @@ use crate::prelude::*;
 
 use crate::definition::DefinitionInfo;
 use crate::definition::ScopeKind;
-use crate::identifier::LocatedName;
-use crate::identifier::NormalizedName;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::InfixCrumb;
@@ -31,14 +29,14 @@ pub mod test_utils;
 #[derive(Clone, Debug, Default)]
 pub struct IdentifierUsage {
     /// Identifiers from the graph's scope that node is using.
-    pub introduced: Vec<LocatedName>,
+    pub introduced: Vec<Located<String>>,
     /// Identifiers that node introduces into the parent scope.
-    pub used:       Vec<LocatedName>,
+    pub used:       Vec<Located<String>>,
 }
 
 impl IdentifierUsage {
     /// Returns all identifiers that are either used from or introduced into the scope.
-    pub fn all_identifiers(&self) -> Vec<LocatedName> {
+    pub fn all_identifiers(&self) -> Vec<Located<String>> {
         self.introduced.iter().chain(self.used.iter()).cloned().collect()
     }
 }
@@ -79,7 +77,7 @@ pub struct Scope {
 impl Scope {
     /// Iterates over identifiers that are used in this scope but are not introduced in this scope
     /// i.e. the identifiers that parent scope must provide.
-    pub fn used_from_parent(self) -> impl Iterator<Item = LocatedName> {
+    pub fn used_from_parent(self) -> impl Iterator<Item = Located<String>> {
         let available = self.symbols.introduced.into_iter().map(|located_name| located_name.item);
         let available = available.collect::<HashSet<_>>();
         let all_used = self.symbols.used.into_iter();
@@ -171,8 +169,8 @@ impl AliasAnalyzer {
     }
 
     /// Records identifier occurrence in the current scope.
-    fn record_identifier(&mut self, kind: OccurrenceKind, identifier: NormalizedName) {
-        let identifier = LocatedName::new(self.location.clone(), identifier);
+    fn record_identifier(&mut self, kind: OccurrenceKind, identifier: String) {
+        let identifier = Located::new(self.location.clone(), identifier);
         let symbols = &mut self.current_scope_mut().symbols;
         let target = match kind {
             OccurrenceKind::Used => &mut symbols.used,
@@ -189,8 +187,8 @@ impl AliasAnalyzer {
     /// If given AST is an identifier, records its occurrence.
     /// Returns boolean saying if the identifier was recorded.
     fn try_recording_identifier(&mut self, kind: OccurrenceKind, ast: &Ast) -> bool {
-        let name = NormalizedName::try_from_ast(ast);
-        name.map(|name| self.record_identifier(kind, name)).is_some()
+        let name = ast::identifier::name(ast);
+        name.map(|name| self.record_identifier(kind, name.to_owned())).is_some()
     }
 
     /// If the given located AST-like entity is an identifier, records its occurrence.
@@ -308,7 +306,7 @@ impl AliasAnalyzer {
         self.in_location(definition.name.crumbs.clone(), |this|
             // We take the base name (ignoring extension components) and mark it as introduced.
             this.in_location(definition.name.name.crumbs.clone(), |this| {
-                let name = NormalizedName::new(&definition.name.name.item);
+                let name = definition.name.name.item.clone();
                 this.record_identifier(OccurrenceKind::Introduced,name);
             }));
 
@@ -381,7 +379,7 @@ mod tests {
         name: impl Str,
         ast: &Ast,
         expected: Vec<Range<usize>>,
-        actual: &[LocatedName],
+        actual: &[Located<String>],
     ) {
         let mut checker = IdentifierValidator::new(name, ast, expected);
         checker.validate_identifiers(actual);
@@ -433,8 +431,8 @@ mod tests {
             "a -> a",
             "a -> »b«",
             "»A« -> »b«",
-            "a -> A -> a",
-            "a -> a -> A",
+            "a -> »A« -> a",
+            "a -> a -> »A«",
             "x»,«y -> »B«",
             "x»,«y -> y",
             "x »,« »Y« -> _",

@@ -97,12 +97,12 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     /// was added. If [`max_height`] is supplied, the group is pushed only if the column's height
     /// is less than [`max_height`] before adding new group.
     fn push_next_group_to(&mut self, column: Col, max_height: Option<GroupHeight>) -> GroupHeight {
-        if let Some(group) = self.iter.next() {
-            if let Some(max_height) = max_height {
-                if self.column_heights[column] >= max_height {
-                    return 0;
-                }
+        if let Some(max_height) = max_height {
+            if self.column_heights[column] >= max_height {
+                return 0;
             }
+        }
+        if let Some(group) = self.iter.next() {
             self.push(column, group)
         } else {
             0

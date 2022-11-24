@@ -202,6 +202,25 @@ impl PartialEq<&str> for ImString {
     }
 }
 
+impl PartialEq<str> for ImString {
+    fn eq(&self, other: &str) -> bool {
+        self.content.as_ref().eq(other)
+    }
+}
+
+impl PartialEq<ImString> for &str {
+    fn eq(&self, other: &ImString) -> bool {
+        self.eq(other.content.as_ref())
+    }
+}
+
+impl PartialEq<ImString> for str {
+    fn eq(&self, other: &ImString) -> bool {
+        self.eq(other.content.as_ref())
+    }
+}
+
+
 impl PartialEq<String> for ImString {
     fn eq(&self, other: &String) -> bool {
         self.content.as_ref().eq(other)

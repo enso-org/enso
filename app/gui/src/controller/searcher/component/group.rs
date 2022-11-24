@@ -9,7 +9,7 @@ use crate::controller::searcher::component::MatchInfo;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
-use double_representation::project;
+use double_representation::name::project;
 use ensogl::data::color;
 use std::cmp;
 
@@ -93,14 +93,14 @@ impl Group {
 
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
-        let name: String = if entry.module.is_top_module() {
-            let project = &entry.module.project_name.project;
-            let module = entry.module.name();
+        let name = if entry.defined_in.is_top_element() || entry.defined_in.is_main_module() {
+            let project = &entry.defined_in.project().project;
+            let module = entry.defined_in.name();
             format!("{}.{}", project, module)
         } else {
-            entry.module.name().into()
+            entry.defined_in.name().to_owned()
         };
-        let project_name = entry.module.project_name.clone();
+        let project_name = entry.defined_in.project().clone();
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 
@@ -132,12 +132,14 @@ impl Group {
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
-        let lookup_component = |qualified_name| {
-            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component::new_from_database_entry(id, suggestion))
-        };
         let components = &group.components;
-        let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
+        let looked_up_components = components
+            .iter()
+            .filter_map(|qualified_name| {
+                let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
+                Some(Component::new_from_database_entry(id, suggestion))
+            })
+            .collect_vec();
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
@@ -343,11 +345,11 @@ mod tests {
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
             components: vec![
-                "test.Test.TopModule1.fun2".into(),
-                "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
-                "test.Test.NonExistantModule.fun6".into(),
-                "test.Test.TopModule1.fun1".into(),
-                "test.Test.TopModule1.nonexistantfun".into(),
+                "test.Test.TopModule1.fun2".try_into().unwrap(),
+                "test.Test.TopModule1.SubModule2.SubModule3.fun6".try_into().unwrap(),
+                "test.Test.NonExistantModule.fun6".try_into().unwrap(),
+                "test.Test.TopModule1.fun1".try_into().unwrap(),
+                "test.Test.TopModule1.nonexistantfun".try_into().unwrap(),
             ],
         };
 
@@ -368,12 +370,12 @@ mod tests {
             .map(|e| (e.id().unwrap(), e.name().to_string()))
             .collect_vec();
         let expected_ids_and_names =
-            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
+            vec![(9, "fun2".to_string()), (8, "fun6".to_string()), (2, "fun1".to_string())];
         assert_eq!(entry_ids_and_names, expected_ids_and_names);
     }
 
-    // Test constructing a component group from an [`execution_context::ComponentGroup`] containing
-    // only names not found in the suggestion database.
+    // Test constructing a component group from an [`execution_context::ComponentGroup`]
+    // containing only names not found in the suggestion database.
     #[test]
     fn constructing_component_group_from_names_not_found_in_db() {
         let suggestion_db = Rc::new(mock_suggestion_db());
@@ -381,7 +383,7 @@ mod tests {
             project:    project::QualifiedName::standard_base_library(),
             name:       "Input".into(),
             color:      None,
-            components: vec!["NAME.NOT.FOUND.IN.DB".into()],
+            components: vec!["NAME.NOT.FOUND.IN.DB".try_into().unwrap()],
         };
         let group = Group::from_execution_context_component_group(&ec_group, &suggestion_db);
         assert_matches!(group, None);
