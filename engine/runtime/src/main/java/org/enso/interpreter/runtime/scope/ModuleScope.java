@@ -291,10 +291,10 @@ public final class ModuleScope implements TruffleObject {
   /**
    * Create a copy of this `ModuleScope` while taking into account only the provided list of types.
    *
-   * @param only list of types to copy to the new scope
+   * @param typeNames list of types to copy to the new scope
    * @return a copy of this scope modulo the requested types
    */
-  public ModuleScope copyOnly(List<String> only) {
+  public ModuleScope withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> types = new HashMap<>(this.types);
     Map<Type, Map<String, Function>> methods = new HashMap<>();
@@ -305,7 +305,7 @@ public final class ModuleScope implements TruffleObject {
         .entrySet()
         .forEach(
             entry -> {
-              if (only.contains(entry.getKey())) {
+              if (typeNames.contains(entry.getKey())) {
                 types.put(entry.getKey(), entry.getValue());
               }
             });

@@ -439,13 +439,13 @@ public final class Module implements TruffleObject {
    * Returns the runtime scope of this module that filters out only the requested types. If the list
    * of requested types is empty, returns the unchanged runtime scope.
    *
-   * @param namesOnly a list of types to include in the scope
+   * @param types a list of types to include in the scope
    */
-  public ModuleScope getScope(List<String> namesOnly) {
-    if (namesOnly.isEmpty()) {
+  public ModuleScope getScope(List<String> types) {
+    if (types.isEmpty()) {
       return scope;
     } else {
-      return scope.copyOnly(namesOnly);
+      return scope.withTypes(types);
     }
   }
 
