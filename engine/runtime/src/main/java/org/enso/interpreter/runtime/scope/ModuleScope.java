@@ -23,8 +23,7 @@ import java.util.Set;
 public final class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
-  private @CompilationFinal
-  Map<String, Object> polyglotSymbols;
+  private @CompilationFinal Map<String, Object> polyglotSymbols;
   private @CompilationFinal Map<String, Type> types;
   private @CompilationFinal Map<Type, Map<String, Function>> methods;
   private @CompilationFinal Map<Type, Map<Type, Function>> conversions;
