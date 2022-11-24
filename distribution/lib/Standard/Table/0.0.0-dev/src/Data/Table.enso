@@ -1187,7 +1187,7 @@ type Table
              import Standard.Examples
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File_Type -> Nothing
+    write_json : File -> Nothing
     write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
