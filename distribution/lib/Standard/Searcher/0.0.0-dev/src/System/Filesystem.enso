@@ -25,6 +25,6 @@
    > Example
      Get the current user's home directory.
 
-         import Standard.Base.System.File.File.File
+         import Standard.Base.System.File.File
 
          example_home = File.home
