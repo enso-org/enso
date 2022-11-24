@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.CompilerDirectives;
-
-import java.util.*;
-
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -12,16 +10,26 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 /** A representation of Enso's per-file top-level scope. */
 public final class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
-  private Map<String, Object> polyglotSymbols = new HashMap<>();
-  private Map<String, Type> types = new HashMap<>();
-  private Map<Type, Map<String, Function>> methods = new HashMap<>();
-  private Map<Type, Map<Type, Function>> conversions = new HashMap<>();
-  private Set<ModuleScope> imports = new HashSet<>();
-  private Set<ModuleScope> exports = new HashSet<>();
+  private @CompilationFinal
+  Map<String, Object> polyglotSymbols;
+  private @CompilationFinal Map<String, Type> types;
+  private @CompilationFinal Map<Type, Map<String, Function>> methods;
+  private @CompilationFinal Map<Type, Map<Type, Function>> conversions;
+  private @CompilationFinal Set<ModuleScope> imports;
+  private @CompilationFinal Set<ModuleScope> exports;
 
   /**
    * Creates a new object of this class.
@@ -175,7 +183,7 @@ public final class ModuleScope implements TruffleObject {
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
     Function definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
     if (definedWithAtom != null) {
@@ -194,7 +202,7 @@ public final class ModuleScope implements TruffleObject {
         .orElse(null);
   }
 
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Function lookupConversionDefinition(Type type, Type target) {
     Function definedWithAtom = type.getDefinitionScope().getConversionsFor(target).get(type);
     if (definedWithAtom != null) {
