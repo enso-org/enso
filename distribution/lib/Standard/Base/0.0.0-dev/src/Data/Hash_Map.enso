@@ -1,0 +1,53 @@
+import project.Data.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Vector
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import unimplemented, Error
+
+
+@Builtin_Type
+type Hash_Map key value
+    create_from_vector : Vector Any -> Hash_Map Any Any
+    create_from_vector vector = @Builtin_Method "Hash_Map.create_from_vector"
+
+    size : Integer
+    size self = @Builtin_Method "Hash_Map.size"
+
+    get : Any -> Any ! Error
+    get self key = @Builtin_Method "Hash_Map.get"
+
+    get_or_default : Any -> Any -> Any
+    get_or_default self key default =
+        if self.contains_key key then self.get key else default
+
+    contains_key : Any -> Boolean
+    contains_key self key = @Builtin_Method "Hash_Map.contains_key"
+
+    key_set : Vector Any
+    key_set self = @Builtin_Method "Hash_Map.key_set"
+
+    to_text : Text
+    to_text self = unimplemented
+
+
+type Builder
+    Value vec_builder
+
+    new : Integer -> Builder
+    new (capacity=10) = Builder.Value (Vector.Builder.new capacity)
+
+    is_empty : Boolean
+    is_empty self = self.vec_builder.is_empty
+
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    append : Any -> Any -> Builder ! Error
+    append self key value =
+        self.vec_builder.append key
+        self.vec_builder.append value
+
+    build : Hash_Map Any Any
+    build self =
+        Hash_Map.create_from_vector self.vec_builder.to_vector

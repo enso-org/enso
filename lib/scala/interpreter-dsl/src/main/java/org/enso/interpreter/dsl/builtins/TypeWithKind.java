@@ -43,6 +43,7 @@ public record TypeWithKind(String baseType, TypeKind kind) {
                     "org.enso.interpreter.runtime.callable.function.Function",
                     "org.enso.interpreter.runtime.data.Array",
                     "org.enso.interpreter.runtime.data.Vector",
+                    "org.enso.interpreter.runtime.data.EnsoHashMap",
                     "org.enso.interpreter.runtime.data.ArrayOverBuffer",
                     "org.enso.interpreter.runtime.data.EnsoFile",
                     "org.enso.interpreter.runtime.data.EnsoDate",

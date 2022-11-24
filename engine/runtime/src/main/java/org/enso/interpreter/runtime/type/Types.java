@@ -47,6 +47,7 @@ import org.enso.polyglot.data.TypeGraph;
   PanicException.class,
   PanicSentinel.class,
   Vector.class,
+  EnsoHashMap.class,
   Warning.class,
   EnsoFile.class,
   EnsoDate.class,

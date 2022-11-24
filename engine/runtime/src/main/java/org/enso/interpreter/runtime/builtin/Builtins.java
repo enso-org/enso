@@ -35,6 +35,7 @@ import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoHashMap;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
@@ -92,6 +93,7 @@ public class Builtins {
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
+  private final Builtin hashMap;
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
@@ -137,6 +139,7 @@ public class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
+    hashMap = builtins.get(Hash_Map.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
@@ -550,6 +553,10 @@ public class Builtins {
 
   public Type vector() {
     return vector.getType();
+  }
+
+  public Type hashMap() {
+    return hashMap.getType();
   }
 
   /** @return the Ref constructor. */
