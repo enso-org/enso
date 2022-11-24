@@ -73,8 +73,9 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
-- [The default text visualisation now loads its content lazyliy from the backend][3910]. This means
-  that the visualisation cannot be overwhelmed by large amounts of data.
+- [The default text visualisation now loads its content lazyliy from the
+  backend][3910]. This means that the visualisation cannot be overwhelmed by
+  large amounts of data.
 
 #### EnsoGL (rendering engine)
 
@@ -244,7 +245,8 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
-- [There is a new API to lazily feed visualisation information to the IDE.][3910]
+- [There is a new API to lazily feed visualisation information to the
+  IDE.][3910]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug

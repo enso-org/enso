@@ -37,10 +37,7 @@ fn sample_text() -> String {
         match n {
             0 => {
                 text.push_str("No more bottles of beer on the wall, no more bottles of beer.");
-                text.push_str(
-                    "Go to the store and buy some more, 99 bottles of beer on the
-wall.",
-                );
+                text.push_str("Go to the store and buy some more, 99 bottles of beer on the wall.");
             }
             1 => {
                 text.push_str("1 bottle of beer on the wall, 1 bottle of beer.");
