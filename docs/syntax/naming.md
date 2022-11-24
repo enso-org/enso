@@ -44,11 +44,10 @@ following rules around naming:
   - Each 'word' in the identifier must be lower-case or a number.
   - Words in the identifier are separated using `_`.
   - Numbers may not occur as the first 'word' in an identifier.
-- An identifier named as above can be referred to by capitalizing the first
-  letter of each 'word' in the identifier. This is known as 'referent' form.
-- No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
-  `Make_new`). These should be rejected by the compiler.
+- Mixed-format names are allowed (e.g. `HTTP`, `foO`, `AWS_Profile`, or
+  `SQLite`).
 - We _strongly encourage_ using capitalised identifiers to refer to atoms.
+- All names are case-sensitive.
 
 Name resolution obeys the following rules:
 
@@ -173,7 +172,6 @@ the readability and consistency of Enso code. They are as follows:
   to the operation of control flow in the language.
 - `this`: This reserved name is the one used to refer to the enclosing type in a
   method or type definition.
-- `here`: This reserved name is the one used to refer to the enclosing module.
 - `in`: Used to specify the monadic context(s) in a type signature.
 
 Many of these reserved words are implemented as macros in the parser, but these
