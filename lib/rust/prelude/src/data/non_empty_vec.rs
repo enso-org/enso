@@ -327,6 +327,30 @@ where I: vec_indexed_by::Index
             self.elems.drain(range)
         }
     }
+
+    /// Insert the contents of an iterator at a specified index in the collection.
+    ///
+    /// This is optimal if:
+    /// - The specified index is equal to the length of the vector,
+    /// - or the lower bound of the iterator's `size_hint()` is exact.
+    ///
+    /// Otherwise, a temporary vector is allocated and the tail is moved twice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given index is greater than the length of the vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use enso_prelude::NonEmptyVec;
+    /// let mut vec = NonEmptyVec::new(0, vec![1, 4, 5]);
+    /// vec.extend_at(2, vec![2, 3]);
+    /// assert_eq!(&vec[..], &[0, 1, 2, 3, 4, 5])
+    /// ```
+    pub fn extend_at(&mut self, index: I, elems: impl IntoIterator<Item = T>) {
+        self.splice(index..index, elems);
+    }
 }
 
 
