@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Time import Duration, Period, Date_Period, Time_Period
 
 from Standard.Test import Test, Test_Suite
 
@@ -12,7 +11,7 @@ polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    spec_with "Date_Time" Date_Time.new Date_Time.parse
+    spec_with "Date_Time" enso_datetime Date_Time.parse
     spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
@@ -46,7 +45,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle errors when creating time" <|
             case create_new_datetime 1970 0 0 . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 0"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -135,7 +134,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -164,7 +163,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should throw error when parsing custom format" <|
             time = parse_datetime "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
             case time.catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -229,7 +228,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . day . should_equal 1
 
         Test.specify "should add time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.nanoseconds 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.new nanoseconds=1)
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -240,7 +239,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . should_equal Time_Zone.utc
 
         Test.specify "should add date interval" <|
-            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.months 1)
+            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -251,7 +250,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should add mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.months 1) + (Duration.hours 3)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -262,7 +261,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.hours 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.new hours=1)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 31
@@ -273,7 +272,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract date interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -284,7 +283,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should subtract mixed date time interval" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1) - (Duration.hours 3)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
             time . month . should_equal 11
             time . day . should_equal 30
@@ -295,7 +294,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
         Test.specify "should support mixed interval operators" <|
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.months 1) + (Duration.hours 12)
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) + (Duration.new hours=12)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -348,97 +347,97 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             new_datetime = create_new_datetime 2020 6 1 10 0 0
             parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
 
-            Meta.type_of new_datetime . should_equal_type Date_Time.Date_Time
-            Meta.type_of parsed_datetime . should_equal_type Date_Time.Date_Time
+            Meta.type_of new_datetime . should_equal_type Date_Time
+            Meta.type_of parsed_datetime . should_equal_type Date_Time
 
         max_nanos = 999999999
         Test.specify "should allow to find start/end of a Date_Period containing the current datetime" <|
             d1 = create_new_datetime 2022 9 12 15 37 58
             d1.start_of Date_Period.Year . should_equal (Date_Time.new 2022 1 1)
-            d1.end_of Date_Period.Year . should_equal (Date_Time.new 2022 12 31 23 59 59 max_nanos)
+            d1.end_of Date_Period.Year . should_equal (Date_Time.new 2022 12 31 23 59 59 nanosecond=max_nanos)
             d1.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 7 1)
-            d1.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
+            d1.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 9 30 23 59 59 nanosecond=max_nanos)
             d1.start_of Date_Period.Month . should_equal (Date_Time.new 2022 9 1)
-            d1.end_of Date_Period.Month . should_equal (Date_Time.new 2022 9 30 23 59 59 max_nanos)
+            d1.end_of Date_Period.Month . should_equal (Date_Time.new 2022 9 30 23 59 59 nanosecond=max_nanos)
             d1.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 12)
-            d1.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 18 23 59 59 max_nanos)
+            d1.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 18 23 59 59 nanosecond=max_nanos)
             d1.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 11)
-            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 17 23 59 59 max_nanos)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 17 23 59 59 nanosecond=max_nanos)
             d1.start_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 10)
-            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 16 23 59 59 max_nanos)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 16 23 59 59 nanosecond=max_nanos)
 
             d2 = create_new_datetime 2022 2 6 12 34 56 123456789
             d2.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 1 1)
-            d2.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 3 31 23 59 59 max_nanos)
+            d2.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 3 31 23 59 59 nanosecond=max_nanos)
             d2.start_of Date_Period.Month . should_equal (Date_Time.new 2022 2 1)
-            d2.end_of Date_Period.Month . should_equal (Date_Time.new 2022 2 28 23 59 59 max_nanos)
+            d2.end_of Date_Period.Month . should_equal (Date_Time.new 2022 2 28 23 59 59 nanosecond=max_nanos)
             d2.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 1 31)
-            d2.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 2 6 23 59 59 max_nanos)
+            d2.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 2 6 23 59 59 nanosecond=max_nanos)
             d2.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 6)
-            d2.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 12 23 59 59 max_nanos)
+            d2.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 12 23 59 59 nanosecond=max_nanos)
 
             d3 = create_new_datetime 2020 2 19
             d3.start_of Date_Period.Year . should_equal (Date_Time.new 2020 1 1)
-            d3.end_of Date_Period.Year . should_equal (Date_Time.new 2020 12 31 23 59 59 max_nanos)
+            d3.end_of Date_Period.Year . should_equal (Date_Time.new 2020 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Date_Period.Month . should_equal (Date_Time.new 2020 2 1)
-            d3.end_of Date_Period.Month . should_equal (Date_Time.new 2020 2 29 23 59 59 max_nanos)
+            d3.end_of Date_Period.Month . should_equal (Date_Time.new 2020 2 29 23 59 59 nanosecond=max_nanos)
             d3.start_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 17)
-            d3.end_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 23 23 59 59 max_nanos)
+            d3.end_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 23 23 59 59 nanosecond=max_nanos)
             d3.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 16)
-            d3.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 22 23 59 59 max_nanos)
+            d3.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 22 23 59 59 nanosecond=max_nanos)
 
-            d4 = create_new_datetime 1970 12 31 23 59 59 max_nanos
+            d4 = create_new_datetime 1970 12 31 23 59 59 nanosecond=max_nanos
             d4.start_of Date_Period.Year . should_equal (Date_Time.new 1970 1 1)
-            d4.end_of Date_Period.Year . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+            d4.end_of Date_Period.Year . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
             d4.start_of Date_Period.Quarter . should_equal (Date_Time.new 1970 10 1)
-            d4.end_of Date_Period.Quarter . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+            d4.end_of Date_Period.Quarter . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
             d4.start_of Date_Period.Month . should_equal (Date_Time.new 1970 12 1)
-            d4.end_of Date_Period.Month . should_equal (Date_Time.new 1970 12 31 23 59 59 max_nanos)
+            d4.end_of Date_Period.Month . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
 
             d5 = create_new_datetime 2040 1 1
             d5.start_of Date_Period.Year . should_equal (Date_Time.new 2040 1 1)
-            d5.end_of Date_Period.Year . should_equal (Date_Time.new 2040 12 31 23 59 59 max_nanos)
+            d5.end_of Date_Period.Year . should_equal (Date_Time.new 2040 12 31 23 59 59 nanosecond=max_nanos)
             d5.start_of Date_Period.Quarter . should_equal (Date_Time.new 2040 1 1)
-            d5.end_of Date_Period.Quarter . should_equal (Date_Time.new 2040 3 31 23 59 59 max_nanos)
+            d5.end_of Date_Period.Quarter . should_equal (Date_Time.new 2040 3 31 23 59 59 nanosecond=max_nanos)
             d5.start_of Date_Period.Month . should_equal (Date_Time.new 2040 1 1)
-            d5.end_of Date_Period.Month . should_equal (Date_Time.new 2040 1 31 23 59 59 max_nanos)
+            d5.end_of Date_Period.Month . should_equal (Date_Time.new 2040 1 31 23 59 59 nanosecond=max_nanos)
 
             (create_new_datetime 2000 7 1 14 54).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 7 1)
             (create_new_datetime 2000 6 30 15 34).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 4 1)
 
-            (create_new_datetime 2000 7 1 16 50).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 9 30 23 59 59 max_nanos)
-            (create_new_datetime 2000 6 30 17 40).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 6 30 23 59 59 max_nanos)
+            (create_new_datetime 2000 7 1 16 50).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 9 30 23 59 59 nanosecond=max_nanos)
+            (create_new_datetime 2000 6 30 17 40).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 6 30 23 59 59 nanosecond=max_nanos)
 
         Test.specify "should allow to find start/end of a Time_Period containing the current datetime" <|
             d1 = create_new_datetime 2022 9 12 15 37 58 123456789
             d1.start_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12)
-            d1.end_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12 23 59 59 max_nanos)
+            d1.end_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12 23 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 0 0 0)
-            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 59 59 max_nanos)
+            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 59 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 0 0)
-            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 max_nanos)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 0)
-            d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 max_nanos)
+            d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=max_nanos)
 
             d2 = create_new_datetime 1970 1 1 0 0 0
             d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
-            d2.end_of Time_Period.Day . should_equal (Date_Time.new 1970 1 1 23 59 59 max_nanos)
+            d2.end_of Time_Period.Day . should_equal (Date_Time.new 1970 1 1 23 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
-            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 59 59 max_nanos)
+            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 59 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
-            d2.end_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 59 max_nanos)
+            d2.end_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 59 nanosecond=max_nanos)
             d2.start_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
-            d2.end_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 max_nanos)
+            d2.end_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 nanosecond=max_nanos)
 
             d3 = create_new_datetime 2100 12 31 23 59 59 max_nanos
             d3.start_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31)
-            d3.end_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.end_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 0 0 0)
-            d3.end_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.end_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 0 0)
-            d3.end_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.end_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
             d3.start_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 0)
-            d3.end_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 max_nanos)
+            d3.end_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
 
         offset_1_h = ZoneOffset.ofTotalSeconds 3600
         offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
@@ -448,15 +447,15 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=js_dst_pending <|
             d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
             d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
-            d1_plus = d1 + (Duration.hours 1)
+            d1_plus = d1 + (Duration.new hours=1)
             d1_plus . should_equal d2
 
             check_dates_spring date =
-                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 0 0 0 0 tz)
-                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 max_nanos tz)
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
 
-                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 3 1 0 0 0 0 tz)
-                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 3 31 23 59 59 max_nanos tz)
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 3 1 zone=tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 3 31 23 59 59 nanosecond=max_nanos zone=tz)
 
             check_dates_spring d1
             check_dates_spring d2
@@ -465,22 +464,22 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1_end = d1.end_of Time_Period.Hour
             (d1.to_enso_epoch_seconds - d1_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
             (d1_end.to_enso_epoch_seconds - d1.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
-            d1_start . should_equal (Date_Time.new 2022 3 27 1 0 0 0 tz)
-            d1_end . should_equal (Date_Time.new 2022 3 27 1 59 59 max_nanos tz)
-            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 tz)
-            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 59 max_nanos tz)
+            d1_start . should_equal (Date_Time.new 2022 3 27 1 zone=tz)
+            d1_end . should_equal (Date_Time.new 2022 3 27 1 59 59 nanosecond=max_nanos zone=tz)
+            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 zone=tz)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 59 nanosecond=max_nanos zone=tz)
 
             d2_start = d2.start_of Time_Period.Hour
             d2_end = d2.end_of Time_Period.Hour
             (d2.to_enso_epoch_seconds - d2_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
             (d2_end.to_enso_epoch_seconds - d2.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
-            d2_start . should_equal (Date_Time.new 2022 3 27 3 0 0 0 tz)
-            d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 max_nanos tz)
+            d2_start . should_equal (Date_Time.new 2022 3 27 3 zone=tz)
+            d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 nanosecond=max_nanos zone=tz)
 
         dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundar - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: https://github.com/oracle/graal/issues/4918"
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the autumn DST switch" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
-            d4 = d3 + (Duration.hours 1)
+            d4 = d3 + (Duration.new hours=1)
 
             d3.hour . should_equal 2
             d4.hour . should_equal 2
@@ -491,11 +490,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             Time_Utils.get_datetime_offset d4 . should_equal offset_1_h
 
             check_dates_autumn date =
-                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 0 0 0 0 tz)
-                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 23 59 59 max_nanos tz)
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 zone=tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 23 59 59 nanosecond=max_nanos zone=tz)
 
-                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 10 1 0 0 0 0 tz)
-                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 10 31 23 59 59 max_nanos tz)
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 10 1 zone=tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 10 31 23 59 59 nanosecond=max_nanos zone=tz)
 
             check_dates_autumn d3
             check_dates_autumn d4
@@ -504,9 +503,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d3_end = d3.end_of Time_Period.Hour
             (d3.to_enso_epoch_seconds - d3_start.to_enso_epoch_seconds) . should_equal (30*60 + 15)
             (d3_end.to_enso_epoch_seconds - d3.to_enso_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
-            d3_start . should_equal (Date_Time.new 2022 10 30 2 0 0 0 tz)
+            d3_start . should_equal (Date_Time.new 2022 10 30 2 zone=tz)
             Time_Utils.get_datetime_offset d3_start . should_equal offset_2_h
-            d3_end . should_equal (Date_Time.new 2022 10 30 2 59 59 max_nanos tz)
+            d3_end . should_equal (Date_Time.new 2022 10 30 2 59 59 nanosecond=max_nanos zone=tz)
             Time_Utils.get_datetime_offset d3_end . should_equal offset_2_h
 
             d4_start = d4.start_of Time_Period.Hour
@@ -554,7 +553,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle shifting dates around autumn DST edge cases" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
-            d4 = d3 + (Duration.hours 1)
+            d4 = d3 + (Duration.new hours=1)
 
             # TODO we need to check and document the actual behaviour once it is expressible, it may be equally acceptable to shift to 3:30 instead of 2:30.
             d4 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 15 0 tz)
@@ -595,7 +594,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data err.payload.cause))
+    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload.cause))
 
 # This ensures that date returned by javascript has the right timezone specified by the zone parameter.
 # Javascript's toLocaleString will accept the timezone but it will just adapt the datetime while keeping the local timezone.
@@ -618,7 +617,7 @@ js_parse text format=Nothing =
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data err.payload.cause))
+    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload.cause))
     js_set_zone arr.at(0) zone
 
 foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
@@ -627,15 +626,18 @@ foreign js js_array_datetimeCreate year month day hour minute second nanosecond 
     }
     return [ new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000) ];
 
+enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
+
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 maybe_parse_java_zoned text pattern=Nothing =
     if pattern == Nothing then ZonedDateTime.parse text else
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error_Data original_error.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDateTime.parse text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)

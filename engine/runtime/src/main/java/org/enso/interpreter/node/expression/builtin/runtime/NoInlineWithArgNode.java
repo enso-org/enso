@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.state.State;
     type = "Runtime",
     name = "no_inline_with_arg",
     description =
-        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.")
+        "Runs its first argument applied to the second argument without the possibility of the call or its argument getting inlined.",
+    autoRegister = false)
 public class NoInlineWithArgNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 

@@ -536,6 +536,11 @@ define_themes! { [light:0, dark:1]
                 size = 8.0 , 8.0;
                 offset = 0.0 , 0.0;
             }
+            text_grid {
+                font = "DejaVuSansMonoBook" , "DejaVuSansMonoBook";
+                font_size = 12.0 , 12.0;
+
+            }
         }
         breadcrumbs {
             full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);

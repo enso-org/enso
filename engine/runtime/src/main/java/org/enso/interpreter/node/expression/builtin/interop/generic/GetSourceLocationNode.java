@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_source_location",
-    description = "Returns the source location of a polyglot object.")
+    description = "Returns the source location of a polyglot object.",
+    autoRegister = false)
 public class GetSourceLocationNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

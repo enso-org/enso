@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Numbers import Parse_Error_Data
+from Standard.Base.Data.Numbers import Number_Parse_Error
 
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
@@ -54,24 +54,24 @@ type Postgres_Options
             Nothing ->
                 env_user = Environment.get "PGUSER"
                 env_password = Environment.get "PGPASSWORD"
-                case Pair_Data env_user env_password of
-                    Pair_Data Nothing Nothing ->
+                case (Pair.new env_user env_password) of
+                    Pair.Value Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
-                    Pair_Data Nothing _ ->
+                    Pair.Value Nothing _ ->
                         Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
-                    Pair_Data username Nothing ->
+                    Pair.Value username Nothing ->
                         Pgpass.read self.host self.port self.database username
-                    Pair_Data username password ->
-                        [Pair_Data 'user' username, Pair_Data 'password' password]
+                    Pair.Value username password ->
+                        [Pair.new 'user' username, Pair.new 'password' password]
             Credentials.Username_And_Password username password ->
-                [Pair_Data 'user' username, Pair_Data 'password' password]
+                [Pair.new 'user' username, Pair.new 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        (if self.schema == '' then [] else [Pair_Data 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
+        (if self.schema == '' then [] else [Pair.new 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
@@ -79,14 +79,14 @@ type Postgres_Options
 ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     SSL_Mode.Disable -> []
-    SSL_Mode.Prefer -> [Pair_Data 'sslmode' 'prefer']
-    SSL_Mode.Require -> [Pair_Data 'sslmode' 'require']
+    SSL_Mode.Prefer -> [Pair.new 'sslmode' 'prefer']
+    SSL_Mode.Require -> [Pair.new 'sslmode' 'require']
     SSL_Mode.Verify_CA cert_file ->
-        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-ca'] else
-            [Pair_Data 'sslmode' 'verify-ca', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair.new 'sslmode' 'verify-ca'] else
+            [Pair.new 'sslmode' 'verify-ca', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
     SSL_Mode.Full_Verification cert_file ->
-        if cert_file.is_nothing then [Pair_Data 'sslmode' 'verify-full'] else
-            [Pair_Data 'sslmode' 'verify-full', Pair_Data 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair.new 'sslmode' 'verify-full'] else
+            [Pair.new 'sslmode' 'verify-full', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
 
 ## PRIVATE
 default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
@@ -96,7 +96,7 @@ default_postgres_port =
     hardcoded_port = 5432
     case Environment.get "PGPORT" of
         Nothing -> hardcoded_port
-        port -> Integer.parse port . catch Parse_Error_Data (_->hardcoded_port)
+        port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
 
 ## PRIVATE
 default_postgres_database = Environment.get_or_else "PGDATABASE" ""

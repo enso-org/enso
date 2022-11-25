@@ -1,11 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+from Standard.Base.Data.Vector import handle_incomparable_value
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
-import Standard.Base.System.Platform
 
 import project.Data.Column.Column
 from project.Data.Column import get_item_string
@@ -21,6 +20,7 @@ import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
 import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
@@ -62,7 +62,7 @@ type Table
     new columns =
         cols = columns.map c->
             case c of
-                _ : Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
+                _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Column_Data java_col -> java_col
         Table.Table_Data (Java_Table.new cols.to_array)
 
@@ -86,7 +86,7 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
-    from_rows : Vector.Vector -> Vector.Vector -> Table
+    from_rows : Vector -> Vector -> Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
@@ -378,7 +378,7 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         Table.new new_columns
@@ -444,10 +444,12 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
-    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ : Map ->
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
             if new_names.is_error then new_names else
@@ -620,7 +622,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument_Error.handle_java_exception <| Vector.handle_incomparable_value <|
+            java_table = Illegal_Argument_Error.handle_java_exception <| handle_incomparable_value <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -677,7 +679,7 @@ type Table
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
@@ -693,7 +695,7 @@ type Table
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
                     ambiguous = matching_input.exists s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector column.name ambiguous)
+                    problem_builder.append (Duplicate_Type_Selector.Duplicate_Type_Selector_Data column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
         expected_types = case column_types of
@@ -713,9 +715,9 @@ type Table
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns missing_columns.to_vector)
+                    problem_builder.append (Missing_Input_Columns.Missing_Input_Columns_Data missing_columns.to_vector)
                 if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range invalid_indices.to_vector)
+                    problem_builder.append (Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data invalid_indices.to_vector)
                 columns.map_with_index find_datatype
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
@@ -902,7 +904,7 @@ type Table
              table.take (While row-> row.to_vector.sum == 10)
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        Index_Sub_Range.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
@@ -924,7 +926,7 @@ type Table
              table.drop (While row-> row.to_vector.sum == 10)
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        Index_Sub_Range.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 
@@ -951,13 +953,13 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
                  table.set "total_stock_expr" "2 * [total_stock]"
-    set : Text -> Column | Vector.Vector | Text -> Problem_Behavior -> Table
+    set : Text -> Column | Vector | Text -> Problem_Behavior -> Table
     set self name column on_problems=Report_Warning = case column of
         _ : Text ->
             expression = self.evaluate column
             if expression.is_error.not then self.set name expression on_problems else
                 on_problems.handle_errors expression fallback=self
-        _ : Vector.Vector -> self.set name (Column.from_vector name column)
+        _ : Vector -> self.set name (Column.from_vector name column)
         _ : Column ->
             Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
@@ -978,6 +980,12 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns : Vector
     columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
+
+    ## UNSTABLE
+
+       Returns the vector of column names contained in this table.
+    column_names : Vector Text
+    column_names self = Vector.from_polyglot_array self.java_table.getColumns . map _.getName
 
     ## Returns a vector of rows contained in this table.
 
@@ -1063,7 +1071,7 @@ type Table
     join : Vector Table | Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
-            _ : Vector.Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
+            _ : Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table.Table_Data t ->
                 Table.Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
@@ -1132,7 +1140,7 @@ type Table
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table | Vector Table -> Table
     concat self other = case other of
-        _ : Vector.Vector ->
+        _ : Vector ->
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
             Table.Table_Data (Java_Table.concat java_tables.to_array)
         Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
@@ -1179,7 +1187,7 @@ type Table
              import Standard.Examples
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File.File -> Nothing
+    write_json : File -> Nothing
     write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
@@ -1208,9 +1216,9 @@ type Table
        - If an unsupported `File_Format` is specified, an
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
-         invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `IO_Error` is
-         raised.
+         invalid, a `File_Error.Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an
+         `File_Error.IO_Error` is raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
@@ -1242,13 +1250,13 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
@@ -1298,7 +1306,7 @@ ansi_bold : Boolean -> Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.
-        Platform.Windows -> txt
+        Platform.OS.Windows -> txt
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
@@ -1331,5 +1339,5 @@ print_table header rows indices_count format_term =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)

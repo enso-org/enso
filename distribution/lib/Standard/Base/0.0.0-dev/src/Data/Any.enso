@@ -1,6 +1,13 @@
-from Standard.Base import all
+import project.Data.Ordering.Ordering
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Nothing.Nothing
+import project.Meta
 
-from Standard.Base.Error.Common import dataflow_error_handler
+from project.Data.Boolean import Boolean, True, False
+from project.Data.Json import all
+from project.Data.Range import all
+from project.Error.Common import Error, dataflow_error_handler
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -17,7 +24,7 @@ type Any
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Any.catch_primitive"
+    catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
@@ -75,19 +82,19 @@ type Any
     == self that = if Meta.is_same_object self that then True else
         self_meta = Meta.meta self
         that_meta = Meta.meta that
-        case Pair_Data self_meta that_meta of
-            Pair_Data (Meta.Atom_Data _) (Meta.Atom_Data _) ->
+        case Pair.new self_meta that_meta of
+            Pair.Value (Meta.Atom_Data _) (Meta.Atom_Data _) ->
                 c_1 = self_meta.constructor ...
                 c_2 = that_meta.constructor ...
                 if Meta.is_same_object c_1 c_2 . not then False else
                     f_1 = self_meta.fields
                     f_2 = that_meta.fields
                     0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Pair_Data (Meta.Error_Data _) (Meta.Error_Data _) -> self_meta.payload == that_meta.payload
-            Pair_Data (Meta.Polyglot_Data o_1) (Meta.Polyglot_Data o_2) ->
+            Pair.Value (Meta.Error_Data _) (Meta.Error_Data _) -> self_meta.payload == that_meta.payload
+            Pair.Value (Meta.Polyglot_Data o_1) (Meta.Polyglot_Data o_2) ->
                 langs_match = (self_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
                 if langs_match.not then False else o_1.equals o_2
-            Pair_Data (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
+            Pair.Value (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
                 (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
             ## Constructor comparison is covered by the identity equality.
                Primitive objects should define their own equality.
@@ -317,7 +324,7 @@ type Any
          Applying a function over a value 10.
 
              10.map_nothing *2
-    map_nothing : (a -> b) -> b | Nothing
+    map_nothing : (Any -> Any) -> Any | Nothing
     map_nothing self f = case self of
         Nothing -> Nothing
         a -> f a

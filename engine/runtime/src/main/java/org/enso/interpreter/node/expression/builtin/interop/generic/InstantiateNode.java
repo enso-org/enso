@@ -16,7 +16,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "new",
-    description = "Instantiates a polyglot constructor.")
+    description = "Instantiates a polyglot constructor.",
+    autoRegister = false)
 public abstract class InstantiateNode extends Node {
 
   private @Child InteropLibrary library =

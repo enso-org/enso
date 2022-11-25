@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Source_Location.Source_Location
 
 polyglot java import java.lang.NullPointerException
 
@@ -12,7 +13,7 @@ find_project_root path =
                 @Tail_Call find_project_root path.parent
 
 ## PRIVATE
-find_caller_script : [Stack_Trace_Element] -> File
+find_caller_script : Vector Stack_Trace_Element -> File
 find_caller_script stack =
     find_main idx =
         if stack.at idx . name == "Test_Suite.type.run_main" then idx else
@@ -21,7 +22,7 @@ find_caller_script stack =
 
     find_caller idx =
         source = stack.at idx . source_location
-        if source.is_a Source_Location_Data then stack.at idx . source_location . file else
+        if source.is_a Source_Location.Value then stack.at idx . source_location . file else
             if (idx + 1 == stack.length) then Nothing else
                 @Tail_Call find_caller (idx + 1)
 

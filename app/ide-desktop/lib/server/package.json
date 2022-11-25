@@ -16,7 +16,10 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "dependencies": {
-    "live-server": "^1.2.2",
-    "portfinder": "^1.0.28"
+    "connect": "^3.7.0",
+    "morgan": "^1.10.0",
+    "portfinder": "^1.0.28",
+    "serve-static": "^1.15.0",
+    "ws": "^8.11.0"
   }
 }

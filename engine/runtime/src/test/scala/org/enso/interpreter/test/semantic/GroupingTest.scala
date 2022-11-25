@@ -52,14 +52,14 @@ class GroupingTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """from Standard.Base.Data.List.List import all
+        """import Standard.Base.Data.List.List
           |
           |main =
           |    fn = x -> case x of
-          |        (Cons h t) -> h + fn t
+          |        (List.Cons h t) -> h + fn t
           |        (_) -> 0
           |
-          |    fn (Cons 7 Nil)
+          |    fn (List.Cons 7 List.Nil)
           |""".stripMargin
 
       eval(code) shouldEqual 7

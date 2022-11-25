@@ -493,7 +493,7 @@ type Column
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
-        _ : Vector.Vector ->
+        _ : Vector ->
             if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
                 self.make_op "COALESCE" values new_type=self.sql_type
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
@@ -512,7 +512,7 @@ type Column
              example_min = Examples.decimal_column.min Examples.integer_column
     min : (Any | Vector Any) -> Column
     min self values = case values of
-        _ : Vector.Vector ->
+        _ : Vector ->
             if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
                 self.make_op "ROW_MIN" values new_type=self.sql_type
         _ : Array -> self.min (Vector.from_polyglot_array values)
@@ -531,7 +531,7 @@ type Column
              example_max = Examples.decimal_column.max Examples.integer_column
     max : (Any | Vector Any) -> Column
     max self values = case values of
-        _ : Vector.Vector ->
+        _ : Vector ->
             if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
                 self.make_op "ROW_MAX" values new_type=self.sql_type
         _ : Array -> self.max (Vector.from_polyglot_array values)
@@ -732,7 +732,7 @@ type Column
     is_in : Column | Vector -> Column
     is_in self vector = case vector of
         _ : Array -> self.is_in (Vector.from_polyglot_array vector)
-        _ : Vector.Vector ->
+        _ : Vector ->
             ## This is slightly hacky - we don't provide operand types as we want to
                allow any type to get through and currently we do not have a mapping
                from Enso types to SQL types (it may be available in the future). So
@@ -766,9 +766,9 @@ type Column
                column has any nulls and if so, we will do `IS NULL` checks for
                our columns too. That is because, we want the containment check
                for `NULL` to work the same way as for any other value.
-            in_subquery = Query.Select [Pair_Data column.name column.expression] column.context
+            in_subquery = Query.Select [Pair.new column.name column.expression] column.context
             has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_missing.expression]
-            has_nulls_subquery = Query.Select [Pair_Data "has_nulls" has_nulls_expression] column.context
+            has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
             new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
             Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 

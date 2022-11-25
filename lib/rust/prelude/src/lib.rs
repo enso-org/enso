@@ -281,28 +281,6 @@ impl<T> ToImpl for T {}
 
 
 
-// ================
-// === Nalgebra ===
-// ================
-
-#[cfg(feature = "nalgebra")]
-impl<T, R, C, S> TypeDisplay for nalgebra::Matrix<T, R, C, S>
-where
-    T: nalgebra::Scalar,
-    R: nalgebra::DimName,
-    C: nalgebra::DimName,
-{
-    fn type_display() -> String {
-        let cols = <C as nalgebra::DimName>::dim();
-        let rows = <R as nalgebra::DimName>::dim();
-        let item = type_name::<T>();
-        match cols {
-            1 => format!("Vector{}<{}>", rows, item),
-            _ => format!("Matrix{}x{}<{}>", rows, cols, item),
-        }
-    }
-}
-
 #[macro_export]
 macro_rules! clone_boxed {
     ( $name:ident ) => {

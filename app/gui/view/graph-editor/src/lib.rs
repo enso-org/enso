@@ -1472,7 +1472,6 @@ impl GraphEditorModelWithNetwork {
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
-            node.show_preview();
         }
         let source = self.data_source_for_new_node(way);
         (node.id(), source, should_edit)
@@ -2950,6 +2949,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }));
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
+                eval new_node ([model](&(id, _, should_edit)) {
+            if should_edit {
+                if let Some(node) = model.nodes.get_cloned_ref(&id) {
+                    node.show_preview();
+                }
+            }
+        });
     }
 
 

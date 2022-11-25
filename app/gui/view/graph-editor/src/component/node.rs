@@ -500,7 +500,7 @@ impl NodeModel {
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
-        let error_visualization = error::Container::new(scene);
+        let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x, y));
 
@@ -770,7 +770,7 @@ impl Node {
             // === Size ===
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
-            eval new_size ((t) model.output.frp.set_size.emit(t));
+            model.output.frp.set_size <+ new_size;
 
 
             // === Action Bar ===

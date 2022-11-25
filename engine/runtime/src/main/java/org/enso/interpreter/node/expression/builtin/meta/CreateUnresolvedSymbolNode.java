@@ -11,7 +11,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @BuiltinMethod(
     type = "Meta",
     name = "create_unresolved_symbol",
-    description = "Creates a new unresolved symbol node")
+    description = "Creates a new unresolved symbol node",
+    autoRegister = false)
 public class CreateUnresolvedSymbolNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 

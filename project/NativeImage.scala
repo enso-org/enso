@@ -30,8 +30,6 @@ object NativeImage {
     * @param artifactName name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
-    * @param initializeAtBuildtime specifies if classes should be initialized at
-    *                              build time by default
     * @param additionalOptions additional options for the Native Image build
     *                          tool
     * @param memoryLimitMegabytes a memory limit for the build tool, in
@@ -45,7 +43,6 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
     memoryLimitMegabytes: Option[Int] = Some(15608),
     initializeAtRuntime: Seq[String]  = Seq.empty,
@@ -100,6 +97,9 @@ object NativeImage {
           Seq()
         }
 
+      val quickBuildOption =
+        if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
+
       val memoryLimitOptions =
         memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
 
@@ -110,15 +110,14 @@ object NativeImage {
           Seq(s"--initialize-at-run-time=$classes")
         }
 
-      val initializeAtBuildtimeOptions =
-        if (initializeAtBuildtime) Seq("--initialize-at-build-time") else Seq()
-
       var cmd =
         Seq(nativeImagePath) ++
+        quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
-        initializeAtBuildtimeOptions ++
-        memoryLimitOptions ++ initializeAtRuntimeOptions ++
+        Seq("--initialize-at-build-time=") ++
+        initializeAtRuntimeOptions ++
+        memoryLimitOptions ++
         additionalOptions;
 
       if (mainClass.isEmpty) {

@@ -123,7 +123,7 @@ impl Model {
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
-        let documentation = documentation::View::new(scene);
+        let documentation = documentation::View::new(&app);
         let doc_provider = default();
         scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);

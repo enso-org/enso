@@ -31,13 +31,13 @@ public final class EnsoDate implements TruffleObject {
     this.date = date;
   }
 
-  @Builtin.Method(description = "Return current Date")
+  @Builtin.Method(description = "Return current Date", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate now() {
     return new EnsoDate(LocalDate.now());
   }
 
-  @Builtin.Method(name = "internal_parse", description = "Constructs a new Date from text with optional pattern")
+  @Builtin.Method(name = "parse_builtin", description = "Constructs a new Date from text with optional pattern", autoRegister = false)
   @Builtin.Specialize
   @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -51,7 +51,7 @@ public final class EnsoDate implements TruffleObject {
     }
   }
 
-  @Builtin.Method(name = "internal_new", description = "Constructs a new Date from a year, month, and day")
+  @Builtin.Method(name = "new_builtin", description = "Constructs a new Date from a year, month, and day", autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate create(long year, long month, long day) {

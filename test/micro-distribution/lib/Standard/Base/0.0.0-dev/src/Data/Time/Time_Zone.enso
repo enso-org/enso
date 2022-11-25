@@ -2,4 +2,6 @@
 type Time_Zone
 
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    Time_Zone.new_builtin hours minutes seconds
+    new_builtin hours minutes seconds
+
+new_builtin hours minutes seconds = @Builtin_Method "Time_Zone.new_builtin"

@@ -153,6 +153,13 @@ public @interface Builtin {
      * @return number of desired expansions for vararg parameter.
      */
     int expandVarargs() default 0;
+
+    /**
+     * `autoRegister` property indicates whether the builtin method should be automatically
+     * registered with the underlying type. By default every builtin method is registered with a
+     * type. Auto-registered methods do not have to be declared explicitly.
+     */
+    boolean autoRegister() default true;
   }
 
   /**
