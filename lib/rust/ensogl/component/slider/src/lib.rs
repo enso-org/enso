@@ -706,6 +706,7 @@ impl Slider {
 
         frp::extend! { network
             start_editing <- input.start_value_editing.constant(true).gate_not(&output.disabled);
+            start_editing <- start_editing.gate_not(&input.set_value_text_hidden);
             output.editing <+ start_editing;
             output.editing <+ input.finish_value_editing.constant(false);
             output.editing <+ input.cancel_value_editing.constant(false);
