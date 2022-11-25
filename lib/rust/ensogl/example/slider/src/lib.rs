@@ -132,6 +132,7 @@ fn init(app: &Application) {
     slider7.inner().set_y(-160.0);
     slider7.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider7.inner().frp.set_value_text_hidden(true);
+    slider7.inner().frp.set_precision_adjustment_disabled(true);
     slider7.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
 
     let slider8 = make_slider(app);
@@ -141,6 +142,7 @@ fn init(app: &Application) {
     slider8.inner().set_x(425.0);
     slider8.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider8.inner().frp.set_value_text_hidden(true);
+    slider8.inner().frp.set_precision_adjustment_disabled(true);
     slider8.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
     slider8.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
 }

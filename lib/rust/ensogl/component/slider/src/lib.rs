@@ -245,6 +245,8 @@ ensogl_core::define_endpoints_2! {
         /// The `adjustment_step_size` defines the distance the mouse must be moved to increase or
         /// decrease the precision by one step.
         set_precision_adjustment_step_size(f32),
+        /// Set whether the precision adjustment mechansim is disabled.
+        set_precision_adjustment_disabled(bool), 
         /// Set the slider's label. The label will be displayed to the left of the slider's value
         /// display.
         set_label(ImString),
@@ -445,7 +447,7 @@ impl Slider {
                 // Adjust the precision by the number of offset steps.
                 |(precision, offset)| *precision * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset)
             );
-            output.precision <+ precision;
+            output.precision <+ precision.gate_not(&input.set_precision_adjustment_disabled);
 
 
             // === Value calculation ===
@@ -454,11 +456,12 @@ impl Slider {
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset, &value_on_click);
             update_value <- bool(&component_release, &value_on_click);
-            value <- all3(&value_on_click, &precision, &drag_delta_primary).gate(&update_value);
+            value <- all3(&value_on_click, &output.precision, &drag_delta_primary);
+            value <- value.gate(&update_value);
             value <- value.map(|(value, precision, delta)| value + delta * precision);
             value <- any2(&input.set_value, &value);
             // Snap the slider's value to the nearest precision increment.
-            value <- all2(&value, &precision);
+            value <- all2(&value, &output.precision);
             value <- value.map(|(value, precision)| (value / precision).round() * precision);
             value <- all5(
                 &value,
