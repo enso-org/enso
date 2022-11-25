@@ -14,7 +14,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
-use double_representation::module;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
@@ -293,10 +293,7 @@ impl Handle {
 
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(
-        &self,
-        project: &dyn model::project::API,
-    ) -> module::QualifiedName {
+    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
         self.graph().module.path().qualified_module_name(project.qualified_name())
     }
 

@@ -608,14 +608,14 @@ type Http
             # prepare headers and body
             req_with_body = case req.body of
                 Request_Body.Empty ->
-                    Pair.Value req body_publishers.noBody
+                    Pair.new req body_publishers.noBody
                 Request_Body.Text text ->
                     builder.header Header.text_plain.name Header.text_plain.value
-                    Pair.Value req (body_publishers.ofString text)
+                    Pair.new req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
                     json_body = if json.is_a Text then json else json.to_text
-                    Pair.Value req (body_publishers.ofString json_body)
+                    Pair.new req (body_publishers.ofString json_body)
                 Request_Body.Form form ->
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
@@ -623,18 +623,18 @@ type Http
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
                         boundary = body_builder.get_boundary
-                        Pair.Value (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                        Pair.new (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
                     add_urlencoded form =
                         body_builder = Http_Utils.urlencoded_body_builder
                         form.parts.map part-> case part.value of
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
-                        Pair.Value req body_builder.build
+                        Pair.new req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
                 Request_Body.Bytes bytes ->
                     builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair.Value req (body_publishers.ofByteArray bytes.to_array)
+                    Pair.new req (body_publishers.ofByteArray bytes.to_array)
             # method
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"

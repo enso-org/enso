@@ -83,7 +83,7 @@ impl Frp {
             model.label_full.set_content <+ formatted;
 
             eval model.label_left.width((offset)
-                model.label_full.set_position_x(-offset-LABEL_OFFSET));
+                model.label_full.set_x(-offset-LABEL_OFFSET));
         }
     }
 }

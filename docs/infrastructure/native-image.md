@@ -206,7 +206,7 @@ state. Limitations are currently mostly due to
 of stdlib components. To generate the Native Image for runner simply execute
 
 ```
-sbt> engine-runner-native/buildNativeImage
+sbt> engine-runner/buildNativeImage
 ```
 
 and execute the binary on a sample factorial test program

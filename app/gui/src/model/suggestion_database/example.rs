@@ -92,23 +92,26 @@ pub fn documentation_html_from(inner: &str) -> String {
 
 lazy_static! {
     /// The hard-coded examples to be used until the proper solution
-    /// (described in https://github.com/enso-org/ide/issues/1011) will be implemented.
+    /// (described in https://www.pivotaltracker.com/story/show/181061125) will be implemented.
     //TODO[ao]: Remove once the issue will be implemented.
-    pub static ref EXAMPLES:Vec<Example> = vec!
-    [ Example
-      { name               : "Parse JSON".to_owned()
-      , code               : r#"Json.parse '{\"a\":10, \"b\": 20}'"#.to_owned()
-      , imports            : default()
-      , documentation_html : documentation_html_from("An example showing how to parse string to Json structure.")
-      }
-    , Example
-      { name               : "Http GET".to_owned()
-      , code               : "http1 = Http.new \n\
-          response = http1.get \"http://enso.org/\"\n\
-          body1    = response.body\n\
-          body1.to_text".to_owned()
-      , imports            : vec!["Standard.Base.Network.Http".to_owned()]
-      , documentation_html : documentation_html_from("This snippet downloads the Enso main page."),
-      }
+    pub static ref EXAMPLES: Vec<Example> = vec![
+        Example {
+            name:               "Parse JSON".to_owned(),
+            code:               r#"Json.parse '{\"a\":10, \"b\": 20}'"#.to_owned(),
+            imports:            default(),
+            documentation_html: documentation_html_from(
+                "An example showing how to parse string to Json structure.",
+            ),
+        },
+        Example {
+            name:               "Http GET".to_owned(),
+            code:               "http1 = Http.new \n\
+              response = http1.get \"http://enso.org/\"\n\
+              body1    = response.body\n\
+              body1.to_text"
+                .to_owned(),
+            imports:            vec!["Standard.Base.Network.Http".to_owned()],
+            documentation_html: documentation_html_from("This snippet downloads the Enso main page."),
+        },
     ];
 }

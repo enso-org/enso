@@ -16,10 +16,10 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
-import project.Warning
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Type_Error_Data
+from project.Error.Common import Error, Panic, Time_Error, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
@@ -43,7 +43,7 @@ ensure_in_epoch date ~action =
     case Date_Time.enso_epoch_start <= datetime of
         True -> ret_value
         False ->
-            Warning.attach (Time_Error_Data ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
+            Warning.attach (Time_Error.Error ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
 
 ## PRIVATE
 
@@ -155,7 +155,7 @@ type Date_Time
     new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
         Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
-            Error.throw (Time_Error_Data java_exception.getMessage)
+            Error.throw (Time_Error.Error java_exception.getMessage)
 
     ## ALIAS Time from Text
 
@@ -237,7 +237,7 @@ type Date_Time
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
                 _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
@@ -509,7 +509,7 @@ type Date_Time
     + self amount =
         case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
 
@@ -575,7 +575,7 @@ type Date_Time
     - self amount =
         result = case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result

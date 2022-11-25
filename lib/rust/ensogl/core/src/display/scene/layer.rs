@@ -154,28 +154,9 @@ use std::any::TypeId;
 /// Please note that the current implementation does not allow for hierarchical masks (masks applied
 /// to already masked area or masks applied to masks). If you try using masks in hierarchical way,
 /// the nested masks will be skipped and a warning will be emitted to the console.
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, Deref)]
 pub struct Layer {
     model: Rc<LayerModel>,
-}
-
-impl Deref for Layer {
-    type Target = LayerModel;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
-}
-
-impl AsRef<Layer> for Layer {
-    fn as_ref(&self) -> &Layer {
-        self
-    }
-}
-
-impl Debug for Layer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&*self.model, f)
-    }
 }
 
 impl Layer {
@@ -207,7 +188,7 @@ impl Layer {
 
     /// Remove the display object from a layer it was assigned to, if any.
     pub fn remove(&self, object: impl display::Object) {
-        object.display_object().remove_from_scene_layer(self);
+        object.display_object().remove_from_display_layer(self);
     }
 
     /// Instantiate the provided [`ShapeProxy`].
@@ -258,9 +239,28 @@ impl Layer {
     }
 }
 
+impl AsRef<Layer> for Layer {
+    fn as_ref(&self) -> &Layer {
+        self
+    }
+}
+
+impl Debug for Layer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&*self.model, f)
+    }
+}
+
 impl From<&Layer> for LayerId {
     fn from(t: &Layer) -> Self {
         t.id()
+    }
+}
+
+impl Eq for Layer {}
+impl PartialEq for Layer {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.model, &other.model)
     }
 }
 
@@ -313,6 +313,7 @@ impl PartialEq for WeakLayer {
         self.model.ptr_eq(&other.model)
     }
 }
+
 
 
 // ==================

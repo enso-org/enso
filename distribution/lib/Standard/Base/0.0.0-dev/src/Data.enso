@@ -1,0 +1,124 @@
+import project.Data.Any.Any
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Problem_Behavior.Problem_Behavior
+import project.Nothing.Nothing
+import project.System.File.File
+import project.System.File_Format.Auto_Detect
+import project.System.File_Format.File_Format
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Unsupported_File_Type, File_Error
+
+## Read a file using the specified file format
+
+   Arguments:
+   - path: The path to the file to read.
+   - format: A `File_Format` object used to read file into memory.
+     If `Auto_Detect` is specified; the provided file determines the specific
+     type and configures it appropriately. If there is no matching type then
+     a `Unsupported_File_Type` error is returned.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Read the first sheet of an XLSX from disk and convert it into a table.
+
+         from Standard.Table import all
+         import Standard.Examples
+
+         example_xlsx_to_table = Data.read Examples.xlsx
+
+   > Example
+     Read the sheet named `Dates` from an XLS and convert it to a table.
+
+         from Standard.Table import all
+         from Standard.Table import Excel, Worksheet
+         import Standard.Examples
+
+         example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
+read_file : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+    File.new path . read format on_problems
+
+## Open and read the file at the provided `path`.
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Read the `data.csv` file in the project directory's `data` directory. You
+     will need to create the file `data.csv` manually in that directory.
+
+         import Standard.Base.Data
+         import Standard.Examples
+
+         example_read = Data.read_text_file Examples.csv_path
+read_text_file : (Text | File) -> Encoding -> Problem_Behavior -> Text
+read_text_file path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+    File.new path . read_text encoding on_problems
+
+## Lists files contained in the provided directory.
+
+   Arguments:
+   - name_filter: A glob pattern that can be used to filter the returned files.
+     If it is not specified, all files are returned.
+   - recursive: Specifies whether the returned list of files should include also
+     files from the subdirectories. If set to `False` (the default), only the
+     immediate children of the listed directory are considered.
+
+   The `name_filter` can contain the following special characters:
+   - `"?"` - which matches a single filename character (so it will not match a
+     `"/"`).
+   - `"*"` - which matches any number of characters, but again does not cross
+     directories.
+   - `"**"` - which matches any number of characters and can cross directories.
+   - `"\"` - can be used to escape the characters with special meaning; to get a
+     single backslash, you need to specify it twice; you also need to keep in
+     mind that the interpolating string literal also uses `"\"` as an escape
+     sequence, so you need to type `'\\\\'` to get a single backslash for the
+     glob pattern, unless you use the raw strings, where you only need to escape
+     once: `"\\"`.
+   - Brackets can be used to match exactly one character from some set of
+     characters. For example `"[xy]"` matches `"x"` or `"y"`. Character ranges
+     can also be specified: `"[a-z]"` matches any character from `"a"` to `"z"`.
+     An exclamation mark can be used to negate the match, i.e. `"[!xz]"` will
+     match any characters except for `"x"` and `"z"`. Moreover the ranges and
+     single characters can be used together, so for example `"[a-cxy]"` will
+     match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`. Within the brackets, the special
+     characters `"*"`, `"?"` and `"\"` stand for themselves instead of their
+     special meanings.
+   - Braces allow to specify multiple patterns (separated with a comma), one of
+     which must be matched. For example: `"{abc,x*}"` will match either the name
+     `"abc"` or any name starting with `"x"`. The groups cannot be nested.
+
+   Keep in mind that if `recursive` is set to True and a `name_filter` is used,
+   the function will return files from subdirectories only if the set
+   `name_filter` allows crossing directories. So even with `recursive=True` a
+   filter `"*.txt"` will only return files that are immediate children of the
+   listed directory, to list files recursively you need to use a filter like
+   `"**.txt"` or `"*/*"` (which will match only files that are exactly one
+   directory down from the listed directory) or no filter at all.
+
+   > Example
+     List all files with `.md` extension in the example directory and any of its
+     subdirectories.
+
+         import Standard.Examples
+
+         example_list_files =
+             Data.list_directory Examples.data_dir name_filter="**.md" recursive=True
+list_directory : (File | Text) -> Text -> Boolean -> Vector File
+list_directory directory name_filter=Nothing recursive=False =
+    File.new directory . list name_filter=name_filter recursive=recursive

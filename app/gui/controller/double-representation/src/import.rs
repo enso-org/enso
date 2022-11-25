@@ -2,7 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::module;
+use crate::name::NamePath;
+use crate::name::QualifiedName;
 
 use ast::known;
 use ast::Ast;
@@ -82,12 +83,8 @@ impl ImportedNames {
 /// Representation of a single import declaration.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize, Hash)]
 pub struct Info {
-    /// The segments of the qualified name of the imported module.
-    ///
-    /// This field is not Qualified name to cover semantically illegal imports that are possible to
-    /// be typed in and are representable in the text.
-    /// This includes targets with too few segments or segments not being valid referent names.
-    pub module:   Vec<String>,
+    /// The path of the qualified name of the imported module.
+    pub module:   NamePath,
     /// Imported names from [`module`].
     pub imported: ImportedNames,
 }
@@ -95,16 +92,22 @@ pub struct Info {
 impl Info {
     /// Create qualified import (i.e. `import <module-name>`) importing the given module without
     /// alias.
-    pub fn new_qualified(module: &module::QualifiedName) -> Self {
+    pub fn new_qualified(module: impl Into<NamePath>) -> Self {
+        Self { module: module.into(), imported: ImportedNames::Module { alias: None } }
+    }
+
+    /// Create a unqualified import importing one name from given module (i. e. `from <module-name>
+    /// import <name>`).
+    pub fn new_single_name(module: impl Into<NamePath>, name: impl Into<String>) -> Self {
         Self {
-            module:   module.segments().map(|segment| segment.to_string()).collect(),
-            imported: ImportedNames::Module { alias: None },
+            module:   module.into(),
+            imported: ImportedNames::List { names: [name.into()].into() },
         }
     }
 
     /// Obtain the qualified name of the module.
-    pub fn qualified_module_name(&self) -> FallibleResult<module::QualifiedName> {
-        module::QualifiedName::from_all_segments(&self.module)
+    pub fn qualified_module_name(&self) -> FallibleResult<QualifiedName> {
+        QualifiedName::from_all_segments(&self.module)
     }
 
     /// Construct from an AST. Fails if the Ast is not an import declaration.
@@ -145,10 +148,10 @@ impl Info {
         }
     }
 
-    fn module_name_from_str(module: impl AsRef<str>) -> Vec<String> {
+    fn module_name_from_str(module: impl AsRef<str>) -> NamePath {
         let name = module.as_ref().trim();
         if name.is_empty() {
-            Vec::new()
+            default()
         } else {
             let segments = name.split(ast::opr::predefined::ACCESS);
             let trimmed = segments.map(str::trim);
@@ -165,11 +168,17 @@ impl Info {
         self.hash(&mut hasher);
         hasher.finish()
     }
+
+    /// Return the module path as [`QualifiedName`]. Returns [`Err`] if the path is not a valid
+    /// module name.
+    pub fn module_qualified_name(&self) -> FallibleResult<QualifiedName> {
+        QualifiedName::from_all_segments(self.module.iter())
+    }
 }
 
 impl Display for Info {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let module = self.module.join(ast::opr::predefined::ACCESS);
+        let module = self.module.iter().map(ImString::as_str).join(ast::opr::predefined::ACCESS);
         let import_kw = ast::macros::QUALIFIED_IMPORT_KEYWORD;
         let from_kw = ast::macros::UNQUALIFIED_IMPORT_KEYWORD;
         match &self.imported {
@@ -228,7 +237,7 @@ mod tests {
     fn qualified_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::Module { alias: None },
         };
 
@@ -249,7 +258,7 @@ mod tests {
     fn unrestricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::All,
         };
 
@@ -266,7 +275,7 @@ mod tests {
     fn restricted_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], names: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::List { names: names.iter().map(|&s| s.to_owned()).collect() },
         };
 
@@ -287,7 +296,7 @@ mod tests {
     fn hiding_import_info_from_ast() {
         let test = Fixture::new();
         let make_info = |module: &[&str], hidden_names: &[&str]| Info {
-            module:   module.iter().map(|&s| s.to_owned()).collect(),
+            module:   module.iter().map(|&s| ImString::new(s)).collect(),
             imported: ImportedNames::AllExcept {
                 not_imported: hidden_names.iter().map(|&s| s.to_owned()).collect(),
             },

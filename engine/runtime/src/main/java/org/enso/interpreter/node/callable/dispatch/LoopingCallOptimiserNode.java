@@ -6,9 +6,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -105,22 +103,23 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * {@link RepeatingNode}.
    */
   public static final class RepeatedCallNode extends Node implements RepeatingNode {
-    private final FrameSlot resultSlot;
-    private final FrameSlot functionSlot;
-    private final FrameSlot argsSlot;
-    private final FrameSlot stateSlot;
-    private final FrameSlot callerInfoSlot;
+    private final int resultSlotIdx;
+    private final int functionSlotIdx;
+    private final int argsSlotIdx;
+    private final int stateSlotIdx;
+    private final int callerInfoSlotIdx;
     private final FrameDescriptor descriptor;
     @Child private ExecuteCallNode dispatchNode;
 
     /** Creates a new node used for repeating a call. */
     public RepeatedCallNode() {
-      descriptor = new FrameDescriptor();
-      functionSlot = descriptor.findOrAddFrameSlot("<TCO Function>", FrameSlotKind.Object);
-      resultSlot = descriptor.findOrAddFrameSlot("<TCO Result>", FrameSlotKind.Object);
-      argsSlot = descriptor.findOrAddFrameSlot("<TCO Arguments>", FrameSlotKind.Object);
-      stateSlot = descriptor.findOrAddFrameSlot("<TCO State>", FrameSlotKind.Object);
-      callerInfoSlot = descriptor.findOrAddFrameSlot("<TCO Caller Info>", FrameSlotKind.Object);
+      var descrBuilder = FrameDescriptor.newBuilder();
+      functionSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Function>", null);
+      resultSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Result>", null);
+      argsSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Arguments>", null);
+      stateSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO State>", null);
+      callerInfoSlotIdx = descrBuilder.addSlot(FrameSlotKind.Object, "<TCO Caller Info>", null);
+      descriptor = descrBuilder.build();
       dispatchNode = ExecuteCallNodeGen.create();
     }
 
@@ -138,13 +137,13 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      */
     private void setNextCall(
         VirtualFrame frame, Function function, CallerInfo callerInfo, Object[] arguments) {
-      frame.setObject(functionSlot, function);
-      frame.setObject(callerInfoSlot, callerInfo);
-      frame.setObject(argsSlot, arguments);
+      frame.setObject(functionSlotIdx, function);
+      frame.setObject(callerInfoSlotIdx, callerInfo);
+      frame.setObject(argsSlotIdx, arguments);
     }
 
     private void setState(VirtualFrame frame, State state) {
-      frame.setObject(stateSlot, state);
+      frame.setObject(stateSlotIdx, state);
     }
 
     /**
@@ -154,12 +153,12 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the result of execution in {@code frame}
      */
     public Object getResult(VirtualFrame frame) {
-      return FrameUtil.getObjectSafe(frame, resultSlot);
+      return frame.getObject(resultSlotIdx);
     }
 
     private CallerInfo getCallerInfo(VirtualFrame frame) {
-      CallerInfo result = (CallerInfo) FrameUtil.getObjectSafe(frame, callerInfoSlot);
-      frame.setObject(callerInfoSlot, null);
+      CallerInfo result = (CallerInfo) frame.getObject(callerInfoSlotIdx);
+      frame.setObject(callerInfoSlotIdx, null);
       return result;
     }
 
@@ -170,8 +169,8 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the function to be executed next in the loop
      */
     public Function getNextFunction(VirtualFrame frame) {
-      Object result = FrameUtil.getObjectSafe(frame, functionSlot);
-      frame.setObject(functionSlot, null);
+      Object result = frame.getObject(functionSlotIdx);
+      frame.setObject(functionSlotIdx, null);
       return (Function) result;
     }
 
@@ -182,7 +181,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the state to pass to the next function
      */
     public Object getNextState(VirtualFrame frame) {
-      return FrameUtil.getObjectSafe(frame, stateSlot);
+      return frame.getObject(stateSlotIdx);
     }
 
     /**
@@ -192,8 +191,8 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @return the arguments to be applied to the next function
      */
     public Object[] getNextArgs(VirtualFrame frame) {
-      Object[] result = (Object[]) FrameUtil.getObjectSafe(frame, argsSlot);
-      frame.setObject(argsSlot, null);
+      Object[] result = (Object[]) frame.getObject(argsSlotIdx);
+      frame.setObject(argsSlotIdx, null);
       return result;
     }
 
@@ -212,7 +211,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
         Object[] arguments = getNextArgs(frame);
         CallerInfo callerInfo = getCallerInfo(frame);
         frame.setObject(
-            resultSlot, dispatchNode.executeCall(function, callerInfo, state, arguments));
+            resultSlotIdx, dispatchNode.executeCall(function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
         setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getArguments());

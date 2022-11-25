@@ -4,9 +4,10 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotificationPublisher;
-use crate::model::module::QualifiedName;
 
-use double_representation::project;
+use double_representation::import;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
@@ -123,11 +124,9 @@ impl Project {
         Self::add_main_if_missing(project.qualified_name(), &main_module_model, &method, &parser)?;
 
         let mut info = main_module_model.info();
-        info.add_module_import(
-            &project.qualified_module_name(&module_path),
-            &project.parser(),
-            &QualifiedName::from_text("Standard.Visualization").unwrap(),
-        );
+        let visualization_module = QualifiedName::from_text("Standard.Visualization").unwrap();
+        let visualization_import = import::Info::new_qualified(visualization_module);
+        info.add_import_if_missing(&project.parser(), visualization_import);
         main_module_model.update_ast(info.ast)?;
 
         // Here, we should be relatively certain (except race conditions in case of multiple
@@ -262,7 +261,7 @@ mod tests {
         let _ctx = TestWithLocalPoolExecutor::set_up();
         let parser = parser_scala::Parser::new_or_panic();
         let mut data = crate::test::mock::Unified::new();
-        let module_name = data.module_path.module_name();
+        let module_name = data.module_path.module_name().to_owned();
         let main_ptr = main_method_ptr(data.project_name.clone(), &data.module_path);
 
         // Check that module without main gets it after the call.

@@ -1,7 +1,7 @@
 import project.Data.Any.Any
-import project.Data.Numbers.Number
-import project.Data.Interval.Interval
 import project.Data.Interval.Bound
+import project.Data.Interval.Interval
+import project.Data.Numbers.Number
 
 from project.Error.Common import unimplemented
 
