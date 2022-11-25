@@ -282,13 +282,13 @@ impl Model {
         self.section_navigator.update_layout(style);
 
         let navigator_shadow_x = -style.grid.width / 2.0;
-        self.navigator_shadow.set_position_x(navigator_shadow_x);
+        self.navigator_shadow.set_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator.width, style.size().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
 
-        self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
+        self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
-        self.grid.set_position_xy(style.grid_pos());
+        self.grid.set_xy(style.grid_pos());
     }
 
     /// Set the navigator so it can be disabled on hover.

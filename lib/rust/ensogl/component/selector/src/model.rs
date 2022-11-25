@@ -152,12 +152,12 @@ impl Model {
         let overflow_icon_size = size.y;
         let label_offset = size.x / 2.0 - overflow_icon_size + left_padding;
 
-        self.label_left.set_position_x(-label_offset);
-        self.label_right.set_position_x(label_offset - self.label_right.width.value());
+        self.label_left.set_x(-label_offset);
+        self.label_right.set_x(label_offset - self.label_right.width.value());
 
         let overflow_icon_offset = size.x / 2.0 - overflow_icon_size / 2.0;
-        self.left_overflow.set_position_x(-overflow_icon_offset);
-        self.right_overflow.set_position_x(overflow_icon_offset);
+        self.left_overflow.set_x(-overflow_icon_offset);
+        self.right_overflow.set_x(overflow_icon_offset);
 
         let track_handle_size = Vector2::new(size.y / 2.0, size.y);
         self.track_handle_left.size.set(track_handle_size);
@@ -171,9 +171,9 @@ impl Model {
         let left_padding = LABEL_OFFSET;
         let overflow_icon_size = size.y / 2.0;
         let caption_offset = size.x / 2.0 - overflow_icon_size - left_padding;
-        self.caption_left.set_position_x(-caption_offset);
-        self.caption_left.set_position_y(text_size / 2.0);
-        self.caption_center.set_position_y(text_size / 2.0);
+        self.caption_left.set_x(-caption_offset);
+        self.caption_left.set_y(text_size / 2.0);
+        self.caption_center.set_y(text_size / 2.0);
     }
 
     /// Set whether to allow interactions with the edges of the track shape. If this is set to
@@ -208,8 +208,8 @@ impl Model {
         self.track.left.set(value.start);
         self.track.right.set(value.end);
 
-        self.track_handle_left.set_position_x(value.start * size.x - size.x / 2.0);
-        self.track_handle_right.set_position_x(value.end * size.x - size.x / 2.0);
+        self.track_handle_left.set_x(value.start * size.x - size.x / 2.0);
+        self.track_handle_right.set_x(value.end * size.x - size.x / 2.0);
     }
 
     /// Set the label in the center of the background to show the given numeric value.

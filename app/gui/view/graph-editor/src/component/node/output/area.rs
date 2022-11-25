@@ -239,7 +239,7 @@ impl Model {
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
-        self.label.set_position_x(-self.label.width.value() - input::area::TEXT_OFFSET);
+        self.label.set_x(-self.label.width.value() - input::area::TEXT_OFFSET);
     }
 
     /// Update expression type for the particular `ast::Id`.
@@ -329,7 +329,7 @@ impl Model {
 
     #[profile(Debug)]
     fn set_size(&self, size: Vector2) {
-        self.ports.set_position_x(size.x / 2.0);
+        self.ports.set_x(size.x / 2.0);
         self.traverse_borrowed_expression_mut(|is_a_port, node, _| {
             if is_a_port {
                 node.payload_mut().set_size(size)

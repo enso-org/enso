@@ -126,7 +126,7 @@ impl Model {
                     self.display_object.add_child(&line);
                     line.set_content(process.to_string());
                     line.set_size(Vector2::new(LINE_WIDTH, INFINITE));
-                    line.set_position_y(ROW_HEIGHT * ix as f32);
+                    line.set_y(ROW_HEIGHT * ix as f32);
                     line.set_rotation_z(90.0_f32.to_radians());
                     line
                 })
@@ -156,8 +156,8 @@ impl Model {
                     let start = message.recipient.id.min(message.sender.id) as u32;
                     line.set_size(Vector2::new(LINE_WIDTH, height_px));
 
-                    line.set_position_x(message.time as f32);
-                    line.set_position_y(ROW_HEIGHT * start as f32 + height_px / 2.0);
+                    line.set_x(message.time as f32);
+                    line.set_y(ROW_HEIGHT * start as f32 + height_px / 2.0);
                     line
                 })
                 .collect();
@@ -195,7 +195,7 @@ impl Model {
             .borrow()
             .deref()
             .iter()
-            .for_each(|line| line.mod_position_x(|x| x + delta))
+            .for_each(|line| line.mod_x(|x| x + delta))
     }
 }
 
