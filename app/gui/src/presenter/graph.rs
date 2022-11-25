@@ -147,6 +147,28 @@ impl Model {
         self.state.update_from_view().set_node_expression(id, expression);
     }
 
+    /// The user skipped the node by pressing on the "skip" button next to it.
+    fn node_action_skip(&self, id: ViewNodeId, enabled: bool) {
+        self.log_action(
+            || {
+                let ast_id = self.state.update_from_view().set_node_skip(id, enabled)?;
+                Some(self.controller.graph().set_node_action_skip(ast_id, enabled))
+            },
+            "skip node",
+        );
+    }
+
+    /// The user frozen the node by pressing on the "freeze" button next to it.
+    fn node_action_freeze(&self, id: ViewNodeId, enabled: bool) {
+        self.log_action(
+            || {
+                let ast_id = self.state.update_from_view().set_node_freeze(id, enabled)?;
+                Some(self.controller.graph().set_node_action_freeze(ast_id, enabled))
+            },
+            "freeze node",
+        );
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
@@ -556,6 +578,8 @@ impl Graph {
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
+            eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
+            eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
 
 
             // === Dropping Files ===

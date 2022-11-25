@@ -442,12 +442,16 @@ impl<'a> ControllerChange<'a> {
         trees: controller::graph::NodeTrees,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
         let ast_id = node.main_line.id();
+        let macros_info = node.info.main_line.macros_info();
+        let (is_skipped, is_frozen) = (macros_info.skip, macros_info.freeze);
         let new_displayed_expr = node_view::Expression {
-            pattern:             node.info.pattern().map(|t| t.repr()),
-            code:                node.info.expression().repr().into(),
+            pattern: node.info.pattern().map(|t| t.repr()),
+            code: node.info.visible_expression().repr().into(),
             whole_expression_id: node.info.expression().id,
-            input_span_tree:     trees.inputs,
-            output_span_tree:    trees.outputs.unwrap_or_else(default),
+            input_span_tree: trees.inputs,
+            output_span_tree: trees.outputs.unwrap_or_else(default),
+            is_skipped,
+            is_frozen,
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
@@ -658,6 +662,32 @@ impl<'a> ViewChange<'a> {
         let displayed = nodes.get_mut(ast_id)?;
         if displayed.visualization != new_path {
             displayed.visualization = new_path;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Mark the node as skipped and return its AST id.
+    pub fn set_node_skip(&self, id: ViewNodeId, skip: bool) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.expression.is_skipped != skip {
+            displayed.expression.is_skipped = skip;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Mark the node as frozen and return its AST id.
+    pub fn set_node_freeze(&self, id: ViewNodeId, freeze: bool) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.expression.is_frozen != freeze {
+            displayed.expression.is_frozen = freeze;
             Some(ast_id)
         } else {
             None
@@ -884,6 +914,8 @@ mod tests {
             whole_expression_id: Some(node_id),
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),
+            is_skipped:          false,
+            is_frozen:           false,
         };
         let updater = state.update_from_controller();
         assert_eq!(
@@ -915,7 +947,7 @@ mod tests {
         use ast::crumbs::InfixCrumb;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
         let view = nodes[0].view;
-        let node_ast = nodes[0].node.main_line.expression();
+        let node_ast = nodes[0].node.main_line.visible_expression();
         let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
         let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
         let updater = state.update_from_controller();

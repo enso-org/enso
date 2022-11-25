@@ -779,6 +779,10 @@ impl Node {
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
+            action_freeze_state <- input.set_expression.map(|expr| expr.is_frozen);
+            action_skip_state <- input.set_expression.map(|expr| expr.is_skipped);
+            action_bar.set_action_skip_state <+ action_skip_state;
+            action_bar.set_action_freeze_state <+ action_freeze_state;
 
 
             // === View Mode ===

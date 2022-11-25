@@ -59,6 +59,8 @@ ensogl::define_endpoints! {
         set_size                    (Vector2),
         set_visibility              (bool),
         set_action_visibility_state (bool),
+        set_action_skip_state       (bool),
+        set_action_freeze_state     (bool),
         show_on_hover               (bool),
     }
 
@@ -99,8 +101,8 @@ impl Icons {
         // are used again, uncomment the below code to make the already implemented icons
         // functional again.
         //
-        // display_object.add_child(&freeze);
-        // display_object.add_child(&skip);
+        display_object.add_child(&freeze);
+        display_object.add_child(&skip);
         Self { display_object, freeze, visibility, skip }
     }
 
@@ -206,11 +208,11 @@ impl Model {
         // are used again, uncomment the below code to make the already implemented icons
         // functional again.
         self.place_button_in_slot(&self.icons.visibility, 0);
-        // self.place_button_in_slot(&self.icons.skip       , 1);
-        // self.place_button_in_slot(&self.icons.freeze     , 2);
+        self.place_button_in_slot(&self.icons.skip, 1);
+        self.place_button_in_slot(&self.icons.freeze, 2);
 
         // Note: needs increasing to 3 when re-enabling the above buttons.
-        self.layout_hover_area_to_cover_buttons(1);
+        self.layout_hover_area_to_cover_buttons(3);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         self.icons.visibility.set_scale_xy(Vector2::new(1.2, 1.2));
@@ -272,6 +274,8 @@ impl ActionBar {
             eval frp.set_size                    ((size)  model.set_size(*size));
             eval frp.set_visibility              ((t)     model.icons.set_visibility(*t));
             eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
+            eval frp.set_action_skip_state ((state) model.icons.skip.set_state(state));
+            eval frp.set_action_freeze_state ((state) model.icons.freeze.set_state(state));
 
 
             // === Mouse Interactions ===
