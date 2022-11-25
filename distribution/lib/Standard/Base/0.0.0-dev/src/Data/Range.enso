@@ -1,11 +1,25 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Data.Vector.Vector
+import project.Function.Function
+import project.Nothing.Nothing
 
-# TODO Dubious constructor export
-from project.Data.Range.Range import all
-from project.Data.Range.Range export all
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Illegal_Argument_Error_Data, Illegal_State_Error_Data
 
 ## Represents a right-exclusive range of integer values.
 type Range
+    ## Create a representation of a right-exclusive range of integer values.
+
+       Arguments:
+       - start: The left boundary of the range. Its value is included.
+       - end: The right boundary of the range. Its value is excluded.
+       - step: The step between values. Must be a positive value.
+    new : Integer -> Integer -> Integer -> Range
+    new start=0 end=100 step=1 =
+        Range.Value start end (if start > end then -1 else 1) . with_step step
 
     ## UNSTABLE
        A representation of a right-exclusive range of integer values.
@@ -15,7 +29,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    Range_Data (start : Integer) (end : Integer) (step : Integer = 1)
+    Value (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -33,7 +47,7 @@ type Range
         _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
                 if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range_Data self.start self.end self.step.signum*new_step
+                    Range.Value self.start self.end self.step.signum*new_step
         _ ->
             Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
 
@@ -293,7 +307,7 @@ type Range
          0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to self n = case n of
-    _ : Integer -> Range_Data self n
+    _ : Integer -> Range.Value self n 1
     _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## ALIAS Range
@@ -309,7 +323,7 @@ Integer.up_to self n = case n of
          5.down_to 0
 Integer.down_to : Integer -> Range
 Integer.down_to self n = case n of
-    _ : Integer -> Range_Data self n -1
+    _ : Integer -> Range.Value self n -1
     _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
 
 ## PRIVATE

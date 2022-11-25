@@ -1,7 +1,7 @@
 import project.Data.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
-import project.Data.Numbers.Number
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Function.Function
