@@ -2,13 +2,9 @@ from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 from Standard.Base.Data.Vector import handle_incomparable_value
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
-import Standard.Base.System.Platform
-# TODO[DB] Fix composite types #183857386
-import Standard.Base.System.File.File as File_Type
 
 import project.Data.Column.Column
 from project.Data.Column import get_item_string
@@ -1191,7 +1187,7 @@ type Table
              import Standard.Examples
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File_Type -> Nothing
+    write_json : File -> Nothing
     write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
@@ -1220,9 +1216,9 @@ type Table
        - If an unsupported `File_Format` is specified, an
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
-         invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `IO_Error` is
-         raised.
+         invalid, a `File_Error.Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an
+         `File_Error.IO_Error` is raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
@@ -1254,13 +1250,13 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File_Type|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type_Data ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
@@ -1310,7 +1306,7 @@ ansi_bold : Boolean -> Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.
-        Platform.Windows -> txt
+        Platform.OS.Windows -> txt
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE

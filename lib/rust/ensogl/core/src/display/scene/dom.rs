@@ -210,14 +210,7 @@ impl DomScene {
     /// Creates a new instance of DomSymbol and adds it to parent.
     pub fn manage(&self, object: &DomSymbol) {
         let dom = object.dom();
-        let data = &self.data;
-        if object.is_visible() {
-            self.view_projection_dom.append_or_warn(dom);
-        }
-        object.display_object().set_on_hide(f_!(dom.remove()));
-        object.display_object().set_on_show(f__!([data,dom] {
-            data.view_projection_dom.append_or_warn(&dom)
-        }));
+        self.view_projection_dom.append_or_warn(dom);
     }
 
     /// Update the objects to match the new camera's point of view. This function should be called
@@ -227,7 +220,7 @@ impl DomScene {
             return;
         }
 
-        let trans_cam = camera.transform_matrix().try_inverse();
+        let trans_cam = camera.transformation_matrix().try_inverse();
         let trans_cam = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam = trans_cam.map(eps);
         let trans_cam = inverse_y_translation(trans_cam);

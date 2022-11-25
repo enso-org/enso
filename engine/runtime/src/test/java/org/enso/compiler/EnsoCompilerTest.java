@@ -942,7 +942,7 @@ public class EnsoCompilerTest {
     ansi_bold enabled txt =
         case Platform.os of
             ## Output formatting for Windows is not currently supported.
-            Platform.Windows -> txt
+            Platform.OS.Windows -> txt
             _ -> if enabled then Nothing
     """);
   }

@@ -206,7 +206,7 @@ define_sdf_shapes! {
     }
 
     Line (width:f32) {
-        return bound_sdf(abs(position.y)-width, bounding_box(0.0,width));
+        return bound_sdf(abs(position.y) - width/2.0, bounding_box(0.0,width));
     }
 
 

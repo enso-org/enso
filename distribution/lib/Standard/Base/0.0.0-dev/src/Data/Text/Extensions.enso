@@ -451,8 +451,8 @@ Text.insert self index that =
     if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
-                pre = self.take (Range_Data 0 idx)
-                post = self.take (Range_Data idx len)
+                pre = self.take (0.up_to idx)
+                post = self.take (idx.up_to len)
                 pre + that + post
 
 ## Returns if a character from the text at the specified index (0-based) is a
@@ -515,7 +515,7 @@ Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
-        on_problems.attach_problems_after vector [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
 
 ## Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
@@ -537,7 +537,7 @@ Text.from_bytes : Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
@@ -853,7 +853,7 @@ Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index
 Text.take self range=(First 1) =
     ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
-        Range_Data start end _ ->
+        Range.Value start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
@@ -899,7 +899,7 @@ Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bo
 Text.drop self range=(First 1) =
     ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
-        Range_Data start end _ ->
+        Range.Value start end 1 ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else
@@ -1142,13 +1142,13 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
             end = start + term.length
-            Span_Data (Range_Data start end) self
+            Span_Data (start.up_to end) self
     Text_Matcher.Case_Insensitive locale -> case term.is_empty of
         True -> case mode of
-            Matching_Mode.First -> Span_Data (Range_Data 0 0) self
+            Matching_Mode.First -> Span_Data (0.up_to 0) self
             Matching_Mode.Last ->
                 end = self.length
-                Span_Data (Range_Data end end) self
+                Span_Data (end.up_to end) self
         False ->
             search_for_last = case mode of
                 Matching_Mode.First -> False
@@ -1156,7 +1156,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
             case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                 Nothing -> Nothing
                 grapheme_span ->
-                    Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+                    Span_Data (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
     _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match self Matching_Mode.First of
@@ -1233,7 +1233,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
          match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.locate_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Span
-Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
+Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (ix.up_to ix) self) else case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
@@ -1243,11 +1243,11 @@ Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_em
         offset = term.length
         grahpeme_ixes . map start->
             end = start+offset
-            Span_Data (Range_Data start end) self
+            Span_Data (start.up_to end) self
     Text_Matcher.Case_Insensitive locale ->
         grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
         grapheme_spans.map grapheme_span->
-            Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+            Span_Data (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
     _ : Regex_Matcher.Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []

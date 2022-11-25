@@ -559,10 +559,6 @@ from project.Error.Common.Arity_Error export all
 type Arity_Error
     Arity_Error_Data expected_min expected_max actual
 
-# TODO Dubious constructor export
-from project.Error.Common.Uninitialized_State import all
-from project.Error.Common.Uninitialized_State export all
-
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
 
@@ -749,10 +745,6 @@ type Unimplemented_Error
 unimplemented : Text -> Nothing
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
 
-## TODO Dubious constructor export
-from project.Error.Common.Time_Error import all
-from project.Error.Common.Time_Error export all
-
 type Time_Error
 
     ## UNSTABLE
@@ -761,22 +753,18 @@ type Time_Error
 
        Arguments:
        - error_message: The message for the error.
-    Time_Error_Data error_message
+    Error error_message
 
     ## PRIVATE
     epoch_start : Time_Error
-    epoch_start = Time_Error_Data "Epoch start underflow"
+    epoch_start = Time_Error.Error "Epoch start underflow"
 
     to_display_text : Text
     to_display_text self = self.error_message
 
-## TODO Dubious constructor export
-from project.Error.Common.Unsupported_File_Type import all
-from project.Error.Common.Unsupported_File_Type export all
-
 ## Indicates that the given file's type is not supported.
 type Unsupported_File_Type
-    Unsupported_File_Type_Data filename
+    Error filename
 
     to_display_text : Text
     to_display_text self =
@@ -787,3 +775,32 @@ type Unsupported_File_Type
    An error indicating that some elements are incomparable.
 
 type Incomparable_Values_Error
+
+## Errors when reading or writing to a file.
+type File_Error
+
+    ## An error that indicates that the requested file does not exist.
+
+       Arguments:
+       - file: The file that doesn't exist.
+    Not_Found file
+
+    ## Indicates that a destination file already exists.
+    Already_Exists file
+
+    ## A generic IO error.
+
+       Arguments:
+       - file: The file that couldn't be read.
+       - message: The message for the error.
+    IO_Error file message
+
+    ## UNSTABLE
+
+       Convert the File error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
+        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+
