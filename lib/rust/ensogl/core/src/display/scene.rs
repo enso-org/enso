@@ -15,6 +15,7 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
+use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -136,6 +137,7 @@ impl Mouse {
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
         current_js_event: &CurrentJsEvent,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
@@ -147,37 +149,47 @@ impl Mouse {
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp, scene_frp, position, last_position] (event:&mouse::OnMove) {
-                    let shape = scene_frp.shape.value();
-                    let pixel_ratio = shape.pixel_ratio;
-                    let screen_x = event.client_x();
-                    let screen_y = event.client_y();
+            f!([frp, scene_frp, position, last_position, display_mode] (event: &mouse::OnMove) {
+                let shape = scene_frp.shape.value();
+                let pixel_ratio = shape.pixel_ratio;
+                let screen_x = event.client_x();
+                let screen_y = event.client_y();
 
-                    let new_pos = Vector2::new(screen_x,screen_y);
-                    let pos_changed = new_pos != last_position.get();
-                    if pos_changed {
-                        last_position.set(new_pos);
-                        let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
-                        position.set(new_canvas_position);
-                        let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
+                let new_pos = Vector2::new(screen_x,screen_y);
+                let pos_changed = new_pos != last_position.get();
+                if pos_changed {
+                    last_position.set(new_pos);
+                    let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
+                    position.set(new_canvas_position);
+                    let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
+                    if display_mode.get().allow_mouse_events() {
                         frp.position.emit(position);
                     }
                 }
-            ),
-        ));
-        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
-            f!([frp, click_count] (event:&mouse::OnDown) {
-                click_count.modify(|v| *v += 1);
-                frp.down.emit(event.button());
             }),
         ));
-        let on_up = mouse_manager.on_up.add(
-            current_js_event
-                .make_event_handler(f!((event:&mouse::OnUp) frp.up.emit(event.button()))),
-        );
-        let on_wheel = mouse_manager
-            .on_wheel
-            .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
+        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
+            f!([frp, click_count, display_mode] (event:&mouse::OnDown) {
+                click_count.modify(|v| *v += 1);
+                if display_mode.get().allow_mouse_events() {
+                    frp.down.emit(event.button());
+                }
+            }),
+        ));
+        let on_up = mouse_manager.on_up.add(current_js_event.make_event_handler(
+            f!([frp, display_mode] (event:&mouse::OnUp) {
+                if display_mode.get().allow_mouse_events() {
+                    frp.up.emit(event.button())
+                }
+            }),
+        ));
+        let on_wheel = mouse_manager.on_wheel.add(current_js_event.make_event_handler(
+            f_!([frp, display_mode] {
+                if display_mode.get().allow_mouse_events() {
+                    frp.wheel.emit(())
+                }
+            }),
+        ));
         let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
         Self {
             mouse_manager,
@@ -724,14 +736,20 @@ pub struct SceneData {
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
     pub shader_compiler: shader::compiler::Controller,
+    display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
 }
 
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        on_mut: OnMut,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+    ) -> Self {
         debug!("Initializing.");
+        let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
         let display_object = display::object::Root::new();
         let variables = UniformScope::new();
@@ -747,7 +765,7 @@ impl SceneData {
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event);
+        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
@@ -772,6 +790,7 @@ impl SceneData {
         let shader_compiler = default();
         Self {
             display_object,
+            display_mode,
             dom,
             context,
             context_lost_handler,
@@ -1030,8 +1049,12 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
-        let no_mut_access = SceneData::new(stats, on_mut);
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        on_mut: OnMut,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+    ) -> Self {
+        let no_mut_access = SceneData::new(stats, on_mut, display_mode);
         let this = Self { no_mut_access };
         this
     }

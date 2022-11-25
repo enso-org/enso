@@ -230,6 +230,7 @@ pub struct WorldData {
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
     uniforms:             Uniforms,
+    display_mode:         Rc<Cell<glsl::codes::DisplayModes>>,
     stats:                Stats,
     stats_monitor:        debug::monitor::Monitor,
     stats_draw_handle:    callback::Handle,
@@ -247,7 +248,8 @@ impl WorldData {
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let default_scene = Scene::new(&stats, on_change);
+        let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
+        let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
@@ -263,6 +265,7 @@ impl WorldData {
             default_scene,
             scene_dirty,
             uniforms,
+            display_mode,
             stats,
             on,
             debug_hotkeys_handle,
@@ -286,7 +289,8 @@ impl WorldData {
 
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
-        let display_mode = self.uniforms.display_mode.clone_ref();
+        let display_mode = self.display_mode.clone_ref();
+        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
@@ -301,12 +305,13 @@ impl WorldData {
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
-                    if let Some(code) = glsl::codes::DisplayModes::from_value(code_value) {
-                        warn!("Setting display mode to {:?}.", code.name());
+                    if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
+                        warn!("Setting display mode to {:?}.", mode.name());
+                        display_mode.set(mode);
                     } else {
                         warn!("Invalid display mode code: {code_value}.");
                     }
-                    display_mode.set(code_value as i32);
+                    display_mode_uniform.set(code_value as i32);
                 }
             }
         });
