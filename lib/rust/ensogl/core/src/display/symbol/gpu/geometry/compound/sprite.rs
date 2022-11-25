@@ -62,10 +62,9 @@ impl Drop for SpriteStats {
 /// it without making the sprite appear on the screen.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Size {
-    hidden:         Rc<Cell<bool>>,
-    value:          Rc<Cell<Vector2<f32>>>,
-    attr:           Attribute<Vector2<f32>>,
-    display_object: display::object::Instance,
+    hidden: Rc<Cell<bool>>,
+    value:  Rc<Cell<Vector2<f32>>>,
+    attr:   Attribute<Vector2<f32>>,
 }
 
 // === Setters ===
@@ -83,7 +82,6 @@ impl CellGetter for Size {
 impl CellSetter for Size {
     fn set(&self, v: Vector2) {
         self.value.set(v);
-        self.display_object.set_bounding_box(v);
         if !self.hidden.get() {
             self.attr.set(v)
         }
@@ -94,20 +92,10 @@ impl CellSetter for Size {
 // === Private API ===
 
 impl Size {
-    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
+    fn new(attr: Attribute<Vector2<f32>>) -> Self {
         let hidden = Rc::new(Cell::new(true));
         let value = Rc::new(Cell::new(zero()));
-        let display_object = display::object::Instance::new();
-        let weak_display_object = display_object.downgrade();
-        let network = &display_object.network;
-        frp::extend! { network
-            eval_ display_object.on_updated ([transform] {
-                if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.transformation_matrix())
-                }
-            });
-        }
-        Self { hidden, value, attr, display_object }
+        Self { hidden, value, attr }
     }
 
     fn hide(&self) {
@@ -118,6 +106,71 @@ impl Size {
     fn show(&self) {
         self.hidden.set(false);
         self.attr.set(self.value.get());
+    }
+}
+
+
+
+// ===================
+// === SizedObject ===
+// ===================
+
+/// A display object bound with [`Size`].
+#[derive(Debug)]
+pub struct SizedObject {
+    size:           Size,
+    display_object: display::object::Instance,
+}
+
+impl SizedObject {
+    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
+        let size = Size::new(attr);
+        let display_object = display::object::Instance::new();
+        let weak_display_object = display_object.downgrade();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_updated ([transform] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    transform.set(display_object.transformation_matrix())
+                }
+            });
+        }
+        Self { size, display_object }.init()
+    }
+
+    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// callbacks.
+    fn init(self) -> Self {
+        let size = &self.size;
+        let display_object = &self.display_object;
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_show(size.show());
+            eval_ display_object.on_hide(size.hide());
+        }
+        self
+    }
+
+    /// Clone ref the underlying [`Size`].
+    pub fn clone_ref(&self) -> Size {
+        self.size.clone_ref()
+    }
+}
+
+impl HasItem for SizedObject {
+    type Item = Vector2;
+}
+
+impl CellGetter for SizedObject {
+    fn get(&self) -> Vector2 {
+        self.size.get()
+    }
+}
+
+impl CellSetter for SizedObject {
+    fn set(&self, v: Vector2) {
+        self.size.set(v);
+        self.display_object.set_bounding_box(v);
     }
 }
 
@@ -144,7 +197,7 @@ pub struct SpriteModel {
     #[deref]
     pub instance:         SymbolInstance,
     pub symbol:           Symbol,
-    pub size:             Size,
+    pub size:             SizedObject,
     transform:            Attribute<Matrix4<f32>>,
     stats:                SpriteStats,
     erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
@@ -163,26 +216,11 @@ impl SpriteModel {
         let symbol = symbol.clone_ref();
         let stats = SpriteStats::new(stats);
         let erase_on_drop = EraseOnDrop::new(size.clone_ref());
-        let size = Size::new(size, &transform);
+        let size = SizedObject::new(size, &transform);
         let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
         Self { symbol, instance, size, transform, stats, erase_on_drop, unset_parent_on_drop }
-            .init()
-    }
-
-    /// Init display object bindings. In particular defines the behavior of the show and hide
-    /// callbacks.
-    fn init(self) -> Self {
-        let size = &self.size;
-        let display_object = &self.size.display_object;
-        let network = &display_object.network;
-        frp::extend! { network
-            // FIXME: memory leak here.
-            eval_ display_object.on_show(size.show());
-            eval_ display_object.on_hide(size.hide());
-        }
-        self
     }
 }
 

@@ -16,6 +16,7 @@ pub const ID_ENCODING_OVERFLOW_ERROR: u32 = 100;
 /// Enum describing possible GLSL display modes.
 #[derive(Clone, Copy, Debug, num_enum::IntoPrimitive, num_enum::TryFromPrimitive)]
 #[repr(u32)]
+#[allow(missing_docs)]
 pub enum DisplayModes {
     Normal,
     DebugSpriteUv,

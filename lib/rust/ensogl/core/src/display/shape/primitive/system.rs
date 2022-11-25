@@ -65,7 +65,6 @@ use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::scene::Scene;
-use crate::display::shape::builder::GLSL_PRELUDE;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
 use crate::display::symbol::geometry::compound::sprite;

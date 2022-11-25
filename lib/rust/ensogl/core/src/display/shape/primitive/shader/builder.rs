@@ -86,6 +86,7 @@ fn glsl_codes() -> String {
     format!("{}\n\n{}\n{}", header, display_modes, error_codes)
 }
 
+/// The GLSL common code and debug codes.
 pub fn glsl_prelude_and_codes() -> String {
     let codes = glsl_codes();
     format!("{}\n\n{}", GLSL_PRELUDE, codes)
