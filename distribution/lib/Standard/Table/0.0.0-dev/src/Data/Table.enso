@@ -1224,7 +1224,7 @@ type Table
         validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
 
         on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument_Error.handle_java_exception <|
-            java_key_columns = (grouping + matched_name).map .java_column
+            java_key_columns = grouping.map .java_column
             index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
             name_mapper = if validated_values.length == 1 then (_ -> "") else
@@ -1240,7 +1240,7 @@ type Table
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
                     index.makeTable (group_by + data_columns).to_array
                 False ->
-                    Nothing
+                    index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
 
             on_problems.attach_problems_after (Table.Table_Data result) <|
                 problems = result.getProblems

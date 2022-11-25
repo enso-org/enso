@@ -18,6 +18,7 @@ public class MultiValueIndex {
   private final int keyColumnsLength;
   private final Map<MultiValueKeyBase, List<Integer>> locs;
   private final AggregatedProblems problems;
+  private final Comparator<Object> comparator;
 
   public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
     this(keyColumns, tableSize, null, objectComparator);
@@ -26,6 +27,7 @@ public class MultiValueIndex {
   public MultiValueIndex(
       Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     this.keyColumnsLength = keyColumns.length;
+    this.comparator = objectComparator;
     this.problems = new AggregatedProblems();
 
     boolean isOrdered = ordering != null;
@@ -94,8 +96,64 @@ public class MultiValueIndex {
         merged);
   }
 
-  public Table makeCrossTabTable(Column[] groupingColumns, Column nameColumn, Aggregator aggregates) {
-    return null;
+  public Table makeCrossTabTable(Column[] groupingColumns, Column nameColumn, Aggregator[] aggregates) {
+    final int size = locs.size();
+
+    var nameIndex = new MultiValueIndex(new Column[] {nameColumn}, nameColumn.getSize(), null, this.comparator);
+    final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
+
+    // Create the storage
+    Builder[] storage = new Builder[columnCount];
+    IntStream.range(0, groupingColumns.length).forEach(i -> storage[i] = getBuilderForType(groupingColumns[i].getStorage().getType(), size));
+    IntStream.range(0, nameIndex.locs.size()).forEach(i -> {
+      int offset = groupingColumns.length + i * aggregates.length;
+      IntStream.range(0, aggregates.length).forEach(j -> storage[offset + j] = getBuilderForType(aggregates[j].getType(), size));
+    });
+
+    // Fill the storage
+    for (List<Integer> group_locs : this.locs.values()) {
+      // Fill the grouping columns
+      IntStream.range(0, groupingColumns.length)
+          .forEach(i -> storage[i].appendNoGrow(groupingColumns[i].getStorage().getItemBoxed(group_locs.get(0))));
+
+      // Make a Set
+      var groupSet = new HashSet<>(group_locs);
+
+      // Fill the aggregates
+      int offset = groupingColumns.length;
+      for (List<Integer> name_locs : nameIndex.locs.values()) {
+        var filtered = name_locs.stream().filter(groupSet::contains).collect(Collectors.toList());
+
+        for (int i = 0; i < aggregates.length; i++) {
+          storage[offset + i].appendNoGrow(aggregates[i].aggregate(filtered));
+        }
+
+        offset += aggregates.length;
+      }
+    }
+
+    // Merge Problems
+    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 1];
+    problems[0] = this.problems;
+    IntStream.range(0, aggregates.length).forEach(i -> problems[i + 1] = aggregates[i].getProblems());
+    AggregatedProblems merged = AggregatedProblems.merge(problems);
+
+    // Create Columns
+    Column[] output = new Column[columnCount];
+    IntStream.range(0, groupingColumns.length).forEach(i -> output[i] = new Column(groupingColumns[i].getName(), storage[i].seal()));
+
+    int offset = groupingColumns.length;
+    for (List<Integer> name_locs : nameIndex.locs.values()) {
+      String name = nameColumn.getStorage().getItemBoxed(name_locs.get(0)).toString();
+
+      for (int i = 0; i < aggregates.length; i++) {
+        output[offset + i] = new Column((name + " " + aggregates[i].getName()).trim(), storage[offset + i].seal());
+      }
+
+      offset += aggregates.length;
+    }
+
+    return new Table(output, merged);
   }
 
   public int[] makeOrderMap(int rowCount) {
