@@ -1,7 +1,7 @@
 import project.Data.Any.Any
-import project.Data.Ordering.Ordering
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
 
 ## PRIVATE
    Compares keys allowing for the possibility that one or both keys are Nothing.

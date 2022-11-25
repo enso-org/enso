@@ -55,7 +55,7 @@ type Match_Matrix
     unmatched_criteria self =
         checked_criteria = self.criteria.map_with_index j-> criterion->
             has_matches = self.does_criterion_match_anything j
-            Pair.Value has_matches criterion
+            Pair.new has_matches criterion
         checked_criteria.filter (p -> p.first.not) . map .second
 
     ## PRIVATE
@@ -109,4 +109,4 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
             select_matching_indices match_matrix.is_object_matched_by_anything
 
     result = selected_indices.map objects.at
-    Pair.Value result unmatched_criteria
+    Pair.new result unmatched_criteria
