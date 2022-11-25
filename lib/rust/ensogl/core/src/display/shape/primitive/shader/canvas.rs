@@ -307,7 +307,7 @@ impl Canvas {
         self.if_not_defined(num, |this| {
             let value: Glsl = tile_size.into().glsl();
             let repeat = iformat!("position = repeat(position,{value});");
-            let expr = iformat!("return withInfiniteBounds({s.getter()});");
+            let expr = iformat!("return with_infinite_bounds({s.getter()});");
             this.add_current_function_code_line(repeat);
             let mut shape = this.new_shape_from_expr(num, &expr);
             shape.add_ids(&s.ids);
