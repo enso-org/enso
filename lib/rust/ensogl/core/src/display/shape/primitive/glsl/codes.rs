@@ -2,6 +2,7 @@
 //! between Rust and GLSL code.
 
 use crate::prelude::*;
+
 use inflector::Inflector;
 
 
