@@ -414,7 +414,7 @@ impl ContainerModel {
             self.action_bar.frp.set_size.emit(action_bar_size);
         }
 
-        self.action_bar.set_position_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
+        self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
             viz.set_size.emit(size);
@@ -649,9 +649,9 @@ impl Container {
         // ===  Action bar actions ===
 
         frp::extend! { network
-            eval_ action_bar.on_container_reset_position(model.drag_root.set_position_xy(Vector2::zero()));
+            eval_ action_bar.on_container_reset_position(model.drag_root.set_xy(Vector2::zero()));
             drag_action <- app.cursor.frp.scene_position_delta.gate(&action_bar.container_drag_state);
-            eval drag_action ((mouse) model.drag_root.mod_position_xy(|pos| pos - mouse.xy()));
+            eval drag_action ((mouse) model.drag_root.mod_xy(|pos| pos - mouse.xy()));
         }
 
         // FIXME[mm]: If we set the size right here, we will see spurious shapes in some

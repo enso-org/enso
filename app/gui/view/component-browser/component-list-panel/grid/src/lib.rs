@@ -658,7 +658,7 @@ impl component::Frp<Model> for Frp {
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
-            eval grid_position ((pos) model.grid.set_position_xy(*pos));
+            eval grid_position ((pos) model.grid.set_xy(*pos));
             grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
             grid.set_entries_size <+ style.update.map(|s| s.entry_size());
             grid.set_column_width <+ style.update.map(|s| (column::CENTER, s.middle_column_width()));

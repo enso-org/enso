@@ -220,8 +220,8 @@ impl Navigator {
         let x_pos = -style.grid.width / 2.0;
         let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
         let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
-        self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));
-        self.bottom_buttons.set_position_xy(Vector2(x_pos, bottom_buttons_y));
+        self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));
+        self.bottom_buttons.set_xy(Vector2(x_pos, bottom_buttons_y));
     }
 }
 

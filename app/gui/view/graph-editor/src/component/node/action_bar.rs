@@ -192,12 +192,12 @@ impl Model {
         self.hover_area.size.set(hover_ara_size);
         let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        self.hover_area.set_position_x(center_offset + padding_offset);
+        self.hover_area.set_x(center_offset + padding_offset);
     }
 
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.icons.set_position_x(-size.x / 2.0);
+        self.icons.set_x(-size.x / 2.0);
 
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
