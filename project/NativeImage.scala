@@ -74,14 +74,7 @@ object NativeImage {
       val debugParameters =
         if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
 
-      val (staticParameters, pathExts) =
-        if (staticOnLinux && Platform.isLinux) {
-          // Note [Static Build On Linux]
-          val buildCache =
-            subProjectRoot / "build-cache"
-          val path = ensureMuslIsInstalled(buildCache, log)
-          (Seq("--static", "--libc=musl"), Seq(path.toString))
-        } else (Seq(), Seq())
+      val (staticParameters, pathExts) = (Seq(), Seq())
 
       val configLocation =
         subProjectRoot / "native-image-config"

@@ -1652,7 +1652,8 @@ lazy val `engine-runner` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI"
+          "io.methvin.watchservice.jna.CarbonAPI",
+          "org.enso.syntax2.Parser"
         )
       )
       .dependsOn(installNativeImage)
