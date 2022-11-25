@@ -320,16 +320,16 @@ impl Slider {
                 &model.value_text_dot.width,
             );
             value_text_left_pos_x <- value_text_left_pos_x.map(|(left, dot)| -*left - *dot / 2.0);
-            eval value_text_left_pos_x((x) model.value_text_left.set_position_x(*x));
-            eval model.value_text_left.height((h) model.value_text_left.set_position_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_dot.set_position_x(-*w / 2.0));
-            eval model.value_text_dot.height((h) model.value_text_dot.set_position_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_right.set_position_x(*w / 2.0));
-            eval model.value_text_right.height((h) model.value_text_right.set_position_y(*h / 2.0));
+            eval value_text_left_pos_x((x) model.value_text_left.set_x(*x));
+            eval model.value_text_left.height((h) model.value_text_left.set_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_dot.set_x(-*w / 2.0));
+            eval model.value_text_dot.height((h) model.value_text_dot.set_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_right.set_x(*w / 2.0));
+            eval model.value_text_right.height((h) model.value_text_right.set_y(*h / 2.0));
 
             model.label.set_content <+ input.set_label;
             eval input.set_label_hidden((v) model.set_label_hidden(*v));
-            eval model.label.height((h) model.label.set_position_y(*h / 2.0));
+            eval model.label.height((h) model.label.set_y(*h / 2.0));
             label_pos_x <- all4(
                 &input.set_width,
                 &input.set_height,
@@ -341,7 +341,7 @@ impl Slider {
                     LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
                 }
             );
-            eval label_pos_x((x) model.label.set_position_x(*x));
+            eval label_pos_x((x) model.label.set_x(*x));
         };
     }
 

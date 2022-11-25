@@ -86,7 +86,7 @@ mod entry {
         }
 
         fn set_position_and_size(&self, pos: &Vector2, size: &Vector2) {
-            self.text.set_position_xy(*pos);
+            self.text.set_xy(*pos);
 
             self.text.set_style_or_warn("left", format!("{}px", pos.x - size.x / 2.0));
             self.text.set_style_or_warn("top", format!("{}px", -pos.y - size.y / 2.0));
@@ -205,10 +205,10 @@ impl<T: TextProvider> Model<T> {
     }
 
     fn set_size(&self, size: Vector2) {
-        self.scroll_bar_horizontal.set_position_y(-size.y / 2.0);
+        self.scroll_bar_horizontal.set_y(-size.y / 2.0);
         self.scroll_bar_horizontal.set_length(size.x);
 
-        self.scroll_bar_vertical.set_position_x(size.x / 2.0);
+        self.scroll_bar_vertical.set_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
 
         self.clipping_div.set_size(size);
