@@ -71,6 +71,8 @@ const PRECISION_ADJUSTMENT_STEP_BASE: f32 = 10.0;
 const PRECISION_ADJUSTMENT_POPUP_DURATION: f32 = 1000.0;
 /// The delay before an information tooltip is displayed when hovering over a slider component.
 const INFORMATION_TOOLTIP_DELAY: f32 = 1000.0;
+/// The default size of the slider's thumb as a fraction of the slider's length.
+const THUMB_SIZE_DEFAULT: f32 = 0.2;
 
 
 
@@ -102,6 +104,25 @@ pub enum SliderOrientation {
     Horizontal,
     /// The slider value is changed by dragging the slider vertically.
     Vertical,
+}
+
+
+
+// =================================
+// === Slider position indicator ===
+// =================================
+
+/// The type of element that indicates the slider's value along its length.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum ValueIndicator {
+    #[default]
+    /// A track is a bar that fills the slider as the value increases. The track is empty when the
+    /// slider's value is at the lower limit and filled when the value is at the upper limit.
+    Track,
+    /// A thumb is a small element that moves across the slider as the value changes. The thumb is
+    /// on the left/lower end of the slider when the slider's value is at the lower limit and on
+    /// the right/upper end of the slider when the value is at the upper limit.
+    Thumb,
 }
 
 
@@ -192,8 +213,10 @@ ensogl_core::define_endpoints_2! {
         set_width(f32),
         /// Set the height of the slider component.
         set_height(f32),
-        /// Set the color of the slider's track.
-        set_slider_track_color(color::Lcha),
+        /// Set the type of the slider's value indicator.
+        set_value_indicator(ValueIndicator),
+        /// Set the color of the slider's value indicator.
+        set_value_indicator_color(color::Lcha),
         /// Set the color of the slider's background.
         set_background_color(color::Lcha),
         /// Set the slider value.
@@ -208,6 +231,8 @@ ensogl_core::define_endpoints_2! {
         set_max_value(f32),
         /// Set the color of the text displaying the current value.
         set_value_text_color(color::Lcha),
+        /// Set whether the slider's value text is hidden.
+        set_value_text_hidden(bool),
         /// Set the default precision at which the slider operates. The slider's precision
         /// determines by what increment the value will be changed on mouse movement. It also
         /// affects the number of digits after the decimal point displayed.
@@ -254,6 +279,8 @@ ensogl_core::define_endpoints_2! {
         finish_value_editing(),
         /// End textual editing of the slider value and revert to the slider value before editing.
         cancel_value_editing(),
+        /// Set the slider's thumb size as fraction of the slider's length.
+        set_thumb_size(f32),
     }
     Output {
         /// The component's width.
@@ -488,8 +515,9 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            value <- output.value.on_change();
-            precision <- output.precision.on_change();
+            eval input.set_value_text_hidden((v) model.set_value_text_hidden(*v));
+            value <- output.value.gate_not(&input.set_value_text_hidden).on_change();
+            precision <- output.precision.gate_not(&input.set_value_text_hidden).on_change();
 
             value_is_default <- all2(&value, &input.set_default_value).map(|(val, def)| val==def);
             value_is_default_true <- value_is_default.on_true();
@@ -588,12 +616,15 @@ impl Slider {
         frp::extend! { network
             comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
             eval comp_size((size) model.set_size(*size));
+            eval input.set_value_indicator((i) model.set_value_indicator(i));
             output.width <+ input.set_width;
             output.height <+ input.set_height;
             track_pos <- all3(&output.value, &output.min_value, &output.max_value);
             track_pos_anim.target <+ track_pos.map(|(value, min, max)| (value - min) / (max - min));
             track_pos <- all2(&track_pos_anim.value, &input.set_orientation);
             eval track_pos((v) model.set_track_fraction(v));
+            thumb_pos <- all3(&track_pos_anim.value, &input.set_thumb_size, &input.set_orientation);
+            eval thumb_pos((v) model.set_thumb_fraction(v));
 
             value_text_left_pos_x <- all2(
                 &model.value_text_left.width,
@@ -641,7 +672,7 @@ impl Slider {
         let output = &self.frp.private.output;
         let model = &self.model;
         let background_color_anim = color::Animation::new(network);
-        let track_color_anim = color::Animation::new(network);
+        let indicator_color_anim = color::Animation::new(network);
         let value_text_color_anim = color::Animation::new(network);
         let label_color_anim = color::Animation::new(network);
 
@@ -649,9 +680,9 @@ impl Slider {
             background_color <- all2(&input.set_background_color, &input.set_slider_disabled);
             background_color_anim.target <+ background_color.map(desaturate_color);
             eval background_color_anim.value((color) model.set_background_color(color));
-            track_color <- all2(&input.set_slider_track_color, &input.set_slider_disabled);
-            track_color_anim.target <+ track_color.map(desaturate_color);
-            eval track_color_anim.value((color) model.set_track_color(color));
+            indicator_color <- all2(&input.set_value_indicator_color, &input.set_slider_disabled);
+            indicator_color_anim.target <+ indicator_color.map(desaturate_color);
+            eval indicator_color_anim.value((color) model.set_indicator_color(color));
             value_text_color <- all2(&input.set_value_text_color, &input.set_slider_disabled);
             value_text_color_anim.target <+ value_text_color.map(desaturate_color);
             eval value_text_color_anim.value((color) model.set_value_text_property(color));
@@ -715,6 +746,7 @@ impl Slider {
         self.frp.set_max_disp_decimal_places(MAX_DISP_DECIMAL_PLACES_DEFAULT);
         self.frp.set_tooltip_delay(INFORMATION_TOOLTIP_DELAY);
         self.frp.set_precision_popup_duration(PRECISION_ADJUSTMENT_POPUP_DURATION);
+        self.frp.set_thumb_size(THUMB_SIZE_DEFAULT);
     }
 }
 

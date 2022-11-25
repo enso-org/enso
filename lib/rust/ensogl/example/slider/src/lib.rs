@@ -73,7 +73,7 @@ fn init(app: &Application) {
     slider1.inner().frp.set_width(400.0);
     slider1.inner().frp.set_height(50.0);
     slider1.inner().set_position_y(-120.0);
-    slider1.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider1.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider1.inner().frp.set_label("Soft limits + tooltip");
     slider1.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
     slider1.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
@@ -83,7 +83,7 @@ fn init(app: &Application) {
     slider2.inner().frp.set_width(400.0);
     slider2.inner().frp.set_height(50.0);
     slider2.inner().set_position_y(-60.0);
-    slider2.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider2.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider2.inner().frp.set_slider_disabled(true);
     slider2.inner().frp.set_label("Disabled");
 
@@ -91,7 +91,7 @@ fn init(app: &Application) {
     slider3.inner().frp.set_width(400.0);
     slider3.inner().frp.set_height(50.0);
     slider3.inner().set_position_y(0.0);
-    slider3.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider3.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider3.inner().frp.set_label("Adaptive lower limit");
     slider3.inner().frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
 
@@ -99,7 +99,7 @@ fn init(app: &Application) {
     slider4.inner().frp.set_width(400.0);
     slider4.inner().frp.set_height(50.0);
     slider4.inner().set_position_y(60.0);
-    slider4.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider4.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider4.inner().frp.set_label("Adaptive upper limit");
     slider4.inner().frp.set_label_position(slider::LabelPosition::Inside);
     slider4.inner().frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
@@ -110,7 +110,7 @@ fn init(app: &Application) {
     slider5.inner().frp.set_height(230.0);
     slider5.inner().set_position_y(-35.0);
     slider5.inner().set_position_x(275.0);
-    slider5.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider5.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider5.inner().frp.set_label("Hard limits");
     slider5.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
 
@@ -119,10 +119,28 @@ fn init(app: &Application) {
     slider6.inner().frp.set_height(230.0);
     slider6.inner().set_position_y(-35.0);
     slider6.inner().set_position_x(375.0);
-    slider6.inner().frp.set_slider_track_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider6.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider6.inner().frp.set_label("Soft\nlimits");
     slider6.inner().frp.set_label_position(slider::LabelPosition::Inside);
     slider6.inner().frp.set_lower_limit_type(slider::SliderLimit::Soft);
     slider6.inner().frp.set_upper_limit_type(slider::SliderLimit::Soft);
     slider6.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
+
+    let slider7 = make_slider(app);
+    slider7.inner().frp.set_width(400.0);
+    slider7.inner().frp.set_height(10.0);
+    slider7.inner().set_position_y(-160.0);
+    slider7.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider7.inner().frp.set_value_text_hidden(true);
+    slider7.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
+
+    let slider8 = make_slider(app);
+    slider8.inner().frp.set_width(10.0);
+    slider8.inner().frp.set_height(230.0);
+    slider8.inner().set_position_y(-35.0);
+    slider8.inner().set_position_x(425.0);
+    slider8.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider8.inner().frp.set_value_text_hidden(true);
+    slider8.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
+    slider8.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
 }

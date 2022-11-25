@@ -5,6 +5,7 @@ use ensogl_core::prelude::*;
 
 use crate::LabelPosition;
 use crate::SliderOrientation;
+use crate::ValueIndicator;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -78,7 +79,7 @@ mod track {
             let Background{width,height,shape: background} = Background::new();
             let track = Rect((
                 &width * &slider_fraction_horizontal,
-                &height * &slider_fraction_vertical
+                &height * &slider_fraction_vertical,
             ));
             let track = track.translate_x(&width * (&slider_fraction_horizontal - 1.0) * 0.5);
             let track = track.translate_y(&height * (&slider_fraction_vertical - 1.0) * 0.5);
@@ -88,12 +89,35 @@ mod track {
     }
 }
 
+/// Thumb shape that moves along the slider proportional to the slider value.
+mod thumb {
+    use super::*;
+
+    ensogl_core::shape! {
+        above = [background];
+        pointer_events = false;
+        (style:Style, slider_fraction:f32, thumb_width:f32, thumb_height:f32, color:Vector4) {
+            let Background{width,height,shape: background} = Background::new();
+            let thumb_width = &width * &thumb_width;
+            let thumb_height = &height * &thumb_height;
+            let thumb = Rect((&thumb_width, &thumb_height));
+            let thumb = thumb.corners_radius(&thumb_height / 2.0);
+            let range_x = &width - &thumb_width;
+            let range_y = &height - &thumb_height;
+            let thumb = thumb.translate_x(-&range_x * 0.5 + &range_x * &slider_fraction);
+            let thumb = thumb.translate_y(-&range_y * 0.5 + &range_y * &slider_fraction);
+            let thumb = thumb.intersection(background).fill(color);
+            thumb.into()
+        }
+    }
+}
+
 /// Triangle shape used as an overflow indicator on either side of the range.
 mod overflow {
     use super::*;
 
     ensogl_core::shape! {
-        above = [background, track];
+        above = [background, track, thumb];
         pointer_events = false;
         (style:Style, color:Vector4) {
             let width: Var<Pixels> = "input_size.x".into();
@@ -106,16 +130,16 @@ mod overflow {
             let triangle = triangle.fill(color);
 
             let point_a = (-width.clone() / 2.0, -height.clone() / 2.0);
-            let point_b = (width.clone() / 2.0, -height.clone() / 2.0);
-            let point_c = (0.0.px(), height.clone() / 2.0);
-            let segment_ab = Segment(point_a.clone(), point_b.clone(), 3.0.px()).fill(color);
-            let segment_bc = Segment(point_b.clone(), point_c.clone(), 3.0.px()).fill(color);
-            let segment_cd = Segment(point_c.clone(), point_a.clone(), 3.0.px()).fill(color);
+            let point_b = (width / 2.0, -height.clone() / 2.0);
+            let point_c = (0.0.px(), height / 2.0);
+            let segment_ab = Segment(point_a.clone(), point_b.clone(), 3.0.px());
+            let segment_bc = Segment(point_b, point_c.clone(), 3.0.px());
+            let segment_cd = Segment(point_c, point_a, 3.0.px());
             let triangle = triangle.union(segment_ab);
             let triangle = triangle.union(segment_bc);
             let triangle = triangle.union(segment_cd);
 
-            triangle.into()
+            triangle.fill(color).into()
         }
     }
 }
@@ -133,6 +157,8 @@ pub struct Model {
     pub background:       background::View,
     /// Slider track element that fills the slider proportional to the slider value.
     pub track:            track::View,
+    /// Slider thumb element that moves across the slider proportional to the slider value.
+    pub thumb:            thumb::View,
     /// Indicator for overflow when the value is below the lower limit.
     pub overflow_lower:   overflow::View,
     /// Indicator for overflow when the value is above the upper limit.
@@ -165,6 +191,7 @@ impl Model {
         let tooltip = Tooltip::new(app);
         let background = background::View::new();
         let track = track::View::new();
+        let thumb = thumb::View::new();
         let overflow_lower = overflow::View::new();
         let overflow_upper = overflow::View::new();
         let scene = &app.display.default_scene;
@@ -187,6 +214,7 @@ impl Model {
         let model = Self {
             background,
             track,
+            thumb,
             overflow_lower,
             overflow_upper,
             label,
@@ -206,6 +234,7 @@ impl Model {
         let track_color = style.get_color(theme::component::slider::track::color);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
+        self.thumb.color.set(track_color.into());
         self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
@@ -216,16 +245,32 @@ impl Model {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         self.background.size.set(size + margin);
         self.track.size.set(size + margin);
+        self.thumb.size.set(size + margin);
     }
 
-    /// Set the color of the slider track.
-    pub fn set_track_color(&self, color: &color::Lcha) {
+    /// Set the color of the slider track or thumb.
+    pub fn set_indicator_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
+        self.thumb.color.set(color::Rgba::from(color).into());
     }
 
     /// Set the color of the slider background.
     pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
+    }
+
+    /// Set whether the lower overfow marker is visible.
+    pub fn set_value_indicator(&self, indicator: &ValueIndicator) {
+        match indicator {
+            ValueIndicator::Track => {
+                self.root.add_child(&self.track);
+                self.root.remove_child(&self.thumb);
+            }
+            ValueIndicator::Thumb => {
+                self.root.add_child(&self.thumb);
+                self.root.remove_child(&self.track);
+            }
+        }
     }
 
     /// Set the fraction of the slider filled by the track.
@@ -238,6 +283,24 @@ impl Model {
             SliderOrientation::Vertical => {
                 self.track.slider_fraction_horizontal.set(1.0);
                 self.track.slider_fraction_vertical.set(*fraction);
+            }
+        }
+    }
+
+    /// Set the fraction of the slider filled by the thumb.
+    pub fn set_thumb_fraction(
+        &self,
+        (fraction, size, orientation): &(f32, f32, SliderOrientation),
+    ) {
+        self.thumb.slider_fraction.set(*fraction);
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.thumb.thumb_width.set(*size);
+                self.thumb.thumb_height.set(1.0);
+            }
+            SliderOrientation::Vertical => {
+                self.thumb.thumb_width.set(1.0);
+                self.thumb.thumb_height.set(*size);
             }
         }
     }
@@ -328,6 +391,19 @@ impl Model {
             },
         };
         self.label.set_position_xy(Vector2(label_position_x, label_position_y));
+    }
+
+    /// Set whether the slider value text is hidden.
+    pub fn set_value_text_hidden(&self, hidden: bool) {
+        if hidden {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
+        } else {
+            self.root.add_child(&self.value_text_left);
+            self.root.add_child(&self.value_text_dot);
+            self.root.add_child(&self.value_text_right);
+        }
     }
 
     /// Set whether the slider label is hidden.
