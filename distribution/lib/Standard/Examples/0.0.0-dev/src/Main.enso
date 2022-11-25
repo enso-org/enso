@@ -2,15 +2,11 @@ from Standard.Base import all
 
 import Standard.Base.Network.Http
 import Standard.Base.Network.Http.Response.Response as Http_Response
-import Standard.Base.System.Platform
 import Standard.Base.Network.URI
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
 
 from Standard.Table import Table, Column
-# TODO[DB] Fix composite types #183857386
-import Standard.Table.Data.Column.Column as Column_Type
-import Standard.Table.Data.Table.Table as Table_Type
 
 from Standard.Image import Image, Read_Flag, Matrix
 
@@ -234,41 +230,41 @@ geo_json = Json.parse <| '''
     }
 
 ## A small table column containing integers.
-integer_column : Column_Type
+integer_column : Column
 integer_column = Column.from_vector "Integer" [1, 4, 8, 2, 5]
 
 ## A small table column containing decimal numbers.
-decimal_column : Column_Type
+decimal_column : Column
 decimal_column = Column.from_vector "Decimal" [2.30, -2.1, Nothing, -10.1, 1.0]
 
 ## A small table column containing booleans.
-bool_column_1 : Column_Type
+bool_column_1 : Column
 bool_column_1 = Column.from_vector "Bools" [True, True, False, True, False]
 
 ## A small table column containing booleans.
-bool_column_2 : Column_Type
+bool_column_2 : Column
 bool_column_2 = Column.from_vector "Bools" [False, True, Nothing, True, True]
 
 ## A small table column containing text.
-text_column_1 : Column_Type
+text_column_1 : Column
 text_column_1 = Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
 
 ## A small table column containing text.
-text_column_2 : Column_Type
+text_column_2 : Column
 text_column_2 = Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
 ## A simple table that contains basic shop inventory data for the food shop.
-inventory_table : Table_Type
+inventory_table : Table
 inventory_table = csv.read . set_index "item_id"
 
 ## A simple table that contains basic item popularity data for the food shop.
-popularity_table : Table_Type
+popularity_table : Table
 popularity_table =
     table = (enso_project.data / "food_shop_popularity.csv") . read
     table.set_index "item_id"
 
 ## A simple tablethat contains basic transaction data for the food shop.
-transactions_table : Table_Type
+transactions_table : Table
 transactions_table =
     (enso_project.data / "food_shop_transactions.csv") . read
 

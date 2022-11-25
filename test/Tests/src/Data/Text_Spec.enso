@@ -305,29 +305,29 @@ spec =
         Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
-            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range_Data 6*ix+1 6*ix+3)) . should_equal "23"*100
-            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range_Data ix+1 ix+5)) . should_equal "BABAABAB"*50
+            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range.Value 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range.Value ix+1 ix+5)) . should_equal "BABAABAB"*50
 
             "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
             "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
-            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range_Data 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range_Data ix+1 ix+5)) . should_equal "ACDABCD"
+            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range.Value 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range.Value ix+1 ix+5)) . should_equal "ACDABCD"
 
-            "ABCD"*1000 . take (Range_Data 0 4000 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (0.up_to 4000 . with_step 4) . should_equal "A"*1000
             "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
-            "ABCD"*1000 . take (By_Index [Range_Data 0 4000 4, Range_Data 1 4000 4]) . should_equal ("A"*1000 + "B"*1000)
-            "ABCD"*1000 . take (By_Index [Range_Data 0 4000 4, Range_Data 2 4000 4]) . should_equal ("A"*1000 + "C"*1000)
+            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal ("A"*1000 + "C"*1000)
 
-            "ABCD"*1000 . drop (Range_Data 0 4000 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (0.up_to 4000 . with_step 4) . should_equal "BCD"*1000
             "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
-            "ABCD"*1000 . drop (By_Index [Range_Data 0 4000 4, Range_Data 1 4000 4]) . should_equal "CD"*1000
-            "ABCD"*1000 . drop (By_Index [Range_Data 0 4000 4, Range_Data 2 4000 4]) . should_equal "BD"*1000
+            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 1.up_to 4000 . with_step 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (By_Index [0.up_to 4000 . with_step 4, 2.up_to 4000 . with_step 4]) . should_equal "BD"*1000
 
-            "0123456789".take (By_Index [Range_Data 0 4, Range_Data 4 6, Range_Data 8 9]) . should_equal "0123458"
-            "0123456789".take (By_Index [Range_Data 4 6, Range_Data 0 4, 0, 0]) . should_equal "45012300"
-            "0123456789".drop (By_Index [Range_Data 0 4, Range_Data 4 6, Range_Data 8 9]) . should_equal "679"
-            "0123456789".drop (By_Index [Range_Data 4 6, Range_Data 0 4, 0, 0]) . should_equal "6789"
-            "0123456789".drop (By_Index [Range_Data 2 5, Range_Data 0 3, 0, 0]) . should_equal "56789"
+            "0123456789".take (By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "0123458"
+            "0123456789".take (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "45012300"
+            "0123456789".drop (By_Index [0.up_to 4, 4.up_to 6, 8.up_to 9]) . should_equal "679"
+            "0123456789".drop (By_Index [4.up_to 6, 0.up_to 4, 0, 0]) . should_equal "6789"
+            "0123456789".drop (By_Index [2.up_to 5, 0.up_to 3, 0, 0]) . should_equal "56789"
 
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
@@ -337,15 +337,15 @@ spec =
             txt.drop 2 . should_equal (accent_1 + accent_2)
             txt.take (Last 2) . should_equal (accent_1 + accent_2)
             txt.drop (Last 2) . should_equal (kshi + facepalm)
-            txt.take (Range_Data 0 2) . should_equal (kshi + facepalm)
-            txt.take (By_Index (Range_Data 0 2)) . should_equal (kshi + facepalm)
-            txt.drop (Range_Data 0 2) . should_equal (accent_1 + accent_2)
-            txt.take (Range_Data 2 4) . should_equal (accent_1 + accent_2)
-            txt.drop (Range_Data 2 4) . should_equal (kshi + facepalm)
+            txt.take (0.up_to 2) . should_equal (kshi + facepalm)
+            txt.take (By_Index (0.up_to 2)) . should_equal (kshi + facepalm)
+            txt.drop (0.up_to 2) . should_equal (accent_1 + accent_2)
+            txt.take (2.up_to 4) . should_equal (accent_1 + accent_2)
+            txt.drop (2.up_to 4) . should_equal (kshi + facepalm)
             txt.take (Every 2) . should_equal (kshi + accent_1)
             txt.take (Every 2 first=1) . should_equal (facepalm + accent_2)
             txt.drop (Every 2) . should_equal (facepalm + accent_2)
-            txt.take (Range_Data 0 4 2) . should_equal (kshi + accent_1)
+            txt.take (0.up_to 4 . with_step 2) . should_equal (kshi + accent_1)
             txt.take (By_Index [0, 3]) . should_equal (kshi + accent_2)
             txt.take (By_Index 0) . should_equal kshi
             txt.take (By_Index 1) . should_equal facepalm
@@ -355,8 +355,8 @@ spec =
             txt.drop (By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
             txt.drop (By_Index [0, 3, 0, 2, 1]) . should_equal ""
             txt.take (By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
-            txt.take (By_Index [0, 0, Range_Data 0 2]) . should_equal (kshi + kshi + kshi + facepalm)
-            txt.drop (By_Index [Range_Data 2 4, Range_Data 0 2]) . should_equal ""
+            txt.take (By_Index [0, 0, 0.up_to 2]) . should_equal (kshi + kshi + kshi + facepalm)
+            txt.drop (By_Index [2.up_to 4, 0.up_to 2]) . should_equal ""
 
         Test.specify "take should work as in the examples" <|
             "Hello World!".take First . should_equal "H"
@@ -381,45 +381,45 @@ spec =
             "Hello World!".take (After_Last "z") . should_equal ""
             "Hello World!".take (While c->c!=" ") . should_equal "Hello"
             "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
-            "Hello World!".take (Range_Data 3 5) . should_equal "lo"
-            "Hello World!".take (Range_Data 5 12) . should_equal " World!"
-            "Hello World!".take (Range_Data 6 12 2) . should_equal "Wrd"
+            "Hello World!".take (3.up_to 5) . should_equal "lo"
+            "Hello World!".take (5.up_to 12) . should_equal " World!"
+            "Hello World!".take (6.up_to 12 . with_step 2) . should_equal "Wrd"
             "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
             "Hello World!".take (Every 3) . should_equal "HlWl"
             "Hello World!".take (By_Index 0) . should_equal "H"
             "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
-            "Hello World!".take (By_Index [Range_Data 0 3, 6, Range_Data 6 12 2]) . should_equal "HelWWrd"
+            "Hello World!".take (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "HelWWrd"
             "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
         Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
-            txt.take (Range_Data 0 14) . should_equal txt
-            txt.take (Range_Data 6 100) . should_equal "World!"
-            txt.take (Range_Data txt.length-1 txt.length) . should_equal "!"
-            txt.take (Range_Data txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (Range_Data txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error_Data txt.length txt.length)
-            txt.take (Range_Data txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (0.up_to 14) . should_equal txt
+            txt.take (6.up_to 100) . should_equal "World!"
+            txt.take (Range.Value txt.length-1 txt.length) . should_equal "!"
+            txt.take (Range.Value txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (Range.Value txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error_Data txt.length txt.length)
+            txt.take (Range.Value txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (First 100) . should_equal txt
             txt.take 100 . should_equal txt
             txt.take (Last 100) . should_equal txt
             txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [0, Range_Data 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [0, 1, Range_Data 6 100]) . should_equal "HeWorld!"
-            txt.take (By_Index [0, 1, Range_Data 6 100 2]) . should_equal "HeWrd"
-            txt.take (Range_Data 13 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            "".take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            "".take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
+            txt.take (By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
+            txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (Range_Data 13 20) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (Range_Data 13 20 2) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [Range_Data 0 2, Range_Data 13 20]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [Range_Data 0 0, Range_Data 13 10, Range_Data 2 2 2]) . should_equal ""
-            txt.take (By_Index [Range_Data 0 2 2, Range_Data 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.take (By_Index [Range_Data 0 2 2, Range_Data 13 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 13 12)
-            txt.take (By_Index [Range_Data 0 2 2, Range_Data txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 13 12)
+            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "take should work on grapheme clusters" <|
@@ -448,8 +448,8 @@ spec =
             txt_2.take (While c->c!='e\u{302}') . should_equal 'H'
             txt_2.take (While c->c!='ê') . should_equal 'H'
             txt_2.take (While c->c!='e') . should_equal txt_2
-            txt_2.take (Range_Data 3 5) . should_equal 'lo\u{308}'
-            txt_2.take (Range_Data 5 12) . should_equal ' Wo\u{308}rld!'
+            txt_2.take (3.up_to 5) . should_equal 'lo\u{308}'
+            txt_2.take (5.up_to 12) . should_equal ' Wo\u{308}rld!'
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
@@ -464,7 +464,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (After '😍') . should_equal '😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range_Data 3 6) . should_equal '😍😃😍'
+            '✨🚀🚧😍😃😍😎😙😉☺'.take (3.up_to 6) . should_equal '😍😃😍'
 
         Test.specify "take should correctly handle edge cases" <|
             "ABC".take . should_equal "A"
@@ -484,7 +484,7 @@ spec =
 
             "".take (While _->True) . should_equal ""
 
-            'ABC\u{301}'.take (Range_Data 0 0) . should_equal ""
+            'ABC\u{301}'.take (0.up_to 0) . should_equal ""
 
             'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
             'ABC\u{301}'.take (After_Last "") . should_equal ""
@@ -494,7 +494,7 @@ spec =
             "ABC".take (By_Index -1) . should_equal "C"
             "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
             "ABC".take (By_Index []) . should_equal ""
-            "ABC".take (By_Index (Range_Data -2 -1)) . should_fail_with Illegal_Argument_Error_Data
+            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument_Error_Data
             "".take (Every 2) . should_equal ""
             "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
@@ -525,19 +525,19 @@ spec =
             "Hello World!".drop (After_Last "z") . should_equal "Hello World!"
             "Hello World!".drop (While c->c!=" ") . should_equal " World!"
             "Hello World!".drop (While c->c!="z") . should_equal ""
-            "Hello World!".drop (Range_Data 3 5) . should_equal "Hel World!"
-            "Hello World!".drop (Range_Data 5 12) . should_equal "Hello"
-            "Hello World!".drop (Range_Data 6 12 2) . should_equal "Hello ol!"
+            "Hello World!".drop (3.up_to 5) . should_equal "Hel World!"
+            "Hello World!".drop (5.up_to 12) . should_equal "Hello"
+            "Hello World!".drop (6.up_to 12 . with_step 2) . should_equal "Hello ol!"
             "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
             "Hello World!".drop (Every 3) . should_equal "elo ord!"
             "Hello World!".drop (By_Index 0) . should_equal "ello World!"
             "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
-            "Hello World!".drop (By_Index [Range_Data 0 3, 6, Range_Data 6 12 2]) . should_equal "lo ol!"
+            "Hello World!".drop (By_Index [0.up_to 3, 6, 6.up_to 12 . with_step 2]) . should_equal "lo ol!"
             "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
         Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
-            txt.drop (Range_Data 0 14) . should_equal ""
+            txt.drop (0.up_to 14) . should_equal ""
             txt.drop (First 100) . should_equal ""
             txt.drop 100 . should_equal ""
             txt.drop (Last 100) . should_equal ""
@@ -545,17 +545,17 @@ spec =
             txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 12)
             txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error_Data
             txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.drop (By_Index [0, Range_Data 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.drop (By_Index [0, 1, Range_Data 6 100]) . should_equal "llo "
-            txt.drop (Range_Data 13 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            txt.drop (Range_Data 14 15) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (By_Index [0, 1, 6.up_to 100]) . should_equal "llo "
+            txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds_Error_Data
             "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            "".drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            "".drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
-            txt.drop (Range_Data 0 0) . should_equal txt
-            txt.drop (Range_Data 5 100) . should_equal "Hello"
-            txt.drop (Range_Data 5 100 2) . should_equal "HelloWrd"
-            txt.drop (By_Index [0, 1, 0, Range_Data 5 100 2]) . should_equal "lloWrd"
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            txt.drop (0.up_to 0) . should_equal txt
+            txt.drop (5.up_to 100) . should_equal "Hello"
+            txt.drop (5.up_to 100 . with_step 2) . should_equal "HelloWrd"
+            txt.drop (By_Index [0, 1, 0, 5.up_to 100 . with_step 2]) . should_equal "lloWrd"
 
         Test.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -583,8 +583,8 @@ spec =
             txt_2.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             txt_2.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
             txt_2.drop (While c->c!='e') . should_equal ''
-            txt_2.drop (Range_Data 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
-            txt_2.drop (Range_Data 5 12) . should_equal 'He\u{302}llo\u{308}'
+            txt_2.drop (3.up_to 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            txt_2.drop (5.up_to 12) . should_equal 'He\u{302}llo\u{308}'
 
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
@@ -598,7 +598,7 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (After '😍') . should_equal '✨🚀🚧😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range_Data 3 6) . should_equal '✨🚀🚧😎😙😉☺'
+            '✨🚀🚧😍😃😍😎😙😉☺'.drop (3.up_to 6) . should_equal '✨🚀🚧😎😙😉☺'
 
         Test.specify "drop should correctly handle edge cases" <|
             "ABC".drop . should_equal "BC"
@@ -618,8 +618,8 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            'ABC\u{301}'.drop (Range_Data 0 0) . should_equal 'ABC\u{301}'
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            'ABC\u{301}'.drop (0.up_to 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
             'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
@@ -1113,8 +1113,8 @@ spec =
         Test.specify "locate should work as shown in examples" <|
             example_1 =
                 "Hello World!".locate "J" == Nothing
-                "Hello World!".locate "o" == Span_Data (Range_Data 4 5) "Hello World!"
-                "Hello World!".locate "o" mode=Matching_Mode.Last == Span_Data (Range_Data 4 5) "Hello World!"
+                "Hello World!".locate "o" == Span_Data (4.up_to 5) "Hello World!"
+                "Hello World!".locate "o" mode=Matching_Mode.Last == Span_Data (4.up_to 5) "Hello World!"
 
             example_2 =
                 term = "straße"
@@ -1168,105 +1168,105 @@ spec =
             "Hello World!".locate_all "o" . map .start . should_equal [4, 7]
 
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.locate accent_1 . should_equal (Span_Data (Range_Data 1 2) accents)
+            accents.locate accent_1 . should_equal (Span_Data (1.up_to 2) accents)
 
             "".locate "foo" . should_equal Nothing
             "".locate "foo" mode=Matching_Mode.Last . should_equal Nothing
             "".locate_all "foo" . should_equal []
-            "".locate "" . should_equal (Span_Data (Range_Data 0 0) "")
-            "".locate "" mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
-            "".locate_all "" . should_equal [Span_Data (Range_Data 0 0) ""]
+            "".locate "" . should_equal (Span_Data (0.up_to 0) "")
+            "".locate "" mode=Matching_Mode.Last . should_equal (Span_Data (0.up_to 0) "")
+            "".locate_all "" . should_equal [Span_Data (0.up_to 0) ""]
             abc = 'A\u{301}ßC'
-            abc.locate "" . should_equal (Span_Data (Range_Data 0 0) abc)
-            abc.locate "" mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
-            abc.locate_all "" . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
+            abc.locate "" . should_equal (Span_Data (0.up_to 0) abc)
+            abc.locate "" mode=Matching_Mode.Last . should_equal (Span_Data (3.up_to 3) abc)
+            abc.locate_all "" . should_equal [Span_Data (0.up_to 0) abc, Span_Data (1.up_to 1) abc, Span_Data (2.up_to 2) abc, Span_Data (3.up_to 3) abc]
 
         Test.specify "should allow case-insensitive matching in locate" <|
             hello = "Hello WORLD!"
             case_insensitive = Text_Matcher.Case_Insensitive
             hello.locate "world" . should_equal Nothing
-            hello.locate "world" matcher=case_insensitive . should_equal (Span_Data (Range_Data 6 11) hello)
+            hello.locate "world" matcher=case_insensitive . should_equal (Span_Data (6.up_to 11) hello)
 
-            hello.locate "o" mode=Regex_Mode.First matcher=case_insensitive . should_equal (Span_Data (Range_Data 4 5) hello)
-            hello.locate "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (Range_Data 7 8) hello)
+            hello.locate "o" mode=Regex_Mode.First matcher=case_insensitive . should_equal (Span_Data (4.up_to 5) hello)
+            hello.locate "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (7.up_to 8) hello)
 
             accents = 'A\u{301}E\u{301}O\u{301}'
-            accents.locate accent_1 matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 2) accents)
+            accents.locate accent_1 matcher=case_insensitive . should_equal (Span_Data (1.up_to 2) accents)
 
-            "Strasse".locate "ß" matcher=case_insensitive . should_equal (Span_Data (Range_Data 4 6) "Strasse")
-            "Monumentenstraße 42".locate "STRASSE" matcher=case_insensitive . should_equal (Span_Data (Range_Data 10 16) "Monumentenstraße 42")
+            "Strasse".locate "ß" matcher=case_insensitive . should_equal (Span_Data (4.up_to 6) "Strasse")
+            "Monumentenstraße 42".locate "STRASSE" matcher=case_insensitive . should_equal (Span_Data (10.up_to 16) "Monumentenstraße 42")
 
-            '\u0390'.locate '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 1) '\u0390')
+            '\u0390'.locate '\u03B9\u0308\u0301' matcher=case_insensitive . should_equal (Span_Data (0.up_to 1) '\u0390')
             'ԵՒ'.locate 'և' . should_equal Nothing
-            'ԵՒ'.locate 'և' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) 'ԵՒ')
-            'և'.locate 'ԵՒ' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 1) 'և')
+            'ԵՒ'.locate 'և' matcher=case_insensitive . should_equal (Span_Data (0.up_to 2) 'ԵՒ')
+            'և'.locate 'ԵՒ' matcher=case_insensitive . should_equal (Span_Data (0.up_to 1) 'և')
 
             ligatures = 'ffaﬀﬁﬂﬃﬄﬅﬆZ'
-            ligatures.locate 'FFI' matcher=case_insensitive . should_equal (Span_Data (Range_Data 3 5) ligatures)
-            ligatures.locate 'FF' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) ligatures)
-            ligatures.locate 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 7 8) ligatures)
-            ligatures.locate_all 'ff' . should_equal [Span_Data (Range_Data 0 2) ligatures]
-            ligatures.locate_all 'FF' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 2) ligatures, Span_Data (Range_Data 3 4) ligatures, Span_Data (Range_Data 6 7) ligatures, Span_Data (Range_Data 7 8) ligatures]
-            ligatures.locate_all 'ffi' matcher=case_insensitive . should_equal [Span_Data (Range_Data 3 5) ligatures, Span_Data (Range_Data 6 7) ligatures]
-            'fffi'.locate_all 'ﬀ' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 2) 'fffi']
+            ligatures.locate 'FFI' matcher=case_insensitive . should_equal (Span_Data (3.up_to 5) ligatures)
+            ligatures.locate 'FF' matcher=case_insensitive . should_equal (Span_Data (0.up_to 2) ligatures)
+            ligatures.locate 'ff' matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (7.up_to 8) ligatures)
+            ligatures.locate_all 'ff' . should_equal [Span_Data (0.up_to 2) ligatures]
+            ligatures.locate_all 'FF' matcher=case_insensitive . should_equal [Span_Data (0.up_to 2) ligatures, Span_Data (3.up_to 4) ligatures, Span_Data (6.up_to 7) ligatures, Span_Data (7.up_to 8) ligatures]
+            ligatures.locate_all 'ffi' matcher=case_insensitive . should_equal [Span_Data (3.up_to 5) ligatures, Span_Data (6.up_to 7) ligatures]
+            'fffi'.locate_all 'ﬀ' matcher=case_insensitive . should_equal [Span_Data (0.up_to 2) 'fffi']
             'fffi'.locate_all 'ﬃ' . should_equal []
-            'fffi'.locate_all 'ﬃ' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 4) 'fffi']
-            'FFFI'.locate 'ﬃ' matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 4) 'FFFI')
+            'fffi'.locate_all 'ﬃ' matcher=case_insensitive . should_equal [Span_Data (1.up_to 4) 'fffi']
+            'FFFI'.locate 'ﬃ' matcher=case_insensitive . should_equal (Span_Data (1.up_to 4) 'FFFI')
 
-            'ﬃﬄ'.locate 'IF' matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 2) 'ﬃﬄ')
-            'ﬃﬄ'.locate 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (Range_Data 1 2) 'ﬃﬄ')
-            'ﬃﬄ'.locate_all 'F' matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 1) 'ﬃﬄ', Span_Data (Range_Data 0 1) 'ﬃﬄ', Span_Data (Range_Data 1 2) 'ﬃﬄ', Span_Data (Range_Data 1 2) 'ﬃﬄ']
-            'aaﬃbb'.locate_all 'af' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 3) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'affi' matcher=case_insensitive . should_equal [Span_Data (Range_Data 1 3) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'ib' matcher=case_insensitive . should_equal [Span_Data (Range_Data 2 4) 'aaﬃbb']
-            'aaﬃbb'.locate_all 'ffib' matcher=case_insensitive . should_equal [Span_Data (Range_Data 2 4) 'aaﬃbb']
+            'ﬃﬄ'.locate 'IF' matcher=case_insensitive . should_equal (Span_Data (0.up_to 2) 'ﬃﬄ')
+            'ﬃﬄ'.locate 'F' Matching_Mode.Last matcher=case_insensitive . should_equal (Span_Data (1.up_to 2) 'ﬃﬄ')
+            'ﬃﬄ'.locate_all 'F' matcher=case_insensitive . should_equal [Span_Data (0.up_to 1) 'ﬃﬄ', Span_Data (0.up_to 1) 'ﬃﬄ', Span_Data (1.up_to 2) 'ﬃﬄ', Span_Data (1.up_to 2) 'ﬃﬄ']
+            'aaﬃbb'.locate_all 'af' matcher=case_insensitive . should_equal [Span_Data (1.up_to 3) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'affi' matcher=case_insensitive . should_equal [Span_Data (1.up_to 3) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'ib' matcher=case_insensitive . should_equal [Span_Data (2.up_to 4) 'aaﬃbb']
+            'aaﬃbb'.locate_all 'ffib' matcher=case_insensitive . should_equal [Span_Data (2.up_to 4) 'aaﬃbb']
 
             "".locate "foo" matcher=case_insensitive . should_equal Nothing
             "".locate "foo" matcher=case_insensitive mode=Matching_Mode.Last . should_equal Nothing
             "".locate_all "foo" matcher=case_insensitive . should_equal []
-            "".locate "" matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 0) "")
-            "".locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
-            "".locate_all "" matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 0) ""]
+            "".locate "" matcher=case_insensitive . should_equal (Span_Data (0.up_to 0) "")
+            "".locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (0.up_to 0) "")
+            "".locate_all "" matcher=case_insensitive . should_equal [Span_Data (0.up_to 0) ""]
             abc = 'A\u{301}ßC'
-            abc.locate "" matcher=case_insensitive . should_equal (Span_Data (Range_Data 0 0) abc)
-            abc.locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
-            abc.locate_all "" matcher=case_insensitive . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
+            abc.locate "" matcher=case_insensitive . should_equal (Span_Data (0.up_to 0) abc)
+            abc.locate "" matcher=case_insensitive mode=Matching_Mode.Last . should_equal (Span_Data (3.up_to 3) abc)
+            abc.locate_all "" matcher=case_insensitive . should_equal [Span_Data (0.up_to 0) abc, Span_Data (1.up_to 1) abc, Span_Data (2.up_to 2) abc, Span_Data (3.up_to 3) abc]
 
         Test.specify "should allow regexes in locate" <|
             hello = "Hello World!"
             regex = Regex_Matcher.Regex_Matcher_Data
             regex_insensitive = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive
-            hello.locate ".o" Matching_Mode.First matcher=regex . should_equal (Span_Data (Range_Data 3 5) hello)
-            hello.locate ".o" Matching_Mode.Last matcher=regex . should_equal (Span_Data (Range_Data 6 8) hello)
+            hello.locate ".o" Matching_Mode.First matcher=regex . should_equal (Span_Data (3.up_to 5) hello)
+            hello.locate ".o" Matching_Mode.Last matcher=regex . should_equal (Span_Data (6.up_to 8) hello)
             hello.locate_all ".o" matcher=regex . map .start . should_equal [3, 6]
 
-            "foobar".locate "BAR" Regex_Mode.First matcher=regex_insensitive . should_equal (Span_Data (Range_Data 3 6) "foobar")
+            "foobar".locate "BAR" Regex_Mode.First matcher=regex_insensitive . should_equal (Span_Data (3.up_to 6) "foobar")
 
             ## Regex matching does not do case folding
             "Strasse".locate "ß" Regex_Mode.First matcher=regex_insensitive . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.locate accent_1 Regex_Mode.First matcher=regex . should_equal (Span_Data (Range_Data 1 2) accents)
+            accents.locate accent_1 Regex_Mode.First matcher=regex . should_equal (Span_Data (1.up_to 2) accents)
         Test.specify "should correctly handle regex edge cases in locate" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher.Regex_Matcher_Data
             "".locate "foo" matcher=regex . should_equal Nothing
             "".locate "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
             "".locate_all "foo" matcher=regex . should_equal []
-            "".locate "" matcher=regex . should_equal (Span_Data (Range_Data 0 0) "")
-            "".locate_all "" matcher=regex . should_equal [Span_Data (Range_Data 0 0) ""]
-            "".locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 0 0) "")
+            "".locate "" matcher=regex . should_equal (Span_Data (0.up_to 0) "")
+            "".locate_all "" matcher=regex . should_equal [Span_Data (0.up_to 0) ""]
+            "".locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (0.up_to 0) "")
             abc = 'A\u{301}ßC'
-            abc.locate "" matcher=regex . should_equal (Span_Data (Range_Data 0 0) abc)
-            abc.locate_all "" matcher=regex . should_equal [Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 0 0) abc, Span_Data (Range_Data 1 1) abc, Span_Data (Range_Data 2 2) abc, Span_Data (Range_Data 3 3) abc]
-            abc.locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (Range_Data 3 3) abc)
+            abc.locate "" matcher=regex . should_equal (Span_Data (0.up_to 0) abc)
+            abc.locate_all "" matcher=regex . should_equal [Span_Data (0.up_to 0) abc, Span_Data (0.up_to 0) abc, Span_Data (1.up_to 1) abc, Span_Data (2.up_to 2) abc, Span_Data (3.up_to 3) abc]
+            abc.locate "" matcher=regex mode=Matching_Mode.Last . should_equal (Span_Data (3.up_to 3) abc)
 
         Test.specify "should handle overlapping matches as shown in the examples" <|
-            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 1 3) "aaa")
-            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (Range_Data 0 2) "aaa")
+            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (1.up_to 3) "aaa")
+            "aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (0.up_to 2) "aaa")
 
-            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (Range_Data 5 7) "aaa aaa")
-            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (Range_Data 4 6) "aaa aaa")
+            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher.Case_Sensitive . should_equal (Span_Data (5.up_to 7) "aaa aaa")
+            "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher.Regex_Matcher_Data . should_equal (Span_Data (4.up_to 6) "aaa aaa")
 
         Test.specify "should allow to match one or more occurrences of a pattern in the text" <|
             "abacadae".match_all "a[bc]" . should_equal ["ab", "ac"]
@@ -1292,12 +1292,12 @@ spec =
 
         Test.specify "should default to exact matching for locate but regex for match" <|
             txt = "aba[bc]adacae"
-            "ab".locate "ab" . should_equal (Span_Data (Range_Data 0 2) "ab")
+            "ab".locate "ab" . should_equal (Span_Data (0.up_to 2) "ab")
             "ab".locate "a[bc]" . should_equal Nothing
             "ab".locate_all "a[bc]" . should_equal []
 
-            txt.locate "a[bc]" . should_equal (Span_Data (Range_Data 2 7) txt)
-            txt.locate_all "a[bc]" . should_equal [Span_Data (Range_Data 2 7) txt]
+            txt.locate "a[bc]" . should_equal (Span_Data (2.up_to 7) txt)
+            txt.locate_all "a[bc]" . should_equal [Span_Data (2.up_to 7) txt]
 
             "ab".match "a[bc]" . should_equal "ab"
             "a[bc]".match "a[bc]" . should_equal Nothing

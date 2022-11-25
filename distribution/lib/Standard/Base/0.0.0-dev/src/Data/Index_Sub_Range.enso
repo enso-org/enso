@@ -3,10 +3,10 @@ import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Math
 import project.Random
-import project.Runtime.Ref
+import project.Runtime.Ref.Ref
 
-from project.Data.Range import all
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Range import Range
 from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data
 
 type Index_Sub_Range
@@ -63,13 +63,13 @@ resolve_ranges ranges length =
             actual_index = if descriptor < 0 then length + descriptor else descriptor
             if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error_Data descriptor length) else
                 actual_index
-        Range.Range_Data start end step ->
+        Range.Value start end step ->
             if step <= 0 then Panic.throw (Illegal_Argument_Error_Data "Range step must be positive.") else
                 if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error_Data "Range start and end must not be negative.") else
                     if start >= length then Panic.throw (Index_Out_Of_Bounds_Error_Data start length) else
                         actual_end = Math.min end length
-                        if actual_end < start then Range.Range_Data start start step else
-                            Range.Range_Data start actual_end step
+                        if actual_end < start then start.up_to start . with_step step else
+                            start.up_to actual_end . with_step step
     ranges.map trim
 
 ## PRIVATE
@@ -79,11 +79,11 @@ resolve_ranges ranges length =
    single-element ranges.
 normalize_ranges descriptors =
     normalize descriptor = case descriptor of
-        _ : Integer -> [Range.Range_Data descriptor descriptor+1]
-        Range.Range_Data _ _ _ ->
+        _ : Integer -> [descriptor.up_to descriptor+1]
+        _ : Range ->
             if descriptor.step == 1 then [descriptor] else
                 descriptor.to_vector.map ix->
-                    Range.Range_Data ix ix+1
+                    ix.up_to ix+1
     descriptors.flat_map normalize
 
 ## PRIVATE
@@ -102,9 +102,9 @@ normalize_ranges descriptors =
 invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
 invert_range_selection ranges length needs_sorting =
     sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
-    ranges_with_sentinels = [Range.Range_Data 0 0] + sorted + [Range.Range_Data length length]
+    ranges_with_sentinels = [0.up_to 0] + sorted + [length.up_to length]
     ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
-        Range.Range_Data prev.end next.start
+        prev.end.up_to next.start
 
 ## PRIVATE
    Returns a new sorted list of ranges where intersecting ranges have been
@@ -119,7 +119,7 @@ sort_and_merge_ranges ranges =
         sorted.tail.each range->
             current = current_ref.get
             case range.start <= current.end of
-                True -> current_ref.put (Range.Range_Data current.start (Math.max current.end range.end))
+                True -> current_ref.put (current.start.up_to (Math.max current.end range.end))
                 False ->
                     builder.append current
                     current_ref.put range
@@ -154,7 +154,7 @@ sort_and_merge_ranges ranges =
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
-    Range.Range_Data _ _ _ -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+    _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
     Index_Sub_Range.First count -> single_slice 0 (Math.min length count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
@@ -174,7 +174,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 0 else
-                range = Range.Range_Data start length step
+                range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
 
 ## PRIVATE
@@ -204,7 +204,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
 drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
     _ : Integer -> single_slice index_sub_range length
-    Range.Range_Data _ _ _ -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+    _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
     Index_Sub_Range.First count -> single_slice count length
     Index_Sub_Range.Last count -> single_slice 0 length-count
     Index_Sub_Range.While predicate ->
@@ -226,5 +226,5 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
             if start >= length then single_slice 0 length else
-                range = Range.Range_Data start length step
+                range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)

@@ -1,4 +1,5 @@
 import project.Data.Numbers.Number
+
 from project.Data.Boolean import Boolean, False
 
 ## A type representing an interval bound over any order-able type.

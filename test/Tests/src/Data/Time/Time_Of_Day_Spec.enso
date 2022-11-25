@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Error.Common import Time_Error_Data
 
 from Standard.Test import Test, Test_Suite
 
@@ -22,7 +21,7 @@ specWith name create_new_time parse_time =
 
         Test.specify "should handle errors when creating a time" <|
             case create_new_time 24 0 0 . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Invalid value for HourOfDay (valid values 0 - 23): 24"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -52,7 +51,7 @@ specWith name create_new_time parse_time =
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_time "1200" . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '1200' could not be parsed at index 2"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -64,7 +63,7 @@ specWith name create_new_time parse_time =
         Test.specify "should throw error when parsing custom format" <|
             time = parse_time "12:30" "HH:mm:ss"
             case time.catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '12:30' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -94,14 +93,14 @@ specWith name create_new_time parse_time =
 
         Test.specify "should throw error when adding date-based interval" <|
             case (create_new_time 0 + (Period.new days=1)) . catch of
-                Time_Error_Data message ->
+                Time_Error.Error message ->
                     message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting date-based interval" <|
             case (create_new_time 0 - (Period.new days=1)) . catch of
-                Time_Error_Data message ->
+                Time_Error.Error message ->
                     message . should_equal "Time_Of_Day does not support date intervals (periods)"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -161,10 +160,10 @@ enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanosecond=nanoOfSecond
 
 java_time hour minute=0 second=0 nanoOfSecond=0 =
-    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 java_parse time_text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(err -> Error.throw (Time_Error_Data err.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalTime.parse time_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)

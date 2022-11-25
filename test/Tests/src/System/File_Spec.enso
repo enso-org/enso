@@ -1,12 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.System.File import File_Already_Exists_Error
-from Standard.Base.Error.Problem_Behavior import all
-import Standard.Base.System.Platform
-import Standard.Base.System.Process
-from Standard.Base.System.File.File_Permissions import all
-from Standard.Base.System.Process.Exit_Code import Exit_Success
-
 from Standard.Test import Test, Test_Suite, Problems
 
 spec =
@@ -61,7 +54,7 @@ spec =
 
         Test.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
-            file.delete . should_fail_with File.File_Not_Found
+            file.delete . should_fail_with File_Error.Not_Found
 
         if Platform.is_unix then
             Test.specify "should allow to check file permissions" <|
@@ -69,14 +62,14 @@ spec =
                 f.delete_if_exists
                 "foobar".write f
 
-                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Success
-                rwx = [Read, Write, Execute]
+                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Code.Success
+                rwx = [Permission.Read, Permission.Write, Permission.Execute]
                 f.posix_permissions . should_equal <|
-                    File_Permissions_Data rwx rwx rwx
+                    File_Permissions.Value rwx rwx rwx
 
-                Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Success
+                Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Code.Success
                 f.posix_permissions . should_equal <|
-                    File_Permissions_Data [Read] [Write] [Execute]
+                    File_Permissions.Value [Permission.Read] [Permission.Write] [Permission.Execute]
 
                 f.delete
 
@@ -87,7 +80,7 @@ spec =
 
         Test.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
-            contents = File.read_bytes full_path
+            contents = File.new full_path . read_bytes
             contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         Test.specify "should allow to read last n bytes from a file" <|
@@ -103,16 +96,15 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            File.read_bytes "does_not_exist.txt" . should_fail_with File.File_Not_Found
-            file.read_bytes . should_fail_with File.File_Not_Found
-            non_existent_file.read_bytes . should_fail_with File.File_Not_Found
+            file.read_bytes . should_fail_with File_Error.Not_Found
+            non_existent_file.read_bytes . should_fail_with File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
-            contents = File.read_bytes path_name
+            contents = File.new path_name . read_bytes
             contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
             file = sample_file
-            contents_2 = File.read_bytes file
+            contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
     Test.group "read_text" <|
@@ -122,7 +114,7 @@ spec =
 
         Test.specify "should allow reading a UTF-8 file via path" <|
             full_path = sample_file . path
-            contents = File.read_text full_path
+            contents = Data.read_text_file full_path
             contents.should_start_with "Cupcake ipsum dolor sit amet."
 
         Test.specify "should allow reading a Windows file via path" <|
@@ -132,21 +124,21 @@ spec =
         Test.specify "should raise warnings when reading invalid characters" <|
             action = windows_file.read_text Encoding.ascii on_problems=_
             tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            problems = [Encoding_Error_Data "Encoding issues at 14, 15, 16."]
+            problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            File.read_text "does_not_exist.txt" . should_fail_with File.File_Not_Found
-            file.read_text . should_fail_with File.File_Not_Found
-            non_existent_file.read_text . should_fail_with File.File_Not_Found
+            Data.read_text_file "does_not_exist.txt" . should_fail_with File_Error.Not_Found
+            file.read_text . should_fail_with File_Error.Not_Found
+            non_existent_file.read_text . should_fail_with File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
-            contents = File.read_text path_name
+            contents = Data.read_text_file path_name
             contents.should_start_with "Cupcake ipsum dolor sit amet."
             file = sample_file
-            contents_2 = File.read_text file
+            contents_2 = Data.read_text_file file
             contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
     Test.group "write operations" <|
@@ -257,7 +249,7 @@ spec =
             "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal Nothing
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
+            "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Error.Already_Exists
             f.read_text.should_equal "line 1!"
             f.delete
             f.exists.should_be_false
@@ -374,7 +366,7 @@ spec =
             filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])
 
-            filtered2 = File.list enso_project.data name_filter="*re*" . map .to_text
+            filtered2 = Data.list_directory enso_project.data name_filter="*re*" . map .to_text
             filtered2.should_equal (resolve ["tree"])
 
         Test.specify "should list files in a directory recursively" <|
