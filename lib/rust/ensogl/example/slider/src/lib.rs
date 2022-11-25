@@ -134,15 +134,36 @@ fn init(app: &Application) {
     slider7.inner().frp.set_value_text_hidden(true);
     slider7.inner().frp.set_precision_adjustment_disabled(true);
     slider7.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
+    slider7.inner().frp.set_thumb_size(0.1);
 
     let slider8 = make_slider(app);
-    slider8.inner().frp.set_width(10.0);
-    slider8.inner().frp.set_height(230.0);
-    slider8.inner().set_y(-35.0);
-    slider8.inner().set_x(425.0);
+    slider8.inner().frp.set_width(400.0);
+    slider8.inner().frp.set_height(10.0);
+    slider8.inner().set_y(-180.0);
     slider8.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
     slider8.inner().frp.set_value_text_hidden(true);
     slider8.inner().frp.set_precision_adjustment_disabled(true);
     slider8.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
-    slider8.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
+    slider8.inner().frp.set_thumb_size(0.25);
+
+    let slider9 = make_slider(app);
+    slider9.inner().frp.set_width(400.0);
+    slider9.inner().frp.set_height(10.0);
+    slider9.inner().set_y(-200.0);
+    slider9.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider9.inner().frp.set_value_text_hidden(true);
+    slider9.inner().frp.set_precision_adjustment_disabled(true);
+    slider9.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
+    slider9.inner().frp.set_thumb_size(0.5);
+
+    let slider10 = make_slider(app);
+    slider10.inner().frp.set_width(10.0);
+    slider10.inner().frp.set_height(230.0);
+    slider10.inner().set_y(-35.0);
+    slider10.inner().set_x(430.0);
+    slider10.inner().frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+    slider10.inner().frp.set_value_text_hidden(true);
+    slider10.inner().frp.set_precision_adjustment_disabled(true);
+    slider10.inner().frp.set_value_indicator(slider::ValueIndicator::Thumb);
+    slider10.inner().frp.set_orientation(slider::SliderOrientation::Vertical);
 }
