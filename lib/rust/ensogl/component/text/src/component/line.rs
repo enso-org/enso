@@ -270,7 +270,7 @@ impl View {
 
             baseline_anim.target <+ frp.set_baseline;
             baseline_anim.skip <+ frp.skip_baseline_animation;
-            eval baseline_anim.value ((y) display_object.set_position_y(*y));
+            eval baseline_anim.value ((y) display_object.set_y(*y));
 
             new_baseline <- baseline_anim.value.on_change();
             frp.private.output.baseline <+ new_baseline;
@@ -307,7 +307,7 @@ impl View {
             let truncation = TruncationData::new(size, ellipsis);
             let x = self.glyphs.last().map(|g| g.position().x + g.x_advance.get()).unwrap_or(0.0);
             let x = x + truncation.x_after_last_glyph();
-            truncation.ellipsis.set_position_xy(Vector2(x, truncation.y()));
+            truncation.ellipsis.set_xy(Vector2(x, truncation.y()));
             truncation.ellipsis.scale.set(truncation.scale);
             truncation.ellipsis.size.set(truncation.dim());
             let was_truncated = self.truncation.borrow().is_some();

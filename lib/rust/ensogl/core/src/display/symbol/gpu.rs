@@ -591,16 +591,19 @@ impl SymbolData {
     fn init(self) -> Self {
         let is_hidden = &self.is_hidden;
         let id = self.id;
-        self.display_object.set_on_hide(f_!(is_hidden.set(true)));
-        self.display_object.set_on_show(f__!(is_hidden.set(false)));
-        self.display_object.set_on_scene_layer_changed(move |_, old_layers, new_layers| {
-            for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.remove_symbol(id)
-            }
-            for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.add_symbol(id)
-            }
-        });
+        let network = &self.display_object.network;
+        frp::extend! { network
+            eval_ self.display_object.on_hide(is_hidden.set(true));
+            eval_ self.display_object.on_show(is_hidden.set(false));
+            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers)) {
+                for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
+                    layer.remove_symbol(id)
+                }
+                for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
+                    layer.add_symbol(id)
+                }
+            });
+        }
         self
     }
 
