@@ -9,12 +9,12 @@ use crate::display::scene::layer::Layer;
 // === Export ===
 // ==============
 
-pub mod class;
 pub mod event;
-pub mod transform;
+pub mod instance;
+pub mod transformation;
 
-pub use class::Any;
-pub use class::*;
+pub use instance::Any;
+pub use instance::*;
 
 
 
@@ -64,14 +64,17 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     /// callback ensures that the `layer` will always be attached to the same layer the
     /// `instance` is attached to.
     pub fn new(instance: Instance, layer: L) -> Self {
-        instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
-            if let Some(src_layer) = source {
-                src_layer.remove_sublayer(layer.as_ref());
-            }
-            if let Some(dst_layer) = destination {
-                dst_layer.add_sublayer(layer.as_ref());
-            }
-        }));
+        let network = &instance.network;
+        frp::extend! { network
+            eval instance.on_layer_change ([layer] ((_, source, destination)) {
+                if let Some(src_layer) = source {
+                    src_layer.remove_sublayer(layer.as_ref());
+                }
+                if let Some(dst_layer) = destination {
+                    dst_layer.add_sublayer(layer.as_ref());
+                }
+            });
+        }
         Self { instance, layer }
     }
 }

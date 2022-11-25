@@ -35,7 +35,7 @@ pub struct NoFrameToPop(Stack);
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Eq, Fail, PartialEq)]
 #[fail(display = "The module {} is not accessible.", _0)]
-pub struct MissingModuleHandle(model::module::Id);
+pub struct MissingModuleHandle(String);
 
 
 
@@ -446,7 +446,7 @@ impl Manager {
                 .snapshots
                 .iter()
                 .map(|(id, content)| -> FallibleResult<_> {
-                    let err = || MissingModuleHandle(id.clone());
+                    let err = || MissingModuleHandle(id.to_string());
                     let module = modules.get(id).cloned().ok_or_else(err)?;
                     Ok((module, content.clone()))
                 })

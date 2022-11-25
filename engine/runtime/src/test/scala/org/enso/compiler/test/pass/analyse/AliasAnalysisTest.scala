@@ -894,6 +894,21 @@ class AliasAnalysisTest extends CompilerTest {
       // No link between self.x and self
       graphLinks shouldEqual Set(Link(valueUseId, 1, valueDefId))
     }
+
+    "add self as a definition" in {
+      lambda.arguments.length shouldEqual 2
+      lambda.arguments(0).name shouldBe a[IR.Name.Self]
+      val lambdaScope = lambda
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+
+      lambdaScope.allDefinitions.length shouldBe 2
+      val defSymbols = lambdaScope.allDefinitions
+        .map(definition => definition.symbol)
+      defSymbols should equal(List("self", "x"))
+    }
   }
 
   "Alias analysis on conversion methods" should {
@@ -1107,6 +1122,19 @@ class AliasAnalysisTest extends CompilerTest {
       rootScope.childScopes should contain(nilBranchScope)
       rootScope.childScopes should contain(tpeBranchScope)
       rootScope.childScopes should contain(fallbackBranchScope)
+    }
+
+    "cons branch scope should have argument definitions" in {
+      val consBranchScope = caseExpr.branches.head
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+      consBranchScope.allDefinitions.length shouldBe 2
+
+      val defSymbols = consBranchScope.allDefinitions
+        .map(definition => definition.symbol)
+      defSymbols should equal(List("a", "b"))
     }
 
     "correctly link to pattern variables" in {

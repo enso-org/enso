@@ -9,19 +9,6 @@ import project.Nothing.Nothing
    API is intended for use by library developers to provide higher-level and
    easier to use abstractions.
 
-## ADVANCED
-
-   Acquires a resource, performs an action on it, and destroys it safely,
-   even in the presence of panics.
-
-   Arguments:
-   - constructor: The computation responsible for acquiring the resource.
-   - destructor: The computation responsible for destroying the resource
-     once it is done being used.
-   - action: The computation to perform on the acquired resource.
-bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
-bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
-
 ## A managed resource is a special type of resource that is subject to
    automated cleanup when it is no longer in use.
 
@@ -29,6 +16,18 @@ bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
    abstractions, and is not expected to be used by end-users.
 @Builtin_Type
 type Managed_Resource
+    ## ADVANCED
+
+       Acquires a resource, performs an action on it, and destroys it safely,
+       even in the presence of panics.
+
+       Arguments:
+       - constructor: The computation responsible for acquiring the resource.
+       - destructor: The computation responsible for destroying the resource
+         once it is done being used.
+       - action: The computation to perform on the acquired resource.
+    bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
+    bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 
     ## ADVANCED
 

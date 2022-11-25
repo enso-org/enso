@@ -5,9 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
-import project.Data.Time.Date_Time
-# TODO[DB] Fix composite types #183857386
-import project.Data.Time.Date_Time.Date_Time as Date_Time_Type
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
@@ -21,7 +19,8 @@ import project.Nothing.Nothing
 import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
+from project.Data.Time.Date_Time import ensure_in_epoch
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -126,16 +125,8 @@ type Date
 
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year (month = 1) (day = 1) =
-        ## TODO This is left using the old error handling approach, because
-           magically, changing this to the `catch_java` (which is now preferred way
-           of catching Polyglot_Errors) lead to the "should format local date using
-           provided pattern" test failing because it called the `LocalDate.format`
-           instead of Enso format. Hopefully this will be fixed with
-           https://github.com/enso-org/enso/pull/3559
-           Then this should be switched to use `Panic.catch_java`.
-        Panic.recover Any (new_builtin year month day) . catch Any e-> case e of
-            Polyglot_Error_Data err -> Error.throw (Time_Error_Data err.getMessage)
-            ex -> ex
+        Panic.catch_java Any (new_builtin year month day) java_exception->
+            Error.throw (Time_Error.Error java_exception.getMessage)
 
     ## ALIAS Date from Text
 
@@ -204,9 +195,9 @@ type Date
         result = Panic.recover Any <| case pattern of
             Nothing -> parse_builtin text 0
             _ : Text -> parse_builtin text pattern
-            _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+            _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error_Data err -> Time_Error_Data err.getMessage
+            Polyglot_Error_Data err -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.
@@ -258,7 +249,7 @@ type Date
          properly specify the `locale` argument.
     week_of_year : (Locale | Nothing) -> Integer
     week_of_year self locale=Nothing =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             if locale.is_nothing then Time_Utils.get_field_as_localdate self IsoFields.WEEK_OF_WEEK_BASED_YEAR else
                 Time_Utils.week_of_year_localdate self locale.java_locale
 
@@ -267,7 +258,7 @@ type Date
        Produces a warning for a Date that is before epoch start.
     is_leap_year : Boolean
     is_leap_year self =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             Time_Utils.is_leap_year self
 
     ## Returns the number of days in the year represented by this date.
@@ -290,7 +281,7 @@ type Date
        Produces a warning for a Date that is before epoch start.
     length_of_month : Integer
     length_of_month self =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             Time_Utils.length_of_month self
 
     ## Returns the day of the year.
@@ -302,7 +293,7 @@ type Date
        Produces a warning for a Date that is before epoch start.
     day_of_week : Day_Of_Week
     day_of_week self =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## Returns the first date within the `Date_Period` containing self.
@@ -347,7 +338,7 @@ type Date
              example_workdays = Date.new 2020 1 1 . work_days_until (Date.new 2020 1 5)
     work_days_until : Date -> Vector Date -> Boolean -> Integer
     work_days_until self end holidays=[] include_end_date=False =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             if include_end_date then self.work_days_until (end + (Period.new days=1)) holidays include_end_date=False else
                 weekdays = week_days_between self end
                 ## We count holidays that occurred within the period, but not on the
@@ -372,7 +363,7 @@ type Date
              from Standard.Base import Date, Time_Of_Day, Time_Zone
 
              example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
-    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time_Type
+    to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Add the specified amount of time to this instant to get another date.
@@ -392,7 +383,7 @@ type Date
             _ : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
             _ : Duration ->
-                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 
@@ -432,12 +423,12 @@ type Date
              example_shift = Date.new 2020 2 3 . add_work_days 5
     add_work_days : Integer -> Vector Date -> Date
     add_work_days self days=1 holidays=[] =
-        Date_Time.ensure_in_epoch self <|
+        ensure_in_epoch self <|
             self.internal_add_work_days days holidays
 
     ## PRIVATE
 
-       Date_Time.ensure_in_epoch breaks tail call annotation and causes
+       ensure_in_epoch breaks tail call annotation and causes
        stack overflow. That is why `add_work_days` method is split into
        two methods.
     internal_add_work_days : Integer -> Vector Date -> Date
@@ -538,7 +529,7 @@ type Date
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
             _ : Duration ->
-                Error.throw (Time_Error_Data "Date does not support adding/subtracting Duration. Use Period instead.")
+                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
 

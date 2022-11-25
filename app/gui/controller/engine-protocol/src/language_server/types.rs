@@ -876,6 +876,19 @@ pub struct SuggestionEntryArgument {
     pub default_value: Option<String>,
 }
 
+impl SuggestionEntryArgument {
+    /// Create a new argument which is not suspended and has no default.
+    pub fn new(name: impl Into<String>, repr_type: impl Into<String>) -> Self {
+        Self {
+            name:          name.into(),
+            repr_type:     repr_type.into(),
+            is_suspended:  false,
+            has_default:   false,
+            default_value: None,
+        }
+    }
+}
+
 /// The definition scope. The start and end are chars indices.
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -920,6 +933,7 @@ pub enum SuggestionEntry {
         module:                 String,
         params:                 Vec<SuggestionEntryArgument>,
         parent_type:            Option<String>,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
@@ -932,6 +946,7 @@ pub enum SuggestionEntry {
         module:                 String,
         arguments:              Vec<SuggestionEntryArgument>,
         return_type:            String,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
@@ -945,6 +960,8 @@ pub enum SuggestionEntry {
         arguments:              Vec<SuggestionEntryArgument>,
         self_type:              String,
         return_type:            String,
+        is_static:              bool,
+        reexport:               Option<String>,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
@@ -1079,7 +1096,7 @@ pub enum SuggestionsDatabaseUpdateKind {
 #[serde(tag = "type")]
 pub enum SuggestionsDatabaseUpdate {
     #[serde(rename_all = "camelCase")]
-    Add { id: SuggestionId, suggestion: SuggestionEntry },
+    Add { id: SuggestionId, suggestion: Box<SuggestionEntry> },
     #[serde(rename_all = "camelCase")]
     Remove { id: SuggestionId },
     #[serde(rename_all = "camelCase")]
@@ -1092,7 +1109,7 @@ pub enum SuggestionsDatabaseUpdate {
 }
 
 /// The modification of suggestion database entry.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
 #[serde(tag = "type")]
 pub struct SuggestionsDatabaseModification {
@@ -1104,6 +1121,7 @@ pub struct SuggestionsDatabaseModification {
     pub documentation:      Option<FieldUpdate<String>>,
     pub documentation_html: Option<FieldUpdate<String>>,
     pub scope:              Option<FieldUpdate<SuggestionEntryScope>>,
+    pub reexport:           Option<FieldUpdate<String>>,
 }
 
 /// Notification about change in the suggestions database.

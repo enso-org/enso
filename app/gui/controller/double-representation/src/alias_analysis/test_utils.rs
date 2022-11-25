@@ -2,10 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::identifier::LocatedName;
-use crate::identifier::NormalizedName;
 use crate::test_utils::MarkdownProcessor;
 
+use ast::crumbs::Located;
 use regex::Captures;
 use regex::Regex;
 use regex::Replacer;
@@ -117,7 +116,7 @@ enum HasBeenValidated {
 pub struct IdentifierValidator<'a> {
     ast:         &'a Ast,
     name:        String,
-    validations: HashMap<NormalizedName, HasBeenValidated>,
+    validations: HashMap<String, HasBeenValidated>,
 }
 
 impl<'a> IdentifierValidator<'a> {
@@ -128,21 +127,24 @@ impl<'a> IdentifierValidator<'a> {
         let repr = ast.repr();
         let mut validations = HashMap::default();
         for span in spans {
-            let name = NormalizedName::new(&repr[span]);
+            let name = repr[span].to_owned();
             validations.insert(name, HasBeenValidated::No);
         }
         IdentifierValidator { ast, name, validations }
     }
 
     /// Marks given identifier as checked.
-    pub fn validate_identifier(&mut self, name: &NormalizedName) {
+    pub fn validate_identifier(&mut self, name: &str) {
         let err = iformat!("{self.name}: unexpected identifier `{name}` validated");
         let used = self.validations.get_mut(name).expect(&err);
         *used = HasBeenValidated::Yes;
     }
 
     /// Marks given sequence of identifiers as checked.
-    pub fn validate_identifiers(&mut self, identifiers: impl IntoIterator<Item = &'a LocatedName>) {
+    pub fn validate_identifiers(
+        &mut self,
+        identifiers: impl IntoIterator<Item = &'a Located<String>>,
+    ) {
         for identifier in identifiers {
             self.validate_identifier(&identifier.item);
 
@@ -150,7 +152,7 @@ impl<'a> IdentifierValidator<'a> {
             let ast_result = self.ast.get_traversing(crumbs);
             let ast = ast_result.expect("failed to retrieve ast from crumb");
             let name_err = || ipanic!("Failed to use AST {ast.repr()} as an identifier name");
-            let name = NormalizedName::try_from_ast(ast).unwrap_or_else(name_err);
+            let name = ast::identifier::name(ast).unwrap_or_else(name_err);
             assert_eq!(name, identifier.item)
         }
     }

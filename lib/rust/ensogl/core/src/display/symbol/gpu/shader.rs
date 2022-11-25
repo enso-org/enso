@@ -159,7 +159,7 @@ impl {
 
                     let vertex_code = self.geometry_material.code().clone();
                     let fragment_code = self.surface_material.code().clone();
-                    shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
+                    shader_builder.compute(&shader_cfg, vertex_code, fragment_code);
                     let code = shader_builder.build();
 
                     *self.program.borrow_mut() = None;

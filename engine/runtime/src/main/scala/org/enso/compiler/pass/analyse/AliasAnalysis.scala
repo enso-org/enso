@@ -366,6 +366,7 @@ case object AliasAnalysis extends IRPass {
             )
 
           parentScope.add(occurrence)
+          parentScope.addDefinition(occurrence)
 
           binding
             .copy(
@@ -414,9 +415,10 @@ case object AliasAnalysis extends IRPass {
         }
 
         val labelId = graph.nextId()
-        parentScope.add(
+        val definition =
           Occurrence.Def(labelId, label.name, label.getId, label.getExternalId)
-        )
+        parentScope.add(definition)
+        parentScope.addDefinition(definition)
 
         member
           .copy(
@@ -452,7 +454,7 @@ case object AliasAnalysis extends IRPass {
   ): List[IR.DefinitionArgument] = {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, true, _, _),
+            selfName @ IR.Name.Self(_, true, _, _),
             _,
             _,
             _,
@@ -460,9 +462,19 @@ case object AliasAnalysis extends IRPass {
             _,
             _
           ) =>
-        // Synthetic `self` must not be added to the scope
+        // Synthetic `self` must not be added to the scope, but it has to be added as a
+        // definition for frame index metadata
         val occurrenceId = graph.nextId()
-        arg.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+        val definition = Graph.Occurrence.Def(
+          occurrenceId,
+          selfName.name,
+          arg.getId,
+          arg.getExternalId
+        )
+        scope.addDefinition(definition)
+        arg.updateMetadata(
+          this -->> Info.Occurrence(graph, occurrenceId)
+        )
       case arg @ IR.DefinitionArgument.Specified(
             name,
             _,
@@ -480,10 +492,15 @@ case object AliasAnalysis extends IRPass {
           )
 
           val occurrenceId = graph.nextId()
-          scope.add(
-            Graph.Occurrence
-              .Def(occurrenceId, name.name, arg.getId, arg.getExternalId, susp)
+          val definition = Graph.Occurrence.Def(
+            occurrenceId,
+            name.name,
+            arg.getId,
+            arg.getExternalId,
+            susp
           )
+          scope.add(definition)
+          scope.addDefinition(definition)
 
           arg
             .copy(defaultValue = newDefault)
@@ -605,7 +622,7 @@ case object AliasAnalysis extends IRPass {
     * @param isConstructorNameInPatternContext whether or not the name is
     *                           constructor name occurring in a pattern context
     * @param graph the graph in which the analysis is taking place
-    * @param parentScope the scope in which `name` is delcared
+    * @param parentScope the scope in which `name` is declared
     * @return `name`, with alias analysis information attached
     */
   def analyseName(
@@ -618,9 +635,10 @@ case object AliasAnalysis extends IRPass {
     val occurrenceId = graph.nextId()
 
     if (isInPatternContext && !isConstructorNameInPatternContext) {
-      val occurrence =
+      val definition =
         Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
-      parentScope.add(occurrence)
+      parentScope.add(definition)
+      parentScope.addDefinition(definition)
     } else {
       val occurrence =
         Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
@@ -1145,11 +1163,15 @@ case object AliasAnalysis extends IRPass {
       *
       * @param childScopes all scopes that are _direct_ children of `this`
       * @param occurrences all symbol occurrences in `this` scope
+      * @param allDefinitions all definitions in this scope, including synthetic ones.
+      *                       Note that there may not be a link for all these definitions.
       */
     sealed class Scope(
-      var childScopes: List[Scope]     = List(),
-      var occurrences: Set[Occurrence] = Set()
+      var childScopes: List[Scope]             = List(),
+      var occurrences: Set[Occurrence]         = Set(),
+      var allDefinitions: List[Occurrence.Def] = List()
     ) extends Serializable {
+
       var parent: Option[Scope] = None
 
       /** Counts the number of scopes from this scope to the root.
@@ -1189,7 +1211,8 @@ case object AliasAnalysis extends IRPass {
             this.childScopes.foreach(scope =>
               childScopeCopies += scope.deepCopy(mapping)
             )
-            val newScope = new Scope(childScopeCopies.toList, occurrences)
+            val newScope =
+              new Scope(childScopeCopies.toList, occurrences, allDefinitions)
             mapping.put(this, newScope)
             newScope
         }
@@ -1233,6 +1256,15 @@ case object AliasAnalysis extends IRPass {
         */
       def add(occurrence: Occurrence): Unit = {
         occurrences += occurrence
+      }
+
+      /** Adds a definition, including a definition with synthetic name, without
+        * any links.
+        *
+        * @param definition The definition to add.
+        */
+      def addDefinition(definition: Occurrence.Def): Unit = {
+        allDefinitions = allDefinitions ++ List(definition)
       }
 
       /** Finds an occurrence for the provided ID in the current scope, if it

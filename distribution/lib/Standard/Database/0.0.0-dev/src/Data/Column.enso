@@ -766,9 +766,9 @@ type Column
                column has any nulls and if so, we will do `IS NULL` checks for
                our columns too. That is because, we want the containment check
                for `NULL` to work the same way as for any other value.
-            in_subquery = Query.Select [Pair.Value column.name column.expression] column.context
+            in_subquery = Query.Select [Pair.new column.name column.expression] column.context
             has_nulls_expression = SQL_Expression.Operation "BOOL_OR" [column.is_missing.expression]
-            has_nulls_subquery = Query.Select [Pair.Value "has_nulls" has_nulls_expression] column.context
+            has_nulls_subquery = Query.Select [Pair.new "has_nulls" has_nulls_expression] column.context
             new_expr = SQL_Expression.Operation "IS_IN_COLUMN" [self.expression, in_subquery, has_nulls_subquery]
             Column.Value self.name self.connection SQL_Type.boolean new_expr self.context
 

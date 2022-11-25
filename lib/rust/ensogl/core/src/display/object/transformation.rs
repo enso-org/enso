@@ -11,8 +11,9 @@ use crate::prelude::*;
 
 /// Defines the order in which particular axis coordinates are processed. Used for example to define
 /// the rotation order in `DisplayObject`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum AxisOrder {
+    #[default]
     XYZ,
     XZY,
     YXZ,
@@ -21,22 +22,17 @@ pub enum AxisOrder {
     ZYX,
 }
 
-impl Default for AxisOrder {
-    fn default() -> Self {
-        Self::XYZ
-    }
-}
 
 
-
-// ======================
-// === TransformOrder ===
-// ======================
+// ===========================
+// === TransformationOrder ===
+// ===========================
 
 /// Defines the order in which transformations (scale, rotate, translate) are applied to a
 /// particular object.
-#[derive(Clone, Copy, Debug)]
-pub enum TransformOrder {
+#[derive(Clone, Copy, Debug, Default)]
+pub enum TransformationOrder {
+    #[default]
     ScaleRotateTranslate,
     ScaleTranslateRotate,
     RotateScaleTranslate,
@@ -45,32 +41,26 @@ pub enum TransformOrder {
     TranslateScaleRotate,
 }
 
-impl Default for TransformOrder {
-    fn default() -> Self {
-        Self::ScaleRotateTranslate
-    }
-}
 
 
-
-// =================
-// === Transform ===
-// =================
+// ======================
+// === Transformation ===
+// ======================
 
 /// Structure describing transform of an object, in particular its position, scale, and rotation.
 /// You can use methods like `matrix` to get a combined transformation matrix. Bear in mind that
 /// the matrix will always be recomputed from scratch. This structure does not contain any caching
 /// mechanisms.
 #[derive(Clone, Copy, Debug)]
-pub struct Transform {
+pub struct Transformation {
     pub position:        Vector3<f32>,
     pub scale:           Vector3<f32>,
     pub rotation:        Vector3<f32>,
-    pub transform_order: TransformOrder,
+    pub transform_order: TransformationOrder,
     pub rotation_order:  AxisOrder,
 }
 
-impl Default for Transform {
+impl Default for Transformation {
     fn default() -> Self {
         let position = Vector3::new(0.0, 0.0, 0.0);
         let scale = Vector3::new(1.0, 1.0, 1.0);
@@ -81,7 +71,7 @@ impl Default for Transform {
     }
 }
 
-impl Transform {
+impl Transformation {
     /// Creates a new transformation object.
     pub fn new() -> Self {
         default()
@@ -93,32 +83,32 @@ impl Transform {
         let mut matrix = Matrix4::identity();
         let matrix_ref = &mut matrix;
         match self.transform_order {
-            TransformOrder::ScaleRotateTranslate => {
+            TransformationOrder::ScaleRotateTranslate => {
                 self.append_scale(matrix_ref);
                 self.append_rotation(matrix_ref);
                 self.append_translation(matrix_ref);
             }
-            TransformOrder::ScaleTranslateRotate => {
+            TransformationOrder::ScaleTranslateRotate => {
                 self.append_scale(matrix_ref);
                 self.append_translation(matrix_ref);
                 self.append_rotation(matrix_ref);
             }
-            TransformOrder::RotateScaleTranslate => {
+            TransformationOrder::RotateScaleTranslate => {
                 self.append_rotation(matrix_ref);
                 self.append_scale(matrix_ref);
                 self.append_translation(matrix_ref);
             }
-            TransformOrder::RotateTranslateScale => {
+            TransformationOrder::RotateTranslateScale => {
                 self.append_rotation(matrix_ref);
                 self.append_translation(matrix_ref);
                 self.append_scale(matrix_ref);
             }
-            TransformOrder::TranslateRotateScale => {
+            TransformationOrder::TranslateRotateScale => {
                 self.append_translation(matrix_ref);
                 self.append_rotation(matrix_ref);
                 self.append_scale(matrix_ref);
             }
-            TransformOrder::TranslateScaleRotate => {
+            TransformationOrder::TranslateScaleRotate => {
                 self.append_translation(matrix_ref);
                 self.append_scale(matrix_ref);
                 self.append_rotation(matrix_ref);
@@ -158,24 +148,24 @@ impl Transform {
 
 
 
-// =======================
-// === CachedTransform ===
-// =======================
+// ============================
+// === CachedTransformation ===
+// ============================
 
-/// The same as `Transform` but with caching. It contains cached transformation matrix and dirty
-/// flags which are set after fields are modified. You can use the `update` function to recompute
-/// the matrix.
+/// The same as `Transformation` but with caching. It contains cached transformation matrix and
+/// dirty flags which are set after fields are modified. You can use the `update` function to
+/// recompute the matrix.
 #[derive(Clone, Debug)]
 #[allow(missing_copy_implementations)]
-pub struct CachedTransform {
-    transform:        Transform,
+pub struct CachedTransformation {
+    transform:        Transformation,
     transform_matrix: Matrix4<f32>,
     origin:           Matrix4<f32>,
     pub matrix:       Matrix4<f32>,
     pub dirty:        bool,
 }
 
-impl Default for CachedTransform {
+impl Default for CachedTransformation {
     fn default() -> Self {
         let transform = default();
         let transform_matrix = Matrix4::identity();
@@ -186,16 +176,16 @@ impl Default for CachedTransform {
     }
 }
 
-impl CachedTransform {
+impl CachedTransformation {
     /// Constructor.
     pub fn new() -> Self {
         default()
     }
 
-    /// Update the transformation matrix and return information if the data was really updated.
+    /// Update the transformation matrix if it was out of date. Returns [`true`] if the update was
+    /// needed.
     pub fn update(&mut self, new_origin: Option<Matrix4<f32>>) -> bool {
-        let origin_changed = new_origin.is_some();
-        let changed = self.dirty || origin_changed;
+        let changed = self.dirty || new_origin.is_some();
         if changed {
             if self.dirty {
                 self.transform_matrix = self.transform.matrix();
@@ -211,7 +201,7 @@ impl CachedTransform {
 
 // === Getters ===
 
-impl CachedTransform {
+impl CachedTransformation {
     pub fn position(&self) -> Vector3<f32> {
         self.transform.position
     }
@@ -236,7 +226,7 @@ impl CachedTransform {
 
 // === Setters ===
 
-impl CachedTransform {
+impl CachedTransformation {
     pub fn position_mut(&mut self) -> &mut Vector3<f32> {
         self.dirty = true;
         &mut self.transform.position

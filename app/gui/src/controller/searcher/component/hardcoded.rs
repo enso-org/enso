@@ -7,7 +7,7 @@
 
 use crate::prelude::*;
 
-use double_representation::tp;
+use double_representation::name::QualifiedName;
 use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
 
 
@@ -53,7 +53,7 @@ thread_local! {
 /// Return a filtered copy of [`INPUT_SNIPPETS`] containing only snippets which have at least one
 /// of their return types on the given list of return types.
 pub fn input_snippets_with_matching_return_type(
-    return_types: impl IntoIterator<Item = tp::QualifiedName>,
+    return_types: impl IntoIterator<Item = QualifiedName>,
 ) -> Vec<Rc<Snippet>> {
     let rt_set: HashSet<_> = return_types.into_iter().collect();
     let rt_of_snippet_is_in_set =
@@ -78,7 +78,7 @@ pub struct Snippet {
     /// A list of types that the return value of this snippet's code typechecks as. Used by the
     /// [Component Browser](crate::controller::searcher) to decide whether to display the
     /// snippet when filtering components by return type.
-    pub return_types:       Vec<tp::QualifiedName>,
+    pub return_types:       Vec<QualifiedName>,
     /// The documentation bound to the snippet.
     pub documentation_html: Option<String>,
     /// The ID of the icon bound to this snippet's entry in the [Component

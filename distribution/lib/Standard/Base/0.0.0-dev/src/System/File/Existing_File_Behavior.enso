@@ -1,12 +1,11 @@
-from Standard.Base import all hiding Error
+import project.Data.Any.Any
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.File.Output_Stream
+import project.Nothing.Nothing
 
-import Standard.Base.System.File.Option
-import Standard.Base.Error.Common
-from Standard.Base.System.File import File_Already_Exists_Error, IO_Error, File_Not_Found
-
-# TODO Dubious constructor export
-from project.System.File.Existing_File_Behavior.Existing_File_Behavior import all
-from project.System.File.Existing_File_Behavior.Existing_File_Behavior export all
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, File_Error
 
 ## Specifies the behavior of a write operation when the destination file
    already exists.
@@ -27,7 +26,7 @@ type Existing_File_Behavior
     ## Appends data to the existing file.
     Append
 
-    ## If the file already exists, a `File_Already_Exists_Error` error is
+    ## If the file already exists, a `File_Error.Already_Exists` error is
        raised.
     Error
 
@@ -42,31 +41,31 @@ type Existing_File_Behavior
 
        The `action` may not be run at all in case the `Error` behavior is
        selected.
-    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
+    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
     write self file action =
         case self of
-            Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
-            Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
-            Error -> file.with_output_stream [Option.Write, Option.Create_New] action
-            Backup -> Panic.recover [IO_Error, File_Not_Found] <|
+            Existing_File_Behavior.Overwrite -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
+            Existing_File_Behavior.Append -> file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
+            Existing_File_Behavior.Error -> file.with_output_stream [File_Access.Write, File_Access.Create_New] action
+            Existing_File_Behavior.Backup -> Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
                 handle_existing_file _ =
                     write_file_backing_up_old_one file action
                 handle_write_failure_dataflow caught_panic =
-                    Common.Error.throw caught_panic.payload.cause
-                handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
-                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored_Data handler=handle_write_failure_dataflow
+                    Error.throw caught_panic.payload.cause
+                handle_file_already_exists = Panic.catch File_Error.Already_Exists handler=handle_existing_file
+                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored.Error handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
                    destination, but if that files due to the file already
                    existing, we will run the alternative algorithm which uses a
                    temporary file and creates a backup.
                 handle_file_already_exists <| handle_internal_dataflow <|
-                    Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                    Panic.rethrow <| file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
                         action output_stream . catch Any dataflow_error->
-                            Panic.throw (Internal_Write_Operation_Errored_Data dataflow_error)
+                            Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
 
 ## PRIVATE
-write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
-write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Found] <|
+write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Error
+write_file_backing_up_old_one file action = Panic.recover [File_Error.IO_Error, File_Error.Not_Found] <|
     parent = file.parent
     bak_file = parent / file.name+".bak"
     go i =
@@ -82,41 +81,33 @@ write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Fo
             ## Since we were already inside of the write operation,
                the file must have been created, but since we failed, we need to clean it up.
             new_file.delete
-            Common.Error.throw caught_panic.payload.cause
-        handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
-        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored_Data handler=handle_write_failure_dataflow
-        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked_Data handler=handle_write_failure_panic
+            Error.throw caught_panic.payload.cause
+        handle_file_already_exists = Panic.catch File_Error.Already_Exists handler=handle_existing_file
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored.Error handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked.Panic handler=handle_write_failure_panic
         handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
             Panic.rethrow <|
-                new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
                     result = Panic.catch Any (action output_stream) caught_panic->
-                        Panic.throw (Internal_Write_Operation_Panicked_Data caught_panic)
+                        Panic.throw (Internal_Write_Operation_Panicked.Panic caught_panic)
                     result.catch Any dataflow_error->
-                        Panic.throw (Internal_Write_Operation_Errored_Data dataflow_error)
+                        Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
             ## We ignore the file not found error, because it means that there
                is no file to back-up. This may also be caused by someone
                removing the original file during the time when we have been
                writing the new one to the temporary location. There is nothing
                to back-up anymore, but this is not a failure, so it can be
                safely ignored.
-            Panic.catch File_Not_Found handler=(_->Nothing) <|
+            Panic.catch File_Error.Not_Found handler=(_->Nothing) <|
                 Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
     go 0
 
 
-# TODO Dubious constructor export
-from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Panicked import all
-from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Panicked export all
-
 ## PRIVATE
 type Internal_Write_Operation_Panicked
-    Internal_Write_Operation_Panicked_Data (cause : Caught_Panic)
-
-# TODO Dubious constructor export
-from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Errored import all
-from project.System.File.Existing_File_Behavior.Internal_Write_Operation_Errored export all
+    Panic (cause : Caught_Panic)
 
 ## PRIVATE
 type Internal_Write_Operation_Errored
-    Internal_Write_Operation_Errored_Data (cause : Any)
+    Error (cause : Any)

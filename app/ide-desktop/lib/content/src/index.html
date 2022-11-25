@@ -6,15 +6,12 @@
     <!-- FIXME https://github.com/validator/validator/issues/917 -->
     <!-- FIXME Security Vulnerabilities: https://github.com/enso-org/ide/issues/226 -->
     <!-- NOTE `frame-src` section of `http-equiv` required only for authorization -->
-    <!-- The sha-256 hash for `script-src` below is for the code injected by the live-server.
-         In case of bumping the server, it might need to be updated.
-         Fortunately, the error message gives an updated hash. -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
             default-src 'self';
             frame-src   'self' data: https://accounts.google.com https://enso-org.firebaseapp.com;
-            script-src  'self' 'unsafe-eval' data: https://* 'sha256-iN7wpJdxHlpujRppkOA8N0+Mzp0ZqZr3lCtxM00Y63c=';
+            script-src  'self' 'unsafe-eval' data: https://*;
             style-src   'self' 'unsafe-inline' data: https://*;
             connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://*;
             worker-src  'self' blob:;
