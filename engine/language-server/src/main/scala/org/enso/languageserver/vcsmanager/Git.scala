@@ -1,12 +1,13 @@
 package org.enso.languageserver.vcsmanager
 
 import java.io.{FileNotFoundException, IOException}
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.api.errors.RefNotFoundException
 import org.eclipse.jgit.errors.{
+  EntryExistsException,
   IncorrectObjectTypeException,
   InvalidObjectIdException,
   MissingObjectException,
@@ -19,7 +20,7 @@ import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
-  DefaultGitRepoDir,
+  GitIgnore,
   MasterRef,
   RepoExists
 }
@@ -27,14 +28,19 @@ import org.enso.languageserver.vcsmanager.Git.{
 import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 
-private class Git extends VcsApi[BlockingIO] {
+private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
-  private def repository(path: Path): Repository = {
+  private val gitDir = ensoDataDirectory
+    .map(_.resolve(VcsApi.DefaultRepoDir))
+    .getOrElse(Path.of(VcsApi.DefaultRepoDir))
+
+  private def repository(root: Path): Repository = {
     val builder = new FileRepositoryBuilder()
     builder
-      .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
+      .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
       .build()
   }
@@ -45,16 +51,44 @@ private class Git extends VcsApi[BlockingIO] {
       if (!rootFile.exists()) {
         throw new FileNotFoundException("unable to find project repo: " + root)
       }
-      val repoLocation = root.resolve(DefaultGitRepoDir)
+
+      val repoLocation = root.resolve(gitDir)
       if (repoLocation.toFile.exists()) {
         throw new RepoExists()
       }
 
+      if (!repoLocation.getParent.toFile.exists()) {
+        if (!repoLocation.getParent.toFile.mkdirs()) {
+          throw new FileNotFoundException(
+            "unable to create project repository at " + repoLocation
+          )
+        }
+      }
+
       val jgit = JGit
         .init()
-        .setDirectory(rootFile)
+        .setGitDir(repoLocation.toFile)
+        .setDirectory(root.toFile)
         .setBare(false)
         .call()
+
+      ensoDataDirectory.foreach { path =>
+        // JGit **always** creates a .git file, gitdir path.
+        // The file may be confusing to the users and unnecessary for
+        // VCS since all commands include repo path explicitly.
+        val dotGit = root.resolve(".git").toFile
+        if (dotGit.exists()) {
+          dotGit.delete()
+        }
+
+        if (path.toFile.exists()) {
+          throw new EntryExistsException(path.toString)
+        }
+        Files.write(
+          root.resolve(GitIgnore),
+          path.toString.getBytes(StandardCharsets.UTF_8)
+        )
+      }
 
       jgit
         .commit()
@@ -80,6 +114,13 @@ private class Git extends VcsApi[BlockingIO] {
       jgit
         .add()
         .addFilepattern(".")
+        .call()
+
+      // Include deletion
+      jgit
+        .add()
+        .addFilepattern(".")
+        .setUpdate(true)
         .call()
 
       val revCommit = jgit
@@ -191,18 +232,20 @@ private class Git extends VcsApi[BlockingIO] {
 }
 
 object Git {
-  private val DefaultGitRepoDir = ".git"
-  private val MasterRef         = "refs/heads/master"
-  private val AuthorName        = "Enso VCS"
-  private val AuthorEmail       = "vcs@enso.io"
+  private val GitIgnore   = ".gitignore"
+  private val MasterRef   = "refs/heads/master"
+  private val AuthorName  = "Enso VCS"
+  private val AuthorEmail = "vcs@enso.io"
 
   private class RepoExists extends Exception
 
   /** Returns a Git implementation of VcsApi that ignores gitconfig file in
     * user's home directory.
     */
-  def withEmptyUserConfig(): VcsApi[BlockingIO] = {
+  def withEmptyUserConfig(
+    dataDir: Option[Path]
+  ): VcsApi[BlockingIO] = {
     SystemReader.setInstance(new EmptyUserConfigReader)
-    new Git()
+    new Git(dataDir)
   }
 }
