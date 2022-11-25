@@ -14,8 +14,8 @@
 vec2 position = input_local.xy ;
 Shape view_box = debug_shape(rect(position, input_size));
 Shape shape = run(position);
-Shape clipped_shape = intersection_no_blend(shape, view_box);
-float alpha = clipped_shape.color.repr.raw.a;
+shape = intersection_no_blend(shape, view_box);
+float alpha = shape.color.repr.raw.a;
 
 
 
@@ -35,24 +35,24 @@ if (pointer_events_enabled) {
 // =====================
 
 if (input_display_mode == DISPLAY_MODE_NORMAL) {
-    output_color = srgba(clipped_shape.color).raw;
+    output_color = srgba(shape.color).raw;
     output_color.rgb *= alpha;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SHAPE_AA_SPAN) {
-    output_color = srgba(clipped_shape.color).raw;
+    output_color = srgba(shape.color).raw;
     output_color.rgb *= alpha;
     output_color = outside_of_uv() ? vec4(1.0,0.0,0.0,1.0) : output_color;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SDF) {
     float zoom = zoom();
     float factor = 200.0/zoom * input_pixel_ratio;
-    Rgb col = distance_meter(clipped_shape.sdf.distance, factor, factor);
+    Rgb col = distance_meter(shape.sdf.distance, factor, factor);
     output_color = rgba(col).raw;
     output_color.a = alpha_no_aa;
     output_color.rgb *= alpha_no_aa;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_INSTANCE_ID) {
-    float hue = float((input_global_instance_id * 7) % 100) / 100.0;
+    float hue = float((input_global_instance_id + input_mouse_click_count % 10) * 7 % 100) / 100.0;
     Srgb color = srgb(hsv(hue, 1.0, 0.5));
     output_color.rgb = color.raw.rgb;
     output_color.a = alpha_no_aa;
@@ -65,6 +65,16 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color = outside_of_uv() ? vec4(output_color.rgb, 1.0) : output_color;
     output_color.a *= clamp(float(input_mouse_position.x)/1000.0, 0.1, 1.0);
     output_color.rgb *= output_color.a;
+
+} else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_GRID) {
+    float hue = float((input_global_instance_id + input_mouse_click_count % 10) * 7 % 100) / 100.0;
+    Srgba color = srgba(hsv(hue, 1.0, 0.8), 1.0);
+    Srgba grid_color = srgba(hsv(hue, 1.0, 0.6), 1.0);
+    output_color = vec4(color.raw.rgb, clamp(float(input_mouse_position.x)/100.0, 0.1, 1.0));
+    output_color *= alpha_no_aa;
+    output_color = draw_grid(position, 1, grid_color.raw, output_color);
+    output_color = draw_grid(position, 2, grid_color.raw, output_color);
+    output_color = draw_grid(position, 3, grid_color.raw, output_color);
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_UV) {
      bool overflow = input_uv.x >= 1.0 || input_uv.y >= 1.0;

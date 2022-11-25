@@ -133,6 +133,10 @@ A_TYPE_NAME_4 A_NAME_4(B_TYPE_NAME_4 B_NAME_4) {                                
                                                                                                    \
 A_TYPE_NAME_4 A_NAME_4(B_TYPE_NAME_3 B_NAME_3) {                                                   \
     return A_NAME_4(A_NAME_3(B_NAME_3));                                                           \
+}                                                                                                  \
+                                                                                                   \
+A_TYPE_NAME_4 A_NAME_4(B_TYPE_NAME_3 B_NAME_3, float alpha) {                                      \
+    return A_NAME_4(A_NAME_3(B_NAME_3), alpha);                                                    \
 }
 
 #define DEF_TRANSITIVE_CONVERSIONS(                                                                \
@@ -178,7 +182,7 @@ Rgb rgb(Srgb srgb) {
     return rgb(r,g,b);
 }
 
-DEF_TRANSITIVE_CONVERSIONS(Srgb,Srgba,srgb,srgba,Rgb,Rgba,rgb,rgba)
+DEF_TRANSITIVE_CONVERSIONS(Srgb, Srgba, srgb, srgba, Rgb, Rgba, rgb, rgba)
 
 
 
@@ -195,17 +199,17 @@ Lch lch(Srgb rgb) {
         ( 0.4124, 0.3576, 0.1805
         , 0.2126, 0.7152, 0.0722
         , 0.0193, 0.1192, 0.9505 );
-    c.x = xyzF(c.x/lch_rgb_weights.x);
-    c.y = xyzF(c.y/lch_rgb_weights.y);
-    c.z = xyzF(c.z/lch_rgb_weights.z);
+    c.x = xyzF(c.x / lch_rgb_weights.x);
+    c.y = xyzF(c.y / lch_rgb_weights.y);
+    c.z = xyzF(c.z / lch_rgb_weights.z);
     vec3 lab = vec3(max(0.,116.0*c.y - 16.0), 500.0*(c.x - c.y), 200.0*(c.y - c.z));
-    return lch(lab.x, length(vec2(lab.y,lab.z)), atan(lab.z, lab.y));
+    return lch(lab.x, length(vec2(lab.y, lab.z)), atan(lab.z, lab.y));
 }
 
 Srgb srgb (Lch lch) {
     vec3 c = lch.raw;
     c = vec3(c.x, cos(c.z) * c.y, sin(c.z) * c.y);
-    float lg = 1./116.*(c.x + 16.);
+    float lg = 1. / 116. * (c.x + 16.);
     float x  = lch_rgb_weights.x*xyzR(lg + 0.002*c.y);
     float y  = lch_rgb_weights.y*xyzR(lg);
     float z  = lch_rgb_weights.z*xyzR(lg - 0.005*c.z);
@@ -217,7 +221,7 @@ Srgb srgb (Lch lch) {
     return srgb(raw);
 }
 
-DEF_TRANSITIVE_CONVERSIONS(Srgb,Srgba,srgb,srgba,Lch,Lcha,lch,lcha)
+DEF_TRANSITIVE_CONVERSIONS(Srgb, Srgba, srgb, srgba, Lch, Lcha, lch, lcha)
 
 
 
@@ -245,7 +249,7 @@ Srgb srgb(HSV hsv) {
     return srgb(c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y));
 }
 
-DEF_TRANSITIVE_CONVERSIONS(Srgb,Srgba,srgb,srgba,HSV,HSVA,hsv,hsva)
+DEF_TRANSITIVE_CONVERSIONS(Srgb, Srgba, srgb, srgba, HSV, HSVA, hsv, hsva)
 
 
 

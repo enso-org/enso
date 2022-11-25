@@ -20,6 +20,7 @@ pub enum DisplayModes {
     Normal,
     DebugSpriteUv,
     DebugSpriteOverview,
+    DebugSpriteGrid,
     DebugSdf,
     DebugShapeAaSpan,
     DebugInstanceId,

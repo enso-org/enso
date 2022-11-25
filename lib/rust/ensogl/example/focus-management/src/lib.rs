@@ -37,7 +37,11 @@ mod rectangle {
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
             let inside = rect.shrink(BORDER_SIZE.px());
             let border = &inside.grow((border_size - 1.0).px()) - &inside;
-            let shape = inside.fill(color::Rgba(0.0,0.0,0.0,0.2)) + border.fill(border_color);
+            let shape = border.fill(border_color) + inside.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            // let line = Line(4.0.px()).fill(color::Rgba(1.0,0.0,0.0,1.0));
+
+            // let shape = inside.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            // let shape = shape + line;
             shape.into()
         }
     }

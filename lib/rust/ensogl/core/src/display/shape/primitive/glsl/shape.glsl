@@ -42,17 +42,19 @@ PremultipliedColor premultiply(Color t) {
 
 Color unpremultiply(PremultipliedColor c) {
     float alpha = c.repr.raw.a;
-    vec3 rgb = c.repr.raw.rgb / alpha;
+    vec3 rgb = alpha > 0.0 ? c.repr.raw.rgb / alpha : c.repr.raw.rgb;
     return color(rgb, alpha);
 }
 
 /// Implements glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 /// in the [`Color`]'s color space. See docs of [`Color`] to learn more.
-Color blend(Color bg, Color fg) {
-    PremultipliedColor fg_premul = premultiply(fg);
-    PremultipliedColor bg_premul = premultiply(bg);
-    vec4 raw = fg_premul.repr.raw + (1.0 - fg_premul.repr.raw.a) * bg_premul.repr.raw;
-    return unpremultiply(PremultipliedColor(lcha(raw)));
+PremultipliedColor blend(PremultipliedColor bg, PremultipliedColor fg) {
+    vec4 raw = fg.repr.raw + (1.0 - fg.repr.raw.a) * bg.repr.raw;
+    return PremultipliedColor(lcha(raw));
+}
+
+Srgba srgba(PremultipliedColor color) {
+    return srgba(unpremultiply(color));
 }
 
 
@@ -173,7 +175,9 @@ struct BoundSdf {
 };
 
 float render(BoundSdf sdf) {
-    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * zoom());
+    float zoom = zoom();
+    float growth = 0.5 / zoom;
+    return clamp((-sdf.distance * input_pixel_ratio + growth) * zoom);
 }
 
 
@@ -266,17 +270,26 @@ struct Shape {
     Id id;
     /// The Signed Distance Field, describing the shape boundaries.
     BoundSdf sdf;
-    /// The color of the shape. It is multiplied by [`alpha`].
-    Color color;
+    /// The color of the shape. Please note that we are storing the premultiplied version of the
+    /// color, as blending requires premultiplied values. We could store the non-premultiplied,
+    /// however, then we would need to unpremultiply the color after blending, which leads to
+    /// a serious issue. If the alpha is 0, then either unpremultiplication needs to be more costly
+    /// and check for this condition, or it will produce infinite/invalid values for the `xyz`
+    /// components. If we blend such a color with another one, then we will get artifacts, as
+    /// multiplying an infinite/invalid value by 0 is an undefined behavior.
+    PremultipliedColor color;
     /// The opacity of the shape. It is the result of rendering of the [`sdf`].
     float alpha;
 };
 
+Shape shape (Id id, BoundSdf bound_sdf, PremultipliedColor color) {
+    float alpha = render(bound_sdf);
+    color.repr.raw *= alpha;
+    return Shape(id, bound_sdf, color, alpha);
+}
 
 Shape shape (Id id, BoundSdf bound_sdf, Color color) {
-    float alpha = render(bound_sdf);
-    color.repr.raw.a *= alpha;
-    return Shape(id, bound_sdf, color, alpha);
+    return shape(id, bound_sdf, premultiply(color));
 }
 
 Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
@@ -295,7 +308,7 @@ Shape shape (Id id, BoundSdf bound_sdf, Lcha lcha) {
 /// screen as it's ID is always 0. It can be used to create temporary shapes. For example, it can
 /// be used to create a clipping rectangle, that will be intersected with another shape.
 Shape debug_shape (BoundSdf bound_sdf) {
-    Id id = new_id_layer(bound_sdf, 0);
+    Id id = new_id_layer(bound_sdf, 10);
     return shape(id, bound_sdf);
 }
 
@@ -342,17 +355,14 @@ Shape intersection_no_blend (Shape s1, Shape s2) {
 
 Shape set_color(Shape shape, Srgba t) {
     t.raw.a *= shape.alpha;
-    Color color = Color(lcha(t));
-    shape.color = color;
+    shape.color = premultiply(Color(lcha(t)));
     return shape;
 }
 
 Shape with_infinite_bounds (Shape s) {
-    Id id = s.id;
-    Color color = s.color;
     BoundSdf sdf = s.sdf;
     sdf.bounds = infinite();
-    return shape(id, sdf, color);
+    return shape(s.id, sdf, s.color);
 }
 
 
@@ -380,4 +390,24 @@ vec2 cartesian2polar (vec2 position) {
 
 vec2 repeat (vec2 position, vec2 tile_size) {
     return mod(position+tile_size/2.0, tile_size) - tile_size/2.0;
+}
+
+
+
+// =============
+// === Debug ===
+// =============
+
+vec4 draw_grid(vec2 position, int level, vec4 color, vec4 output_color) {
+    float sampling = pow(2.0, float(level - 1));
+    float width = min(sampling, zoom()) / input_pixel_ratio + 0.1;
+    float sampling2 = sampling / 2.0;
+    bool v = abs(mod(position.x + sampling2, sampling) - sampling2) <= width/2.0/zoom();
+    bool h = abs(mod(position.y + sampling2, sampling) - sampling2) <= width/2.0/zoom();
+    if ((v || h) && !outside_of_uv()) {
+        float alpha = clamp((zoom() - (4.0 - sampling))/(5.0 - sampling), 0.0, 1.0);
+        color *= alpha;
+        output_color = color + (1.0 - color.a) * output_color;
+    }
+    return output_color;
 }
