@@ -167,7 +167,7 @@ class ArchiveToSign implements Signable {
             if (isJar) {
                 run(`jar`, ['xf', this.path], workingDir)
             } else {
-                run(`7za`, ['e', `-o${workingDir}`, this.path])
+                run(`7za`, ['X', `-o${workingDir}`, this.path])
             }
 
             const binariesToSign = await BinaryToSign.lookupMany(workingDir, this.binaries)
