@@ -1,17 +1,18 @@
 package org.enso.table.data.index;
 
-import java.util.*;
-import java.util.function.IntFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+
+import java.util.*;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class MultiValueIndex {
   private final int keyColumnsLength;
@@ -91,6 +92,10 @@ public class MultiValueIndex {
             .mapToObj(i -> new Column(columns[i].getName(), storage[i].seal()))
             .toArray(Column[]::new),
         merged);
+  }
+
+  public Table makeCrossTabTable(Column[] groupingColumns, Column nameColumn, Aggregator aggregates) {
+    return null;
   }
 
   public int[] makeOrderMap(int rowCount) {

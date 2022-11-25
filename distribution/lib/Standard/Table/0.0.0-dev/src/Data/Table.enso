@@ -1187,12 +1187,8 @@ type Table
                 id_columns.each k-> unique.make_unique k.name
                 self
             False ->
-                mask = OrderMask.repeatRows self.row_count count
-
                 selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
-
                 data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
-
                 id_columns.each k-> unique.make_unique k.name
 
                 name_column = Column.repeated_from_vector (unique.make_unique name_field) (data.map .name) self.row_count
@@ -1210,15 +1206,45 @@ type Table
     cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
-        unique = Unique_Name_Strategy.new
         problem_builder = Problem_Builder.new
 
-        grouping = columns_helper.select_columns_helper group_by True problem_builder . map Aggregate_Column.Group_By
+        ## validate the name and group_by columns
+        matched_name = columns_helper.select_columns_helper [name_column] True problem_builder
+        grouping = columns_helper.select_columns_helper group_by True problem_builder
+
+        ## Validate the values
         values_vector = case values of
             _ : Vector -> values
             _ -> [values]
-        full_set = grouping + [Aggregate_Column.Group_By name_column] + values_vector
-        self.aggregate full_set on_problems
+        resolved_values = values_vector.map (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        is_group_by c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument_Error_Data "Cannot use group_by for a cross_tab value.")
+        validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
+
+        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument_Error.handle_java_exception <|
+            java_key_columns = (grouping + matched_name).map .java_column
+            index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
+
+            name_mapper = if validated_values.length == 1 then (_ -> "") else
+                all_same = Aggregate_Column_Helper.all_same_column validated_values
+                c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
+
+            data_columns = validated_values.map c->
+                    col_name = c.new_name.if_nothing (name_mapper c)
+                    Aggregate_Column_Helper.java_aggregator col_name c
+
+            result = case matched_name.is_empty of
+                True ->
+                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                    index.makeTable (group_by + data_columns).to_array
+                False ->
+                    Nothing
+
+            on_problems.attach_problems_after (Table.Table_Data result) <|
+                problems = result.getProblems
+                Aggregate_Column_Helper.parse_aggregated_problems problems
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
