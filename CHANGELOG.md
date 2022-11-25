@@ -96,6 +96,9 @@
   JavaScript DOM events][3863]. The events system implements very similar
   behavior to the one described here:
   https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value
+  with the mouse. The precision of these adjustments can be increased or
+  decreased.
 
 #### Enso Standard Library
 
@@ -384,6 +387,7 @@
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
 [3874]: https://github.com/enso-org/enso/pull/3874
+[3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 
 #### Enso Compiler
@@ -444,6 +448,7 @@
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Any number can be converted to double][3865]
 - [Update to GraalVM 22.3.0][3663]
 - [Connecting IGV 4 Enso with Engine sources][3810]
 - [Add the `Self` keyword referring to current type][3844]
@@ -511,6 +516,7 @@
 [3821]: https://github.com/enso-org/enso/pull/3821
 [3828]: https://github.com/enso-org/enso/pull/3828
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3865]: https://github.com/enso-org/enso/pull/3865
 [3663]: https://github.com/enso-org/enso/pull/3663
 [3810]: https://github.com/enso-org/enso/pull/3810
 [3844]: https://github.com/enso-org/enso/pull/3844
