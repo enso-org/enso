@@ -631,14 +631,14 @@ impl Slider {
                 &model.value_text_dot.width,
             );
             value_text_left_pos_x <- value_text_left_pos_x.map(|(left, dot)| -*left - *dot / 2.0);
-            eval value_text_left_pos_x((x) model.value_text_left.set_position_x(*x));
-            eval model.value_text_left.height((h) model.value_text_left.set_position_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_dot.set_position_x(-*w / 2.0));
-            eval model.value_text_dot.height((h) model.value_text_dot.set_position_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_right.set_position_x(*w / 2.0));
-            eval model.value_text_right.height((h) model.value_text_right.set_position_y(*h / 2.0));
-            eval model.value_text_edit.width((w) model.value_text_edit.set_position_x(-*w / 2.0));
-            eval model.value_text_edit.height((h) model.value_text_edit.set_position_y(*h / 2.0));
+            eval value_text_left_pos_x((x) model.value_text_left.set_x(*x));
+            eval model.value_text_left.height((h) model.value_text_left.set_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_dot.set_x(-*w / 2.0));
+            eval model.value_text_dot.height((h) model.value_text_dot.set_y(*h / 2.0));
+            eval model.value_text_dot.width((w) model.value_text_right.set_x(*w / 2.0));
+            eval model.value_text_right.height((h) model.value_text_right.set_y(*h / 2.0));
+            eval model.value_text_edit.width((w) model.value_text_edit.set_x(-*w / 2.0));
+            eval model.value_text_edit.height((h) model.value_text_edit.set_y(*h / 2.0));
 
             overflow_marker_position <- all3(
                 &input.set_width,

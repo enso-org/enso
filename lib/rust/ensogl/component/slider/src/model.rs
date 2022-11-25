@@ -331,17 +331,17 @@ impl Model {
         match orientation {
             SliderOrientation::Horizontal => {
                 let pos_x = comp_width / 2.0 - comp_height / 4.0;
-                self.overflow_lower.set_position_x(-pos_x);
-                self.overflow_lower.set_position_y(0.0);
-                self.overflow_upper.set_position_x(pos_x);
-                self.overflow_upper.set_position_y(0.0);
+                self.overflow_lower.set_x(-pos_x);
+                self.overflow_lower.set_y(0.0);
+                self.overflow_upper.set_x(pos_x);
+                self.overflow_upper.set_y(0.0);
             }
             SliderOrientation::Vertical => {
                 let pos_y = comp_height / 2.0 - comp_width / 4.0;
-                self.overflow_lower.set_position_x(0.0);
-                self.overflow_lower.set_position_y(-pos_y);
-                self.overflow_upper.set_position_x(0.0);
-                self.overflow_upper.set_position_y(pos_y);
+                self.overflow_lower.set_x(0.0);
+                self.overflow_lower.set_y(-pos_y);
+                self.overflow_upper.set_x(0.0);
+                self.overflow_upper.set_y(pos_y);
             }
         }
     }
@@ -390,7 +390,7 @@ impl Model {
                 LabelPosition::Outside => comp_height / 2.0 + comp_width / 2.0 + lab_height,
             },
         };
-        self.label.set_position_xy(Vector2(label_position_x, label_position_y));
+        self.label.set_xy(Vector2(label_position_x, label_position_y));
     }
 
     /// Set whether the slider value text is hidden.
