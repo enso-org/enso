@@ -62,7 +62,7 @@ impl ShapeData {
 
     /// Getter of the shape as GLSL expression.
     pub fn getter(&self) -> String {
-        iformat!("{self.name}(env,position)")
+        iformat!("{self.name}(position)")
     }
 }
 
@@ -76,8 +76,8 @@ impl ShapeData {
 
 /// Canvas for drawing vector graphics.
 ///
-/// The API is stateful, similar to the API of HTML5 canvas element.
-/// It uses GLSL and signed distance fields under the hood.
+/// The API is stateful, similar to the API of HTML5 canvas element. It uses GLSL and signed
+/// distance fields under the hood.
 
 #[derive(Debug, Default)]
 pub struct Canvas {
@@ -123,17 +123,13 @@ impl Canvas {
 
     /// Defines a new variable in the GLSL code.
     pub fn define<E: Str>(&mut self, ty: &str, name: &str, expr: E) {
-        let max_type_length = 8;
-        let max_name_length = 6;
-        let ty = format!("{:1$}", ty, max_type_length);
-        let name = format!("{:1$}", name, max_name_length);
         self.add_current_function_code_line(iformat!("{ty} {name} = {expr.as_ref()};"));
     }
 
     /// Submits the `current_function_lines` as a new shape construction function in the GLSL code.
     pub fn submit_shape_constructor(&mut self, name: &str) {
         let body = self.current_function_lines.join("\n    ");
-        let func = iformat!("Shape {name} (Env env, vec2 position) {{\n    {body}\n}}");
+        let func = iformat!("Shape {name} (vec2 position) {{\n    {body}\n}}");
         self.current_function_lines = default();
         self.functions.push(func);
     }
@@ -155,13 +151,11 @@ impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
     pub fn define_shape(&mut self, num: usize, sdf: &str) -> Shape {
         self.if_not_defined(num, |this| {
-            let color = "srgba(1.0,0.0,0.0)";
             let mut shape = ShapeData::new(num);
             let id = this.get_new_id();
-            this.define("Srgba", "color", iformat!("{color}"));
             this.define("BoundSdf", "sdf", iformat!("{sdf}"));
             this.define("Id", "id", iformat!("new_id_layer(sdf,{id})"));
-            this.add_current_function_code_line("return shape(id,sdf,color);");
+            this.add_current_function_code_line("return shape(id, sdf);");
             this.submit_shape_constructor(&shape.name);
             shape.add_id(id);
             shape

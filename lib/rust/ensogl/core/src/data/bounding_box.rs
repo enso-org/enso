@@ -46,7 +46,7 @@ impl BoundingBox {
     }
 
     /// Return a bounding box given by the position and size. The position interpreted as the
-    /// top-right corner and size as the extend along the positive x and y-axis. Negative sizes
+    /// top-right corner and size as the extension along the positive x and y-axis. Negative sizes
     /// are valid.
     pub fn from_position_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position, position + size)
