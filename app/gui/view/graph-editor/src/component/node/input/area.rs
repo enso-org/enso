@@ -805,7 +805,7 @@ impl Area {
 
             let frp_endpoints = &frp.output;
             expression <- frp.input.set_expression.map2(
-                &edit_mode, f!([frp_endpoints, model](expr, is_editing)
+                &frp.input.set_edit_mode, f!([frp_endpoints, model](expr, is_editing)
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
