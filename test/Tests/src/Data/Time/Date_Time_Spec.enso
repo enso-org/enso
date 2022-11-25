@@ -45,7 +45,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle errors when creating time" <|
             case create_new_datetime 1970 0 0 . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 0"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -134,7 +134,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -163,7 +163,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should throw error when parsing custom format" <|
             time = parse_datetime "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
             case time.catch of
-                Time_Error_Data msg ->
+                Time_Error.Error msg ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -594,7 +594,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data err.payload.cause))
+    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload.cause))
 
 # This ensures that date returned by javascript has the right timezone specified by the zone parameter.
 # Javascript's toLocaleString will accept the timezone but it will just adapt the datetime while keeping the local timezone.
@@ -617,7 +617,7 @@ js_parse text format=Nothing =
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data err.payload.cause))
+    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload.cause))
     js_set_zone arr.at(0) zone
 
 foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
@@ -630,14 +630,14 @@ enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
 
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 maybe_parse_java_zoned text pattern=Nothing =
     if pattern == Nothing then ZonedDateTime.parse text else
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error_Data original_error.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDateTime.parse text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)

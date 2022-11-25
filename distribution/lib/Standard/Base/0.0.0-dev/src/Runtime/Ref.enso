@@ -3,6 +3,18 @@ import project.Data.Any.Any
 ## A mutable reference type.
 @Builtin_Type
 type Ref
+    ## Creates a new reference containing the provided value.
+
+       Arguments:
+       - value: The value to be contained in the ref.
+
+       > Example
+         Creating a new reference containing the value 7.
+
+             Ref.new 7
+    new : Any -> Ref
+    new value = @Builtin_Method "Ref.new"
+
     ## Gets the contents of this mutable reference ref.
 
        > Example
@@ -23,15 +35,3 @@ type Ref
              (Ref.new 0) . put 10
     put : Any -> Any
     put self new_value = @Builtin_Method "Ref.put"
-
-## Creates a new reference containing the provided value.
-
-   Arguments:
-   - value: The value to be contained in the ref.
-
-   > Example
-     Creating a new reference containing the value 7.
-
-         Ref.new 7
-new : Any -> Ref
-new value = @Builtin_Method "Ref.new"

@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.System
-import Standard.Base.Runtime.Ref
+import Standard.Base.Runtime.Ref.Ref
 
 type Bench
     ## Measure the amount of time it takes to execute a given computation.

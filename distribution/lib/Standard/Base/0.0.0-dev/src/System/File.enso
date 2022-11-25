@@ -1,14 +1,27 @@
-from Standard.Base import all
+import project.Data.Any.Any
+import project.Data.Array.Array
+import project.Data.Index_Sub_Range.Index_Sub_Range
+import project.Data.Json.Json
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Encoding.Encoding_Error
+import project.Data.Text.Extensions
+import project.Data.Text.Matching_Mode
+import project.Data.Text.Text
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Vector.Vector
+import project.Error.Problem_Behavior.Problem_Behavior
+import project.Meta
+import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.File_Access.File_Access
+import project.System.File_Format.Auto_Detect
+import project.System.File_Format.File_Format
+import project.System.File.File_Permissions.File_Permissions
 
-import Standard.Base.Data.Array.Array
-from Standard.Base.Error.Common import Unsupported_File_Type
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.Runtime.Resource
-from Standard.Base.Runtime.Resource import Managed_Resource
-import Standard.Base.System.File.Option
-import Standard.Base.System.File.File_Permissions
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Panic, Unsupported_File_Type, Illegal_Argument_Error_Data, File_Error
 
-polyglot java import org.enso.base.Array_Builder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
@@ -21,189 +34,61 @@ polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.time.ZonedDateTime
 
-## ALIAS New File
-
-   Creates a new file object, pointing to the given path.
-
-   Arguments:
-   - path: The path to the file that you want to create, or a file itself. The
-     latter is a no-op.
-
-   > Example
-     Create a new file pointing to the `data.csv` file in the project directory.
-
-         import Standard.Base.System.File
-         import Standard.Examples
-
-         example_new = File.new Examples.csv_path
-new : (Text | File) -> File
-new path =
-  case path of
-    _ : Text -> get_file path
-    _ : File -> path
-    _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
-
-## ALIAS Read Text File, Read File
-
-   Read a file using the specified file format
-
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-   - format: A File_Format object used to read file into memory.
-     If `Auto_Detect` is specified; the provided file determines the specific
-     type and configures it appropriately. If there is no matching type then
-     a `Unsupported_File_Type` error is returned.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-
-   ? Module or Instance?
-     If you have a variable `file` of type `File`, we recommend calling the
-     `.read` method on it directly, rather than using `File.read file`. The
-     later, however, will still work.
-read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
-read path (format=Auto_Detect) (on_problems=Report_Warning) =
-    file = new path
-    file.read format on_problems
-
-## Open and reads all bytes in the file at the provided `path` into a byte vector.
-
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-
-   > Example
-     Read all of the bytes in the file.
-
-         import Standard.Examples
-
-         example_read_bytes = File.read_bytes Examples.csv
-read_bytes : (Text | File) -> Vector ! File_Error
-read_bytes path =
-    file = new path
-    file.read_bytes
-
-## Open and read the file at the provided `path`.
-
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     function.
-     By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-
-   ? Module or Instance?
-     If you have a variable `file` of type `File`, we recommend calling the
-     `.read_text` method on it directly, rather than using
-     `File.read_text file`. The later, however, will still work.
-
-   > Example
-     Read the `data.csv` file in the project directory's `data` directory. You
-     will need to create the file `data.csv` manually in that directory.
-
-         import Standard.Base.System.File
-         import Standard.Examples
-
-         example_read = File.read_text Examples.csv_path
-read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
-read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-    file = new path
-    file.read_text encoding on_problems
-
-## ALIAS Current Directory
-
-   Returns the current working directory (CWD) of the current program.
-
-   > Example
-     Get the program's current working directory.
-
-         import Standard.Base.System.File
-
-         example_cwd = File.current_directory
-current_directory : File
-current_directory = get_cwd
-
-## ALIAS Home Directory
-
-   Returns the home directory of the current user.
-
-   > Example
-     Get the current user's home directory.
-
-         import Standard.Base.System.File
-
-         example_home = File.home
-home : File
-home = @Builtin_Method "File.home"
-
-## Lists files contained in the provided directory.
-
-   Arguments:
-   - name_filter: A glob pattern that can be used to filter the returned files.
-     If it is not specified, all files are returned.
-   - recursive: Specifies whether the returned list of files should include also
-     files from the subdirectories. If set to `False` (the default), only the
-     immediate children of the listed directory are considered.
-
-   The `name_filter` can contain the following special characters:
-   - `"?"` - which matches a single filename character (so it will not match a
-     `"/"`).
-   - `"*"` - which matches any number of characters, but again does not cross
-     directories.
-   - `"**"` - which matches any number of characters and can cross directories.
-   - `"\"` - can be used to escape the characters with special meaning; to get a
-     single backslash, you need to specify it twice; you also need to keep in
-     mind that the interpolating string literal also uses `"\"` as an escape
-     sequence, so you need to type `'\\\\'` to get a single backslash for the
-     glob pattern, unless you use the raw strings, where you only need to escape
-     once: `"\\"`.
-   - Brackets can be used to match exactly one character from some set of
-     characters. For example `"[xy]"` matches `"x"` or `"y"`. Character ranges
-     can also be specified: `"[a-z]"` matches any character from `"a"` to `"z"`.
-     An exclamation mark can be used to negate the match, i.e. `"[!xz]"` will
-     match any characters except for `"x"` and `"z"`. Moreover the ranges and
-     single characters can be used together, so for example `"[a-cxy]"` will
-     match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`. Within the brackets, the special
-     characters `"*"`, `"?"` and `"\"` stand for themselves instead of their
-     special meanings.
-   - Braces allow to specify multiple patterns (separated with a comma), one of
-     which must be matched. For example: `"{abc,x*}"` will match either the name
-     `"abc"` or any name starting with `"x"`. The groups cannot be nested.
-
-   Keep in mind that if `recursive` is set to True and a `name_filter` is used,
-   the function will return files from subdirectories only if the set
-   `name_filter` allows crossing directories. So even with `recursive=True` a
-   filter `"*.txt"` will only return files that are immediate children of the
-   listed directory, to list files recursively you need to use a filter like
-   `"**.txt"` or `"*/*"` (which will match only files that are exactly one
-   directory down from the listed directory) or no filter at all.
-
-   > Example
-     List all files with `.md` extension in the example directory and any of its
-     subdirectories.
-
-         import Standard.Examples
-
-         example_list_files =
-             File.list Examples.data_dir name_filter="**.md" recursive=True
-list : (File | Text) -> Text -> Boolean -> Vector File
-list directory name_filter=Nothing recursive=False =
-    new directory . list name_filter=name_filter recursive=recursive
-
 @Builtin_Type
 type File
+    ## ALIAS New File
+
+       Creates a new file object, pointing to the given path.
+
+       Arguments:
+       - path: The path to the file that you want to create, or a file itself. The
+         latter is a no-op.
+
+       > Example
+         Create a new file pointing to the `data.csv` file in the project directory.
+
+             import Standard.Base.System.File
+             import Standard.Examples
+
+             example_new = File.new Examples.csv_path
+    new : (Text | File) -> File
+    new path =
+      case path of
+        _ : Text -> get_file path
+        _ : File -> path
+        _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
+
+    ## ALIAS Current Directory
+
+       Returns the current working directory (CWD) of the current program.
+
+       > Example
+         Get the program's current working directory.
+
+             import Standard.Base.System.File
+
+             example_cwd = File.current_directory
+    current_directory : File
+    current_directory = get_cwd
+
+    ## ALIAS Home Directory
+
+       Returns the home directory of the current user.
+
+       > Example
+         Get the current user's home directory.
+
+             import Standard.Base.System.File
+
+             example_home = File.home
+    home : File
+    home = @Builtin_Method "File.home"
 
     ## Creates a new output stream for this file and runs the specified action
        on it.
 
        Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
+       - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
        - action: A function that operates on the output stream and returns some
          value. The value is returned from this method.
@@ -214,16 +99,16 @@ type File
        > Example
          Perform an action on an output stream with the file open for writing.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_with_stream =
                  file = Examples.scratch_file
                  action = stream -> stream.write_bytes "hello".utf_8
-                 file.with_output_stream [Option.Create, Option.Write] action
-    with_output_stream : Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+                 file.with_output_stream [File_Access.Create, File_Access.Write] action
+    with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self open_options action =
-        Resource.bracket (self.new_output_stream open_options) (_.close) action
+        Managed_Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
 
@@ -231,9 +116,9 @@ type File
        `File.with_output_stream` instead, which does resource management.
 
        Arguments:
-       - options: A vector of `File.Option` objects determining how to open
+       - options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
-    output_stream : Vector -> Output_Stream
+    output_stream : Vector File_Access -> Output_Stream
     output_stream self options = @Builtin_Method "File.output_stream"
 
     ## PRIVATE
@@ -242,16 +127,16 @@ type File
        `File.with_input_stream` instead, which does resource management.
 
        Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
+       - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
-    input_stream : Vector -> Input_Stream
+    input_stream : Vector File_Access -> Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
        on it.
 
        Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
+       - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
        - action: A function that operates on the input stream and returns some
          value. The value is returned from this method.
@@ -262,16 +147,16 @@ type File
        > Example
          Perform an action on an input stream with the file open for reading.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_with_stream =
                  file = Examples.csv
                  action = stream -> stream.read_all_bytes
-                 file.with_input_stream [Option.Create, Option.Read] action
-    with_input_stream : Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
+                 file.with_input_stream [File_Access.Create, File_Access.Read] action
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self open_options action =
-        Resource.bracket (self.new_input_stream open_options) (_.close) action
+        Managed_Resource.bracket (self.new_input_stream open_options) (_.close) action
 
     ## Read a file using the specified file format
 
@@ -302,8 +187,8 @@ type File
              import Standard.Examples
 
              example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
-    read : File_Format -> Problem_Behavior -> Any ! File.File_Error | Unsupported_File_Type
-    read self format=Auto_Detect (on_problems=Report_Warning) =
+    read : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         format.read self on_problems
 
     ## Reads all bytes in this file into a byte vector.
@@ -316,7 +201,7 @@ type File
              example_read_bytes = Examples.csv.read_bytes
     read_bytes : Vector ! File_Error
     read_bytes self =
-        opts = [Option.Read]
+        opts = [File_Access.Read]
         self.with_input_stream opts (_.read_all_bytes)
 
     ## Reads the whole file into a `Text`, with specified encoding.
@@ -336,8 +221,9 @@ type File
 
              example_read = Examples.csv.read
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-        bytes = self.read_bytes
+    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+        file = File.new self
+        bytes = file.read_bytes
         Text.from_bytes bytes encoding on_problems
 
     ## Join two path segments together.
@@ -387,7 +273,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.creation_time
-    creation_time : Time ! File_Error
+    creation_time : Time_Of_Day ! File_Error
     creation_time self =
         handle_java_exceptions self <| self.creation_time_builtin
 
@@ -399,7 +285,7 @@ type File
              import Standard.Examples
 
              example_exists = Examples.csv.last_modified_time
-    last_modified_time : Time ! File_Error
+    last_modified_time : Time_Of_Day ! File_Error
     last_modified_time self =
         handle_java_exceptions self <| self.last_modified_time_builtin
 
@@ -502,7 +388,7 @@ type File
         name = self.name
         last_dot = name.locate "." mode=Matching_Mode.Last
         if last_dot.is_nothing then "" else
-            extension = name.drop (First last_dot.start)
+            extension = name.drop (Index_Sub_Range.First last_dot.start)
             if extension == "." then "" else extension
 
     ## Converts this file to an equivalent file represented with an absolute
@@ -578,7 +464,7 @@ type File
     copy_to self destination replace_existing=False =
         handle_java_exceptions self <| case replace_existing of
             True ->
-              copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
+              copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
               self.copy_builtin destination copy_options
             False -> self.copy_builtin destination Array.empty
 
@@ -592,7 +478,7 @@ type File
     move_to self destination replace_existing=False =
         handle_java_exceptions self <| case replace_existing of
             True ->
-              copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
+              copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
               self.move_builtin destination copy_options
             False -> self.move_builtin destination Array.empty
 
@@ -615,35 +501,35 @@ type File
        Returns a new input stream for this file.
 
        Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
+       - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
 
        The returned stream should be closed as soon as it is not used anymore.
        The `with_input_stream` method should be preferred whenever possible.
-    new_input_stream : Vector -> Input_Stream ! File_Error
+    new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream close_stream
-        Input_Stream_Data self resource
+        Input_Stream.Value self resource
 
     ## ADVANCED
 
        Returns a new output stream for this file.
 
        Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
+       - open_options: A vector of `File_Access` objects determining how to open
          the stream. These options set the access properties of the stream.
 
        The returned stream should be closed as soon as it is not used anymore.
        The `with_output_stream` method should be preferred whenever possible.
-    new_output_stream : Vector -> Output_Stream ! File_Error
+    new_output_stream : Vector File_Access -> Output_Stream ! File_Error
     new_output_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self <|
             self.output_stream opts
         resource = Managed_Resource.register stream close_stream
-        Output_Stream_Data self resource
+        Output_Stream.Value self resource
 
     ## PRIVATE
 
@@ -746,14 +632,9 @@ type File
     to_text : Text
     to_text self = self.absolute . path
 
-# TODO Dubious constructor export
-from project.System.File.Output_Stream import all
-from project.System.File.Output_Stream export all
-
 ## An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream
-
     ## PRIVATE
 
        An output stream, allowing for interactive writing of contents into an
@@ -763,7 +644,7 @@ type Output_Stream
        - file: The file which the output stream will write into.
        - stream_resource: The internal resource that represents the underlying
          stream.
-    Output_Stream_Data file stream_resource
+    Value file stream_resource
 
     ## ADVANCED
 
@@ -775,15 +656,15 @@ type Output_Stream
        > Example
          Write some bytes through a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_write_bytes =
                  file = Examples.scratch_file
-                 out_stream = file.new_output_stream [Option.Create, Option.Write]
+                 out_stream = file.new_output_stream [File_Access.Create, File_Access.Write]
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
-    write_bytes : Vector -> Nothing ! File_Error
+    write_bytes : Vector File_Access -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             java_stream.write contents.to_array
@@ -801,12 +682,12 @@ type Output_Stream
        > Example
          Open and close a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_write_bytes =
                  file = Examples.scratch_file
-                 out_stream = file.new_output_stream [Option.Create]
+                 out_stream = file.new_output_stream [File_Access.Create]
                  out_stream.close
     close : Nothing
     close self = self.stream_resource . finalize
@@ -837,12 +718,8 @@ type Output_Stream
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
-        problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
-
-# TODO Dubious constructor export
-from project.System.File.Input_Stream import all
-from project.System.File.Input_Stream export all
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -857,7 +734,7 @@ type Input_Stream
        - file: The file from which the stream will read.
        - stream_resource: The internal resource that represents the underlying
          stream.
-    Input_Stream_Data file stream_resource
+    Value file stream_resource
 
     ## ADVANCED
 
@@ -866,12 +743,12 @@ type Input_Stream
        > Example
          Read all of the bytes from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_read_all =
                  file = Examples.csv
-                 in_stream = file.new_input_stream [Option.Read]
+                 in_stream = file.new_input_stream [File_Access.Read]
                  bytes = in_stream.read_all_bytes
                  in_stream.close
                  bytes
@@ -896,12 +773,12 @@ type Input_Stream
        > Example
          Read 10 of the bytes from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_read_all =
                  file = Examples.csv
-                 in_stream = file.new_input_stream [Option.Read]
+                 in_stream = file.new_input_stream [File_Access.Read]
                  bytes = in_stream.read_n_bytes 10
                  in_stream.close
                  bytes
@@ -921,12 +798,12 @@ type Input_Stream
        > Example
          Read byte from a file using a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_read_all =
                  file = Examples.csv
-                 in_stream = file.new_input_stream [Option.Read]
+                 in_stream = file.new_input_stream [File_Access.Read]
                  bytes = in_stream.read_byte
                  in_stream.close
                  bytes
@@ -946,12 +823,12 @@ type Input_Stream
        > Example
          Open and close a stream.
 
-             import Standard.Base.System.File.Option
+             import Standard.Base.System.File.File_Access.File_Access
              import Standard.Examples
 
              example_read_all =
                  file = Examples.csv
-                 in_stream = file.new_input_stream [Option.Read]
+                 in_stream = file.new_input_stream [File_Access.Read]
                  in_stream.close
     close : Nothing
     close self = self.stream_resource . finalize
@@ -975,7 +852,7 @@ type Input_Stream
     with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.from_polyglot_array results.problems . map Encoding_Error_Data
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
@@ -989,10 +866,10 @@ handle_java_exceptions file ~action =
 
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
-    if io_exception.is_a NoSuchFileException then Error.throw (File_Not_Found file) else
-        if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
-            if io_exception.is_a AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
-                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.to_text)
+    if io_exception.is_a NoSuchFileException then Error.throw (File_Error.Not_Found file) else
+        if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Error.Already_Exists file) else
+            if io_exception.is_a AccessDeniedException then Error.throw (File_Error.IO_Error file "You do not have permission to access the file") else
+                Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## PRIVATE
 
@@ -1002,39 +879,6 @@ close_stream : Any -> Nothing
 close_stream stream =
     stream.close
     Nothing
-
-# TODO Dubious constructor export
-from project.System.File.File_Error import all
-from project.System.File.File_Error export all
-
-type File_Error
-
-    ## An error that indicates that the requested file does not exist.
-
-       Arguments:
-       - file: The file that doesn't exist.
-    File_Not_Found file
-
-    ## Indicates that a destination file already exists.
-    File_Already_Exists_Error file
-
-    ## A generic IO error.
-
-       Arguments:
-       - file: The file that couldn't be read.
-       - message: The message for the error.
-    IO_Error file message
-
-    ## UNSTABLE
-
-       Convert the File error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
-        File_Not_Found  file -> "The file at " + file.path + " does not exist."
-        IO_Error file msg -> msg.to_text + " (" + file.path + ")."
-        File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
-
-
 
 ## PRIVATE
 
@@ -1069,65 +913,3 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
-
-## Writes (or appends) the text to the specified file using the supplied
-   encoding. The behavior specified in the `existing_file` parameter will be
-   used if the file exists.
-
-   Arguments:
-   - path: The path to the target file.
-   - encoding: The encoding to use when writing the file.
-   - on_existing_file: Specifies how to proceed if the file already exists.
-   - on_problems: Specifies how to handle any encountered problems.
-
-   If a character cannot be converted to a byte, an `Encoding_Error` is raised.
-   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
-   a substitute (either � (if Unicode) or ? depending on the encoding).
-   Otherwise, the process is aborted.
-   If the path to the parent location cannot be found or the filename is
-   invalid, a `File_Not_Found` is raised.
-   If another error occurs, such as access denied, an `IO_Error` is raised.
-   Otherwise, the file is created with the encoded text written to it.
-Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
-Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
-    bytes = self.bytes encoding on_problems
-    file = new path
-    on_existing_file.write file stream->
-        stream.write_bytes bytes
-
-## Writes (or appends) the Vector of bytes into the specified file. The behavior
-   specified in the `existing_file` parameter will be used if the file exists.
-
-   Arguments:
-   - path: The path to the target file.
-   - on_existing_file: Specifies how to proceed if the file already exists.
-
-   If the Vector contains any item which is not a `Byte`, an
-   `Illegal_Argument_Error` will be raised. Enso follows the Java convention,
-   that a `Byte` is between -128 and 127.
-   If the path to the parent location cannot be found or the filename is
-   invalid, a `File_Not_Found` is raised.
-   If another error occurs, such as access denied, an `IO_Error` is raised.
-   Otherwise, the file is created with the encoded text written to it.
-
-   > Example
-     Write the UTF-8 bytes of the text "$£§€¢" to a file.
-
-         import Standard.Examples
-
-         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file
-   > Example
-     Append the UTF-8 bytes of the text "$£§€¢" to a file.
-
-         import Standard.Examples
-
-         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
-Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
-    Panic.catch Unsupported_Argument_Types_Data handler=(_ -> Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
-        ## Convert to a byte array before writing - and fail early if there is any problem.
-        byte_array = Array_Builder.ensureByteArray self.to_array
-
-        file = new path
-        on_existing_file.write file stream->
-            stream.write_bytes (Vector.from_polyglot_array byte_array)
