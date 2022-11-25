@@ -43,43 +43,43 @@ find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Inte
 find_codepoint_ranges text subrange =
     case subrange of
         Text_Sub_Range.Before delimiter ->
-            if delimiter.is_empty then (Range.Range_Data 0 0) else
+            if delimiter.is_empty then (0.up_to 0) else
                 span = Text_Utils.span_of text delimiter
-                if span.is_nothing then (Range.Range_Data 0 (Text_Utils.char_length text)) else
-                    (Range.Range_Data 0 span.codeunit_start)
+                if span.is_nothing then (0.up_to (Text_Utils.char_length text)) else
+                    (0.up_to span.codeunit_start)
         Text_Sub_Range.Before_Last delimiter ->
-            if delimiter.is_empty then (Range.Range_Data 0 (Text_Utils.char_length text)) else
+            if delimiter.is_empty then (0.up_to (Text_Utils.char_length text)) else
                 span = Text_Utils.last_span_of text delimiter
-                if span.is_nothing then (Range.Range_Data 0 (Text_Utils.char_length text)) else
-                    (Range.Range_Data 0 span.codeunit_start)
+                if span.is_nothing then (0.up_to (Text_Utils.char_length text)) else
+                    (0.up_to span.codeunit_start)
         Text_Sub_Range.After delimiter ->
-            if delimiter.is_empty then (Range.Range_Data 0 (Text_Utils.char_length text)) else
+            if delimiter.is_empty then (0.up_to (Text_Utils.char_length text)) else
                 span = Text_Utils.span_of text delimiter
-                if span.is_nothing then (Range.Range_Data 0 0) else
-                    (Range.Range_Data span.codeunit_end (Text_Utils.char_length text))
+                if span.is_nothing then (0.up_to 0) else
+                    (span.codeunit_end.up_to (Text_Utils.char_length text))
         Text_Sub_Range.After_Last delimiter ->
-            if delimiter.is_empty then (Range.Range_Data 0 0) else
+            if delimiter.is_empty then (0.up_to 0) else
                 span = Text_Utils.last_span_of text delimiter
-                if span.is_nothing then (Range.Range_Data 0 0) else
-                    (Range.Range_Data span.codeunit_end (Text_Utils.char_length text))
+                if span.is_nothing then (0.up_to 0) else
+                    (span.codeunit_end.up_to (Text_Utils.char_length text))
         Index_Sub_Range.First count ->
-            if count <= 0 then (Range.Range_Data 0 0) else
+            if count <= 0 then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
                 start_index = iterator.next count
-                Range.Range_Data 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
+                0.up_to (if start_index == -1 then (Text_Utils.char_length text) else start_index)
         Index_Sub_Range.Last count ->
-            if count <= 0 then (Range.Range_Data 0 0) else
+            if count <= 0 then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
                 iterator.last
                 start_index = iterator.next -count
-                Range.Range_Data (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
+                (if start_index == -1 then 0 else start_index).up_to (Text_Utils.char_length text)
         Index_Sub_Range.While predicate ->
             indices = find_sub_range_end text _-> start-> end->
                 predicate (Text_Utils.substring text start end) . not
-            if indices.first.is_nothing then (Range.Range_Data 0 indices.second) else
-                Range.Range_Data 0 indices.first
+            if indices.first.is_nothing then (0.up_to indices.second) else
+                0.up_to indices.first
         Index_Sub_Range.By_Index indices ->
             case indices of
                 _ : Vector ->
@@ -93,8 +93,8 @@ find_codepoint_ranges text subrange =
         Index_Sub_Range.Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 len = text.length
-                if start >= len then Range.Range_Data 0 0 else
-                    range = Range.Range_Data start text.length step
+                if start >= len then 0.up_to 0 else
+                    range = start.up_to text.length . with_step step
                     find_codepoint_ranges text (Index_Sub_Range.By_Index range)
         _ : Range ->
             find_codepoint_ranges text (Index_Sub_Range.By_Index subrange)
@@ -137,8 +137,8 @@ find_sub_range_end text predicate =
     iterator.setText text
 
     loop index start end =
-        if end == -1 then (Pair.Value Nothing start) else
-            if predicate index start end then (Pair.Value start end) else
+        if end == -1 then (Pair.new Nothing start) else
+            if predicate index start end then (Pair.new start end) else
                 @Tail_Call loop (index + 1) end iterator.next
 
     loop 0 0 iterator.next
@@ -154,11 +154,11 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
             start = iterator.next descriptor
             end = iterator.next
             if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds_Error_Data descriptor text.length) else
-                Range.Range_Data start end
+                start.up_to end
         _ : Range ->
             len = text.length
             true_range = normalize_range descriptor len
-            if descriptor.is_empty then Range.Range_Data 0 0 else
+            if descriptor.is_empty then 0.up_to 0 else
                 case true_range.step == 1 of
                     True -> range_to_char_indices text true_range
                     False ->
@@ -167,7 +167,7 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
                         go start_index current_grapheme =
                             end_index = iterator.next
                             if (start_index == -1) || (end_index == -1) || (current_grapheme >= true_range.end) then Nothing else
-                                ranges.append (Range.Range_Data start_index end_index)
+                                ranges.append (start_index.up_to end_index)
                                 ## We advance by step-1, because we already advanced by
                                    one grapheme when looking for the end of the previous
                                    one.
@@ -186,7 +186,7 @@ character_ranges text =
     iterator.setText text
     ranges = Vector.new_builder
     go prev nxt = if nxt == -1 then Nothing else
-        ranges.append (Range.Range_Data prev nxt)
+        ranges.append (prev.up_to nxt)
         @Tail_Call go nxt iterator.next
     go iterator.first iterator.next
     ranges.to_vector
@@ -206,13 +206,13 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
             _ : Integer ->
                 ranges.append (Panic.rethrow <| characters.at descriptor)
             _ : Range ->
-                if descriptor.is_empty then Range.Range_Data 0 0 else
+                if descriptor.is_empty then 0.up_to 0 else
                     true_range = normalize_range descriptor characters.length
                     case true_range.step == 1 of
                         True ->
                             first_grapheme = Panic.rethrow <| characters.at true_range.start
                             last_grapheme = Panic.rethrow <| characters.at true_range.end-1
-                            ranges.append (Range.Range_Data first_grapheme.start last_grapheme.end)
+                            ranges.append (first_grapheme.start.up_to last_grapheme.end)
                         False ->
                             if true_range.start >= characters.length then
                                 Panic.throw (Index_Out_Of_Bounds_Error_Data true_range.start characters.length)
@@ -233,5 +233,5 @@ normalize_range range length =
         Panic.throw (Illegal_Argument_Error_Data "Ranges with negative indices are not supported for indexing.")
     if (range.start >= length) then
         Panic.throw (Index_Out_Of_Bounds_Error_Data range.start length)
-    if range.end >= length then Range.Range_Data range.start length range.step else
+    if range.end >= length then range.start.up_to length . with_step range.step else
         range

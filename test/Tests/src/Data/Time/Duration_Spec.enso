@@ -8,10 +8,10 @@ polyglot java import java.time.LocalDateTime as Java_DateTime
 
 
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
-    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
-    Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error_Data err.payload.cause))
+    Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload.cause))
 
 foreign js js_datetime_impl year month day hour minute second nanosecond = """
     if (month > 12 || month < 1) {
@@ -68,12 +68,12 @@ spec =
             periods = [(Period.new days=1), (Period.new 0), (Period.new years=30), (Period.new years=3 months=2)]
             durations.each duration->
                 periods.each period->
-                    (duration + period).should_fail_with Time_Error_Data
-                    (duration - period).should_fail_with Time_Error_Data
-                    (period + duration).should_fail_with Time_Error_Data
-                    (period - duration).should_fail_with Time_Error_Data
-                    (duration > period).should_fail_with Time_Error_Data
-                    (duration < period).should_fail_with Time_Error_Data
+                    (duration + period).should_fail_with Time_Error.Error
+                    (duration - period).should_fail_with Time_Error.Error
+                    (period + duration).should_fail_with Time_Error.Error
+                    (period - duration).should_fail_with Time_Error.Error
+                    (duration > period).should_fail_with Time_Error.Error
+                    (duration < period).should_fail_with Time_Error.Error
 
         Test.specify "Date_Time supports adding and subtracting Duration" <|
             ((Date_Time.new 2022 10 1 hour=10) + (Duration.new hours=2)) . should_equal (Date_Time.new 2022 10 1 hour=12)

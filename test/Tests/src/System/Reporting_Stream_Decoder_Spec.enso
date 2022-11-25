@@ -13,7 +13,7 @@ spec =
             f.delete_if_exists
             f.exists.should_be_false
             "Cup".write f
-            f.with_input_stream [File.Option.Read] stream->
+            f.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder Encoding.utf_8 reporting_stream_decoder->
                     reporting_stream_decoder.read.should_equal 67
                     reporting_stream_decoder.read.should_equal 117
@@ -35,7 +35,7 @@ spec =
                         chars.each all_codepoints.append
                         chars
 
-            result = f.with_input_stream [File.Option.Read] stream->
+            result = f.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder Encoding.utf_8 Problem_Behavior.Report_Error decoder->
                     read_chars decoder 1 . should_equal "H".codepoints
                     read_chars decoder 2 . should_equal "el".codepoints
@@ -88,12 +88,12 @@ spec =
         Test.specify "should raise warnings when reading invalid characters" <|
             encoding = Encoding.ascii
             expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            expected_problems = [Encoding_Error_Data "Encoding issues at bytes 14, 15, 16."]
+            expected_problems = [Encoding_Error.Error "Encoding issues at bytes 14, 15, 16."]
             contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
             contents_1.should_equal expected_contents
             Warning.get_all contents_1 . map .value . should_equal expected_problems
 
-            contents_2 = windows_file.with_input_stream [File.Option.Read] stream->
+            contents_2 = windows_file.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder encoding Problem_Behavior.Report_Warning reporting_stream_decoder->
                     codepoint_1 = reporting_stream_decoder.read
                     codepoints_1 = read_characters reporting_stream_decoder 5
@@ -105,12 +105,12 @@ spec =
             Warning.get_all contents_2 . map .value . should_equal expected_problems
 
         Test.specify "should work correctly if no data is read from it" <|
-            result = windows_file.with_input_stream [File.Option.Read] stream->
+            result = windows_file.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder Encoding.ascii Problem_Behavior.Report_Error _->Nothing
             result.should_succeed
 
 read_file_one_by_one file encoding expected_size on_problems=Problem_Behavior.Report_Error =
-    file.with_input_stream [File.Option.Read] stream->
+    file.with_input_stream [File_Access.Read] stream->
         stream.with_stream_decoder encoding on_problems reporting_stream_decoder->
             codepoints = 0.up_to expected_size . map _->
                 reporting_stream_decoder.read

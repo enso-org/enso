@@ -1,6 +1,5 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Every
-from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector, Position, Column_Selector
 import Standard.Table.Data.Value_Type.Value_Type
@@ -844,47 +843,47 @@ spec prefix table_builder test_selection pending=Nothing =
             table.drop (Last 100) . should_equal empty
 
         Test.specify "should allow selecting rows by ranges or indices" <|
-            table.take (Range_Data 2 4) . at "beta" . to_vector . should_equal ["C", "D"]
-            table.take (Range_Data 0 0) . should_equal empty
-            table.take (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            table.take (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
-            table.take (Range_Data 0 100) . should_equal table
-            table.take (Range_Data 0 table.row_count) . should_equal table
-            empty.take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            empty.take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
-            table.take (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.take (2.up_to 4) . at "beta" . to_vector . should_equal ["C", "D"]
+            table.take (0.up_to 0) . should_equal empty
+            table.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.take (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            table.take (0.up_to 100) . should_equal table
+            table.take (0.up_to table.row_count) . should_equal table
+            empty.take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty.take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            table.take (100.up_to 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
-            table.drop (Range_Data 2 4) . at "alpha" . to_vector . should_equal [1, 2, 5, 6, 7, 8]
-            table.drop (Range_Data 0 0) . should_equal table
-            table.drop (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            table.drop (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
-            table.drop (Range_Data 0 100) . should_equal empty
-            table.drop (Range_Data 0 table.row_count) . should_equal empty
-            empty.drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            empty.drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
-            table.drop (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.drop (2.up_to 4) . at "alpha" . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            table.drop (0.up_to 0) . should_equal table
+            table.drop (100.up_to 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.drop (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            table.drop (0.up_to 100) . should_equal empty
+            table.drop (0.up_to table.row_count) . should_equal empty
+            empty.drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty.drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            table.drop (100.up_to 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             table.take (Index_Sub_Range.By_Index 0) . at "beta" . to_vector . should_equal ["A"]
             empty.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.take (Index_Sub_Range.By_Index []) . should_equal empty
             table.take (Index_Sub_Range.By_Index [-1, -1]) . at "beta" . to_vector . should_equal ["H", "H"]
-            table.take (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . at "alpha" . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
-            table.take (Range_Data 0 100 2) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
-            table.take (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . at "alpha" . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
-            table.take (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . at "alpha" . to_vector . should_equal [2, 3, 3, 4, 5]
-            table.take (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . at "alpha" . to_vector . should_equal [3, 4, 5, 2, 3]
-            table.take (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.take (Index_Sub_Range.By_Index [0, 0, 3.up_to 100]) . at "alpha" . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            table.take (0.up_to 100 . with_step 2) . at "alpha" . to_vector . should_equal [1, 3, 5, 7]
+            table.take (Index_Sub_Range.By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . at "alpha" . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            table.take (Index_Sub_Range.By_Index [1.up_to 3, 2.up_to 5]) . at "alpha" . to_vector . should_equal [2, 3, 3, 4, 5]
+            table.take (Index_Sub_Range.By_Index [2.up_to 5, 1.up_to 3]) . at "alpha" . to_vector . should_equal [3, 4, 5, 2, 3]
+            table.take (Index_Sub_Range.By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             table.drop (Index_Sub_Range.By_Index 0) . at "alpha" . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
             table.drop (Index_Sub_Range.By_Index []) . should_equal table
             table.drop (Index_Sub_Range.By_Index [-1, -1]) . at "alpha" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            table.drop (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . at "alpha" . to_vector . should_equal [2, 3]
-            table.drop (Range_Data 0 100 2) . at "alpha" . to_vector . should_equal [2, 4, 6, 8]
-            table.drop (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . at "alpha" . to_vector . should_equal [8]
-            table.drop (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
-            table.drop (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
-            table.drop (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.drop (Index_Sub_Range.By_Index [0, 0, 3.up_to 100]) . at "alpha" . to_vector . should_equal [2, 3]
+            table.drop (0.up_to 100 . with_step 2) . at "alpha" . to_vector . should_equal [2, 4, 6, 8]
+            table.drop (Index_Sub_Range.By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . at "alpha" . to_vector . should_equal [8]
+            table.drop (Index_Sub_Range.By_Index [1.up_to 3, 2.up_to 5]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [2.up_to 5, 1.up_to 3]) . at "alpha" . to_vector . should_equal [1, 6, 7, 8]
+            table.drop (Index_Sub_Range.By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             table.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should allow selecting every Nth row" <|
@@ -984,47 +983,47 @@ spec prefix table_builder test_selection pending=Nothing =
             alpha.drop (Last 100) . should_equal empty_alpha
 
         Test.specify "should allow selecting rows by ranges or indices" <|
-            beta.take (Range_Data 2 4) . to_vector . should_equal ["C", "D"]
-            beta.take (Range_Data 0 0) . should_equal empty_beta
-            beta.take (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            beta.take (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
-            beta.take (Range_Data 0 100) . should_equal beta
-            beta.take (Range_Data 0 table.row_count) . should_equal beta
-            empty_beta.take (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            empty_beta.take (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
-            beta.take (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            beta.take (2.up_to 4) . to_vector . should_equal ["C", "D"]
+            beta.take (0.up_to 0) . should_equal empty_beta
+            beta.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            beta.take (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            beta.take (0.up_to 100) . should_equal beta
+            beta.take (0.up_to table.row_count) . should_equal beta
+            empty_beta.take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty_beta.take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            beta.take (100.up_to 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
-            alpha.drop (Range_Data 2 4) . to_vector . should_equal [1, 2, 5, 6, 7, 8]
-            alpha.drop (Range_Data 0 0) . should_equal alpha
-            alpha.drop (Range_Data 100 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            alpha.drop (Range_Data 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
-            alpha.drop (Range_Data 0 100) . should_equal empty_alpha
-            alpha.drop (Range_Data 0 table.row_count) . should_equal empty_alpha
-            empty_alpha.drop (Range_Data 0 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
-            empty_alpha.drop (Range_Data 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
-            alpha.drop (Range_Data 100 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.drop (2.up_to 4) . to_vector . should_equal [1, 2, 5, 6, 7, 8]
+            alpha.drop (0.up_to 0) . should_equal alpha
+            alpha.drop (100.up_to 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.drop (100.up_to 100) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 100 8)
+            alpha.drop (0.up_to 100) . should_equal empty_alpha
+            alpha.drop (0.up_to table.row_count) . should_equal empty_alpha
+            empty_alpha.drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            empty_alpha.drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error_Data 0 0)
+            alpha.drop (100.up_to 99) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             beta.take (Index_Sub_Range.By_Index 0) . to_vector . should_equal ["A"]
             empty_beta.take (Index_Sub_Range.By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data
             beta.take (Index_Sub_Range.By_Index []) . should_equal empty_beta
             beta.take (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal ["H", "H"]
-            alpha.take (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
-            alpha.take (Range_Data 0 100 2) . to_vector . should_equal [1, 3, 5, 7]
-            alpha.take (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
-            alpha.take (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . to_vector . should_equal [2, 3, 3, 4, 5]
-            alpha.take (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . to_vector . should_equal [3, 4, 5, 2, 3]
-            alpha.take (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.take (Index_Sub_Range.By_Index [0, 0, 3.up_to 100]) . to_vector . should_equal [1, 1, 4, 5, 6, 7, 8]
+            alpha.take (0.up_to 100 . with_step 2) . to_vector . should_equal [1, 3, 5, 7]
+            alpha.take (Index_Sub_Range.By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . to_vector . should_equal [1, 3, 5, 7, 2, 4, 6]
+            alpha.take (Index_Sub_Range.By_Index [1.up_to 3, 2.up_to 5]) . to_vector . should_equal [2, 3, 3, 4, 5]
+            alpha.take (Index_Sub_Range.By_Index [2.up_to 5, 1.up_to 3]) . to_vector . should_equal [3, 4, 5, 2, 3]
+            alpha.take (Index_Sub_Range.By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             alpha.take (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
             alpha.drop (Index_Sub_Range.By_Index 0) . to_vector . should_equal [2, 3, 4, 5, 6, 7, 8]
             alpha.drop (Index_Sub_Range.By_Index []) . should_equal alpha
             alpha.drop (Index_Sub_Range.By_Index [-1, -1]) . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            alpha.drop (Index_Sub_Range.By_Index [0, 0, Range_Data 3 100]) . to_vector . should_equal [2, 3]
-            alpha.drop (Range_Data 0 100 2) . to_vector . should_equal [2, 4, 6, 8]
-            alpha.drop (Index_Sub_Range.By_Index [Range_Data 0 100 2, Range_Data 1 6 2]) . to_vector . should_equal [8]
-            alpha.drop (Index_Sub_Range.By_Index [Range_Data 1 3, Range_Data 2 5]) . to_vector . should_equal [1, 6, 7, 8]
-            alpha.drop (Index_Sub_Range.By_Index [Range_Data 2 5, Range_Data 1 3]) . to_vector . should_equal [1, 6, 7, 8]
-            alpha.drop (Index_Sub_Range.By_Index [0, 1, Range_Data 100 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
+            alpha.drop (Index_Sub_Range.By_Index [0, 0, 3.up_to 100]) . to_vector . should_equal [2, 3]
+            alpha.drop (0.up_to 100 . with_step 2) . to_vector . should_equal [2, 4, 6, 8]
+            alpha.drop (Index_Sub_Range.By_Index [0.up_to 100 . with_step 2, 1.up_to 6 . with_step 2]) . to_vector . should_equal [8]
+            alpha.drop (Index_Sub_Range.By_Index [1.up_to 3, 2.up_to 5]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [2.up_to 5, 1.up_to 3]) . to_vector . should_equal [1, 6, 7, 8]
+            alpha.drop (Index_Sub_Range.By_Index [0, 1, 100.up_to 200]) . should_fail_with Index_Out_Of_Bounds_Error_Data
             alpha.drop (Index_Sub_Range.By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error_Data
 
         Test.specify "should allow selecting every Nth row" <|

@@ -1,6 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.Runtime.Ref
+import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
 

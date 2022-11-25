@@ -1,5 +1,7 @@
-from Standard.Base import all
-import Standard.Base.System
+import project.Data.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Vector.Vector
+import project.System
 
 polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Random_Utils
