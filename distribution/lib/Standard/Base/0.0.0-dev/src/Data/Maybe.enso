@@ -1,4 +1,6 @@
-from Standard.Base import all
+import project.Data.Any.Any
+
+from project.Data.Boolean import Boolean, True, False
 
 ## A type representing computations that may fail.
 type Maybe

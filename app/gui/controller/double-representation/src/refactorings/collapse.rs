@@ -10,7 +10,6 @@ use crate::definition;
 use crate::definition::DefinitionInfo;
 use crate::graph::GraphInfo;
 use crate::identifier::Identifier;
-use crate::identifier::ReferentName;
 use crate::node;
 use crate::node::MainLine;
 use crate::node::NodeInfo;
@@ -41,7 +40,7 @@ pub fn collapse(
     selected_nodes: impl IntoIterator<Item = node::Id>,
     name: Identifier,
     parser: &Parser,
-    module_name: ReferentName,
+    module_name: String,
 ) -> FallibleResult<Collapsed> {
     Collapser::new(graph.clone(), selected_nodes, parser.clone_ref(), module_name)?.collapse(name)
 }
@@ -298,7 +297,7 @@ pub struct Collapser {
     parser:         Parser,
     /// Identifier of the node to be introduced as a result of collapsing.
     collapsed_node: node::Id,
-    module_name:    ReferentName,
+    module_name:    String,
 }
 
 impl Collapser {
@@ -308,7 +307,7 @@ impl Collapser {
         graph: GraphInfo,
         selected_nodes: impl IntoIterator<Item = node::Id>,
         parser: Parser,
-        module_name: ReferentName,
+        module_name: String,
     ) -> FallibleResult<Self> {
         let graph = GraphHelper::new(graph);
         let extracted = Extracted::new(&graph, selected_nodes)?;
@@ -324,7 +323,7 @@ impl Collapser {
     pub fn call_to_extracted(&self, extracted: &definition::ToAdd) -> FallibleResult<Ast> {
         // TODO actually check that generated name is single-identifier
         let mut target = extracted.name.clone();
-        target.extended_target.insert(0, Located::new_root(self.module_name.clone().into()));
+        target.extended_target.insert(0, Located::new_root(self.module_name.clone()));
         let base = target.ast(&self.parser)?;
         let args = extracted.explicit_parameter_names.iter().map(Ast::var);
         let chain = ast::prefix::Chain::new(base, args);
@@ -392,7 +391,7 @@ mod tests {
     use ast::crumbs::Crumb;
 
     struct Case {
-        module_name:         ReferentName,
+        module_name:         String,
         refactored_name:     DefinitionName,
         introduced_name:     Identifier,
         initial_method_code: &'static str,
@@ -445,7 +444,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_collapse() {
         let parser = Parser::new_or_panic();
-        let module_name = ReferentName::new("Main".to_owned()).unwrap();
+        let module_name = "Main".to_owned();
         let introduced_name = Identifier::try_from("custom_new").unwrap();
         let refactored_name = DefinitionName::new_plain("custom_old");
         let initial_method_code = r"custom_old =

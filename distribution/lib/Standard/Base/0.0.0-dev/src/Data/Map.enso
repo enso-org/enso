@@ -1,15 +1,14 @@
 import project.Data.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Map.Internal
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Data.Pair.Pair
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error
-
-import project.Data.Map.Internal
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
@@ -454,7 +453,7 @@ type Map
     first : Pair
     first self =
         first p m = case m of
-            Map.Bin _ k v l _ -> @Tail_Call first (Pair.Value k v) l
+            Map.Bin _ k v l _ -> @Tail_Call first (Pair.new k v) l
             Map.Tip -> p
         first Nothing self
 
@@ -463,7 +462,7 @@ type Map
     last : Pair
     last self =
         last p m = case m of
-            Map.Bin _ k v _ r -> @Tail_Call last (Pair.Value k v) r
+            Map.Bin _ k v _ r -> @Tail_Call last (Pair.new k v) r
             Map.Tip -> p
         last Nothing self
 

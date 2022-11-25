@@ -288,7 +288,7 @@ impl<E: Entry> ListData<E, E::Params> {
                 entry.entry.update(&default());
             }
         };
-        entry.entry.set_position_y(Self::position_y_of_entry(id));
+        entry.entry.set_y(Self::position_y_of_entry(id));
     }
 }
 

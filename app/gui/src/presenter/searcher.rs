@@ -59,7 +59,7 @@ fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
         Kind::Local => format!("Node {}", suggestion.name),
         Kind::Method => {
             let preposition = if suggestion.self_type.is_some() { " of " } else { "" };
-            let self_type = suggestion.self_type.as_ref().map_or("", |tp| &tp.name);
+            let self_type = suggestion.self_type.as_ref().map_or("", |tp| tp.name());
             format!("Method {}{}{}", suggestion.name, preposition, self_type)
         }
         Kind::Module => format!("Module {}", suggestion.name),

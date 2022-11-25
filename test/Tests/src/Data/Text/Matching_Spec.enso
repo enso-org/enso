@@ -57,8 +57,8 @@ spec = Test.group 'Matching Helper' <|
         Problems.test_problem_handling action_2 problems_2 tester
 
     Test.specify 'should correctly work with complex object using a function extracting their names' <|
-        pairs = [Pair.Value "foo" 42, Pair.Value "bar" 33, Pair.Value "baz" 10, Pair.Value "foo" 0, Pair.Value 10 10]
-        selected = [Pair.Value "bar" 33, Pair.Value "foo" 42, Pair.Value "foo" 0]
+        pairs = [Pair.new "foo" 42, Pair.new "bar" 33, Pair.new "baz" 10, Pair.new "foo" 0, Pair.new 10 10]
+        selected = [Pair.new "bar" 33, Pair.new "foo" 42, Pair.new "foo" 0]
         Text_Matcher.Case_Sensitive.match_criteria pairs ["bar", "foo"] reorder=True name_mapper=_.first . should_equal selected
 
         Text_Matcher.Case_Sensitive.match_criteria [1, 2, 3] ["2"] name_mapper=_.to_text . should_equal [2]

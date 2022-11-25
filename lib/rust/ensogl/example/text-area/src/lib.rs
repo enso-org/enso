@@ -128,22 +128,22 @@ impl Borders {
             eval area.height ([borders](h) {
                 borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
                 borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.right.set_position_y(-h/2.0);
-                borders.left.set_position_y(-h/2.0);
+                borders.right.set_y(-h/2.0);
+                borders.left.set_y(-h/2.0);
 
                 borders.bottom_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.bottom.color_rgba.set(RED);
-                borders.bottom.set_position_y(-*h);
+                borders.bottom.set_y(-*h);
             });
             eval area.width ([borders](w) {
                 borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
                 borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.top.set_position_x(w/2.0);
-                borders.bottom.set_position_x(w/2.0);
+                borders.top.set_x(w/2.0);
+                borders.bottom.set_x(w/2.0);
 
                 borders.right_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.right.color_rgba.set(RED);
-                borders.right.set_position_x(*w);
+                borders.right.set_x(*w);
             });
         }
         mem::forget(frp);

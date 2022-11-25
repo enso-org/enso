@@ -111,6 +111,71 @@ impl Size {
 
 
 
+// ===================
+// === SizedObject ===
+// ===================
+
+/// A display object bound with [`Size`].
+#[derive(Debug)]
+pub struct SizedObject {
+    size:           Size,
+    display_object: display::object::Instance,
+}
+
+impl SizedObject {
+    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
+        let size = Size::new(attr);
+        let display_object = display::object::Instance::new();
+        let weak_display_object = display_object.downgrade();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_updated ([transform] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    transform.set(display_object.transformation_matrix())
+                }
+            });
+        }
+        Self { size, display_object }.init()
+    }
+
+    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// callbacks.
+    fn init(self) -> Self {
+        let size = &self.size;
+        let display_object = &self.display_object;
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_show(size.show());
+            eval_ display_object.on_hide(size.hide());
+        }
+        self
+    }
+
+    /// Clone ref the underlying [`Size`].
+    pub fn clone_ref(&self) -> Size {
+        self.size.clone_ref()
+    }
+}
+
+impl HasItem for SizedObject {
+    type Item = Vector2;
+}
+
+impl CellGetter for SizedObject {
+    fn get(&self) -> Vector2 {
+        self.size.get()
+    }
+}
+
+impl CellSetter for SizedObject {
+    fn set(&self, v: Vector2) {
+        self.size.set(v);
+        self.display_object.set_bounding_box(v);
+    }
+}
+
+
+
 // ==============
 // === Sprite ===
 // ==============
@@ -119,17 +184,44 @@ impl Size {
 /// freely rotated only by their local z-axis. This implementation, however, implements sprites as
 /// full 3D objects. We may want to fork this implementation in the future to create a specialized
 /// 2d representation as well.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Sprite {
-    pub symbol:           Symbol,
+    model: Rc<SpriteModel>,
+}
+
+/// Internal representation of [`Sprite`].
+#[derive(Debug, Deref)]
+#[allow(missing_docs)]
+pub struct SpriteModel {
+    #[deref]
     pub instance:         SymbolInstance,
-    pub size:             Size,
-    display_object:       display::object::Instance,
+    pub symbol:           Symbol,
+    pub size:             SizedObject,
     transform:            Attribute<Matrix4<f32>>,
-    stats:                Rc<SpriteStats>,
-    erase_on_drop:        Rc<EraseOnDrop<Attribute<Vector2<f32>>>>,
-    unset_parent_on_drop: Rc<display::object::UnsetParentOnDrop>,
+    stats:                SpriteStats,
+    erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
+    unset_parent_on_drop: display::object::UnsetParentOnDrop,
+}
+
+impl SpriteModel {
+    /// Constructor.
+    pub fn new(
+        symbol: &Symbol,
+        instance: SymbolInstance,
+        transform: Attribute<Matrix4<f32>>,
+        size: Attribute<Vector2<f32>>,
+        stats: &Stats,
+    ) -> Self {
+        let symbol = symbol.clone_ref();
+        let stats = SpriteStats::new(stats);
+        let erase_on_drop = EraseOnDrop::new(size.clone_ref());
+        let size = SizedObject::new(size, &transform);
+        let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
+        let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
+        size.set(default_size);
+        Self { symbol, instance, size, transform, stats, erase_on_drop, unset_parent_on_drop }
+    }
 }
 
 impl Sprite {
@@ -141,37 +233,8 @@ impl Sprite {
         size: Attribute<Vector2<f32>>,
         stats: &Stats,
     ) -> Self {
-        let symbol = symbol.clone_ref();
-        let display_object = display::object::Instance::new();
-        let stats = Rc::new(SpriteStats::new(stats));
-        let erase_on_drop = Rc::new(EraseOnDrop::new(size.clone_ref()));
-        let size = Size::new(size);
-        let unset_parent_on_drop =
-            Rc::new(display::object::UnsetParentOnDrop::new(&display_object));
-        let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
-        size.set(default_size);
-        Self {
-            symbol,
-            instance,
-            size,
-            display_object,
-            transform,
-            stats,
-            erase_on_drop,
-            unset_parent_on_drop,
-        }
-        .init()
-    }
-
-    /// Init display object bindings. In particular defines the behavior of the show and hide
-    /// callbacks.
-    fn init(self) -> Self {
-        let size = &self.size;
-        let transform = &self.transform;
-        self.display_object.set_on_updated(f!((t) transform.set(t.matrix())));
-        self.display_object.set_on_hide(f_!(size.hide()));
-        self.display_object.set_on_show(f__!(size.show()));
-        self
+        let model = SpriteModel::new(symbol, instance, transform, size, stats);
+        Self { model: Rc::new(model) }
     }
 
     /// Get the symbol id.
@@ -188,16 +251,15 @@ impl Sprite {
     }
 }
 
-impl display::Object for Sprite {
+impl display::Object for SpriteModel {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.size.display_object
     }
 }
 
-impl Deref for Sprite {
-    type Target = SymbolInstance;
-    fn deref(&self) -> &Self::Target {
-        &self.instance
+impl display::Object for Sprite {
+    fn display_object(&self) -> &display::object::Instance {
+        self.model.display_object()
     }
 }
 
@@ -310,13 +372,14 @@ impl SpriteSystem {
 
     fn init_shader(&self) {
         let shader = self.symbol.shader();
-        let surface_material = Self::surface_material();
-        let geometry_material = Self::geometry_material();
+        let surface_material = Self::default_surface_material();
+        let geometry_material = Self::default_geometry_material();
         shader.set_geometry_material(&geometry_material);
         shader.set_material(&surface_material);
     }
 
-    fn geometry_material() -> Material {
+    /// The default geometry material for all sprites.
+    pub fn default_geometry_material() -> Material {
         let mut material = Material::new();
         material.add_input_def::<Vector2<f32>>("size");
         material.add_input_def::<Vector2<f32>>("uv");
@@ -328,10 +391,10 @@ impl SpriteSystem {
         material.set_main(
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
-                input_local                = vec3((input_uv - input_alignment) * input_size, 0.0);
-                gl_Position                = model_view_projection * vec4(input_local,1.0);
-                input_local.z              = gl_Position.z;
-                ",
+                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
+                gl_Position = model_view_projection * vec4(input_local,1.0);
+                input_local.z = gl_Position.z;
+            ",
             // This is left here in case it will be needed. The `instance_id` is the same as the
             // built-in `gl_InstanceID` and can be implemented very efficiently:
             // input_instance_id = gl_InstanceID;
@@ -339,7 +402,8 @@ impl SpriteSystem {
         material
     }
 
-    fn surface_material() -> Material {
+    /// The default surface material for all sprites.
+    pub fn default_surface_material() -> Material {
         let mut material = Material::new();
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more

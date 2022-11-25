@@ -2373,6 +2373,7 @@ dependencies = [
 name = "enso-types"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
  "enso-reflect",
  "nalgebra",
  "num-traits",

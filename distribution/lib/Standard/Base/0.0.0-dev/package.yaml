@@ -12,9 +12,10 @@ component-groups:
   new:
     - Input:
         exports:
-          - Standard.Base.System.File.new
-          - Standard.Base.System.File.read
-          - Standard.Base.System.File.read_text
+          - Standard.Base.System.File.File.new
+          - Standard.Base.Data.read_file
+          - Standard.Base.Data.read_text_file
+          - Standard.Base.Data.list_directory
     - Web:
         exports:
           - Standard.Base.Network.Http.new

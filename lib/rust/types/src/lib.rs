@@ -29,6 +29,8 @@
 // ==============
 
 pub mod algebra;
+pub mod dim;
+pub mod dim_macros;
 pub mod num;
 pub mod topology;
 pub mod unit;

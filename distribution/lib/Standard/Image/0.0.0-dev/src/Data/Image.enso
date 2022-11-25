@@ -58,10 +58,10 @@ type Image
        > Example
          Read the image and convert it to grayscale.
              Image.read "image.png" Read_Flag.Grayscale
-    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.IO_Error
+    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File_Error
     read location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         read_flags = case flags of
             _ : Vector ->
@@ -69,7 +69,7 @@ type Image
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
         Panic.catch_java Any (Image.Value (Java_Codecs.read path read_flags)) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to read the file')
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
 
     ## UNSTABLE
 
@@ -90,17 +90,17 @@ type Image
        > Example
          Write the image with applying several flags.
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
-    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
+    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         write_flags = case flags of
             _ : Vector -> flags
             _ -> [flags]
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
         Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
     ## UNSTABLE
 
