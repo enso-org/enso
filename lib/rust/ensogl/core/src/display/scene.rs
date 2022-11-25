@@ -162,9 +162,7 @@ impl Mouse {
                     let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
                     position.set(new_canvas_position);
                     let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
-                    if display_mode.get().allow_mouse_events() {
-                        frp.position.emit(position);
-                    }
+                    frp.position.emit(position);
                 }
             }),
         ));
