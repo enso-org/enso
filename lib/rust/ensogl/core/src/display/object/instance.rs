@@ -482,9 +482,11 @@ impl Model {
             trace!("Hiding.");
             self.visible.set(false);
             self.on_hide_source.emit(scene.cloned());
-            self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_false(scene));
-            });
+            self.children
+                .borrow()
+                .iter()
+                .filter_map(|t| t.upgrade())
+                .for_each(|t| t.set_vis_false(scene));
         }
     }
 
@@ -494,11 +496,13 @@ impl Model {
             self.visible.set(true);
             let assigned_layer_borrow = self.assigned_layer.borrow();
             let assigned_layer = assigned_layer_borrow.as_ref();
-            let new_layer = if assigned_layer.is_none() { parent_layer } else { assigned_layer };
+            let new_layer = assigned_layer.or(parent_layer);
             self.on_show_source.emit((scene.cloned(), new_layer.cloned()));
-            self.children.borrow().iter().for_each(|child| {
-                child.upgrade().for_each(|t| t.set_vis_true(scene, new_layer));
-            });
+            self.children
+                .borrow()
+                .iter()
+                .filter_map(|t| t.upgrade())
+                .for_each(|t| t.set_vis_true(scene, new_layer));
         }
     }
 

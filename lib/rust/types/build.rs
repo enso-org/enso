@@ -31,6 +31,7 @@ use std::io::Write as IoWrite;
 
 const FILE: &str = "src/dim_macros.rs";
 const AXES: &[&str] = &["x", "y", "z", "w"];
+const INDENT_SIZE: usize = 4;
 
 
 
@@ -38,8 +39,8 @@ const AXES: &[&str] = &["x", "y", "z", "w"];
 // === Formatting Utils ===
 // ========================
 
-fn indent(size: usize) -> String {
-    " ".repeat(size * 4)
+fn indent(level: usize) -> String {
+    " ".repeat(level * INDENT_SIZE)
 }
 
 
