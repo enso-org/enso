@@ -96,30 +96,38 @@ impl Handle {
         }
     }
 
-    /// Store the given content to file.
+    /// Save the project to the VCS.
     #[profile(Detail)]
-    pub fn store_content(&self, content: String) -> impl Future<Output = FallibleResult> {
+    pub fn save_project_to_vcs(&self) -> impl Future<Output = FallibleResult> {
         let file_handle = self.file.clone_ref();
         async move {
-            match file_handle {
-                FileHandle::PlainText { path, language_server } =>
-                    language_server.write_file(&path, &content).await?,
+            let (path, ls) = match file_handle {
+                FileHandle::PlainText { path, language_server } => {
+                    let path = path.parent().unwrap().parent().unwrap();
+                    (path, language_server)
+                },
                 FileHandle::Module { controller } => {
-                    controller.check_code_sync(content)?;
-                    controller.save_file().await?;
-
-                    // VCS test
                     let path = controller.model.path().clone_ref();
-                    let path = path.parent().unwrap();
-                    let language_server = controller.language_server.clone_ref();
-                    warn!("{}", path);
-                    //language_server.init_vcs(&path).await?;
-                    language_server.write_vcs(&path, &Some("test".into())).await?;
-                    let list = language_server.list_vcs(&path, &Some(10)).await?;
-                    warn!("{:?}", list);
-                    ()
+                    let path = path.parent().unwrap().parent().unwrap();
+                    let ls = controller.language_server.clone_ref();
+                    (path, ls)
                 }
+            };
+
+            let response = ls.write_vcs(&path, &None).await;
+            if let Err(RpcError::RemoteError(
+                json_rpc::messages::Error{code: FILE_NOT_FOUND, ..}
+            )) = response {
+                ls.init_vcs(&path).await?;
+                ls.write_vcs(&path, &None).await?;
+            } else {
+                response?;
             }
+            
+            // verify that project state is saved
+            let list = ls.list_vcs(&path, &Some(10)).await?;
+            warn!("{:?}", list);
+            
             Ok(())
         }
     }

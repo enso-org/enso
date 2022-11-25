@@ -43,10 +43,10 @@ impl Model {
         }
     }
 
-    fn save_module(&self, content: String) {
+    fn save_module(&self) {
         let controller = self.controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(err) = controller.store_content(content).await {
+            if let Err(err) = controller.save_project_to_vcs().await {
                 error!("Error while saving module: {err}");
             }
         })
@@ -86,8 +86,7 @@ impl Code {
             change_to_apply <- maybe_change_to_apply.gate(&desynchronized);
             eval change_to_apply ((change) model.apply_change_from_view(change));
 
-            code_to_save <- code_in_controller.sample(&project_view.save_module);
-            eval code_to_save ((code) model.save_module(code.to_string()));
+            eval_ project_view.save_module(model.save_module());
         }
 
 
