@@ -1096,9 +1096,9 @@ type Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         # TODO check for cross-backend joins
         java_conditions = on.map condition-> case condition of
-            Join_Condition.Equals left right ->
+            Join_Condition.Equals left_selector right_selector ->
                 # TODO better handling of unmatched columns?
-                Java_Join_Equals (self.at left . java_column) (right.at right . java_column)
+                Java_Join_Equals.new (self.at left_selector . java_column) (right.at right_selector . java_column)
             _ -> unimplemented "Conditions other than Equals are not implemented yet."
 
         # [left_unmatched, matched, right_unmatched]
@@ -1109,7 +1109,7 @@ type Table
             Join_Kind.Full            -> [True, True, True]
             Join_Kind.Left_Exclusive  -> [True, False, False]
             Join_Kind.Right_Exclusive -> [False, False, True]
-        new_table = self.java_table.join other.java_table java_conditions (what_to_keep.at 0) (what_to_keep.at 1) (what_to_keep.at 2) right_prefix
+        new_table = self.java_table.join right.java_table java_conditions (what_to_keep.at 0) (what_to_keep.at 1) (what_to_keep.at 2) right_prefix
         Table.Table_Data new_table
 
     ## ALIAS dropna

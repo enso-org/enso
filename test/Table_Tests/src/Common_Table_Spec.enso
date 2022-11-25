@@ -1517,3 +1517,25 @@ spec prefix table_builder test_selection pending=Nothing =
             # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
             t2 = table_builder [["X", 0.up_to 200 . to_vector]]
             t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data
+
+    # TODO I really need to split this huge file into parts; We need a prototype soon so not doing it now, but I'd do it right away in the next PR. It's too much of a mess.
+    join_pending = if prefix.contains "In-Memory" then Nothing else "New Joining API is not supported by the database backends yet."
+    Test.group prefix+"Table.join" pending=join_pending <|
+        Test.specify "should allow to join on equality of a the first column by default" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
+
+            t3 = t1.join t2
+            t3.columns . map .name . should_equal ["X", "Y", "Z", "W"]
+            t4 = t3.order_by ["X", "W"] # TODO materialize for DB
+            t4.at "X" . to_vector . should_equal [2, 2, 3]
+            t4.at "Z" . to_vector . should_equal [2, 2, 3]
+            t4.at "Y" . to_vector . should_equal [5, 5, 6]
+            t4.at "W" . to_vector . should_equal [4, 6, 5]
+
+        Test.specify "should allow to join on equality of multiple columns" <|
+            Nothing
+        Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
+            Nothing
+        Test.specify "should rename columns of the right table to avoid duplicates" <|
+            Nothing
