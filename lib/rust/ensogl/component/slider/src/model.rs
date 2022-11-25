@@ -10,7 +10,7 @@ use crate::ValueIndicator;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::component::slider as theme;
 use ensogl_text as text;
 use ensogl_text::formatting::ResolvedProperty;
 use ensogl_tooltip::Tooltip;
@@ -125,7 +125,7 @@ mod overflow {
             let width = width - COMPONENT_MARGIN.px() * 2.0;
             let height = height - COMPONENT_MARGIN.px() * 2.0;
 
-            let color = style.get_color(theme::component::slider::overflow::color);
+            let color = style.get_color(theme::overflow::color);
             let triangle = Triangle(width.clone(), height.clone());
             let triangle = triangle.fill(color);
 
@@ -230,8 +230,15 @@ impl Model {
 
     /// Initialise slider model.
     pub fn init(self, style: StyleWatch) -> Self {
-        let background_color = style.get_color(theme::component::slider::background::color);
-        let track_color = style.get_color(theme::component::slider::track::color);
+        let background_color = style.get_color(theme::background::color);
+        let track_color = style.get_color(theme::track::color);
+        if let Some(display::style::Data::Text(font)) = style.get(theme::text::font) {
+            self.value_text_left.set_font(&font);
+            self.value_text_dot.set_font(&font);
+            self.value_text_right.set_font(&font);
+            self.value_text_edit.set_font(&font);
+            self.label.set_font(&font);
+        }
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
         self.thumb.color.set(track_color.into());
