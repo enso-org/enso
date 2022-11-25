@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
-
 import Standard.Base.Network.Http
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
@@ -13,7 +11,7 @@ import Standard.Base.Network.Http.Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 
 polyglot java import java.lang.System
 
@@ -30,8 +28,8 @@ spec =
         url_get = base_url_with_slash + "get"
         url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
-            http = Http.new (timeout = (Duration.seconds 30))
-            http.timeout.should_equal (Duration.seconds 30)
+            http = Http.new (timeout = (Duration.new seconds=30))
+            http.timeout.should_equal (Duration.new seconds=30)
         Test.specify "should create HTTP client with follow_redirects setting" <|
             http = Http.new (follow_redirects = False)
             http.follow_redirects.should_equal False
@@ -51,7 +49,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -65,7 +63,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -80,7 +78,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -101,7 +99,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -120,7 +118,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -140,7 +138,7 @@ spec =
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "text/plain",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -160,7 +158,7 @@ spec =
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -180,7 +178,7 @@ spec =
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -210,7 +208,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -233,7 +231,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -256,7 +254,7 @@ spec =
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -276,7 +274,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -292,7 +290,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -317,7 +315,7 @@ spec =
                   "headers": {
                     "Content-Length": "16",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.13"
+                    "User-Agent": "Java-http-client/11.0.17"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -336,3 +334,5 @@ spec =
             res = Http.new.request req_with_body
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+
+main = Test_Suite.run_main spec

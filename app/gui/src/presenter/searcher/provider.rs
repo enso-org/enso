@@ -246,6 +246,9 @@ fn controller_group_to_grid_group_info(
     id: component_grid::GroupId,
     group: &component::Group,
 ) -> component_grid::content::Group {
+    if group.name == "Unnamed.Foo" {
+        warn!("GROUP {id:?}: {group:#?}");
+    }
     component_grid::content::Group {
         id,
         height: group.matched_items.get(),

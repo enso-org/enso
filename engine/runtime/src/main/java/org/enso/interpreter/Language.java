@@ -1,6 +1,9 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -59,6 +62,7 @@ import org.graalvm.options.OptionType;
   StandardTags.ExpressionTag.class,
   StandardTags.StatementTag.class,
   StandardTags.RootTag.class,
+  StandardTags.RootBodyTag.class,
   StandardTags.TryBlockTag.class,
   IdentifiedTag.class,
   AvoidIdInstrumentationTag.class,
@@ -167,7 +171,7 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected CallTarget parse(ParsingRequest request) {
     RootNode root = ProgramRootNode.build(this, request.getSource());
-    return Truffle.getRuntime().createCallTarget(root);
+    return root.getCallTarget();
   }
 
   @Option(
@@ -189,7 +193,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the top scope of the requested contenxt.
+   * Returns the top scope of the requested context.
    *
    * @param context the context holding the top scope
    * @return the language's top scope

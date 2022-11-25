@@ -47,7 +47,7 @@ public class EnsoCompilerTest {
   @Test
   public void testLocationsApplicationsAndMethodCalls() throws Exception {
     parseTest("""
-    main = (2-2 == 0).if_then_else (Cons 5 6) 0
+    main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
     """, true, true, true);
   }
 
@@ -511,12 +511,9 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore
   public void testVariousKindsOfUnicodeWhitespace() throws Exception {
-    // mimics Text_Spec.enso:1049 and 722
-    // search for: # Disabled in the New Parser
     parseTest("""
-    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}\\u{feff}'.trim
+    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}'.trim
     """);
   }
 
@@ -615,7 +612,7 @@ public class EnsoCompilerTest {
   public void testReverseListType() throws Exception {
     parseTest("""
     reverse_list : List Any -> List
-    reverse_list list = Nil
+    reverse_list list = List.Nil
     """);
   }
 
@@ -624,11 +621,11 @@ public class EnsoCompilerTest {
     parseTest("""
     reverse_list list =
         go = list -> acc -> case list of
-            Cons h t -> go t (Cons h acc)
-            Cons h _ -> acc
-            Nil -> acc
+            List.Cons h t -> go t (List.Cons h acc)
+            List.Cons h _ -> acc
+            ListNil -> acc
             _ -> acc
-        res = go list Nil
+        res = go list List.Nil
         res
     """);
   }
@@ -945,7 +942,7 @@ public class EnsoCompilerTest {
     ansi_bold enabled txt =
         case Platform.os of
             ## Output formatting for Windows is not currently supported.
-            Platform.Windows -> txt
+            Platform.OS.Windows -> txt
             _ -> if enabled then Nothing
     """);
   }
@@ -1034,14 +1031,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // Old parser's representation of this is inconsistent with normal treatment of names.
-  public void testConstructorMultipleNamedArgs2() throws Exception {
-    parseTest("""
-    x = (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) dot_matches_newline=True
-    """);
-  }
-
-  @Test
   public void testDocAtEndOfBlock() throws Exception {
     parseTest("""
     x =
@@ -1101,11 +1090,11 @@ public class EnsoCompilerTest {
   @Test
   public void testAtomBenchmarks1() throws Exception {
     parseTest("""
-    from Standard.Base.Data.List import Cons,Nil
+    import Standard.Base.Data.List.List
 
     main =
         generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
-        res = generator (acc -> x -> Cons x acc) Nil 1 1000000
+        res = generator (acc -> x -> List.Cons x acc) List.Nil 1 1000000
         res
     """);
   }
@@ -1113,14 +1102,14 @@ public class EnsoCompilerTest {
   @Test
   public void testAtomBenchmarks3() throws Exception {
     parseTest("""
-    from Standard.Base.Data.List import all
+    import Standard.Base.Data.List.List
 
-    List.List.mapReverse self f acc = case self of
-        Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+    List.mapReverse self f acc = case self of
+        List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
         _ -> acc
 
     main = list ->
-        res = list.mapReverse (x -> x + 1) Nil
+        res = list.mapReverse (x -> x + 1) List.Nil
         res
     """, true, true, false);
   }
@@ -1163,7 +1152,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testSimpleTrippleQuote() throws Exception {
+  public void testSimpleTripleQuote() throws Exception {
     parseTest("""
     expected_response = Json.parse <| '''
         {
@@ -1189,7 +1178,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // enable CodeLocationsTest: "be correct in the presence of comments"
   public void testInThePresenceOfComments() throws Exception {
     parseTest("""
     # this is a comment

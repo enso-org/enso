@@ -1,7 +1,8 @@
 package org.enso.languageserver.io
 
-import java.io.OutputStream
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
 
+import java.io.OutputStream
 import org.enso.languageserver.io.ObservableOutputStream.OutputObserver
 
 /** An observable output stream of bytes. It accepts output bytes
@@ -15,11 +16,13 @@ class ObservableOutputStream extends OutputStream {
   private var observers = Set.empty[OutputObserver]
 
   /** @inheritdoc */
+  @TruffleBoundary
   override def write(byte: Int): Unit = lock.synchronized {
     notify(Array[Byte](byte.toByte))
   }
 
   /** @inheritdoc */
+  @TruffleBoundary
   override def write(bytes: Array[Byte]): Unit = lock.synchronized {
     if (bytes.length > 0) {
       notify(bytes)
@@ -27,6 +30,7 @@ class ObservableOutputStream extends OutputStream {
   }
 
   /** @inheritdoc */
+  @TruffleBoundary
   override def write(bytes: Array[Byte], off: Int, len: Int): Unit =
     lock.synchronized {
       if (len > 0) {
@@ -52,6 +56,7 @@ class ObservableOutputStream extends OutputStream {
     observers -= observer
   }
 
+  @TruffleBoundary
   protected def notify(output: Array[Byte]): Unit = {
     observers foreach { _.update(output) }
   }

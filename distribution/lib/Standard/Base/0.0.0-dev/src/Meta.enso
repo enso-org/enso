@@ -119,7 +119,7 @@ type Polyglot
 
    Arguments:
    - atom: The atom to obtain the constructor for.
-get_atom_constructor : Atom -> Atom_Constructor
+get_atom_constructor : Atom -> Constructor
 get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
 
 ## PRIVATE
@@ -135,14 +135,14 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
    ADVANCED
 
    Returns a vector of field values of the given atom.
-Atom.fields : Vector.Vector
+Atom.fields : Vector
 Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns a constructor value of the given atom.
-Atom.constructor : Atom_Constructor
+Atom.constructor : Constructor
 Atom.constructor self = get_atom_constructor self.value ...
 
 # Polyglot methods
@@ -172,7 +172,7 @@ Polyglot.get_language self =
    Arguments:
    - name: The name of the unresolved symbol.
    - scope: The scope in which the symbol name is unresolved.
-create_unresolved_symbol : Text -> Module_Scope -> Unresolved_Symbol
+create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
 create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
 
 ## PRIVATE
@@ -190,7 +190,7 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
 
    Arguments:
    - symbol: The unresolved symbol from which to get the scope.
-get_unresolved_symbol_scope : Unresolved_Symbol -> Module_Scope
+get_unresolved_symbol_scope : Unresolved_Symbol -> Any
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
 # Constructor methods
@@ -200,7 +200,7 @@ get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol
 
    Arguments:
    - atom_constructor: The constructor from which to get the fields.
-get_constructor_fields : Atom_Constructor -> Array
+get_constructor_fields : Constructor -> Array
 get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
 
 ## PRIVATE
@@ -209,7 +209,7 @@ get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_
 
    Arguments:
    - atom_constructor: The atom constructor from which to obtain the name.
-get_constructor_name : Atom_Constructor -> Text
+get_constructor_name : Constructor -> Text
 get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 
 ## PRIVATE
@@ -219,14 +219,14 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
    Arguments:
    - constructor: The constructor for the atom to create.
    - fields: The arguments to pass to constructor.
-new_atom : Atom_Constructor -> Array -> Atom
+new_atom : Constructor -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
 ## UNSTABLE
    ADVANCED
 
    Returns a vector of field names defined by a constructor.
-Constructor.fields : Vector.Vector
+Constructor.fields : Vector
 Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
 
 ## UNSTABLE
@@ -244,7 +244,7 @@ Constructor.name self = get_constructor_name self.value
    Arguments:
    - fields: A vector of arguments to pass to the constructor when creating the
      new atom.
-Constructor.new : Vector.Vector -> Any
+Constructor.new : Vector -> Any
 Constructor.new self fields = new_atom self.value fields.to_array
 
 
@@ -318,20 +318,20 @@ is_a value typ = if is_same_object value typ then True else
     if typ == Any then True else
         if is_error value then typ == Base.Error else
             case value of
-                _ : Vector.Vector -> typ.is_same_object_as Vector.Vector
+                _ : Vector -> typ.is_same_object_as Vector
                 _ : Array -> typ == Array
                 _ : Boolean -> if typ == Boolean then True else value == typ
                 _ : Text -> typ == Text
                 _ : Number -> if typ == Number then True else case value of
                     _ : Integer -> typ == Integer
                     _ : Decimal -> typ == Decimal
-                _ : Date_Time.Date_Time -> typ.is_same_object_as Date_Time.Date_Time
-                _ : Date.Date      -> typ.is_same_object_as Date.Date
-                _ : Duration.Duration -> typ.is_same_object_as Duration.Duration
-                _ : Time_Of_Day.Time_Of_Day -> typ.is_same_object_as Time_Of_Day.Time_Of_Day
-                _ : Time_Zone.Time_Zone -> typ.is_same_object_as Time_Zone.Time_Zone
-                Base.Polyglot ->
-                    typ==Base.Polyglot || java_instance_check value typ
+                _ : Date_Time -> typ.is_same_object_as Date_Time
+                _ : Date      -> typ.is_same_object_as Date
+                _ : Duration -> typ.is_same_object_as Duration
+                _ : Time_Of_Day -> typ.is_same_object_as Time_Of_Day
+                _ : Time_Zone -> typ.is_same_object_as Time_Zone
+                Base.Polyglot.Polyglot ->
+                    typ==Base.Polyglot.Polyglot || java_instance_check value typ
                 _ ->
                     meta_val = meta value
                     case meta_val of
@@ -361,7 +361,7 @@ java_instance_check value typ =
    Arguments:
    - value: the value to get the type of.
 type_of : Any -> Any
-type_of value = @Builtin_Method "Meta.type_of_builtin"
+type_of value = @Builtin_Method "Meta.type_of"
 
 # TODO Dubious constructor export
 from project.Meta.Language import all
@@ -433,17 +433,6 @@ is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
    the call.
 
    Arguments:
-   - frames_to_skip: how many frames on the stack to skip. Called with 0
-     will return exact location of the call.
-get_source_location_builtin : Integer -> Text
-get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
-
-## PRIVATE
-
-   Returns a Text representing the source location of a stack frame above
-   the call.
-
-   Arguments:
    - skip_frames: how many frames on the stack to skip.
 
    If the function is called with 0 it will return the location of that call.
@@ -454,6 +443,17 @@ get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_lo
 get_source_location : Integer -> Text
 get_source_location skip_frames =
     get_source_location_builtin skip_frames+1
+
+## PRIVATE
+
+   Returns a Text representing the source location of a stack frame above
+   the call.
+
+   Arguments:
+   - frames_to_skip: how many frames on the stack to skip. Called with 0
+     will return exact location of the call.
+get_source_location_builtin : Integer -> Text
+get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_location_builtin"
 
 ## PRIVATE
 

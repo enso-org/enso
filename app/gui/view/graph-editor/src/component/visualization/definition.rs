@@ -4,8 +4,8 @@ use crate::data::*;
 use crate::prelude::*;
 
 use crate::visualization;
+use crate::Application;
 
-use ensogl::display::Scene;
 use std::fmt::Formatter;
 use visualization::java_script;
 
@@ -64,20 +64,20 @@ impl Signature {
 pub struct Definition {
     pub signature:   Signature,
     #[derivative(Debug = "ignore")]
-    pub constructor: Rc<dyn Fn(&Scene) -> InstantiationResult>,
+    pub constructor: Rc<dyn Fn(&Application) -> InstantiationResult>,
 }
 
 impl Definition {
     /// Constructor.
     pub fn new<F>(signature: impl Into<Signature>, constructor: F) -> Self
-    where F: 'static + Fn(&Scene) -> InstantiationResult {
+    where F: 'static + Fn(&Application) -> InstantiationResult {
         let signature = signature.into();
         let constructor = Rc::new(constructor);
         Self { signature, constructor }
     }
 
     /// Creates a new instance of the visualization.
-    pub fn new_instance(&self, scene: &Scene) -> InstantiationResult {
+    pub fn new_instance(&self, scene: &Application) -> InstantiationResult {
         (self.constructor)(scene)
     }
 

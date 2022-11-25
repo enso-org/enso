@@ -1,14 +1,9 @@
-import Standard.Base.System.File
-
-## TODO Dubious constructor export
-from project.Meta.Enso_Project.Project_Description import all
-from project.Meta.Enso_Project.Project_Description export all
-
+import project.Data.Text.Text
+import project.System.File.File
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
-
     ## A representation of an Enso project.
 
        Arguments:
@@ -23,7 +18,7 @@ type Project_Description
          Get the root directory of the project.
 
              enso_project.root
-    root : File.File
+    root : File
     root self = File.new self.prim_root_file
 
     ## Returns the root data directory of the project.
@@ -32,7 +27,7 @@ type Project_Description
          Get the data directory of the project.
 
              enso_project.data
-    data : File.File
+    data : File
     data self = self.root / "data"
 
     ## Returns the name of the project.

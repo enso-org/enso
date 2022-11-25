@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::alias_analysis::analyze_crumbable;
 use crate::definition::DefinitionInfo;
 use crate::definition::ScopeKind;
-use crate::identifier::NormalizedName;
 use crate::node::Id;
 use crate::node::MainLine;
 
@@ -71,7 +70,7 @@ pub struct Connection {
 pub fn list_block(block: &ast::Block<Ast>) -> Vec<Connection> {
     let identifiers = analyze_crumbable(block);
     let introduced_iter = identifiers.introduced.into_iter();
-    type NameMap = HashMap<NormalizedName, Endpoint>;
+    type NameMap = HashMap<String, Endpoint>;
     let introduced_names = introduced_iter
         .flat_map(|name| {
             let endpoint = Endpoint::new_in_block(block, name.crumbs)?;

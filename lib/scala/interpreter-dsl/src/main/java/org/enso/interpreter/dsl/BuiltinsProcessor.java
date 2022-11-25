@@ -3,6 +3,15 @@ package org.enso.interpreter.dsl;
 import org.enso.interpreter.dsl.builtins.*;
 
 import com.google.common.base.CaseFormat;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.openide.util.lookup.ServiceProvider;
 
 import javax.annotation.processing.*;
@@ -11,8 +20,6 @@ import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
-import java.io.*;
-import java.util.*;
 import java.util.stream.IntStream;
 
 /**
@@ -169,7 +176,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                         processingEnv,
                         methodName,
                         annotation.description(),
-                        method.getSimpleName().toString());
+                        method.getSimpleName().toString(),
+                        annotation.autoRegister());
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                   }
@@ -222,7 +230,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 processingEnv,
                 builtinMethodName,
                 annotation.description(),
-                method.getSimpleName().toString());
+                method.getSimpleName().toString(),
+                annotation.autoRegister());
           } else {
             return;
           }
@@ -235,7 +244,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
               processingEnv,
               builtinMethodName,
               annotation.description(),
-              method.getSimpleName().toString());
+              method.getSimpleName().toString(),
+              annotation.autoRegister());
         }
       }
     } else {

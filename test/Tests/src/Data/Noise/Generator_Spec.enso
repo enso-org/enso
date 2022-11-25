@@ -1,18 +1,19 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Noise.Generator
+import Standard.Base.Data.Noise.Deterministic_Random
 import Standard.Base.Error.Common
 
 from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "Generator Interface" <|
-        gen = Generator.Generator
+        gen = Generator
         Test.specify "should not be invokable" <|
             interval = Interval.inclusive 0 1
             Test.expect_panic_with (gen.step 1 interval) Common.Unimplemented_Error_Data
     Test.group "Deterministic Random Noise Generator" <|
-        gen = Generator.Deterministic_Random
+        gen = Deterministic_Random
         Test.specify "should always return the same output for the same input" <|
             interval = Interval.inclusive 0 1
             values = Vector.fill 10000 1 . map (gen.step _ interval)

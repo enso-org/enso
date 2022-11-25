@@ -13,22 +13,23 @@ import java.io.File;
 @BuiltinMethod(
     type = "Java",
     name = "add_to_class_path",
-    description = "Adds a path to the host class path.")
+    description = "Adds a path to the host class path.",
+    autoRegister = false)
 public abstract class AddToClassPathNode extends Node {
 
   static AddToClassPathNode build() {
     return AddToClassPathNodeGen.create();
   }
 
+  abstract Object execute(Object path);
+
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Object doExecute(Object self, Object path, @Cached ExpectStringNode expectStringNode) {
+  Object doExecute(Object path, @Cached ExpectStringNode expectStringNode) {
     Context context = Context.get(this);
     context
         .getEnvironment()
         .addToHostClassPath(context.getTruffleFile(new File(expectStringNode.execute(path))));
     return context.getBuiltins().nothing();
   }
-
-  abstract Object execute(Object self, Object path);
 }

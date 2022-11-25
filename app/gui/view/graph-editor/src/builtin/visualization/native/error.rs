@@ -8,6 +8,7 @@ use crate::component::visualization;
 use crate::SharedHashMap;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -104,13 +105,14 @@ impl Error {
     /// Definition of this visualization.
     pub fn definition() -> Definition {
         let path = Self::path();
-        Definition::new(Signature::new_for_any_type(path, Format::Json), |scene| {
-            Ok(Self::new(scene).into())
+        Definition::new(Signature::new_for_any_type(path, Format::Json), |app| {
+            Ok(Self::new(app).into())
         })
     }
 
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let network = frp::Network::new("js_visualization_raw_text");
         let frp = visualization::instance::Frp::new(&network);
         let model = Model::new(scene.clone_ref());

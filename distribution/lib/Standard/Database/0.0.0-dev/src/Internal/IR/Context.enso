@@ -38,7 +38,7 @@ type Context
 
        Arguments:
        - subquery: The subquery to lift into a context.
-    for_subquery : Sub_Query -> Context
+    for_subquery : From_Spec -> Context
     for_subquery subquery =
         Context.Value subquery [] [] [] [] Nothing
 

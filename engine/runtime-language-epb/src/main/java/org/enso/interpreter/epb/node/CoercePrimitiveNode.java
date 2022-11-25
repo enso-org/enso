@@ -1,10 +1,12 @@
 package org.enso.interpreter.epb.node;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.strings.TruffleString;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -72,6 +74,12 @@ public abstract class CoercePrimitiveNode extends Node {
   @Specialization
   String doString(String s) {
     return s;
+  }
+
+  @Specialization
+  String doTruffleString(
+      TruffleString truffleString, @Cached TruffleString.ToJavaStringNode toJavaStringNode) {
+    return toJavaStringNode.execute(truffleString);
   }
 
   @Specialization

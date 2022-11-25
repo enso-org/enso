@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base
 
 ## An ID used by the visualization system to identify different ways of
    displaying data.
@@ -18,8 +17,8 @@ type Id
             Id.Builtin _ -> Nothing
             Id.Library project _ ->
                 full_name = project.namespace + "." + project.name
-                Base.Json.from_pairs [["name", full_name]]
-        Base.Json.from_pairs [["library", project], ["name", self.name]]
+                Json.from_pairs [["name", full_name]]
+        Json.from_pairs [["library", project], ["name", self.name]]
 
 ## UNSTABLE
    ADVANCED

@@ -39,7 +39,7 @@ type Spreadsheets
     get_table self sheet_id sheet_range =
         request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
         response = request.execute
-        values = Vector.Vector response.getValues . map Vector.Vector
+        values = Vector.from_polyglot_array response.getValues . map Vector.Vector
         columned = values.map v-> [v.head, v.tail]
         Table.new columned
 
@@ -49,12 +49,11 @@ type Spreadsheets
    - secret_file: a file containing Google Service Account credentials to use to
      access Google services. The credentials file can be downloaded from the
      Google Admin Console when generating a key.
-initialize : File.File -> Google_Api_Client
+initialize : File -> Google_Api_Client
 initialize secret_file =
-    credential = secret_file.with_input_stream [File.Option.Read] stream->
+    credential = secret_file.with_input_stream [File_Access.Read] stream->
         stream.with_java_stream is->
             GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
     http_transport = GoogleNetHttpTransport.newTrustedTransport
     json_factory = GsonFactory.getDefaultInstance
     Google_Api_Client.Value credential json_factory http_transport
-
