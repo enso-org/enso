@@ -149,7 +149,7 @@ impl Mouse {
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp, scene_frp, position, last_position, display_mode] (event: &mouse::OnMove) {
+            f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
