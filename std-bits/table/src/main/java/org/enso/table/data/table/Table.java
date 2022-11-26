@@ -275,12 +275,24 @@ public class Table {
     return new Table(newCols, index);
   }
 
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, String right_prefix) {
+  /**
+   * Performs a join of this table with the right table, based on the provided
+   * conditions.
+   *
+   * The parameters {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched} control which rows should be returned. They can all be set to {@code false} to emulate an empty result in erroneous conditions.
+   *
+   * The parameters {@code includeLeftColumns} and {@code includeRightColumns} control which columns should be included in the result. In most cases they will both be set to true. They allow to easily implement exclusive joins which only keep columns form one table.
+   */
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, String right_prefix) {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
     JoinStrategy strategy = new ScanJoin();
-    JoinResult joinResult = strategy.join(this, right, conditions);
+    JoinResult joinResult = null;
+    // Only compute the join if there are any results to be returned.
+    if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
+      joinResult = strategy.join(this, right, conditions);
+    }
 
     List<Integer> leftRows = new ArrayList<>();
     List<Integer> rightRows = new ArrayList<>();
@@ -325,17 +337,21 @@ public class Table {
 
     List<Column> newColumns = new ArrayList<>();
 
-    for (Column column : this.columns) {
-      Column newColumn = column.applyMask(leftMask);
-      newColumns.add(newColumn);
+    if (includeLeftColumns) {
+      for (Column column : this.columns) {
+        Column newColumn = column.applyMask(leftMask);
+        newColumns.add(newColumn);
+      }
     }
 
-    for (Column column : right.getColumns()) {
-      // TODO drop columns from Equals conditions if equal names too
-      String newName = deduplicator.makeUnique(column.getName());
-      Storage<?> newStorage = column.getStorage().applyMask(rightMask);
-      Column newColumn = new Column(newName, newStorage);
-      newColumns.add(newColumn);
+    if (includeRightColumns) {
+      for (Column column : right.getColumns()) {
+        // TODO drop columns from Equals conditions if equal names too
+        String newName = deduplicator.makeUnique(column.getName());
+        Storage<?> newStorage = column.getStorage().applyMask(rightMask);
+        Column newColumn = new Column(newName, newStorage);
+        newColumns.add(newColumn);
+      }
     }
 
     return new Table(newColumns.toArray(new Column[0]));

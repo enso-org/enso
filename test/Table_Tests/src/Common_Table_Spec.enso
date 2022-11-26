@@ -5,6 +5,8 @@ from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selecto
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name, By_Index, By_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
+import Standard.Table.Data.Join_Condition.Join_Condition
+import Standard.Table.Data.Join_Kind.Join_Kind
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error_Data, Unsupported_Database_Operation_Error_Data
@@ -1521,9 +1523,9 @@ spec prefix table_builder test_selection pending=Nothing =
     # TODO I really need to split this huge file into parts; We need a prototype soon so not doing it now, but I'd do it right away in the next PR. It's too much of a mess.
     join_pending = if prefix.contains "In-Memory" then Nothing else "New Joining API is not supported by the database backends yet."
     Test.group prefix+"Table.join" pending=join_pending <|
-        Test.specify "should allow to join on equality of a the first column by default" <|
-            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
-            t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
+        t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+        t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
+        Test.specify "should allow to inner join on equality of a the first column by default" <|
 
             t3 = t1.join t2
             t3.columns . map .name . should_equal ["X", "Y", "Z", "W"]
@@ -1532,6 +1534,39 @@ spec prefix table_builder test_selection pending=Nothing =
             t4.at "Z" . to_vector . should_equal [2, 2, 3]
             t4.at "Y" . to_vector . should_equal [5, 5, 6]
             t4.at "W" . to_vector . should_equal [4, 6, 5]
+
+        Test.specify "should allow to perform all kinds of joins" <|
+            t3 = t1.join t2 join_kind=Join_Kind.Full . order_by ["X", "W"]
+            t3.columns.map .name . should_equal ["X", "Y", "Z", "W"]
+            t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
+            t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+            t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
+            t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
+
+            t4 = t1.join t2 join_kind=Join_Kind.Left_Outer . order_by ["X", "W"]
+            t4.columns.map .name . should_equal ["X", "Y", "Z", "W"]
+            t4.at "X" . to_vector . should_equal [1, 2, 2, 3]
+            t4.at "Y" . to_vector . should_equal [4, 5, 5, 6]
+            t4.at "Z" . to_vector . should_equal [Nothing, 2, 2, 3]
+            t4.at "W" . to_vector . should_equal [Nothing, 4, 6, 5]
+
+            t5 = t1.join t2 join_kind=Join_Kind.Right_Outer . order_by ["X", "W"]
+            t5.columns.map .name . should_equal ["X", "Y", "Z", "W"]
+            t5.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
+            t5.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+            t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
+            t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
+
+        Test.specify "should allow to perform anti-joins" <|
+            t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive . order_by ["X"]
+            t6.columns.map .name . should_equal ["X", "Y"]
+            t6.at "X" . to_vector . should_equal [1]
+            t6.at "Y" . to_vector . should_equal [4]
+
+            t7 = t1.join t2 join_kind=Join_Kind.Right_Exclusive . order_by ["Z"]
+            t7.columns.map .name . should_equal ["Z", "W"]
+            t7.at "Z" . to_vector . should_equal [4]
+            t7.at "W" . to_vector . should_equal [7]
 
         Test.specify "should allow to join on equality of multiple columns" <|
             Nothing

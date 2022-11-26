@@ -1095,21 +1095,28 @@ type Table
     join : Table -> Join_Kind -> Join_Condition | Vector Join_Condition | Vector Text -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         # TODO check for cross-backend joins
-        java_conditions = on.map condition-> case condition of
-            Join_Condition.Equals left_selector right_selector ->
-                # TODO better handling of unmatched columns?
-                Java_Join_Equals.new (self.at left_selector . java_column) (right.at right_selector . java_column)
-            _ -> unimplemented "Conditions other than Equals are not implemented yet."
 
         # [left_unmatched, matched, right_unmatched]
-        what_to_keep = case join_kind of
+        rows_to_keep = case join_kind of
             Join_Kind.Inner           -> [False, True, False]
             Join_Kind.Left_Outer      -> [True, True, False]
             Join_Kind.Right_Outer     -> [False, True, True]
             Join_Kind.Full            -> [True, True, True]
             Join_Kind.Left_Exclusive  -> [True, False, False]
             Join_Kind.Right_Exclusive -> [False, False, True]
-        new_table = self.java_table.join right.java_table java_conditions (what_to_keep.at 0) (what_to_keep.at 1) (what_to_keep.at 2) right_prefix
+
+        columns_to_keep = case join_kind of
+            Join_Kind.Left_Exclusive  -> [True, False]
+            Join_Kind.Right_Exclusive -> [False, True]
+            _                         -> [True, True]
+
+        java_conditions = on.map condition-> case condition of
+            Join_Condition.Equals left_selector right_selector ->
+                # TODO better handling of unmatched columns?
+                Java_Join_Equals.new (self.at left_selector . java_column) (right.at right_selector . java_column)
+            _ -> unimplemented "Conditions other than Equals are not implemented yet."
+
+        new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_prefix
         Table.Table_Data new_table
 
     ## ALIAS dropna
