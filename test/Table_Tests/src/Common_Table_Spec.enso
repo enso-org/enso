@@ -1552,8 +1552,8 @@ spec prefix table_builder test_selection pending=Nothing =
 
             t5 = t1.join t2 join_kind=Join_Kind.Right_Outer . order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t5
-            t5.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
-            t5.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+            t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
+            t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
             t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
             t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
