@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base
 
-import Standard.Base.System.Platform
 from Standard.Test import Test, Test_Suite
 
 type My_Type
@@ -9,12 +8,12 @@ type My_Type
 
 spec = Test.group "Meta-Value Inspection" <|
     location_pending = case Platform.os of
-        Platform.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
+        Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
         _ -> Nothing
 
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Location_Spec.enso:16:15-40"
+        loc = "Meta_Location_Spec.enso:15:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

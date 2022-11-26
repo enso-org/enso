@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Runtime.Ref
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Test, Test_Suite
 

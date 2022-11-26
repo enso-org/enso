@@ -1,17 +1,11 @@
-from Standard.Base import all
-
 polyglot java import java.nio.file.StandardOpenOption
-
-# TODO Dubious constructor export
-from project.System.File.Option.Option import all
-from project.System.File.Option.Option export all
 
 ## Represents different options for opening file streams.
 
    This is intended for more advanced users, wishing to obtain lower-level
    file access. For most use cases, the default values used in the methods of
    the `File` type should be preferred.
-type Option
+type File_Access
 
     ## If the file is opened for `Write` access then bytes will be written to
        the end of the file rather than the beginning.
@@ -52,13 +46,13 @@ type Option
        Convert this object into a representation understandable by the JVM.
     to_java : StandardOpenOption
     to_java self = case self of
-        Append            -> StandardOpenOption.APPEND
-        Create            -> StandardOpenOption.CREATE
-        Create_New        -> StandardOpenOption.CREATE_NEW
-        Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
-        Dsync             -> StandardOpenOption.DSYNC
-        Read              -> StandardOpenOption.READ
-        Sparse            -> StandardOpenOption.SPARSE
-        Sync              -> StandardOpenOption.SYNC
-        Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
-        Write             -> StandardOpenOption.WRITE
+        File_Access.Append            -> StandardOpenOption.APPEND
+        File_Access.Create            -> StandardOpenOption.CREATE
+        File_Access.Create_New        -> StandardOpenOption.CREATE_NEW
+        File_Access.Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
+        File_Access.Dsync             -> StandardOpenOption.DSYNC
+        File_Access.Read              -> StandardOpenOption.READ
+        File_Access.Sparse            -> StandardOpenOption.SPARSE
+        File_Access.Sync              -> StandardOpenOption.SYNC
+        File_Access.Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
+        File_Access.Write             -> StandardOpenOption.WRITE
