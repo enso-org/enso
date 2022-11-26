@@ -282,8 +282,10 @@ public class Table {
    * The parameters {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched} control which rows should be returned. They can all be set to {@code false} to emulate an empty result in erroneous conditions.
    *
    * The parameters {@code includeLeftColumns} and {@code includeRightColumns} control which columns should be included in the result. In most cases they will both be set to true. They allow to easily implement exclusive joins which only keep columns form one table.
+   *
+   * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, String right_prefix) {
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
@@ -345,7 +347,12 @@ public class Table {
     }
 
     if (includeRightColumns) {
+      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
       for (Column column : right.getColumns()) {
+        if (toDrop.contains(column.getName())) {
+          continue;
+        }
+
         // TODO drop columns from Equals conditions if equal names too
         String newName = deduplicator.makeUnique(column.getName());
         Storage<?> newStorage = column.getStorage().applyMask(rightMask);

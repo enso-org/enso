@@ -1110,13 +1110,16 @@ type Table
             Join_Kind.Right_Exclusive -> [False, True]
             _                         -> [True, True]
 
+        # TODO extract those from equality conditions
+        right_columns_to_drop = []
+
         java_conditions = on.map condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
                 # TODO better handling of unmatched columns?
                 Java_Join_Equals.new (self.at left_selector . java_column) (right.at right_selector . java_column)
             _ -> unimplemented "Conditions other than Equals are not implemented yet."
 
-        new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_prefix
+        new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
         Table.Table_Data new_table
 
     ## ALIAS dropna
