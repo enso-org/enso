@@ -13,7 +13,7 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -43,9 +43,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EnsoContext {
 
   private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
-      TruffleLanguage.ContextReference.create(Language.class);
+      TruffleLanguage.ContextReference.create(EnsoLanguage.class);
 
-  private final Language language;
+  private final EnsoLanguage language;
   private final Env environment;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
@@ -82,7 +82,7 @@ public class EnsoContext {
    * @param distributionManager a distribution manager
    */
   public EnsoContext(
-      Language language,
+      EnsoLanguage language,
       String home,
       Env environment,
       NotificationHandler notificationHandler,
@@ -102,7 +102,7 @@ public class EnsoContext {
         environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
-    this.rootIOPermissions = environment.getOptions().get(Language.IO_ENVIRONMENT);
+    this.rootIOPermissions = environment.getOptions().get(EnsoLanguage.IO_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -212,7 +212,7 @@ public class EnsoContext {
    *
    * @return the language to which this context belongs
    */
-  public Language getLanguage() {
+  public EnsoLanguage getLanguage() {
     return language;
   }
 

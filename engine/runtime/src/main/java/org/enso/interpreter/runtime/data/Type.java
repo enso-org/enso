@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
@@ -120,7 +120,7 @@ public final class Type implements TruffleObject {
     return supertype;
   }
 
-  public void generateGetters(Language language) {
+  public void generateGetters(EnsoLanguage language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
     var roots = new HashMap<String, RootNode>();
