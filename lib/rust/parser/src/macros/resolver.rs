@@ -480,7 +480,7 @@ impl<'s> Resolver<'s> {
                     syntax::Item::Tree(tree) => body.push_str(&tree.code()),
                 }
             }
-            let header0 = syntax::Tree::from(header0).with_error("Invalid macro invocation.");
+            let header0 = syntax::tree::to_ast(header0).with_error("Invalid macro invocation.");
             (header0, items)
         }
     }
