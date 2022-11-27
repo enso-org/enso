@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -111,7 +111,8 @@ public final class UnresolvedSymbol implements TruffleObject {
         @Cached InteropMethodCallNode interopMethodCallNode,
         @CachedLibrary("symbol") InteropLibrary thisLib)
         throws ArityException {
-      return interopMethodCallNode.execute(symbol, Context.get(thisLib).emptyState(), arguments);
+      return interopMethodCallNode.execute(
+          symbol, EnsoContext.get(thisLib).emptyState(), arguments);
     }
   }
 }

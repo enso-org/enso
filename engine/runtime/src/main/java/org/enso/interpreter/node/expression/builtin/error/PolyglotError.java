@@ -1,10 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.exception.AbstractTruffleException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 
 import java.io.IOException;
@@ -23,15 +22,15 @@ public class PolyglotError extends UniquelyConstructibleBuiltin {
     return newInstance(e);
   }
 
-  public Atom wrap(Context c, IOException e) {
+  public Atom wrap(EnsoContext c, IOException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 
-  public Atom wrap(Context c, DateTimeException e) {
+  public Atom wrap(EnsoContext c, DateTimeException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 
-  public Atom wrap(Context c, DateTimeParseException e) {
+  public Atom wrap(EnsoContext c, DateTimeParseException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 }

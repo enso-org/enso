@@ -8,7 +8,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -60,7 +60,7 @@ public class System {
   @CompilerDirectives.TruffleBoundary
   @ExplodeLoop
   public static Atom createProcess(
-      Context ctx,
+      EnsoContext ctx,
       Object command,
       Object arguments,
       Object input,

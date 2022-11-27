@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -17,8 +17,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 public abstract class MethodResolverNode extends Node {
   protected static final int CACHE_SIZE = 10;
 
-  Context getContext() {
-    return Context.get(this);
+  EnsoContext getContext() {
+    return EnsoContext.get(this);
   }
 
   public abstract Function execute(Type type, UnresolvedSymbol symbol);
@@ -27,7 +27,7 @@ public abstract class MethodResolverNode extends Node {
     var result = execute(type, symbol);
     if (result == null) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+          EnsoContext.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
     return result;
   }

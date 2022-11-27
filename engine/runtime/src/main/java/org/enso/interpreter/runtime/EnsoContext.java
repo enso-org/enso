@@ -40,9 +40,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
  */
-public class Context {
+public class EnsoContext {
 
-  private static final TruffleLanguage.ContextReference<Context> REFERENCE =
+  private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
       TruffleLanguage.ContextReference.create(Language.class);
 
   private final Language language;
@@ -63,7 +63,7 @@ public class Context {
   private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
-  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
@@ -81,7 +81,7 @@ public class Context {
    * @param lockManager the lock manager instance
    * @param distributionManager a distribution manager
    */
-  public Context(
+  public EnsoContext(
       Language language,
       String home,
       Env environment,
@@ -158,11 +158,11 @@ public class Context {
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
    */
-  public static Context get(Node node) {
+  public static EnsoContext get(Node node) {
     return REFERENCE.get(node);
   }
 
-  public static TruffleLanguage.ContextReference<Context> getReference() {
+  public static TruffleLanguage.ContextReference<EnsoContext> getReference() {
     return REFERENCE;
   }
 
