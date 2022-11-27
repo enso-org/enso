@@ -77,7 +77,7 @@ import org.enso.interpreter.runtime.scope.{
   LocalScope,
   ModuleScope
 }
-import org.enso.interpreter.{Constants, Language}
+import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
 import scala.annotation.tailrec
@@ -105,7 +105,7 @@ class IrToTruffle(
   val compilerConfig: CompilerConfig
 ) {
 
-  val language: Language = context.getLanguage
+  val language: EnsoLanguage = context.getLanguage
 
   // ==========================================================================
   // === Top-Level Runners ====================================================
