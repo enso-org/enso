@@ -11,8 +11,7 @@ use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
 
-use double_representation::identifier::ReferentName;
-use double_representation::project::QualifiedName;
+use double_representation::name::project;
 use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
 use engine_protocol::language_server;
@@ -226,7 +225,7 @@ impl Display for UnsupportedEngineVersion {
 pub struct Properties {
     /// ID of the project, as used by the Project Manager service.
     pub id:             Uuid,
-    pub name:           QualifiedName,
+    pub name:           project::QualifiedName,
     pub engine_version: semver::Version,
 }
 
@@ -362,7 +361,7 @@ impl Project {
         let binary_endpoint = opened.language_server_binary_address.to_string();
         let properties = Properties {
             id,
-            name: QualifiedName::from_segments(namespace, name)?,
+            name: project::QualifiedName::new(namespace, name),
             engine_version: semver::Version::parse(&opened.engine_version)?,
         };
         Self::new_connected(parent, project_manager, json_endpoint, binary_endpoint, properties)
@@ -552,12 +551,12 @@ impl Project {
 }
 
 impl model::project::API for Project {
-    fn name(&self) -> ReferentName {
-        self.properties.borrow().name.project.clone()
+    fn name(&self) -> ImString {
+        self.properties.borrow().name.project.clone_ref()
     }
 
-    fn qualified_name(&self) -> QualifiedName {
-        self.properties.borrow().name.clone()
+    fn qualified_name(&self) -> project::QualifiedName {
+        self.properties.borrow().name.clone_ref()
     }
 
     fn json_rpc(&self) -> Rc<language_server::Connection> {

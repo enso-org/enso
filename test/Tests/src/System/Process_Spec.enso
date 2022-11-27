@@ -1,92 +1,88 @@
 from Standard.Base import all
 
-import Standard.Base.System.Platform
-import Standard.Base.System.Process
-from Standard.Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
-
 from Standard.Test import Test, Test_Suite
 
 spec = Test.group "Process" <|
     Test.specify "should call simple command" <|
         result = case Platform.os of
-            Platform.Windows ->
+            Platform.OS.Windows ->
                 Process.run "PowerShell" ["-Command", "exit 0"]
             _ ->
                 Process.run "bash" ["-c", "exit 0"]
-        result.should_equal Exit_Success
+        result.should_equal Exit_Code.Success
     Test.specify "should return exit code" <|
         case Platform.os of
-            Platform.Windows ->
+            Platform.OS.Windows ->
                 r = Process.run "PowerShell" ["-Command", "exit 42"]
-                r.should_equal <| Exit_Failure 42
+                r.should_equal <| Exit_Code.Failure 42
             _ ->
                 r = Process.run "bash" ["-c", "exit 42"]
-                r.should_equal <| Exit_Failure 42
+                r.should_equal <| Exit_Code.Failure 42
     Test.specify "should return stdout" <|
         case Platform.os of
-            Platform.Linux ->
+            Platform.OS.Linux ->
                 builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
                 result.stderr . should_equal ""
-            Platform.Mac_OS ->
+            Platform.OS.Mac_OS ->
                 builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
                 result.stderr . should_equal ""
-            Platform.Windows ->
+            Platform.OS.Windows ->
                 builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
                 result.stderr . should_equal ""
-            Platform.Unknown ->
+            Platform.OS.Unknown ->
                 Test.fail "Unsupported platform."
     Test.specify "should return stderr" <|
         case Platform.os of
-            Platform.Linux ->
+            Platform.OS.Linux ->
                 builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
                 result.stderr . should_equal "Error"
-            Platform.Mac_OS ->
+            Platform.OS.Mac_OS ->
                 builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"] ""
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
                 result.stderr . should_equal "Error"
-            Platform.Windows ->
+            Platform.OS.Windows ->
                 builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"] ""
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
                 result.stderr . should_equal "Error"
-            Platform.Unknown ->
+            Platform.OS.Unknown ->
                 Test.fail "Unsupported platform."
     Test.specify "should feed stdin" <|
         case Platform.os of
-            Platform.Linux ->
+            Platform.OS.Linux ->
                 builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "sample"
                 result.stderr . should_equal ""
-            Platform.Mac_OS ->
+            Platform.OS.Mac_OS ->
                 builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "sample"
                 result.stderr . should_equal ""
-            Platform.Windows ->
+            Platform.OS.Windows ->
                 builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal 'sample\r\n'
                 result.stderr . should_equal ""
-            Platform.Unknown ->
+            Platform.OS.Unknown ->
                 Test.fail "Unsupported platform."
 
 main = Test_Suite.run_main spec

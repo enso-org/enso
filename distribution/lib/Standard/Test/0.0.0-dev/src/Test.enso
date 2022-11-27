@@ -68,7 +68,7 @@ type Test
     specify label ~behavior pending=Nothing =
         pair = case pending of
             Nothing -> Duration.time_execution (run_spec behavior)
-            reason -> Pair.Value Duration.zero (Test_Result.Pending reason)
+            reason -> Pair.new Duration.zero (Test_Result.Pending reason)
         result = pair.second
         time_taken = pair.first
         spec = State.get Spec

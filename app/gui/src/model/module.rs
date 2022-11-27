@@ -7,9 +7,9 @@ use crate::controller::FilePath;
 use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
-use double_representation::identifier::ReferentName;
 use double_representation::import;
-use double_representation::project;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
@@ -27,8 +27,6 @@ pub mod plain;
 pub mod synchronized;
 
 pub use double_representation::module::Id;
-pub use double_representation::module::QualifiedName;
-pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
 
 
@@ -96,7 +94,7 @@ pub struct Path {
 
 impl Path {
     /// Get the file name of the module with given name.
-    pub fn module_filename(name: &ReferentName) -> String {
+    pub fn module_filename(name: &str) -> String {
         iformat!("{name}.{LANGUAGE_FILE_EXTENSION}")
     }
 
@@ -104,8 +102,8 @@ impl Path {
     pub fn from_id(root_id: Uuid, id: &Id) -> Path {
         // We prepend source directory and replace trailing segment with filename.
         let src_dir = std::iter::once(SOURCE_DIRECTORY.to_owned());
-        let dirs = id.parent_segments().iter().map(ToString::to_string);
-        let filename = std::iter::once(Self::module_filename(&id.name()));
+        let dirs = id.parent_modules.iter().map(ToString::to_string);
+        let filename = iter::once(Self::module_filename(id.name.as_str()));
         let segments = src_dir.chain(dirs).chain(filename).collect();
         let path = FilePath { root_id, segments };
         Path { file_path: Rc::new(path) }
@@ -113,12 +111,12 @@ impl Path {
 
     /// Get path to the module with given qualified name under given root ID.
     pub fn from_name(root_id: Uuid, name: &QualifiedName) -> Path {
-        Self::from_id(root_id, name.id())
+        Self::from_id(root_id, &name.module_id())
     }
 
     /// Get a path of the module that defines given method.
     pub fn from_method(root_id: Uuid, method: &MethodPointer) -> FallibleResult<Self> {
-        let name = QualifiedName::try_from(method)?;
+        let name = QualifiedName::try_from(method.module.as_str())?;
         Ok(Self::from_name(root_id, &name))
     }
 
@@ -130,14 +128,10 @@ impl Path {
             move || InvalidModulePath { path, issue }
         };
 
-        if let [ref src_dir, ref dirs @ .., _] = *file_path.segments.as_slice() {
+        if let [ref src_dir, ref _dirs @ .., _] = *file_path.segments.as_slice() {
             (src_dir == SOURCE_DIRECTORY).ok_or_else(error(NotInSourceDirectory))?;
-            for dir in dirs {
-                ReferentName::validate(dir)?;
-            }
             let correct_extension = file_path.extension() == Some(LANGUAGE_FILE_EXTENSION);
             correct_extension.ok_or_else(error(WrongFileExtension))?;
-            ReferentName::validate(file_path.file_stem().unwrap_or_default())?;
             Ok(())
         } else {
             Err(error(NotEnoughSegments)().into())
@@ -157,12 +151,9 @@ impl Path {
     /// E.g. `["Main"]` -> `//root_id/src/Main.enso`
     pub fn from_name_segments(
         root_id: Uuid,
-        name_segments: impl IntoIterator<Item: AsRef<str>>,
+        name_segments: impl IntoIterator<Item: Into<ImString>>,
     ) -> FallibleResult<Path> {
-        let segment_results = name_segments.into_iter().map(|s| ReferentName::new(s.as_ref()));
-        let segments = segment_results.collect::<Result<Vec<_>, _>>()?;
-        let id = Id::new(segments);
-        Ok(Self::from_id(root_id, &id))
+        Id::try_from_segments(name_segments).map(|id| Self::from_id(root_id, &id))
     }
 
     /// Get the module's identifier.
@@ -170,10 +161,9 @@ impl Path {
         if let [ref _src, ref dirs @ .., _] = *self.file_path.segments.as_slice() {
             // Path must designate a valid module and must be able to designate any valid module.
             // Therefore, unwraps in this method are safe.
-            let parent_segments = dirs.iter().map(ReferentName::new).map(Result::unwrap);
-            let final_segment = std::iter::once(self.module_name());
-            let segments = parent_segments.chain(final_segment);
-            Id::new(segments)
+            let parent_modules = dirs.iter().map(ImString::new).collect();
+            let name = ImString::new(self.module_name());
+            Id { parent_modules, name }
         } else {
             // Class invariant guarantees at least two segments in path.
             panic!("Unreachable")
@@ -195,10 +185,10 @@ impl Path {
     /// Get the module name from path.
     ///
     /// The module name is a filename without extension.
-    pub fn module_name(&self) -> ReferentName {
+    pub fn module_name(&self) -> &str {
         // The file stem existence should be checked during construction.
         // The path must also designate a file that is a valid module name.
-        ReferentName::new(self.file_path.file_stem().unwrap()).unwrap()
+        self.file_path.file_stem().unwrap()
     }
 
     /// Create a module path consisting of a single segment, based on a given module name.
@@ -218,7 +208,7 @@ impl Path {
         project_name: project::QualifiedName,
         method_name: impl Str,
     ) -> MethodPointer {
-        let module = String::from(self.qualified_module_name(project_name));
+        let module = self.qualified_module_name(project_name).to_string_with_main_segment();
         let defined_on_type = module.clone();
         let name = method_name.into();
         MethodPointer { module, defined_on_type, name }
@@ -227,23 +217,23 @@ impl Path {
     /// Obtain a module's full qualified name from the path and the project name.
     ///
     /// ```
+    /// use double_representation::name::project;
     /// use enso_gui::model::module::Path;
-    /// use enso_gui::model::module::QualifiedName;
     /// use enso_gui::prelude::*;
     ///
-    /// let path = Path::from_name_segments(default(), &["Main"]).unwrap();
-    /// assert_eq!(path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Main.enso");
-    /// let name = path.qualified_module_name("local.Project".try_into().unwrap());
-    /// assert_eq!(name.to_string(), "local.Project.Main");
+    /// let path = Path::from_name_segments(default(), &["Module"]).unwrap();
+    /// let main_path = Path::from_name_segments(default(), &["Main"]).unwrap();
+    /// assert_eq!(path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Module.enso");
+    /// assert_eq!(main_path.to_string(), "//00000000-0000-0000-0000-000000000000/src/Main.enso");
+    ///
+    /// let project = project::QualifiedName::from_text("local.Project").unwrap();
+    /// let name = path.qualified_module_name(project.clone());
+    /// assert_eq!(name.to_string(), "local.Project.Module");
+    /// let main_name = main_path.qualified_module_name(project);
+    /// assert_eq!(main_name.to_string(), "local.Project");
     /// ```
     pub fn qualified_module_name(&self, project_name: project::QualifiedName) -> QualifiedName {
-        let non_src_directories = &self.file_path.segments[1..self.file_path.segments.len() - 1];
-        let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
-        let module_name = self.module_name();
-        let module_name = std::iter::once(module_name.as_ref());
-        let module_segments = non_src_directories.chain(module_name);
-        // The module path during creation should be checked for at least one module segment.
-        QualifiedName::from_segments(project_name, module_segments).unwrap()
+        QualifiedName::new_module(project_name, self.id())
     }
 }
 
@@ -500,7 +490,7 @@ impl From<Vector2<f32>> for Position {
 #[allow(missing_docs)]
 pub struct MethodId {
     pub module:          QualifiedName,
-    pub defined_on_type: TypeQualifiedName,
+    pub defined_on_type: QualifiedName,
     pub name:            String,
 }
 
@@ -551,7 +541,7 @@ pub trait API: Debug + model::undo_redo::Aware {
     fn path(&self) -> &Path;
 
     /// Get the module name.
-    fn name(&self) -> ReferentName {
+    fn name(&self) -> &str {
         self.path().module_name()
     }
 
@@ -769,14 +759,13 @@ pub mod test {
         assert!(Path::from_file_path(FilePath::new(default(), &["surce", "Main.enso"])).is_err());
         assert!(Path::from_file_path(FilePath::new(default(), &["src", "Main"])).is_err());
         assert!(Path::from_file_path(FilePath::new(default(), &["src", ""])).is_err());
-        assert!(Path::from_file_path(FilePath::new(default(), &["src", "main.enso"])).is_err());
     }
 
     #[test]
     fn module_qualified_name() {
         let namespace = "n";
         let project_name = "P";
-        let project_name = project::QualifiedName::from_segments(namespace, project_name).unwrap();
+        let project_name = project::QualifiedName::new(namespace, project_name);
         let root_id = default();
         let file_path = FilePath::new(root_id, &["src", "Foo", "Bar.enso"]);
         let module_path = Path::from_file_path(file_path).unwrap();

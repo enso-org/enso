@@ -18,5 +18,5 @@ type Client_Certificate
        - sslpass: password for the client key file.
     properties : Vector
     properties self =
-        base = [Pair.Value 'sslcert' (File.new self.cert_file).absolute.path, Pair.Value 'sslkey' (File.new self.key_file).absolute.path]
-        if self.key_password == "" then base else base + [Pair.Value 'sslpassword' self.key_password]
+        base = [Pair.new 'sslcert' (File.new self.cert_file).absolute.path, Pair.new 'sslkey' (File.new self.key_file).absolute.path]
+        if self.key_password == "" then base else base + [Pair.new 'sslpassword' self.key_password]

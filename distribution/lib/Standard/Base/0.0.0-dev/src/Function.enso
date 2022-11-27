@@ -8,7 +8,6 @@ import project.Data.Vector.Vector
 @Builtin_Type
 type Function
 
-
 ## An identity function which returns the provided argument.
 
    Arguments:

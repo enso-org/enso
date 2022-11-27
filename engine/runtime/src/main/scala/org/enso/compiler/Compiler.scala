@@ -54,7 +54,7 @@ class Compiler(
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger           = context.getLogger(getClass)
-  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -406,7 +406,7 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing: [$other]."
+          s"Unexpected import type after processing ${module.getName}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray

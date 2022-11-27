@@ -11,7 +11,7 @@ import project.Runtime
 import project.System
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Time_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, Illegal_State_Error, Illegal_State_Error_Data
+from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Illegal_Argument_Error, Illegal_Argument_Error_Data, Illegal_State_Error, Illegal_State_Error_Data
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
@@ -50,7 +50,7 @@ ensure_duration : Any -> (Any -> Any) -> Any ! (Time_Error | Illegal_Argument_Er
 ensure_duration object ~action =
     case object of
         _ : Duration -> action
-        _ : Period -> Error.throw (Time_Error_Data "Cannot use Period as a parameter")
+        _ : Period -> Error.throw (Time_Error.Error "Cannot use Period as a parameter")
         x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
@@ -118,7 +118,7 @@ type Duration
         result = Runtime.no_inline function
         end = System.nano_time
         duration = Duration.new nanoseconds=(end - start)
-        Pair.Value duration result
+        Pair.new duration result
 
     ## Add the specified amount of time to this duration.
 
@@ -142,7 +142,7 @@ type Duration
     + self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.plus_builtin that) err->
-                Error.throw (Time_Error_Data err.getMessage)
+                Error.throw (Time_Error.Error err.getMessage)
 
     ## Subtract the specified amount of time from this duration.
 
@@ -159,7 +159,7 @@ type Duration
     - self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
-                Error.throw (Time_Error_Data err.getMessage)
+                Error.throw (Time_Error.Error err.getMessage)
 
     ## Check two durations for equality.
 

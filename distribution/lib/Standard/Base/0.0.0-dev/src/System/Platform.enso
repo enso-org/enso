@@ -1,13 +1,9 @@
-import Standard.Base.Data.Boolean.Boolean
-import Standard.Base.Data.Text.Text
-import Standard.Base.System
-
-# TODO Dubious constructor export
-from project.System.Platform.Os import all
-from project.System.Platform.Os export all
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.System
 
 ## A representation of the various operating systems on which Enso can run.
-type Os
+type OS
 
     ## The Linux operating system.
     Linux
@@ -29,7 +25,7 @@ type Os
          import Standard.Base.System.Platform
 
          example_os = Platform.os
-os : Os
+os : OS
 os = from_text System.os
 
 ## Check if the operating system is UNIX.
@@ -39,8 +35,9 @@ is_unix = @Builtin_Method "System.is_unix"
 ## PRIVATE
 
    Create an Os object from text.
-from_text : Text -> Os
-from_text os =
-    if os == "linux" then Linux else
-        if os == "macos" then Mac_OS else
-            if os == "windows" then Windows else Unknown
+from_text : Text -> OS
+from_text os = case os of
+    "linux" -> OS.Linux
+    "macos" -> OS.Mac_OS
+    "windows" -> OS.Windows
+    _ -> OS.Unknown

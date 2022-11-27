@@ -1,8 +1,10 @@
-from Standard.Base import all
-import Standard.Base.System
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.System
+import project.System.Process.Exit_Code.Exit_Code
+import project.System.Process.Process_Builder.Process_Builder
 
-import Standard.Base.System.Process.Exit_Code
-from Standard.Base.System import System_Process_Result, System_Process_Result_Data
+from project.Data.Boolean import Boolean, True, False
 
 ## ALIAS Run a Command
    UNSTABLE
@@ -20,7 +22,7 @@ from Standard.Base.System import System_Process_Result, System_Process_Result_Da
          import Standard.Base.System.Process
 
          example_run = case Platform.os of
-             Platform.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
+             Platform.OS.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
 run : Text -> Vector Text -> Exit_Code
 run command arguments=[] =
@@ -40,84 +42,5 @@ run command arguments=[] =
          import Standard.Base.System.Process
 
          example_new_builder = Process.new_builder "echo"
-new_builder : Text -> Vector Text -> Text -> Builder
-new_builder command arguments=[] stdin="" = Builder_Data command arguments stdin
-
-# TODO Dubious constructor export
-from project.System.Process.Builder import all
-from project.System.Process.Builder export all
-
-## UNSTABLE
-
-   The builder object that is used to create operating system processes.
-type Builder
-
-    ## PRIVATE
-
-       A builder object that is used to create operating system processes.
-
-       Arguments:
-       - command: The command to execute on the system.
-       - arguments: The arguments to pass to `command`. These must be text.
-       - stdin: Any content to pass to the standard input for `command`.
-
-       ? Creating a Builder
-         We recommend that you use this type with its builder interface. Start
-         by creating a `Builder "command"` and then call functions on it to
-         set arguments and standard output. It results in much clearer code.
-    Builder_Data command arguments stdin
-
-    ## UNSTABLE
-
-       Sets the arguments that should be passed to the created process.
-
-       Arguments:
-       - arguments: The arguments to pass to the process.
-
-       > Examples
-         Set the arguments to the process using a builder.
-
-             import Standard.Base.System.Process
-
-             example_set_args =
-                 builder = Process.new_builder "echo"
-                 builder.set_arguments ["hello, world!"]
-    set_arguments : Vector Text -> Builder
-    set_arguments self arguments = Builder_Data self.command arguments self.stdin
-
-    ## UNSTABLE
-
-       Sets the text that will be used to feed standard input to the created
-       process.
-
-       Arguments:
-       - stdin: The standard input contents to pass to the process.
-
-       > Examples
-         Set the standard input to a process using a builder.
-
-             import Standard.Base.System.Process
-
-             example_set_args =
-                 builder = Process.new_builder "echo"
-                 builder.set_stdin "hello, world!"
-    set_stdin : Text -> Builder
-    set_stdin self stdin = Builder_Data self.command self.arguments stdin
-
-    ## UNSTABLE
-
-       Create a process using a builder returning the result of execution.
-
-       > Example
-         Execute the process contained in the builder.
-
-             import Standard.Base.System.Process
-
-             example_create =
-                 builder = Process.new_builder "echo"
-                 with_args = builder.set_arguments ["hello, world!"]
-                 with_args.create
-    create : System_Process_Result
-    create self =
-        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
-        System_Process_Result_Data (Exit_Code.from_number result.exit_code) result.stdout result.stderr
+new_builder : Text -> Vector Text -> Text -> Process_Builder
+new_builder command arguments=[] stdin="" = Process_Builder.Value command arguments stdin
