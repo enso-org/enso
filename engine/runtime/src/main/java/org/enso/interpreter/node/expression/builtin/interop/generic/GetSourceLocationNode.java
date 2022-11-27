@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.EnsoSourceSection;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -23,12 +23,12 @@ public class GetSourceLocationNode extends Node {
 
   Object execute(Object value) {
     try {
-      return Context.get(this)
+      return EnsoContext.get(this)
           .getEnvironment()
           .asGuestValue(new EnsoSourceSection(library.getSourceLocation(value)));
     } catch (UnsupportedMessageException e) {
       err.enter();
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
           builtins.error().makeTypeError(builtins.function(), value, "function"), this);
     }

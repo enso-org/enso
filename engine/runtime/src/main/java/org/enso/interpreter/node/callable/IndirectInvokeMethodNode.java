@@ -16,7 +16,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.*;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -91,7 +91,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
     Function function =
-        methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
+        methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (profile.profile(function == null)) {
       return self;
     } else {
@@ -211,7 +211,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
     try {
       var str = interop.asString(self);
       var text = Text.create(str);
-      var ctx = Context.get(this);
+      var ctx = EnsoContext.get(this);
       var textType = ctx.getBuiltins().text();
       var function = methodResolverNode.expectNonNull(text, textType, symbol);
       arguments[0] = text;
@@ -252,7 +252,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Function function =
-        methodResolverNode.expectNonNull(self, Context.get(this).getBuiltins().any(), symbol);
+        methodResolverNode.expectNonNull(self, EnsoContext.get(this).getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(
         function,
         frame,

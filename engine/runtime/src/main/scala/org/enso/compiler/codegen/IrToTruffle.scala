@@ -56,7 +56,7 @@ import org.enso.interpreter.node.{
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
@@ -99,7 +99,7 @@ import scala.jdk.OptionConverters._
   * @param compilerConfig the configuration for the compiler
   */
 class IrToTruffle(
-  val context: Context,
+  val context: EnsoContext,
   val source: Source,
   val moduleScope: ModuleScope,
   val compilerConfig: CompilerConfig
