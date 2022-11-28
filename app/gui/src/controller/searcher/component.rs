@@ -8,7 +8,7 @@ use crate::model::suggestion_database;
 
 use convert_case::Case;
 use convert_case::Casing;
-use double_representation::module;
+use double_representation::name::QualifiedName;
 
 
 // ==============
@@ -176,9 +176,9 @@ impl Display for Component {
             Data::FromDatabase { entry, .. } => {
                 let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
                 let self_type_ref = entry.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
+                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
                 if let Some(self_type) = self_type_not_here {
-                    let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+                    let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
                     write!(f, "{} {}", self_name, entry_name)
                 } else {
                     write!(f, "{}", entry_name)
@@ -202,7 +202,7 @@ impl Display for Component {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub qualified_name: Rc<module::QualifiedName>,
+    pub qualified_name: Rc<QualifiedName>,
     pub content:        Group,
     pub submodules:     group::AlphabeticalList,
 }
@@ -265,7 +265,7 @@ impl List {
     }
 
     /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
-    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<module::QualifiedName>> {
+    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<QualifiedName>> {
         self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
     }
 
@@ -306,74 +306,32 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
-    use crate::model::suggestion_database::entry::Kind;
-
-    use double_representation::module;
-    use double_representation::project;
-    use engine_protocol::language_server;
-
-
-    // === Helpers ===
-
-    pub fn mock_module(name: &str) -> model::suggestion_database::Entry {
-        let ls_entry = language_server::SuggestionEntry::Module {
-            module:                 name.to_owned(),
-            documentation:          default(),
-            documentation_html:     default(),
-            documentation_sections: default(),
-            reexport:               default(),
-        };
-        model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
-    }
-
-    pub fn mock_function(
-        module: &module::QualifiedName,
-        name: &str,
-    ) -> model::suggestion_database::Entry {
-        model::suggestion_database::Entry {
-            kind:               Kind::Function,
-            module:             module.clone(),
-            name:               name.to_owned(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtin.Integer".to_string(),
-            documentation_html: None,
-            self_type:          None,
-            scope:              model::suggestion_database::entry::Scope::Everywhere,
-            icon_name:          None,
-        }
-    }
+    use crate::mock_suggestion_database;
+    use double_representation::name::project;
 
     pub fn mock_suggestion_db() -> model::SuggestionDatabase {
-        let top_module_1 = mock_module("test.Test.TopModule1");
-        let top_module_2 = mock_module("test.Test.TopModule2");
-        let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
-        let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
-        let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
-        let fun1 = mock_function(&top_module_1.module, "fun1");
-        let fun2 = mock_function(&top_module_1.module, "fun2");
-        let fun3 = mock_function(&top_module_2.module, "fun3");
-        let fun4 = mock_function(&sub_module_1.module, "fun4");
-        let fun5 = mock_function(&sub_module_2.module, "fun5");
-        let fun6 = mock_function(&sub_module_3.module, "fun6");
-        let all_entries = [
-            top_module_1,
-            top_module_2,
-            sub_module_1,
-            sub_module_2,
-            sub_module_3,
-            fun1,
-            fun2,
-            fun3,
-            fun4,
-            fun5,
-            fun6,
-        ];
+        mock_suggestion_database! {
+            test.Test {
+                mod TopModule1 {
+                    fn fun1() -> Standard.Base.Any;
 
-        let suggestion_db = model::SuggestionDatabase::new_empty();
-        for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
+                    mod SubModule1 {
+                        fn fun4() -> Standard.Base.Any;
+                    }
+                    mod SubModule2 {
+                        fn fun5 -> Standard.Base.Any;
+                        mod SubModule3 {
+                            fn fun6 -> Standard.Base.Any;
+                        }
+                    }
+
+                    fn fun2() -> Standard.Base.Any;
+                }
+                mod TopModule2 {
+                    fn fun3() -> Standard.Base.Any;
+                }
+            }
         }
-        suggestion_db
     }
 
     fn mock_favorites(
@@ -409,19 +367,21 @@ pub(crate) mod tests {
 
     #[test]
     fn filtering_component_list() {
-        let top_module = mock_module("test.Test.TopModule");
-        let sub_module = mock_module("test.Test.TopModule.SubModule");
-        let fun1 = mock_function(&top_module.module, "fun1");
-        let funx2 = mock_function(&sub_module.module, "funx1");
-        let all_entries = [&top_module, &sub_module, &fun1, &funx2];
-        let suggestion_db = model::SuggestionDatabase::new_empty();
-        for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry.clone())
-        }
-        let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let mut builder = builder::List::new().with_local_scope_module_id(0);
+        let suggestion_db = mock_suggestion_database! {
+            test.Test {
+                mod TopModule {
+                    fn fun1() -> Standard.Base.Any;
+
+                    mod SubModule {
+                        fn funx2() -> Standard.Base.Any;
+                    }
+                }
+            }
+        };
+        let favorites = mock_favorites(&suggestion_db, &[4, 2]);
+        let mut builder = builder::List::new().with_local_scope_module_id(1);
         builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
-        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..4);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=4);
         let list = builder.build();
 
         list.update_filtering("fu");
@@ -432,17 +392,17 @@ pub(crate) mod tests {
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
         DEBUG!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 4]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[3]);
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[4]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
@@ -452,8 +412,8 @@ pub(crate) mod tests {
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
 
@@ -465,29 +425,29 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let suggestion_db = mock_suggestion_db();
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..11);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=11);
         let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.
-        let expected_top_modules_ids = vec![Some(0), Some(1)];
+        let expected_top_modules_ids = vec![Some(1), Some(10)];
         let top_modules_ids = list.top_modules().iter().map(|m| m.component_id).collect_vec();
         assert_eq!(top_modules_ids, expected_top_modules_ids);
 
         // Verify that we can read content and direct submodules of a second-level submodule
         // ("test.Test.TopModule1.SubModule2").
-        let content = list.get_module_content(3).unwrap();
-        let expected_content_ids = vec![9, 4];
+        let content = list.get_module_content(5).unwrap();
+        let expected_content_ids = vec![6, 7];
         let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
-        let direct_submodules = list.submodules_of(3).unwrap();
-        let expected_direct_submodules_ids = vec![Some(4)];
+        let direct_submodules = list.submodules_of(5).unwrap();
+        let expected_direct_submodules_ids = vec![Some(7)];
         let direct_submodules_ids = direct_submodules.iter().map(|m| m.component_id).collect_vec();
         assert_eq!(direct_submodules_ids, expected_direct_submodules_ids);
 
         // Verify that we can read content of a third-level submodule
         // ("test.Test.TopModule1.SubModule1.SubSubModule").
-        let content = list.get_module_content(4).unwrap();
-        let expected_content_ids = vec![10];
+        let content = list.get_module_content(7).unwrap();
+        let expected_content_ids = vec![8];
         let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
     }

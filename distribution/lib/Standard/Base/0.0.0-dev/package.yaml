@@ -12,9 +12,10 @@ component-groups:
   new:
     - Input:
         exports:
-          - Standard.Base.System.File.new
-          - Standard.Base.System.File.read
-          - Standard.Base.System.File.read_text
+          - Standard.Base.System.File.File.new
+          - Standard.Base.Data.read_file
+          - Standard.Base.Data.read_text_file
+          - Standard.Base.Data.list_directory
     - Web:
         exports:
           - Standard.Base.Network.Http.new
@@ -29,7 +30,7 @@ component-groups:
           - Standard.Base.Network.Http.options
     - Parse:
         exports:
-          - Standard.Base.Data.Json.parse
+          - Standard.Base.Data.Json.Json.parse
           - Standard.Base.Data.Text.Regex.compile
           - Standard.Base.Data.Text.Regex.escape
           - Standard.Base.Data.Text.Regex.from_flags

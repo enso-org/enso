@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Result.Test_Result
@@ -13,7 +14,7 @@ Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Test_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
-        Json.Parse_Error_Data msg ->
+        Json_Parse_Error.Error msg ->
             if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
                 Test_Result.Failure fail_msg
@@ -124,6 +125,6 @@ spec =
                   "y": {"z": null, "w": null} }
 
             object.get "foo" . should_equal (Json.String "bar")
-            object.get "bar" . should_fail_with Json.No_Such_Field_Error_Data
+            object.get "bar" . should_fail_with No_Such_Field.Error
 
 main = Test_Suite.run_main spec

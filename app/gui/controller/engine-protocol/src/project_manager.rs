@@ -130,6 +130,12 @@ impl From<ProjectName> for String {
     }
 }
 
+impl From<ProjectName> for ImString {
+    fn from(name: ProjectName) -> Self {
+        name.0.into()
+    }
+}
+
 /// Project information, such as name, its id and last time it was opened.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

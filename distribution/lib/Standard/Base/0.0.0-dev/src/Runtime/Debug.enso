@@ -1,5 +1,9 @@
 ## Debug utilities.
 
+import project.Data.Any.Any
+import project.Data.Text.Text
+import project.Nothing.Nothing
+
 ## TEXT_ONLY
 
    Places a breakpoint in the program's execution, dropping the user into an

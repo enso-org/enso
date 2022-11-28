@@ -18,6 +18,7 @@ use crate::component::visualization::java_script::method;
 
 use core::result;
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
@@ -271,7 +272,8 @@ pub struct Instance {
 
 impl Instance {
     /// Constructor.
-    pub fn new(class: &JsValue, scene: &Scene) -> result::Result<Instance, Error> {
+    pub fn new(class: &JsValue, app: &Application) -> result::Result<Instance, Error> {
+        let scene = &app.display.default_scene;
         let network = frp::Network::new("js_visualization_instance");
         let frp = visualization::instance::Frp::new(&network);
         let model = InstanceModel::from_class(class, scene)?;

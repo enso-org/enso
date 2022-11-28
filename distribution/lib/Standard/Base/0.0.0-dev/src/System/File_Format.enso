@@ -1,5 +1,12 @@
-from Standard.Base import all
-from Standard.Base.Error.Common import unimplemented
+import project.Data.Any.Any
+import project.Data.Text.Encoding.Encoding
+import project.Data.Vector.Vector
+import project.Error.Problem_Behavior.Problem_Behavior
+import project.Nothing.Nothing
+import project.System.File.File
+
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Error, Unsupported_File_Type, unimplemented
 
 from project.System.File_Format.Plain_Text_Format import Plain_Text
 from project.System.File_Format.Plain_Text_Format export Plain_Text
@@ -16,7 +23,7 @@ type Auto_Detect
     read : File -> Problem_Behavior -> Any ! Unsupported_File_Type
     read self file on_problems =
         reader = Auto_Detect.get_format file
-        if reader == Nothing then Error.throw (Unsupported_File_Type_Data ("No known File_Format supports '" + file.extension + "'")) else
+        if reader == Nothing then Error.throw (Unsupported_File_Type.Error ("No known File_Format supports '" + file.extension + "'")) else
             reader.read file on_problems
 
     ## PRIVATE

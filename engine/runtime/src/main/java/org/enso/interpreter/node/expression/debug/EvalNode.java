@@ -79,7 +79,7 @@ public abstract class EvalNode extends BaseNode {
     ClosureRootNode framedNode =
         ClosureRootNode.build(
             context.getLanguage(), localScope, moduleScope, expr, null, "<eval>", false, false);
-    return Truffle.getRuntime().createCallTarget(framedNode);
+    return framedNode.getCallTarget();
   }
 
   @Specialization(

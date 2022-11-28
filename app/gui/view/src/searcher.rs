@@ -123,7 +123,7 @@ impl Model {
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
-        let documentation = documentation::View::new(scene);
+        let documentation = documentation::View::new(&app);
         let doc_provider = default();
         scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
@@ -135,10 +135,10 @@ impl Model {
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
         list.set_label_layer(&scene.layers.node_searcher_text);
-        list.set_position_y(-action_list_gap);
-        list.set_position_x(ACTION_LIST_X);
-        documentation.set_position_x(DOCUMENTATION_X);
-        documentation.set_position_y(-action_list_gap);
+        list.set_y(-action_list_gap);
+        list.set_x(ACTION_LIST_X);
+        documentation.set_x(DOCUMENTATION_X);
+        documentation.set_y(-action_list_gap);
         Self { app, logger, display_object, list, documentation, doc_provider }
     }
 

@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 import Standard.Table.Data.Expression.Expression_Error
@@ -27,7 +26,7 @@ spec detailed=False =
         new_column = new_table.at -1
         new_column.name . should_equal "NEW_COL"
         expected = case value of
-            _ : Vector.Vector -> value
+            _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
 
         values = new_column.to_vector

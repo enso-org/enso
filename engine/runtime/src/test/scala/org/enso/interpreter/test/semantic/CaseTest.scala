@@ -15,7 +15,7 @@ class CaseTest extends InterpreterTest {
     "result in an error if the matched constructor isn't visible" in {
       val code =
         """
-          |from Standard.Base.Data.List import List
+          |import Standard.Base.Data.List.List
           |
           |main =
           |    x = List.Cons 0 List.Nil
@@ -32,7 +32,7 @@ class CaseTest extends InterpreterTest {
     "result in an error if the wrong number of fields are provided" in {
       val code =
         """
-          |from Standard.Base.Data.List import List
+          |import Standard.Base.Data.List.List
           |
           |main =
           |    x = List.Cons 0 List.Nil

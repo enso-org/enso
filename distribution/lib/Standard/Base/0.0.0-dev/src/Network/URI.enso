@@ -204,7 +204,7 @@ type URI
              import Standard.Examples
 
              example_to_json = Examples.uri.to_json
-    to_json : Json.String
+    to_json : Json
     to_json self = Json.String self.to_text
 
     ## Check if this URI is equal to another URI.

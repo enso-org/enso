@@ -323,12 +323,16 @@ impl State {
         &self,
         connection: AstConnection,
     ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
-        let nodes = self.nodes.borrow();
-        let src_node = nodes.get(connection.source.node)?.view_id?;
-        let dst_node = nodes.get(connection.destination.node)?.view_id?;
-        let src = EdgeEndpoint::new(src_node, connection.source.port);
-        let data = EdgeEndpoint::new(dst_node, connection.destination.port);
-        Some((src, data))
+        let convertible_source = connection.source.var_crumbs.is_empty();
+        let convertible_dest = connection.destination.var_crumbs.is_empty();
+        (convertible_source && convertible_dest).and_option_from(|| {
+            let nodes = self.nodes.borrow();
+            let src_node = nodes.get(connection.source.node)?.view_id?;
+            let dst_node = nodes.get(connection.destination.node)?.view_id?;
+            let src = EdgeEndpoint::new(src_node, connection.source.port);
+            let data = EdgeEndpoint::new(dst_node, connection.destination.port);
+            Some((src, data))
+        })
     }
 
     /// Convert the pair of [`EdgeEndpoint`]s to AST connection.
@@ -377,7 +381,10 @@ impl State {
 
     /// Checks if the node should be synced with its AST automatically.
     pub fn should_receive_expression_auto_updates(&self, node: ast::Id) -> bool {
-        self.nodes.borrow().get(node).map_or(false, |node| node.expression_auto_update)
+        // When node is in process of being created, it is not yet present in the state. In that
+        // case the initial expression update needs to be processed. Otherwise the node would be
+        // created without any expression.
+        self.nodes.borrow().get(node).map_or(true, |node| node.expression_auto_update)
     }
 
     /// Set the flag that indicates if the node should be synced with its AST automatically.
