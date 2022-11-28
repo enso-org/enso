@@ -54,7 +54,7 @@ public class Array_Builder<T> {
             longArray[size++] = l;
         } else {
             objectArray = new Object[longArray.length];
-            for (int i = 0; i < longArray.length; i++) {
+            for (int i = 0; i < size; i++) {
                 objectArray[i] = longArray[i];
             }
             primitiveArray = null;
