@@ -125,9 +125,9 @@ fn doc_comments() {
     #[rustfmt::skip]
     test(&lines.join("\n"), block![
         (Documented
-         (#((Section " The Identity Function") (Section "\n")
-           (Section "\n")
-           (Section "Arguments:") (Section "\n")
+         (#((Section " The Identity Function") (Newline)
+           (Newline)
+           (Section "Arguments:") (Newline)
            (Section "- x: value to do nothing to"))
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
@@ -919,10 +919,10 @@ x"#;
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "part of the string") (Section "\n")
-           (Section "   3-spaces indented line, part of the Text Block") (Section "\n")
-           (Section "this does not end the string -> '''") (Section "\n")
-           (Section "\n")
+         #((Section "part of the string") (Newline)
+           (Section "   3-spaces indented line, part of the Text Block") (Newline)
+           (Section "this does not end the string -> '''") (Newline)
+           (Newline)
            (Section "`also` part of the string")))
         ()
         (Ident x)
@@ -959,7 +959,7 @@ x"#;
         (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
     test!("'''\n \\t'", (TextLiteral #((Escape '\t') (Section "'"))));
     test!("'''\n x\n \\t'",
-        (TextLiteral #((Section "x") (Section "\n") (Escape '\t') (Section "'"))));
+        (TextLiteral #((Section "x") (Newline) (Escape '\t') (Section "'"))));
 }
 
 #[test]
@@ -1003,7 +1003,7 @@ fn interpolated_literals_in_multiline_text() {
     #[rustfmt::skip]
     let expected = block![
         (TextLiteral
-         #((Section "text with a ") (Splice (Ident splice)) (Section "\n")
+         #((Section "text with a ") (Splice (Ident splice)) (Newline)
            (Section "and some ") (Escape '\n') (Section "escapes") (Escape '\'')))];
     test(code, expected);
 }
