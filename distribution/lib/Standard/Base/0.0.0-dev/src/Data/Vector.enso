@@ -346,16 +346,9 @@ type Vector a
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
-            len = self.length
-            builder = Vector.new_builder
-            loop idx =
-                if idx == len then builder.to_vector else
-                    item = self.at idx
-                    include = predicate item
-                    if include.is_error then include else
-                        if include then builder.append item
-                        @Tail_Call loop (idx + 1)
-            loop 0
+            builder = self.fold Vector.new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -370,16 +363,9 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        len = self.length
-        builder = Vector.new_builder
-        loop idx =
-            if idx == len then builder.to_vector else
-                item = self.at idx
-                include = predicate idx item
-                if include.is_error then include else
-                    if include then builder.append item
-                    @Tail_Call loop (idx + 1)
-        loop 0
+        builder = self.fold_with_index Vector.new_builder builder-> ix-> elem->
+            if predicate ix elem then builder.append elem else builder
+        builder.to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
        predicate and ones that do not.
