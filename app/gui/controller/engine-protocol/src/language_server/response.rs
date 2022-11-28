@@ -113,7 +113,7 @@ pub struct GetComponentGroups {
 #[allow(missing_docs)]
 pub struct GetVcsEntry {
     pub commit_id: String,
-    pub message: String,
+    pub message:   String,
 }
 
 /// Response of `list_vcs` method.

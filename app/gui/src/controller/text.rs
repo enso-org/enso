@@ -101,25 +101,26 @@ impl Handle {
     #[profile(Detail)]
     pub fn save_project_to_vcs(&self) -> impl Future<Output = FallibleResult> {
         let language_server = match self.file.clone_ref() {
-            FileHandle::PlainText {language_server, ..} => language_server,
-            FileHandle::Module {controller} => controller.language_server,
+            FileHandle::PlainText { language_server, .. } => language_server,
+            FileHandle::Module { controller } => controller.language_server,
         };
         let project_root = language_server.project_root().id();
         let path_segments: [&str; 0] = [];
-        let root_path = language_server::Path::new(project_root, &path_segments);        
+        let root_path = language_server::Path::new(project_root, &path_segments);
 
         async move {
             let response = language_server.write_vcs(&root_path, &None).await;
-            if let Err(RpcError::RemoteError(
-                json_rpc::messages::Error{code: error_code, ..}
-            )) = response {
-                if error_code==code::FILE_NOT_FOUND {
+            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+                code: error_code, ..
+            })) = response
+            {
+                if error_code == code::FILE_NOT_FOUND {
                     language_server.init_vcs(&root_path).await?;
                     language_server.write_vcs(&root_path, &None).await?;
                     return Ok(());
                 }
             }
-            response?;            
+            response?;
             Ok(())
         }
     }
