@@ -316,11 +316,11 @@ impl Data {
             Kind::LocalScopeEntry { .. } => entry_size.x,
             _ => grid_style.column_width(),
         };
-        let bg_height = entry_size.y - gap_over_header + overlap;
+        let bg_height = entry_size.y + overlap;
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = -gap_over_header / 2.0 + overlap / 2.0 + local_scope_offset;
+        let bg_y = -gap_over_header + overlap / 2.0 + local_scope_offset;
         self.background.set_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
@@ -334,8 +334,7 @@ impl Data {
     }
 
     fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
-        let optional_gap = if kind == Kind::Header { grid_style.column_gap } else { 0.0 };
-        let height = entry_size.y - optional_gap;
+        let height = entry_size.y;
         Contour::rectangular(Vector2(grid_style.column_width(), height))
     }
 
@@ -346,7 +345,7 @@ impl Data {
 
     fn contour_offset(kind: Kind, grid_style: &GridStyle) -> Vector2 {
         let y = match kind {
-            Kind::Header => -grid_style.column_gap / 2.0,
+            Kind::Header => -grid_style.column_gap,
             Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
             _ => 0.0,
         };
