@@ -66,7 +66,6 @@ pub struct ChildIndex(usize);
 #[derive(Derivative)]
 #[derive(CloneRef, Deref, From)]
 #[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
 #[derivative(Default(bound = ""))]
 #[repr(transparent)]
 pub struct Instance {
@@ -103,9 +102,9 @@ pub struct Model {
     pub network: frp::Network,
 
     #[deref]
-    hierarchy:    HierarchyModel,
-    event:        EventModel,
-    bounding_box: Cell<Vector2<f32>>,
+    hierarchy: HierarchyModel,
+    event:     EventModel,
+    layout:    LayoutModel,
 }
 
 
@@ -136,8 +135,8 @@ impl Model {
         let network = frp::Network::new("display_object");
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
-        let bounding_box = default();
-        Self { network, hierarchy, event, bounding_box }
+        let layout = LayoutModel::new(&network);
+        Self { network, hierarchy, event, layout }
     }
 }
 
@@ -177,12 +176,6 @@ impl Display for Instance {
 impl Display for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Instance")
-    }
-}
-
-impl Debug for InstanceDef {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DisplayObject")
     }
 }
 
@@ -283,7 +276,7 @@ pub mod dirty {
     type NewParent = crate::data::dirty::RefCellBool<()>;
     type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
     type RemovedChildren = crate::data::dirty::RefCellVector<WeakInstance, OnDirtyCallback>;
-    type Transform = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
     type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
 
 
@@ -308,7 +301,7 @@ pub mod dirty {
         /// whose ancestors were modified in such a way.
         pub modified_children: ModifiedChildren,
         pub removed_children:  RemovedChildren,
-        pub transformation:    Transform,
+        pub transformation:    Transformation,
         pub new_layer:         SceneLayer,
     }
 
@@ -318,7 +311,7 @@ pub mod dirty {
             let new_parent = NewParent::new(());
             let modified_children = ModifiedChildren::new(on_dirty_callback(parent_bind));
             let removed_children = RemovedChildren::new(on_dirty_callback(parent_bind));
-            let transformation = Transform::new(on_dirty_callback(parent_bind));
+            let transformation = Transformation::new(on_dirty_callback(parent_bind));
             let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
             Self { new_parent, modified_children, removed_children, transformation, new_layer }
         }
@@ -462,6 +455,10 @@ impl Model {
 }
 
 impl Model {
+    fn children(&self) -> Vec<Instance> {
+        self.children.borrow().iter().filter_map(|t| t.upgrade()).collect()
+    }
+
     /// Checks whether the object is visible.
     pub fn is_visible(&self) -> bool {
         self.visible.get()
@@ -569,6 +566,7 @@ impl Model {
     /// Recompute the transformation matrix of the display object tree starting with this object and
     /// traversing all of its dirty children.
     pub fn update(&self, scene: &Scene) {
+        self.update_layout();
         let origin0 = Matrix4::identity();
         self.update_with_origin(scene, origin0, false, false, None)
     }
@@ -638,7 +636,7 @@ impl Model {
                 if origin_changed {
                     trace!("Self origin changed.");
                 } else {
-                    trace!("Self origin did not change, but the layers changed");
+                    trace!("Self origin did not change, but the layers did.");
                 }
                 self.on_updated_source.emit(());
                 if !self.children.borrow().is_empty() {
@@ -872,11 +870,6 @@ impl EventModel {
 }
 
 impl Model {
-    // FIXME: this is not finished yet, should be finished in the next PR regarding auto-layouts.
-    pub(crate) fn set_bounding_box(&self, bounding_box: Vector2<f32>) {
-        self.bounding_box.set(bounding_box);
-    }
-
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
     fn on_event<T>(&self) -> frp::Stream<event::Event<T>>
     where T: frp::Data {
@@ -1020,6 +1013,310 @@ impl InstanceDef {
     }
 }
 
+
+// ================
+// === Resizing ===
+// ================
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Resizing {
+    #[default]
+    Hug,
+    Fill,
+    Fixed(f32),
+}
+
+impl Resizing {
+    pub fn is_hug(self) -> bool {
+        self == Resizing::Hug
+    }
+
+    pub fn is_fill(self) -> bool {
+        self == Resizing::Fill
+    }
+
+    pub fn is_fixed(self) -> bool {
+        match self {
+            Resizing::Fixed(_) => true,
+            _ => false,
+        }
+    }
+}
+
+impl From<f32> for Resizing {
+    fn from(value: f32) -> Self {
+        Resizing::Fixed(value)
+    }
+}
+
+pub trait IntoResizing {
+    fn into_resizing(self) -> Vector2<Resizing>;
+}
+
+impl IntoResizing for Vector2<f32> {
+    fn into_resizing(self) -> Vector2<Resizing> {
+        Vector2::new(self.x.into(), self.y.into())
+    }
+}
+
+macro_rules! tuple_into_resizing {
+    ($a:tt, $b:tt) => {
+        impl IntoResizing for ($a, $b) {
+            fn into_resizing(self) -> Vector2<Resizing> {
+                Vector2::new(self.0.into(), self.1.into())
+            }
+        }
+    };
+}
+
+tuple_into_resizing!(f32, f32);
+tuple_into_resizing!(Resizing, f32);
+tuple_into_resizing!(f32, Resizing);
+tuple_into_resizing!(Resizing, Resizing);
+
+
+// ==============
+// === Layout ===
+// ==============
+
+use crate::display::layout::alignment;
+use crate::display::layout::alignment::Alignment;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Horizontal;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Vertical;
+
+#[derive(Clone, Copy, Debug)]
+pub enum Layout {
+    Horizontal(LayoutOptions),
+    Vertical(LayoutOptions),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LayoutOptions {
+    pub alignment:          Alignment,
+    pub spacing:            f32,
+    pub horizontal_padding: f32,
+    pub vertical_padding:   f32,
+}
+
+impl Layout {
+    pub fn horizontal() -> LayoutBuilder<Horizontal> {
+        default()
+    }
+
+    pub fn vertical() -> LayoutBuilder<Vertical> {
+        default()
+    }
+}
+
+
+
+// =====================
+// === LayoutBuilder ===
+// =====================
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LayoutBuilder<Layout> {
+    pub options: LayoutOptions,
+    pub tp:      PhantomData<Layout>,
+}
+
+impl From<LayoutBuilder<Horizontal>> for Option<Layout> {
+    fn from(builder: LayoutBuilder<Horizontal>) -> Self {
+        Some(Layout::Horizontal(builder.options))
+    }
+}
+
+impl From<LayoutBuilder<Vertical>> for Option<Layout> {
+    fn from(builder: LayoutBuilder<Vertical>) -> Self {
+        Some(Layout::Vertical(builder.options))
+    }
+}
+
+
+impl Debug for InstanceDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DisplayObject")
+            .field("position", &self.position().as_slice())
+            .field("size", &self.layout.size.get().as_slice())
+            .finish()
+    }
+}
+
+impl Debug for Instance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.def, f)
+    }
+}
+
+// ===================
+// === LayoutModel ===
+// ===================
+
+#[derive(Debug)]
+pub struct LayoutModel {
+    layout:   Cell<Option<Layout>>,
+    size:     Cell<Vector2<f32>>,
+    resizing: Cell<Vector2<Resizing>>,
+}
+
+impl LayoutModel {
+    pub fn new(network: &frp::Network) -> Self {
+        let layout = default();
+        let size = default();
+        let resizing = default();
+        Self { layout, size, resizing }
+    }
+}
+
+impl Model {
+    fn size(&self) -> Vector2<f32> {
+        self.layout.size.get()
+    }
+
+    fn resizing(&self) -> Vector2<Resizing> {
+        self.layout.resizing.get()
+    }
+
+    fn set_resizing(&self, resizing: impl IntoResizing) {
+        self.dirty.transformation.set();
+        self.layout.resizing.set(resizing.into_resizing());
+    }
+}
+
+impl Model {
+    fn set_layout(&self, layout: impl Into<Option<Layout>>) {
+        self.dirty.transformation.set();
+        self.layout.layout.set(layout.into());
+    }
+
+    fn update_layout(&self) {
+        if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
+            return;
+        }
+        let resizing = self.layout.resizing.get();
+        match resizing.x {
+            Resizing::Fixed(v) => {
+                self.layout.size.modify(|t| t.x = v);
+            }
+            _ => {}
+        }
+        match resizing.y {
+            Resizing::Fixed(v) => {
+                self.layout.size.modify(|t| t.y = v);
+            }
+            _ => {}
+        }
+        match self.layout.layout.get() {
+            None => {}
+            Some(Layout::Horizontal(opts)) => {
+                let children = self.children();
+                let resizing = self.layout.resizing.get().x;
+                let space_left = if resizing.is_fixed() || resizing.is_fill() {
+                    let mut allocated_space = 0.0;
+                    let mut children_to_fill = vec![];
+                    for child in &children {
+                        if child.layout.resizing.get().x.is_fill() {
+                            children_to_fill.push(child);
+                        } else {
+                            child.update_layout();
+                            allocated_space += child.layout.size.get().x;
+                        }
+                    }
+                    let children_to_fill_count = children_to_fill.len();
+                    let width = self.layout.size.get().x;
+                    let space_left = (width
+                        - allocated_space
+                        - 2.0 * opts.horizontal_padding
+                        - (children.len() - 1) as f32 * opts.spacing);
+                    let child_size = space_left.max(0.0) / children_to_fill_count as f32;
+                    for child in children_to_fill {
+                        child.layout.size.modify(|t| t.x = child_size);
+                        child.update_layout();
+                    }
+                    if children_to_fill_count > 0 {
+                        0.0
+                    } else {
+                        space_left
+                    }
+                } else {
+                    let mut size = 0.0;
+                    for child in &children {
+                        if child.layout.resizing.get().x.is_fill() {
+                            child.layout.size.modify(|t| t.x = 0.0);
+                        }
+                        child.update_layout();
+                        size += child.layout.size.get().x;
+                    }
+                    size +=
+                        2.0 * opts.horizontal_padding + (children.len() - 1) as f32 * opts.spacing;
+                    self.layout.size.modify(|t| t.x = size);
+                    0.0
+                };
+                let mut pos = opts.horizontal_padding;
+                match opts.alignment.horizontal {
+                    alignment::Horizontal::Left => {}
+                    alignment::Horizontal::Center => {
+                        pos += space_left / 2.0;
+                    }
+                    alignment::Horizontal::Right => {
+                        pos += space_left;
+                    }
+                }
+                let height = self.layout.size.get().y;
+                for child in &children {
+                    let size = child.size();
+                    child.set_x(pos);
+                    pos += size.x + opts.spacing;
+                    match opts.alignment.vertical {
+                        alignment::Vertical::Bottom => child.set_y(0.0),
+                        alignment::Vertical::Center => child.set_y((height - size.y) / 2.0),
+                        alignment::Vertical::Top => child.set_y(height - size.y),
+                    }
+                }
+                pos += opts.horizontal_padding;
+            }
+            _ => panic!(),
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod tests2 {
+    use super::*;
+    use crate::display::world::World;
+    use std::f32::consts::PI;
+
+    #[test]
+    fn layout_test() {
+        let world = World::new();
+        let scene = &world.default_scene;
+
+        let root = Instance::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        root.set_layout(Layout::horizontal());
+        root.set_resizing((Resizing::Hug, 100.0));
+        node1.set_resizing((Resizing::Fill, 100.0));
+        node2.set_resizing((100.0, 100.0));
+        root.add_child(&node1);
+        root.add_child(&node2);
+        root.update(&scene);
+        println!("root: {:?}", root);
+        println!("node1: {:?}", node1);
+        println!("node2: {:?}", node2);
+        node1.set_resizing((50.0, 100.0));
+        root.update(&scene);
+        println!("root: {:?}", root);
+        println!("node1: {:?}", node1);
+        println!("node2: {:?}", node2);
+        assert_eq!(node2.position(), Vector3(100.0, 0.0, 0.0));
+    }
+}
 
 
 // ====================

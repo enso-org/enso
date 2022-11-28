@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 /// Alignment abstraction. Example usage is camera origin placement allowing it to behave correctly
 /// when scaling the scene.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub struct Alignment {
     pub horizontal: Horizontal,
@@ -18,7 +18,7 @@ pub struct Alignment {
 }
 
 /// Horizontal alignments.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum Horizontal {
     Left,
@@ -27,7 +27,7 @@ pub enum Horizontal {
 }
 
 /// Vertical alignments.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum Vertical {
     Top,
