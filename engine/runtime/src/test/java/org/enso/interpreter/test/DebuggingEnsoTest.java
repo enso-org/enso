@@ -1,6 +1,12 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import com.oracle.truffle.api.debug.DebugException;
+import com.oracle.truffle.api.debug.DebugScope;
 import com.oracle.truffle.api.debug.DebugStackFrame;
 import com.oracle.truffle.api.debug.DebugValue;
 import com.oracle.truffle.api.debug.Debugger;
@@ -15,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -23,9 +30,6 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assert;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -82,14 +86,20 @@ public class DebuggingEnsoTest {
     return stackFrames;
   }
 
+  private static Source createEnsoSource(String srcCode) {
+    return Source.newBuilder("enso", srcCode, "tmp.enso")
+        .uri(URI.create("memory://tmp.enso"))
+        .buildLiteral();
+  }
+
+
   /**
    * Steps through recursive evaluation of factorial with an accumulator, and for each step,
    * checks the value of the `accumulator` variable.
    */
   @Test
   public void recursiveFactorialCall() throws Exception {
-    final URI facUri = new URI("memory://fac.enso");
-    final Source facSrc = Source.newBuilder("enso", """
+    final Source facSrc = createEnsoSource("""
     fac : Number -> Number
     fac n =
         facacc : Number -> Number -> Number
@@ -98,9 +108,7 @@ public class DebuggingEnsoTest {
                 if stop then accumulator else @Tail_Call facacc n-1 n*accumulator
 
         facacc n 1
-    """, "fac.enso")
-            .uri(facUri)
-            .buildLiteral();
+    """);
 
     var module = context.eval(facSrc);
     var facFn = module.invokeMember("eval_expression", "fac");
@@ -126,8 +134,7 @@ public class DebuggingEnsoTest {
    */
   @Test
   public void callerVariablesAreVisibleOnPreviousStackFrame() {
-    URI fooUri = URI.create("memory://tmp.enso");
-    Source fooSource = Source.newBuilder("enso", """
+    Source fooSource = createEnsoSource("""
         bar arg_bar =
             loc_bar = arg_bar + 1
             loc_bar
@@ -135,9 +142,7 @@ public class DebuggingEnsoTest {
         foo x =
             loc_foo = 1
             bar loc_foo
-        """, "tmp.enso")
-        .uri(fooUri)
-        .buildLiteral();
+        """);
 
     Value module = context.eval(fooSource);
     Value fooFunc = module.invokeMember("eval_expression", "foo");
@@ -156,8 +161,8 @@ public class DebuggingEnsoTest {
           List<DebugStackFrame> stackFrames = getStackFramesFromEvent(event);
 
           Assert.assertEquals(2, stackFrames.size());
-          Assert.assertTrue(stackFrames.get(1).getName().contains("foo"));
-          Assert.assertTrue(stackFrames.get(0).getName().contains("bar"));
+          assertTrue(stackFrames.get(1).getName().contains("foo"));
+          assertTrue(stackFrames.get(0).getName().contains("bar"));
 
           expectStackFrame(stackFrames.get(1), Map.of("x", "42", "loc_foo", "1"));
           expectStackFrame(stackFrames.get(0), Map.of("arg_bar", "1", "loc_bar", "2"));
@@ -167,6 +172,77 @@ public class DebuggingEnsoTest {
     })) {
       session.suspendNextExecution();
       fooFunc.execute(42);
+    }
+  }
+
+  /**
+   * Host values in the stack frame are handled specially, because of https://github.com/oracle/graal/issues/5513
+   */
+  @Test
+  public void testHostValues() {
+    Source src = createEnsoSource("""
+        polyglot java import java.nio.file.Path
+        polyglot java import java.util.ArrayList
+        
+        foo x =
+            path = Path.of 'blaaaaa'
+            list = ArrayList.new
+            list.add 10
+            list.add 20
+            tmp = 42
+        """);
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      switch (event.getSourceSection().getCharacters().toString().strip()) {
+        case "tmp = 42" -> {
+          DebugScope scope = event.getTopStackFrame().getScope();
+          DebugValue pathValue = scope.getDeclaredValue("path");
+          assertTrue(pathValue.isReadable());
+          assertFalse(pathValue.isInternal());
+          assertFalse(pathValue.hasReadSideEffects());
+          assertTrue(pathValue.toDisplayString().startsWith("HostObject"));
+
+          DebugValue listValue = scope.getDeclaredValue("list");
+          // ArrayList is internally represented as Enso list, but as an object
+          // initialized in host context, it suffers from the issue mentioned in
+          // https://github.com/oracle/graal/issues/5513. Therefore, we display
+          // it just as 'HostObject' in the debugger.
+          assertNotNull(listValue);
+          assertTrue(listValue.toDisplayString().startsWith("HostObject"));
+        }
+      }
+      event.getSession().suspendNextExecution();
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
+  public void testEvaluateExpression() {
+    Source src = createEnsoSource("""
+        polyglot java import java.nio.file.Path
+        
+        foo x =
+            a = 10
+            b = 20
+            tmp = 42
+        """);
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      switch (event.getSourceSection().getCharacters().toString().strip()) {
+        case "tmp = 42" -> {
+          // nop
+        }
+      }
+      event.getSession().suspendNextExecution();
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(Module.EVAL_EXPRESSION, 0);
     }
   }
 
