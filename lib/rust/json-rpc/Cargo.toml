@@ -8,7 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { path = "../prelude", features = ["futures"] }
+enso-prelude = { path = "../prelude" }
 enso-shapely = { path = "../shapely" }
 enso-web = { path = "../web" }
 enso-profiler-data = { path = "../profiler/data" }
