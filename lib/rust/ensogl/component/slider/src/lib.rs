@@ -324,7 +324,7 @@ ensogl_core::define_endpoints_2! {
 /// value within the specified range. Dragging the slider in a vertical direction adjusts the
 /// precision of the slider. The precision affects the increments by which the value changes when
 /// the mouse is moved.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, Clone)]
 pub struct Slider {
     /// Public FRP api of the component.
     #[deref]

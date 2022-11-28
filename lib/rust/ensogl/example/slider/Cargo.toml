@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
