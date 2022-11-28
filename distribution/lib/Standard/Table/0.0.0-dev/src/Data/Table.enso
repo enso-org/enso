@@ -21,9 +21,10 @@ import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
+import project.Internal.Aggregate_Column_Helper
+import project.Internal.Join_Helpers
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
-import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Data.Expression.Expression
@@ -1110,17 +1111,17 @@ type Table
             Join_Kind.Right_Exclusive -> [False, True]
             _                         -> [True, True]
 
-        # TODO extract those from equality conditions
-        right_columns_to_drop = []
+        join_resolution = make_join_helpers self right . resolve on on_problems
+        right_columns_to_drop = join_resolution.redundant_column_names
 
-        java_conditions = on.map condition-> case condition of
-            Join_Condition.Equals left_selector right_selector ->
-                # TODO better handling of unmatched columns?
-                Java_Join_Equals.new (self.at left_selector . java_column) (right.at right_selector . java_column)
-            _ -> unimplemented "Conditions other than Equals are not implemented yet."
-
-        new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-        Table.Table_Data new_table
+        case join_resolution.conditions of
+            # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
+            Nothing ->
+                new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                Table.Table_Data new_table
+            java_conditions ->
+                new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                Table.Table_Data new_table
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1387,3 +1388,12 @@ print_table header rows indices_count format_term =
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)
+
+## PRIVATE
+make_join_helpers left_table right_table =
+    make_equals left right = Java_Join_Equals.new left.java_column right.java_column
+    make_equals_ignore_case _ _ =
+        unimplemented "Conditions other than Equals are not implemented yet."
+    make_between _ _ _ =
+        unimplemented "Conditions other than Equals are not implemented yet."
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between

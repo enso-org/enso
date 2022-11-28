@@ -1575,9 +1575,10 @@ spec prefix table_builder test_selection pending=Nothing =
             conditions = [Join_Condition.Equals "Y" "Y", Join_Condition.Equals "X" "X"]
             t3 = t1.join t2 on=conditions . order_by ["X", "Y", "Z", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t3
-
-            # TODO
-            t3.print
+            t3.at "X" . to_vector . should_equal [1, 1, 1, 1, 2, 2]
+            t3.at "Y" . to_vector . should_equal ["B", "B", "B", "B", "C", "C"]
+            t3.at "Z" . to_vector . should_equal [2, 2, 3, 3, 4, 5]
+            t3.at "W" . to_vector . should_equal [1, 2, 1, 2, 4, 4]
 
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -1590,7 +1591,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 expect_column_names ["X", "Y", "Z", "W"] table
                 table.row_count . should_equal 0
                 table.at "X" . to_vector . should_equal []
-            problems = [Missing_Input_Columns_Data ["foo", "baz"], Column_Indexes_Out_Of_Range_Data [42, -3]]
+            problems = [Column_Indexes_Out_Of_Range_Data [42, -3], Missing_Input_Columns_Data ["foo", "baz"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should rename columns of the right table to avoid duplicates" pending="Column renaming needs clarification and implementation." <|
@@ -1608,7 +1609,7 @@ spec prefix table_builder test_selection pending=Nothing =
             t5 = table_builder [["Right_X", [2, 1]], ["X", [2, 2]], ["Y", [2, 2]], ["Right_Y", [2, 2]], ["Right_Y_1", [2, 2]], ["Right_Y_4", [2, 2]]]
 
             # TODO specify collisions
-            t6 = t1.join t2
+            t6 = t4.join t5
             # All existing ones have precedence over renamed ones (regardless of ordering)
             expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y", "Right_Y_1", "Right_Y_1", "Right_Y_4"] t6
             # Renames happen in the order of appearance of columns
