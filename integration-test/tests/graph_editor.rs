@@ -147,7 +147,7 @@ async fn adding_node_with_add_node_button() {
 
     // If there is a free space, the new node is created in the center of screen.
     let camera = scene.layers.main.camera();
-    camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
+    camera.mod_xy(|pos| pos + Vector2(1000.0, 1000.0));
     wait_a_frame().await;
     graph_editor.nodes().deselect_all();
     let (node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1").await;

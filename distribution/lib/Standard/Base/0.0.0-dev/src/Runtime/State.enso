@@ -1,8 +1,10 @@
 ## The runtime's integrated monadic state management.
-## A container type for functionality for working with the runtime's
+   A container type for functionality for working with the runtime's
    integrated state functionality.
 
 import project.Data.Any.Any
+
+from project.Error.Common import Uninitialized_State
 
 ## Executes a stateful computation in a local state environment.
 
@@ -15,6 +17,7 @@ import project.Data.Any.Any
 
    > Example
      Print a value from the state.
+         import Standard.Base.Runtime.State
 
          State.run Integer 0 <| IO.println (State.get Integer)
 run : Any -> Any -> Any -> Any
@@ -31,6 +34,7 @@ run key local_state ~computation = @Builtin_Method "State.run"
 
    > Example
      Get the value of state for a key.
+         import Standard.Base.Runtime.State
 
          State.get Decimal
 get : Any -> Any ! Uninitialized_State
@@ -48,6 +52,7 @@ get key = @Builtin_Method "State.get"
 
    > Example
      Store a new value in the state for a given key.
+         import Standard.Base.Runtime.State
 
          State.put Text 2821
 put : Any -> Any -> Any ! Uninitialized_State

@@ -58,11 +58,11 @@ type Redshift_Options
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
             AWS_Credential.Profile db_user profile ->
-                [Pair.Value 'user' db_user] + (if profile == '' then [] else [Pair.Value 'profile' profile])
+                [Pair.new 'user' db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
             AWS_Credential.Key db_user access_key secret_access_key ->
-                [Pair.Value 'user' db_user, Pair.Value 'AccessKeyID' access_key, Pair.Value 'SecretAccessKey' secret_access_key]
+                [Pair.new 'user' db_user, Pair.new 'AccessKeyID' access_key, Pair.new 'SecretAccessKey' secret_access_key]
             Credentials.Username_And_Password username password ->
-                [Pair.Value 'user' username, Pair.Value 'password' password]
+                [Pair.new 'user' username, Pair.new 'password' password]
 
         ## Disabled as Redshift SSL settings are different to PostgreSQL.
         ssl_properties = []

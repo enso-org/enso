@@ -264,8 +264,8 @@ impl BreadcrumbsModel {
         let gap_width = self.gap_width.get();
         let project_name_width = self.project_name.width.value().round();
 
-        self.project_name.set_position_x(gap_width);
-        self.breadcrumbs_container.set_position_x(gap_width + project_name_width);
+        self.project_name.set_x(gap_width);
+        self.breadcrumbs_container.set_x(gap_width + project_name_width);
 
         let width = gap_width + project_name_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;
@@ -274,8 +274,8 @@ impl BreadcrumbsModel {
         let width_with_shadow = background_width + MAGIC_SHADOW_MARGIN * 2.0;
         let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
         self.background.size.set(Vector2(width_with_shadow, height_with_shadow));
-        self.background.set_position_x(width / 2.0);
-        self.background.set_position_y(-HEIGHT / 2.0);
+        self.background.set_x(width / 2.0);
+        self.background.set_y(-HEIGHT / 2.0);
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -352,7 +352,7 @@ impl BreadcrumbsModel {
                 }
 
                 debug!("Pushing {} breadcrumb.", breadcrumb.info.method_pointer.name);
-                breadcrumb.set_position_x(self.breadcrumbs_container_width().round());
+                breadcrumb.set_x(self.breadcrumbs_container_width().round());
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
             }

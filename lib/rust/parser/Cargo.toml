@@ -10,7 +10,7 @@ repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
-enso-prelude = { path = "../prelude", features = ["serde"] }
+enso-prelude = { path = "../prelude", features = ["serde", "serde_json"] }
 enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
 enso-types = { path = "../types" }

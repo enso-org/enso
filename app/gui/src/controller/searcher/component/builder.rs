@@ -25,8 +25,10 @@ use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
-use double_representation::module;
-use double_representation::project;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
+use double_representation::name::QualifiedNameTemplate;
 
 
 
@@ -40,7 +42,7 @@ use double_representation::project;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
-    pub qualified_name:    module::QualifiedName,
+    pub qualified_name:    QualifiedName,
     pub content:           component::Group,
     /// The flattened content contains the content of a module and all its submodules. Is set to
     /// `Some` only when such flattened content is needed (decided during construction).
@@ -63,9 +65,9 @@ impl ModuleGroups {
         component_id: component::Id,
         entry: &suggestion_database::Entry,
     ) -> FallibleResult<Self> {
-        let is_top_module = entry.module.is_top_module();
+        let is_top_module = entry.kind == suggestion_database::entry::Kind::Module
+            && entry.defined_in.is_top_element();
         let qualified_name = entry.qualified_name();
-        let qualified_name = module::QualifiedName::from_all_segments(qualified_name.into_iter())?;
         let mk_group = || component::Group::from_entry(component_id, entry);
         Ok(Self {
             qualified_name,
@@ -139,7 +141,8 @@ impl List {
             let component = Component::new_from_database_entry(id, entry.clone_ref());
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
-                if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
+                if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
+                {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
@@ -149,20 +152,9 @@ impl List {
                         self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
-                if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
+                if let Some(top_group) = self.lookup_module_group(db, top_module(&parent_module)) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
                         flatten_group.entries.borrow_mut().push(component.clone_ref());
-                        component_inserted_somewhere = true;
-                    }
-                }
-            } else {
-                // Entry has no parent module, so either it belongs to the main module of the
-                // project, or it is a main module itself.
-                if !entry.is_main_module() {
-                    let project_name = entry.module.project_name.clone();
-                    let main_module = module::QualifiedName::new_main(project_name);
-                    if let Some(main_group) = self.lookup_module_group(db, &main_module) {
-                        main_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                     }
                 }
@@ -216,9 +208,9 @@ impl List {
     fn lookup_module_group(
         &mut self,
         db: &model::SuggestionDatabase,
-        module: &module::QualifiedName,
+        module: QualifiedNameRef,
     ) -> Option<&mut ModuleGroups> {
-        let (module_id, db_entry) = db.lookup_by_qualified_name(module)?;
+        let (module_id, db_entry) = db.lookup_by_qualified_name(&module)?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.
@@ -229,18 +221,9 @@ impl List {
             self.module_groups.get_mut(&module_id)
         } else {
             let groups = ModuleGroups::new(module_id, &db_entry).ok()?;
-            if let Some(module) = module.parent_module() {
-                if let Some(parent_groups) = self.lookup_module_group(db, &module) {
+            if let Some(module) = module.parent() {
+                if let Some(parent_groups) = self.lookup_module_group(db, module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
-                }
-            } else {
-                // Module has no parent, so it is a top-level module that can be added as a
-                // submodule of the main module of the project.
-                let main_module = module::QualifiedName::new_main(module.project_name.clone());
-                if main_module != *module {
-                    if let Some(main_groups) = self.lookup_module_group(db, &main_module) {
-                        main_groups.submodules.push(groups.content.clone_ref());
-                    }
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))
@@ -289,6 +272,13 @@ impl List {
     }
 }
 
+fn top_module<Segments: AsRef<[ImString]>>(
+    name: &QualifiedNameTemplate<Segments>,
+) -> QualifiedNameRef {
+    let top_module_end = name.path().len().min(1);
+    name.sub_path(0..top_module_end)
+}
+
 
 
 // =============
@@ -301,7 +291,7 @@ mod tests {
 
     use crate::controller::searcher::component::tests::mock_suggestion_db;
 
-    use double_representation::project;
+    use double_representation::name::project;
 
 
     #[derive(Clone, Debug, Eq, PartialEq)]
@@ -324,8 +314,8 @@ mod tests {
     #[test]
     fn building_component_list() {
         let suggestion_db = mock_suggestion_db();
-        let mut builder = List::new().with_local_scope_module_id(0);
-        let first_part = (0..3).chain(6..11);
+        let mut builder = List::new().with_local_scope_module_id(1);
+        let first_part = (0..3).chain(6..12);
         let second_part = 3..6;
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, first_part);
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
@@ -336,13 +326,13 @@ mod tests {
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
-                component_id: Some(0),
-                entries:      vec![5, 6, 2, 3],
+                component_id: Some(1),
+                entries:      vec![2, 9, 3, 5],
             },
             ComparableGroupData {
                 name:         "Test.TopModule2",
-                component_id: Some(1),
-                entries:      vec![7],
+                component_id: Some(10),
+                entries:      vec![11],
             },
         ];
         assert_eq!(top_modules, expected);
@@ -352,13 +342,13 @@ mod tests {
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
-                component_id: Some(0),
-                entries:      vec![5, 6, 8, 9, 10, 2, 3, 4],
+                component_id: Some(1),
+                entries:      vec![2, 9, 4, 6, 8, 3, 5, 7],
             },
             ComparableGroupData {
                 name:         "Test.TopModule2",
-                component_id: Some(1),
-                entries:      vec![7],
+                component_id: Some(10),
+                entries:      vec![11],
             },
         ];
         assert_eq!(flattened_top_modules, expected);
@@ -370,29 +360,34 @@ mod tests {
             .collect();
         let expected: BTreeMap<component::Id, ComparableGroupData> = [
             (0, ComparableGroupData {
-                name:         "Test.TopModule1",
+                name:         "Test.Main",
                 component_id: Some(0),
-                entries:      vec![5, 6, 2, 3],
+                entries:      vec![1, 10],
             }),
             (1, ComparableGroupData {
-                name:         "Test.TopModule2",
+                name:         "Test.TopModule1",
                 component_id: Some(1),
-                entries:      vec![7],
-            }),
-            (2, ComparableGroupData {
-                name:         "SubModule1",
-                component_id: Some(2),
-                entries:      vec![8],
+                entries:      vec![2, 9, 3, 5],
             }),
             (3, ComparableGroupData {
-                name:         "SubModule2",
+                name:         "SubModule1",
                 component_id: Some(3),
-                entries:      vec![9, 4],
+                entries:      vec![4],
             }),
-            (4, ComparableGroupData {
+            (5, ComparableGroupData {
+                name:         "SubModule2",
+                component_id: Some(5),
+                entries:      vec![6, 7],
+            }),
+            (7, ComparableGroupData {
                 name:         "SubModule3",
-                component_id: Some(4),
-                entries:      vec![10],
+                component_id: Some(7),
+                entries:      vec![8],
+            }),
+            (10, ComparableGroupData {
+                name:         "Test.TopModule2",
+                component_id: Some(10),
+                entries:      vec![11],
             }),
         ]
         .into_iter()
@@ -407,11 +402,12 @@ mod tests {
             })
             .collect();
         let expected: BTreeMap<component::Id, Vec<&str>> = [
-            (0, vec!["SubModule1", "SubModule2"]),
-            (1, vec![]),
-            (2, vec![]),
-            (3, vec!["SubModule3"]),
-            (4, vec![]),
+            (0, vec!["Test.TopModule1", "Test.TopModule2"]),
+            (1, vec!["SubModule1", "SubModule2"]),
+            (3, vec![]),
+            (5, vec!["SubModule3"]),
+            (7, vec![]),
+            (10, vec![]),
         ]
         .into_iter()
         .collect();
@@ -420,7 +416,7 @@ mod tests {
         let local_scope_entries = &list.local_scope.entries;
         let component_id = |c: &Component| c.id().unwrap();
         let local_scope_ids = local_scope_entries.borrow().iter().map(component_id).collect_vec();
-        let expected_ids = vec![5, 6];
+        let expected_ids = vec![2, 9];
         assert_eq!(local_scope_ids, expected_ids);
     }
 
@@ -433,8 +429,8 @@ mod tests {
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
         let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
-        const QN_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
-        assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
+        let qn_not_in_db = QualifiedName::from_text("test.Test.NameNotInSuggestionDb").unwrap();
+        assert_eq!(db.lookup_by_qualified_name(&qn_not_in_db), None);
         let groups = [
             execution_context::ComponentGroup {
                 project:    project::QualifiedName::standard_base_library(),
@@ -443,9 +439,9 @@ mod tests {
                 components: vec![
                     qn_of_db_entry_0.clone(),
                     qn_of_db_entry_3.clone(),
-                    QN_NOT_IN_DB.into(),
+                    qn_not_in_db.clone(),
                     qn_of_db_entry_3.clone(),
-                    QN_NOT_IN_DB.into(),
+                    qn_not_in_db.clone(),
                     qn_of_db_entry_1,
                     qn_of_db_entry_0,
                 ],
@@ -456,9 +452,9 @@ mod tests {
                 color:      None,
                 components: vec![
                     qn_of_db_entry_3.clone(),
-                    QN_NOT_IN_DB.into(),
+                    qn_not_in_db.clone(),
                     qn_of_db_entry_3,
-                    QN_NOT_IN_DB.into(),
+                    qn_not_in_db,
                 ],
             },
         ];
@@ -493,24 +489,24 @@ mod tests {
     fn building_component_list_with_virtual_component_in_existing_favorites_group() {
         let db = mock_suggestion_db();
         let mut builder = List::new();
-        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();
         const GROUP_NAME: &str = "Group";
         let groups = [execution_context::ComponentGroup {
             project:    project.clone(),
             name:       GROUP_NAME.into(),
             color:      None,
-            components: vec![qn_of_db_entry_0],
+            components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
-        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
-        let expected_entry_names = ["test snippet", "TopModule1"];
+        let expected_entry_names = ["test snippet", qn_of_db_entry_1.name()];
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
 
@@ -520,21 +516,21 @@ mod tests {
     fn building_component_list_with_virtual_component_in_new_favorites_group() {
         let db = mock_suggestion_db();
         let mut builder = List::new();
-        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let project = project::QualifiedName::standard_base_library();
         const GROUP_1_NAME: &str = "Group 1";
         let groups = [execution_context::ComponentGroup {
             project:    project.clone(),
             name:       GROUP_1_NAME.into(),
             color:      None,
-            components: vec![qn_of_db_entry_0],
+            components: vec![qn_of_db_entry_1.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         const GROUP_2_NAME: &str = "Group 2";
         builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);
-        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(1));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {:?}.", favorites);
@@ -543,6 +539,6 @@ mod tests {
         check_names_and_order_of_group_entries(group_at_0, &["test snippet"]);
         let group_at_1 = &favorites[1];
         assert_eq!(group_at_1.name, "Group 1");
-        check_names_and_order_of_group_entries(group_at_1, &["TopModule1"]);
+        check_names_and_order_of_group_entries(group_at_1, &[qn_of_db_entry_1.name()]);
     }
 }

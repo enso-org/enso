@@ -1,4 +1,5 @@
-from Standard.Base import all
+import project.Data.Text.Text
+import project.Nothing.Nothing
 
 polyglot java import org.enso.base.Environment_Utils
 

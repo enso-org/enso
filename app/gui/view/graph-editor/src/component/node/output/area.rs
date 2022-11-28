@@ -148,7 +148,6 @@ ensogl::define_endpoints! {
         expression_label_visibility (bool),
         tooltip                     (tooltip::Style),
         view_mode                   (view::Mode),
-        size                        (Vector2),
     }
 }
 
@@ -240,7 +239,7 @@ impl Model {
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
-        self.label.set_position_x(-self.label.width.value() - input::area::TEXT_OFFSET);
+        self.label.set_x(-self.label.width.value() - input::area::TEXT_OFFSET);
     }
 
     /// Update expression type for the particular `ast::Id`.
@@ -330,7 +329,12 @@ impl Model {
 
     #[profile(Debug)]
     fn set_size(&self, size: Vector2) {
-        self.ports.set_position_x(size.x / 2.0);
+        self.ports.set_x(size.x / 2.0);
+        self.traverse_borrowed_expression_mut(|is_a_port, node, _| {
+            if is_a_port {
+                node.payload_mut().set_size(size)
+            }
+        })
     }
 
     #[profile(Debug)]
@@ -375,12 +379,10 @@ impl Model {
                     port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
                     self.frp.source.tooltip             <+ port_frp.tooltip;
                     port_frp.set_view_mode              <+ self.frp.view_mode;
-                    port_frp.set_size                   <+ self.frp.size;
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
                 port_frp.set_view_mode.emit(self.frp.view_mode.value());
-                port_frp.set_size.emit(self.frp.size.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -481,7 +483,6 @@ impl Area {
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
-            frp.source.size <+ frp.set_size;
 
             frp.source.type_label_visibility <+ frp.set_type_label_visibility;
 

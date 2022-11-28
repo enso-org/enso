@@ -38,7 +38,6 @@ use crate::prelude::*;
 use crate::model::AnyFolderContent;
 
 use ensogl_core::display;
-use ensogl_core::display::Scene;
 use std::path::PathBuf;
 
 
@@ -108,7 +107,7 @@ impl Default for FileBrowser {
 }
 
 impl display::Object for FileBrowser {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }

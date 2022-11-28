@@ -61,10 +61,9 @@ import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
-import project.Resource.Bracket_Spec
-
-import project.Runtime.Stack_Traces_Spec
 import project.Runtime.Lazy_Generator_Spec
+import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Stack_Traces_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
@@ -127,7 +126,7 @@ main = Test_Suite.run_main <|
     Span_Spec.spec
     Encoding_Spec.spec
     Text_Sub_Range_Spec.spec
-    Bracket_Spec.spec
+    Managed_Resource_Spec.spec
     Lazy_Generator_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec

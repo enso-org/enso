@@ -13,7 +13,7 @@ categories = ["algorithms"]
 publish = true
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [dependencies]
 enso-reflect = { path = "../reflect" }

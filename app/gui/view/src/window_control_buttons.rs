@@ -176,16 +176,16 @@ impl Model {
         let padding_offset = Vector2(padding_left, -padding_top);
         let origin_offset = |size: Vector2| Vector2(size.x / 2.0, -size.y / 2.0);
 
-        self.close.set_position_xy(padding_offset + origin_offset(close_size));
+        self.close.set_xy(padding_offset + origin_offset(close_size));
         let fullscreen_x = padding_left + close_size.x + spacing;
         self.fullscreen
-            .set_position_xy(Vector2(fullscreen_x, -padding_top) + origin_offset(fullscreen_size));
+            .set_xy(Vector2(fullscreen_x, -padding_top) + origin_offset(fullscreen_size));
 
         let width = fullscreen_x + fullscreen_size.x + padding_right;
         let height = padding_top + max(close_size.y, fullscreen_size.y) + padding_bottom;
 
         let size = Vector2(width, height);
-        self.shape.set_position_xy(Vector2(size.x, -size.y) / 2.0);
+        self.shape.set_xy(Vector2(size.x, -size.y) / 2.0);
         self.shape.size.set(size);
         size
     }

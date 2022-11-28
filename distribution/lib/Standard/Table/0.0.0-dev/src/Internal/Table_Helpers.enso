@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Data.Text.Text_Ordering.Text_Ordering
-from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
@@ -547,7 +546,7 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
             associated_selector_index = matching_selector_indices.first
             associated_selector = name_selectors.at associated_selector_index
             element = Column_Transform_Element.Value column associated_selector
-            results.append (Pair.Value element [associated_selector_index, i])
+            results.append (Pair.new element [associated_selector_index, i])
     # We sort the results by the associated selector index, breaking ties by the column index.
     sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
     sorted.map .first

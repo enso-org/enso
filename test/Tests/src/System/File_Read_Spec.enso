@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.System.File_Format import Unsupported_File_Type_Data
+from Standard.Base.Error.Common import Unsupported_File_Type
 
 from Standard.Test import Test, Test_Suite, Problems
 
@@ -11,7 +11,7 @@ spec =
     Test.group "Auto_Detect" <|
         Test.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
-            bytes.should_fail_with Unsupported_File_Type_Data
+            bytes.should_fail_with Unsupported_File_Type.Error
 
         Test.specify "should be able to read a text file" <|
             content = sample_txt.read
@@ -23,12 +23,12 @@ spec =
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by method" <|
-            bytes = File.read (sample_xxx) Bytes
+            bytes = Data.read_file (sample_xxx) Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by path" <|
             path = sample_xxx.path
-            bytes = File.read path Bytes
+            bytes = Data.read_file path Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
     Test.group "Plain_Text" <|
@@ -43,7 +43,7 @@ spec =
         Test.specify "should raise a warning when invalid encoding in a Text file" <|
             action = windows_log.read (Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            problems = [Encoding_Error_Data "Encoding issues at 14, 15, 16."]
+            problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
 main = Test_Suite.run_main spec

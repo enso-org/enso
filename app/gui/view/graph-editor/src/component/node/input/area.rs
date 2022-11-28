@@ -230,8 +230,8 @@ impl Model {
         self.label.remove_all_cursors();
 
         let origin = Vector2(TEXT_OFFSET, 0.0);
-        self.ports.set_position_xy(origin);
-        self.label.set_position_xy(origin);
+        self.ports.set_xy(origin);
+        self.label.set_xy(origin);
         self.label.mod_position(|t| t.y += TEXT_SIZE / 2.0);
 
         self
