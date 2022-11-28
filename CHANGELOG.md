@@ -454,6 +454,7 @@
 - [Add the `Self` keyword referring to current type][3844]
 - [Support VCS for projects in Language Server][3851]
 - [Support multiple exports of the same module][3897]
+- [Don't export polyglot symbols][3915]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -522,6 +523,7 @@
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
 [3897]: https://github.com/enso-org/enso/pull/3897
+[3915]: https://github.com/enso-org/enso/pull/3915
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
