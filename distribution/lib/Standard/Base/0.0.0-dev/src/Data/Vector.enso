@@ -216,6 +216,7 @@ type Vector a
         len = self.length
         case len of
             0 -> Error.throw Empty_Error
+            1 -> self.at 0
             _ ->
                 fold_function current idx =
                     if idx == len then current else
@@ -269,7 +270,7 @@ type Vector a
     find : (Any -> Boolean) -> Any ! Nothing
     find self predicate =
         found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
-        if found.is_nothing then found else self.at found
+        if found.is_nothing then Error.throw Nothing else self.at found
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
