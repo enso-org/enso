@@ -180,7 +180,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.unsafe_at ix)
+        f = acc -> ix -> function acc (self.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -219,8 +219,8 @@ type Vector a
             _ ->
                 fold_function current idx =
                     if idx == len then current else
-                        @Tail_Call fold_function (function current (self.unsafe_at idx)) (idx + 1)
-                fold_function (self.unsafe_at 0) 1
+                        @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
+                fold_function (self.at 0) 1
 
     ## Computes the sum of the values in the vector.
 
@@ -268,8 +268,8 @@ type Vector a
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find self predicate =
-        found = 0.up_to self.length . find (idx -> (predicate (self.unsafe_at idx)))
-        if found.is_nothing then found else self.unsafe_at found
+        found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
+        if found.is_nothing then found else self.at found
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -513,7 +513,7 @@ type Vector a
     each : (Any -> Any) -> Nothing
     each self f =
         0.up_to self.length . each ix->
-            f (self.unsafe_at ix)
+            f (self.at ix)
 
     ## Applies a function to each element of the vector.
 
