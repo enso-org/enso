@@ -849,7 +849,7 @@ async function runEntryPoint(config: Config) {
 
     //initCrashHandling()
     style_root()
-    printScamWarning()
+    // printScamWarning()
     /// Only hide logs in production, but show them when running a development version.
     if (!Versions.isDevVersion()) {
         hideLogs()

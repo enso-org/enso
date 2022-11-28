@@ -152,7 +152,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
     logger:    Logger,
