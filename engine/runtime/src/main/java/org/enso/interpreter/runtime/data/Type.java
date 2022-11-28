@@ -2,6 +2,8 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -14,7 +16,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -216,7 +218,7 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   boolean isNull(@CachedLibrary("this") InteropLibrary self) {
-    return this == EnsoContext.get(self).getBuiltins().nothing();
+    return this == Context.get(self).getBuiltins().nothing();
   }
 
   @Override

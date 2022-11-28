@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Shape;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 
 public class State {
   private final Container container;
@@ -21,7 +21,7 @@ public class State {
     return ioPermissions;
   }
 
-  public static State create(EnsoContext context) {
+  public static State create(Context context) {
     return new State(Container.create(context), context.getRootIOPermissions());
   }
 
@@ -38,7 +38,7 @@ public class State {
       super(shape);
     }
 
-    public static Container create(EnsoContext context) {
+    public static Container create(Context context) {
       return new Container(context.getRootStateShape());
     }
   }

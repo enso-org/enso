@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 
 @BuiltinMethod(
     type = "Polyglot",
@@ -25,6 +25,6 @@ public abstract class IsLanguageInstalledNode extends Node {
   @CompilerDirectives.TruffleBoundary
   boolean doExecute(Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
-    return EnsoContext.get(this).getEnvironment().getPublicLanguages().get(name) != null;
+    return Context.get(this).getEnvironment().getPublicLanguages().get(name) != null;
   }
 }

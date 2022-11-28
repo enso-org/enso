@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -13,10 +12,11 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import org.enso.interpreter.runtime.Context;
 
 /** Container for builtin Error types */
 public class Error {
-  private final EnsoContext context;
+  private final Context context;
   private final SyntaxError syntaxError;
   private final TypeError typeError;
   private final CompileError compileError;
@@ -47,7 +47,7 @@ public class Error {
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
 
   /** Creates builders for error Atom Constructors. */
-  public Error(Builtins builtins, EnsoContext context) {
+  public Error(Builtins builtins, Context context) {
     this.context = context;
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public class ResourceManager {
-  private final EnsoContext context;
+  private final Context context;
   private volatile boolean isClosed = false;
   private volatile Thread workerThread;
   private final Runner worker = new Runner();
@@ -27,7 +27,7 @@ public class ResourceManager {
    *
    * @param context the language context owning the new instance
    */
-  public ResourceManager(EnsoContext context) {
+  public ResourceManager(Context context) {
     this.context = context;
   }
 
@@ -233,7 +233,7 @@ public class ResourceManager {
      *
      * @param context current execution context
      */
-    public void doFinalize(EnsoContext context) {
+    public void doFinalize(Context context) {
       Object p = context.getThreadManager().enter();
       try {
         InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);

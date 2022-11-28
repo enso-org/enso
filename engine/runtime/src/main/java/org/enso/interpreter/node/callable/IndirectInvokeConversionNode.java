@@ -10,7 +10,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -94,7 +94,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
     Function function =
         conversionResolverNode.execute(
             InvokeConversionNode.extractConstructor(this, self),
-            EnsoContext.get(this).getBuiltins().dataflowError(),
+            Context.get(this).getBuiltins().dataflowError(),
             conversion);
     if (function != null) {
       return indirectInvokeFunctionNode.execute(
@@ -183,7 +183,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           conversionResolverNode.expectNonNull(
               txt,
               InvokeConversionNode.extractConstructor(this, self),
-              EnsoContext.get(this).getBuiltins().text(),
+              Context.get(this).getBuiltins().text(),
               conversion);
       arguments[0] = txt;
       return indirectInvokeFunctionNode.execute(
@@ -221,10 +221,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        EnsoContext.get(this)
-            .getBuiltins()
-            .error()
-            .makeNoSuchConversionError(self, that, conversion),
+        Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
         this);
   }
 }

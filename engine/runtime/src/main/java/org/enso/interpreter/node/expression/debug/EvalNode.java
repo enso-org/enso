@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.debug;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -13,7 +14,7 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -61,7 +62,7 @@ public abstract class EvalNode extends BaseNode {
 
   @CompilerDirectives.TruffleBoundary
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
-    EnsoContext context = EnsoContext.get(this);
+    Context context = Context.get(this);
     LocalScope localScope = scope.createChild();
     InlineContext inlineContext =
         InlineContext.fromJava(

@@ -5,7 +5,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -52,8 +52,8 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return a reference to the language context
    */
-  public EnsoContext getContext() {
-    return EnsoContext.get(this);
+  public Context getContext() {
+    return Context.get(this);
   }
 
   /**

@@ -7,7 +7,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.*;
@@ -94,8 +94,7 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object),
-          this);
+          Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       return e.getResult();

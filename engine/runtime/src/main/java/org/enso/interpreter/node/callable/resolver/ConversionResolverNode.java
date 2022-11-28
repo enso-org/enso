@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -17,8 +17,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 public abstract class ConversionResolverNode extends Node {
   static final int CACHE_SIZE = 10;
 
-  EnsoContext getContext() {
-    return EnsoContext.get(this);
+  Context getContext() {
+    return Context.get(this);
   }
 
   public abstract Function execute(Type target, Type self, UnresolvedConversion conversion);
@@ -28,7 +28,7 @@ public abstract class ConversionResolverNode extends Node {
     var result = execute(target, type, conversion);
     if (result == null) {
       throw new PanicException(
-          EnsoContext.get(this)
+          Context.get(this)
               .getBuiltins()
               .error()
               .makeNoSuchConversionError(target, self, conversion),

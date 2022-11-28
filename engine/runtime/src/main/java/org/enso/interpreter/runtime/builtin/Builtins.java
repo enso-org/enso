@@ -32,7 +32,7 @@ import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -108,9 +108,9 @@ public class Builtins {
   /**
    * Creates an instance with builtin methods installed.
    *
-   * @param context the current {@link EnsoContext} instance
+   * @param context the current {@link Context} instance
    */
-  public Builtins(EnsoContext context) {
+  public Builtins(Context context) {
     Language language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
