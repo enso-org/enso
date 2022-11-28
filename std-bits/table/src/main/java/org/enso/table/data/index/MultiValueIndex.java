@@ -1,7 +1,6 @@
 package org.enso.table.data.index;
 
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
@@ -65,7 +64,7 @@ public class MultiValueIndex {
     boolean emptyScenario = size == 0 & keyColumnsLength == 0;
     Builder[] storage =
         Arrays.stream(columns)
-            .map(c -> getBuilderForType(c.getType(), emptyScenario ? 1 : size))
+            .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))
             .toArray(Builder[]::new);
 
     if (emptyScenario) {
@@ -104,10 +103,10 @@ public class MultiValueIndex {
 
     // Create the storage
     Builder[] storage = new Builder[columnCount];
-    IntStream.range(0, groupingColumns.length).forEach(i -> storage[i] = getBuilderForType(groupingColumns[i].getStorage().getType(), size));
+    IntStream.range(0, groupingColumns.length).forEach(i -> storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size));
     IntStream.range(0, nameIndex.locs.size()).forEach(i -> {
       int offset = groupingColumns.length + i * aggregates.length;
-      IntStream.range(0, aggregates.length).forEach(j -> storage[offset + j] = getBuilderForType(aggregates[j].getType(), size));
+      IntStream.range(0, aggregates.length).forEach(j -> storage[offset + j] = Builder.getForType(aggregates[j].getType(), size));
     });
 
     // Fill the storage
@@ -171,19 +170,5 @@ public class MultiValueIndex {
     }
 
     return output;
-  }
-
-  private static Builder getBuilderForType(int type, int size) {
-    return switch (type) {
-      case Storage.Type.OBJECT -> new ObjectBuilder(size);
-      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
-      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.STRING -> new StringBuilder(size);
-      case Storage.Type.BOOL -> new BoolBuilder();
-      case Storage.Type.DATE -> new DateBuilder(size);
-      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
-      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
-      default -> new InferredBuilder(size);
-    };
   }
 }
