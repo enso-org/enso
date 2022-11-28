@@ -2,16 +2,6 @@ package org.enso.table.data.mask;
 
 /** Describes a storage reordering operator. */
 public class OrderMask {
-  public static OrderMask repeatRows(int rowCount, int repeats) {
-    int[] result = new int[rowCount * repeats];
-    for (int row = 0; row < rowCount; row++) {
-      for (int repeat = 0; repeat < repeats; repeat++) {
-        result[row * repeats + repeat] = row;
-      }
-    }
-    return new OrderMask(result);
-  }
-
   private final int[] positions;
 
   /**

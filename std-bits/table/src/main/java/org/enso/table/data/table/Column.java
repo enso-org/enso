@@ -117,7 +117,13 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromItems(String name, List<Value> items) {
-    return fromRepeatedItems(name, items, 1);
+    InferredBuilder builder = new InferredBuilder(items.size());
+    for (Value item : items) {
+      Object converted = Polyglot_Utils.convertPolyglotValue(item);
+      builder.appendNoGrow(converted);
+    }
+    var storage = builder.seal();
+    return new Column(name, new DefaultIndex(items.size()), storage);
   }
 
   /**
@@ -128,15 +134,14 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
-    InferredBuilder builder = new InferredBuilder(items.size() * repeat);
-    for (int i = 0; i < repeat; i++) {
-      for (Value item : items) {
-        Object converted = Polyglot_Utils.convertPolyglotValue(item);
-        builder.appendNoGrow(converted);
-      }
+    var totalSize = items.size() * repeat;
+    var builder = new InferredBuilder(totalSize);
+    for (int i = 0; i < totalSize; i++) {
+      var item = items.get(i % items.size());
+      var converted = Polyglot_Utils.convertPolyglotValue(item);
+      builder.appendNoGrow(converted);
     }
-    var storage = builder.seal();
-    return new Column(name, new DefaultIndex(items.size()), storage);
+    return new Column(name, new DefaultIndex(totalSize), builder.seal());
   }
 
   /**

@@ -37,8 +37,8 @@ type Column
        - name: The name of the column to create.
        - items: The elements to contain in the column.
        - repeats: The number of times to repeat the vector.
-    repeated_from_vector : Text -> Vector -> Integer -> Column
-    repeated_from_vector name items repeats = Column_Data (Java_Column.fromRepeatedItems name items.to_array repeats)
+    from_vector_repeated : Text -> Vector -> Integer -> Column
+    from_vector_repeated name items repeats = Column_Data (Java_Column.fromRepeatedItems name items.to_array repeats)
 
     ## PRIVATE
 

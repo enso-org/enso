@@ -510,7 +510,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Group_By "Key", Count Nothing]
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
@@ -968,7 +968,7 @@ type Table
     evaluate : Text -> Column
     evaluate self expression =
         get_column name = self.at name
-        make_constant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new self.row_count _->value)
+        make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
 
     ## Returns the vector of columns contained in this table.
@@ -1191,7 +1191,7 @@ type Table
                 data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
                 id_columns.each k-> unique.make_unique k.name
 
-                name_column = Column.repeated_from_vector (unique.make_unique name_field) (data.map .name) self.row_count
+                name_column = Column.from_vector_repeated (unique.make_unique name_field) (data.map .name) self.row_count
                 values = Vector.new (self.row_count * count) i->
                     col = i % count
                     row = (i - col) / count
