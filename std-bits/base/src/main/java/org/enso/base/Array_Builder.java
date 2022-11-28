@@ -11,7 +11,7 @@ public class Array_Builder<T> {
   private Object[] objectArray;
 
   private Array_Builder(int capacity) {
-    this.capacity = Math.max(2, capacity);
+    this.capacity = Math.max(1, capacity);
   }
 
   /**
