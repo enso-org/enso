@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import org.enso.compiler.PackageRepository;
-import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -256,8 +256,8 @@ public final class TopLevelScope implements TruffleObject {
    * @return the language with which this value is associated
    */
   @ExportMessage
-  final Class<EnsoLanguage> getLanguage() {
-    return EnsoLanguage.class;
+  final Class<Language> getLanguage() {
+    return Language.class;
   }
 
   /**

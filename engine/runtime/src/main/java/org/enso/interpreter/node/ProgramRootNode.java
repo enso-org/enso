@@ -6,7 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.Package;
@@ -27,7 +27,7 @@ public class ProgramRootNode extends RootNode {
   private final Source sourceCode;
   private @CompilerDirectives.CompilationFinal Module module;
 
-  ProgramRootNode(EnsoLanguage language, Source sourceCode) {
+  ProgramRootNode(Language language, Source sourceCode) {
     super(language);
     this.sourceCode = sourceCode;
   }
@@ -39,7 +39,7 @@ public class ProgramRootNode extends RootNode {
    * @param sourceCode the code to compile and execute
    * @return a program root node
    */
-  public static ProgramRootNode build(EnsoLanguage language, Source sourceCode) {
+  public static ProgramRootNode build(Language language, Source sourceCode) {
     return new ProgramRootNode(language, sourceCode);
   }
 

@@ -68,12 +68,12 @@ import org.graalvm.options.OptionType;
   AvoidIdInstrumentationTag.class,
   Patchable.Tag.class
 })
-public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
+public final class Language extends TruffleLanguage<EnsoContext> {
   private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
-  private static final LanguageReference<EnsoLanguage> REFERENCE =
-      LanguageReference.create(EnsoLanguage.class);
+  private static final LanguageReference<Language> REFERENCE =
+      LanguageReference.create(Language.class);
 
-  public static EnsoLanguage get(Node node) {
+  public static Language get(Node node) {
     return REFERENCE.get(node);
   }
 
@@ -97,7 +97,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
-    TruffleLogger logger = env.getLogger(EnsoLanguage.class);
+    TruffleLogger logger = env.getLogger(Language.class);
 
     var environment = new Environment() {};
     var distributionManager = new DistributionManager(environment);
