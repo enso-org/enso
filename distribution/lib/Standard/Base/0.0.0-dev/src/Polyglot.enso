@@ -1,14 +1,14 @@
-## A type representing interactions with polyglot languages.
+## A module representing interactions with polyglot languages.
     Polyglot is a term that refers to other languages (such as Java) that are
     running on the same JVM.
 
 import project.Data.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Data.Numbers.Integer
-import project.Runtime.Extensions.Source_Location
+import project.Runtime.Source_Location.Source_Location
 
 @Builtin_Type
 type Polyglot

@@ -1,5 +1,6 @@
 package org.enso.example;
 
+import java.math.BigInteger;
 import java.util.function.Function;
 
 /** A class used for testing Java Interop from Enso code */
@@ -17,6 +18,32 @@ public class TestClass {
 
   public static long add(long a, long b) {
     return a + b;
+  }
+
+  public static double doubleArrayAverage(double[] arr) {
+    var sum = 0.0;
+    for (int i = 0; i < arr.length; i++) {
+      sum += arr[i];
+    }
+    return sum / arr.length;
+  }
+
+  public static double numberArrayAverage(Number[] arr) {
+    var sum = 0.0;
+    for (int i = 0; i < arr.length; i++) {
+      sum += arr[i].doubleValue();
+    }
+    return sum / arr.length;
+  }
+
+  public static String exactArrayAverage(Number[] arr) {
+    var sum = BigInteger.ZERO;
+    for (int i = 0; i < arr.length; i++) {
+      var n = arr[i] instanceof Long l ? BigInteger.valueOf(l) :
+          new BigInteger(arr[i].toString());
+      sum = sum.add(n);
+    }
+    return sum.divide(BigInteger.valueOf(arr.length)).toString();
   }
 
   public long callFunctionAndIncrement(long argument) {

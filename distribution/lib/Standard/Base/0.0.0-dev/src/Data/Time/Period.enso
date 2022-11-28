@@ -7,7 +7,7 @@ import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, Incomparable_Values_Error
+from project.Error.Common import Error, Panic, Time_Error, Illegal_Argument_Error, Illegal_Argument_Error_Data, Incomparable_Values_Error
 
 polyglot java import java.time.Period as Java_Period
 polyglot java import java.time.DateTimeException
@@ -19,7 +19,7 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
     case object of
         _ : Period -> action
         _ : Duration ->
-            Error.throw (Time_Error_Data error_msg)
+            Error.throw (Time_Error.Error error_msg)
         x ->
             Error.throw Illegal_Argument_Error_Data <|
                 "Expected Period type, got: " + (Meta.get_qualified_type_name x)
@@ -101,7 +101,7 @@ type Period
         ensure_period other_period <|
             Panic.catch Any (Period.Value (self.internal_period.plus other_period.internal_period)) err->
                 case err of
-                    _ : DateTimeException -> Error.throw Time_Error_Data "Period addition failed:"+err.getMessage
+                    _ : DateTimeException -> Error.throw Time_Error.Error "Period addition failed:"+err.getMessage
                     _ : ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error:"+err.getMessage cause=err
 
     ## Subtract a specified amount of time from this period.
@@ -122,7 +122,7 @@ type Period
         ensure_period other_period <|
             Panic.catch Any (Period.Value (self.internal_period.minus other_period.internal_period)) err->
                 case err of
-                    DateTimeException -> Error.throw Time_Error_Data "Period subtraction failed"
+                    DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument_Error_Data "Arithmetic error"
 
     ## Check two periods for equality.

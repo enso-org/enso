@@ -235,10 +235,10 @@ impl<E: Entry> Model<E> {
         let margin = Vector2(2.0 * SHAPE_MARGIN, 2.0 * SHAPE_MARGIN);
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         let entry_width = view.size.x - 2.0 * entry_padding;
-        self.entries.set_position_x(-view.size.x / 2.0 + entry_padding);
+        self.entries.set_x(-view.size.x / 2.0 + entry_padding);
         self.background.size.set(view.size + padding + shadow + margin);
         self.overlay.size.set(view.size + padding + shadow + margin);
-        self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
+        self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
 
@@ -594,7 +594,7 @@ where E::Model: Default
             selection_sprite_y <- all_with3(&selection_y.value, &selection_height.value, &style.selection_height,
                 |y, h, max_h| y + (max_h - h) / 2.0
             );
-            eval selection_sprite_y ((y) model.selection.set_position_y(*y));
+            eval selection_sprite_y ((y) model.selection.set_y(*y));
             frp.source.selection_size <+ all_with3(&frp.size, &style.padding, &selection_height.value, f!([](size, padding, height) {
                 let width = size.x - 2.0 * padding;
                 Vector2(width,*height)

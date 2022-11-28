@@ -167,8 +167,8 @@ impl Button {
 
             eval scene.frp.camera_changed([button,scene](_) {
                 let screen = scene.camera().screen();
-                button.set_position_x(screen.width/2.0 - 16.0);
-                button.set_position_y(screen.height/2.0 - 16.0);
+                button.set_x(screen.width/2.0 - 16.0);
+                button.set_y(screen.height/2.0 - 16.0);
             });
 
 

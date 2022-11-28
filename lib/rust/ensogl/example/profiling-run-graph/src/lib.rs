@@ -88,7 +88,7 @@ pub async fn main() {
 
     let graph_height: f32 = flame_graph.height();
     let sequence_diagram_offset = graph_height + sequence_diagram.height.value();
-    sequence_diagram.set_position_y(-sequence_diagram_offset);
+    sequence_diagram.set_y(-sequence_diagram_offset);
 
     scene.add_child(&sequence_diagram);
     scene.layers.main.add(&sequence_diagram);

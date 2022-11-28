@@ -1,8 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.Platform
-import Standard.Base.System.File.File_Permissions
-
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 
 ## PRIVATE
@@ -33,7 +30,7 @@ read host port database username=Nothing =
             entry.matches host port database username
         case found.catch Nothing of
             Nothing -> []
-            entry -> [Pair.Value 'user' entry.username, Pair.Value 'password' entry.password]
+            entry -> [Pair.new 'user' entry.username, Pair.new 'password' entry.password]
 
 type Pgpass_Entry
     ## PRIVATE
@@ -57,7 +54,7 @@ type Pgpass_Entry
    Determines the location of the .pgpass file to use.
 locate = case Environment.get "PGPASSFILE" of
     Nothing -> case Platform.os of
-        Platform.Windows -> case Environment.get "APPDATA" of
+        Platform.OS.Windows -> case Environment.get "APPDATA" of
             Nothing -> Nothing
             appdata -> File.new appdata / "postgresql" / "pgpass.conf"
         _ -> case Environment.get "HOME" of
@@ -70,7 +67,7 @@ locate = case Environment.get "PGPASSFILE" of
 
    The file can be used if it exists and has correct permissions on UNIX systems.
 verify file = case Platform.os of
-    Platform.Windows -> file.exists
+    Platform.OS.Windows -> file.exists
     _ -> case file.exists of
         False -> False
         True ->
@@ -86,7 +83,7 @@ parse_file file =
             if elements.length != 5 then Nothing else
                 Pgpass_Entry.Value (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
 
-    File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
+    File.new file . read_text . lines . map parse . filter (x -> x.is_nothing.not)
 
 ## PRIVATE
 parse_line line =

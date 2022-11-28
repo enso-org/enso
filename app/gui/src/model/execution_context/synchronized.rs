@@ -318,10 +318,10 @@ pub mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
     use crate::model::execution_context::ComponentGroup;
-    use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use double_representation::project;
+    use double_representation::name::project;
+    use double_representation::name::QualifiedName;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
@@ -419,7 +419,7 @@ pub mod test {
         let f = Fixture::new();
         assert_eq!(f.data.context_id, f.context.id);
         let name_in_data = f.data.module_qualified_name();
-        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point);
+        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point.module);
         assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
     }
@@ -628,8 +628,10 @@ pub mod test {
             assert_eq!((color.red * 255.0) as u8, 0xC0);
             assert_eq!((color.green * 255.0) as u8, 0x47);
             assert_eq!((color.blue * 255.0) as u8, 0xAB);
-            let expected_components =
-                vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
+            let expected_components: Vec<QualifiedName> = vec![
+                "Standard.Base.System.File.new".try_into().unwrap(),
+                "local.Unnamed_10.Main.main".try_into().unwrap(),
+            ];
             assert_eq!(first_group.components, expected_components);
 
             // Verify that the second component group was parsed and has expected contents.
@@ -637,7 +639,7 @@ pub mod test {
                 project:    project::QualifiedName::standard_base_library(),
                 name:       "Input".into(),
                 color:      None,
-                components: vec!["Standard.Base.System.File.new".into(),],
+                components: vec!["Standard.Base.System.File.new".try_into().unwrap(),],
             });
         });
     }

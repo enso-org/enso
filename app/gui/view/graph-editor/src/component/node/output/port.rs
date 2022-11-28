@@ -485,7 +485,7 @@ impl Model {
         let type_label = app.new_view::<text::Text>();
         let offset_y =
             styles.get_number(ensogl_hardcoded_theme::graph_editor::node::type_label::offset_y);
-        type_label.set_position_y(offset_y);
+        type_label.set_y(offset_y);
         self.type_label = Some(type_label.clone());
 
         let display_object = display::object::Instance::new();
@@ -549,7 +549,7 @@ impl Model {
                     let label_center_x = port_center_x;
                     label_center_x - type_label_width / 2.0
                 }));
-            eval set_type_label_x ((&t) type_label.set_position_x(t));
+            eval set_type_label_x ((&t) type_label.set_x(t));
             eval frp.set_size_multiplier ((t) shape.set_size_multiplier(*t));
 
 

@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Error
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 import Standard.Table.Data.Expression.Expression_Error

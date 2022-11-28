@@ -7,7 +7,7 @@ spec = Test.group "Text.Span" <|
 
     Test.specify "should be able to be created over a text" <|
         text = "Hello!"
-        span = Span_Data (Range_Data 0 3) text
+        span = Span_Data (0.up_to 3) text
         span.start . should_equal 0
         span.end . should_equal 3
         span.parent . should_equal text
@@ -15,30 +15,30 @@ spec = Test.group "Text.Span" <|
 
     Test.specify "should be able to be converted to code units" <|
         text = 'ae\u{301}fz'
-        span = Span_Data (Range_Data 1 3) text
-        span.to_utf_16_span . should_equal (Utf_16_Span_Data (Range_Data 1 4) text)
+        span = Span_Data (1.up_to 3) text
+        span.to_utf_16_span . should_equal (Utf_16_Span_Data (1.up_to 4) text)
         span.text . should_equal 'e\u{301}f'
 
     Test.specify "should expand to the associated grapheme clusters" <|
         text = 'a\u{301}e\u{302}o\u{303}'
-        span = Utf_16_Span_Data (Range_Data 1 5) text
+        span = Utf_16_Span_Data (1.up_to 5) text
         extended = span.to_grapheme_span
-        extended . should_equal (Span_Data (Range_Data 0 3) text)
-        extended.to_utf_16_span . should_equal (Utf_16_Span_Data (Range_Data 0 6) text)
+        extended . should_equal (Span_Data (0.up_to 3) text)
+        extended.to_utf_16_span . should_equal (Utf_16_Span_Data (0.up_to 6) text)
 
-        Utf_16_Span_Data (Range_Data 0 2) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 1) text)
-        Utf_16_Span_Data (Range_Data 0 1) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 1) text)
-        Utf_16_Span_Data (Range_Data 0 0) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 0) text)
-        Utf_16_Span_Data (Range_Data 1 1) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 0) text)
-        Utf_16_Span_Data (Range_Data 2 2) text . to_grapheme_span . should_equal (Span_Data (Range_Data 1 1) text)
+        Utf_16_Span_Data (0.up_to 2) text . to_grapheme_span . should_equal (Span_Data (0.up_to 1) text)
+        Utf_16_Span_Data (0.up_to 1) text . to_grapheme_span . should_equal (Span_Data (0.up_to 1) text)
+        Utf_16_Span_Data (0.up_to 0) text . to_grapheme_span . should_equal (Span_Data (0.up_to 0) text)
+        Utf_16_Span_Data (1.up_to 1) text . to_grapheme_span . should_equal (Span_Data (0.up_to 0) text)
+        Utf_16_Span_Data (2.up_to 2) text . to_grapheme_span . should_equal (Span_Data (1.up_to 1) text)
 
-        Utf_16_Span_Data (Range_Data 0 4) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 2) text)
-        Utf_16_Span_Data (Range_Data 0 3) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 2) text)
-        Utf_16_Span_Data (Range_Data 0 2) text . to_grapheme_span . should_equal (Span_Data (Range_Data 0 1) text)
+        Utf_16_Span_Data (0.up_to 4) text . to_grapheme_span . should_equal (Span_Data (0.up_to 2) text)
+        Utf_16_Span_Data (0.up_to 3) text . to_grapheme_span . should_equal (Span_Data (0.up_to 2) text)
+        Utf_16_Span_Data (0.up_to 2) text . to_grapheme_span . should_equal (Span_Data (0.up_to 1) text)
 
     Test.specify "should be able to use the conversions" <|
         text = 'ae\u{301}fz'
-        Utf_16_Span.from (Span_Data (Range_Data 1 3) text) . should_equal (Utf_16_Span_Data (Range_Data 1 4) text)
-        Span.from (Utf_16_Span_Data (Range_Data 2 4) text) . should_equal (Span_Data (Range_Data 1 3) text)
+        Utf_16_Span.from (Span_Data (1.up_to 3) text) . should_equal (Utf_16_Span_Data (1.up_to 4) text)
+        Span.from (Utf_16_Span_Data (2.up_to 4) text) . should_equal (Span_Data (1.up_to 3) text)
 
 main = Test_Suite.run_main spec

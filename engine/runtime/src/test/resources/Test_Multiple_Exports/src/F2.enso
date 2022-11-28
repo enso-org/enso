@@ -1,0 +1,4 @@
+import project.F1
+from project.F1 import foo
+export project.F1
+from project.F1 export foo

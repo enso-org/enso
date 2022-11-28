@@ -1008,7 +1008,7 @@ impl<'s> Lexer<'s> {
                     }
                     let newlines = newlines
                         .into_iter()
-                        .map(|token| token.with_variant(token::Variant::text_section()));
+                        .map(|token| token.with_variant(token::Variant::text_newline()));
                     self.output.extend(newlines);
                     continue;
                 }

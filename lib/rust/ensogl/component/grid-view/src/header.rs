@@ -231,7 +231,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
             let new_position = header.header_position(*col, entries_size, viewport, widths);
             (header.entry.position().xy() != new_position.position).as_some_from(|| {
-                header.entry.set_position_xy(new_position.position);
+                header.entry.set_xy(new_position.position);
                 header.entry.entry.frp().moved_as_header(&new_position);
                 (header.section_rows.start, *col, new_position.position)
             })
@@ -295,7 +295,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let width_offset = self.column_widths.width_diff(col);
         entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
-        entry.entry.set_position_xy(position.position);
+        entry.entry.set_xy(position.position);
         entry_frp.moved_as_header(&position);
         (entry.section_rows.start, col, position.position)
     }

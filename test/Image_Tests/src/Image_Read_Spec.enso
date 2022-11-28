@@ -1,7 +1,4 @@
 from Standard.Base import all
-import Standard.Base.System.Platform
-import Standard.Base.System.Process
-import Standard.Base.System.Process.Exit_Code
 
 from Standard.Image import Image, Read_Flag, Write_Flag
 
@@ -19,16 +16,16 @@ spec =
     pending = case is_ci of
         True ->
             case fetch rgba_addr rgba_file of
-                Exit_Code.Exit_Failure _ ->
+                Exit_Code.Failure _ ->
                     "The Image.Read spec was not able to fetch the file from " + rgba_addr
-                Exit_Code.Exit_Success ->
+                Exit_Code.Success ->
                     Nothing
         False ->
             "The Image.Read spec only run when the `CI` environment variable is set to true"
 
     Test.group "Image.read" pending=pending <|
         Test.specify "should return error when read failed" <|
-            Image.read (enso_project.root / 'no_such_file.png') . should_fail_with File.IO_Error
+            Image.read (enso_project.root / 'no_such_file.png') . should_fail_with File_Error.IO_Error
         Test.specify "should read a color image" <|
             img = Image.read rgba_file
             img.rows.should_equal 160
@@ -47,7 +44,7 @@ spec =
 
         Test.specify "should return error when write failed" <|
             out_file = enso_project.root / "no_such_directory" / "out.png"
-            Image.read rgba_file . write out_file . should_fail_with File.IO_Error
+            Image.read rgba_file . write out_file . should_fail_with File_Error.IO_Error
         Test.specify "should write a PNG file with alpha channel" <|
             out_file = enso_project.root / "out_alpha.png"
             Image.read rgba_file Read_Flag.Alpha_Channel . write out_file

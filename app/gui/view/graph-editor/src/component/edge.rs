@@ -680,25 +680,25 @@ impl LayoutLine for front::line::View {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_h(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_v_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_h_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
 }
 
@@ -707,25 +707,25 @@ impl LayoutLine for back::line::View {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_h(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_v_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
     fn layout_h_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
         self.size.set(size);
-        self.set_position_xy(pos);
+        self.set_xy(pos);
     }
 }
 
@@ -1398,7 +1398,7 @@ impl EdgeModelData {
                     self.try_enable_focus_split(hover_position, hover_target, focus_part);
                 if let Ok(snap_data) = focus_split_result {
                     let joint_position = snap_data.position - self.display_object.position().xy();
-                    self.joint.set_position_xy(joint_position);
+                    self.joint.set_xy(joint_position);
                     let joint_size = LINE_WIDTH + PADDING;
                     self.joint.size.set(Vector2(joint_size, joint_size));
                 }
@@ -1541,7 +1541,7 @@ impl EdgeModelData {
         bg.corner.angle.set(corner1_angle);
         bg.corner.radius.set(corner1_radius);
         bg.corner.pos.set(corner1);
-        bg.corner.set_position_xy(corner1);
+        bg.corner.set_xy(corner1);
         if !fully_attached {
             bg.corner.dim.set(Vector2(node_half_width, source_node_half_height));
             fg.corner.size.set(corner1_size);
@@ -1550,7 +1550,7 @@ impl EdgeModelData {
             fg.corner.radius.set(corner1_radius);
             fg.corner.pos.set(corner1);
             fg.corner.dim.set(Vector2(node_half_width, source_node_half_height));
-            fg.corner.set_position_xy(corner1);
+            fg.corner.set_xy(corner1);
         } else {
             fg.corner.size.set(zero());
             bg.corner.dim.set(Vector2(INFINITE, INFINITE));
@@ -1687,7 +1687,7 @@ impl EdgeModelData {
                 bg.corner3.radius.set(corner3_radius);
                 bg.corner3.pos.set(corner3);
                 bg.corner3.dim.set(Vector2(INFINITE, INFINITE));
-                bg.corner3.set_position_xy(corner3);
+                bg.corner3.set_xy(corner3);
             } else {
                 bg.corner3.size.set(zero());
                 fg.corner3.size.set(corner3_size);
@@ -1696,7 +1696,7 @@ impl EdgeModelData {
                 fg.corner3.radius.set(corner3_radius);
                 fg.corner3.pos.set(corner3);
                 fg.corner3.dim.set(zero());
-                fg.corner3.set_position_xy(corner3);
+                fg.corner3.set_xy(corner3);
             }
 
             let corner2_x = corner1_target.x + corner_2_3_side * corner2_radius;
@@ -1711,7 +1711,7 @@ impl EdgeModelData {
                 bg.corner2.radius.set(corner2_radius);
                 bg.corner2.pos.set(corner2);
                 bg.corner2.dim.set(Vector2(INFINITE, INFINITE));
-                bg.corner2.set_position_xy(corner2);
+                bg.corner2.set_xy(corner2);
             } else {
                 bg.corner2.size.set(zero());
                 fg.corner2.size.set(corner1_size);
@@ -1720,7 +1720,7 @@ impl EdgeModelData {
                 fg.corner2.radius.set(corner2_radius);
                 fg.corner2.pos.set(corner2);
                 fg.corner2.dim.set(zero());
-                fg.corner2.set_position_xy(corner2);
+                fg.corner2.set_xy(corner2);
             }
 
 
@@ -1751,11 +1751,11 @@ impl EdgeModelData {
                 if fully_attached {
                     fg.arrow.size.set(zero());
                     bg.arrow.size.set(arrow_size);
-                    bg.arrow.set_position_xy(arrow_pos);
+                    bg.arrow.set_xy(arrow_pos);
                 } else {
                     bg.arrow.size.set(zero());
                     fg.arrow.size.set(arrow_size);
-                    fg.arrow.set_position_xy(arrow_pos);
+                    fg.arrow.set_xy(arrow_pos);
                 }
             } else {
                 bg.arrow.size.set(zero());

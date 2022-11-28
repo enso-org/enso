@@ -198,7 +198,7 @@ impl Icons {
 
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.icon_root.set_position_x(-size.x / 2.0);
+        self.icon_root.set_x(-size.x / 2.0);
         self.place_shape_in_slot(&self.drag_icon, 0);
         self.place_shape_in_slot(&self.reset_position_icon, 1);
     }
@@ -298,7 +298,7 @@ impl Model {
         let right_padding = height / 2.0;
         self.visualization_chooser.frp.set_icon_size(Vector2::new(height, height));
         self.visualization_chooser.frp.set_icon_padding(Vector2::new(height / 3.0, height / 3.0));
-        self.visualization_chooser.set_position_x((width / 2.0) - right_padding);
+        self.visualization_chooser.set_x((width / 2.0) - right_padding);
         self.visualization_chooser.frp.set_menu_offset_y(MENU_GAP);
     }
 

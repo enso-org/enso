@@ -167,7 +167,10 @@ class ArchiveToSign implements Signable {
             if (isJar) {
                 run(`jar`, ['xf', this.path], workingDir)
             } else {
-                run(`unzip`, ['-d', workingDir, this.path])
+                // We cannot use `unzip` here because of the following issue:
+                // https://unix.stackexchange.com/questions/115825/extra-bytes-error-when-unzipping-a-file
+                // This started to be an issue with GraalVM 22.3.0 release.
+                run(`7za`, ['X', `-o${workingDir}`, this.path])
             }
 
             const binariesToSign = await BinaryToSign.lookupMany(workingDir, this.binaries)

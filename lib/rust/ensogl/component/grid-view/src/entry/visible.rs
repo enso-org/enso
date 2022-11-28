@@ -101,7 +101,7 @@ where EntryParams: frp::node::Data
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
                 contour_offset <- all(init, entry_frp.contour_offset)._1();
-                eval contour_offset ((off) overlay.set_position_xy(*off));
+                eval contour_offset ((off) overlay.set_xy(*off));
 
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
@@ -173,7 +173,7 @@ pub fn set_position<E: Entry>(
     column_widths: &ColumnWidths,
 ) {
     let pos = position(row, col, entry_size, column_widths);
-    entry.set_position_xy(pos);
+    entry.set_xy(pos);
     entry.frp().position_set(pos);
 }
 

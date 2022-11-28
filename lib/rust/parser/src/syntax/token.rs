@@ -291,6 +291,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub value: Option<char>,
         },
         TextInitialNewline,
+        TextNewline,
         Invalid,
     }
 }}}

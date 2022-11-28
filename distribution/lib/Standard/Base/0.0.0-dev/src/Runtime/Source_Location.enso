@@ -1,10 +1,8 @@
-from Standard.Base import all
-# TODO[DB] Fix composite types #183857386
-import project.System.File.File as File_Type
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.System.File.File
 
-# TODO Dubious constructor export
-from project.Runtime.Extensions.Source_Location import all
-from project.Runtime.Extensions.Source_Location export all
+from project.Data.Boolean import Boolean, True, False
 
 ## ADVANCED
    UNSTABLE
@@ -12,7 +10,7 @@ from project.Runtime.Extensions.Source_Location export all
    source file and code position within it.
 type Source_Location
     ## PRIVATE
-    Source_Location_Data prim_location
+    Value prim_location
 
     ## UNSTABLE
        Pretty prints the location.
@@ -69,5 +67,5 @@ type Source_Location
     ## UNSTABLE
 
        Return the source file corresponding to this location.
-    file : File_Type
+    file : File
     file self = File.new self.prim_location.getSource.getPath
