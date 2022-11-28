@@ -12,7 +12,8 @@ pub mod runtime;
 
 
 
-#[instrument(skip(client))]
+/// Lookup the repository by name.
+#[instrument(skip(client), err)]
 pub async fn resolve_repository(
     client: &aws_sdk_ecr::Client,
     repository_name: &str,
@@ -23,10 +24,11 @@ pub async fn resolve_repository(
         .repositories
         .context("Missing repositories information.")?
         .pop()
-        .context(format!("Cannot find repository {repository_name} in the registry."))
+        .with_context(|| format!("Cannot find repository {repository_name} in the registry."))
 }
 
-#[instrument(skip(client))]
+/// Generate an authentication token for the repository.
+#[instrument(skip(client), err)]
 pub async fn get_credentials(client: &aws_sdk_ecr::Client) -> Result<docker::Credentials> {
     let token = client.get_authorization_token().send().await?;
     let auth_data = token
@@ -47,6 +49,7 @@ pub async fn get_credentials(client: &aws_sdk_ecr::Client) -> Result<docker::Cre
     Ok(docker::Credentials::new(*username, *password, proxy))
 }
 
+/// Get a repository URI, that can be used to refer to the repository in the Docker commands.
 #[instrument(skip(client), ret)]
 pub async fn get_repository_uri(
     client: &aws_sdk_ecr::Client,
@@ -55,4 +58,10 @@ pub async fn get_repository_uri(
     let repository = resolve_repository(client, repository_name).await?;
     let repository_uri = repository.repository_uri().context("Missing repository URI.")?;
     Ok(repository_uri.into())
+}
+
+/// Create a new ECR client, configured using the environment variables.
+pub async fn client_from_env() -> aws_sdk_ecr::Client {
+    let config = aws_config::load_from_env().await;
+    aws_sdk_ecr::Client::new(&config)
 }

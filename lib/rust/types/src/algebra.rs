@@ -15,6 +15,7 @@ use nalgebra::Scalar;
 // === Export ===
 // ==============
 
+pub use crate::dim::*;
 pub use nalgebra::Matrix2;
 pub use nalgebra::Matrix2x3;
 pub use nalgebra::Matrix2x4;
@@ -107,59 +108,6 @@ gen_zero_nalgebra!([
     Vector2, Vector3, Vector4, Matrix2, Matrix3, Matrix4, Matrix2x3, Matrix2x4, Matrix3x2,
     Matrix3x4, Matrix4x2, Matrix4x3
 ]);
-
-
-
-// =====================
-// === HasComponents ===
-// =====================
-
-/// Every type which has components, like `Vector<f32>`.
-pub trait HasComponents {
-    /// The component type.
-    type Component;
-}
-
-
-// ==================
-// === Dimensions ===
-// ==================
-
-/// Describes types that have the first dimension component.
-pub trait Dim1: HasComponents {
-    /// X-axis component getter.
-    fn x(&self) -> Self::Component;
-}
-
-/// Describes types that have the second dimension component.
-pub trait Dim2: Dim1 {
-    /// Y-axis component getter.
-    fn y(&self) -> Self::Component;
-}
-
-/// Describes types that have the third dimension component.
-pub trait Dim3: Dim2 {
-    /// Z-axis component getter.
-    fn z(&self) -> Self::Component;
-}
-
-/// Describes types that have the fourth dimension component.
-pub trait Dim4: Dim3 {
-    /// fourth value getter.
-    fn w(&self) -> Self::Component;
-}
-
-/// Describes types with at least 4 dimension components, which has their "two-dimension" version,
-/// for example [`Vector4`] whose "two-dimension" version is [`Vector2`].
-pub trait HasDim2Version: Dim4 {
-    /// The type being the "two-dimension" version of self.
-    type Dim2Version;
-
-    /// Create "two-dimension" version constructed from first and second component.
-    fn xy(&self) -> Self::Dim2Version;
-    /// Create "two-dimension" version constructed third and fourth component.
-    fn zw(&self) -> Self::Dim2Version;
-}
 
 
 

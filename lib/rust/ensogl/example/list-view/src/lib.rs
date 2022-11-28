@@ -97,10 +97,9 @@ fn init(app: &Application) {
     let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
     list_view.frp.resize(Vector2(100.0, 160.0));
     list_view.frp.set_entries(provider);
-    list_view.focus();
+    list_view.deprecated_focus();
     app.display.add_child(&list_view);
-    // FIXME[WD]: This should not be needed after text gets proper depth-handling.
-    app.display.default_scene.layers.below_main.add_exclusive(&list_view);
+    app.display.default_scene.layers.below_main.add(&list_view);
 
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network

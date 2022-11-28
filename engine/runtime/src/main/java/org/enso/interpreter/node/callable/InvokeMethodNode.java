@@ -36,7 +36,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -90,13 +90,13 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  public abstract Stateful execute(
-      VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object self, Object[] arguments);
+  public abstract Object execute(
+      VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
   @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
-  Stateful doFunctionalDispatch(
+  Object doFunctionalDispatch(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -107,9 +107,9 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   @Specialization
-  Stateful doDataflowError(
+  Object doDataflowError(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
@@ -117,16 +117,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     Function function =
         methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
-      return new Stateful(state, self);
+      return self;
     } else {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     }
   }
 
   @Specialization
-  Stateful doPanicSentinel(
+  Object doPanicSentinel(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       PanicSentinel self,
       Object[] arguments) {
@@ -134,9 +134,9 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   @Specialization
-  Stateful doWarning(
+  Object doWarning(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       WithWarnings self,
       Object[] arguments) {
@@ -164,8 +164,8 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     arguments[thisArgumentPosition] = self.getValue();
     ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
-    Stateful result = childDispatch.execute(frame, state, symbol, self.getValue(), arguments);
-    return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
+    Object result = childDispatch.execute(frame, state, symbol, self.getValue(), arguments);
+    return WithWarnings.prependTo(result, warnings);
   }
 
   @ExplodeLoop
@@ -175,9 +175,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
       })
-  Stateful doPolyglot(
+  Object doPolyglot(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -195,18 +195,17 @@ public abstract class InvokeMethodNode extends BaseNode {
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
-      Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
-      state = r.getState();
-      args[i] = r.getValue();
-      if (r.getValue() instanceof DataflowError) {
+       var r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+       args[i] = r;
+      if (r instanceof DataflowError) {
         profiles[i].enter();
         return r;
-      } else if (r.getValue() instanceof WithWarnings) {
+      } else if (r instanceof WithWarnings w) {
         warningProfiles[i].enter();
         anyWarnings = true;
         accumulatedWarnings =
-            accumulatedWarnings.append(((WithWarnings) r.getValue()).getReassignedWarnings(this));
-        args[i] = ((WithWarnings) r.getValue()).getValue();
+            accumulatedWarnings.append(w.getReassignedWarnings(this));
+        args[i] = w.getValue();
       }
     }
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
@@ -214,7 +213,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       anyWarningsProfile.enter();
       res = WithWarnings.prependTo(res, accumulatedWarnings);
     }
-    return new Stateful(state, res);
+    return res;
   }
 
   @Specialization(
@@ -223,9 +222,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
       })
-  Stateful doConvertText(
+  Object doConvertText(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -251,9 +250,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
       })
-  Stateful doConvertArray(
+  Object doConvertArray(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -273,9 +272,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
       })
-  Stateful doConvertDate(
+  Object doConvertDate(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -301,9 +300,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
       })
-  Stateful doConvertDateTime(
+  Object doConvertDateTime(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -331,9 +330,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
       })
-  Stateful doConvertDuration(
+  Object doConvertDuration(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -346,7 +345,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       var ensoDuration = new EnsoDuration(duration);
       Function function =
           methodResolverNode.expectNonNull(ensoDuration, ctx.getBuiltins().duration(), symbol);
-
       arguments[0] = ensoDuration;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
@@ -370,9 +368,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
       })
-  Stateful doConvertZonedDateTime(
+  Object doConvertZonedDateTime(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -400,9 +398,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
       })
-  Stateful doConvertZone(
+  Object doConvertZone(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -428,9 +426,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
       })
-  Stateful doConvertTimeOfDay(
+  Object doConvertTimeOfDay(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -456,9 +454,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
-  Stateful doFallback(
+  Object doFallback(
       VirtualFrame frame,
-      Object state,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,

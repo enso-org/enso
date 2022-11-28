@@ -76,6 +76,9 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         set_size(Vector2),
         set_params(Params),
         set_location((Row, Col)),
+        /// Called to inform the entry that its position is updated. Note that this is not usually
+        /// needed as the entry will update its position automatically through its display object.
+        position_set(Vector2),
         /// True if the entry is currently selected.
         ///
         /// This flag is set only in [selectable](crate::selectable) grid views.
@@ -152,10 +155,10 @@ pub trait ShapeWithEntryContour {
     const PADDING_PX: f32 = 5.0;
 
     /// Get the size parameter.
-    fn size(&self) -> &DynamicParam<sprite::Size>;
+    fn size(&self) -> &ProxyParam<sprite::Size>;
 
     /// Get the corner radius parameter.
-    fn corner_radius(&self) -> &DynamicParam<Attribute<f32>>;
+    fn corner_radius(&self) -> &ProxyParam<Attribute<f32>>;
 
     /// Update shape's contour.
     fn set_contour(&self, contour: Contour) {
@@ -168,11 +171,11 @@ pub trait ShapeWithEntryContour {
 macro_rules! implement_shape_with_entry_contour {
     () => {
         impl ShapeWithEntryContour for View {
-            fn size(&self) -> &DynamicParam<sprite::Size> {
+            fn size(&self) -> &ProxyParam<sprite::Size> {
                 &self.size
             }
 
-            fn corner_radius(&self) -> &DynamicParam<Attribute<f32>> {
+            fn corner_radius(&self) -> &ProxyParam<Attribute<f32>> {
                 &self.corner_radius
             }
         }
@@ -186,13 +189,13 @@ macro_rules! implement_shape_with_entry_contour {
 pub mod overlay {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style, corner_radius: f32) {
             let shape_width  : Var<Pixels> = "input_size.x".into();
             let shape_height : Var<Pixels> = "input_size.y".into();
             let width = shape_width - 2.0.px() * View::PADDING_PX;
             let height = shape_height - 2.0.px() * View::PADDING_PX;
-            Rect((width, height)).corners_radius(corner_radius.px()).fill(HOVER_COLOR).into()
+            Rect((width, height)).corners_radius(corner_radius.px()).fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 
@@ -207,7 +210,7 @@ pub mod overlay {
 pub mod shape {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [overlay, highlight::shape];
         (style:Style, corner_radius: f32, color: Vector4) {
             let shape_width  : Var<Pixels> = "input_size.x".into();

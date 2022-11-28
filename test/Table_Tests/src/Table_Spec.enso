@@ -1,6 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Error
-import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
@@ -386,20 +384,32 @@ spec =
             col.count_missing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
-            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-            d = t.drop_missing_rows
-            d.at "a" . to_vector . should_equal [1, 4]
-            d.at "b" . to_vector . should_equal [1, "x"]
+        Test.specify "should correctly handle NaNs with mixed type columns" <|
+            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["A", "", Nothing, Number.nan, 0]]]
+            t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=False
+            t1.at "X" . to_vector . should_equal [1, 4, 5]
+            # Comparing text value because `Number.nan != Number.nan`.
+            t1.at "Y" . to_vector . to_text . should_equal "['A', NaN, 0]"
+            t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
+            t2.at "X" . to_vector . should_equal [1, 5]
+            t2.at "Y" . to_vector . should_equal ['A', 0]
 
-        Test.specify "should drop columns that contain at least one missing row in a Table" <|
-            a = ["a", [1, Nothing, 3, 4]]
-            b = ["b", [1, 2, Nothing, "x"]]
-            c = ["c", [10, 20, 30, 40]]
-            t = Table.new [a, b, c]
-            d = t.drop_missing_columns
-            d.columns.map .name . should_equal ["c"]
-            d.at "c" . to_vector . should_equal [10, 20, 30, 40]
+            t3 = Table.new [["X", [1, 2, 3]], ["Y", ["", Nothing, Number.nan]]]
+            t4 = t3.remove_columns (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            t4.columns . map .name . should_equal ["X"]
+
+        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
+            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
+            r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            r1.at "Y" . to_vector . to_text . should_equal "['', Nothing, NaN]"
+            r1.at "X" . to_vector . should_equal [1, 2, 4]
+
+            # TODO this could be moved to Common_Table_Spec once replace_text is implemented for Database too
+            t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
+            r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
+            r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
+            r2.at "Y" . to_vector . should_equal ["", Nothing, Nothing, Nothing, ""]
+            r2.at "Z" . to_vector . should_equal ["", "AAA", "A1", "", "foobar"]
 
     Test.group "Info" <|
         Test.specify "should return Table information" <|
@@ -411,14 +421,6 @@ spec =
             i.index . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
-
-    Test.group "Column-wide statistics" <|
-        Test.specify 'should allow computing basic column-wide stats' <|
-            price = Column.from_vector 'price' [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]
-            price.sum.should_equal 107.6
-            price.min.should_equal 0.4
-            price.max.should_equal 97
-            price.mean.should_equal 26.9
 
     Test.group "Sorting Tables" <|
         df = (enso_project.data / "clothes.csv").read
@@ -609,6 +611,7 @@ spec =
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
             t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.take 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take (First 2)
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
@@ -616,7 +619,14 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
+            t_3 = t_1.take 2
+            t_3.index.to_vector . should_equal (t_1.index.to_vector . take 2)
+            t_3.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
+            t_3.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take 2)
+            t_3.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take 2)
+
             t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -634,6 +644,29 @@ spec =
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
 
             t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
+
+        Test.specify "should allow taking/dropping a prefix of rows that satisfy a predicate" <|
+            t1 = Table.new [["X", [1, 2, 3, 4, 5, 5]], ["Y", [9, 8, 7, 2, 10, 5]]]
+
+            t2 = t1.take (Index_Sub_Range.While row-> row.to_vector.sum == 10)
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "Y" . to_vector . should_equal [9, 8, 7]
+
+            t3 = t1.drop (Index_Sub_Range.While row-> row.to_vector.sum == 10)
+            t3.at "X" . to_vector . should_equal [4, 5, 5]
+            t3.at "Y" . to_vector . should_equal [2, 10, 5]
+
+            t4 = t1.take (Index_Sub_Range.While row-> row.at "X" < 3)
+            t4.at "X" . to_vector . should_equal [1, 2]
+            t4.at "Y" . to_vector . should_equal [9, 8]
+
+            t5 = t1.drop (Index_Sub_Range.While row-> row.at 1 > 3)
+            t5.at "X" . to_vector . should_equal [4, 5, 5]
+            t5.at "Y" . to_vector . should_equal [2, 10, 5]
+
+            t6 = t1.take (Index_Sub_Range.While row-> row.at "X" > 1)
+            t6.at "X" . to_vector . should_equal []
+            t6.at "Y" . to_vector . should_equal []
 
         Test.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -946,24 +979,49 @@ spec =
             t2.at "A" . to_vector . should_equal [2, 3]
             t2.at "B" . to_vector . should_equal [5, 6]
 
-        Test.specify "by an Is_In check in a Vector, on various types of columns" <|
-            varied_type_table.filter "strs" (Filter_Condition.Is_In ["c", "b", Nothing]) . at "strs" . to_vector . should_equal ["b", "c", Nothing]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In [1, 2, 3]) . at "ints" . to_vector . should_equal [1, 2]
-            varied_type_table.filter "ints" (Filter_Condition.Is_In [1, Nothing]) . at "ints" . to_vector . should_equal [Nothing, 1]
-            varied_type_table.filter "doubles" (Filter_Condition.Is_In [0.0, Nothing]) . at "doubles" . to_vector . should_equal [0.0, Nothing]
-            varied_type_table.filter "dates" (Filter_Condition.Is_In [Date.new 2000, Date.new 1999 1 1, Date_Time.new 2022 8 20]) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
-            varied_type_table.filter "datetimes" (Filter_Condition.Is_In [Date_Time.new 2022 8 27 11 22 25, Nothing, Date_Time.new 2030, Date.new 2000]) . at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2022 8 27 11 22 25]
-            varied_type_table.filter "times" (Filter_Condition.Is_In [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Date_Time.new 2000 1 1]) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+        Test.specify "by an Is_In check, on various types of columns" <|
+            ins = Table.new <|
+                str = ["str", ["c", "b", Nothing, Nothing]]
+                int = ["int", [1, 2, 3, 3]]
+                int2 = ["int2", [1, Nothing, Nothing, 1]]
+                dbl = ["dbl", [0.0, 0.0, Nothing, Nothing]]
+                dates = ["dates", [Date.new 2000, Date.new 1999 1 1, Date.new 1999 1 1, Date_Time.new 2022 8 20]]
+                dts = ["dts", [Date_Time.new 2022 8 27 11 22 25, Nothing, Date_Time.new 2030, Date.new 2000]]
+                tod = ["tod", [Time_Of_Day.new 18 00, Time_Of_Day.new 18 19, Date_Time.new 2000 1 1, Time_Of_Day.new 18 19]]
+                mix = ["mix", [42, Date_Time.new 2022 8 27, 1, 1]]
+                nulls = ["nulls", [Nothing, Nothing, Nothing, 0]]
+                custom = ["custom", [2, My.Data 2 1, Nothing, Nothing]]
+                [str, int, int2, dbl, dates, dts, tod, mix, nulls, custom]
+            varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str")) . at "strs" . to_vector . should_equal ["b", "c", Nothing]
+            varied_type_table.filter "strs" (Filter_Condition.Is_In (ins.at "str" . to_vector)) . at "strs" . to_vector . should_equal ["b", "c", Nothing]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int")) . at "ints" . to_vector . should_equal [1, 2]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int" . to_vector)) . at "ints" . to_vector . should_equal [1, 2]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2")) . at "ints" . to_vector . should_equal [Nothing, 1]
+            varied_type_table.filter "ints" (Filter_Condition.Is_In (ins.at "int2" . to_vector)) . at "ints" . to_vector . should_equal [Nothing, 1]
+            varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl")) . at "doubles" . to_vector . should_equal [0.0, Nothing]
+            varied_type_table.filter "doubles" (Filter_Condition.Is_In (ins.at "dbl" . to_vector)) . at "doubles" . to_vector . should_equal [0.0, Nothing]
+            varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates")) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
+            varied_type_table.filter "dates" (Filter_Condition.Is_In (ins.at "dates" . to_vector)) . at "dates" . to_vector . should_equal [Date.new 2000, Date.new 1999 1 1]
+            varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts")) . at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2022 8 27 11 22 25]
+            varied_type_table.filter "datetimes" (Filter_Condition.Is_In (ins.at "dts" . to_vector)) . at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2022 8 27 11 22 25]
+            varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod")) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
+            varied_type_table.filter "times" (Filter_Condition.Is_In (ins.at "tod" . to_vector)) . at "times" . to_vector . should_equal [Time_Of_Day.new 18 00]
             varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, "a", 1, Nothing, Date.new 2022 8 27, Date_Time.new 2022 8 27]) . at "mixed" . to_vector . should_equal [1, "a", Nothing, Date.new 2022 8 27]
-            varied_type_table.filter "mixed" (Filter_Condition.Is_In [42, Date_Time.new 2022 8 27, 1]) . at "mixed" . to_vector . should_equal [1]
+            varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix")) . at "mixed" . to_vector . should_equal [1]
+            varied_type_table.filter "mixed" (Filter_Condition.Is_In (ins.at "mix" . to_vector)) . at "mixed" . to_vector . should_equal [1]
             varied_type_table.filter "just_nulls" (Filter_Condition.Is_In []) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [Nothing, Nothing, 0]) . at "just_nulls" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls")) . at "just_nulls" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            varied_type_table.filter "just_nulls" (Filter_Condition.Is_In (ins.at "nulls" . to_vector)) . at "just_nulls" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
             varied_type_table.filter "just_nulls" (Filter_Condition.Is_In [0]) . at "just_nulls" . to_vector . should_equal []
-            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In [2, My.Data 2 1, Nothing]) . at "custom_objects" . to_vector . should_equal [My.Data 1 2, Nothing, Nothing]
+            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom")) . at "custom_objects" . to_vector . should_equal [My.Data 1 2, Nothing, Nothing]
+            varied_type_table.filter "custom_objects" (Filter_Condition.Is_In (ins.at "custom" . to_vector)) . at "custom_objects" . to_vector . should_equal [My.Data 1 2, Nothing, Nothing]
 
             t2 = Table.new [["ints", [1, 2, 3]], ["doubles", [1.2, 0.0, 1.0]]]
             t2.filter "ints" (Filter_Condition.Is_In [2.0, 1.5, 3, 4]) . at "ints" . to_vector . should_equal [2, 3]
             t2.filter "doubles" (Filter_Condition.Is_In [0.1, 1, 3, 1.2]) . at "doubles" . to_vector . should_equal [1.2, 1.0]
+            t3 = Table.new [["ints", [0, 2]], ["doubles", [1.0, 2.0]]]
+            t2.filter "ints" (Filter_Condition.Is_In (t3.at "doubles")) . at "ints" . to_vector . should_equal [1, 2]
+            t2.filter "doubles" (Filter_Condition.Is_In (t3.at "ints")) . at "doubles" . to_vector . should_equal [0.0]
 
             # We test these very carefully as our implementation relies on some short-circuit logic that is not as trivial as the hashmap checks which are done for other builtin types.
             [True, False].each has_nulls->
@@ -983,13 +1041,16 @@ spec =
                                 Nothing -> Nothing
                             negated_column_vector = column_vector.map not
                             t = Table.new [["X", column_vector]]
+                            in_column = Column.from_vector "in" in_vector
 
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
                             expected_neg_vector = negated_column_vector.filter (Filter_Condition.Is_In in_vector)
 
                             t.filter "X" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
+                            t.filter "X" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "X" . to_vector . should_equal expected_vector
                             t2 = t.set "Y" (t.at "X" . not)
                             t2.filter "Y" (Filter_Condition.Is_In in_vector) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
+                            t2.filter "Y" (Filter_Condition.Is_In in_column) on_problems=Report_Error . at "Y" . to_vector . should_equal expected_neg_vector
 
         Test.specify "should perform `Is_In` efficiently for builtin types" <|
             first_day = Date_Time.new 2000 1 1

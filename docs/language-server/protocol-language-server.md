@@ -100,6 +100,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/event`](#fileevent)
   - [`file/rootAdded`](#filerootadded)
   - [`file/rootRemoved`](#filerootremoved)
+- [Version Control System](#vcs-operations)
+  - [`vcs/init`](#vcsinit)
+  - [`vcs/list`](#vcslist)
+  - [`vcs/restore`](#vcsrestore)
+  - [`vcs/save`](#vcssave)
+  - [`vcs/status`](#vcsstatus)
 - [Text Editing Operations](#text-editing-operations)
   - [`text/openFile`](#textopenfile)
   - [`text/openBuffer`](#textopenbuffer)
@@ -244,8 +250,8 @@ A representation of an executable position in code, used by the execution APIs.
 `ExplicitCall` is a call performed at the top of the stack, to initialize the
 context with first execution. The `thisArgumentsPosition` field can be omitted,
 in which case the context will try to infer the argument on a best-effort basis.
-E.g. for a module-level method, or a method defined on a parameter-less atom
-type, `this` will be substituted for the unambiguous singleton instance.
+E.g. for a module-level method, or a method defined on a parameter-less type,
+`self` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
@@ -420,7 +426,7 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 #### Format
 
 ```typescript
-// The argument of an atom, method or function suggestion
+// The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
   // The argument name
   name: string;
@@ -453,17 +459,19 @@ interface SuggestionEntryScope {
 // A type of suggestion entries.
 type SuggestionEntry =
   // A module
-  | SuggestionEntryModule
-  // A value constructor
-  | SuggestionEntryAtom
+  | Module
+  // A type
+  | Type
+  // A type constructor
+  | Constructor
   // A method defined on a type
-  | SuggestionEntryMethod
+  | Method
   // A function
-  | SuggestionEntryFunction
+  | Function
   // A local value
-  | SuggestionEntryLocal;
+  | Local;
 
-interface SuggestionEntryModule {
+interface Module {
   /** The fully qualified module name. */
   module: string;
 
@@ -480,27 +488,27 @@ interface SuggestionEntryModule {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryAtom {
+interface Type {
   /** The external id. */
   externalId?: UUID;
 
-  /** The atom name. */
+  /** The type name. */
   name: string;
 
-  /** The module name where the atom is defined. */
+  /** The qualified module name where the type is defined. */
   module: string;
 
-  /** The list of arguments. */
-  arguments: SuggestionEntryArgument[];
+  /** The list of type parameters. */
+  params: SuggestionEntryArgument[];
 
-  /** The type of an atom. */
-  returnType: string;
+  /** Qualified name of the parent type. */
+  parentType?: string;
+
+  /** The fully qualified module name re-exporting this type. */
+  reexport?: string;
 
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -509,7 +517,36 @@ interface SuggestionEntryAtom {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryMethod {
+interface Constructor {
+  /** The external id. */
+  externalId?: UUID;
+
+  /** The constructor name. */
+  name: string;
+
+  /** The qualified module name where this constructor is defined. */
+  module: string;
+
+  /** The list of arguments. */
+  arguments: SuggestionEntryArgument[];
+
+  /** The type of the constructor. */
+  returnType: string;
+
+  /** The fully qualified module name re-exporting this constructor. */
+  reexport?: string;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
+}
+
+interface Method {
   /** The external id. */
   externalId?: UUID;
 
@@ -528,11 +565,14 @@ interface SuggestionEntryMethod {
   /** The return type of this method. */
   returnType: string;
 
+  /** The flag indicating whether this method is static or instance. */
+  isStatic: boolean;
+
+  /** The fully qualified module name re-exporting this method. */
+  reexport?: string;
+
   /** The documentation string. */
   documentation?: string;
-
-  /** The fully qualified module name re-exporting this module. */
-  reexport?: string;
 
   /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
@@ -541,7 +581,7 @@ interface SuggestionEntryMethod {
   documentationSections?: DocSection[];
 }
 
-interface SuggestionEntryFunction {
+interface Function {
   /** The external id. */
   externalId?: UUID;
 
@@ -561,7 +601,7 @@ interface SuggestionEntryFunction {
   scope: SuggestionEntryScope;
 }
 
-interface SuggestionEntryLocal {
+interface Local {
   /** The external id. */
   externalId?: UUID;
 
@@ -587,7 +627,13 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Module | Atom | Method | Function | Local;
+type SuggestionEntryType =
+  | Module
+  | Type
+  | Constructor
+  | Method
+  | Function
+  | Local;
 ```
 
 ### `SuggestionId`
@@ -2610,6 +2656,219 @@ removal of the content root in order to inform them of the removal of the root.
 
 TBC
 
+## Version Control System Operations
+
+The language server has a set of version control operations to keep track of
+changes made to the projects.
+
+### `vcs/init`
+
+This requests that the VCS manager component initializes version control for the
+project identified by the root directory.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that no prior VCS is present for the project at a specified
+location. If VCS has already been initialized once, the operation will fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSAlreadyPresent`](#vcsalreadyexistserror) to signal that the requested
+  project does not exist
+
+### `vcs/save`
+
+This requests that the VCS manager component record any changes made to the
+project, compared to the last save.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. If no changes have been
+recorded since the last save, the operation must still succeed. All saves
+include a timestamp when the request was made. For easier identification, the
+request has an optional `name` parameter that will prefix the timestamp.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  name?: String;
+}
+```
+
+#### Result
+
+```typescript
+{
+  commitId: String;
+  message: String;
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/status`
+
+This requests that the VCS manager component report the current status of the
+changes made to the project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail. The status of the
+project includes:
+
+- `dirtty` flag, indicating if any of the project files has been modified, added
+  or deleted
+- list of paths to the modified files, if any
+- the metadata of a last save
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  dirty: Boolean;
+  changed: [Path];
+  lastSave: {
+    commitId: String;
+    message: String;
+  }
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
+### `vcs/restore`
+
+This requests that the VCS manager component restores the project to a past
+state recorded in Enso's VCS. All unsaved changes will be lost.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+The request has an optional `commitId` parameter that refers to the past
+checkpoint recorded with `vcs/save`. If no save exists with a provided
+`commitId`, the request must fail. If no `commitId` exists, the operation will
+restore the project to the last saved state, will all current modifications
+forgotten.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  commitId?: String
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+- [`SaveNotFound`](#savenotfounderror) to signat that the requested save could
+  not be identified in the project's version control
+
+#### Result
+
+```typescript
+null;
+```
+
+### `vcs/list`
+
+This requests that the VCS manager component returns a list of project's saves.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+By default, the operation will return all project's saves. An optional `limit`
+parameter will ensure that only the last `limti` ones are reported.
+
+This request assumes that the project at a specified location exists and VCS has
+been initialized for it with `vcs/init` operation. If the project is not under
+Enso's version control system, the operation must fail.
+
+#### Parameters
+
+```typescript
+{
+  root: Path;
+  limit?: Number
+}
+```
+
+#### Result
+
+```typescript
+{
+  saves: [
+    {
+      commitId: String;
+      message: String;
+    }
+  ]
+}
+```
+
+#### Errors
+
+- [`VCSError`](#vcserror) to signal a generic, unrecoverable VCS error.
+- [`ProjectNotFound`](#projectnotfounderror) to signal that the requested
+  project does not exist
+- [`VCSNotFound`](#vcsnotfounderror) to signal that the project is not under
+  Enso's version control
+
 ## Text Editing Operations
 
 The language server also has a set of text editing operations to ensure that it
@@ -2709,6 +2968,8 @@ This requests the language server to close the specified file.
 - **Connection:** Protocol
 - **Visibility:** Public
 
+Any pending changes to files will be saved before closing the file.
+
 #### Parameters
 
 ```typescript
@@ -2738,7 +2999,9 @@ This requests for the language server to save the specified file.
 - **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
-that file, or if the client is requesting a save of an outdated version.
+that file, or if the client is requesting a save of an outdated version. Note
+that language-server autosaves changes to the file, making this operation
+obsolete.
 
 #### Parameters
 
@@ -3910,7 +4173,7 @@ main =
 #### MyType
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "MyType",
   arguments: [],
   returnType: "MyType",
@@ -3920,7 +4183,7 @@ main =
 #### Maybe.Nothing
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Nothing",
   arguments: [],
   returnType: "Maybe",
@@ -3930,7 +4193,7 @@ main =
 #### Maybe.Just
 
 ```typescript
-<SuggestionEntryAtom>{
+<Constructor>{
   name: "Just",
   arguments: [
     {
@@ -3947,7 +4210,7 @@ main =
 #### Maybe.is_just
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "is_just",
   arguments: [],
   selfType: "Maybe",
@@ -3958,7 +4221,7 @@ main =
 #### foo
 
 ```typescript
-<SuggestionEntryFunction>{
+<Function>{
   name: "foo",
   arguments: [
     {
@@ -3975,7 +4238,7 @@ main =
 #### Number.baz
 
 ```typescript
-<SuggestionEntryMethod>{
+<Method>{
   name: "baz",
   arguments: [
     {
@@ -3993,7 +4256,7 @@ main =
 #### Local x
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "x",
   returnType: "Number",
 };
@@ -4002,7 +4265,7 @@ main =
 #### Local y
 
 ```typescript
-<SuggestionEntryLocal>{
+<Local>{
   name: "y",
   returnType: "Number",
 };

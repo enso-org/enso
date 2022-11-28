@@ -37,6 +37,8 @@ case class ArgumentRow(
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
+  * @param parentType qualified name of the parent type
+  * @param isStatic the flag indicating whether a method is static or instance
   * @param scopeStartLine the line of the start position of the scope
   * @param scopeStartOffset the offset of the start position of the scope
   * @param scopeEndLine the line of the end position of the scope
@@ -52,6 +54,8 @@ case class SuggestionRow(
   name: String,
   selfType: String,
   returnType: String,
+  parentType: Option[String],
+  isStatic: Boolean,
   scopeStartLine: Int,
   scopeStartOffset: Int,
   scopeEndLine: Int,
@@ -82,12 +86,13 @@ case class ModuleVersionRow(module: String, digest: Array[Byte])
 /** The type of a suggestion. */
 object SuggestionKind {
 
-  val MODULE: Byte     = 0
-  val ATOM: Byte       = 1
-  val METHOD: Byte     = 2
-  val FUNCTION: Byte   = 3
-  val LOCAL: Byte      = 4
-  val CONVERSION: Byte = 5
+  val MODULE: Byte      = 0
+  val TYPE: Byte        = 1
+  val CONSTRUCTOR: Byte = 2
+  val METHOD: Byte      = 3
+  val FUNCTION: Byte    = 4
+  val LOCAL: Byte       = 5
+  val CONVERSION: Byte  = 6
 
   /** Create a database suggestion kind.
     *
@@ -96,12 +101,13 @@ object SuggestionKind {
     */
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
-      case Suggestion.Kind.Module     => MODULE
-      case Suggestion.Kind.Atom       => ATOM
-      case Suggestion.Kind.Method     => METHOD
-      case Suggestion.Kind.Conversion => CONVERSION
-      case Suggestion.Kind.Function   => FUNCTION
-      case Suggestion.Kind.Local      => LOCAL
+      case Suggestion.Kind.Module      => MODULE
+      case Suggestion.Kind.Type        => TYPE
+      case Suggestion.Kind.Constructor => CONSTRUCTOR
+      case Suggestion.Kind.Method      => METHOD
+      case Suggestion.Kind.Conversion  => CONVERSION
+      case Suggestion.Kind.Function    => FUNCTION
+      case Suggestion.Kind.Local       => LOCAL
     }
 }
 
@@ -164,6 +170,8 @@ final class SuggestionsTable(tag: Tag)
   def name            = column[String]("name")
   def selfType        = column[String]("self_type")
   def returnType      = column[String]("return_type")
+  def parentType      = column[Option[String]]("parent_type")
+  def isStatic        = column[Boolean]("is_static")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -185,6 +193,8 @@ final class SuggestionsTable(tag: Tag)
       name,
       selfType,
       returnType,
+      parentType,
+      isStatic,
       scopeStartLine,
       scopeStartOffset,
       scopeEndLine,
@@ -263,5 +273,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 7
+  val CurrentVersion: Long = 10
 }

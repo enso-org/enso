@@ -1,8 +1,7 @@
 use crate::prelude::*;
 
 use crate::actions::env;
-
-use std::io::Write;
+use crate::actions::env_file;
 
 
 // ==============
@@ -22,10 +21,13 @@ pub fn is_in_env() -> bool {
 /// Sets an action's output parameter.
 ///
 /// See: <https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#setting-an-output-parameter>
-pub fn set_output(name: &str, value: &impl ToString) {
-    let value = value.to_string();
-    debug!("Setting GitHub Actions step output {name} to {value}");
-    println!("::set-output name={name}::{value}");
+pub async fn set_output(name: &str, value: &(impl ToString + ?Sized)) -> Result {
+    if is_in_env() {
+        let value = value.to_string();
+        debug!("Setting GitHub Actions step output {name} to {value}.");
+        env_file::GITHUB_OUTPUT.append_key_value(name, &value).await?;
+    }
+    Ok(())
 }
 
 /// Prints a debug message to the log.
@@ -44,16 +46,18 @@ pub fn debug(message: &str) {
 /// variables are case-sensitive and you can include punctuation.
 ///
 /// Just logs and sets variable locally if used under non-GH CI.
-pub fn set_env(name: &str, value: &impl ToString) -> Result {
+pub fn set_env(name: impl AsRef<str>, value: &impl ToString) -> BoxFuture<'static, Result> {
+    let name = name.as_ref().to_string();
     let value_string = value.to_string();
-    debug!("Will try writing Github Actions environment variable: {name}={value_string}");
-    std::env::set_var(name, value.to_string());
-    if is_in_env() {
-        let env_file = env::GITHUB_ENV.get()?;
-        let mut file = std::fs::OpenOptions::new().create_new(false).append(true).open(env_file)?;
-        writeln!(file, "{name}={value_string}")?;
+    async move {
+        std::env::set_var(&name, &value_string);
+        if is_in_env() {
+            debug!("Setting GitHub Actions environment variable {name} to {value_string}");
+            env_file::GITHUB_ENV.append_key_value(name, value_string).await?;
+        }
+        Ok(())
     }
-    Ok(())
+    .boxed()
 }
 
 pub fn mask_text(text: impl AsRef<str>) {

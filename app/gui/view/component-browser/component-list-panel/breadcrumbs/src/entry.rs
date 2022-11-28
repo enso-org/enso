@@ -29,7 +29,7 @@ pub mod separator {
 
     pub const ICON_WIDTH: f32 = 16.0;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
         (style: Style, color: Vector4) {
@@ -49,7 +49,7 @@ pub mod ellipsis {
 
     pub const ICON_WIDTH: f32 = 32.0;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
         (style: Style, alpha: f32) {
@@ -180,7 +180,7 @@ impl EntryData {
 
     fn update_layout(&self, contour: Contour, text_size: text::Size, text_padding: f32) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, text_size.value / 2.0));
+        self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_size.value / 2.0));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }

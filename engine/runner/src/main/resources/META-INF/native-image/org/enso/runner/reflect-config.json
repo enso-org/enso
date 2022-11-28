@@ -1,0 +1,219 @@
+[
+  {
+    "name":"[Ljava.lang.Object;"}
+,
+  {
+    "name":"[Ljava.nio.file.Path;"}
+,
+  {
+    "name":"[Lorg.enso.interpreter.node.ExpressionNode;"}
+,
+  {
+    "name":"[Lorg.enso.interpreter.runtime.callable.argument.CallArgument;"}
+,
+  {
+    "name":"[Lorg.enso.text.buffer.Node;"}
+,
+  {
+    "name":"[Lscala.Tuple2;"}
+,
+  {
+    "name":"java.lang.ClassValue"}
+,
+  {
+    "name":"java.lang.invoke.VarHandle",
+    "methods":[{"name":"releaseFence","parameterTypes":[] }]}
+,
+  {
+    "name":"java.lang.reflect.Method",
+    "methods":[{"name":"isDefault","parameterTypes":[] }]}
+,
+  {
+    "name":"java.nio.Buffer"}
+,
+  {
+    "name":"java.security.MessageDigestSpi"}
+,
+  {
+    "name":"java.security.SecureRandomParameters"}
+,
+  {
+    "name":"java.sql.Date"}
+,
+  {
+    "name":"java.sql.Timestamp"}
+,
+  {
+    "name":"org.enso.interpreter.runtime.library.dispatch.TypesLibrary"}
+,
+  {
+    "name":"org.jline.terminal.impl.jna.linux.CLibrary$termios",
+    "allDeclaredFields":true}
+,
+  {
+    "name":"org.jline.terminal.impl.jna.linux.CLibrary$winsize",
+    "allDeclaredFields":true}
+,
+  {
+    "name":"sun.security.provider.NativePRNG",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name":"sun.security.provider.SHA",
+    "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+  {
+    "name": "com.sun.crypto.provider.AESCipher$General",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.DHParameters",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsKeyMaterialGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsPrfGenerator$V12",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "java.io.Serializable"
+  },
+  {
+    "name": "java.lang.Boolean"
+  },
+  {
+    "name": "java.lang.Class[]"
+  },
+  {
+    "name": "java.lang.Integer"
+  },
+  {
+    "name": "java.lang.Long"
+  },
+  {
+    "name": "java.lang.String",
+    "fields": [{ "name": "value", "allowUnsafeAccess": true }]
+  },
+  {
+    "name": "java.lang.String[]"
+  },
+  {
+    "name": "java.lang.invoke.VarHandle"
+  },
+  {
+    "name": "java.nio.file.Path[]"
+  },
+  {
+    "name": "java.security.AlgorithmParametersSpi"
+  },
+  {
+    "name": "java.security.KeyStoreSpi"
+  },
+  {
+    "name": "java.security.MessageDigestSpi"
+  },
+  {
+    "name": "java.security.SecureRandomParameters"
+  },
+  {
+    "name": "java.security.interfaces.ECPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.ECPublicKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPublicKey"
+  },
+  {
+    "name": "java.sql.Date"
+  },
+  {
+    "name": "java.sql.Timestamp"
+  },
+  {
+    "name": "java.util.Date"
+  },
+  {
+    "name": "javax.net.ssl.KeyManager[]"
+  },
+  {
+    "name": "javax.net.ssl.TrustManager[]"
+  },
+  {
+    "name": "javax.security.auth.x500.X500Principal",
+    "fields": [{ "name": "thisX500Name" }],
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["sun.security.x509.X500Name"] }
+    ]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.JarMarker",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X000A_NTFS",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X7875_NewUnix",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]

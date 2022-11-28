@@ -2,6 +2,10 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
+import java.util.function.IntFunction;
+
+import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -50,6 +54,7 @@ public final class BoolStorage extends Storage<Boolean> {
   public Boolean getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : getItem(idx);
   }
+
   public boolean getItem(long idx) {
     return negated != values.get((int) idx);
   }
@@ -60,7 +65,7 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
@@ -162,6 +167,30 @@ public final class BoolStorage extends Storage<Boolean> {
 
   public boolean isNegated() {
     return negated;
+  }
+
+  public Storage<?> iif(Value when_true, Value when_false) {
+    var on_true = makeRowProvider(when_true);
+    var on_false = makeRowProvider(when_false);
+    InferredBuilder builder = new InferredBuilder(size);
+    for (int i = 0; i < size; i++) {
+      if (isMissing.get(i)) {
+        builder.append(null);
+      } else if (getItem(i)) {
+        builder.append(on_true.apply(i));
+      } else {
+        builder.append(on_false.apply(i));
+      }
+    }
+    return builder.seal();
+  }
+
+  private static IntFunction<Object> makeRowProvider(Value value) {
+    if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
+      return i->(Object)s.getItemBoxed(i);
+    }
+    var converted = Polyglot_Utils.convertPolyglotValue(value);
+    return i->converted;
   }
 
   private static MapOpStorage<Boolean, BoolStorage> buildOps() {
@@ -289,6 +318,13 @@ public final class BoolStorage extends Storage<Boolean> {
                 } else {
                   throw new UnexpectedColumnTypeException("Boolean");
                 }
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Maps.IS_MISSING) {
+              @Override
+              public BoolStorage run(BoolStorage storage) {
+                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
         .add(new BooleanIsInOp());

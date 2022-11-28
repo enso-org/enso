@@ -20,6 +20,7 @@ use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
+use crate::display::shape::primitive::glsl;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -192,9 +193,26 @@ impl Deref for WorldDataWithLoop {
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    pub prev_frame_stats: callback::registry::RefMut1<StatsData>,
-    pub before_frame:     callback::registry::CopyMut1<animation::TimeInfo>,
-    pub after_frame:      callback::registry::CopyMut1<animation::TimeInfo>,
+    pub prev_frame_stats: callback::registry::Ref1<StatsData>,
+    pub before_frame:     callback::registry::Copy1<animation::TimeInfo>,
+    pub after_frame:      callback::registry::Copy1<animation::TimeInfo>,
+}
+
+
+
+// ======================
+// === Scene Instance ===
+// ======================
+
+thread_local! {
+    /// Global scene reference. See the [`scene`] function to learn more.
+    pub static SCENE: RefCell<Option<Scene>> = RefCell::new(None);
+}
+
+/// Get reference to [`Scene`] instance. This should always succeed. Scenes are managed by [`World`]
+/// and should be instantiated before any callback is run.
+pub fn scene() -> Scene {
+    SCENE.with_borrow(|t| t.clone().unwrap())
 }
 
 
@@ -209,10 +227,10 @@ pub struct Callbacks {
 pub struct WorldData {
     #[deref]
     frp:                  api::private::Output,
-    logger:               Logger,
     pub default_scene:    Scene,
     scene_dirty:          dirty::SharedBool,
     uniforms:             Uniforms,
+    display_mode:         Rc<Cell<glsl::codes::DisplayModes>>,
     stats:                Stats,
     stats_monitor:        debug::monitor::Monitor,
     stats_draw_handle:    callback::Handle,
@@ -225,13 +243,13 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let logger = Logger::new("world");
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
-        let default_scene = Scene::new(&logger, &stats, on_change);
+        let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
+        let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
@@ -240,12 +258,14 @@ impl WorldData {
             log_render_stats(*stats)
         }));
 
+        SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
+
         Self {
             frp,
-            logger,
             default_scene,
             scene_dirty,
             uniforms,
+            display_mode,
             stats,
             on,
             debug_hotkeys_handle,
@@ -264,29 +284,34 @@ impl WorldData {
     }
 
     fn init_environment(&self) {
-        init_wasm();
+        init_global();
     }
 
     fn init_debug_hotkeys(&self) {
         let stats_monitor = self.stats_monitor.clone_ref();
-        let display_mode = self.uniforms.display_mode.clone_ref();
+        let display_mode = self.display_mode.clone_ref();
+        let display_mode_uniform = self.uniforms.display_mode.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
+            let digit_prefix = "Digit";
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "Digit0" {
-                    display_mode.set(0)
-                } else if key == "Digit1" {
-                    display_mode.set(1)
-                } else if key == "Digit2" {
-                    display_mode.set(2)
                 } else if key == "KeyP" {
                     enso_debug_api::save_profile(&profiler::internal::take_log());
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::take_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
+                } else if key.starts_with(digit_prefix) {
+                    let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
+                    if let Some(mode) = glsl::codes::DisplayModes::from_value(code_value) {
+                        warn!("Setting display mode to {:?}.", mode.name());
+                        display_mode.set(mode);
+                    } else {
+                        warn!("Invalid display mode code: {code_value}.");
+                    }
+                    display_mode_uniform.set(code_value as i32);
                 }
             }
         });
@@ -309,11 +334,10 @@ impl WorldData {
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
                 &logger,
-                &self.default_scene,
                 self.default_scene.symbols(),
                 &self.default_scene.layers,
             ))
-            .add(ScreenRenderPass::new(&self.default_scene))
+            .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);
     }

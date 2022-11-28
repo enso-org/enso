@@ -9,9 +9,6 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.CountAggregator;
-import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
@@ -73,10 +70,12 @@ public abstract class Storage<T> {
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String MOD = "%";
+    public static final String POWER = "^";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
+    public static final String IS_NAN = "is_nan";
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
@@ -85,15 +84,10 @@ public abstract class Storage<T> {
     public static final String IS_IN = "is_in";
   }
 
-  public static final class Aggregators {
-    public static final String SUM = "sum";
-    public static final String MEAN = "mean";
-    public static final String MAX = "max";
-    public static final String MIN = "min";
-    public static final String COUNT = "count";
-  }
-
-  protected abstract boolean isOpVectorized(String name);
+  /**
+   * Specifies if the given operation has a vectorized implementation available for this storage.
+   */
+  public abstract boolean isOpVectorized(String name);
 
   protected abstract Storage<?> runVectorizedMap(String name, Object argument);
 
@@ -133,53 +127,25 @@ public abstract class Storage<T> {
     return builder.seal();
   }
 
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    if (name.equals(Aggregators.COUNT)) {
-      return new CountAggregator(this, resultSize);
-    }
-    return null;
-  }
-
-  /**
-   * Returns an aggregator created based on the provided parameters.
-   *
-   * @param name name of a vectorized operation that can be used if possible. If null is passed,
-   *     this parameter is unused.
-   * @param fallback the function to use if a vectorized operation is not available.
-   * @param skipNa whether missing values should be passed to the {@code fallback} function.
-   * @param resultSize the number of times the {@link
-   *     Aggregator#nextGroup(java.util.stream.IntStream)} method will be called.
-   * @return an aggregator satisfying the above properties.
-   */
-  public final Aggregator getAggregator(
-      String name, Function<List<Object>, Value> fallback, boolean skipNa, int resultSize) {
-    Aggregator result = null;
-    if (name != null) {
-      result = getVectorizedAggregator(name, resultSize);
-    }
-    if (result == null) {
-      result = new FunctionAggregator(fallback, this, skipNa, resultSize);
-    }
-    return result;
-  }
-
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
    *
    * @param name a name of potential vectorized variant of the function that should be used if
    *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
+   * @param onMissing the value to place for missing cells, usually just null
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> map(String name, Function<Object, Value> function) {
+  public final Storage<?> map(String name, Function<Object, Value> function, Value onMissing) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
+    Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
     Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.appendNoGrow(null);
+        builder.appendNoGrow(missingValue);
       } else {
         Value result = function.apply(it);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);

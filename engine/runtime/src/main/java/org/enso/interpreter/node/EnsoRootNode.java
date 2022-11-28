@@ -1,7 +1,5 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
@@ -20,7 +18,6 @@ public abstract class EnsoRootNode extends RootNode {
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
   private final Source inlineSource;
-  private final FrameSlot stateFrameSlot;
 
   /**
    * Constructs the root node.
@@ -48,8 +45,6 @@ public abstract class EnsoRootNode extends RootNode {
     }
     this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
     this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
-    this.stateFrameSlot =
-        localScope.frameDescriptor().findOrAddFrameSlot("<<monadic_state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -79,15 +74,6 @@ public abstract class EnsoRootNode extends RootNode {
   @Override
   public String getName() {
     return this.name;
-  }
-
-  /**
-   * Gets the frame slot containing the program state.
-   *
-   * @return the state frame slot
-   */
-  public FrameSlot getStateFrameSlot() {
-    return stateFrameSlot;
   }
 
   /**

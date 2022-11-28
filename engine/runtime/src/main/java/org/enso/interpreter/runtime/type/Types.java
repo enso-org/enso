@@ -38,6 +38,7 @@ import org.enso.polyglot.data.TypeGraph;
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
+  ArrayProxy.class,
   ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
@@ -122,7 +123,7 @@ public class Types {
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
     } else if (value instanceof Atom atom) {
-      return atom.getConstructor().getQualifiedName().toString();
+      return atom.getConstructor().getQualifiedTypeName().toString();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getQualifiedName().toString();
     } else if (value instanceof Type t) {
@@ -133,7 +134,7 @@ public class Types {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
+    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value) || TypesGen.isArrayProxy(value)) {
       return ConstantsGen.ARRAY;
     } else if (TypesGen.isVector(value)) {
       return ConstantsGen.VECTOR;

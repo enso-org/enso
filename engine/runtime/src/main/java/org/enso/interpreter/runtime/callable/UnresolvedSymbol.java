@@ -1,17 +1,19 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
@@ -51,7 +53,7 @@ public final class UnresolvedSymbol implements TruffleObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
-   * @param constructors the constructors hierarchy for which this symbol should be resolved
+   * @param type the type for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(Type type) {
@@ -72,6 +74,7 @@ public final class UnresolvedSymbol implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     return this.toString();
   }
@@ -105,9 +108,10 @@ public final class UnresolvedSymbol implements TruffleObject {
     static Object doDispatch(
         UnresolvedSymbol symbol,
         Object[] arguments,
-        @Cached InteropMethodCallNode interopMethodCallNode)
-        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
-      return interopMethodCallNode.execute(symbol, EmptyMap.create(), arguments);
+        @Cached InteropMethodCallNode interopMethodCallNode,
+        @CachedLibrary("symbol") InteropLibrary thisLib)
+        throws ArityException {
+      return interopMethodCallNode.execute(symbol, Context.get(thisLib).emptyState(), arguments);
     }
   }
 }

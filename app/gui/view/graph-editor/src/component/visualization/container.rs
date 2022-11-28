@@ -20,7 +20,6 @@ use crate::visualization;
 use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
@@ -61,8 +60,8 @@ const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
 pub mod overlay {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (radius:f32,roundness:f32,selection:f32) {
+    ensogl::shape! {
+        (style: Style, radius: f32, roundness: f32, selection: f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
             let radius        = 1.px() * &radius;
@@ -83,7 +82,7 @@ pub mod background {
     use super::*;
     use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, radius:f32, roundness:f32, selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
@@ -219,7 +218,7 @@ impl View {
 
     fn init(self) -> Self {
         self.set_layer(visualization::Layer::Default);
-        self.scene.layers.viz.add_exclusive(&self);
+        self.scene.layers.viz.add(&self);
         self
     }
 }
@@ -415,7 +414,7 @@ impl ContainerModel {
             self.action_bar.frp.set_size.emit(action_bar_size);
         }
 
-        self.action_bar.set_position_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
+        self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
             viz.set_size.emit(size);
@@ -537,10 +536,10 @@ impl Container {
             new_vis_definition <- any(frp.set_visualization,vis_after_cycling);
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
-                [model,action_bar,scene,logger,preprocessor](vis_definition) {
+                [model,action_bar,app,logger,preprocessor](vis_definition) {
 
                 if let Some(definition) = vis_definition {
-                    match definition.new_instance(&scene) {
+                    match definition.new_instance(&app) {
                         Ok(vis)  => {
                             model.set_visualization(vis,&preprocessor);
                             let path = Some(definition.signature.path.clone());
@@ -627,8 +626,8 @@ impl Container {
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            eval selected_definition([scene,model,logger,preprocessor](definition)  {
-                let vis = definition.as_ref().map(|d| d.new_instance(&scene));
+            eval selected_definition([app,model,logger,preprocessor](definition)  {
+                let vis = definition.as_ref().map(|d| d.new_instance(&app));
                 match vis {
                     Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
                     Some(Err(err)) => {
@@ -650,9 +649,9 @@ impl Container {
         // ===  Action bar actions ===
 
         frp::extend! { network
-            eval_ action_bar.on_container_reset_position(model.drag_root.set_position_xy(Vector2::zero()));
+            eval_ action_bar.on_container_reset_position(model.drag_root.set_xy(Vector2::zero()));
             drag_action <- app.cursor.frp.scene_position_delta.gate(&action_bar.container_drag_state);
-            eval drag_action ((mouse) model.drag_root.mod_position_xy(|pos| pos - mouse.xy()));
+            eval drag_action ((mouse) model.drag_root.mod_xy(|pos| pos - mouse.xy()));
         }
 
         // FIXME[mm]: If we set the size right here, we will see spurious shapes in some

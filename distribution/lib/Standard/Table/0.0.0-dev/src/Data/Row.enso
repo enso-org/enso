@@ -1,0 +1,36 @@
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+
+from project.Data.Table import Table
+
+## Represents a single row of some in-memory Table.
+type Row
+    ## PRIVATE
+    Value (table:Table) (index:Integer)
+
+    ## Gets the number of columns in the table.
+    length : Integer
+    length self = self.table.columns.length
+
+    ## Gets the value of the specified column.
+    at : (Integer | Text) -> Any
+    at self column = self.table.at column . at self.index
+
+    ## Gets the row as a Vector.
+    to_vector : Vector
+    to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
+
+    ## Converts this row into a JSON structure.
+    to_json : Json
+    to_json self = self.to_vector.to_json
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a Text used to display this table in the IDE by default.
+
+       Returns a JSON object containing useful metadata and previews of column
+       values.
+    to_default_visualization_data : Text
+    to_default_visualization_data self =
+        self.to_vector.to_default_visualization_data

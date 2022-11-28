@@ -18,7 +18,7 @@ class GlobalScopeTest extends InterpreterTest {
           |Nothing.add_ten = b -> Nothing.a + b
           |
           |main = Nothing.add_ten 5
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 15
     }
@@ -35,7 +35,7 @@ class GlobalScopeTest extends InterpreterTest {
           |        doubled = res * multiply
           |        doubled
           |    fn 2
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 6
     }
@@ -51,7 +51,7 @@ class GlobalScopeTest extends InterpreterTest {
           |  result
           |
           |main = Nothing.binaryFn 1 2 (a -> b -> Nothing.adder a b)
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 3
     }
@@ -68,7 +68,7 @@ class GlobalScopeTest extends InterpreterTest {
           |  if (number % 3) == 0 then number else Nothing.decrementCall number
           |
           |main = Nothing.fn1 5
-        """.stripMargin
+          |""".stripMargin
 
       eval(code) shouldEqual 3
     }
@@ -81,7 +81,7 @@ class GlobalScopeTest extends InterpreterTest {
           |
           |Nothing.b = Nothing.a
           |main = .b
-        """.stripMargin
+          |""".stripMargin
 
       noException should be thrownBy eval(code)
     }

@@ -129,13 +129,12 @@ pub struct DomSceneData {
     pub dom:                 HtmlDivElement,
     /// The child div of the `dom` element with view-projection Css 3D transformations applied.
     pub view_projection_dom: HtmlDivElement,
-    logger:                  Logger,
 }
 
 impl DomSceneData {
     /// Constructor.
-    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement, logger: Logger) -> Self {
-        Self { dom, view_projection_dom, logger }
+    pub fn new(dom: HtmlDivElement, view_projection_dom: HtmlDivElement) -> Self {
+        Self { dom, view_projection_dom }
     }
 }
 
@@ -164,8 +163,7 @@ pub struct DomScene {
 
 impl DomScene {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(logger, "DomScene");
+    pub fn new() -> Self {
         let dom = web::document.create_div_or_panic();
         let view_projection_dom = web::document.create_div_or_panic();
 
@@ -188,7 +186,7 @@ impl DomScene {
 
         dom.append_or_warn(&view_projection_dom);
 
-        let data = DomSceneData::new(dom, view_projection_dom, logger);
+        let data = DomSceneData::new(dom, view_projection_dom);
         let data = Rc::new(data);
         Self { data }
     }
@@ -212,14 +210,7 @@ impl DomScene {
     /// Creates a new instance of DomSymbol and adds it to parent.
     pub fn manage(&self, object: &DomSymbol) {
         let dom = object.dom();
-        let data = &self.data;
-        if object.is_visible() {
-            self.view_projection_dom.append_or_warn(dom);
-        }
-        object.display_object().set_on_hide(f_!(dom.remove()));
-        object.display_object().set_on_show(f__!([data,dom] {
-            data.view_projection_dom.append_or_warn(&dom)
-        }));
+        self.view_projection_dom.append_or_warn(dom);
     }
 
     /// Update the objects to match the new camera's point of view. This function should be called
@@ -229,7 +220,7 @@ impl DomScene {
             return;
         }
 
-        let trans_cam = camera.transform_matrix().try_inverse();
+        let trans_cam = camera.transformation_matrix().try_inverse();
         let trans_cam = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam = trans_cam.map(eps);
         let trans_cam = inverse_y_translation(trans_cam);
@@ -246,5 +237,11 @@ impl DomScene {
                 setup_camera_orthographic(&self.data.view_projection_dom, &trans_cam);
             }
         }
+    }
+}
+
+impl Default for DomScene {
+    fn default() -> Self {
+        Self::new()
     }
 }

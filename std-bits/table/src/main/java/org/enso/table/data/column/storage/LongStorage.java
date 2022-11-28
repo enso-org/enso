@@ -1,18 +1,12 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.List;
-import java.util.OptionalLong;
-import java.util.stream.LongStream;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -42,17 +36,13 @@ public final class LongStorage extends NumericStorage<Long> {
     this(data, data.length, new BitSet());
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -76,24 +66,20 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int getType() {
     return Type.LONG;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
   }
 
   @Override
-  protected boolean isOpVectorized(String name) {
+  public boolean isOpVectorized(String name) {
     return ops.isSupported(name);
   }
 
@@ -105,46 +91,6 @@ public final class LongStorage extends NumericStorage<Long> {
   @Override
   protected Storage<?> runVectorizedZip(String name, Storage<?> argument) {
     return ops.runZip(name, this, argument);
-  }
-
-  @Override
-  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    return switch (name) {
-      case Aggregators.SUM -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          long[] elements = items.toArray();
-          if (elements.length == 0) {
-            submitMissing();
-          } else {
-            submit(LongStream.of(elements).sum());
-          }
-        }
-      };
-      case Aggregators.MAX -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          OptionalLong r = items.max();
-          if (r.isPresent()) {
-            submit(r.getAsLong());
-          } else {
-            submitMissing();
-          }
-        }
-      };
-      case Aggregators.MIN -> new LongToLongAggregator(this, resultSize) {
-        @Override
-        protected void runGroup(LongStream items) {
-          OptionalLong r = items.min();
-          if (r.isPresent()) {
-            submit(r.getAsLong());
-          } else {
-            submitMissing();
-          }
-        }
-      };
-      default -> super.getVectorizedAggregator(name, resultSize);
-    };
   }
 
   private Storage<?> fillMissingDouble(double arg) {
@@ -291,6 +237,19 @@ public final class LongStorage extends NumericStorage<Long> {
               }
             })
         .add(
+            new LongNumericOp(Maps.POWER, true) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return Math.pow(in, arg);
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                throw new IllegalStateException(
+                    "Internal error: Power operation should cast to double.");
+              }
+            })
+        .add(
             new LongNumericOp(Maps.DIV, true) {
               @Override
               public double doDouble(long in, double arg) {
@@ -299,7 +258,7 @@ public final class LongStorage extends NumericStorage<Long> {
 
               @Override
               public long doLong(long in, long arg) {
-                return in / arg;
+                throw new UnsupportedOperationException("Divide operation should cast to double.");
               }
             })
         .add(
@@ -374,20 +333,7 @@ public final class LongStorage extends NumericStorage<Long> {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
-        .add(
-            SpecializedIsInOp.make(
-                list -> {
-                  HashSet<Long> set = new HashSet<>();
-                  boolean hasNulls = false;
-                  for (Object o : list) {
-                    hasNulls |= o == null;
-                    Long x = NumericConverter.tryConvertingToLong(o);
-                    if (x != null) {
-                      set.add(x);
-                    }
-                  }
-                  return new SpecializedIsInOp.CompactRepresentation<>(set, hasNulls);
-                }));
+        .add(new LongIsInOp());
     return ops;
   }
 

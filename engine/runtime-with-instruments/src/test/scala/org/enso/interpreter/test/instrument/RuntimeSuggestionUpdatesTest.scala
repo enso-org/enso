@@ -170,6 +170,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -228,6 +229,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -308,6 +310,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -408,6 +411,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -518,6 +522,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -593,6 +598,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -666,6 +672,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -783,6 +790,7 @@ class RuntimeSuggestionUpdatesTest
                     Seq(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -799,7 +807,7 @@ class RuntimeSuggestionUpdatesTest
                         ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(4, 6),
-                          Suggestion.Position(9, 0)
+                          Suggestion.Position(8, 11)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -827,6 +835,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     ConstantsGen.TEXT,
                     ConstantsGen.ANY,
+                    false,
                     None,
                     None,
                     None
@@ -854,6 +863,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     ConstantsGen.NUMBER,
                     ConstantsGen.ANY,
+                    false,
                     None,
                     None,
                     None
@@ -953,7 +963,24 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Atom(
+                  Suggestion.Type(
+                    None,
+                    "Enso_Test.Test.A",
+                    "MyType",
+                    List(),
+                    "Enso_Test.Test.A.MyType",
+                    Some(ConstantsGen.ANY),
+                    None,
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Constructor(
                     None,
                     "Enso_Test.Test.A",
                     "MkA",
@@ -988,6 +1015,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
+                    false,
                     None,
                     None,
                     None
@@ -1013,6 +1041,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     ConstantsGen.INTEGER,
                     ConstantsGen.ANY,
+                    false,
                     None,
                     None,
                     None
@@ -1038,6 +1067,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None
@@ -1090,6 +1120,7 @@ class RuntimeSuggestionUpdatesTest
                     List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
+                    true,
                     None,
                     None,
                     None

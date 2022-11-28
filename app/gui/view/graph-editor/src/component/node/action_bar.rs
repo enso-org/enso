@@ -36,13 +36,13 @@ const HOVER_EXTENSION_X: f32 = 15.0;
 mod hover_area {
     use super::*;
 
-    ensogl::define_shape_system! {
-        (corner_radius:f32) {
+    ensogl::shape! {
+        (style: Style, corner_radius: f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));
             let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(HOVER_COLOR);
+            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
             rect_filled.into()
         }
     }
@@ -80,9 +80,9 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 struct Icons {
     display_object: display::object::Instance,
-    freeze:         ToggleButton<icon::freeze::DynamicShape>,
-    visibility:     ToggleButton<icon::visibility::DynamicShape>,
-    skip:           ToggleButton<icon::skip::DynamicShape>,
+    freeze:         ToggleButton<icon::freeze::Shape>,
+    visibility:     ToggleButton<icon::visibility::Shape>,
+    skip:           ToggleButton<icon::skip::Shape>,
 }
 
 impl Icons {
@@ -192,12 +192,12 @@ impl Model {
         self.hover_area.size.set(hover_ara_size);
         let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        self.hover_area.set_position_x(center_offset + padding_offset);
+        self.hover_area.set_x(center_offset + padding_offset);
     }
 
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.icons.set_position_x(-size.x / 2.0);
+        self.icons.set_x(-size.x / 2.0);
 
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.

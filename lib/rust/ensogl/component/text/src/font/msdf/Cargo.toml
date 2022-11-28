@@ -14,7 +14,7 @@ failure = { version = "0.1.6" }
 js-sys = { version = "0.3" }
 nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "0.2.78" }
-serde = { version = "1", features = ["rc"] }
+serde = { version = "1", features = ["rc", "derive"] }
 owned_ttf_parser = "0.15.1"
 enso-web = { path = "../../../../../../web" }
 

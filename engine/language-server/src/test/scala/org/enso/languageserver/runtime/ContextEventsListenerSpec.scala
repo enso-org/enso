@@ -63,7 +63,7 @@ class ContextEventsListenerSpec
         val (_, suggestionIds) = Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
@@ -193,7 +193,7 @@ class ContextEventsListenerSpec
         Await.result(
           repo.insertAll(
             Seq(
-              Suggestions.atom,
+              Suggestions.constructor,
               Suggestions.method,
               Suggestions.function,
               Suggestions.local
@@ -409,7 +409,7 @@ class ContextEventsListenerSpec
               Seq(
                 ExecutionDiagnostic(
                   ExecutionDiagnosticKind.Error,
-                  message,
+                  Some(message),
                   None,
                   None,
                   None,
@@ -453,6 +453,7 @@ class ContextEventsListenerSpec
     Config(
       root,
       FileManagerConfig(timeout = 3.seconds),
+      VcsManagerConfig(timeout  = 5.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),

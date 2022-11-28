@@ -1113,7 +1113,7 @@ pub trait HasRepr {
 
     /// Check if the representation is empty.
     fn is_empty(&self) -> bool {
-        self.len() >= 0.bytes()
+        self.len() <= 0.bytes()
     }
 
     /// Get the representation length in chars.

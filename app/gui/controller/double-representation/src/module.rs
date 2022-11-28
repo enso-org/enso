@@ -6,21 +6,20 @@ use enso_text::index::*;
 use crate::alias_analysis;
 use crate::definition;
 use crate::definition::DefinitionProvider;
+use crate::definition::EmptyDefinitionId;
 use crate::identifier;
 use crate::identifier::Identifier;
-use crate::identifier::LocatedName;
-use crate::identifier::ReferentName;
-use crate::project;
-use crate::tp;
+use crate::import;
+use crate::name::NamePath;
+use crate::name::QualifiedName;
 
-use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::crumbs::ChildAst;
+use ast::crumbs::Located;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
-use serde::Deserialize;
-use serde::Serialize;
+use std::fmt::Formatter;
 
 
 
@@ -28,15 +27,20 @@ use serde::Serialize;
 // === Errors ===
 // ==============
 
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "Id segment list is empty.")]
+#[allow(missing_docs)]
+pub struct EmptySegments;
+
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Import `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
-pub struct ImportNotFound(pub ImportInfo);
+pub struct ImportNotFound(pub String);
 
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Import with ID `{}` was not found in the module.", _0)]
 #[allow(missing_docs)]
-pub struct ImportIdNotFound(pub ImportId);
+pub struct ImportIdNotFound(pub import::Id);
 
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Line index is out of bounds.")]
@@ -44,21 +48,9 @@ pub struct ImportIdNotFound(pub ImportId);
 pub struct LineIndexOutOfBounds;
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Fail)]
-pub enum InvalidQualifiedName {
-    #[fail(display = "No module segment in module's qualified name.")]
-    NoModuleSegment,
-}
-
-#[allow(missing_docs)]
 #[derive(Fail, Clone, Debug)]
 #[fail(display = "Cannot find method with pointer {:?}.", _0)]
 pub struct CannotFindMethod(language_server::MethodPointer);
-
-#[allow(missing_docs)]
-#[derive(Copy, Fail, Clone, Debug)]
-#[fail(display = "Encountered an empty definition ID. It must contain at least one crumb.")]
-pub struct EmptyDefinitionId;
 
 #[allow(missing_docs)]
 #[derive(Fail, Clone, Debug)]
@@ -72,415 +64,53 @@ pub struct NotDirectChild(ast::Crumbs);
 // ==========
 
 /// The segments of module name. Allow finding module in the project.
-///
-/// Example: `["Parent","Module_Name"]`
-///
-/// Includes segments of module path but *NOT* the project name (see: `QualifiedName`).
-#[derive(Clone, Debug, Shrinkwrap, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id {
-    /// The vector can be empty - in that case we point to the module called `Main`.
-    segments: Vec<ReferentName>,
-}
-
-impl Display for Id {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = self.segments.iter().map(AsRef::<str>::as_ref).join(".");
-        write!(f, "{}", s)
-    }
+    /// The last segment being a module name. For project's main module it should be equal
+    /// to [`PROJECTS_MAIN_MODULE`].
+    pub name:           ImString,
+    /// The segments of all parent modules, from the top module to the direct parent. Does **not**
+    /// include project name.
+    pub parent_modules: Vec<ImString>,
 }
 
 impl Id {
-    /// Construct a module's ID value from a name segments sequence.
-    pub fn new(segments: impl IntoIterator<Item = ReferentName>) -> Id {
-        let segments = segments.into_iter().collect_vec();
-        Id { segments }
+    /// Create module id from list of segments. The list shall not contain the project name nor
+    /// namespace. Fails if the list is empty (the module name is required).
+    pub fn try_from_segments(
+        segments: impl IntoIterator<Item: Into<ImString>>,
+    ) -> FallibleResult<Self> {
+        let mut segments = segments.into_iter().map(Into::into).collect_vec();
+        let name = segments.pop().ok_or(EmptySegments)?;
+        Ok(Self { name, parent_modules: segments })
     }
 
-    /// Construct a module's ID value from a name segments sequence.
-    ///
-    /// Fails if any of the segments is not a valid referent name.
-    pub fn try_new(segments: impl IntoIterator<Item: AsRef<str>>) -> FallibleResult<Id> {
-        let texts = segments.into_iter();
-        let names = texts.map(|text| ReferentName::new(text.as_ref()));
-        let segments = names.collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::new(segments))
-    }
-
-    /// Get the segments of the module's path. They correspond to the module's file parent
-    /// directories, relative to the project's main source directory.
-    ///
-    /// The names are ordered beginning with the root one. The last one is the direct parent of the
-    /// target module's file. The module name itself is not included.
-    pub fn parent_segments(&self) -> &[ReferentName] {
-        &self.segments[..self.segments.len().saturating_sub(1)]
-    }
-
-    /// Consume the [`Id`] and returns the inner representation of segments.
-    pub fn into_segments(self) -> Vec<ReferentName> {
-        self.segments
-    }
-
-    /// Get the name of a module identified by this value.
-    pub fn name(&self) -> ReferentName {
-        self.segments
-            .iter()
-            .last()
-            .cloned()
-            .unwrap_or_else(|| ReferentName::new(PROJECTS_MAIN_MODULE).unwrap())
-    }
-
-    /// Access module name segments.
-    pub fn segments(&self) -> &Vec<ReferentName> {
-        &self.segments
-    }
-
-    /// Get the id of the top module containing the module referred. Return self if id already
-    /// points to a top module.
-    pub fn top_module(&self) -> Self {
-        Id { segments: self.segments.first().cloned().into_iter().collect() }
+    /// Return the iterator over id's segments.
+    pub fn segments(&self) -> impl Iterator<Item = &ImString> {
+        self.parent_modules.iter().chain(iter::once(&self.name))
     }
 }
 
+impl IntoIterator for Id {
+    type Item = ImString;
+    type IntoIter = impl Iterator<Item = Self::Item>;
 
-
-// =====================
-// === QualifiedName ===
-// =====================
-
-/// Module's qualified name is used in some of the Language Server's APIs, like
-/// `VisualisationConfiguration`. Logically it is a special case of [`tp::QualifiedName`] and has
-/// defined `PartialEq<tp::QualifiedName`.
-///
-/// Qualified name is constructed as follows:
-/// `ProjectName.<directories_between_src_and_enso_file>.<file_without_ext>`
-///
-/// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
-/// package structure.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[serde(into = "String")]
-#[serde(try_from = "String")]
-pub struct QualifiedName {
-    /// The first segment in the full qualified name. May be a project name or a keyword like
-    pub project_name: project::QualifiedName,
-    /// The module id: all segments in full qualified name but the first (which is a project name).
-    pub id:           Id,
-}
-
-impl QualifiedName {
-    /// Build a module's qualified name from the project name and module's path.
-    pub fn new(project_name: project::QualifiedName, id: Id) -> QualifiedName {
-        QualifiedName { project_name, id }
-    }
-
-    /// Create a qualified name for the project's main module.
-    pub fn new_main(project_name: project::QualifiedName) -> QualifiedName {
-        Self::new(project_name, project::main_module_id())
-    }
-
-    /// Constructs a qualified name from its text representation.
-    ///
-    /// Fails, if the text is not a valid module's qualified name.
-    pub fn from_text(text: impl AsRef<str>) -> FallibleResult<Self> {
-        use ast::opr::predefined::ACCESS;
-
-        let text = text.as_ref();
-        let segments = text.split(ACCESS).collect_vec();
-        if let [namespace_name, project_name, id_segments @ ..] = segments.as_slice() {
-            let project_name =
-                project::QualifiedName::from_segments(*namespace_name, *project_name)?;
-            let id = Id::try_new(id_segments)?;
-            Ok(Self::new(project_name, id))
-        } else {
-            Err(InvalidQualifiedName::NoModuleSegment.into())
-        }
-    }
-
-    /// Build a module's full qualified name from its name segments and the project name.
-    ///
-    /// ```
-    /// # use enso_prelude::*;
-    /// #
-    /// # use double_representation::module::QualifiedName;
-    ///
-    /// let name =
-    ///     QualifiedName::from_segments("local.Project".try_into().unwrap(), &["Main"]).unwrap();
-    /// assert_eq!(name.to_string(), "local.Project.Main");
-    /// ```
-    pub fn from_segments(
-        project_name: project::QualifiedName,
-        module_segments: impl IntoIterator<Item: AsRef<str>>,
-    ) -> FallibleResult<QualifiedName> {
-        let project_name = std::iter::once(project_name.into());
-        let module_segments = module_segments.into_iter();
-        let module_segments = module_segments.map(|segment| segment.as_ref().to_string());
-        let mut all_segments = project_name.chain(module_segments);
-        let text = all_segments.join(ast::opr::predefined::ACCESS);
-        text.try_into()
-    }
-
-    /// Build a module's full qualified name from its name segments and the project name.
-    ///
-    /// ```
-    /// # use double_representation::module::QualifiedName;
-    ///
-    /// let name = QualifiedName::from_all_segments(&["Project", "Main"]).unwrap();
-    /// assert_eq!(name.to_string(), "Project.Main");
-    /// ```
-    pub fn from_all_segments(
-        segments: impl IntoIterator<Item: AsRef<str>>,
-    ) -> FallibleResult<QualifiedName> {
-        let mut iter = segments.into_iter();
-        let namespace = iter.next().map(|name| name.as_ref().to_owned());
-        let project_name = iter.next().map(|name| name.as_ref().to_owned());
-        let typed_project_name = match (namespace, project_name) {
-            (Some(ns), Some(name)) => project::QualifiedName::from_segments(ns, name),
-            _ => Err(InvalidQualifiedName::NoModuleSegment.into()),
-        };
-        Self::from_segments(typed_project_name?, iter)
-    }
-
-    /// Get the module's name. It is also the module's typename.
-    pub fn name(&self) -> ReferentName {
-        if self.id.segments.is_empty() {
-            self.project_name.project.clone()
-        } else {
-            self.id.name()
-        }
-    }
-
-    /// Get the name of project owning this module.
-    pub fn project_name(&self) -> &ReferentName {
-        &self.project_name.project
-    }
-
-    /// Get the module's identifier.
-    pub fn id(&self) -> &Id {
-        &self.id
-    }
-
-    /// Get all segments of the fully qualified name.
-    pub fn segments(&self) -> impl Iterator<Item = &str> {
-        self.project_name.segments().chain(self.id.segments.iter().map(|seg| seg.as_ref()))
-    }
-
-    /// Remove the main module segment from the qualified name.
-    ///
-    /// The main module does not need to be explicitly mentioned, so the modified structure will
-    /// still identify the same entity.
-    ///
-    /// ```
-    /// # use double_representation::module::QualifiedName;
-    /// let mut name_with_main = QualifiedName::from_text("ns.Proj.Main").unwrap();
-    /// let mut name_without_main = QualifiedName::from_text("ns.Proj.Foo.Bar").unwrap();
-    /// let mut main_but_not_project_main = QualifiedName::from_text("ns.Proj.Foo.Main").unwrap();
-    ///
-    /// name_with_main.remove_main_module_segment();
-    /// name_without_main.remove_main_module_segment();
-    /// main_but_not_project_main.remove_main_module_segment();
-    ///
-    /// assert_eq!(name_with_main.to_string(), "ns.Proj");
-    /// assert_eq!(name_without_main.to_string(), "ns.Proj.Foo.Bar");
-    /// assert_eq!(main_but_not_project_main.to_string(), "ns.Proj.Foo.Main");
-    /// ```
-    pub fn remove_main_module_segment(&mut self) {
-        if self.id.segments == [PROJECTS_MAIN_MODULE] {
-            self.id.segments.pop();
-        }
-    }
-
-    /// Check if the name refers to some library's top module.
-    pub fn is_top_module(&self) -> bool {
-        self.id.segments.len() <= 1
-    }
-
-    /// Check if the name refers to some project's Main module.
-    pub fn is_main_module(&self) -> bool {
-        match self.id.segments.len() {
-            0 => true,
-            1 if self.id.segments[0] == PROJECTS_MAIN_MODULE => true,
-            _ => false,
-        }
-    }
-
-    /// Get the top module containing the module referred by this name. Return self if it is already
-    /// a top module.
-    pub fn top_module(&self) -> Self {
-        Self { project_name: self.project_name.clone(), id: self.id.top_module() }
-    }
-
-    /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
-    /// module.
-    pub fn parent_module(&self) -> Option<Self> {
-        if self.is_top_module() {
-            None
-        } else {
-            let id = Id::try_new(self.id.parent_segments()).ok()?;
-            let project_name = self.project_name.clone();
-            Some(Self { project_name, id })
-        }
-    }
-
-    /// Returns an iterator over all parent modules. The `self` is not included.
-    pub fn parent_modules(&self) -> impl Iterator<Item = Self> {
-        let mut current = self.clone();
-        iter::from_fn(move || {
-            current.parent_module().map(|parent| {
-                current = parent.clone();
-                parent
-            })
-        })
-    }
-}
-
-impl TryFrom<&str> for QualifiedName {
-    type Error = failure::Error;
-
-    fn try_from(text: &str) -> Result<Self, Self::Error> {
-        Self::from_text(text)
-    }
-}
-
-impl TryFrom<String> for QualifiedName {
-    type Error = failure::Error;
-
-    fn try_from(text: String) -> Result<Self, Self::Error> {
-        Self::from_text(text)
-    }
-}
-
-impl TryFrom<engine_protocol::language_server::MethodPointer> for QualifiedName {
-    type Error = failure::Error;
-
-    fn try_from(
-        method: engine_protocol::language_server::MethodPointer,
-    ) -> Result<Self, Self::Error> {
-        Self::try_from(method.module)
-    }
-}
-
-impl TryFrom<&engine_protocol::language_server::MethodPointer> for QualifiedName {
-    type Error = failure::Error;
-
-    fn try_from(
-        method: &engine_protocol::language_server::MethodPointer,
-    ) -> Result<Self, Self::Error> {
-        Self::try_from(method.module.clone())
-    }
-}
-
-impl From<QualifiedName> for String {
-    fn from(name: QualifiedName) -> Self {
-        String::from(&name)
-    }
-}
-
-impl From<&QualifiedName> for String {
-    fn from(name: &QualifiedName) -> Self {
-        let segments = name.id.segments.iter().map(|rn| rn.as_ref());
-        name.project_name.segments().chain(segments).join(ast::opr::predefined::ACCESS)
-    }
-}
-
-impl<'a> IntoIterator for &'a QualifiedName {
-    type Item = &'a str;
-    type IntoIter = impl Iterator<Item = &'a str>;
     fn into_iter(self) -> Self::IntoIter {
-        self.segments()
+        self.parent_modules.into_iter().chain(iter::once(self.name))
     }
 }
 
-impl Display for QualifiedName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let text = String::from(self);
-        fmt::Display::fmt(&text, f)
+impl From<Id> for NamePath {
+    fn from(id: Id) -> Self {
+        id.into_iter().collect()
     }
 }
 
-impl PartialEq<tp::QualifiedName> for QualifiedName {
-    fn eq(&self, other: &tp::QualifiedName) -> bool {
-        self.project_name == other.project_name
-            && self.id.parent_segments() == other.module_segments.as_slice()
-            && self.id.name().as_str() == other.name
+impl Display for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.segments().format("."))
     }
 }
-
-
-
-// ==================
-// === ImportInfo ===
-// ==================
-
-/// Id for an import.
-pub type ImportId = u64;
-
-/// Representation of a single import declaration.
-// TODO [mwu]
-// Currently only supports the unqualified imports like `import Foo.Bar`. Qualified, restricted and
-// and hiding imports are not supported by the parser yet. In future when parser and engine
-// supports them, this structure should be adjusted as well.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, Hash)]
-pub struct ImportInfo {
-    /// The segments of the qualified name of the imported target.
-    ///
-    /// This field is not Qualified name to cover semantically illegal imports that are possible to
-    /// be typed in and are representable in the text.
-    /// This includes targets with too few segments or segments not being valid referent names.
-    pub target: Vec<String>,
-}
-
-impl ImportInfo {
-    /// Construct from a string describing an import target, like `"Foo.Bar"`.
-    pub fn from_target_str(name: impl AsRef<str>) -> Self {
-        let name = name.as_ref().trim();
-        let target = if name.is_empty() {
-            Vec::new()
-        } else {
-            name.split(ast::opr::predefined::ACCESS).map(Into::into).collect()
-        };
-        ImportInfo { target }
-    }
-
-    /// Construct from a module qualified name like `"Foo.Bar"` that describes imported target.
-    pub fn from_qualified_name(name: &QualifiedName) -> Self {
-        let target = name.segments().map(|segment| segment.to_string()).collect();
-        Self { target }
-    }
-
-    /// Obtain the qualified name of the imported module.
-    pub fn qualified_name(&self) -> FallibleResult<QualifiedName> {
-        QualifiedName::from_all_segments(&self.target)
-    }
-
-    /// Construct from an AST. Fails if the Ast is not an import declaration.
-    pub fn from_ast(ast: &Ast) -> Option<Self> {
-        let macro_match = known::Match::try_from(ast).ok()?;
-        Self::from_match(macro_match)
-    }
-
-    /// Construct from a macro match AST. Fails if the Ast is not an import declaration.
-    pub fn from_match(ast: known::Match) -> Option<Self> {
-        ast::macros::is_match_import(&ast)
-            .then(|| ImportInfo::from_target_str(ast.segs.head.body.repr().trim()))
-    }
-
-    /// Return the ID of the import.
-    ///
-    /// The ID is based on a hash of the qualified name of the imported target. This ID is GUI
-    /// internal and not known in the engine.
-    pub fn id(&self) -> ImportId {
-        let mut hasher = DefaultHasher::new();
-        self.hash(&mut hasher);
-        hasher.finish()
-    }
-}
-
-impl Display for ImportInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let target = self.target.join(ast::opr::predefined::ACCESS);
-        write!(f, "{} {}", ast::macros::QUALIFIED_IMPORT_KEYWORD, target)
-    }
-}
-
 
 
 // ============
@@ -508,22 +138,27 @@ impl Info {
     ///
     /// Introducing identifier not included on this list should have no side-effects on the name
     /// resolution in the code in this graph.
-    pub fn used_names(&self) -> Vec<LocatedName> {
+    pub fn used_names(&self) -> Vec<Located<String>> {
         let usage = alias_analysis::analyze_crumbable(self.ast.shape());
         usage.all_identifiers()
     }
 
     /// Iterate over all lines in module that contain an import declaration.
-    pub fn enumerate_imports(&self) -> impl Iterator<Item = (ModuleCrumb, ImportInfo)> + '_ {
+    pub fn enumerate_imports(&self) -> impl Iterator<Item = (ModuleCrumb, import::Info)> + '_ {
         let children = self.ast.shape().enumerate();
-        children.filter_map(|(crumb, ast)| Some((crumb, ImportInfo::from_ast(ast)?)))
+        children.filter_map(|(crumb, ast)| Some((crumb, import::Info::from_ast(ast)?)))
     }
 
     /// Iterate over all import declarations in the module.
     ///
     /// If the caller wants to know *where* the declarations are, use `enumerate_imports`.
-    pub fn iter_imports(&self) -> impl Iterator<Item = ImportInfo> + '_ {
+    pub fn iter_imports(&self) -> impl Iterator<Item = import::Info> + '_ {
         self.enumerate_imports().map(|(_, import)| import)
+    }
+
+    /// Check if module contains import with given id.
+    pub fn contains_import(&self, id: import::Id) -> bool {
+        self.iter_imports().any(|import| import.id() == id)
     }
 
     /// Add a new line to the module's block.
@@ -548,9 +183,9 @@ impl Info {
     ///
     /// If there is more than one line matching, only the first one will be removed.
     /// Fails if there is no import matching given argument.
-    pub fn remove_import(&mut self, to_remove: &ImportInfo) -> FallibleResult {
+    pub fn remove_import(&mut self, to_remove: &import::Info) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_, import)| import == to_remove);
-        let (crumb, _) = lookup_result.ok_or_else(|| ImportNotFound(to_remove.clone()))?;
+        let (crumb, _) = lookup_result.ok_or_else(|| ImportNotFound(to_remove.to_string()))?;
         self.remove_line(crumb.line_index)?;
         Ok(())
     }
@@ -559,7 +194,7 @@ impl Info {
     ///
     /// If there is more than one line matching, only the first one will be removed.
     /// Fails if there is no import matching given argument.
-    pub fn remove_import_by_id(&mut self, to_remove: ImportId) -> FallibleResult {
+    pub fn remove_import_by_id(&mut self, to_remove: import::Id) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_, import)| import.id() == to_remove);
         let (crumb, _) = lookup_result.ok_or(ImportIdNotFound(to_remove))?;
         self.remove_line(crumb.line_index)?;
@@ -573,10 +208,10 @@ impl Info {
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.
-    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: ImportInfo) -> usize {
+    pub fn add_import(&mut self, parser: &parser_scala::Parser, to_add: import::Info) -> usize {
         // Find last import that is not "after" the added one lexicographically.
         let previous_import =
-            self.enumerate_imports().take_while(|(_, import)| to_add.target > import.target).last();
+            self.enumerate_imports().take_while(|(_, import)| &to_add > import).last();
 
         let index_to_place_at = previous_import.map_or(0, |(crumb, _)| crumb.line_index + 1);
         let import_ast = parser.parse_line_ast(to_add.to_string()).unwrap();
@@ -584,19 +219,15 @@ impl Info {
         index_to_place_at
     }
 
-    /// Add a new import if the module is not already imported.
-    pub fn add_module_import(
+    /// Add a new import declaration to a module.
+    ///
+    /// For more details the mechanics see [`add_import`] documentation.
+    pub fn add_import_if_missing(
         &mut self,
-        here: &QualifiedName,
         parser: &parser_scala::Parser,
-        to_add: &QualifiedName,
-    ) {
-        let is_here = to_add == here;
-        let import = ImportInfo::from_qualified_name(to_add);
-        let already_imported = self.iter_imports().any(|imp| imp == import);
-        if !is_here && !already_imported {
-            self.add_import(parser, import);
-        }
+        to_add: import::Info,
+    ) -> Option<usize> {
+        (!self.contains_import(to_add.id())).then(|| self.add_import(parser, to_add))
     }
 
     /// Place the line with given AST in the module's body.
@@ -804,16 +435,16 @@ pub fn lookup_method(
     ast: &known::Module,
     method: &language_server::MethodPointer,
 ) -> FallibleResult<definition::Id> {
-    let qualified_typename = tp::QualifiedName::from_text(&method.defined_on_type)?;
+    let qualified_typename = QualifiedName::from_text(&method.defined_on_type)?;
     let defined_in_this_module = module_name == &qualified_typename;
-    let method_module_name = QualifiedName::try_from(method)?;
+    let method_module_name = QualifiedName::from_text(&method.module)?;
     let implicit_extension_allowed = method.defined_on_type == method_module_name.to_string();
     for child in ast.def_iter() {
         let child_name = &child.name.item;
         let name_matches = child_name.name.item == method.name;
         let type_matches = match child_name.extended_target.as_slice() {
             [] => implicit_extension_allowed || defined_in_this_module,
-            [typename] => typename.item == qualified_typename.name,
+            [typename] => typename.item == qualified_typename.name(),
             _ => child_name.explicitly_extends_type(&method.defined_on_type),
         };
         if name_matches && type_matches {
@@ -864,18 +495,6 @@ mod tests {
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
-    #[test]
-    fn qualified_name_validation() {
-        assert!(QualifiedName::try_from("namespace.project.Name").is_err());
-        assert!(QualifiedName::try_from("namespace.Project.name").is_err());
-        assert!(QualifiedName::try_from("namespace.").is_err());
-        assert!(QualifiedName::try_from(".Name").is_err());
-        assert!(QualifiedName::try_from(".").is_err());
-        assert!(QualifiedName::try_from("").is_err());
-        assert!(QualifiedName::try_from("namespace.Project.Name").is_ok());
-        assert!(QualifiedName::try_from("namespace.Project.Name.Sub").is_ok());
-    }
-
     #[wasm_bindgen_test]
     fn import_listing() {
         let parser = parser_scala::Parser::new_or_panic();
@@ -885,7 +504,7 @@ mod tests {
             let imports = info.iter_imports().collect_vec();
             assert_eq!(imports.len(), expected.len());
             for (import, expected_segments) in imports.iter().zip(expected) {
-                itertools::assert_equal(import.target.iter(), expected_segments.iter());
+                itertools::assert_equal(import.module.iter(), expected_segments.iter());
             }
         };
 
@@ -907,7 +526,7 @@ mod tests {
         let mut info = Info { ast };
         let import = |code| {
             let ast = parser.parse_line_ast(code).unwrap();
-            ImportInfo::from_ast(&ast).unwrap()
+            import::Info::from_ast(&ast).unwrap()
         };
 
         info.add_import(&parser, import("import Bar.Gar"));
@@ -915,13 +534,13 @@ mod tests {
         info.add_import(&parser, import("import Gar.Bar"));
         info.expect_code("import Bar.Gar\nimport Foo.Bar.Baz\nimport Gar.Bar");
 
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Foo.Bar.Baz")).unwrap_err();
+        info.remove_import(&import("import Foo.Bar.Baz")).unwrap_err();
         info.expect_code("import Bar.Gar\nimport Gar.Bar");
-        info.remove_import(&ImportInfo::from_target_str("Gar.Bar")).unwrap();
+        info.remove_import(&import("import Gar.Bar")).unwrap();
         info.expect_code("import Bar.Gar");
-        info.remove_import(&ImportInfo::from_target_str("Bar.Gar")).unwrap();
+        info.remove_import(&import("import Bar.Gar")).unwrap();
         info.expect_code("");
 
         info.add_import(&parser, import("import Bar.Gar"));
@@ -932,7 +551,7 @@ mod tests {
     fn implicit_method_resolution() {
         let parser = parser_scala::Parser::new_or_panic();
         let module_name =
-            QualifiedName::from_all_segments(&["local", "ProjectName", "Main"]).unwrap();
+            QualifiedName::from_all_segments(["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
             let module = parser.parse_module(code, default()).unwrap();
             let result = lookup_method(&module_name, &module, method);

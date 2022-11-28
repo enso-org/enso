@@ -29,6 +29,9 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::Scene;
+use ensogl_core::frp::io::timer::DocumentOps;
+use ensogl_core::frp::io::timer::HtmlElementOps;
 use ensogl_core::system::web;
 use ensogl_core::system::web::Closure;
 use ensogl_core::system::web::JsCast;
@@ -60,8 +63,8 @@ const GREEN: Vector4 = Vector4::new(0.2, 0.85, 0.2, 1.0);
 
 mod h_line {
     use super::*;
-    ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl_core::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let height = Var::<Pixels>::from("input_size.y");
             let shape = Rect((BORDER_WIDTH.px(), height));
@@ -73,8 +76,8 @@ mod h_line {
 
 mod v_line {
     use super::*;
-    ensogl_core::define_shape_system! {
-        (color_rgba:Vector4<f32>) {
+    ensogl_core::shape! {
+        (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let shape = Rect((width, BORDER_WIDTH.px()));
@@ -125,22 +128,22 @@ impl Borders {
             eval area.height ([borders](h) {
                 borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
                 borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.right.set_position_y(-h/2.0);
-                borders.left.set_position_y(-h/2.0);
+                borders.right.set_y(-h/2.0);
+                borders.left.set_y(-h/2.0);
 
                 borders.bottom_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.bottom.color_rgba.set(RED);
-                borders.bottom.set_position_y(-*h);
+                borders.bottom.set_y(-*h);
             });
             eval area.width ([borders](w) {
                 borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
                 borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.top.set_position_x(w/2.0);
-                borders.bottom.set_position_x(w/2.0);
+                borders.top.set_x(w/2.0);
+                borders.bottom.set_x(w/2.0);
 
                 borders.right_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.right.color_rgba.set(RED);
-                borders.right.set_position_x(*w);
+                borders.right.set_x(*w);
             });
         }
         mem::forget(frp);
@@ -162,7 +165,6 @@ pub fn main() {
     });
 }
 
-
 fn init(app: Application) {
     let area = app.new_view::<Text>();
     let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
@@ -170,36 +172,62 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let _text = quote.to_string() + snowman + zalgo;
     let _text = "test".to_string();
+    let content = "abcdefghijk";
+    // This is a testing string left here for convenience.
     // area.set_content("aஓbc🧑🏾de\nfghij\nklmno\npqrst\n01234\n56789");
-    area.set_content("abcdefg");
-    // area.set_font("default");
-    area.focus();
+    area.set_content(content);
+    area.set_font("mplus1p");
+    area.set_property_default(color::Rgba::black());
+    area.deprecated_focus();
     area.hover();
 
     let borders = Borders::default();
     borders.show(&app, &area);
-
-    // FIXME: fix forward_panic_hook_to_console
-    // FIXME: fix test in monitor
-
-    // TODO: Task na unit testyy do textow
-    // TODO: next PR - > Text area to gui component.
-
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
     app.display.default_scene.add_child(&area);
 
     let area = Rc::new(RefCell::new(Some(area)));
-    init_debug_hotkeys(&area);
 
+    // Initialization of HTML div displaying the same text. It allows for switching between
+    // WebGL and HTML versions to compare them.
+    let style = web::document.create_element_or_panic("style");
+    let css = web::document.create_text_node("@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700&display=swap');");
+    style.append_child(&css).unwrap();
+    web::document.head().unwrap().append_child(&style).unwrap();
+    let div = web::document.create_div_or_panic();
+    div.set_style_or_warn("width", "100px");
+    div.set_style_or_warn("height", "100px");
+    div.set_style_or_warn("position", "absolute");
+    div.set_style_or_warn("z-index", "100");
+    div.set_style_or_warn("font-family", "'M PLUS 1p'");
+    div.set_style_or_warn("font-size", "12px");
+    div.set_style_or_warn("display", "none");
+    div.set_inner_text(content);
+    web::document.body().unwrap().append_child(&div).unwrap();
+
+    init_debug_hotkeys(&app.display.default_scene, &area, &div);
+
+    let scene = scene.clone_ref();
+    let handler = app.display.on.before_frame.add(move |_time| {
+        let shape = scene.dom.shape();
+        div.set_style_or_warn("left", &format!("{}px", shape.width / 2.0));
+        div.set_style_or_warn("top", &format!("{}px", shape.height / 2.0 - 0.5));
+    });
+
+    mem::forget(handler);
     mem::forget(navigator);
     mem::forget(app);
 }
 
-fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
+fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web::HtmlDivElement) {
+    let html_version = Rc::new(Cell::new(false));
+    let scene = scene.clone_ref();
     let area = area.clone_ref();
-    let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
+    let div = div.clone();
+    let mut fonts_cycle = ["dejavusans", "dejavusansmono", "mplus1p"].iter().cycle();
+    let closure: Closure<dyn FnMut(JsValue)> = Closure::new(move |val: JsValue| {
         let event = val.unchecked_into::<web::KeyboardEvent>();
         if event.ctrl_key() {
             let key = event.code();
@@ -209,10 +237,22 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
             }
         }
         if let Some(area) = &*area.borrow() {
+            div.set_inner_text(&area.content.value().to_string());
             if event.ctrl_key() {
                 let key = event.code();
                 warn!("{:?}", key);
-                if key == "Digit1" {
+                if key == "KeyH" {
+                    html_version.set(!html_version.get());
+                    if html_version.get() {
+                        warn!("Showing the HTML version.");
+                        area.unset_parent();
+                        div.set_style_or_warn("display", "block");
+                    } else {
+                        warn!("Showing the WebGL version.");
+                        scene.add_child(&area);
+                        div.set_style_or_warn("display", "none");
+                    }
+                } else if key == "Digit1" {
                     if event.shift_key() {
                         area.set_property_default(color::Rgba::black());
                     } else {
@@ -252,7 +292,7 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                     } else {
                         area.set_property(buffer::RangeLike::Selections, formatting::Weight::Bold);
                     }
-                } else if key == "KeyH" {
+                } else if key == "KeyN" {
                     if event.shift_key() {
                         area.set_property_default(formatting::SdfWeight(0.02));
                     } else {
@@ -267,6 +307,10 @@ fn init_debug_hotkeys(area: &Rc<RefCell<Option<Text>>>) {
                     } else {
                         area.set_property(buffer::RangeLike::Selections, formatting::Style::Italic);
                     }
+                } else if key == "KeyF" {
+                    let font = fonts_cycle.next().unwrap();
+                    warn!("Switching to font '{}'.", font);
+                    area.set_font(font);
                 } else if key == "Equal" {
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));

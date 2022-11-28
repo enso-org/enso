@@ -48,7 +48,7 @@ const BLINK_PERIOD: f32 =
 /// 0, blinking is enabled. It is used to disable blinking after each cursor operation, which makes
 /// cursor visible during typing and after position change.
 ///
-/// ```compile_fail
+/// ```text
 /// |
 /// |    on         off
 /// | <------>   <------->
@@ -64,7 +64,7 @@ const BLINK_PERIOD: f32 =
 pub mod shape {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         pointer_events = false;
         (style:Style, selection:f32, start_time:f32, not_blinking:f32, color_rgb:Vector3<f32>) {
             let width_abs = Var::<f32>::from("abs(input_size.x)");
@@ -182,7 +182,7 @@ impl Selection {
             _eval <- all_with(&ascender.value, &descender.value,
                 f!([model](ascender,descender) {
                     let height = ascender - descender;
-                    model.view.set_position_y(height / 2.0 + descender);
+                    model.view.set_y(height / 2.0 + descender);
                     model.view.size.modify(|t| Vector2(t.x, CURSOR_PADDING * 2.0 + height));
                 })
             );
@@ -217,10 +217,10 @@ impl Selection {
                     let width      = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
                     let view_width = CURSOR_PADDING * 2.0 + width;
                     let view_x     = (abs_width/2.0) * side;
-                    model.display_object.set_position_xy(*p);
-                    model.right_side.set_position_x(abs_width);
+                    model.display_object.set_xy(*p);
+                    model.right_side.set_x(abs_width);
                     model.view.size.modify(|t| Vector2(view_width,t.y));
-                    model.view.set_position_x(view_x);
+                    model.view.set_x(view_x);
                 })
             );
             eval frp.set_color((color) model.view.color_rgb.set(color.into()));
@@ -240,7 +240,7 @@ impl Selection {
                     0.0
                 }
             }));
-            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph;//.on_change();
+            frp.private.output.right_side_of_last_attached_glyph <+ rhs_last_glyph.on_change();
         }
 
         Self { frp, model }

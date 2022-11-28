@@ -30,7 +30,7 @@ type Response
              import Standard.Examples
 
              example_headers = Examples.get_response.headers
-    headers : Vector.Vector
+    headers : Vector
     headers self =
         header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
         header_entries.map e-> Header.new e.getKey e.getValue
@@ -68,6 +68,6 @@ type Response
              import Standard.Examples
 
              example_to_json = Examples.get_response.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
 

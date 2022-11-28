@@ -9,7 +9,8 @@ import org.enso.interpreter.runtime.type.Types;
 @BuiltinMethod(
     type = "Meta",
     name = "get_qualified_type_name",
-    description = "Returns a qualified type name of the given value.")
+    description = "Returns a qualified type name of the given value.",
+    autoRegister = false)
 public class GetQualifiedTypeNameNode extends Node {
   Text execute(@AcceptsError Object value) {
     var typeName = Types.getName(value);

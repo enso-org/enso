@@ -37,7 +37,7 @@ use enso_parser::prelude::*;
 // =============
 
 fn main() {
-    init_wasm();
+    init_global();
     let args = std::env::args().skip(1);
     if args.is_empty() {
         use std::io::Read;

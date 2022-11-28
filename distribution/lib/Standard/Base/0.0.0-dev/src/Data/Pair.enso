@@ -1,11 +1,14 @@
-from Standard.Base import all
-
-# TODO Dubious constructor export
-from project.Data.Pair.Pair import all
-from project.Data.Pair.Pair export all
+import project.Data.Any.Any
 
 ## A pair of elements.
 type Pair
+    ## Create a new Pair from two elements.
+
+       Arguments:
+       - first: The first element.
+       - second: The second element.
+    new : Any -> Any -> Pair
+    new first second = Pair.Value first second
 
     ## UNSTABLE
 
@@ -14,7 +17,7 @@ type Pair
        Arguments:
        - first: The first element.
        - second: The second element.
-    Pair_Data first second
+    Value first second
 
     ## UNSTABLE
 
@@ -26,4 +29,4 @@ type Pair
          (Pair 1 2).map (+1) == (Pair 2 3)
     map : (Any -> Any) -> Pair
     map self fun =
-        Pair_Data (fun self.first) (fun self.second)
+        Pair.new (fun self.first) (fun self.second)

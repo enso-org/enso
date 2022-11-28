@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.State
 import Standard.Base
 
 from Standard.Test import Bench
@@ -13,7 +14,7 @@ vector_size = 1000000
 iter_size = 100
 num_iterations = 10
 
-make_random_vec : Integer -> Base.Vector.Vector
+make_random_vec : Integer -> Base.Vector
 make_random_vec n =
     random_gen = Random.new n
     Base.Vector.fill n random_gen.nextLong
@@ -31,10 +32,10 @@ main =
     Bench.measure ((random_vec.drop (First 20)).sum) "Drop First 20 and Sum" iter_size num_iterations
     Bench.measure ((random_vec.drop (Last 20)).sum) "Drop Last 20 and Sum" iter_size num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
-    Bench.measure (random_vec.filter_with_index (i->x -> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
+    Bench.measure (random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
     Bench.measure (random_vec . map (x -> x +  random_gen.nextLong) . filter (x -> x % 3 == 1)) "Map & Filter" iter_size num_iterations
     Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" iter_size num_iterations
-    Bench.measure (random_vec.partition_with_index (i->x -> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
+    Bench.measure (random_vec.partition_with_index (i-> x-> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
 
     stateful_fun x =
        s = State.get Number

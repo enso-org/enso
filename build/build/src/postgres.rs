@@ -52,9 +52,9 @@ pub enum EndpointConfiguration {
 impl EndpointConfiguration {
     /// Tries to deduce what endpoint should be used for a spawned Postgres service.
     pub fn deduce() -> Result<Self> {
-        if let Ok(container_name) = std::env::var("ENSO_RUNNER_CONTAINER_NAME") {
+        if let Ok(container_name) = crate::env::ENSO_RUNNER_CONTAINER_NAME.get() {
             debug!("Assuming that I am in the Docker container named {container_name}.");
-            Ok(Self::Container { owner: ContainerId(container_name) })
+            Ok(Self::Container { owner: container_name })
         } else {
             // If we are running on the bare machine (i.e. not in container), we spawn postgres
             // and expose it on a free host port. Then we can directly consume.
@@ -86,7 +86,7 @@ impl Configuration {
 
     pub fn set_enso_test_env(&self) -> Result {
         env::tests::ENSO_DATABASE_TEST_DB_NAME.set(&self.database_name)?;
-        env::tests::ENSO_DATABASE_TEST_HOST.set(match &self.endpoint {
+        env::tests::ENSO_DATABASE_TEST_HOST.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => format!("localhost:{port}"),
             EndpointConfiguration::Container { .. } =>
                 format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}"),

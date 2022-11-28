@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use crate::cache::goodie::Goodie;
-use crate::models::config::RepoContext;
+use crate::github::Repo;
 use crate::programs::java;
 use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
@@ -36,8 +36,8 @@ pub async fn find_graal_version() -> Result<Version> {
 }
 
 /// The repository that contains the GraalVM CE releases for download.
-pub fn ce_build_repository() -> RepoContext {
-    RepoContext { owner: GITHUB_ORGANIZATION.into(), name: CE_BUILDS_REPOSITORY.into() }
+pub fn ce_build_repository() -> Repo {
+    Repo { owner: GITHUB_ORGANIZATION.into(), name: CE_BUILDS_REPOSITORY.into() }
 }
 
 /// Description necessary to download and install GraalVM.
@@ -58,7 +58,8 @@ impl Goodie for GraalVM {
         let client = self.client.clone();
         let repo = ce_build_repository();
         async move {
-            let release = repo.find_release_by_text(&client, &graal_version.to_string()).await?;
+            let repo = repo.handle(&client);
+            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
             crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
         }
         .boxed()
@@ -133,7 +134,7 @@ mod tests {
     #[ignore]
     async fn test_is_enabled() -> Result {
         setup_logging()?;
-        let graal_version = Version::parse("21.3.0").unwrap();
+        let graal_version = Version::parse("22.3.0").unwrap();
         let java_version = java::LanguageVersion(11);
         let os = TARGET_OS;
         let arch = Arch::X86_64;
@@ -151,14 +152,14 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = r"openjdk 11.0.13 2021-10-19
-OpenJDK Runtime Environment GraalVM CE 21.3.0 (build 11.0.13+7-jvmci-21.3-b05)
-OpenJDK 64-Bit Server VM GraalVM CE 21.3.0 (build 11.0.13+7-jvmci-21.3-b05, mixed mode, sharing)";
+        let version_string = r"openjdk 11.0.17 2022-10-18
+OpenJDK Runtime Environment GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08)
+OpenJDK 64-Bit Server VM GraalVM CE 22.3.0 (build 11.0.17+8-jvmci-22.3-b08, mixed mode, sharing)";
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
-        assert_eq!(found_graal, Version::new(21, 3, 0));
+        assert_eq!(found_graal, Version::new(22, 3, 0));
 
         let found_java = Java.parse_version(version_string).unwrap();
-        assert_eq!(found_java, Version::new(11, 0, 13));
+        assert_eq!(found_java, Version::new(11, 0, 17));
     }
 }

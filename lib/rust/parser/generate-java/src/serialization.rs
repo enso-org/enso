@@ -16,6 +16,7 @@ use enso_metamodel::java::bincode::MaterializerInput;
 //  generated fields in Java classes by starting from a `str -> rust::FieldId` query on Rust
 //  type data, and mapping fields analogously to `rust_to_java` for types.
 const CODE_GETTER: &str = "codeRepr";
+const WHITESPACE_GETTER: &str = "getWhitespace";
 const TREE_BEGIN: &str = "fieldSpanLeftOffsetCodeReprBegin";
 const TREE_LEN: &str = "fieldSpanLeftOffsetCodeReprLen";
 
@@ -24,23 +25,15 @@ pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     let source = "source";
     impl_deserialize(graph, tree, token, source);
     graph[token].methods.push(impl_getter(CODE_GETTER));
+    graph[token].methods.push(impl_whitespace_getter(WHITESPACE_GETTER));
     graph[tree].methods.push(impl_getter(CODE_GETTER));
+    graph[tree].methods.push(impl_whitespace_getter(WHITESPACE_GETTER));
 }
 
 
 // === Deserialization Methods ===
 
 fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source: &str) {
-    // Add UUIDs to types
-    let uuid = Class::builtin("java.util.UUID", vec![]);
-    let uuid = graph.classes.insert(uuid);
-    let mut tree_id_ = Field::object("uuid", uuid, false);
-    tree_id_.hide_in_tostring();
-    let tree_id = tree_id_.id();
-    graph[tree].fields.push(tree_id_);
-    *graph[tree].child_field.as_mut().unwrap() += 1;
-    graph[tree].methods.push(Method::Dynamic(Dynamic::Getter(tree_id)));
-
     // Add source field to parent types.
     let long = Primitive::Long { unsigned: true };
     let mut tree_start_whitespace_ = Field::primitive("startWhitespace", long);
@@ -70,7 +63,15 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source
     graph[token].fields.insert(index, token_start_whitespace_);
     graph[token].fields.insert(index + 1, token_start_code_);
     graph[token].fields.push(token_end_code_);
-    *graph[token].child_field.as_mut().unwrap() += 3;
+
+    // Add UUIDs to types
+    let uuid = Class::builtin("java.util.UUID", vec![]);
+    let uuid = graph.classes.insert(uuid);
+    let mut tree_id_ = Field::object("uuid", uuid, false);
+    tree_id_.hide_in_tostring();
+    let tree_id = tree_id_.id();
+    graph[tree].fields.push(tree_id_);
+    graph[tree].methods.push(Method::Dynamic(Dynamic::Getter(tree_id)));
 
     // Getters
     let token_getters = [
@@ -144,7 +145,7 @@ fn context_materializer() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 
     |MaterializerInput { message }| format!("{message}.context()")
 }
 fn uuid_materializer() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
-    |MaterializerInput { message }| format!("{message}.getUuid({TREE_BEGIN}, {TREE_LEN})")
+    |MaterializerInput { message }| format!("{message}.getUuid(startCode, endCode - startCode)")
 }
 fn start_whitespace() -> impl for<'a> Fn(MaterializerInput<'a>) -> String + 'static {
     |MaterializerInput { message }| format!("{message}.position()")
@@ -169,5 +170,11 @@ fn impl_getter(name: &str) -> Method {
     let mut method = syntax::Method::new(name, syntax::Type::named("String"));
     method.body =
         "return source.subSequence((int)startCode, (int)endCode).toString();\n".to_string();
+    Method::Raw(method)
+}
+
+fn impl_whitespace_getter(name: &str) -> Method {
+    let mut method = syntax::Method::new(name, syntax::Type::named("CharSequence"));
+    method.body = "return source.subSequence((int)startWhitespace, (int)startCode);\n".to_string();
     Method::Raw(method)
 }

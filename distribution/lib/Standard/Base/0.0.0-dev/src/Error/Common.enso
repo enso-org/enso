@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.Throwable
 
 ## A type representing dataflow errors.
 
@@ -74,8 +75,8 @@ type Error
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error "My message")
-                 error.catch Illegal_Argument_Error (err -> err.message)
+                 error = Error.throw (Illegal_Argument_Error_Data "My message")
+                 error.catch Illegal_Argument_Error_Data (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.
@@ -115,7 +116,7 @@ type Error
              import Standard.Examples
 
              example_to_json = Examples.throw_error.to_json
-    to_json : Json.Object
+    to_json : Json
     to_json self =
         error_type = ["type", "Error"]
         caught = self.catch
@@ -149,7 +150,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -218,6 +219,7 @@ from project.Error.Common.Index_Out_Of_Bounds_Error export all
    Arguments:
    - index: The requested index.
    - length: The length of the collection.
+@Builtin_Type
 type Index_Out_Of_Bounds_Error
     Index_Out_Of_Bounds_Error_Data index length
 
@@ -264,7 +266,7 @@ type Caught_Panic
     convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
-    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 
@@ -299,7 +301,7 @@ type Panic
          and rethrow any others, without affecting their stacktraces.
 
              Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
-                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 Illegal_Argument_Error_Data message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
@@ -334,7 +336,7 @@ type Panic
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic_Data _ internal_original_exception -> internal_original_exception
@@ -378,13 +380,13 @@ type Panic
        > Example
          Handling a specific type of panic.
 
-             Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught an `Illegal_Argument_Error`: "+error.payload.message
 
        > Example
          Handling any panic.
 
-             Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+             Panic.catch Any (Panic.throw (Illegal_Argument_Error_Data "Oh no!" Nothing)) error->
                  "Caught some panic!"
 
        > Example
@@ -395,7 +397,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
     catch panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
@@ -430,7 +432,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
-                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+java_exception.getMessage)
+                     Error.throw (Illegal_Argument_Error_Data "The provided string is not a valid number: "+java_exception.getMessage)
     catch_java : Any -> Any -> (Throwable -> Any) -> Any
     catch_java panic_type ~action handler =
         Panic.catch_primitive action caught_panic-> case caught_panic.payload of
@@ -457,16 +459,16 @@ type Panic
        > Example
          Converting an expected panic to a dataflow error.
 
-             Panic.recover Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+             Panic.recover Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
 
        > Example
          Converting one of many expected panic types to a dataflow error.
 
-             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
-    recover : (Vector.Vector Any | Any) -> Any -> Any
+             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error_Data "Oh!" Nothing))
+    recover : (Vector Any | Any) -> Any -> Any
     recover expected_types ~action =
         types_to_check = case expected_types of
-            _ : Vector.Vector -> expected_types
+            _ : Vector -> expected_types
             _ -> [expected_types]
         Panic.catch Any action caught_panic->
             is_matched = types_to_check.exists typ->
@@ -556,10 +558,6 @@ from project.Error.Common.Arity_Error export all
 @Builtin_Type
 type Arity_Error
     Arity_Error_Data expected_min expected_max actual
-
-# TODO Dubious constructor export
-from project.Error.Common.Uninitialized_State import all
-from project.Error.Common.Uninitialized_State export all
 
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
@@ -744,12 +742,8 @@ type Unimplemented_Error
          import Standard.Base.Error.Common as Errors
 
          example_unimplemented = Errors.unimplemented
-unimplemented : Text -> Void
+unimplemented : Text -> Nothing
 unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
-
-## TODO Dubious constructor export
-from project.Error.Common.Time_Error import all
-from project.Error.Common.Time_Error export all
 
 type Time_Error
 
@@ -759,15 +753,18 @@ type Time_Error
 
        Arguments:
        - error_message: The message for the error.
-    Time_Error_Data error_message
+    Error error_message
 
-## TODO Dubious constructor export
-from project.Error.Common.Unsupported_File_Type import all
-from project.Error.Common.Unsupported_File_Type export all
+    ## PRIVATE
+    epoch_start : Time_Error
+    epoch_start = Time_Error.Error "Epoch start underflow"
+
+    to_display_text : Text
+    to_display_text self = self.error_message
 
 ## Indicates that the given file's type is not supported.
 type Unsupported_File_Type
-    Unsupported_File_Type_Data filename
+    Error filename
 
     to_display_text : Text
     to_display_text self =
@@ -778,3 +775,32 @@ type Unsupported_File_Type
    An error indicating that some elements are incomparable.
 
 type Incomparable_Values_Error
+
+## Errors when reading or writing to a file.
+type File_Error
+
+    ## An error that indicates that the requested file does not exist.
+
+       Arguments:
+       - file: The file that doesn't exist.
+    Not_Found file
+
+    ## Indicates that a destination file already exists.
+    Already_Exists file
+
+    ## A generic IO error.
+
+       Arguments:
+       - file: The file that couldn't be read.
+       - message: The message for the error.
+    IO_Error file message
+
+    ## UNSTABLE
+
+       Convert the File error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
+        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+

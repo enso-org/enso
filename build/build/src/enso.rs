@@ -5,7 +5,6 @@ use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
 
-use ide_ci::env::Variable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
@@ -59,6 +58,12 @@ impl BuiltEnso {
         Ok(command)
     }
 
+    pub fn repl(&self) -> Result<Command> {
+        let mut command = self.cmd()?;
+        command.arg("--repl");
+        Ok(command)
+    }
+
     pub fn compile_lib(&self, target: impl AsRef<Path>) -> Result<Command> {
         ide_ci::fs::require_exist(&target)?;
         let mut command = self.cmd()?;
@@ -69,7 +74,12 @@ impl BuiltEnso {
         Ok(command)
     }
 
-    pub async fn run_tests(&self, ir_caches: IrCaches, async_policy: AsyncPolicy) -> Result {
+    pub async fn run_tests(
+        &self,
+        ir_caches: IrCaches,
+        sbt: &crate::engine::sbt::Context,
+        async_policy: AsyncPolicy,
+    ) -> Result {
         let paths = &self.paths;
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
@@ -79,12 +89,11 @@ impl BuiltEnso {
             ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), &gdoc_key)?;
         }
 
-        let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port().await?;
+        let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
         let _postgres = match TARGET_OS {
             OS::Linux => {
-                let runner_context_string = crate::env::RunnerContainerName
-                    .fetch()
-                    .map(|name| name.0)
+                let runner_context_string = crate::env::ENSO_RUNNER_CONTAINER_NAME
+                    .get_raw()
                     .or_else(|_| ide_ci::actions::env::RUNNER_NAME.get())
                     .unwrap_or_else(|_| Uuid::new_v4().to_string());
                 // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in

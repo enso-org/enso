@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_executable_name",
-    description = "Returns the executable name of a polyglot object.")
+    description = "Returns the executable name of a polyglot object.",
+    autoRegister = false)
 public class GetExecutableNameNode extends Node {
   private @Child InteropLibrary functionsLibrary =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);

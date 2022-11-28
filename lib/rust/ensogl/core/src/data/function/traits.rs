@@ -11,16 +11,16 @@
 /// the empty type. This makes these traits a very powerful mechanism for implementing callback
 /// like functionality. Consider the following structure:
 ///
-/// ```ignore
-///     pub struct Animator<OnStep=()> {
-///         on_step : OnStep
-///     }
+/// ```text
+/// pub struct Animator<OnStep = ()> {
+///     on_step: OnStep,
+/// }
 ///
-///     impl<OnStep:Function1<f32>> Animator<OnStep> {
-///         fn step(&self) {
-///             self.on_step.call(0.0);
-///         }
+/// impl<OnStep: Function1<f32>> Animator<OnStep> {
+///     fn step(&self) {
+///         self.on_step.call(0.0);
 ///     }
+/// }
 /// ```
 ///
 /// This type can be parametrized with an user-defined callback, but the callback may also not be

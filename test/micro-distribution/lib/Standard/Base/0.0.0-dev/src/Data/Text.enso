@@ -1,2 +1,3 @@
 @Builtin_Type
 type Text
+    + self that = @Builtin_Method "Text.+"

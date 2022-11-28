@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Invokes any callable with given arguments.
@@ -42,10 +42,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
    * @param isTail is the call happening in a tail position.
    * @return the result of executing the callable.
    */
-  public abstract Stateful execute(
+  public abstract Object execute(
       Object callable,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -53,10 +53,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
       BaseNode.TailStatus isTail);
 
   @Specialization
-  Stateful invokeFunction(
+  Object invokeFunction(
       Function function,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -75,10 +75,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
   }
 
   @Specialization
-  Stateful invokeConstructor(
+  Object invokeConstructor(
       AtomConstructor constructor,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -98,23 +98,23 @@ public abstract class IndirectInvokeCallableNode extends Node {
   }
 
   @Specialization
-  Stateful invokeDataflowError(
+  Object invokeDataflowError(
       DataflowError error,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    return new Stateful(state, error);
+    return error;
   }
 
   @Specialization
-  Stateful invokePanicSentinel(
+  Object invokePanicSentinel(
       PanicSentinel sentinel,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -124,10 +124,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
   }
 
   @Specialization
-  public Stateful invokeDynamicSymbol(
+  public Object invokeDynamicSymbol(
       UnresolvedSymbol symbol,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -139,19 +139,16 @@ public abstract class IndirectInvokeCallableNode extends Node {
     boolean canApplyThis = thisArg != null;
     int thisArgumentPosition = thisArg == null ? 0 : thisArg;
     if (canApplyThis) {
-      Object selfArgument = arguments[thisArgumentPosition];
+      Object self = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
-        Stateful selfResult =
-            thisExecutor.executeThunk(selfArgument, state, BaseNode.TailStatus.NOT_TAIL);
-        selfArgument = selfResult.getValue();
-        state = selfResult.getState();
-        arguments[thisArgumentPosition] = selfArgument;
+        self = thisExecutor.executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
+        arguments[thisArgumentPosition] = self;
       }
       return invokeMethodNode.execute(
           callerFrame,
           state,
           symbol,
-          selfArgument,
+          self,
           arguments,
           schema,
           defaultsExecutionMode,
@@ -165,10 +162,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
   }
 
   @Fallback
-  public Stateful invokeGeneric(
+  public Object invokeGeneric(
       Object callable,
       MaterializedFrame callerFrame,
-      Object state,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,

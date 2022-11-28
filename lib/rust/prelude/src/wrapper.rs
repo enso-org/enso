@@ -39,7 +39,7 @@ pub trait Wrap: HasSizedContent {
 /// about it explicitly: "[...] Because of this, Deref should only be implemented for smart pointers
 /// to avoid confusion.". As an example, consider the following code which contains infinite loop:
 ///
-/// ```compile_fail
+/// ```text
 /// pub trait HasId {
 ///     fn id(&self) -> usize;
 /// }
@@ -54,7 +54,7 @@ pub trait Wrap: HasSizedContent {
 ///
 /// And the correct version:
 ///
-/// ```compile_fail
+/// ```text
 /// pub trait HasId {
 ///     fn id(&self) -> usize;
 /// }

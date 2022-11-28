@@ -1,19 +1,24 @@
 ## Utilities for working with Java polyglot objects.
-type Java
-    ## Adds the provided entry to the host class path.
 
-       Arguments:
-       - path: The java classpath entry to add.
+import project.Data.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.Nothing.Nothing
 
-       Use of the actual polyglot imports system should be preferred to use of
-       this method.
+## Adds the provided entry to the host class path.
 
-       > Example
-         Adding Random to the classpath.
+   Arguments:
+   - path: The java classpath entry to add.
 
-            Java.add_to_class_path "java.util.Random"
-    add_to_class_path : Text -> Nothing
-    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+   Use of the actual polyglot imports system should be preferred to use of
+   this method.
+
+   > Example
+     Adding Random to the classpath.
+
+        Java.add_to_class_path "java.util.Random"
+add_to_class_path : Text -> Nothing
+add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
 
 ## Looks up a java symbol on the classpath by name.
 

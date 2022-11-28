@@ -1,10 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+from Standard.Base.Data.Vector import handle_incomparable_value
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Data.Text.Case
-import Standard.Base.System.Platform
 
 import project.Data.Column.Column
 from project.Data.Column import get_item_string
@@ -18,16 +18,20 @@ import project.Data.Value_Type.Value_Type
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Storage.Storage
 import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-import project.IO.Auto_Detect.Auto_Detect
+import project.Data.Expression.Expression
+import project.Data.Expression.Expression_Error
 
 from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Delimited.Delimited_Format import Delimited
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Rows_View import Rows_View
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 import Standard.Visualization
@@ -36,6 +40,7 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.data.mask.OrderMask
+polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -57,7 +62,7 @@ type Table
     new columns =
         cols = columns.map c->
             case c of
-                _ : Vector.Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
+                _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Column_Data java_col -> java_col
         Table.Table_Data (Java_Table.new cols.to_array)
 
@@ -81,7 +86,7 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
-    from_rows : Vector.Vector -> Vector.Vector -> Table
+    from_rows : Vector -> Vector -> Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
@@ -270,7 +275,7 @@ type Table
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -320,7 +325,7 @@ type Table
              table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -373,9 +378,9 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         Table.new new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -439,10 +444,12 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
-    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ : Map ->
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
             if new_names.is_error then new_names else
@@ -615,7 +622,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument_Error.handle_java_exception <| Vector.handle_incomparable_value <|
+            java_table = Illegal_Argument_Error.handle_java_exception <| handle_incomparable_value <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -652,7 +659,7 @@ type Table
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=True on_problems=on_problems
+            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case.folding_strategy case_sensitivity
         java_table = Illegal_Argument_Error.handle_java_exception <|
@@ -672,7 +679,7 @@ type Table
        reversible (e.g., 0123 would not be converted to an integer as there is
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter.Value column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
@@ -688,7 +695,7 @@ type Table
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
                     ambiguous = matching_input.exists s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector column.name ambiguous)
+                    problem_builder.append (Duplicate_Type_Selector.Duplicate_Type_Selector_Data column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
         expected_types = case column_types of
@@ -708,9 +715,9 @@ type Table
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns missing_columns.to_vector)
+                    problem_builder.append (Missing_Input_Columns.Missing_Input_Columns_Data missing_columns.to_vector)
                 if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range invalid_indices.to_vector)
+                    problem_builder.append (Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data invalid_indices.to_vector)
                 columns.map_with_index find_datatype
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
@@ -768,7 +775,7 @@ type Table
        > Example
          Replace dashes with underscores in a column named "variable_names".
 
-             table.replace_text "variable_names" "-" "_" 
+             table.replace_text "variable_names" "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
@@ -782,12 +789,12 @@ type Table
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
-        
+
         selector = case columns of
             _ : Column_Selector -> columns
             name : Text -> Column_Selector.By_Name [name]
             index : Integer -> Column_Selector.By_Index [index]
-        selection = Table_Helpers.select_columns_helper self.columns selector reorder=False problem_builder
+        selection = self.columns_helper.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
 
         map_preserve_name column f = column.map f . rename column.name
@@ -806,11 +813,11 @@ type Table
 
         new_columns = self.columns.map column->
             is_selected = selected_names.get_or_else column.name False
-            if is_selected then transform column else column 
-            
+            if is_selected then transform column else column
+
         result = Table.new new_columns
         problem_builder.attach_problems_after on_problems result
-      
+
     ## ALIAS Filter Rows
 
        Selects only the rows of this table that correspond to `True` values of
@@ -863,6 +870,13 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
+        _ : Text ->
+            table_at = self.at column
+            if table_at.is_error.not then self.filter table_at filter on_problems else
+                expression = self.evaluate column
+                if expression.is_error.not then self.filter expression filter on_problems else
+                    pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
+                    on_problems.handle_errors pick_error fallback=self
         _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
@@ -875,20 +889,44 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
-    take : (Index_Sub_Range | Range) -> Table
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       > Example
+         Take first 10 rows of the table.
+
+             table.take (First 10)
+
+       > Example
+         Take rows from the top of the table as long as their values sum to 10.
+
+             table.take (While row-> row.to_vector.sum == 10)
+    take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
-        Index_Sub_Range.take_helper self.row_count at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## Creates a new Table from the input with the specified range of rows
        removed.
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    drop : (Index_Sub_Range | Range) -> Table
+
+       For the purposes of the `Index_Sub_Range.While` predicate a single
+       "element" of the table is represented by the `Row` type.
+
+       > Example
+         Drop first 10 rows of the table.
+
+             table.drop (First 10)
+
+       > Example
+         Drop rows from the top of the table as long as their values sum to 10.
+
+             table.drop (While row-> row.to_vector.sum == 10)
+    drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
-        Index_Sub_Range.drop_helper self.row_count at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 
@@ -896,7 +934,10 @@ type Table
 
        Arguments:
        - name: The name of the column to set the value of.
-       - column: The new value for the column called `name`.
+       - column: The new value for the column either a `Column` or `Text` of an
+         expression.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
@@ -911,12 +952,23 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
-    set : Text -> Column | Vector.Vector -> Table
-    set self name column = case column of
-        _ : Vector.Vector ->
-            self.set name (Column.from_vector name column)
-        Column.Column_Data _ ->
+                 table.set "total_stock_expr" "2 * [total_stock]"
+    set : Text -> Column | Vector | Text -> Problem_Behavior -> Table
+    set self name column on_problems=Report_Warning = case column of
+        _ : Text ->
+            expression = self.evaluate column
+            if expression.is_error.not then self.set name expression on_problems else
+                on_problems.handle_errors expression fallback=self
+        _ : Vector -> self.set name (Column.from_vector name column)
+        _ : Column ->
             Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
+
+    ## PRIVATE
+    evaluate : Text -> Column
+    evaluate self expression =
+        get_column name = self.at name
+        make_constant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new self.row_count _->value)
+        Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
 
     ## Returns the vector of columns contained in this table.
 
@@ -928,6 +980,28 @@ type Table
              example_columns = Examples.inventory_table.columns
     columns : Vector
     columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
+
+    ## UNSTABLE
+
+       Returns the vector of column names contained in this table.
+    column_names : Vector Text
+    column_names self = Vector.from_polyglot_array self.java_table.getColumns . map _.getName
+
+    ## Returns a vector of rows contained in this table.
+
+       In the database backend, it first materializes the table to in-memory.
+
+       Arguments:
+       - max_rows: The maximum amount of rows to return. It is mainly meant for
+         the Database backend, to limit how many rows are downloaded. In the
+         in-memory backend it is only kept for API compatibility.
+    rows : Integer -> Vector Row
+    rows self max_rows=Nothing =
+        table = case max_rows of
+            Nothing -> self
+            _ : Integer -> self.slice 0 max_rows
+        proxy = Rows_View.Value table
+        Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## Sets the index of this table, using the column with the provided name.
 
@@ -997,28 +1071,25 @@ type Table
     join : Vector Table | Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
-            _ : Vector.Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
+            _ : Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
             Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table.Table_Data t ->
                 Table.Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
 
-    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
-    drop_missing_rows : Table
-    drop_missing_rows self =
-        cols = self.columns
-        case cols.not_empty of
-            True ->
-                any_missing_mask = cols.map .is_missing . reduce (||)
-                non_missing_mask = any_missing_mask.not
-                self.filter non_missing_mask
-            False -> self
+    ## ALIAS dropna
+       ALIAS drop_missing_rows
+       Remove rows which are all blank or containing blank values.
 
-    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
-    drop_missing_columns : Table
-    drop_missing_columns self =
-        non_missing = self.columns . filter (col -> col.count_missing == 0)
-        index = self.java_table.getIndex
-        Table.Table_Data (Java_Table.new (non_missing.map .java_column . to_array) index)
+       Arguments:
+       - when_any: If `True`, then remove any row containing any blank values.
+         If `False`, then only remove rows with all blank values.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    filter_blank_rows : Boolean -> Boolean -> Table
+    filter_blank_rows self when_any=False treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## Returns the number of rows in this table.
 
@@ -1069,7 +1140,7 @@ type Table
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table | Vector Table -> Table
     concat self other = case other of
-        _ : Vector.Vector ->
+        _ : Vector ->
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
             Table.Table_Data (Java_Table.concat java_tables.to_array)
         Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
@@ -1116,7 +1187,7 @@ type Table
              import Standard.Examples
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
-    write_json : File.File -> Nothing
+    write_json : File -> Nothing
     write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
@@ -1145,9 +1216,9 @@ type Table
        - If an unsupported `File_Format` is specified, an
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
-         invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `IO_Error` is
-         raised.
+         invalid, a `File_Error.Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an
+         `File_Error.IO_Error` is raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
@@ -1179,13 +1250,27 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) self on_existing_file match_columns on_problems
+        file = File.new path
+        case format of
+            _ : Auto_Detect ->
+                base_format = format.get_format file
+                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
+                    self.write file format=base_format on_existing_file match_columns on_problems
+            _ ->
+                Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                    name = Meta.get_constructor_name (Meta.meta format).constructor
+                    Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (Delimited delimiter=",")
+
+    ## PRIVATE
+    columns_helper : Table_Column_Helper
+    columns_helper self =
+        Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
 
 ## UNSTABLE
 
@@ -1221,7 +1306,7 @@ ansi_bold : Boolean -> Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.
-        Platform.Windows -> txt
+        Platform.OS.Windows -> txt
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
@@ -1254,5 +1339,5 @@ print_table header rows indices_count format_term =
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
-    normalized = Index_Sub_Range.normalize_ranges ranges
+    normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)

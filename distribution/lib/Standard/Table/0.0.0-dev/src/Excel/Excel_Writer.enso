@@ -18,7 +18,7 @@ polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import java.lang.IllegalStateException
 
 ## PRIVATE
-make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExcelWriter.ExistingDataMode
+make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExistingDataMode
 make_java_existing_data_mode on_existing_file match_columns = case on_existing_file of
     Existing_File_Behavior.Error -> ExistingDataMode.ERROR
     Existing_File_Behavior.Overwrite -> ExistingDataMode.REPLACE

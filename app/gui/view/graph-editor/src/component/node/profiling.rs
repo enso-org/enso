@@ -201,8 +201,8 @@ impl ProfilingLabel {
 
         let label = text::Text::new(app);
         root.add_child(&label);
-        label.set_position_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
-        label.remove_from_scene_layer(&scene.layers.main);
+        label.set_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.label);
 
         let frp = Frp::new();
@@ -236,7 +236,7 @@ impl ProfilingLabel {
             // === Position ===
 
             let x_offset = crate::component::node::input::area::TEXT_OFFSET;
-            eval label.width((&width) label.set_position_x(-width-x_offset));
+            eval label.width((&width) label.set_x(-width-x_offset));
 
 
             // === Content ===

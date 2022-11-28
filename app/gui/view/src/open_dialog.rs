@@ -53,7 +53,7 @@ impl OpenDialog {
 
         display_object.add_child(&project_list);
         display_object.add_child(&file_browser);
-        app.display.default_scene.layers.panel.add_exclusive(&display_object);
+        app.display.default_scene.layers.panel.add(&display_object);
 
         use theme::application as theme_app;
         let project_list_width = style_watch.get_number(theme_app::project_list::width);
@@ -67,8 +67,8 @@ impl OpenDialog {
             project_list_x <- all_with(&width,&project_list_width,|w,pw| - *w / 2.0 + *pw / 2.0);
             file_browser_x <- all_with(&width,&file_browser_width, |w,fw| w / 2.0 - *fw / 2.0);
 
-            eval project_list_x ((x) project_list.set_position_x(*x));
-            eval file_browser_x ((x) file_browser.set_position_x(*x));
+            eval project_list_x ((x) project_list.set_x(*x));
+            eval file_browser_x ((x) file_browser.set_x(*x));
         }
         init.emit(());
         Self { logger, network, project_list, file_browser, display_object, style_watch }

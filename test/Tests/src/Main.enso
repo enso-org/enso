@@ -9,8 +9,10 @@ import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
+import project.Semantic.Meta_Location_Spec
 import project.Semantic.Names_Spec
 import project.Semantic.Runtime_Spec
+import project.Semantic.Self_Type_Spec
 import project.Semantic.Warnings_Spec
 
 import project.Semantic.Java_Interop_Spec
@@ -18,8 +20,9 @@ import project.Semantic.Js_Interop_Spec
 import project.Semantic.Python_Interop_Spec
 import project.Semantic.R_Interop_Spec
 
-import project.Data.Array_Polyglot_Spec
 import project.Data.Array_Spec
+import project.Data.Array_Polyglot_Spec
+import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
@@ -58,13 +61,13 @@ import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
-import project.Resource.Bracket_Spec
-
-import project.Runtime.Stack_Traces_Spec
 import project.Runtime.Lazy_Generator_Spec
+import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Stack_Traces_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
+import project.System.File_Read_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
@@ -74,8 +77,9 @@ import project.Random_Spec
 
 main = Test_Suite.run_main <|
     Any_Spec.spec
-    Array_Polyglot_Spec.spec
     Array_Spec.spec
+    Array_Proxy_Spec.spec
+    Array_Polyglot_Spec.spec
     Bool_Spec.spec
     Function_Spec.spec
     Case_Spec.spec
@@ -84,6 +88,7 @@ main = Test_Suite.run_main <|
     Error_Spec.spec
     Environment_Spec.spec
     File_Spec.spec
+    File_Read_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec
     Http_Header_Spec.spec
@@ -99,6 +104,7 @@ main = Test_Suite.run_main <|
     Map_Spec.spec
     Maybe_Spec.spec
     Meta_Spec.spec
+    Meta_Location_Spec.spec
     Names_Spec.spec
     Noise_Generator_Spec.spec
     Noise_Spec.spec
@@ -116,10 +122,11 @@ main = Test_Suite.run_main <|
     Regex_Spec.spec
     Matching_Spec.spec
     Runtime_Spec.spec
+    Self_Type_Spec.spec
     Span_Spec.spec
     Encoding_Spec.spec
     Text_Sub_Range_Spec.spec
-    Bracket_Spec.spec
+    Managed_Resource_Spec.spec
     Lazy_Generator_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec

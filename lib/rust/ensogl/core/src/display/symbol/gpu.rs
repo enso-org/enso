@@ -327,14 +327,12 @@ impl Symbol {
         global_id_provider: &GlobalInstanceIdProvider,
         on_mut: OnMut,
     ) -> Self {
-        let logger = Logger::new(format!("symbol_{}", id));
         debug_span!("Initializing.").in_scope(|| {
             let on_mut2 = on_mut.clone();
             let shader_dirty = ShaderDirty::new(Box::new(on_mut));
-            let shader_logger = Logger::new_sub(&logger, "shader");
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
-            let shader = Shader::new(shader_logger, stats, shader_on_mut);
-            let data = Rc::new(SymbolData::new(logger, stats, id, global_id_provider, on_mut2));
+            let shader = Shader::new(stats, shader_on_mut);
+            let data = Rc::new(SymbolData::new(stats, id, global_id_provider, on_mut2));
             Self { data, shader_dirty, shader }
         })
     }
@@ -417,10 +415,7 @@ impl Symbol {
             .map(|(var_name, var_decl)| {
                 let target = self.lookup_variable(&var_name, global_variables);
                 if target.is_none() {
-                    warning!(
-                        self.logger,
-                        "Unable to bind variable '{var_name}' to geometry buffer."
-                    );
+                    warn!("Unable to bind variable '{}' to geometry buffer.", var_name);
                 }
                 shader::VarBinding::new(var_name, var_decl, target)
             })
@@ -549,30 +544,25 @@ pub struct SymbolData {
     surface_dirty:      GeometryDirty,
     variables:          UniformScope,
     context:            RefCell<Option<Context>>,
-    logger:             Logger,
     bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
     is_hidden:          Rc<Cell<bool>>,
     global_instance_id: Buffer<i32>,
 }
 
-
-
 impl SymbolData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: Logger,
         stats: &Stats,
         id: SymbolId,
         global_id_provider: &GlobalInstanceIdProvider,
         on_mut: OnMut,
     ) -> Self {
         let global_id_provider = global_id_provider.clone_ref();
-        let surface_logger = Logger::new_sub(&logger, "surface");
         let surface_dirty = GeometryDirty::new(Box::new(on_mut));
         let surface_on_mut = Box::new(f!(surface_dirty.set()));
-        let surface = Mesh::new(surface_logger, stats, surface_on_mut);
-        let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
+        let surface = Mesh::new(stats, surface_on_mut);
+        let variables = UniformScope::new();
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
@@ -594,7 +584,6 @@ impl SymbolData {
             stats,
             is_hidden,
             global_instance_id,
-            logger,
         }
         .init()
     }
@@ -602,16 +591,19 @@ impl SymbolData {
     fn init(self) -> Self {
         let is_hidden = &self.is_hidden;
         let id = self.id;
-        self.display_object.set_on_hide(f_!(is_hidden.set(true)));
-        self.display_object.set_on_show(f__!(is_hidden.set(false)));
-        self.display_object.set_on_scene_layer_changed(move |_, old_layers, new_layers| {
-            for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.remove_symbol(id)
-            }
-            for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.add_symbol(id)
-            }
-        });
+        let network = &self.display_object.network;
+        frp::extend! { network
+            eval_ self.display_object.on_hide(is_hidden.set(true));
+            eval_ self.display_object.on_show(is_hidden.set(false));
+            eval self.display_object.on_layer_change([] ((_, old_layers, new_layers)) {
+                for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
+                    layer.remove_symbol(id)
+                }
+                for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
+                    layer.add_symbol(id)
+                }
+            });
+        }
         self
     }
 

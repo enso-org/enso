@@ -56,7 +56,7 @@ impl Model {
         let label_full = app.new_view::<text::Text>();
         let label_left = app.new_view::<text::Text>();
 
-        label_full.remove_from_scene_layer(&app.display.default_scene.layers.main);
+        app.display.default_scene.layers.main.remove(&label_full);
         label_full.add_to_scene_layer(&app.display.default_scene.layers.label);
 
         root.add_child(&label_full);
@@ -83,7 +83,7 @@ impl Frp {
             model.label_full.set_content <+ formatted;
 
             eval model.label_left.width((offset)
-                model.label_full.set_position_x(-offset-LABEL_OFFSET));
+                model.label_full.set_x(-offset-LABEL_OFFSET));
         }
     }
 }

@@ -6,6 +6,7 @@
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(type_alias_impl_trait)]
+#![feature(iter_next_chunk)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -43,14 +44,14 @@ pub mod connection;
 pub mod definition;
 pub mod graph;
 pub mod identifier;
+pub mod import;
 pub mod module;
+pub mod name;
 pub mod node;
-pub mod project;
 pub mod refactorings;
 #[cfg(test)]
 pub mod test_utils;
 pub mod text;
-pub mod tp;
 
 
 

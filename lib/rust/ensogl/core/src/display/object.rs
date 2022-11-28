@@ -9,11 +9,12 @@ use crate::display::scene::layer::Layer;
 // === Export ===
 // ==============
 
-pub mod class;
-pub mod transform;
+pub mod event;
+pub mod instance;
+pub mod transformation;
 
-pub use class::Any;
-pub use class::*;
+pub use instance::Any;
+pub use instance::*;
 
 
 
@@ -63,14 +64,17 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     /// callback ensures that the `layer` will always be attached to the same layer the
     /// `instance` is attached to.
     pub fn new(instance: Instance, layer: L) -> Self {
-        instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
-            for src_layer in source {
-                src_layer.remove_sublayer(layer.as_ref());
-            }
-            for dst_layer in destination {
-                dst_layer.add_sublayer(layer.as_ref());
-            }
-        }));
+        let network = &instance.network;
+        frp::extend! { network
+            eval instance.on_layer_change ([layer] ((_, source, destination)) {
+                if let Some(src_layer) = source {
+                    src_layer.remove_sublayer(layer.as_ref());
+                }
+                if let Some(dst_layer) = destination {
+                    dst_layer.add_sublayer(layer.as_ref());
+                }
+            });
+        }
         Self { instance, layer }
     }
 }
@@ -84,17 +88,12 @@ impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::application::Application;
     use crate::display::scene::layer;
 
     #[test]
     fn test_that_sublayers_are_dropped() {
-        let app = Application::new("root");
-        let logger = &app.logger;
-        let camera = &app.display.default_scene.layers.main.camera();
         let display_object = Instance::new();
-        let layer = layer::Masked::new(logger, camera);
+        let layer = layer::Masked::new();
         let display_object = InstanceWithLayer::new(display_object, layer);
         let content_layer = display_object.layer.masked_layer.downgrade();
         assert!(content_layer.upgrade().is_some());

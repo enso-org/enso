@@ -19,6 +19,9 @@ use std::str;
 /// An optimization constant. Based on it, the estimated memory is allocated on the beginning of
 /// parsing.
 pub const AVERAGE_TOKEN_LEN: usize = 5;
+/// Within an indented text block, this sets the minimum whitespace to be trimmed from the start of
+/// each line.
+const MIN_TEXT_TRIM: VisibleOffset = VisibleOffset(4);
 
 
 
@@ -108,7 +111,9 @@ pub enum State {
     /// Reading a multi-line text literal.
     MultilineText {
         /// Indentation level of the quote symbol introducing the block.
-        indent: VisibleOffset,
+        block_indent:   VisibleOffset,
+        /// Indentation level of the first line of the block.
+        initial_indent: Option<VisibleOffset>,
     },
 }
 
@@ -166,6 +171,14 @@ impl<'s> Lexer<'s> {
     fn spaces_after_lexeme(&mut self) {
         (self.last_spaces_visible_offset, self.last_spaces_offset) =
             self.run_and_get_offset(|this| this.spaces());
+    }
+
+    /// Consume spaces after parsing a [`Token`] and update the internal spacing info. Doesn't
+    /// consume more than the specified [`VisibleOffset`] of spaces.
+    #[inline(always)]
+    fn spaces_after_lexeme_with_limit(&mut self, limit: VisibleOffset) {
+        (self.last_spaces_visible_offset, self.last_spaces_offset) =
+            self.run_and_get_offset(|this| this.spaces_with_limit(limit));
     }
 
     /// Run the provided function. If it consumed any chars, return the [`Token`] containing the
@@ -339,6 +352,19 @@ impl<'s> Lexer<'s> {
         let mut total_visible_offset = VisibleOffset(0);
         while let Some(visible_offset) = self.space() {
             total_visible_offset += visible_offset;
+        }
+        total_visible_offset
+    }
+
+    /// Consume visible space characters and return their visible offset.
+    #[inline(always)]
+    fn spaces_with_limit(&mut self, limit: VisibleOffset) -> VisibleOffset {
+        let mut total_visible_offset = VisibleOffset(0);
+        while let Some(visible_offset) = self.space() {
+            total_visible_offset += visible_offset;
+            if total_visible_offset >= limit {
+                break;
+            }
         }
         total_visible_offset
     }
@@ -520,10 +546,12 @@ impl token::Variant {
     #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
+        let is_operator = false;
         token::variant::Ident(
             info.starts_with_underscore,
             info.lift_level,
             info.starts_with_uppercase,
+            is_operator,
             info.is_default,
         )
     }
@@ -538,7 +566,8 @@ impl token::Variant {
         } else {
             let is_free = info.starts_with_underscore;
             let is_type = info.starts_with_uppercase;
-            token::Variant::ident(is_free, info.lift_level, is_type, info.is_default)
+            let is_operator = false;
+            token::Variant::ident(is_free, info.lift_level, is_type, is_operator, info.is_default)
         }
     }
 }
@@ -637,8 +666,8 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_annotation(),
         "-" =>
             return operator
-                .with_unary_prefix_mode(token::Precedence::max())
-                .with_binary_infix_precedence(14),
+                .with_unary_prefix_mode(token::Precedence::unary_minus())
+                .with_binary_infix_precedence(15),
         // "There are a few operators with the lowest precedence possible."
         // - These 3 "consume everything to the right".
         "=" =>
@@ -661,12 +690,14 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_lhs_section_termination(operator::SectionTermination::Unwrap)
                 .as_compile_time_operation()
                 .as_arrow(),
-        "|" | "\\\\" | "&" => return operator.with_binary_infix_precedence(4),
+        "!" => return operator.with_binary_infix_precedence(3),
+        "||" | "\\\\" | "&&" => return operator.with_binary_infix_precedence(4),
         ">>" | "<<" => return operator.with_binary_infix_precedence(5),
-        "|>" | "|>>" | "<|" | "<<|" => return operator.with_binary_infix_precedence(6),
+        "|>" | "|>>" => return operator.with_binary_infix_precedence(6),
+        "<|" | "<<|" => return operator.with_binary_infix_precedence(6).as_right_associative(),
         // Other special operators.
         "<=" | ">=" => return operator.with_binary_infix_precedence(14),
-        "==" => return operator.with_binary_infix_precedence(1),
+        "==" | "!=" => return operator.with_binary_infix_precedence(5),
         "," =>
             return operator
                 .with_binary_infix_precedence(1)
@@ -674,7 +705,7 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .as_special()
                 .as_sequence(),
         "." =>
-            return operator.with_binary_infix_precedence(21).with_decimal_interpretation().as_dot(),
+            return operator.with_binary_infix_precedence(80).with_decimal_interpretation().as_dot(),
         _ => (),
     }
     // "The precedence of all other operators is determined by the operator's Precedence Character:"
@@ -732,23 +763,54 @@ impl<'s> Lexer<'s> {
     fn number(&mut self) {
         let mut base = None;
         let token = self.token(|this| {
-            while this.take_while_1(is_decimal_digit) {
-                if this.current_char == Some('_') {
+            let mut old_hex_chars_matched = 0;
+            let mut old_bin_chars_matched = 0;
+            let mut new_based_chars_matched = 0;
+            match this.current_char {
+                Some('0') => new_based_chars_matched = 1,
+                Some('1') => old_hex_chars_matched = 1,
+                Some('2') => old_bin_chars_matched = 1,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return,
+            }
+            this.next_input_char();
+            let mut prev_was_underscore = false;
+            match this.current_char {
+                Some('_') if old_bin_chars_matched == 1 => base = Some(token::Base::Binary),
+                Some('_') => prev_was_underscore = true,
+                Some('b') if new_based_chars_matched == 1 => base = Some(token::Base::Binary),
+                Some('o') if new_based_chars_matched == 1 => base = Some(token::Base::Octal),
+                Some('x') if new_based_chars_matched == 1 => base = Some(token::Base::Hexadecimal),
+                Some('6') if old_hex_chars_matched == 1 => old_hex_chars_matched = 2,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return,
+            }
+            this.next_input_char();
+            if base.is_some() {
+                return;
+            }
+            let mut was_underscore = false;
+            match this.current_char {
+                Some('_') if old_hex_chars_matched == 2 => {
+                    base = Some(token::Base::Hexadecimal);
                     this.next_input_char();
-                    continue;
+                    return;
                 }
-                if this.current_offset == Bytes(1) {
-                    base = match this.current_char {
-                        Some('b') => Some(token::Base::Binary),
-                        Some('o') => Some(token::Base::Octal),
-                        Some('x') => Some(token::Base::Hexadecimal),
-                        _ => None,
-                    };
-                    if base.is_some() {
-                        this.next_input_char();
-                        return;
-                    }
+                Some('_') if !prev_was_underscore => was_underscore = true,
+                Some(d) if is_decimal_digit(d) => (),
+                _ => return,
+            }
+            prev_was_underscore = was_underscore;
+            this.next_input_char();
+            loop {
+                let mut was_underscore = false;
+                match this.current_char {
+                    Some('_') if !prev_was_underscore => was_underscore = true,
+                    Some(d) if is_decimal_digit(d) => (),
+                    _ => return,
                 }
+                prev_was_underscore = was_underscore;
+                this.next_input_char();
             }
         });
         if let Some(token) = token {
@@ -835,29 +897,29 @@ impl<'s> Lexer<'s> {
     fn multiline_text(
         &mut self,
         open_quote_start: (Bytes, Offset<'s>),
-        indent: VisibleOffset,
+        block_indent: VisibleOffset,
         text_type: TextType,
     ) {
         let open_quote_end = self.mark();
         let token =
             self.make_token(open_quote_start, open_quote_end.clone(), token::Variant::text_start());
         self.output.push(token);
+        let mut initial_indent = None;
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
+            if self.last_spaces_visible_offset > block_indent {
+                initial_indent = self.last_spaces_visible_offset.into();
+            }
         }
-        let text_start = self.mark();
-        self.text_content(
-            Some(text_start),
-            None,
-            text_type.is_interpolated(),
-            State::MultilineText { indent },
-            Some(indent),
-        );
+        self.text_content(None, text_type.is_interpolated(), State::MultilineText {
+            block_indent,
+            initial_indent,
+        });
     }
 
     fn inline_quote(&mut self, quote_char: char, text_type: TextType) {
         let is_interpolated = text_type.is_interpolated();
-        self.text_content(None, quote_char.into(), is_interpolated, State::InlineText, None);
+        self.text_content(quote_char.into(), is_interpolated, State::InlineText);
     }
 
     fn end_splice(&mut self, state: State) {
@@ -869,58 +931,87 @@ impl<'s> Lexer<'s> {
         self.output.push(token);
         match state {
             State::InlineText => self.inline_quote('\'', TextType::Interpolated),
-            State::MultilineText { indent } => {
-                self.text_content(None, None, true, State::MultilineText { indent }, Some(indent));
+            State::MultilineText { .. } => {
+                self.text_content(None, true, state);
             }
         }
     }
 
     fn text_content(
         &mut self,
-        start: Option<(Bytes, Offset<'s>)>,
         closing_char: Option<char>,
         interpolate: bool,
-        state: State,
-        multiline: Option<VisibleOffset>,
+        mut state: State,
     ) -> TextEndedAt {
-        let mut text_start = start.unwrap_or_else(|| self.mark());
+        let mut text_start = self.mark();
+        let is_multiline = matches!(state, State::MultilineText { .. });
         while let Some(char) = self.current_char {
-            if closing_char == Some(char) || (multiline.is_none() && is_newline_char(char)) {
+            if closing_char == Some(char) || (!is_multiline && is_newline_char(char)) {
                 break;
             }
-            let before_newline = self.mark();
-            let mut newline = self.take_1('\r');
-            newline = newline || self.take_1('\n');
-            if newline {
-                let indent = multiline.unwrap();
-                let text_end = self.mark();
-                self.spaces_after_lexeme();
-                if let Some(char) = self.current_char && !is_newline_char(char) {
-                    let block_indent = self.last_spaces_visible_offset;
-                    if block_indent <= indent {
-                        let token = self.make_token(
-                            text_start,
-                            before_newline.clone(),
-                            token::Variant::text_section(),
-                        );
-                        if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
-                            self.output.push(token);
-                        }
-                        self.output.push(Token::from(token::text_end("", "")));
-                        self.end_blocks(block_indent);
-                        let token =
-                            self.make_token(before_newline, text_end, token::Variant::newline());
+            if let State::MultilineText { block_indent, initial_indent } = &mut state {
+                // Consume newlines and following whitespace until we encounter a line that, after
+                // left-trimming, is not empty.
+                //
+                // Buffer the newline tokens, because whether they are interpreted as part of the
+                // text content or code formatting after the block depends on whether non-empty text
+                // lines follow.
+                let mut newlines = vec![];
+                let mut new_indent = None;
+                loop {
+                    let mut before_newline = self.mark();
+                    if before_newline.0 == text_start.0 {
+                        before_newline = text_start.clone();
+                    }
+                    let mut newline = self.take_1('\r');
+                    newline = self.take_1('\n') || newline;
+                    if !newline {
+                        break;
+                    }
+                    let token = self.make_token(
+                        text_start.clone(),
+                        before_newline.clone(),
+                        token::Variant::text_section(),
+                    );
+                    if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
                         self.output.push(token);
+                    } else {
+                        before_newline = text_start;
+                    }
+                    let newline_end = self.mark();
+                    let token =
+                        self.make_token(before_newline, newline_end, token::Variant::newline());
+                    newlines.push(token);
+                    if let Some(initial) = *initial_indent {
+                        let trim = std::cmp::max(initial, *block_indent + MIN_TEXT_TRIM);
+                        self.spaces_after_lexeme_with_limit(trim);
+                    } else {
+                        self.spaces_after_lexeme();
+                    }
+                    let new_indent_ = self.last_spaces_visible_offset;
+                    new_indent = new_indent_.into();
+                    if initial_indent.is_none() && new_indent_ > *block_indent {
+                        *initial_indent = new_indent_.into();
+                    }
+                    text_start = self.mark();
+                }
+                if let Some(indent) = new_indent {
+                    if indent <= *block_indent {
+                        self.output.push(Token::from(token::text_end("", "")));
+                        self.end_blocks(indent);
+                        self.output.extend(newlines);
+                        if self.current_offset == text_start.0 {
+                            self.last_spaces_visible_offset = text_start.1.visible;
+                            self.last_spaces_offset = text_start.1.code.len();
+                        }
                         return TextEndedAt::End;
                     }
-                };
-                let token =
-                    self.make_token(text_start, text_end.clone(), token::Variant::text_section());
-                if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
-                    self.output.push(token);
+                    let newlines = newlines
+                        .into_iter()
+                        .map(|token| token.with_variant(token::Variant::text_newline()));
+                    self.output.extend(newlines);
+                    continue;
                 }
-                text_start = self.mark();
-                continue;
             }
             if interpolate && char == '\\' {
                 let mut backslash_start = self.mark();
@@ -942,13 +1033,15 @@ impl<'s> Lexer<'s> {
                 continue;
             }
             if interpolate && char == '`' {
-                let splice_quote_start = self.mark();
+                let mut splice_quote_start = self.mark();
                 let token = self.make_token(
-                    text_start,
+                    text_start.clone(),
                     splice_quote_start.clone(),
                     token::Variant::text_section(),
                 );
-                if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
+                if token.code.is_empty() {
+                    splice_quote_start = text_start;
+                } else {
                     self.output.push(token);
                 }
                 self.take_next();
@@ -998,16 +1091,15 @@ impl<'s> Lexer<'s> {
                 self.take_next();
                 expect_len = 6;
             }
-            let mut value: u32 = 0;
+            let mut value: Option<u32> = None;
             for _ in 0..expect_len {
                 if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
-                    value = 16 * value + x as u32;
+                    value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {
                     break;
                 }
             }
-            let value = char::from_u32(value);
             if delimited && self.current_char == Some('}') {
                 self.take_next();
             }
@@ -1015,7 +1107,7 @@ impl<'s> Lexer<'s> {
             let token = self.make_token(
                 backslash_start,
                 sequence_end.clone(),
-                token::Variant::text_escape(value),
+                token::Variant::text_escape(value.and_then(char::from_u32)),
             );
             self.output.push(token);
             sequence_end
@@ -1078,7 +1170,7 @@ enum TextEndedAt {
     End,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 enum TextType {
     Raw,
     Interpolated,
@@ -1093,49 +1185,6 @@ impl TextType {
     fn expects_initial_newline(self) -> bool {
         self != TextType::Documentation
     }
-}
-
-/// Move whitespace characters from the end of `left` to the beginning of `right` until the visible
-/// length of `left` is not longer than `target`.
-#[allow(unsafe_code)]
-pub fn untrim(target: VisibleOffset, left: &mut Offset, right: &mut Code) {
-    let mut utf8 = 0;
-    let mut utf16 = 0;
-    let mut trimmed = VisibleOffset(0);
-    for c in left.code.repr.chars().rev() {
-        if left.visible - trimmed <= target {
-            break;
-        }
-        utf8 += c.len_utf8();
-        utf16 += c.len_utf16();
-        trimmed += space_char_visible_size(c).unwrap();
-    }
-    if utf8 == 0 && utf16 == 0 {
-        return;
-    }
-    left.visible = left.visible - trimmed;
-    left.code.utf16 -= utf16;
-    let len = left.code.repr.len() - utf8;
-    unsafe {
-        match right.repr {
-            Cow::Borrowed(s) if s.as_ptr() == left.code.repr.as_ptr().add(left.code.repr.len()) => {
-                let p = s.as_ptr().sub(utf8);
-                let len = s.len() + utf8;
-                right.repr = Cow::Borrowed(str::from_utf8_unchecked(slice::from_raw_parts(p, len)));
-            }
-            _ => {
-                let mut s = String::with_capacity(len + right.repr.len());
-                s += &left.code.repr[len..];
-                right.utf16 += utf16;
-                s += &right.repr;
-                right.repr = Cow::Owned(s);
-            }
-        }
-    }
-    left.code.repr = match &left.code.repr {
-        Cow::Borrowed(s) => Cow::Borrowed(&s[..len]),
-        Cow::Owned(s) => Cow::Owned(s[..len].to_string()),
-    };
 }
 
 
@@ -1164,7 +1213,8 @@ impl<'s> Lexer<'s> {
             } else {
                 self.take_rest_of_line();
                 let end_line = self.mark();
-                self.output.push(self.make_token(start, end_line, token::Variant::newline()));
+                let token = self.make_token(start, end_line, token::Variant::newline());
+                self.newlines_starting_with(token.into());
             }
         }
     }
@@ -1188,12 +1238,17 @@ impl<'s> Lexer<'s> {
         })
     }
 
-    fn newline(&mut self) {
-        if let Some(token) = self.line_break() {
-            let mut newlines = self.token_storage.take();
-            while let Some(token) = self.line_break() {
-                newlines.push(token.with_variant(token::Variant::newline()));
-            }
+    fn newlines(&mut self) {
+        self.newlines_starting_with(None);
+    }
+
+    fn newlines_starting_with(&mut self, first: Option<Token<'s>>) {
+        let mut newlines = self.token_storage.take();
+        newlines.extend(first);
+        while let Some(token) = self.line_break() {
+            newlines.push(token.with_variant(token::Variant::newline()));
+        }
+        if !newlines.is_empty() {
             let block_indent = self.last_spaces_visible_offset;
             if block_indent > self.current_block_indent {
                 let block_start = self.marker_token(token::Variant::block_start());
@@ -1201,10 +1256,9 @@ impl<'s> Lexer<'s> {
                 self.start_block(block_indent);
             }
             self.end_blocks(block_indent);
-            self.submit_token(token.with_variant(token::Variant::newline()));
             newlines.drain(..).for_each(|token| self.submit_token(token));
-            self.token_storage.set_from(newlines);
         }
+        self.token_storage.set_from(newlines);
     }
 
     fn end_blocks(&mut self, block_indent: VisibleOffset) {
@@ -1242,22 +1296,16 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
     |t| t.number(),
     |t| t.ident(),
     |t| t.operator(),
-    |t| t.newline(),
+    |t| t.newlines(),
     |t| t.symbol(),
     |t| t.comment(),
     |t| t.text(),
 ];
 
 impl<'s> Lexer<'s> {
-    /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
-    /// hierarchy).
-    pub fn run(self) -> ParseResult<Vec<Item<'s>>> {
-        self.run_flat().map(build_block_hierarchy)
-    }
-
     /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
     /// as start and end tokens).
-    pub fn run_flat(mut self) -> ParseResult<Vec<Token<'s>>> {
+    pub fn run(mut self) -> ParseResult<Vec<Token<'s>>> {
         self.spaces_after_lexeme();
         self.current_block_indent = self.last_spaces_visible_offset;
         let mut any_parser_matched = true;
@@ -1295,36 +1343,8 @@ impl<'s> Lexer<'s> {
 
 /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
 /// as start and end tokens).
-pub fn run_flat(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
-    Lexer::new(input).run_flat()
-}
-
-/// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
-/// hierarchy).
-pub fn run(input: &'_ str) -> ParseResult<Vec<Item<'_>>> {
+pub fn run(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
     Lexer::new(input).run()
-}
-
-/// Convert the flat token stream into hierarchical one. The token variants [`BlockStart`] and
-/// [`BlockEnd`] will be replaced with [`Item::Group`].
-pub fn build_block_hierarchy(tokens: Vec<Token<'_>>) -> Vec<Item<'_>> {
-    let mut stack = vec![];
-    let mut out: Vec<Item<'_>> = vec![];
-    for token in tokens {
-        match token.variant {
-            token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
-            token::Variant::BlockEnd(_) => {
-                let new_out = stack.pop().unwrap();
-                let block = mem::replace(&mut out, new_out);
-                out.push(Item::Block(block));
-            }
-            _ => out.push(token.into()),
-        }
-    }
-    if !stack.is_empty() {
-        panic!("Internal error. Block start token not paired with block end token.");
-    }
-    out
 }
 
 
@@ -1343,7 +1363,8 @@ pub mod test {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, false)
+        let is_operator = false;
+        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
     }
 
     /// Constructor.
@@ -1370,7 +1391,7 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        assert_eq!(run_flat(input).unwrap(), expected);
+        assert_eq!(run(input).unwrap(), expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {

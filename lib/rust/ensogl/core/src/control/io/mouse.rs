@@ -53,7 +53,7 @@ macro_rules! define_bindings {
         #[derive(Clone,CloneRef,Debug,Default)]
         #[allow(missing_docs)]
         pub struct MouseManagerDispatchers {
-            $(pub $name : callback::registry::RefMut1<$target>),*
+            $(pub $name : callback::registry::Ref1<$target>),*
         }
 
         impl MouseManager {

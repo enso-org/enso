@@ -6,7 +6,7 @@ import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
+import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
@@ -82,7 +82,7 @@ class RuntimeVisualizationsTest
       .asHostObject[EnsoContext]
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -573,7 +573,6 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    System.out.println("Begin check")
     context.receiveNIgnorePendingExpressionUpdates(
       5
     ) should contain theSameElementsAs Seq(
@@ -2519,13 +2518,13 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(37, 76)
+    val idMain = metadata.addItem(37, 26)
 
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace
+        |    Warning.attach "y" 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2606,13 +2605,13 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(37, 78)
+    val idMain = metadata.addItem(37, 28)
 
     val code =
       """from Standard.Base import all
         |
         |main =
-        |    [Warning.attach_with_stacktrace 42 "y" Runtime.primitive_get_stack_trace]
+        |    [Warning.attach "y" 42]
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2687,14 +2686,16 @@ class RuntimeVisualizationsTest
   }
 
   it should "emit visualisation update for values in atom annotated with warnings" in {
-    val contextId       = UUID.randomUUID()
-    val requestId       = UUID.randomUUID()
-    val visualisationId = UUID.randomUUID()
-    val moduleName      = "Enso_Test.Test.Main"
-    val metadata        = new Metadata
+    val contextId         = UUID.randomUUID()
+    val requestId         = UUID.randomUUID()
+    val visualisationId   = UUID.randomUUID()
+    val moduleName        = "Enso_Test.Test.Main"
+    val warningTypeName   = QualifiedName.fromString(ConstantsGen.WARNING)
+    val warningModuleName = warningTypeName.getParent.get
+    val metadata          = new Metadata
 
-    val idX   = metadata.addItem(81, 71)
-    val idRes = metadata.addItem(157, 20)
+    val idX   = metadata.addItem(81, 21)
+    val idRes = metadata.addItem(107, 20)
 
     val code =
       """from Standard.Base import all
@@ -2703,7 +2704,7 @@ class RuntimeVisualizationsTest
         |    Mk_Newtype value
         |
         |main =
-        |    x = Warning.attach_with_stacktrace 42 "x" Runtime.primitive_get_stack_trace
+        |    x = Warning.attach "x" 42
         |    Newtype.Mk_Newtype x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2734,8 +2735,17 @@ class RuntimeVisualizationsTest
       4
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idRes, s"$moduleName.Newtype.Mk_Newtype"),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(
+          warningModuleName.toString,
+          warningTypeName.toString,
+          "attach"
+        )
+      ),
+      TestMessages.update(contextId, idRes, s"$moduleName.Newtype"),
       context.executionComplete(contextId)
     )
 

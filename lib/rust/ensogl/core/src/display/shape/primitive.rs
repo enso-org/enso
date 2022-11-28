@@ -6,6 +6,7 @@
 // ==============
 
 pub mod def;
+pub mod glsl;
 pub mod shader;
 pub mod style_watch;
 pub mod system;

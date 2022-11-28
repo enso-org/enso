@@ -106,7 +106,7 @@ pub type Comment = ImString;
 pub mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
             let width    = Var::<Pixels>::from("input_size.x");
@@ -125,7 +125,7 @@ pub mod background {
 pub mod backdrop {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         // Disable to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
@@ -186,7 +186,7 @@ pub mod backdrop {
 pub mod drag_area {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -212,7 +212,7 @@ pub mod drag_area {
 pub mod error_shape {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 
@@ -323,7 +323,7 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
-        expression               (enso_text::Rope),
+        expression               (ImString),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -500,13 +500,13 @@ impl NodeModel {
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
-        let error_visualization = error::Container::new(scene);
+        let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
-        scene.layers.above_nodes.add_exclusive(&action_bar);
+        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -553,8 +553,8 @@ impl NodeModel {
 
     #[profile(Debug)]
     fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
-        layer.add_exclusive(&self.display_object);
-        action_bar_layer.add_exclusive(&self.action_bar);
+        layer.add(&self.display_object);
+        action_bar_layer.add(&self.action_bar);
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
         self.profiling_label.set_label_layer(text_layer);
@@ -563,7 +563,7 @@ impl NodeModel {
 
     /// Move all sub-components to `edited_node` layer.
     ///
-    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
@@ -579,7 +579,7 @@ impl NodeModel {
 
     /// Move all sub-components to `main` layer.
     ///
-    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
     /// separate layer management API.
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
@@ -629,11 +629,11 @@ impl NodeModel {
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
-        self.backdrop.set_position_x(x_offset_to_node_center);
-        self.background.set_position_x(x_offset_to_node_center);
-        self.drag_area.set_position_x(x_offset_to_node_center);
-        self.error_indicator.set_position_x(x_offset_to_node_center);
-        self.vcs_indicator.set_position_x(x_offset_to_node_center);
+        self.backdrop.set_x(x_offset_to_node_center);
+        self.background.set_x(x_offset_to_node_center);
+        self.drag_area.set_x(x_offset_to_node_center);
+        self.error_indicator.set_x(x_offset_to_node_center);
+        self.vcs_indicator.set_x(x_offset_to_node_center);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
@@ -642,8 +642,8 @@ impl NodeModel {
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);
-        self.error_visualization.set_position_xy(visualization_offset);
-        self.visualization.set_position_xy(visualization_offset);
+        self.error_visualization.set_xy(visualization_offset);
+        self.visualization.set_xy(visualization_offset);
 
         size
     }
@@ -688,6 +688,7 @@ impl Node {
         let input = &frp.private.input;
         let model = Rc::new(NodeModel::new(app, registry));
         let selection = Animation::<f32>::new(network);
+        let display_object = &model.display_object;
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
         //      in https://github.com/enso-org/ide/issues/1031
@@ -696,11 +697,12 @@ impl Node {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let style_frp = &model.style;
         let action_bar = &model.action_bar.frp;
-        // Hook up the display object position updates to the node's FRP. Required to calculate the
-        // bounding box.
-        model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
 
         frp::extend! { network
+
+            // Hook up the display object position updates to the node's FRP. Required to calculate
+            // the bounding box.
+            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
@@ -758,9 +760,9 @@ impl Node {
             eval comment_color ((value) model.comment.set_property(.., color::Rgba::from(value)));
 
             eval model.comment.width ([model](width)
-                model.comment.set_position_x(-*width - COMMENT_MARGIN));
+                model.comment.set_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
-                model.comment.set_position_y(*height / 2.0));
+                model.comment.set_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
             out.comment <+ model.comment.content.map(|text| text.to_im_string());
 
@@ -768,7 +770,7 @@ impl Node {
             // === Size ===
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
-            eval new_size ((t) model.output.frp.set_size.emit(t));
+            model.output.frp.set_size <+ new_size;
 
 
             // === Action Bar ===

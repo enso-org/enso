@@ -1,6 +1,4 @@
 from Standard.Base import all
-from Standard.Base import all
-import Standard.Base.System.File_Format
 
 import project.Data.Table.Table
 import project.Data.Column.Column
@@ -12,9 +10,6 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Aggregate_Column.Aggregate_Column
-
-import project.IO.File_Read
-import project.IO.Auto_Detect.Auto_Detect
 
 import project.Delimited.Quote_Style.Quote_Style
 import project.Delimited.Delimited_Format
@@ -33,9 +28,6 @@ export project.Data.Column_Name_Mapping.Column_Name_Mapping
 export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
 export project.Data.Aggregate_Column.Aggregate_Column
-
-export project.IO.File_Read
-export project.IO.Auto_Detect.Auto_Detect
 
 export project.Delimited.Quote_Style.Quote_Style
 from project.Delimited.Delimited_Format export Delimited_Format, Delimited
@@ -82,8 +74,8 @@ from Standard.Geo.Geo_Json import Object_Type
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
              json.to_table headers
-Json.Json.to_table : Vector -> Table
-Json.Json.to_table self fields=Nothing = case self of
+Json.to_table : Vector -> Table
+Json.to_table self fields=Nothing = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->

@@ -4,11 +4,11 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(type = "Special", name = "<run_thread>")
 public abstract class RunThreadNode extends Node {
@@ -16,11 +16,11 @@ public abstract class RunThreadNode extends Node {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(@MonadicState Object state, @Suspend Object self);
+  abstract Thread execute(State state, @Suspend Object self);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(Object state, Object self) {
+  Thread doExecute(State state, Object self) {
     Context ctx = Context.get(this);
     Thread thread =
         ctx.getEnvironment()

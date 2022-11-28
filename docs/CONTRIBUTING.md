@@ -529,6 +529,12 @@ enso --run test/Geo_Tests
 enso --run test/Table_Tests
 ```
 
+Or to run just a single test (e.g., `Duration_Spec.enso`):
+
+```bash
+enso --in-project test/Tests --run test/Tests/src/Data/Time/Duration_Spec.enso
+```
+
 The Database tests will by default only test the SQLite backend, to test other
 backends see
 [`test/Table_Tests/src/Database/README.md`](../test/Table_Tests/src/Database/README.md)

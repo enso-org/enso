@@ -10,6 +10,7 @@ import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import all
+import project.Data.Table.Table
 from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
 
 polyglot java import org.enso.table.aggregations.Aggregator
@@ -45,7 +46,7 @@ type Validated_Aggregate_Columns
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Problem_Behavior -> Validated_Aggregate_Columns
 prepare_aggregate_columns aggregates table =
     problem_builder = Problem_Builder.new
 
@@ -69,7 +70,7 @@ prepare_aggregate_columns aggregates table =
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
         new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
-        Pair_Data new_name agg
+        Pair.new new_name agg
 
     # Build Problems Output
     if renamed_columns.is_empty then
@@ -116,15 +117,16 @@ default_aggregate_column_name aggregate_column =
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
 resolve_aggregate table problem_builder aggregate_column =
     table_columns = table.columns
+    columns_helper = table.columns_helper
 
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
-        res = Table_Helpers.resolve_column_helper table_columns c problem_builder
+        res = columns_helper.resolve_column_helper c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
+        resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_order_by selector = case selector of
@@ -140,10 +142,7 @@ resolve_aggregate table problem_builder aggregate_column =
         Count new_name -> Count new_name
         Count_Distinct c new_name ignore_nothing ->
             new_c = case c of
-                ## TODO once we have sum type pattern matching this could be replaced with a single branch
-                Column_Selector.By_Name _ _ -> resolve_selector_to_vector c
-                Column_Selector.By_Index _ -> resolve_selector_to_vector c
-                Column_Selector.By_Column _ -> resolve_selector_to_vector c
+                _ : Column_Selector -> resolve_selector_to_vector c
                 _ -> [resolve c]
             Count_Distinct new_c new_name ignore_nothing
         Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name

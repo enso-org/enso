@@ -23,6 +23,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 import org.openide.util.lookup.ServiceProvider;
@@ -35,7 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.MethodMetadataEntry> {
 
-  private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
+  private final Map<Filer, Map<String, String[]>> builtinMethods = new HashMap<>();
 
   /**
    * Processes annotated elements, generating code for each of them. The method also records
@@ -108,10 +109,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       return;
     }
     String fullClassName = def.getPackageName() + "." + def.getClassName();
-    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic(), def.isAutoRegister());
     if (def.hasAliases()) {
       for (String alias : def.aliases()) {
-        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
       }
     }
   }
@@ -135,7 +136,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
           "org.enso.interpreter.runtime.error.WithWarnings",
-          "org.enso.interpreter.runtime.state.Stateful",
+          "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen");
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
@@ -155,7 +156,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("@NodeInfo(");
       out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
-      out.println("  description = \"" + methodDefinition.getDescription() + "\")");
+      out.println("  description = \"\"\"\n" + methodDefinition.getDescription() + "\"\"\")");
       out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 
@@ -224,8 +225,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
 
       out.println("  @Override");
-      out.println("  public Stateful execute(VirtualFrame frame) {");
-      out.println("    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      out.println("  public Object execute(VirtualFrame frame) {");
+      out.println("    State state = Function.ArgumentsHelper.getState(frame.getArguments());");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
             "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");
@@ -253,29 +254,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       if (warningsPossible) {
         out.println("    if (anyWarnings) {");
         out.println("      anyWarningsProfile.enter();");
-        if (methodDefinition.modifiesState()) {
-          out.println("      Stateful result = " + executeCall + ";");
-          out.println(
-              "      Object newValue = WithWarnings.appendTo(result.getValue(), gatheredWarnings);");
-          out.println("      return new Stateful(result.getState(), newValue);");
-        } else {
-          out.println("      Object result = " + executeCall + ";");
-          out.println(
-              "      return new Stateful(state, WithWarnings.appendTo(result, gatheredWarnings));");
-        }
+        out.println("      Object result = " + executeCall + ";");
+        out.println("      return WithWarnings.appendTo(result, gatheredWarnings);");
         out.println("    } else {");
-        if (methodDefinition.modifiesState()) {
-          out.println("      return " + executeCall + ";");
-        } else {
-          out.println("      return new Stateful(state, " + executeCall + ");");
-        }
+        out.println("      return " + executeCall + ";");
         out.println("    }");
       } else {
-        if (methodDefinition.modifiesState()) {
-          out.println("    return " + executeCall + ";");
-        } else {
-          out.println("    return new Stateful(state, " + executeCall + ");");
-        }
+        out.println("    return " + executeCall + ";");
       }
       out.println("  }");
 
@@ -324,9 +309,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + ".profile(TypesGen.isDataflowError("
               + argReference
               + "))) {\n"
-              + "      return new Stateful(state, "
+              + "      return "
               + argReference
-              + ");\n"
+              + ";\n"
               + "    }");
     }
     if (!arg.isSelf()) {
@@ -479,8 +464,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
    */
   protected void storeMetadata(Writer writer, Map<String, MethodMetadataEntry> pastEntries) throws IOException {
     for (Filer f : builtinMethods.keySet()) {
-      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
-        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+      for (Map.Entry<String, String[]> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + String.join(":", Arrays.asList(entry.getValue())) + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
         }
@@ -488,13 +473,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     }
   }
 
-  protected void registerBuiltinMethod(Filer f, String name, String clazzName) {
-    Map<String, String> methods = builtinMethods.get(f);
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic, boolean isAutoRegister) {
+    Map<String, String[]> methods = builtinMethods.get(f);
     if (methods == null) {
       methods = new HashMap<>();
       builtinMethods.put(f, methods);
     }
-    methods.put(name, clazzName);
+    methods.put(name, new String[] { clazzName, String.valueOf(isStatic), String.valueOf(isAutoRegister) });
   }
 
   @Override
@@ -527,11 +512,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return SourceVersion.latest();
   }
 
-  public record MethodMetadataEntry(String fullEnsoName, String clazzName) implements MetadataEntry {
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic, boolean isAutoRegister) implements MetadataEntry {
 
     @Override
     public String toString() {
-      return fullEnsoName + ":" + clazzName;
+      return fullEnsoName + ":" + clazzName + ":" + isStatic + ":" + isAutoRegister;
     }
 
     @Override
@@ -543,8 +528,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length != 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(elements[0], elements[1]);
+    if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.valueOf(elements[2]), Boolean.valueOf(elements[3]));
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";

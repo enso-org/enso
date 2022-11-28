@@ -1,23 +1,23 @@
 /// Computes a cartesian product of the provided input.
 ///
 /// For the following expression:
-/// ```compile_fail
+/// ```text
 /// cartesian!(f [g] [a b c] [x y z]);
 /// ```
 ///
 /// It expands to:
-/// ```compile_fail
+/// ```text
 /// f! { [g] [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
 /// ```
 ///
 /// If you provide underscore as second argument, it is skipped in the ouput macro:
 ///
-/// ```compile_fail
+/// ```text
 /// cartesian!(f _ [a b c] [x y z]);
 /// ```
 ///
 /// Expands to:
-/// ```compile_fail
+/// ```text
 /// f! { [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
 /// ```
 #[macro_export]

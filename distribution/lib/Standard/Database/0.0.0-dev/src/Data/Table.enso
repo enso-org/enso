@@ -1,10 +1,12 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+import Standard.Table.Data.Expression.Expression
+import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
@@ -18,7 +20,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.IR.Context.Context
-import project.Internal.IR.Expression.Expression
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
@@ -26,7 +28,9 @@ import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
+import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
+polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
@@ -145,7 +149,7 @@ type Table
        Icon: select_column
     select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems
+        new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
@@ -195,7 +199,7 @@ type Table
              table.remove_columns (Column_Selector.By_Column [column1, column2])
     remove_columns : Vector Text | Column_Selector -> Problem_Behavior -> Table
     remove_columns self (columns = Column_Selector.By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.remove_columns internal_columns=self.internal_columns selector=columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns selector=columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
@@ -248,9 +252,9 @@ type Table
          Move the columns with names matching the provided columns to the front.
 
              table.reorder_columns (Column_Selector.By_Column [column1, column2])
-    reorder_columns : Vector Text | Column_Selector -> Position.Position -> Problem_Behavior -> Table
+    reorder_columns : Vector Text | Column_Selector -> Position -> Problem_Behavior -> Table
     reorder_columns self (columns = Column_Selector.By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=self.internal_columns selector=columns position=position on_problems=on_problems
+        new_columns = self.columns_helper.reorder_columns selector=columns position=position on_problems=on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -312,10 +316,12 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
-    rename_columns : Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.rename_columns (Column_Name_Mapping.By_Position column_map) on_problems
+        _ : Map ->
+            self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
             new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
             if new_names.is_error then new_names else
@@ -396,13 +402,20 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                _ : Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
+       _ : Text ->
+           table_at = self.at column
+           if table_at.is_error.not then self.filter table_at filter on_problems else
+               expression = self.evaluate column
+               if expression.is_error.not then self.filter expression filter on_problems else
+                   pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
+                   on_problems.handle_errors pick_error fallback=self
        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
             Nothing -> self
             resolved_column -> self.filter resolved_column filter on_problems
 
     ## PRIVATE
     with_no_rows self =
-        false_expression = Expression.Operation "=" [Expression.Constant SQL_Type.integer 1, Expression.Constant SQL_Type.integer 2]
+        false_expression = SQL_Expression.Operation "=" [SQL_Expression.Constant SQL_Type.integer 1, SQL_Expression.Constant SQL_Type.integer 2]
         new_filters = self.context.where_filters + [false_expression]
         new_ctx = self.context.set_where_filters new_filters
         self.updated_context new_ctx
@@ -413,7 +426,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
-    take : (Index_Sub_Range | Range) -> Table
+    take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
@@ -426,7 +439,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to remove.
-    drop : (Index_Sub_Range | Range) -> Table
+    drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
@@ -477,27 +490,59 @@ type Table
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
-    set : Text -> Column -> Table
-    set self name column = case Helpers.ensure_name_is_sane name of
-        True ->
-            is_used_in_index = self.context.meta_index.exists i-> i.name == name
-            case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
-                False ->
-                    new_col = Internal_Column.Value name column.sql_type column.expression
-                    replace = self.internal_columns.exists (c -> c.name == name)
-                    case replace of
-                        True ->
-                            new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
-                            self.updated_columns new_cols
-                        False ->
-                            self.updated_columns (self.internal_columns + [new_col])
+    set : Text -> Column | Text -> Problem_Behavior -> Table
+    set self name column on_problems=Report_Warning = on_problems.handle_errors fallback=self <|
+        case Helpers.ensure_name_is_sane name of
+            True ->
+                is_used_in_index = self.context.meta_index.exists i-> i.name == name
+                case is_used_in_index of
+                    True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                    False ->
+                        resolved = case column of
+                            _ : Text -> self.evaluate column
+                            _ -> column
+                        new_col = Internal_Column.Value name resolved.sql_type resolved.expression
+                        replace = self.internal_columns.exists (c -> c.name == name)
+                        case replace of
+                            True ->
+                                new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
+                                self.updated_columns new_cols
+                            False ->
+                                self.updated_columns (self.internal_columns + [new_col])
+
+    ## PRIVATE
+    evaluate : Text -> Column
+    evaluate self expression =
+        get_column name = self.at name
+        make_constant value =
+            new_type = SQL_Type.approximate_type value
+            other = SQL_Expression.Constant new_type value
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type other self.context
+        Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
 
     ## UNSTABLE
 
        Returns the vector of columns contained in this table.
     columns : Vector Column
     columns self = self.internal_columns . map self.make_column
+
+    ## UNSTABLE
+
+       Returns the vector of column names contained in this table.
+    column_names : Vector Text
+    column_names self = self.internal_columns . map _.name
+
+    ## Returns a vector of rows contained in this table.
+
+       In the database backend, it first materializes the table to in-memory.
+
+       Arguments:
+       - max_rows: The maximum amount of rows to return. It is mainly meant for
+         the Database backend, to limit how many rows are downloaded. In the
+         in-memory backend it is only kept for API compatibility.
+    rows : Integer -> Vector Row
+    rows self max_rows=1000 =
+        self.read max_rows=max_rows . rows
 
     ## UNSTABLE
 
@@ -720,7 +765,7 @@ type Table
             new_columns = left_renamed_columns + right_renamed_columns
 
             on_exprs = left_new_join_index.zip right_new_join_index l-> r->
-                Expression.Operation "=" [l.expression, r.expression]
+                SQL_Expression.Operation "=" [l.expression, r.expression]
             new_from = From_Spec.Join kind left_subquery right_subquery on_exprs
             new_limit = Nothing
             new_ctx = Context.Value new_from [] [] [] new_index new_limit
@@ -751,8 +796,8 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Group_By "Key", Count Nothing]
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count Nothing]
+    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
         on_problems.attach_problems_before validated.problems <|
@@ -776,7 +821,7 @@ type Table
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.
-    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values : Data_Formatter -> (Nothing | Vector Column_Type_Selection) -> Problem_Behavior -> Table
     parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -784,32 +829,25 @@ type Table
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation_Error_Data msg)
 
-    ## DEPRECATED Will be replaced with `filter_incomplete_rows`.
-    drop_missing_rows : Table
-    drop_missing_rows self =
-        filters = self.columns.map (c -> c.is_missing.not.expression)
-        new_ctx = self.context.set_where_filters (self.context.where_filters + filters)
-        self.updated_context new_ctx
+    ## ALIAS dropna
+       ALIAS drop_missing_rows
+       Remove rows which are all blank or containing blank values.
 
-    ## DEPRECATED Will be replaced with `Incomplete_Columns` selector (to be used with `remove_columns`).
-    drop_missing_columns : Table
-    drop_missing_columns self =
-        rows_expr = Expression.Operation "COUNT_ROWS" []
-        all_rows_column_name = "row_count"
-        make_count_expr expr = Expression.Operation "COUNT" [expr]
-        cols = self.internal_columns.map (c -> [c.name, make_count_expr c.expression])
-        query = Query.Select [[all_rows_column_name, rows_expr]]+cols self.context
-        sql = self.connection.dialect.generate_sql query
-        table = self.connection.read_statement sql
-        all_rows = table.at all_rows_column_name . at 0
-        kept_columns = self.internal_columns . filter c->
-            all_rows == table.at c.name . at 0
-        self.updated_columns kept_columns
+       Arguments:
+       - when_any: If `True`, then remove any row containing any blank values.
+         If `False`, then only remove rows with all blank values.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+    filter_blank_rows : Boolean -> Boolean -> Table
+    filter_blank_rows self when_any=False treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
     ## Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
-        expr = Expression.Operation "COUNT_ROWS" []
+        expr = SQL_Expression.Operation "COUNT_ROWS" []
         column_name = "row_count"
         ## We need to keep some column in the subquery which will determine if
            the query is performing regular selection or aggregation. To avoid
@@ -884,7 +922,7 @@ type Table
             setup = self.context.as_subquery self.name [self.internal_columns]
             new_ctx = Context.for_subquery setup.first
             new_columns = setup.second.first.map column->
-                [column.name, Expression.Operation "COUNT" [column.expression]]
+                [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
             query = Query.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
         count_table = self.connection.read_statement count_query
@@ -906,6 +944,11 @@ type Table
         ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
         Column.Value internal.name self.connection internal.sql_type internal.expression new_ctx
+
+    ## PRIVATE
+    columns_helper : Table_Column_Helper
+    columns_helper self =
+        Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
 
     ## PRIVATE
 
@@ -961,12 +1004,16 @@ type Table
             _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
-            [col.name, Expression.Constant col.sql_type value]
+            [col.name, SQL_Expression.Constant col.sql_type value]
         query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
             False -> Error.throw <| Illegal_State_Error_Data "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
+
+    ## Provides a simplified text representation for display in the REPL and errors.
+    to_text : Text
+    to_text self = "(Database Table "+self.name.to_text+")"
 
     ## This function writes the table into a file.
 
@@ -994,9 +1041,9 @@ type Table
        - If an unsupported `File_Format` is specified, an
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
-         invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `IO_Error` is
-         raised.
+         invalid, a `File_Error.Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an
+         `File_Error.IO_Error` is raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
@@ -1023,7 +1070,7 @@ type Table
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
@@ -1057,7 +1104,7 @@ type Integrity_Error
 # make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
-    cols = columns.map (p -> Internal_Column.Value p.first p.second (Expression.Column table_name p.first))
+    cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
     Table.Value table_name connection cols ctx
 
 ## PRIVATE
@@ -1184,4 +1231,3 @@ freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Colum
 freshen_columns used_names columns =
     new_names = fresh_names used_names (columns.map .name)
     internal_rename_columns columns new_names
-

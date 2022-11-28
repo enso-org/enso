@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
@@ -85,7 +85,7 @@ public final class Function implements TruffleObject {
    * @return a Function object with specified behavior and arguments
    */
   public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema = new FunctionSchema(args);
     return new Function(callTarget, null, schema);
   }
@@ -102,7 +102,7 @@ public final class Function implements TruffleObject {
    */
   public static Function fromBuiltinRootNodeWithCallerFrameAccess(
       BuiltinRootNode node, ArgumentDefinition... args) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
     return new Function(callTarget, null, schema);
   }
@@ -185,8 +185,9 @@ public final class Function implements TruffleObject {
     static Object doCall(
         Function function,
         Object[] arguments,
-        @Cached InteropApplicationNode interopApplicationNode) {
-      return interopApplicationNode.execute(function, EmptyMap.create(), arguments);
+        @Cached InteropApplicationNode interopApplicationNode,
+        @CachedLibrary("function") InteropLibrary thisLib) {
+      return interopApplicationNode.execute(function, Context.get(thisLib).emptyState(), arguments);
     }
   }
 
@@ -329,8 +330,8 @@ public final class Function implements TruffleObject {
      *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
      * @return the state for the function
      */
-    public static Object getState(Object[] arguments) {
-      return arguments[2];
+    public static State getState(Object[] arguments) {
+      return (State) arguments[2];
     }
 
     /**
@@ -376,5 +377,24 @@ public final class Function implements TruffleObject {
 
   public boolean isFullyApplied() {
     return schema.isFullyApplied();
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean sideEffects) {
+    return toString();
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    var n = callTarget.getRootNode();
+    var ss = n.getSourceSection();
+    if (ss == null) {
+      return super.toString();
+    }
+    var s = ss.getSource();
+    var start = ss.getStartLine();
+    final int end = start + s.getLineCount();
+    return n.getName() + "[" + s.getName() + ":" + start + "-" + end + "]";
   }
 }

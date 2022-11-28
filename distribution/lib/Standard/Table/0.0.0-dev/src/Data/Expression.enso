@@ -1,0 +1,49 @@
+from Standard.Base import all
+
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.UnsupportedOperationException
+
+type Expression
+    ## Evaluates an expression and returns the result
+
+       Arguments:
+       - expression: the expression to evaluate
+       - get_column: a function that takes a column name and returns the
+         associated Column object.
+       - make_constant`: a function that takes an object and returns a
+         constant Column object.
+       - module_name: the name of the Column module that the expression is
+         being evaluated against.
+       - type_name: the name of the Column type that the expression is being
+         evaluated against.
+       - var_args_functions: a Vector of function names which take a single
+         Vector argument but which should be exposed with variable parameters.
+    evaluate : Text -> (Text -> Any) -> (Any -> Any) -> Text -> Text -> Vector Text -> Any
+    evaluate expression get_column make_constant module_name type_name var_args_functions =
+        handle_parse_error = Panic.catch_java ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.getMessage cause.getLine cause.getColumn))
+        handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
+        handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
+
+        handle_parse_error <| handle_unsupported <| handle_arguments <|
+            ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions.to_array
+
+type Expression_Error
+    ## The expression supplied could not be parsed due to a syntax error.
+    Syntax_Error message:Text line:Integer column:Integer
+
+    ## Expression error when a function could not be found on the target type.
+    Unsupported_Operation name:Text
+
+    ## Expression error when the number of arguments for a function is incorrect.
+    Argument_Mismatch message:Text
+
+    to_display_text : Text
+    to_display_text self = case self of
+        Expression_Error.Syntax_Error _ _ _ -> "Expression.Syntax_Error: " + self.message + " (line " + self.line.to_text + ", column " + self.column.to_text + ")."
+        Expression_Error.Unsupported_Operation _ -> "Expression.Unsupported: " + self.name + " is not a supported method."
+        Expression_Error.Argument_Mismatch _ -> "Expression.Argument_Mismatch: " + self.message
+
+## PRIVATE
+handle_java_error java_type enso_constructor =
+    Panic.catch_java java_type handler=(cause-> Error.throw (enso_constructor cause.getMessage))

@@ -27,15 +27,15 @@ import org.enso.compiler.core.IR;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -572,19 +572,17 @@ public final class Module implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String expr = Types.extractArguments(args, String.class);
       Builtins builtins = context.getBuiltins();
-      Function eval =
+      BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
-      return callOptimiserNode
-          .executeDispatch(
-              eval,
-              callerInfo,
-              EmptyMap.create(),
-              new Object[] {builtins.debug(), Text.create(expr)})
-          .getValue();
+      return callOptimiserNode.executeDispatch(
+          eval.getFunction(),
+          callerInfo,
+          context.emptyState(),
+          new Object[] {builtins.debug(), Text.create(expr)});
     }
 
     private static Object generateDocs(Module module, Context context) {
@@ -680,5 +678,10 @@ public final class Module implements TruffleObject {
         MethodNames.Module.SET_SOURCE_FILE,
         MethodNames.Module.GET_ASSOCIATED_TYPE,
         MethodNames.Module.EVAL_EXPRESSION);
+  }
+
+  @Override
+  public String toString() {
+    return "Module[" + name + ']';
   }
 }

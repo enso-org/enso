@@ -67,6 +67,12 @@
   visualisation of the edited node to preview the results of applying the
   suggestion.][3691]
 - [Remove here keyword from IDE.][3749]
+- [Shortcut changes:][3823] Pressing `Enter` when no node is edited opens
+  Component Browser. Entering node shortcut changed to `cmd` + `Enter`.
+- [Added support for scrolling by pressing and holding a mouse button on a
+  scrollbar.][3824]
+- [Added scroll bounce animation][3836] which activates when scrolling past the
+  end of scrollable content.
 
 #### EnsoGL (rendering engine)
 
@@ -79,6 +85,20 @@
   those visible, and re-use created entries during scrolling thus achieving
   great performance. There are variants of grid view with selection and
   highlight, scrollbars, and both.
+- [Massive improvements of text rendering performance][3776]. Different text
+  instances are now reusing the shape shaders and the same sprite system under
+  the hood. This drastically reduces the amount of required draw calls for
+  scenes with a lot of text.
+- [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
+  way. Also, additional fine-tuning is performed per font and per host operating
+  system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value
+  with the mouse. The precision of these adjustments can be increased or
+  decreased.
 
 #### Enso Standard Library
 
@@ -212,6 +232,19 @@
 - [Reimplemented `Duration` as a built-in type.][3759]
 - [Implemented `Table.replace_text` for in-memory table.][3793]
 - [Extended `Filter_Condition` with `Is_In` and `Not_In`.][3790]
+- [Replaced `Table.drop_missing_rows` with `filter_blank_rows` with an updated
+  API.][3805]
+- [Replaced `Table.drop_missing_columns` with
+  `Table.remove_columns Column_Selector.Blank_Columns` by adding the new column
+  selector variant.][3812]
+- [Implemented `Table.rows` giving access to a vector of rows.][3827]
+- [Define Enso epoch start as 15th October 1582][3804]
+- [Implemented `Period` type][3818]
+- [Implemented new functions on Column and added expression syntax support to
+  create derived Columns.][3782]
+- [Added support for milli and micro seconds, new short form for rename_columns
+  and fixed issue with compare_to versus Nothing][3874]
+- [Aligned `Text.match`/`Text.locate` API][3841]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -341,6 +374,21 @@
 [3759]: https://github.com/enso-org/enso/pull/3759
 [3793]: https://github.com/enso-org/enso/pull/3793
 [3790]: https://github.com/enso-org/enso/pull/3790
+[3805]: https://github.com/enso-org/enso/pull/3805
+[3812]: https://github.com/enso-org/enso/pull/3812
+[3823]: https://github.com/enso-org/enso/pull/3823
+[3827]: https://github.com/enso-org/enso/pull/3827
+[3824]: https://github.com/enso-org/enso/pull/3824
+[3804]: https://github.com/enso-org/enso/pull/3804
+[3818]: https://github.com/enso-org/enso/pull/3818
+[3776]: https://github.com/enso-org/enso/pull/3776
+[3855]: https://github.com/enso-org/enso/pull/3855
+[3836]: https://github.com/enso-org/enso/pull/3836
+[3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
+[3874]: https://github.com/enso-org/enso/pull/3874
+[3852]: https://github.com/enso-org/enso/pull/3852
+[3841]: https://github.com/enso-org/enso/pull/3841
 
 #### Enso Compiler
 
@@ -373,6 +421,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Using parser written in Rust.][3611]
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
@@ -391,7 +440,20 @@
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
 - [Fix performance of method calls on polyglot arrays][3781]
+- [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
+- [Connecting IGV 4 Enso with Engine sources][3810]
+- [Made Vector performance to be on par with Array][3811]
+- [Introduced IO Permission Contexts][3828]
+- [Accept Array-like object seamlessly in builtins][3817]
+- [Initialize Builtins at Native Image build time][3821]
+- [Split Atom suggestion entry to Type and Constructor][3835]
+- [Any number can be converted to double][3865]
+- [Update to GraalVM 22.3.0][3663]
+- [Connecting IGV 4 Enso with Engine sources][3810]
+- [Add the `Self` keyword referring to current type][3844]
+- [Support VCS for projects in Language Server][3851]
+- [Support multiple exports of the same module][3897]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -427,6 +489,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3611]: https://github.com/enso-org/enso/pull/3611
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
@@ -445,7 +508,20 @@
 [3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
 [3781]: https://github.com/enso-org/enso/pull/3781
+[3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
+[3810]: https://github.com/enso-org/enso/pull/3810
+[3811]: https://github.com/enso-org/enso/pull/3811
+[3817]: https://github.com/enso-org/enso/pull/3817
+[3821]: https://github.com/enso-org/enso/pull/3821
+[3828]: https://github.com/enso-org/enso/pull/3828
+[3835]: https://github.com/enso-org/enso/pull/3835
+[3865]: https://github.com/enso-org/enso/pull/3865
+[3663]: https://github.com/enso-org/enso/pull/3663
+[3810]: https://github.com/enso-org/enso/pull/3810
+[3844]: https://github.com/enso-org/enso/pull/3844
+[3851]: https://github.com/enso-org/enso/pull/3851
+[3897]: https://github.com/enso-org/enso/pull/3897
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

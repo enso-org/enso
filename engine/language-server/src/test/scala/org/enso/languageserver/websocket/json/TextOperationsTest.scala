@@ -2337,7 +2337,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "not be triggered when a file was closed before the delay expired" in {
+    "be triggered when a file was closed before the delay expired" in {
       this.timingsConfig.withAutoSave(5.seconds)
 
       val client1 = getInitialisedWsClient()
@@ -2470,7 +2470,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 4,
-            "result": { "contents": "123456789" }
+            "result": { "contents": "bar123456789foo" }
           }
           """)
     }

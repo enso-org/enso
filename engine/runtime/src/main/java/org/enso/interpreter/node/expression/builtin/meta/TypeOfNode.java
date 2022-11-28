@@ -7,7 +7,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
@@ -16,12 +15,12 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "type_of_builtin",
-    description = "Returns the type of a value.")
+    name = "type_of",
+    description = "Returns the type of a value.",
+    autoRegister = false)
 public abstract class TypeOfNode extends Node {
 
   public abstract Object execute(@AcceptsError Object value);
@@ -86,19 +85,25 @@ public abstract class TypeOfNode extends Node {
       guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().timeZone();
+    return ctx.getBuiltins().timeZone();
   }
 
   @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
   Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().date();
+    return ctx.getBuiltins().date();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     Context ctx = Context.get(this);
-    return Context.get(this).getBuiltins().timeOfDay();
+    return ctx.getBuiltins().timeOfDay();
+  }
+
+  @Specialization(guards = "interop.isDuration(value)")
+  Object doDuration(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    Context ctx = Context.get(this);
+    return ctx.getBuiltins().duration();
   }
 
   @Specialization(

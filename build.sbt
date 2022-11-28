@@ -7,8 +7,12 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbt.internal.util.ManagedLogger
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -17,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.8"
-val graalVersion          = "21.3.0"
+val graalVersion          = "22.3.0"
 val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -296,7 +300,8 @@ lazy val enso = (project in file("."))
     `std-database`,
     `std-google-api`,
     `std-image`,
-    `std-table`
+    `std-table`,
+    `simple-httpbin`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -461,6 +466,8 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
+val jgitVersion             = "6.3.0.202209071007-r"
+val diffsonVersion          = "4.1.1"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.12"
 val newtypeVersion          = "0.4.4"
@@ -664,30 +671,68 @@ lazy val `text-buffer` = project
     )
   )
 
-val generateRustParserLib = TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
+lazy val rustParserTargetDirectory =
+  SettingKey[File]("target directory for the Rust parser")
+
+(`syntax-rust-definition` / rustParserTargetDirectory) := {
+  // setting "debug" for release, because it isn't yet safely integrated into
+  // the parser definition
+  val versionName = if (BuildInfo.isReleaseMode) "debug" else "debug"
+  target.value / "rust" / versionName
+}
+
+val generateRustParserLib =
+  TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
 `syntax-rust-definition` / generateRustParserLib := {
-    import sys.process._
-    val libGlob = target.value.toGlob / "rust" / * / "libenso_parser.so"
-    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
-    if (sys.env.get("CI").isDefined ||
-        allLibs.isEmpty ||
-        (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges) {
-      Seq("cargo", "build", "-p", "enso-parser-jni") !
-    }
-    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
+  import sys.process._
+  val libGlob =
+    (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+
+  val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+  if (
+    sys.env.get("CI").isDefined ||
+    allLibs.isEmpty ||
+    (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
+  ) {
+    val os = System.getProperty("os.name")
+    val baseCommand = Seq(
+      "cargo",
+      "build",
+      "-p",
+      "enso-parser-jni",
+      "-Z",
+      "unstable-options",
+      "--out-dir",
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+    )
+    val releaseMode = baseCommand ++
+      (if (BuildInfo.isReleaseMode)
+         Seq("--release")
+       else Seq())
+    val macBuild = releaseMode ++
+      (if (os.contains("Mac"))
+         Seq("--target", "x86_64-apple-darwin")
+       else Seq())
+    macBuild !
+  }
+  FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
 
 `syntax-rust-definition` / generateRustParserLib / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / "*.rs"
 
-val generateParserJavaSources = TaskKey[Seq[File]]("generateParserJavaSources", "Generates Java sources for Rust parser")
+val generateParserJavaSources = TaskKey[Seq[File]](
+  "generateParserJavaSources",
+  "Generates Java sources for Rust parser"
+)
 `syntax-rust-definition` / generateParserJavaSources := {
   generateRustParser(
     (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges)
+    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges
+  )
 }
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-    (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
+  (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
 `syntax-rust-definition` / generateParserJavaSources / fileInputs +=
   (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
 
@@ -697,12 +742,20 @@ def generateRustParser(base: File, changes: sbt.nio.FileChanges): Seq[File] = {
 
   import sys.process._
   val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
-  val fullPkg = Paths.get(base.toString, syntaxPkgs).toFile
+  val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
   if (!fullPkg.exists()) {
     fullPkg.mkdirs()
   }
   if (changes.hasChanges) {
-    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", fullPkg.toString) !
+    Seq(
+      "cargo",
+      "run",
+      "-p",
+      "enso-parser-generate-java",
+      "--bin",
+      "enso-parser-generate-java",
+      fullPkg.toString
+    ) !
   }
   FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
 }
@@ -714,7 +767,7 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    frgaalJavaCompilerSetting,
+    frgaalJavaCompilerSetting
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -931,6 +984,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         initializeAtRuntime = Seq("scala.util.Random")
       )
       .dependsOn(VerifyReflectionSetup.run)
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -998,7 +1052,8 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-literal" % circeVersion,
       akkaTestkit,
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion,
+      "org.gnieh"     %% "diffson-circe" % diffsonVersion
     )
   )
   .dependsOn(`json-rpc-server`)
@@ -1119,7 +1174,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1174,32 +1230,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
-
-lazy val ast = (project in file("lib/scala/ast"))
-  .settings(
-    version := ensoVersion,
-    Compile / sourceGenerators += GenerateAST.task
-  )
-
-lazy val parser = (project in file("lib/scala/parser"))
-  .settings(
-    fork := true,
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(Cargo("build --project parser"))
-      .value,
-    javaOptions += {
-      val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
-      s"-Djava.library.path=$root/target/rust/debug"
-    },
-    libraryDependencies ++= Seq(
-      "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
-    ),
-    testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    )
-  )
-  .dependsOn(ast)
 
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
@@ -1274,6 +1304,79 @@ lazy val `runtime-language-epb` =
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
+
+/**
+ * Runs gu (GraalVM updater) command with given `args`.
+ * For example `runGu(Seq("install", "js"))`.
+ * @param logger Logger for the `gu` command.
+ * @param args Arguments for the `gu` command.
+ */
+def runGu(logger: ManagedLogger, args: Seq[String]): String = {
+  val javaHome = new File(
+    System.getProperty("java.home")
+  )
+  val os = {
+    if (Platform.isLinux) DistributionPackage.OS.Linux
+    else if (Platform.isMacOS) DistributionPackage.OS.MacOS
+    else if (Platform.isWindows) DistributionPackage.OS.Windows
+    else throw new RuntimeException("Unknown platform")
+  }
+  packageBuilder.gu(
+    logger,
+    os,
+    javaHome,
+    args:_*
+  )
+}
+
+def installedGuComponents(logger: ManagedLogger): Seq[String] = {
+  val componentList = runGu(
+    logger,
+    Seq("list")
+  )
+  val components = componentList
+    .linesIterator
+    .drop(2)
+    .map { line =>
+      line
+        .split(" ")
+        .head
+    }
+    .toList
+  logger.debug(s"Installed GU components = $components")
+  if (!components.contains("graalvm")) {
+    throw new RuntimeException(s"graalvm components is not in $components")
+  }
+  components
+}
+
+lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
+ThisBuild / installGraalJs := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("js")) {
+    logger.info("Installing js GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "js")
+    )
+  }
+}
+
+lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM component")
+ThisBuild / installNativeImage := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("native-image")) {
+    logger.info("Installing native-image GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "native-image")
+    )
+  }
+}
+
+ThisBuild / installNativeImage := {
+  (ThisBuild / installNativeImage).result.value
+}
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -1353,6 +1456,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1527,6 +1631,39 @@ lazy val `engine-runner` = project
   .settings(
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
+      .value,
+
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "runner",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+          "-H:IncludeResources=.*Main.enso$",
+          "--macro:truffle",
+          "--language:js",
+          //          "-g",
+          //          "-H:+DashboardAll",
+          //          "-H:DashboardDump=runner.bgv"
+          "-Dnic=nic"
+        ),
+        mainClass = Option("org.enso.runner.Main"),
+        cp        = Option("runtime.jar"),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$",
+          "io.methvin.watchservice.jna.CarbonAPI"
+        )
+      )
+      .dependsOn(installNativeImage)
+      .dependsOn(assembly)
+      .value,
+
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "runner"
+      )
       .value
   )
   .dependsOn(`version-output`)
@@ -1536,59 +1673,6 @@ lazy val `engine-runner` = project
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
-
-// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
-// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
-// image of the runner.
-lazy val `engine-runner-native` = project
-  .in(file("engine/runner-native"))
-  .settings(
-    assembly/assemblyExcludedJars := {
-      val cp = (assembly / fullClasspath).value
-      (assembly/assemblyExcludedJars).value ++
-          cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
-    },
-    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
-    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
-    assembly / assemblyJarName := "runner-native.jar",
-    assembly / assemblyOutputPath := file("runner-native.jar"),
-    assembly := assembly
-        .dependsOn(`engine-runner` / assembly)
-        .value,
-    rebuildNativeImage := NativeImage
-      .buildNativeImage(
-        "runner",
-        staticOnLinux = true,
-        additionalOptions = Seq(
-          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "--allow-incomplete-classpath",
-          "--macro:truffle",
-          "--language:js",
-          //          "-g",
-          //          "-H:+DashboardAll",
-          //          "-H:DashboardDump=runner.bgv"
-          "-Dnic=nic"
-        ),
-        mainClass = Option("org.enso.runner.Main"),
-        cp = Option("runtime.jar"),
-        initializeAtRuntime = Seq(
-          // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI"
-        )
-      )
-      .dependsOn(assembly)
-      .dependsOn(VerifyReflectionSetup.run)
-      .value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "runner"
-      )
-      .value
-  )
-  .dependsOn(`engine-runner`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1618,6 +1702,7 @@ lazy val launcher = project
           "org.enso.loggingservice.WSLoggerManager$"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
@@ -1856,8 +1941,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "com.ibm.icu"         % "icu4j"                   % icuVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1874,17 +1960,26 @@ lazy val `std-base` = project
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
+  .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
+    Antlr4 / antlr4PackageName := Some("org.enso.table.expressions"),
+    Antlr4 / antlr4Version := "4.10.1",
+    Antlr4 / antlr4GenVisitor := true,
+    Antlr4 / antlr4TreatWarningsAsErrors := true,
+    Compile / managedSourceDirectories += {
+      (Antlr4 / sourceManaged).value / "main" / "antlr4"
+    },
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"             % icuVersion   % "provided",
-      "com.univocity"       % "univocity-parsers" % "2.9.1",
-      "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
-      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.univocity"       % "univocity-parsers"       % "2.9.1",
+      "org.apache.poi"      % "poi-ooxml"               % "5.2.2",
+      "org.apache.xmlbeans" % "xmlbeans"                % "5.1.0",
+      "org.antlr"           % "antlr4-runtime"          % "4.10.1"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2034,14 +2129,27 @@ buildEngineDistribution := {
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion
+    targetStdlibVersion = targetStdlibVersion,
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
   )
   log.info(s"Engine package created at $root")
 }
 
-val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table", "All")
+val stdBitsProjects =
+  List("Base", "Database", "Google_Api", "Image", "Table", "All")
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val `simple-httpbin` = project
+  .in(file("tools") / "simple-httpbin")
+  .settings(
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions ++= Seq("-XDignore.symbol.file", "-Xlint:all"),
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-text" % commonsTextVersion
+    )
+  )
+  .configs(Test)
 
 lazy val buildStdLib =
   inputKey[Unit]("Build an individual standard library package")
@@ -2049,8 +2157,8 @@ buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
   val root: File  = engineDistributionRoot.value
   // Ensure that a complete distribution was built at least once.
-  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
-  // delegate to another task defintion (sbt restriction).
+  // Because of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task definition (sbt restriction).
   if ((root / "manifest.yaml").exists) {
     pkgStdLibInternal.toTask(cmd)
   } else buildEngineDistribution
@@ -2081,10 +2189,14 @@ pkgStdLibInternal := Def.inputTask {
       (`std-google-api` / Compile / packageBin).value
     case _ =>
   }
-  val libs = if (cmd != "All") Seq(cmd) else {
-    val prefix = "Standard."
-    Editions.standardLibraries.filter(_.startsWith(prefix)).map(_.stripPrefix(prefix))
-  }
+  val libs =
+    if (cmd != "All") Seq(cmd)
+    else {
+      val prefix = "Standard."
+      Editions.standardLibraries
+        .filter(_.startsWith(prefix))
+        .map(_.stripPrefix(prefix))
+    }
   libs.foreach { lib =>
     StdBits.buildStdLibPackage(
       lib,

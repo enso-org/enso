@@ -94,6 +94,29 @@ order: 7
    `truffle-api`, you've done something wrong. Similarly, if you ever import
    anything from `org.graalvm.polyglot` in the language code, you're doing
    something wrong.
+10. Avoid
+    [deoptimizations](https://www.graalvm.org/22.2/graalvm-as-a-platform/language-implementation-framework/Optimizing/#debugging-deoptimizations).
+    Understanding IGV graphs can be a very time-consuming and complex process.
+    Sometimes it is sufficient to only look at the compilation traces to
+    discover repeated or unnecessary deoptimizations which can significantly
+    affect overall performance of your program. You can tell runner to generate
+    compilation traces via additional options:
+    ```
+    JAVA_OPTS="-Dpolygot.engine.TracePerformanceWarnings=all -Dpolyglot.engine.TraceTransferToInterpreter=true -Dpolyglot.engine.TraceDeoptimizeFrame=true -Dpolyglot.engine.TraceCompilation=true -Dpolyglot.engine.TraceCompilationDetails=true"
+    ```
+    Make sure you print trace logs by using `--log-level TRACE`.
+11. Occasionally a piece of code runs slower than we anticipated. Analyzing
+    Truffle inlining traces may reveal locations that one thought would be
+    inlined but Truffle decided otherwise. Rewriting such locations to builtin
+    methods or more inliner-friendly representation can significantly improve
+    the performance. You can tell runner to generate inlining traces via
+    additional options:
+    ```
+    JAVA_OPTS="-Dpolyglot.engine.TraceInlining=true -Dpolyglot.engine.TraceInliningDetails=true"
+    ```
+    Make sure you print trace logs by using `--log-level TRACE`. See
+    [documentation](https://www.graalvm.org/22.2/graalvm-as-a-platform/language-implementation-framework/Inlining/#call-tree-states)
+    for the explanation of inlining decisions.
 
 ## Code & Internal Documentation Map
 

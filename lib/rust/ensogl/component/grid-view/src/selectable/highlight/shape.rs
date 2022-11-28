@@ -30,7 +30,7 @@ use ensogl_scroll_area::Viewport;
 // === Shape Definition ===
 // ========================
 
-ensogl_core::define_shape_system! {
+ensogl_core::shape! {
     pointer_events = false;
     (
         style: Style,
@@ -79,7 +79,7 @@ ensogl_core::define_shape_system! {
 /// [module's docs](mod@self) for more info.
 pub fn set_viewport(shape: &View, viewport: Viewport) {
     shape.size.set(viewport.size());
-    shape.set_position_xy(viewport.center_point());
+    shape.set_xy(viewport.center_point());
 }
 
 

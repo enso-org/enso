@@ -7,6 +7,7 @@ use ensogl_core::display::shape::*;
 use crate::buffer::formatting;
 use crate::font::glyph::Glyph;
 
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::IntoGlsl;
 use ensogl_core::Animation;
@@ -28,8 +29,8 @@ const ELLIPSIS_ANIMATION_OFFSET_MS: f32 = 100.0;
 /// Ellipsis, three dots shown when the text is too long.
 mod ellipsis {
     use super::*;
-    ensogl_core::define_shape_system! {
-        (start_time:f32, scale: f32, color_rgb:Vector3<f32>) {
+    ensogl_core::shape! {
+        (style: Style, start_time:f32, scale: f32, rgba: Vector4<f32>) {
             let time = Var::<f32>::from("input_time");
             let time = time - start_time;
             let radius = (&scale * ELLIPSIS_SHAPE_RADIUS).px();
@@ -43,10 +44,10 @@ mod ellipsis {
             let dot1_anim_end = dot1_anim_start + ELLIPSIS_ANIMATION_DURATION_MS;
             let dot2_anim_end = dot2_anim_start + ELLIPSIS_ANIMATION_DURATION_MS;
             let dot3_anim_end = dot3_anim_start + ELLIPSIS_ANIMATION_DURATION_MS;
-            let dot1_alpha = time.smoothstep(0.0, dot1_anim_end);
-            let dot2_alpha = time.smoothstep(dot2_anim_start, dot2_anim_end);
-            let dot3_alpha = time.smoothstep(dot3_anim_start, dot3_anim_end);
-            let rgb = color_rgb;
+            let dot1_alpha = rgba.w() * time.smoothstep(0.0, dot1_anim_end);
+            let dot2_alpha = rgba.w() * time.smoothstep(dot2_anim_start, dot2_anim_end);
+            let dot3_alpha = rgba.w() * time.smoothstep(dot3_anim_start, dot3_anim_end);
+            let rgb = rgba.xyz();
             let color1 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, dot1_alpha.glsl());
             let color2 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, dot2_alpha.glsl());
             let color3 = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, dot3_alpha.glsl());
@@ -181,6 +182,7 @@ impl From<formatting::Size> for TruncationSize {
 pub struct Metrics {
     pub ascender:  f32,
     pub descender: f32,
+    /// The gap below the descender. In most fonts this is zero.
     pub gap:       f32,
 }
 
@@ -268,7 +270,7 @@ impl View {
 
             baseline_anim.target <+ frp.set_baseline;
             baseline_anim.skip <+ frp.skip_baseline_animation;
-            eval baseline_anim.value ((y) display_object.set_position_y(*y));
+            eval baseline_anim.value ((y) display_object.set_y(*y));
 
             new_baseline <- baseline_anim.value.on_change();
             frp.private.output.baseline <+ new_baseline;
@@ -305,7 +307,7 @@ impl View {
             let truncation = TruncationData::new(size, ellipsis);
             let x = self.glyphs.last().map(|g| g.position().x + g.x_advance.get()).unwrap_or(0.0);
             let x = x + truncation.x_after_last_glyph();
-            truncation.ellipsis.set_position_xy(Vector2(x, truncation.y()));
+            truncation.ellipsis.set_xy(Vector2(x, truncation.y()));
             truncation.ellipsis.scale.set(truncation.scale);
             truncation.ellipsis.size.set(truncation.dim());
             let was_truncated = self.truncation.borrow().is_some();
@@ -315,6 +317,16 @@ impl View {
             }
         } else {
             *self.truncation.borrow_mut() = None;
+        }
+    }
+
+    /// Set the truncation color to the last glyph color.
+    pub fn update_truncation_color(&self) {
+        if let Some(truncation) = self.truncation.borrow().as_ref() {
+            if let Some(glyph) = self.glyphs.last() {
+                let color = color::Rgba::from(glyph.color());
+                truncation.ellipsis.rgba.set(color.into());
+            }
         }
     }
 

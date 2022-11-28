@@ -178,7 +178,7 @@ impl AllStyles {
 mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         below = [grid::entry::background, list_view::overlay];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
@@ -282,13 +282,13 @@ impl Model {
         self.section_navigator.update_layout(style);
 
         let navigator_shadow_x = -style.grid.width / 2.0;
-        self.navigator_shadow.set_position_x(navigator_shadow_x);
+        self.navigator_shadow.set_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator.width, style.size().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
 
-        self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
+        self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
-        self.grid.set_position_xy(style.grid_pos());
+        self.grid.set_xy(style.grid_pos());
     }
 
     /// Set the navigator so it can be disabled on hover.
@@ -303,7 +303,7 @@ impl Model {
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.size().get();
+        let size = self.background.size.get();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }
@@ -382,7 +382,7 @@ impl component::Frp<Model> for Frp {
             // TODO[ib] Temporary solution for focus, we grab keyboard events if the
             //   component browser is visible. The proper implementation is tracked in
             //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.set_focus <+ is_visible;
+            model.grid.deprecated_set_focus <+ is_visible;
 
             on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();
@@ -399,9 +399,9 @@ impl component::Frp<Model> for Frp {
 
             // === Navigator icons colors ===
 
-            let strong_color = style.get_color(theme::navigator::icon_strong_color);
-            let weak_color = style.get_color(theme::navigator::icon_weak_color);
-            let params = icon::Params { strong_color, weak_color };
+            let vivid_color = style.get_color(theme::navigator::icon_strong_color);
+            let dull_color = style.get_color(theme::navigator::icon_weak_color);
+            let params = icon::Params { vivid_color, dull_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
 
 

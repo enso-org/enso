@@ -2,11 +2,15 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
+import java.lang.reflect.Constructor;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
@@ -43,11 +47,19 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
 import java.util.stream.Collectors;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
+
+  private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
+  private static final Map<String, LoadedBuiltinMethod> loadedBbuiltinMethods;
+
+  static {
+    loadedBuiltinConstructors = readBuiltinTypes();
+    loadedBbuiltinMethods = readBuiltinMethodsMethods();
+  }
+
   public static final String PACKAGE_NAME = "Builtins";
   public static final String NAMESPACE = "Standard";
   public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
@@ -59,8 +71,8 @@ public class Builtins {
     }
   }
 
-  private final Map<String, Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
   private final Map<Class<? extends Builtin>, Builtin> builtins;
+  private final Map<String, Map<String, LoadedBuiltinMethod>> builtinMethodNodes;
   private final Map<String, Builtin> builtinsByName;
 
   private final Error error;
@@ -103,10 +115,13 @@ public class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
 
-    builtins = readBuiltinTypesMetadata(language, scope);
+    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
     builtinsByName =
-        builtins.values().stream().collect(Collectors.toMap(v -> v.getType().getName(), v -> v));
-    builtinMethodNodes = readBuiltinMethodsMetadata(scope);
+        builtins.values().stream()
+            .collect(
+                Collectors.toMap(
+                    v -> v.getType().getName(), java.util.function.Function.identity()));
+    builtinMethodNodes = readBuiltinMethodsMetadata(loadedBbuiltinMethods, scope);
     registerBuiltinMethods(scope, language);
 
     error = new Error(this, context);
@@ -149,20 +164,18 @@ public class Builtins {
     for (Builtin builtin : builtins.values()) {
       var type = builtin.getType();
       String tpeName = type.getName();
-      Map<String, Class<BuiltinRootNode>> methods = builtinMethodNodes.get(tpeName);
+      Map<String, LoadedBuiltinMethod> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
-        methods.forEach(
-            (methodName, clazz) -> {
-              Optional<Function> fun;
-              try {
-                Method meth = clazz.getMethod("makeFunction", Language.class);
-                fun = Optional.ofNullable((Function) meth.invoke(null, language));
-              } catch (Exception e) {
-                e.printStackTrace();
-                fun = Optional.empty();
-              }
-              fun.ifPresent(f -> scope.registerMethod(type, methodName, f));
-            });
+        // Register a builtin method iff it is marked as auto-register.
+        // Methods can only register under a type or, if we deal with a static method, it's eigen-type.
+        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any or Number.
+        methods.entrySet().stream().forEach(entry -> {
+          Type tpe = entry.getValue().isAutoRegister ? (!entry.getValue().isStatic() ? type : type.getEigentype()) : null;
+          if (tpe != null) {
+            Optional<BuiltinFunction> fun = entry.getValue().toFunction(language);
+            fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
+          }
+        });
       }
     }
   }
@@ -204,11 +217,9 @@ public class Builtins {
    * type>:<Name of the class representing it>:[<field1>,<field2>,...] where the last column gives a
    * list of optional type's fields.
    *
-   * @param scope Builtins scope
    */
-  private Map<Class<? extends Builtin>, Builtin> readBuiltinTypesMetadata(
-      Language language, ModuleScope scope) {
-    ClassLoader classLoader = getClass().getClassLoader();
+  private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
+    ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
       lines =
@@ -220,46 +231,103 @@ public class Builtins {
       ioe.printStackTrace();
     }
 
-    Map<Class<? extends Builtin>, Builtin> builtins =
-        lines.stream()
-            .map(
-                line -> {
-                  String[] builtinMeta = line.split(":");
-                  if (builtinMeta.length < 2 || builtinMeta.length > 3) {
-                    java.lang.System.out.println(Arrays.toString(builtinMeta));
-                    throw new CompilerError("Invalid builtin metadata in: " + line);
-                  }
-                  try {
-                    @SuppressWarnings("unchecked")
-                    var cls = (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
-                    return cls.getConstructor().newInstance();
-                  } catch (NoSuchMethodException
-                      | InstantiationException
-                      | IllegalAccessException
-                      | InvocationTargetException
-                      | ClassNotFoundException e) {
-                    e.printStackTrace();
-                    throw new CompilerError("Invalid builtin type entry: " + builtinMeta[1]);
-                  }
-                })
-            .collect(Collectors.toMap(Builtin::getClass, b -> b));
+    return lines.stream()
+        .map(
+            line -> {
+              String[] builtinMeta = line.split(":");
+              if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+                java.lang.System.out.println(Arrays.toString(builtinMeta));
+                throw new CompilerError("Invalid builtin metadata in: " + line);
+              }
+              try {
+                @SuppressWarnings("unchecked")
+                Class<? extends Builtin> clazz =
+                    (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
+
+                // Note: Don't create a new instance of the builtin at this point
+                // because that will be too much for the inliner and won't get
+                // constant folded.
+                return clazz.getConstructor();
+              } catch (ClassNotFoundException | NoSuchMethodException e) {
+                e.printStackTrace();
+                throw new CompilerError("Invalid builtin type entry: " + builtinMeta[1]);
+              }
+            })
+        .collect(Collectors.toList());
+  }
+
+  /** Initialize builting types in the context of the given language and module scope */
+  private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
+      List<Constructor<? extends Builtin>> constrs, Language language, ModuleScope scope) {
+    Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
+    constrs.forEach(
+        constr -> {
+          try {
+            Builtin builtin = constr.newInstance();
+            builtins.put(builtin.getClass(), builtin);
+          } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+            throw new CompilerError("Invalid builtin type entry: " + constr);
+          }
+        });
     builtins.values().forEach(b -> b.initialize(language, scope, builtins));
     return builtins;
   }
 
   /**
-   * Returns a Map of builtin method nodes.
+   * Returns a map of Builtin methods associated with their owner.
    *
-   * <p>Builtin types are marked via @BuiltinMethod annotation. THe metdata file represents a single
-   * builtin method per row. The format of the row is as follows: <Fully qualified name of the
-   * builtin method>:<Class name of the builtin method representing it>
-   *
+   * @param classes a map of (already loaded) builtin methods
    * @param scope Builtins scope
    * @return A map of builtin method nodes per builtin type name
    */
-  private Map<String, Map<String, Class<BuiltinRootNode>>> readBuiltinMethodsMetadata(
-      ModuleScope scope) {
-    ClassLoader classLoader = getClass().getClassLoader();
+  private Map<String, Map<String, LoadedBuiltinMethod>> readBuiltinMethodsMetadata(
+      Map<String, LoadedBuiltinMethod> classes, ModuleScope scope) {
+
+    Map<String, Map<String, LoadedBuiltinMethod>> methodNodes = new HashMap<>();
+    classes.forEach(
+        (fullBuiltinName, builtin) -> {
+          String[] builtinName = fullBuiltinName.split("\\.");
+          if (builtinName.length != 2) {
+            throw new CompilerError("Invalid builtin metadata for " + fullBuiltinName);
+          }
+          String builtinMethodOwner = builtinName[0];
+          String builtinMethodName = builtinName[1];
+          Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
+              .ifPresentOrElse(
+                  constr -> {
+                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
+                    if (atomNodes == null) {
+                      atomNodes = new HashMap<>();
+                      // TODO: move away from String Map once Builtins are gone
+                      methodNodes.put(constr.getName(), atomNodes);
+                    }
+                    atomNodes.put(builtinMethodName, builtin);
+                  },
+                  () -> {
+                    Map<String, LoadedBuiltinMethod> atomNodes = methodNodes.get(builtinMethodOwner);
+                    if (atomNodes == null) {
+                      atomNodes = new HashMap<>();
+                      // TODO: move away from String Map once Builtins are gone
+                      methodNodes.put(builtinMethodOwner, atomNodes);
+                    }
+                    atomNodes.put(builtinMethodName, builtin);
+                  });
+        });
+    return methodNodes;
+  }
+
+  /**
+   * Loads a Map of builtin methods.
+   *
+   * <p>Builtin methods are marked via @BuiltinMethod annotation. THe metadata file represents a
+   * single builtin method per row. The format of the row is as follows: <Fully qualified name of
+   * the builtin method>:<Class name of the builtin method representing it>
+   *
+   * @return A map of builtin method nodes per builtin type name
+   */
+  private static Map<String, LoadedBuiltinMethod> readBuiltinMethodsMethods() {
+    ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(MethodDefinition.META_PATH)) {
       lines =
@@ -270,50 +338,34 @@ public class Builtins {
       lines = new ArrayList<>();
       ioe.printStackTrace();
     }
-    Map<String, Map<String, Class<BuiltinRootNode>>> methodNodes = new HashMap<>();
 
-    lines.forEach(
-        line -> {
-          String[] builtinMeta = line.split(":");
-          if (builtinMeta.length != 2) {
-            throw new CompilerError("Invalid builtin metadata in: " + line);
-          }
-          String[] builtinName = builtinMeta[0].split("\\.");
-          if (builtinName.length != 2) {
-            throw new CompilerError("Invalid builtin metadata in : " + line);
-          }
-          try {
-            @SuppressWarnings("unchecked")
-            Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-            String builtinMethodOwner = builtinName[0];
-            String builtinMethodName = builtinName[1];
-            Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
-                .ifPresentOrElse(
-                    constr -> {
-                      Map<String, Class<BuiltinRootNode>> atomNodes =
-                          methodNodes.get(builtinMethodOwner);
-                      if (atomNodes == null) {
-                        atomNodes = new HashMap<>();
-                        // TODO: move away from String Map once Builtins are gone
-                        methodNodes.put(constr.getName(), atomNodes);
-                      }
-                      atomNodes.put(builtinMethodName, clazz);
-                    },
-                    () -> {
-                      Map<String, Class<BuiltinRootNode>> atomNodes =
-                          methodNodes.get(builtinMethodOwner);
-                      if (atomNodes == null) {
-                        atomNodes = new HashMap<>();
-                        // TODO: move away from String Map once Builtins are gone
-                        methodNodes.put(builtinMethodOwner, atomNodes);
-                      }
-                      atomNodes.put(builtinMethodName, clazz);
-                    });
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          }
-        });
-    return methodNodes;
+    return lines.stream()
+            .map(
+                line -> {
+                  String[] builtinMeta = line.split(":");
+                  if (builtinMeta.length != 4) {
+                    throw new CompilerError("Invalid builtin metadata in: " + line);
+                  }
+                  String[] builtinName = builtinMeta[0].split("\\.");
+                  if (builtinName.length != 2) {
+                    throw new CompilerError("Invalid builtin metadata in : " + line);
+                  }
+                  boolean isStatic = builtinMeta.length == 3 ? java.lang.Boolean.valueOf(builtinMeta[2]) : false;
+                  boolean isAutoRegister = builtinMeta.length == 4 && java.lang.Boolean.valueOf(builtinMeta[3]);
+
+                  try {
+                    @SuppressWarnings("unchecked")
+                    Class<BuiltinRootNode> clazz =
+                            (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
+                    Method meth = clazz.getMethod("makeFunction", Language.class);
+                    LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
+                    return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
+                  } catch (ClassNotFoundException | NoSuchMethodException e) {
+                    e.printStackTrace();
+                    throw new CompilerError("Invalid builtin method " + line);
+                  }
+                })
+           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**
@@ -325,22 +377,16 @@ public class Builtins {
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<Function> getBuiltinFunction(String type, String methodName, Language language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type);
+    Map<String, LoadedBuiltinMethod> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
-    Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
-    if (clazz == null) return Optional.empty();
-    try {
-      Method meth = clazz.getMethod("makeFunction", Language.class);
-      return Optional.ofNullable((Function) meth.invoke(null, language));
-    } catch (Exception e) {
-      e.printStackTrace();
-      return Optional.empty();
-    }
+    LoadedBuiltinMethod builtin = atomNodes.get(methodName);
+    if (builtin == null) return Optional.empty();
+    return builtin.toFunction(language);
   }
 
-  public Optional<Function> getBuiltinFunction(Type type, String methodName, Language language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, Language language) {
     return getBuiltinFunction(type.getName(), methodName, language);
   }
 
@@ -563,4 +609,16 @@ public class Builtins {
   public Type fromTypeSystem(String typeName) {
     return TypesFromProxy.fromTypeSystem(this, typeName);
   }
+
+  private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
+    Optional<BuiltinFunction> toFunction(Language language) {
+      try {
+        return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isAutoRegister));
+      } catch (Exception e) {
+        e.printStackTrace();
+        return Optional.empty();
+      }
+    }
+  }
+
 }

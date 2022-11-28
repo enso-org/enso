@@ -16,7 +16,6 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::style;
-use ensogl::display::Scene;
 use ensogl_component::shadow;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
@@ -93,7 +92,7 @@ pub mod process {
 mod background {
     use super::*;
 
-    ensogl::define_shape_system! {
+    ensogl::shape! {
         (style:Style) {
             let theme             = ensogl_hardcoded_theme::application::status_bar::background;
             let theme             = style::Path::from(theme);
@@ -171,8 +170,8 @@ impl Model {
         let next_process_id = Rc::new(RefCell::new(process::Id(1)));
         let camera = scene.camera();
 
-        scene.layers.panel.add_exclusive(&background);
-        label.remove_from_scene_layer(&scene.layers.main);
+        scene.layers.panel.add(&background);
+        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;
@@ -209,13 +208,13 @@ impl Model {
     fn camera_changed(&self) {
         let screen = self.camera.screen();
         let y = screen.height / 2.0 - MARGIN;
-        self.root.set_position_y(y.round());
+        self.root.set_y(y.round());
     }
 
     fn update_layout(&self) {
         let label_width = self.label.width.value();
-        self.label.set_position_x(-label_width / 2.0);
-        self.label.set_position_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
+        self.label.set_x(-label_width / 2.0);
+        self.label.set_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
         let bg_width = if label_width > 0.0 {
             label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
@@ -224,7 +223,7 @@ impl Model {
         };
         let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
         self.background.size.set(Vector2(bg_width, bg_height));
-        self.background.set_position_y(-HEIGHT / 2.0);
+        self.background.set_y(-HEIGHT / 2.0);
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {
@@ -350,7 +349,7 @@ impl View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
     }
 }

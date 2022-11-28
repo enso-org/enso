@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -20,24 +19,6 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
-  public static class InvalidIndexException extends RuntimeException {
-    private final long index;
-    private final Array array;
-
-    public InvalidIndexException(long index, Array array) {
-      this.index = index;
-      this.array = array;
-    }
-
-    public long getIndex() {
-      return index;
-    }
-
-    public Array getArray() {
-      return array;
-    }
-  }
-
   private final Object[] items;
 
   /**
@@ -45,7 +26,7 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.")
+  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
   public Array(Object... items) {
     this.items = items;
   }
@@ -55,7 +36,7 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.")
+  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -99,7 +80,7 @@ public final class Array implements TruffleObject {
   }
 
   /** @return an empty array */
-  @Builtin.Method(description = "Creates an empty Array")
+  @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Object empty() {
     return new Array();
   }

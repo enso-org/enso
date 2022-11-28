@@ -231,7 +231,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
             let new_position = header.header_position(*col, entries_size, viewport, widths);
             (header.entry.position().xy() != new_position.position).as_some_from(|| {
-                header.entry.set_position_xy(new_position.position);
+                header.entry.set_xy(new_position.position);
                 header.entry.entry.frp().moved_as_header(&new_position);
                 (header.section_rows.start, *col, new_position.position)
             })
@@ -268,7 +268,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
             let text_layer = layers.upgrade_text();
             let (entry, init) = self.entry_creation_ctx.create_entry(text_layer.as_ref());
             if let Some(layer) = layers.upgrade_header() {
-                layer.add_exclusive(&entry);
+                layer.add(&entry);
             }
             (entry, init)
         };
@@ -295,7 +295,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let width_offset = self.column_widths.width_diff(col);
         entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
-        entry.entry.set_position_xy(position.position);
+        entry.entry.set_xy(position.position);
         entry_frp.moved_as_header(&position);
         (entry.section_rows.start, col, position.position)
     }
@@ -590,7 +590,7 @@ mod tests {
         headers: [impl IntoIterator<Item = (Row, <TestEntry as Entry>::Model)>; COL_COUNT],
     ) -> GridView<TestEntry, TestEntry> {
         let headers: [BTreeMap<_, _>; COL_COUNT] = headers.map(|i| i.into_iter().collect());
-        let headers_layer = app.display.default_scene.layers.main.create_sublayer();
+        let headers_layer = app.display.default_scene.layers.main.create_sublayer("headers");
         let grid_view = GridView::<TestEntry, TestEntry>::new(app);
         let header_frp = grid_view.header_frp();
         header_frp.set_layers(WeakLayers::new(&headers_layer, None));

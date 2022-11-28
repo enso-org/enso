@@ -3,7 +3,9 @@
 use crate::prelude::*;
 
 use crate::define_env_var;
-use crate::models::config::RepoContext;
+use crate::env::new::RawVariable;
+use crate::env::new::TypedVariable;
+use crate::github::Repo;
 
 
 
@@ -23,7 +25,7 @@ define_env_var! {
 
     /// For a step executing an action, this is the owner and repository name of the action.
     /// For example, `actions/checkout`.
-    GITHUB_ACTION_REPOSITORY, RepoContext;
+    GITHUB_ACTION_REPOSITORY, Repo;
 
     /// Always set to true when GitHub Actions is running the workflow.  You can use this variable
     /// to differentiate when tests are being run locally or by GitHub Actions.
@@ -44,6 +46,10 @@ define_env_var! {
     /// This file is unique to the current step and changes for each step in a job. For example,
     /// `/home/runner/work/_temp/_runner_file_commands/set_env_87406d6e-4979-4d42-98e1-3dab1f48b13a`.
     GITHUB_ENV, PathBuf;
+
+    /// Path to the environment file with step's output parameters. This file is unique to the
+    /// current step and changes for each step in a job.
+    GITHUB_OUTPUT, PathBuf;
 
     /// The name of the event that triggered the workflow. For example, `workflow_dispatch`.
     GITHUB_EVENT_NAME, String;
@@ -89,7 +95,7 @@ define_env_var! {
     GITHUB_REF_TYPE, String;
 
     /// The owner and repository name. For example, octocat/Hello-World.
-    GITHUB_REPOSITORY, RepoContext;
+    GITHUB_REPOSITORY, Repo;
 
     /// The repository owner's name. For example, octocat.
     GITHUB_REPOSITORY_OWNER, String;
@@ -123,7 +129,7 @@ define_env_var! {
     /// This file is unique to the current step and changes for each step in a job. For example,
     /// `/home/rob/runner/_layout/_work/_temp/_runner_file_commands/step_summary_1cb22d7f-5663-41a8-9ffc-13472605c76c`.
     /// For more information, see "Workflow commands for GitHub Actions."
-    GITHUB_STEP_SUMMARY, String;
+    GITHUB_STEP_SUMMARY, PathBuf;
 
     /// The name of the workflow. For example, `My test workflow`. If the workflow file doesn't
     /// specify a name, the value of this variable is the full path of the workflow file in the
@@ -165,4 +171,10 @@ define_env_var! {
 pub fn is_self_hosted() -> Result<bool> {
     let name = RUNNER_NAME.get_raw()?;
     Ok(!name.starts_with("GitHub Actions"))
+}
+
+pub async fn set_and_emit<V>(var: &V, value: &V::Borrowed) -> Result
+where V: TypedVariable {
+    let value_raw = var.generate(value)?;
+    crate::actions::workflow::set_env(var.name(), &value_raw).await
 }

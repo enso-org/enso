@@ -68,7 +68,7 @@ class StateTest extends InterpreterTest {
     "work with pattern matches" in {
       val code =
         """from Standard.Base.Data.Numbers import Number
-          |from Standard.Base.Data.List import Nil
+          |import Standard.Base.Data.List.List
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |import Standard.Base.Runtime.State
@@ -78,12 +78,12 @@ class StateTest extends InterpreterTest {
           |        Nothing ->
           |            y = State.get Number
           |            State.put Number (y + 5)
-          |        Nil ->
+          |        List.Nil ->
           |            y = State.get Number
           |            State.put Number (y + 10)
           |
           |    State.put Number 1
-          |    matcher Nil
+          |    matcher List.Nil
           |    IO.println (State.get Number)
           |    matcher Nothing
           |    IO.println (State.get Number)
@@ -95,7 +95,7 @@ class StateTest extends InterpreterTest {
       consumeOut shouldEqual List("11", "16")
     }
 
-    "undo changes on Panics" in {
+    "retain changes on Panics" in {
       val code =
         """from Standard.Base import all
           |import Standard.Base.Runtime.State
@@ -111,7 +111,7 @@ class StateTest extends InterpreterTest {
           |
           |main = State.run Number 0 stater
           |""".stripMargin
-      eval(code) shouldEqual 5
+      eval(code) shouldEqual 400
     }
 
     "localize properly with State.run when 1 key used" in {

@@ -8,6 +8,7 @@ use crate::data::color;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
 
+use enso_types;
 use nalgebra::Scalar;
 
 
@@ -191,118 +192,6 @@ where T: Max + Into<Glsl>
         }
     }
 }
-
-impl<T: Scalar> HasComponents for Var<Vector2<T>> {
-    type Component = Var<T>;
-}
-
-impl<T: Scalar> HasComponents for Var<Vector3<T>> {
-    type Component = Var<T>;
-}
-
-impl<T: Scalar> HasComponents for Var<Vector4<T>> {
-    type Component = Var<T>;
-}
-
-impl<T: Scalar> Dim1 for Var<Vector2<T>> {
-    fn x(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.x.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.x", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim2 for Var<Vector2<T>> {
-    fn y(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.y.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.y", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim1 for Var<Vector3<T>> {
-    fn x(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.x.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.x", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim2 for Var<Vector3<T>> {
-    fn y(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.y.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.y", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim3 for Var<Vector3<T>> {
-    fn z(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.z.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim1 for Var<Vector4<T>> {
-    fn x(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.x.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.x", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim2 for Var<Vector4<T>> {
-    fn y(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.y.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.y", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim3 for Var<Vector4<T>> {
-    fn z(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.z.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> Dim4 for Var<Vector4<T>> {
-    fn w(&self) -> Var<T> {
-        match self {
-            Self::Static(t) => Var::Static(t.w.clone()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.w", t).into()),
-        }
-    }
-}
-
-impl<T: Scalar> HasDim2Version for Var<Vector4<T>> {
-    type Dim2Version = Var<Vector2<T>>;
-
-    fn xy(&self) -> Self::Dim2Version {
-        match self {
-            Self::Static(t) => Var::Static(t.xy()),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.xy", t).into()),
-        }
-    }
-
-    fn zw(&self) -> Self::Dim2Version {
-        match self {
-            Self::Static(t) => Var::Static(Vector2(t[2].clone(), t[3].clone())),
-            Self::Dynamic(t) => Var::Dynamic(format!("{}.zw", t).into()),
-        }
-    }
-}
-
 
 impl PixelDistance for Var<Vector2<f32>> {
     type Output = Var<Vector2<Pixels>>;
@@ -564,6 +453,46 @@ define_shape_data_string_operator! { Add add (+) }
 define_shape_data_string_operator! { Sub sub (-) }
 define_shape_data_string_operator! { Mul mul (*) }
 define_shape_data_string_operator! { Div div (/) }
+
+
+
+// ============
+// === Dim* ===
+// ============
+
+macro_rules! gen_dim_impl_for_vector {
+    ([$vec:tt] $dim:tt $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*) => {
+        paste! {
+            impl<T: Scalar + Copy> [<Dim $dim>] for Var<$vec<T>> {
+                type [<Dim $dim Type>] = Var<[<Vector $dim>]<T>>;
+                $(
+                    fn $name(&self) -> Self::[<Dim $swizzling_dim Type>] {
+                        match self {
+                            Self::Static(t) => Var::Static(t.$name()),
+                            Self::Dynamic(t) => {
+                                let code = format!("{}.{}", t, stringify!($name));
+                                Var::Dynamic(code.into())
+                            }
+                        }
+                    }
+                )*
+            }
+        }
+    };
+}
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector2);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector2);
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector3);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector3);
+enso_types::with_swizzling_for_dim!(3, gen_dim_impl_for_vector, Vector3);
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(3, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(4, gen_dim_impl_for_vector, Vector4);
+
 
 
 // =========================

@@ -23,7 +23,6 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
@@ -64,6 +63,10 @@ ensogl_core::define_endpoints! {
         jump_to_x          (f32),
         /// Jumps instantly to the given y coordinate, without animation.
         jump_to_y          (f32),
+        /// Determines if scrolling is allowed to overshoot the bounds of the scroll area. Overshoot
+        /// is enabled by default.
+        set_overshoot_enabled (bool),
+
     }
     Output {
         /// The content's x coordinate at the left edge of the area.
@@ -164,7 +167,7 @@ impl Viewport {
 /// A mask for clipping the scroll area content.
 mod mask {
     use super::*;
-    ensogl_core::define_shape_system! {
+    ensogl_core::shape! {
         (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32,
             corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
             let width: Var<Pixels> = "input_size.x".into();
@@ -196,14 +199,14 @@ struct Model {
 
 impl Model {
     fn resize(&self, size: Vector2) {
-        self.h_scrollbar.set_position_y(-size.y + scrollbar::WIDTH / 2.0);
+        self.h_scrollbar.set_y(-size.y + scrollbar::WIDTH / 2.0);
         let scrollbar_y = size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0;
-        self.v_scrollbar.set_position_x(scrollbar_y);
-        self.h_scrollbar.set_position_x(size.x / 2.0);
-        self.v_scrollbar.set_position_y(-size.y / 2.0);
+        self.v_scrollbar.set_x(scrollbar_y);
+        self.h_scrollbar.set_x(size.x / 2.0);
+        self.v_scrollbar.set_y(-size.y / 2.0);
         self.mask.size.set(size);
-        self.mask.set_position_x(size.x / 2.0);
-        self.mask.set_position_y(-size.y / 2.0);
+        self.mask.set_x(size.x / 2.0);
+        self.mask.set_y(-size.y / 2.0);
     }
 }
 
@@ -244,26 +247,24 @@ impl ScrollArea {
     #[profile(Detail)]
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new();
-        let masked_layer = layer::Masked::new(&logger, &camera);
+        let masked_layer = layer::Masked::new();
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
-        let content_layer = display_object.layer.masked_layer.create_sublayer();
-        let ui_layer = display_object.layer.masked_layer.create_sublayer();
+        let content_layer = display_object.layer.masked_layer.create_sublayer("content_layer");
+        let ui_layer = display_object.layer.masked_layer.create_sublayer("ui_layer");
 
         let content = display::object::Instance::new();
         display_object.add_child(&content);
-        content_layer.add_exclusive(&content);
+        content_layer.add(&content);
 
         let scrollbars = display::object::Instance::new();
         display_object.add_child(&scrollbars);
-        ui_layer.add_exclusive(&scrollbars);
+        ui_layer.add(&scrollbars);
 
         let mask = mask::View::new();
         display_object.add_child(&mask);
-        display_object.layer.mask_layer.add_exclusive(&mask);
+        display_object.layer.mask_layer.add(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
         scrollbars.add_child(&h_scrollbar);
@@ -326,14 +327,16 @@ impl ScrollArea {
             model.v_scrollbar.scroll_to <+ frp.scroll_to_y;
             model.h_scrollbar.jump_to   <+ frp.jump_to_x;
             model.v_scrollbar.jump_to   <+ frp.jump_to_y;
+            model.h_scrollbar.set_overshoot_enabled <+ frp.set_overshoot_enabled;
+            model.v_scrollbar.set_overshoot_enabled <+ frp.set_overshoot_enabled;
 
             frp.source.scroll_position_x <+ model.h_scrollbar.thumb_position.map(|x| -x);
             frp.source.scroll_position_y <+ model.v_scrollbar.thumb_position;
             frp.source.scroll_position_target_x <+ model.h_scrollbar.thumb_position_target.map(|x| -x);
             frp.source.scroll_position_target_y <+ model.v_scrollbar.thumb_position_target;
 
-            eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
-            eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
+            eval frp.scroll_position_x((&pos) model.content.set_x(pos));
+            eval frp.scroll_position_y((&pos) model.content.set_y(pos));
 
             scroll_position <- all(&frp.scroll_position_x, &frp.scroll_position_y);
             scroll_position <- scroll_position.map(|(x,y)| Vector2::new(*x,*y));
@@ -393,7 +396,7 @@ impl ScrollArea {
 
     /// Set a scene layer for scrollbars.
     pub fn set_scrollbars_layer(&self, layer: &layer::Layer) {
-        layer.add_exclusive(&self.model.scrollbars);
+        layer.add(&self.model.scrollbars);
     }
 
     /// A scene layer used as a mask for the content.
