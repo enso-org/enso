@@ -1,7 +1,7 @@
 package org.enso.languageserver.vcsmanager
 
 import java.io.{FileNotFoundException, IOException}
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
@@ -20,7 +20,6 @@ import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
-  GitIgnore,
   MasterRef,
   RepoExists
 }
@@ -28,7 +27,6 @@ import org.enso.languageserver.vcsmanager.Git.{
 import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
-import java.nio.charset.StandardCharsets
 import java.time.Instant
 
 private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
@@ -73,7 +71,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .call()
 
       ensoDataDirectory.foreach { path =>
-        // JGit **always** creates a .git file, gitdir path.
+        // JGit **always** creates a .git file pointing to gitdir path.
         // The file may be confusing to the users and unnecessary for
         // VCS since all commands include repo path explicitly.
         val dotGit = root.resolve(".git").toFile
@@ -84,10 +82,11 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         if (path.toFile.exists()) {
           throw new EntryExistsException(path.toString)
         }
-        Files.write(
-          root.resolve(GitIgnore),
-          path.toString.getBytes(StandardCharsets.UTF_8)
-        )
+        // Exclude <enso-data>/.git
+        jgit
+          .reset()
+          .addPath(path.resolve(VcsApi.DefaultRepoDir).toString)
+          .call()
       }
 
       jgit
@@ -232,7 +231,6 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 }
 
 object Git {
-  private val GitIgnore   = ".gitignore"
   private val MasterRef   = "refs/heads/master"
   private val AuthorName  = "Enso VCS"
   private val AuthorEmail = "vcs@enso.io"
