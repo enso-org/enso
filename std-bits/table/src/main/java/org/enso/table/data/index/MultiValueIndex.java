@@ -32,7 +32,8 @@ public class MultiValueIndex {
     boolean isOrdered = ordering != null;
     this.locs = isOrdered ? new TreeMap<>() : new HashMap<>();
 
-    Storage<?>[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    Storage<?>[] storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<MultiValueKeyBase> keyFactory =
         isOrdered
             ? i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator)
@@ -95,25 +96,36 @@ public class MultiValueIndex {
         merged);
   }
 
-  public Table makeCrossTabTable(Column[] groupingColumns, Column nameColumn, Aggregator[] aggregates) {
+  public Table makeCrossTabTable(
+      Column[] groupingColumns, Column nameColumn, Aggregator[] aggregates) {
     final int size = locs.size();
 
-    var nameIndex = new MultiValueIndex(new Column[] {nameColumn}, nameColumn.getSize(), null, this.comparator);
+    var nameIndex =
+        new MultiValueIndex(new Column[] {nameColumn}, nameColumn.getSize(), null, this.comparator);
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
 
     // Create the storage
     Builder[] storage = new Builder[columnCount];
-    IntStream.range(0, groupingColumns.length).forEach(i -> storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size));
-    IntStream.range(0, nameIndex.locs.size()).forEach(i -> {
-      int offset = groupingColumns.length + i * aggregates.length;
-      IntStream.range(0, aggregates.length).forEach(j -> storage[offset + j] = Builder.getForType(aggregates[j].getType(), size));
-    });
+    IntStream.range(0, groupingColumns.length)
+        .forEach(
+            i -> storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size));
+    IntStream.range(0, nameIndex.locs.size())
+        .forEach(
+            i -> {
+              int offset = groupingColumns.length + i * aggregates.length;
+              IntStream.range(0, aggregates.length)
+                  .forEach(
+                      j -> storage[offset + j] = Builder.getForType(aggregates[j].getType(), size));
+            });
 
     // Fill the storage
     for (List<Integer> group_locs : this.locs.values()) {
       // Fill the grouping columns
       IntStream.range(0, groupingColumns.length)
-          .forEach(i -> storage[i].appendNoGrow(groupingColumns[i].getStorage().getItemBoxed(group_locs.get(0))));
+          .forEach(
+              i ->
+                  storage[i].appendNoGrow(
+                      groupingColumns[i].getStorage().getItemBoxed(group_locs.get(0))));
 
       // Make a Set
       var groupSet = new HashSet<>(group_locs);
@@ -134,19 +146,22 @@ public class MultiValueIndex {
     // Merge Problems
     AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 1];
     problems[0] = this.problems;
-    IntStream.range(0, aggregates.length).forEach(i -> problems[i + 1] = aggregates[i].getProblems());
+    IntStream.range(0, aggregates.length)
+        .forEach(i -> problems[i + 1] = aggregates[i].getProblems());
     AggregatedProblems merged = AggregatedProblems.merge(problems);
 
     // Create Columns
     Column[] output = new Column[columnCount];
-    IntStream.range(0, groupingColumns.length).forEach(i -> output[i] = new Column(groupingColumns[i].getName(), storage[i].seal()));
+    IntStream.range(0, groupingColumns.length)
+        .forEach(i -> output[i] = new Column(groupingColumns[i].getName(), storage[i].seal()));
 
     int offset = groupingColumns.length;
     for (List<Integer> name_locs : nameIndex.locs.values()) {
       String name = nameColumn.getStorage().getItemBoxed(name_locs.get(0)).toString();
 
       for (int i = 0; i < aggregates.length; i++) {
-        output[offset + i] = new Column((name + " " + aggregates[i].getName()).trim(), storage[offset + i].seal());
+        output[offset + i] =
+            new Column((name + " " + aggregates[i].getName()).trim(), storage[offset + i].seal());
       }
 
       offset += aggregates.length;
