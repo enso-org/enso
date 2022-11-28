@@ -17,23 +17,25 @@
   "description": "Enso Data Processing Environment.",
   "main": "index.cjs",
   "dependencies": {
+    "@electron/remote": "^2.0.8",
+    "aws-amplify": "^5.0.4",
     "create-servers": "^3.2.0",
+    "electron-is-dev": "^1.2.0",
     "enso-gui-server": "^1.0.0",
     "mime-types": "^2.1.35",
-    "@electron/remote": "^2.0.8",
-    "electron-is-dev": "^1.2.0",
+    "opener": "^1.5.2",
     "yargs": "=15.4.1"
   },
   "//": "`yargs` dependency is pinned to version 15.4.1 because newer version triggers https://github.com/evanw/esbuild/issues/2441",
   "devDependencies": {
+    "crypto-js": "4.1.1",
     "electron": "17.1.1",
     "electron-builder": "^22.14.13",
-    "esbuild": "^0.14.43",
-    "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
     "enso-copy-plugin": "^1.0.0",
-    "ts-node": "^10.9.1",
-    "fast-glob": "^3.2.12"
+    "esbuild": "^0.14.43",
+    "fast-glob": "^3.2.12",
+    "ts-node": "^10.9.1"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",

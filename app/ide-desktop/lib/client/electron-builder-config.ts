@@ -70,6 +70,9 @@ const config: Configuration = {
     },
     copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
+    protocols: [
+        { name: 'Enso URL', schemes: ['enso'], role: 'Editor' }
+    ],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: (args.targetOverride as MacOsTargetName) ?? 'dmg',
@@ -95,7 +98,8 @@ const config: Configuration = {
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: 'dir', // args.targetOverride ?? 'AppImage',
+        target: args.targetOverride ?? 'AppImage',
+        // target: 'dir',
         icon: `${args.iconsDist}/png`,
         category: 'Development',
     },

@@ -66,6 +66,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'index.html'),
     path.resolve(thisPath, 'src', 'login.html'),
     path.resolve(thisPath, 'src', 'run.js'),
+    //path.resolve(thisPath, 'src', 'login.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
     wasm_path,
@@ -89,7 +90,7 @@ async function* files_to_copy_provider() {
 
 const config: esbuild.BuildOptions = {
     bundle: true,
-    entryPoints: ['src/index.ts', 'src/wasm_imports.js'],
+    entryPoints: ['src/index.ts', 'src/login.ts', 'src/wasm_imports.js'],
     outdir: output_path,
     outbase: 'src',
     plugins: [

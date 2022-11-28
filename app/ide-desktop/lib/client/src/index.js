@@ -485,18 +485,31 @@ async function main(args) {
     try {
         //runBackend()
 
-        let cfg = amplifyConfig
+        if (process.defaultApp) {
+            if (process.argv.length >= 2) {
+                Electron.app.setAsDefaultProtocolClient('enso', process.execPath, [path.resolve(process.argv[1])])
+            }
+        } else {
+            Electron.app.setAsDefaultProtocolClient('enso')
+        }
 
-        console.log('amplifyConfig', cfg)
-        // cfg.oauth.options.urlOpener = async (url, redirectSignIn) => {
-        //     console.log('urlOpener', url, redirectSignIn)
-        //     opener(url)
-        //     //var childProcess = require("child_process");
-        //     //childProcess.execFile('xclock')
-        // }
+        const gotTheLock = Electron.app.requestSingleInstanceLock()
 
-        console.log('Auth.configure', cfg)
-        Auth.configure(cfg);
+        if (!gotTheLock) {
+            Electron.app.quit()
+        } else {
+            Electron.app.on('second-instance', (event, commandLine, workingDirectory) => {
+                // Someone tried to run a second instance, we should focus our window.
+                if (mainWindow) {
+                    if (mainWindow.isMinimized()) mainWindow.restore()
+                    mainWindow.focus()
+                }
+            })
+        }
+
+        console.log('MAIN process', process)
+        console.log('MAIN Auth.configure', amplifyConfig)
+        Auth.configure(amplifyConfig);
 
         let session;
         let jwt;
@@ -505,9 +518,7 @@ async function main(args) {
             jwt = session.getAccessToken().getJwtToken();
         } catch (error) { }
 
-        console.log('session', session)
-        console.log('jwt', jwt)
-
+        console.log('MAIN session', session, jwt)
         let serverFallback = jwt ? '/assets/index.html' : '/assets/login.html'
 
         console.log('Starting the IDE service.')
@@ -529,20 +540,19 @@ async function main(args) {
                     mainWindow.hide()
                 }
             })
-            mainWindow.once('ready-to-show', () => {
-                mainWindow.show()
-                console.log('mainWindow ready')
-                if (!jwt) {
-                    console.log('Auth.federatedSignIn');
-                    Auth.federatedSignIn({ provider: 'google' });
-                    console.log('Auth.federatedSignIn AFTER')
-                } else {
-                    console.log('!!! logged in !!!')
-                }
-            })
-            console.log('IDE client started.')
+            // mainWindow.once('ready-to-show', () => {
+            //     mainWindow.show()
+            //     console.log('mainWindow ready')
+            //     if (!jwt) {
+            //         console.log('Auth.federatedSignIn');
+            //         Auth.federatedSignIn({ provider: 'google' });
+            //         console.log('Auth.federatedSignIn AFTER')
+            //     } else {
+            //         console.log('!!! logged in !!!')
+            //     }
+            // })
+            // console.log('IDE client started.')
         }
-
 
     } catch (err) {
         // Note [Main error handling]
@@ -661,6 +671,11 @@ function createWindow() {
         Electron.app.quit()
     })
 
+    Electron.ipcMain.on('login-api-open', (event, url) => {
+        console.log('ipcMain.on login-api-open', url)
+        opener(url)
+    })
+
     let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`
 
@@ -735,6 +750,16 @@ if (process.platform === 'darwin') {
         hideInsteadOfQuit = false
     })
 }
+
+Electron.app.on('open-url', (event, url) => {
+    dialog.showErrorBox('Welcome Back', `You arrived from: ${url}`)
+})
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+Electron.app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') Electron.app.quit()
+})
 
 // =================
 // === Shortcuts ===
