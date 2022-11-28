@@ -346,7 +346,8 @@ type Vector a
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
-            builder = new_builder
+            len = self.length
+            builder = Vector.new_builder
             loop idx =
                 if idx == len then builder.to_vector else
                     item = self.unsafe_at idx
@@ -369,7 +370,8 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        builder = new_builder
+        len = self.length
+        builder = Vector.new_builder
         loop idx =
             if idx == len then builder.to_vector else
                 item = self.unsafe_at idx
