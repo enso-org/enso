@@ -1468,7 +1468,7 @@ impl GraphEditorModelWithNetwork {
     ) -> (NodeId, Option<NodeSource>, bool) {
         let position = new_node_position::new_node_position(self, way, mouse_position);
         let node = self.new_node(ctx);
-        node.set_position_xy(position);
+        node.set_xy(position);
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
@@ -1741,8 +1741,8 @@ impl GraphEditorModel {
         self.add_child(&self.breadcrumbs);
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
         let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
-        self.breadcrumbs.set_position_x(x_offset);
-        self.breadcrumbs.set_position_y(y_offset);
+        self.breadcrumbs.set_x(x_offset);
+        self.breadcrumbs.set_y(y_offset);
         self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
@@ -3877,7 +3877,7 @@ mod tests {
         camera_pos: Vector2,
     ) {
         let camera = &scene.camera();
-        camera.set_position_xy(camera_pos);
+        camera.set_xy(camera_pos);
         camera.update(scene);
         click_add_node_button(editor);
     }
@@ -3941,12 +3941,12 @@ mod tests {
         // Create 2nd node below the 1st one and move it slightly to the right.
         graph_editor.nodes().select(node_1_id);
         let (node_2_id, node_2) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_position_x(|x| x + 16.0);
+        node_2.mod_x(|x| x + 16.0);
 
         // Create 3rd node below the 2nd one and move it slightly down and far to the right.
         graph_editor.nodes().select(node_2_id);
         let (_, node_3) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_position_xy(|pos| pos + Vector2(800.0, -7.0));
+        node_2.mod_xy(|pos| pos + Vector2(800.0, -7.0));
 
         // Create 4th node by clicking (+) button when camera is roughly centered at the 1st node.
         let small_displacement = Vector2(8.0, 9.0);
@@ -3987,7 +3987,7 @@ mod tests {
         fn add_node_by_api_at_pos(&self, position: Vector2) -> (NodeId, Node) {
             let (node_id, node) = self.add_node_by_api();
             self.stop_editing();
-            node.set_position_xy(position);
+            node.set_xy(position);
             (node_id, node)
         }
 

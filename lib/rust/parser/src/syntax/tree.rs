@@ -505,6 +505,12 @@ pub enum TextElement<'s> {
         /// The escape sequence.
         token: token::TextEscape<'s>,
     },
+    /// A logical newline.
+    Newline {
+        /// The newline token. The semantics of a logical newline are independent of the specific
+        /// characters in the input, which are generally platform-dependent.
+        newline: token::Newline<'s>,
+    },
     /// An interpolated section within a text literal.
     Splice {
         /// The opening ` character.
@@ -523,6 +529,7 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
             TextElement::Escape { token } => span.add(token),
             TextElement::Splice { open, expression, close } =>
                 span.add(open).add(expression).add(close),
+            TextElement::Newline { newline } => span.add(newline),
         }
     }
 }
@@ -856,6 +863,7 @@ pub fn join_text_literals<'s>(
         Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
         Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
         Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
+        Some(TextElement::Newline { newline }) => newline.left_offset += rhs_span.left_offset,
         None => (),
     }
     if let Some(newline) = rhs.newline.take() {
@@ -939,52 +947,56 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
     }
 }
 
-impl<'s> From<Token<'s>> for Tree<'s> {
-    fn from(token: Token<'s>) -> Self {
-        match token.variant {
-            token::Variant::Ident(ident) => token.with_variant(ident).into(),
-            token::Variant::Digits(number) =>
-                Tree::number(None, Some(token.with_variant(number)), None),
-            token::Variant::NumberBase(base) =>
-                Tree::number(Some(token.with_variant(base)), None, None),
-            token::Variant::TextStart(open) =>
-                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
-            token::Variant::TextSection(section) => {
-                let section = TextElement::Section { text: token.with_variant(section) };
-                Tree::text_literal(default(), default(), vec![section], default(), default())
-            }
-            token::Variant::TextEscape(escape) => {
-                let token = token.with_variant(escape);
-                let section = TextElement::Escape { token };
-                Tree::text_literal(default(), default(), vec![section], default(), default())
-            }
-            token::Variant::TextEnd(_) if token.code.is_empty() =>
-                Tree::text_literal(default(), default(), default(), default(), true),
-            token::Variant::TextEnd(close) =>
-                Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
-            token::Variant::TextInitialNewline(_) =>
-                Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
-            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
-            token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
-            token::Variant::OpenSymbol(s) =>
-                Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
-            token::Variant::CloseSymbol(s) =>
-                Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
-            // These should be unreachable: They are handled when assembling items into blocks,
-            // before parsing proper.
-            token::Variant::Newline(_)
-            | token::Variant::BlockStart(_)
-            | token::Variant::BlockEnd(_)
-            // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
-            // operators.
-            | token::Variant::Operator(_)
-            // Map an error case in the lexer to an error in the AST.
-            | token::Variant::Invalid(_) => {
-                let message = format!("Unexpected token: {token:?}");
-                let ident = token::variant::Ident(false, 0, false, false, false);
-                let value = Tree::ident(token.with_variant(ident));
-                Tree::with_error(value, message)
-            }
+/// Create an AST node for a token.
+pub fn to_ast(token: Token) -> Tree {
+    match token.variant {
+        token::Variant::Ident(ident) => token.with_variant(ident).into(),
+        token::Variant::Digits(number) =>
+            Tree::number(None, Some(token.with_variant(number)), None),
+        token::Variant::NumberBase(base) =>
+            Tree::number(Some(token.with_variant(base)), None, None),
+        token::Variant::TextStart(open) =>
+            Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
+        token::Variant::TextSection(section) => {
+            let section = TextElement::Section { text: token.with_variant(section) };
+            Tree::text_literal(default(), default(), vec![section], default(), default())
+        }
+        token::Variant::TextEscape(escape) => {
+            let token = token.with_variant(escape);
+            let section = TextElement::Escape { token };
+            Tree::text_literal(default(), default(), vec![section], default(), default())
+        }
+        token::Variant::TextEnd(_) if token.code.is_empty() =>
+            Tree::text_literal(default(), default(), default(), default(), true),
+        token::Variant::TextEnd(close) =>
+            Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
+        token::Variant::TextInitialNewline(_) =>
+            Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
+        token::Variant::TextNewline(_) => {
+            let newline = token::newline(token.left_offset, token.code);
+            let newline = TextElement::Newline { newline };
+            Tree::text_literal(default(), default(), vec![newline], default(), default())
+        }
+        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
+        token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+        token::Variant::OpenSymbol(s) =>
+            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+        token::Variant::CloseSymbol(s) =>
+            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+        // These should be unreachable: They are handled when assembling items into blocks,
+        // before parsing proper.
+        token::Variant::Newline(_)
+        | token::Variant::BlockStart(_)
+        | token::Variant::BlockEnd(_)
+        // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
+        // operators.
+        | token::Variant::Operator(_)
+        // Map an error case in the lexer to an error in the AST.
+        | token::Variant::Invalid(_) => {
+            let message = format!("Unexpected token: {token:?}");
+            let ident = token::variant::Ident(false, 0, false, false, false);
+            let value = Tree::ident(token.with_variant(ident));
+            Tree::with_error(value, message)
         }
     }
 }

@@ -75,7 +75,7 @@ impl Model {
         };
 
         let base_positions = position.xy();
-        self.tooltip.set_position_xy(base_positions + layout_offset)
+        self.tooltip.set_xy(base_positions + layout_offset)
     }
 
     fn set_style(&self, update: &Style) {
