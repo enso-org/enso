@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex.Engine.Pattern
 from Standard.Base.Data.Text.Matching import match_criteria_implementation
 
 # TODO Dubious constructor export
@@ -101,6 +102,6 @@ type Regex_Matcher
          Selects pairs matching their first element with the provided criteria and
          ordering the result according to the order of criteria that matched them.
 
-             Text_Matcher.match_criteria [Pair_Data "foo" 42, Pair_Data "bar" 33, Pair_Data "baz" 10, Pair_Data "foo" 0, Pair_Data 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair_Data "bar" 33, Pair_Data "foo" 42, Pair_Data "foo" 0]
+             Text_Matcher.match_criteria [Pair.new "foo" 42, Pair.new "bar" 33, Pair.new "baz" 10, Pair.new "foo" 0, Pair.new 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair.new "bar" 33, Pair.new "foo" 42, Pair.new "foo" 0]
     match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
     match_criteria self = match_criteria_implementation self

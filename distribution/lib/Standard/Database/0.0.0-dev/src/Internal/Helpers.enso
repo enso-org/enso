@@ -41,9 +41,9 @@ check_connection entity1 entity2 =
 
    It always returns a vector, if the argument was already a vector, it is kept
    as-is, otherwise it is wrapped in a singleton vector.
-unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
+unify_vector_singleton : (Any | Vector Any) -> Vector.Vector Any
 unify_vector_singleton x = case x of
-    _ : Vector.Vector -> x
+    _ : Vector -> x
     _ -> [x]
 
 ## UNSTABLE

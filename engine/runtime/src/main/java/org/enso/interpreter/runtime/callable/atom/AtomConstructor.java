@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.ArityException;
@@ -145,13 +146,13 @@ public final class AtomConstructor implements TruffleObject {
             type.getName() + "." + name,
             null,
             false);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+    RootCallTarget callTarget = rootNode.getCallTarget();
     return new Function(callTarget, null, new FunctionSchema(args));
   }
 
   private void generateQualifiedAccessor() {
     QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     Function function =
         new Function(
             callTarget,
@@ -249,12 +250,13 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     return "Constructor<" + name + ">";
   }
 
   /** @return the fully qualified name of this constructor. */
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }

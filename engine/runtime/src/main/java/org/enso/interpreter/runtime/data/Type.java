@@ -66,10 +66,9 @@ public final class Type implements TruffleObject {
 
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
-    var callTarget = Truffle.getRuntime().createCallTarget(node);
     var function =
         new Function(
-            callTarget,
+            node.getCallTarget(),
             null,
             new FunctionSchema(
                 new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
@@ -161,10 +160,9 @@ public final class Type implements TruffleObject {
     }
     roots.forEach(
         (name, node) -> {
-          RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
           var f =
               new Function(
-                  callTarget,
+                  node.getCallTarget(),
                   null,
                   new FunctionSchema(
                       new ArgumentDefinition(

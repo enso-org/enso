@@ -265,24 +265,24 @@ impl DropDownMenu {
             resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,frp.input.set_menu_offset_y);
             eval resize_menu (((menu_size,icon_size,menu_offset_y)) {
                 // Align the top of the menu to the bottom of the icon.
-                model.selection_menu.set_position_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
+                model.selection_menu.set_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
                 // Align the right of the menu to the right of the icon.
                 let offfset_y = -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0;
-                model.selection_menu.set_position_x(offfset_y);
+                model.selection_menu.set_x(offfset_y);
             });
 
             label_position <- all(model.label.frp.width,frp.input.set_icon_size);
             eval label_position (((text_width,icon_size)) {
-                model.label.set_position_x(-text_width-icon_size.x/2.0);
+                model.label.set_x(-text_width-icon_size.x/2.0);
                 // Adjust for text offset, so this appears more centered.
-                model.label.set_position_y(0.25 * icon_size.y);
+                model.label.set_y(0.25 * icon_size.y);
             });
 
             overlay_size <- all(model.label.frp.width,frp.input.set_icon_size);
             eval overlay_size ([model]((text_width,icon_size)) {
                 let size = Vector2::new(text_width + icon_size.x,icon_size.y);
                 model.icon_overlay.size.set(size);
-                model.icon_overlay.set_position_x(-text_width/2.0);
+                model.icon_overlay.set_x(-text_width/2.0);
             });
 
 

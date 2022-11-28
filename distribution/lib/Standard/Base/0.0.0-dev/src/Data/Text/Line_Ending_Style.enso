@@ -1,8 +1,4 @@
-from Standard.Base import Text
-
-# TODO Dubious constructor export
-from project.Data.Text.Line_Ending_Style.Line_Ending_Style import all
-from project.Data.Text.Line_Ending_Style.Line_Ending_Style export all
+import project.Data.Text.Text
 
 ## An enumeration of different line ending styles.
 type Line_Ending_Style
@@ -20,6 +16,6 @@ type Line_Ending_Style
     ## Returns the text equivalent of the line ending.
     to_text : Text
     to_text self = case self of
-        Unix -> '\n'
-        Windows -> '\r\n'
-        Mac_Legacy -> '\r'
+        Line_Ending_Style.Unix -> '\n'
+        Line_Ending_Style.Windows -> '\r\n'
+        Line_Ending_Style.Mac_Legacy -> '\r'

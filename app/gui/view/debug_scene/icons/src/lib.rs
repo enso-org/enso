@@ -83,7 +83,7 @@ pub fn entry_point_searcher_icons() {
     icon::Id::for_each(|id| {
         let shape = id.create_shape(Vector2(SIZE, SIZE));
         shape.set_color(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
-        shape.set_position_x(x);
+        shape.set_x(x);
         x += 20.0;
         world.add_child(&shape);
         mem::forget(shape);

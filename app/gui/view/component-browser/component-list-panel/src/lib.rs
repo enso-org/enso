@@ -274,9 +274,9 @@ impl Model {
         self.background.size.set(style.background_sprite_size());
         self.section_navigator.update_layout(style);
 
-        self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
+        self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
-        self.grid.set_position_xy(style.grid_pos());
+        self.grid.set_xy(style.grid_pos());
     }
 
     /// Set the navigator so it can be disabled on hover.

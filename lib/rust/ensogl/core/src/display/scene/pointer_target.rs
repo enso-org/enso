@@ -3,18 +3,10 @@
 use crate::prelude::*;
 
 use crate::control::io::mouse;
+use crate::display::shape::primitive::glsl;
 use crate::display::symbol;
 
 use enso_frp as frp;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-const ID_ENCODING_OVERFLOW_ERR: u32 =
-    include!("../shape/primitive/glsl/error_codes/id_encoding_overflow.txt");
 
 
 
@@ -175,7 +167,7 @@ impl PointerTargetId {
                 Ok(Self::Symbol { id })
             }
             _ => {
-                let err = if alpha == ID_ENCODING_OVERFLOW_ERR {
+                let err = if alpha == glsl::codes::ID_ENCODING_OVERFLOW_ERROR {
                     DecodeError::Overflow
                 } else {
                     DecodeError::WrongAlpha(alpha)

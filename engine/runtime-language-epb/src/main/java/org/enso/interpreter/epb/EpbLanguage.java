@@ -52,8 +52,8 @@ public class EpbLanguage extends TruffleLanguage<EpbContext> {
   @Override
   protected CallTarget parse(ParsingRequest request) {
     EpbParser.Result code = EpbParser.parse(request.getSource());
-    return Truffle.getRuntime()
-        .createCallTarget(ForeignEvalNode.build(this, code, request.getArgumentNames()));
+    ForeignEvalNode foreignEvalNode = ForeignEvalNode.build(this, code, request.getArgumentNames());
+    return foreignEvalNode.getCallTarget();
   }
 
   @Override

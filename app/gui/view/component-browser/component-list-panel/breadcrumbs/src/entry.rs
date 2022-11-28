@@ -206,7 +206,7 @@ impl EntryData {
 
     fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
         let size = contour.size;
-        self.text.set_position_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
+        self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
         self.separator.size.set(size);
         self.ellipsis.size.set(size);
     }

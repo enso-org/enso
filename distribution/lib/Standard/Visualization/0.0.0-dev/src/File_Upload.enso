@@ -7,11 +7,11 @@ from Standard.Base import all
 
    Arguments:
    - `path`: The path to which the file is being uploaded.
-file_uploading : (File.File | Text) -> File.File ! File_Being_Uploaded
+file_uploading : (File | Text) -> File ! File_Being_Uploaded
 file_uploading path =
     err = File_Being_Uploaded.Value <| case path of
         _ : Text -> path
-        _ : File.File -> path.path
+        _ : File -> path.path
         _ -> ""
     Error.throw err
 

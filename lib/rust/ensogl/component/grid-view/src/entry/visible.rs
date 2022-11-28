@@ -101,7 +101,7 @@ where EntryParams: frp::node::Data
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
                 contour_offset <- all(init, entry_frp.contour_offset)._1();
-                eval contour_offset ((off) overlay.set_position_xy(*off));
+                eval contour_offset ((off) overlay.set_xy(*off));
 
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
@@ -165,14 +165,16 @@ pub fn position(row: Row, col: Col, entry_size: Vector2, column_widths: &ColumnW
 }
 
 /// Set the proper position of entry at given row and column.
-pub fn set_position<E: display::Object>(
+pub fn set_position<E: Entry>(
     entry: &E,
     row: Row,
     col: Col,
     entry_size: Vector2,
     column_widths: &ColumnWidths,
 ) {
-    entry.set_position_xy(position(row, col, entry_size, column_widths));
+    let pos = position(row, col, entry_size, column_widths);
+    entry.set_xy(pos);
+    entry.frp().position_set(pos);
 }
 
 /// Get size of entry at given row and column.

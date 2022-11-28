@@ -15,6 +15,7 @@ import org.eclipse.jgit.errors.{
 import org.eclipse.jgit.lib.{ObjectId, Repository}
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
+import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
@@ -31,7 +32,7 @@ import java.time.Instant
 private class Git extends VcsApi[BlockingIO] {
 
   private def repository(path: Path): Repository = {
-    val builder = new FileRepositoryBuilder();
+    val builder = new FileRepositoryBuilder()
     builder
       .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
       .setMustExist(true)
@@ -171,7 +172,7 @@ private class Git extends VcsApi[BlockingIO] {
       val logCmd = jgit.log()
       limit
         .filter(_ > 0)
-        .map(logCmd.setMaxCount(_))
+        .map(logCmd.setMaxCount)
         .getOrElse(logCmd)
         .call()
         .asScala
@@ -197,7 +198,11 @@ object Git {
 
   private class RepoExists extends Exception
 
-  /** Returns a Git implementation of VcsApi
+  /** Returns a Git implementation of VcsApi that ignores gitconfig file in
+    * user's home directory.
     */
-  def apply(): VcsApi[BlockingIO] = new Git()
+  def withEmptyUserConfig(): VcsApi[BlockingIO] = {
+    SystemReader.setInstance(new EmptyUserConfigReader)
+    new Git()
+  }
 }

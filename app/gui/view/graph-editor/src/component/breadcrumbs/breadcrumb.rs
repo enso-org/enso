@@ -341,8 +341,8 @@ impl BreadcrumbModel {
         self.label.set_property_default(color);
         self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
         self.label.set_single_line_mode(true);
-        self.label.set_position_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
-        self.label.set_position_y(TEXT_SIZE / 2.0);
+        self.label.set_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
+        self.label.set_y(TEXT_SIZE / 2.0);
         self.label.set_content(&self.info.method_pointer.name);
 
         let width = self.width();
@@ -354,10 +354,10 @@ impl BreadcrumbModel {
         let separator_size = (SEPARATOR_SIZE + PADDING * 2.0).max(0.0);
         let icon_size = (ICON_SIZE + PADDING * 2.0).max(0.0);
         self.separator.size.set(Vector2::new(separator_size, separator_size));
-        self.separator.set_position_x((offset - width / 2.0).round());
+        self.separator.set_x((offset - width / 2.0).round());
         self.icon.size.set(Vector2::new(icon_size, icon_size));
         let x_position = offset + PADDING + ICON_SIZE / 2.0 + LEFT_MARGIN + ICON_LEFT_MARGIN;
-        self.icon.set_position_x(x_position.round());
+        self.icon.set_x(x_position.round());
 
         self
     }

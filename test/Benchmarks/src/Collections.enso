@@ -4,10 +4,10 @@ from Standard.Test import Bench
 
 polyglot java import java.util.Random
 
-gen_list len = 0.up_to len . fold Nil (l -> i -> Cons i+1 l)
+gen_list len = 0.up_to len . fold List.Nil (l -> i -> List.Cons i+1 l)
 
 sum_list_meta list =
-    nil_cons = Meta.meta Nil . constructor
+    nil_cons = Meta.meta List.Nil . constructor
     folder acc list =
         meta_list = Meta.meta list
         if meta_list.constructor == nil_cons then acc else
