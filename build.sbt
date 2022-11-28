@@ -1636,7 +1636,7 @@ lazy val `engine-runner` = project
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
-        staticOnLinux = true,
+        staticOnLinux = false,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
