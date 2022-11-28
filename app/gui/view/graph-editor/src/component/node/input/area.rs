@@ -529,24 +529,43 @@ impl Model {
                     editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
                     // TODO: `label_color` should be animated, when when we can set text colors
                     //  more efficiently. (See https://www.pivotaltracker.com/story/show/183567665)
-                    label_color    <- all_with8(&area_frp.set_edit_mode,&selected,&area_frp.set_disabled
-                        ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
-                        ,move |&editing,&selected,&disabled,&editing_color,&selected_color
-                        ,&disabled_color,&expected_color,&base_color| {
-                            if      editing         { color::Lcha::from(editing_color) }
-                            else if selected        { color::Lcha::from(selected_color) }
-                            else if disabled        { color::Lcha::from(disabled_color) }
-                            else if is_expected_arg { color::Lcha::from(expected_color) }
-                            else                    { color::Lcha::from(base_color) }
-                        });
+                    label_color <- all_with8(
+                        &area_frp.editing,
+                        &selected,
+                        &area_frp.set_disabled,
+                        &editing_color,
+                        &selected_color,
+                        &disabled_color,
+                        &expected_color,
+                        &base_color,
+                        move |&editing,
+                              &selected,
+                              &disabled,
+                              &editing_color,
+                              &selected_color,
+                              &disabled_color,
+                              &expected_color,
+                              &base_color| {
+                            if editing {
+                                color::Lcha::from(editing_color)
+                            } else if selected {
+                                color::Lcha::from(selected_color)
+                            } else if disabled {
+                                color::Lcha::from(disabled_color)
+                            } else if is_expected_arg {
+                                color::Lcha::from(expected_color)
+                            } else {
+                                color::Lcha::from(base_color)
+                            }
+                        },
+                    );
                 }
 
                 let index = node.payload.index;
                 let length = node.payload.length;
                 let label = model.label.clone_ref();
                 frp::extend! { port_network
-                    set_color <- all_with(&label_color,&area_frp.set_edit_mode,|&color, _| color);
-                    eval set_color ([label](color) {
+                    eval label_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
                         // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
                         let range = enso_text::Range::<Byte>::try_from(range).unwrap();
