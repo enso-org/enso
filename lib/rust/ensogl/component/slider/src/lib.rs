@@ -447,7 +447,7 @@ impl Slider {
                 // Adjust the precision by the number of offset steps.
                 |(precision, offset)| *precision * (PRECISION_ADJUSTMENT_STEP_BASE).pow(*offset)
             );
-            output.precision <+ precision.gate_not(&input.set_precision_adjustment_disabled);
+            precision <- precision.gate_not(&input.set_precision_adjustment_disabled);
 
 
             // === Value calculation ===
@@ -456,12 +456,12 @@ impl Slider {
             value_on_click <- output.value.sample(&component_click);
             value_on_click <- any2(&value_reset, &value_on_click);
             update_value <- bool(&component_release, &value_on_click);
-            value <- all3(&value_on_click, &output.precision, &drag_delta_primary);
+            value <- all3(&value_on_click, &precision, &drag_delta_primary);
             value <- value.gate(&update_value);
             value <- value.map(|(value, precision, delta)| value + delta * precision);
             value <- any2(&input.set_value, &value);
             // Snap the slider's value to the nearest precision increment.
-            value <- all2(&value, &output.precision);
+            value <- all2(&value, &precision);
             value <- value.map(|(value, precision)| (value / precision).round() * precision);
             value <- all5(
                 &value,
@@ -471,6 +471,7 @@ impl Slider {
                 &input.set_upper_limit_type,
             ).map(value_limit_clamp);
             output.value <+ value;
+            output.precision <+ precision;
         };
     }
 
@@ -736,8 +737,10 @@ impl Slider {
                 &input.set_lower_limit_type,
                 &input.set_upper_limit_type,
             ).map(value_limit_clamp);
-            output.value <+ value_after_edit.gate(&edit_success);
             output.precision <+ prec_after_edit.gate(&edit_success);
+            output.value <+ value_after_edit.gate(&edit_success);
+
+            trace output.value;
         };
     }
 
