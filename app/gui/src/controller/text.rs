@@ -8,6 +8,7 @@ use crate::prelude::*;
 use crate::controller::FilePath;
 use crate::model::module::TextChange;
 
+use engine_protocol::common::error::code;
 use engine_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
@@ -99,30 +100,30 @@ impl Handle {
     /// Save the project to the VCS.
     #[profile(Detail)]
     pub fn save_project_to_vcs(&self) -> impl Future<Output = FallibleResult> {
-        let file_handle = self.file.clone_ref();
-        async move {
-            let (path, ls) = match file_handle {
-                FileHandle::PlainText { path, language_server } => {
-                    let path = path.parent().unwrap().parent().unwrap();
-                    (path, language_server)
-                },
-                FileHandle::Module { controller } => {
-                    let path = controller.model.path().clone_ref();
-                    let path = path.parent().unwrap().parent().unwrap();
-                    let ls = controller.language_server.clone_ref();
-                    (path, ls)
-                }
-            };
+        let (path, ls) = match self.file.clone_ref() {
+            FileHandle::PlainText { path, language_server } => {
+                let path = path.parent().unwrap().parent().unwrap();
+                (path, language_server)
+            },
+            FileHandle::Module { controller } => {
+                let path = controller.model.path().clone_ref();
+                let path = path.parent().unwrap().parent().unwrap();
+                let ls = controller.language_server.clone_ref();
+                (path, ls)
+            }
+        };
 
+        async move {
             let response = ls.write_vcs(&path, &None).await;
             if let Err(RpcError::RemoteError(
-                json_rpc::messages::Error{code: FILE_NOT_FOUND, ..}
+                json_rpc::messages::Error{code: error_code, ..}
             )) = response {
-                ls.init_vcs(&path).await?;
-                ls.write_vcs(&path, &None).await?;
-            } else {
-                response?;
+                if error_code==code::FILE_NOT_FOUND {
+                    ls.init_vcs(&path).await?;
+                    ls.write_vcs(&path, &None).await?;
+                }
             }
+            response?;
             
             // verify that project state is saved
             let list = ls.list_vcs(&path, &Some(10)).await?;
