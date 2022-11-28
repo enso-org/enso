@@ -18,7 +18,7 @@ type Join_Condition_Resolver
        `Nothing` will be returned as the conditions indicating that state.
        Besides, a list of redundant columns from equality joins is aggregated
        which can be used to deduplicate them.
-    resolve : Vector Join_Condition
+    resolve : Join_Condition | Vector Join_Condition -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
         redundant_names = Vector.new_builder
         problem_builder = Problem_Builder.new
@@ -34,7 +34,10 @@ type Join_Condition_Resolver
         resolve_left = resolve_selector self.left_at
         resolve_right = resolve_selector self.right_at
 
-        converted = conditions.map condition-> case condition of
+        conditions_vector = case conditions of
+            _ : Vector -> conditions
+            single_condition : Join_Condition -> [single_condition]
+        converted = conditions_vector.map condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
                 left = resolve_left left_selector
                 right = resolve_right right_selector

@@ -39,6 +39,10 @@ public class NameDeduplicator {
     return Arrays.stream(names).map(this::makeUnique).toArray(String[]::new);
   }
 
+  public void markUsed(String name) {
+    usedNames.add(name);
+  }
+
   /**
    * Makes a name unique.
    *

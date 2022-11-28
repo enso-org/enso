@@ -341,6 +341,7 @@ public class Table {
 
     if (includeLeftColumns) {
       for (Column column : this.columns) {
+        deduplicator.markUsed(column.getName());
         Column newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
       }
