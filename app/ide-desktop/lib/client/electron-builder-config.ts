@@ -98,8 +98,8 @@ const config: Configuration = {
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: args.targetOverride ?? 'AppImage',
-        // target: 'dir',
+        //target: args.targetOverride ?? 'AppImage',
+        target: 'dir',
         icon: `${args.iconsDist}/png`,
         category: 'Development',
     },

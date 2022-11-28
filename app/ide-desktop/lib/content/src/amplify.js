@@ -13,9 +13,9 @@ const USER_POOL_WEB_CLIENT_ID = process.env.NEXT_PUBLIC_AUTH_USER_POOL_WEB_CLIEN
 // (required) - Domain that hosts the OAuth endpoints for login, logout, and token refresh.
 const DOMAIN = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'test-enso-pool.auth.us-east-1.amazoncognito.com/'
 // (optional) - Redirect to this URL back from Cognito after the user signs in.
-const REDIRECT_SIGN_IN = process.env.NEXT_PUBLIC_AUTH_REDIRECT_SIGN_IN || 'http://localhost:8080'
+const REDIRECT_SIGN_IN = process.env.NEXT_PUBLIC_AUTH_REDIRECT_SIGN_IN || 'enso://localhost'
 // (optional) - Redirect to this URL back from Cognito after the user signs out.
-const REDIRECT_SIGN_OUT = process.env.NEXT_PUBLIC_AUTH_REDIRECT_SIGN_OUT || 'http://localhost:8080'
+const REDIRECT_SIGN_OUT = process.env.NEXT_PUBLIC_AUTH_REDIRECT_SIGN_OUT || 'enso://localhost'
 // (optional) - Response type of the OAuth flow. Replaces the default of 'token' since we want to be
 // provided a refresh token.
 const RESPONSE_TYPE = "code";

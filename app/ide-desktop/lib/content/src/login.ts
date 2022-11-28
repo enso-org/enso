@@ -1,5 +1,6 @@
-import { amplifyConfig } from "./amplify"
+import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { Auth } from "aws-amplify"
+import { amplifyConfig } from "./amplify"
 
 const googleButton = document.getElementById('google-signin')
 
@@ -28,7 +29,7 @@ async function getAccessToken() {
     return jwt
 }
 
-async function authenticate(provider) {
+async function authenticate(provider: CognitoHostedUIIdentityProvider) {
     let authConfig = getAuthConfig()
     console.log('Auth.configure', authConfig)
     Auth.configure(authConfig)
@@ -41,18 +42,24 @@ async function authenticate(provider) {
         await Auth.federatedSignIn({ provider: provider });
     } else {
         console.log('authenticate authenticated!')
-        window.location.href('/')
+        window.loginAPI.authenticatedRedirect()
     }
 }
 
 window.onload = async () => {
-    googleButton.addEventListener('click', () => authenticate('google'))
+    console.log('LOGIN window.onload', window.location.search)
+
+    googleButton.addEventListener('click', () => authenticate(CognitoHostedUIIdentityProvider.Google))
+
+    let authConfig = getAuthConfig()
+    Auth.configure(authConfig)
+    console.log('LOGIN Auth configured')
 
     let accessToken = await getAccessToken();
-    console.log('login page', accessToken, window.location)
+    console.log('LOGIN got access token', accessToken, window.location)
 
     if (accessToken) {
-        console.log('authenticated!')
-        window.location.href('/')
+        console.log('LOGIN authenticated!')
+        window.loginAPI.authenticatedRedirect()
     }
 }

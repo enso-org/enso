@@ -30,7 +30,6 @@ import * as https from 'https'
 import { Auth } from "aws-amplify";
 import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
 import { amplifyConfig } from "./amplify";
-import opener from 'opener'
 
 const authInfo = 'auth-info'
 
@@ -918,36 +917,32 @@ API.main = async function(inputConfig: any) {
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
-    //var opener = require('opener')
-    //var childProcess = require("child_process");
-    var cfg: any = amplifyConfig
-    cfg.oauth.options.urlOpener = async (url: string, redirectSignIn: string) => {
-        console.log('urlOpener', url, redirectSignIn)
-        opener(url)
-        //var childProcess = require("child_process");
-        //childProcess.execFile('xclock')
-    }
+    // console.log('Auth.configure', amplifyConfig)
+    // try {
+    //     Auth.configure(amplifyConfig);
+    // } catch (error) {
+    //     console.log('Auth.configure failed', error)
+    // }
 
-    console.log('Auth.configure', cfg)
-    Auth.configure(cfg);
+    // let session;
+    // let jwt;
+    // try {
+    //     session = await Auth.currentSession();
+    //     jwt = session.getAccessToken().getJwtToken();
+    // } catch (error) { }
 
-    let session;
-    let jwt;
-    try {
-        session = await Auth.currentSession();
-        jwt = session.getAccessToken().getJwtToken();
-    } catch (error) { }
+    // console.log('session', session)
+    // console.log('jwt', jwt)
 
-    console.log('session', session)
-    console.log('jwt', jwt)
+    // if (!jwt) {
+    //     console.log('Auth.federatedSignIn');
+    //     Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google });
+    //     console.log('Auth.federatedSignIn AFTER')
+    // } else {
+    //     runEntryPoint(config)
+    // }
 
-    if (!jwt) {
-        console.log('Auth.federatedSignIn');
-        Auth.federatedSignIn({ provider: CognitoHostedUIIdentityProvider.Google });
-        console.log('Auth.federatedSignIn AFTER')
-    } else {
-        runEntryPoint(config)
-    }
+    runEntryPoint(config)
 
     // if (await checkMinSupportedVersion(config)) {
     //     if (config.authentication_enabled && !config.entry) {

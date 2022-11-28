@@ -18,8 +18,8 @@ import fss from 'node:fs'
 import fsp from 'node:fs/promises'
 
 import opener from 'opener'
-import { amplifyConfig } from '../../content/src/amplify.js'
-import { Auth } from 'aws-amplify'
+// import { amplifyConfig } from '../../content/src/amplify.js'
+// import { Auth } from 'aws-amplify'
 
 // =============
 // === Paths ===
@@ -498,28 +498,49 @@ async function main(args) {
         if (!gotTheLock) {
             Electron.app.quit()
         } else {
+            // 'second-instance' event is emitted on Windows and Linux when opening
+            // custom urls. For macOS 'open-url' event is emitted
             Electron.app.on('second-instance', (event, commandLine, workingDirectory) => {
                 // Someone tried to run a second instance, we should focus our window.
+                console.log('second-instance', commandLine, workingDirectory)
+                let target;
+                try {
+                    let url = new URL(commandLine[commandLine.length - 1])
+                    target = new URL(origin)
+                    target.search = url.search
+                } catch {}
+
+                console.log('second-instance target', target.href)
+
                 if (mainWindow) {
                     if (mainWindow.isMinimized()) mainWindow.restore()
                     mainWindow.focus()
+                    if (target) {
+                        //server.fallback = '/assets/index.html'
+                        mainWindow.loadURL(target.href)
+                    }
                 }
             })
         }
 
-        console.log('MAIN process', process)
-        console.log('MAIN Auth.configure', amplifyConfig)
-        Auth.configure(amplifyConfig);
+        // console.log('MAIN Auth.configure', amplifyConfig)
+        // try {
+        //     Auth.configure(amplifyConfig);
+        // } catch(error) {
+        //     console.log('MAIN Auth.configure failed', error)
+        // }
 
-        let session;
-        let jwt;
-        try {
-            session = await Auth.currentSession();
-            jwt = session.getAccessToken().getJwtToken();
-        } catch (error) { }
+        // let session;
+        // let jwt;
+        // try {
+        //     session = await Auth.currentSession();
+        //     jwt = session.getAccessToken().getJwtToken();
+        // } catch (error) { }
 
-        console.log('MAIN session', session, jwt)
-        let serverFallback = jwt ? '/assets/index.html' : '/assets/login.html'
+        // console.log('MAIN session', session, jwt)
+        // let serverFallback = jwt ? '/assets/index.html' : '/assets/login.html'
+        //let serverFallback = '/assets/index.html'
+        let serverFallback = '/assets/login.html'
 
         console.log('Starting the IDE service.')
         if (args.server !== false) {
@@ -540,18 +561,6 @@ async function main(args) {
                     mainWindow.hide()
                 }
             })
-            // mainWindow.once('ready-to-show', () => {
-            //     mainWindow.show()
-            //     console.log('mainWindow ready')
-            //     if (!jwt) {
-            //         console.log('Auth.federatedSignIn');
-            //         Auth.federatedSignIn({ provider: 'google' });
-            //         console.log('Auth.federatedSignIn AFTER')
-            //     } else {
-            //         console.log('!!! logged in !!!')
-            //     }
-            // })
-            // console.log('IDE client started.')
         }
 
     } catch (err) {
@@ -675,6 +684,11 @@ function createWindow() {
         console.log('ipcMain.on login-api-open', url)
         opener(url)
     })
+    Electron.ipcMain.on('login-api-authenticated-redirect', () => {
+        console.log('ipcMain.on login-api-authenticated-redirect')
+        server.fallback = '/assets/index.html'
+        mainWindow.loadURL(origin)
+    })
 
     let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`
@@ -751,7 +765,10 @@ if (process.platform === 'darwin') {
     })
 }
 
+// 'open-url' event is macOS way to handle URL opening. For Windows and Linux
+// 'second-instance' event is emitted.
 Electron.app.on('open-url', (event, url) => {
+    console.log('open-url', event, url)
     dialog.showErrorBox('Welcome Back', `You arrived from: ${url}`)
 })
 // Quit when all windows are closed, except on macOS. There, it's common
