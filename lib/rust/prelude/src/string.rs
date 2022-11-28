@@ -7,9 +7,7 @@ use itertools::*;
 
 use crate::impls;
 
-#[cfg(feature = "serde")]
 use serde::Deserialize;
-#[cfg(feature = "serde")]
 use serde::Serialize;
 use std::borrow::Cow;
 use std::ops::Deref;
@@ -102,7 +100,7 @@ impl AsRef<str> for CowString {
 
 /// Immutable string implementation with a fast clone implementation.
 #[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct ImString {
     content: Rc<String>,
 }
@@ -286,16 +284,6 @@ impl ToImString for &str {
 // === Macros ===
 
 /// Defines a newtype for `ImString`.
-#[cfg(not(feature = "serde"))]
-#[macro_export]
-macro_rules! im_string_newtype {
-    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
-        im_string_newtype_without_serde!{ $($(#$meta)* $name),* }
-    };
-}
-
-/// Defines a newtype for `ImString`.
-#[cfg(feature = "serde")]
 #[macro_export]
 macro_rules! im_string_newtype {
     ($($(#$meta:tt)* $name:ident),* $(,)?) => {
