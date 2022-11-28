@@ -7,7 +7,6 @@ import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.api.errors.RefNotFoundException
 import org.eclipse.jgit.errors.{
-  EntryExistsException,
   IncorrectObjectTypeException,
   InvalidObjectIdException,
   MissingObjectException,
@@ -70,7 +69,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setBare(false)
         .call()
 
-      ensoDataDirectory.foreach { path =>
+      ensoDataDirectory.foreach { _ =>
         // JGit **always** creates a .git file pointing to gitdir path.
         // The file may be confusing to the users and unnecessary for
         // VCS since all commands include repo path explicitly.
@@ -79,13 +78,10 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
           dotGit.delete()
         }
 
-        if (path.toFile.exists()) {
-          throw new EntryExistsException(path.toString)
-        }
         // Exclude <enso-data>/.git
         jgit
           .reset()
-          .addPath(path.resolve(VcsApi.DefaultRepoDir).toString)
+          .addPath(gitDir.toString)
           .call()
       }
 
