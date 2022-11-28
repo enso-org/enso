@@ -1010,6 +1010,7 @@ final class TreeToIr {
             sb.appendCodePoint(val);
           }
         }
+        case TextElement.Newline n -> sb.append('\n');
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
     }
