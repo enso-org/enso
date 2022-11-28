@@ -70,11 +70,12 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .call()
 
       ensoDataDirectory.foreach { _ =>
-        // JGit **always** creates a .git file pointing to gitdir path.
-        // The file may be confusing to the users and unnecessary for
-        // VCS since all commands include repo path explicitly.
+        // When `gitDir` is set, JGit **always** creates a .git file (not a directory!) that points at the real
+        // directory that has the repository.
+        // The presence of the `.git` file is unnecessary and may be confusing to the users;
+        // all operations specify explicitly the location of Git metadata directory.
         val dotGit = root.resolve(".git").toFile
-        if (dotGit.exists()) {
+        if (dotGit.exists() && dotGit.isFile) {
           dotGit.delete()
         }
 
