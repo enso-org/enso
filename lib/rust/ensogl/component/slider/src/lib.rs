@@ -739,8 +739,6 @@ impl Slider {
             ).map(value_limit_clamp);
             output.precision <+ prec_after_edit.gate(&edit_success);
             output.value <+ value_after_edit.gate(&edit_success);
-
-            trace output.value;
         };
     }
 
