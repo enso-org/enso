@@ -133,7 +133,7 @@ pub mod projects_table {
     const AWS_REGION: enso_cloud_http::AwsRegion = enso_cloud_http::AwsRegion::EuWest1;
     /// Access token used to authenticate requests to the Cloud API.
     // TODO [NP]: find a way to get the token from the browser
-    const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXhJRDlmY3EwPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI0YjBhMzExNy1hNmI5LTRkYmYtOGEyMC0wZGZmNWE4NjA2ZGYiLCJjb2duaXRvOmdyb3VwcyI6WyJldS13ZXN0LTFfOUt5Y3UyU2JEX0dvb2dsZSJdLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV85S3ljdTJTYkQiLCJ2ZXJzaW9uIjoyLCJjbGllbnRfaWQiOiI0ajliZnM4ZTc0MTVlcmY4MmwxMjl2MHFoZSIsIm9yaWdpbl9qdGkiOiI4MDYxMDkxMS01OGVlLTRjYzctYjU0Ny1lNmZjNzY2OTMwNmYiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6Im9wZW5pZCBlbWFpbCIsImF1dGhfdGltZSI6MTY2ODUyNzkwNiwiZXhwIjoxNjY4NTMxNTA2LCJpYXQiOjE2Njg1Mjc5MDYsImp0aSI6ImU2Y2QwZDBkLWZlMTgtNGYwYy1hZDQ5LTNmMGE2ZTk3NDY4MiIsInVzZXJuYW1lIjoiR29vZ2xlXzEwNDA4MDA2MTY5NTg0NDYwMDk2OCJ9.pAH00UChIp1R4Y_0UZg4nHycFuu75unANVYyRW_HtoMQLkRdiwYvBp5MUMU1swElY3tO5hNbfIfUciqAAMxkDyyr9GZzFLotV8bXuOUaXsCUhP2s2ew_HNsfpXjk9HTvn8eqhRQL9ZiA6iySYaAuTpSHT4x6iCgXyUK6kJolvdMFIkamcSeDoD-JfQAm5e1EtAFfoR5WT6o_Y8nV4VVWrOxT6bTkGUp9pu5Be1XdQS_nCzirj_GGWGj3rS9BQo1LaNMF9GSlFwqZ4rEKWD89tR1zxdx6GeYAU3DfMtgPto2ittElgm8ejQ3jaOrfkTDY19KI8Sogw1mS0BP9sGy4tg";
+    const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXhJRDlmY3EwPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI0YjBhMzExNy1hNmI5LTRkYmYtOGEyMC0wZGZmNWE4NjA2ZGYiLCJjb2duaXRvOmdyb3VwcyI6WyJldS13ZXN0LTFfOUt5Y3UyU2JEX0dvb2dsZSJdLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV85S3ljdTJTYkQiLCJ2ZXJzaW9uIjoyLCJjbGllbnRfaWQiOiI0ajliZnM4ZTc0MTVlcmY4MmwxMjl2MHFoZSIsIm9yaWdpbl9qdGkiOiI4MDYxMDkxMS01OGVlLTRjYzctYjU0Ny1lNmZjNzY2OTMwNmYiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6Im9wZW5pZCBlbWFpbCIsImF1dGhfdGltZSI6MTY2ODUyNzkwNiwiZXhwIjoxNjY5NjczOTAyLCJpYXQiOjE2Njk2NzAzMDIsImp0aSI6IjUyYzE3NzkzLTA2YmYtNDkxYi1iYmExLWZjMTI0MTUxZTQ1NSIsInVzZXJuYW1lIjoiR29vZ2xlXzEwNDA4MDA2MTY5NTg0NDYwMDk2OCJ9.KsFezaQrtDOJiy-edAJEtWH0hXE5SfBQGczazgvXUGMY4xluKZMle_Q0x2myFxu_1-eb8ND8M-2nOU9Kz09hKLrxqiJI6BRZrAlNKk0B6c2mtJM-OXS5Nyvs83xTfjHJPnBOPD6qadDZPx82FZkiI99HCiSEn1s1lyMy9-GPAHcIFa-PMDtrf0mzAbJUnCCfJPjxz49003FKTThOLCBVvjrgiTCCYIzvF96ERIVL2bMJ08bQEIwsbHxFvONgHh1yjGFjYDT0JC6OXZraQ3wFQFOnCwL33sijtn8_p9b3f22UttbaOFg03V-I7tSx5YUTiVDJHWEKYqlmm_fHUFWlVw";
 
 
 
@@ -405,7 +405,7 @@ pub mod projects_table {
             let grid_min_x = viewport_min_x;
             let grid_max_y = viewport_min_y + grid_height;
             let position = Vector2::new(grid_min_x, grid_max_y);
-            self.grid.set_position_xy(position);
+            self.grid.set_xy(position);
         }
 
         fn refit_entries_to_shape(&self, shape: &ensogl::display::scene::Shape) {
@@ -499,8 +499,7 @@ pub mod projects_table {
 
             app.display.add_child(root);
 
-            populate_table_with_data(input);
-
+            populate_table_with_data(input.clone_ref());
 
             Self { frp, model }
         }
@@ -556,11 +555,11 @@ pub mod projects_table {
         scroll_frp.resize(viewport_size);
     }
 
-    fn populate_table_with_data(input: &api::public::Input) {
+    fn populate_table_with_data(input: api::public::Input) {
         let api_gateway_id = enso_cloud_http::ApiGatewayId(API_GATEWAY_ID.to_string());
         let token = enso_cloud_http::AccessToken(TOKEN.to_string());
         let client = enso_cloud_http::Client::new(api_gateway_id, AWS_REGION, token);
-        get_projects(client, input.clone_ref());
+        get_projects(client, input);
     }
 
     // FIXME [NP]: Should we be assuming that the `row, col` are always in bounds? If we do so, we
@@ -655,6 +654,8 @@ pub fn main() {
 
         let projects_table = app.new_view::<projects_table::View>();
         scene.add_child(&projects_table);
+
+        std::mem::forget(projects_table);
     })
 }
 
