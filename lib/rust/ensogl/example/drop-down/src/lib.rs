@@ -32,7 +32,6 @@ use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
-use ensogl_label::Label;
 use ensogl_text as text;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -108,7 +107,8 @@ fn init(app: &Application) {
 
 fn model_for_entry(row: usize) -> dropdown::DropdownEntry<EntryData> {
     let val = row as i32 * 3 / 2 - 7;
-    dropdown::DropdownEntry::<EntryData>::new(val, format!("Value {val}").into())
+    let odd_even = if val % 2 == 0 { "even" } else { "odd" };
+    dropdown::DropdownEntry::<EntryData>::new(val, format!("{odd_even} {val}").into())
 }
 
 fn setup_dropdown(app: &Application) -> dropdown::Dropdown<EntryData> {
