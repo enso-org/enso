@@ -395,7 +395,22 @@ public class Table {
    * @return a table result from transposing the specified columns.
    */
   public static Table transpose(Column[] id_columns, Column[] to_transpose, String name_field, String value_field) {
-    int size = id_columns.length > 0 ? id_columns[0].getSize() : to_transpose[0].getSize();
+    if (to_transpose.length == 0) {
+      // Nothing to transpose, add two null columns to the existing set.
+      Column[] newColumns = new Column[id_columns.length + 2];
+      System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
+
+      int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
+      Builder builder = new StringBuilder(size);
+      builder.appendNulls(size);
+      Storage newStorage = builder.seal();
+      newColumns[id_columns.length] = new Column(name_field, newStorage);
+      newColumns[id_columns.length + 1] = new Column(value_field, newStorage);
+      return new Table(newColumns);
+    }
+
+    // Calculate Dimensions
+    int size = to_transpose[0].getSize();
     int new_count = size * to_transpose.length;
 
     // Create Storage
@@ -410,6 +425,7 @@ public class Table {
         for (int i = 0; i < id_columns.length; i++) {
           storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
         }
+
         storage[id_columns.length].append(column.getName());
         storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
       }

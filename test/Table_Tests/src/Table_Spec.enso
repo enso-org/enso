@@ -1115,6 +1115,18 @@ spec =
             t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
             t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
 
+        Test.specify "should allow all id fields with warning or error" <|
+            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
+            t1 = t.transpose t.column_names
+            t1.row_count . should_equal 3
+            t1.column_count . should_equal 6
+            t1.at "Key" . to_vector . should_equal ["x", "y", "z"]
+            t1.at "Value" . to_vector . should_equal [1, 2, 3]
+            t1.at "Name" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.at "Value_1" . to_vector . should_equal [Nothing, Nothing, Nothing]
+
+            # ToDo: Verify the warnings and error handling.
+
 main = Test_Suite.run_main spec
 
 ## JS indexes months form 0, so we need to subtract 1.

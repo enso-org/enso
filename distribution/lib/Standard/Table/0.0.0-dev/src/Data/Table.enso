@@ -1182,23 +1182,17 @@ type Table
 
         id_columns = columns_helper.select_columns_helper id_fields False problem_builder
         count = self.column_count - id_columns.length
+        if count == 0 then problem_builder.report_other_warning No_Input_Columns_Selected
 
-        result = case count == 0 of
-            True ->
-                problem_builder.report_other_warning No_Input_Columns_Selected
-                id_columns.each k-> unique.make_unique k.name
-                self
-            False ->
-                selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
+        selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
-                data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
-                java_data = data.map .java_column
+        data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
+        java_data = data.map .java_column
 
-                java_id = id_columns.map .java_column
+        java_id = id_columns.map .java_column
 
-                id_columns.each k-> unique.make_unique k.name
-                Table.Table_Data (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
-
+        id_columns.each k-> unique.make_unique k.name
+        result = Table.Table_Data (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
         problem_builder.attach_problems_after on_problems result
 
     ## Returns a new table using a chosen field as the column header and then
