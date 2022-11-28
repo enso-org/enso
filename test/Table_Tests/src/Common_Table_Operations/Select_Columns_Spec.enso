@@ -1,0 +1,5 @@
+    Test.group prefix+"Table.select_columns" pending=pending <|
+    Test.group prefix+"Table.remove_columns" pending=pending <|
+    Test.group prefix+"Table.reorder_columns" pending=pending <|
+    Test.group prefix+"Table.sort_columns" pending=pending <|
+    Test.group prefix+"Table.rename_columns" pending=pending <|
