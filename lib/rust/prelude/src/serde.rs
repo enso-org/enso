@@ -1,13 +1,11 @@
 //! Module for utilities related to serialization/deserialization using the `serde` library.
 
-#[cfg(feature = "serde_json")]
 use serde::Deserialize;
 
 
 
 /// Try to deserialize value of type `Ret`. In case of any error, it is ignored and the default
 /// value is returned instead.
-#[cfg(feature = "serde_json")]
 pub fn deserialize_or_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
     for<'e> Ret: Default + Deserialize<'e>,
@@ -41,7 +39,6 @@ where
 /// check_deserialized_eq(r#"{"blah" : [] }"#, &empty_foo);
 /// check_deserialized_eq(r#"{"blah" : [1,2,3] }"#, &Foo { blah: vec![1, 2, 3] });
 /// ```
-#[cfg(feature = "serde_json")]
 pub fn deserialize_null_as_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
     for<'e> Ret: Default + Deserialize<'e>,
