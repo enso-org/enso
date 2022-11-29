@@ -27,8 +27,10 @@ main =
     random_gen = Random.new 123456
 
     Bench.measure (Base.Vector.new vector_size i->i) "New Vector" iter_size num_iterations
+    Bench.measure (Base.Vector.new vector_size _->42) "New Constant" iter_size num_iterations    
+    Bench.measure (Base.Vector.new vector_size _->random_gen.nextLong) "New Random" iter_size num_iterations    
     Bench.measure (Base.Vector.fill vector_size 42) "Fill Constant" iter_size num_iterations
-    Bench.measure (Base.Vector.fill vector_size random_gen.nextLong) "Fill Random" iter_size num_iterations
+    Bench.measure (Base.Vector.fill vector_size random_gen.nextLong) "Fill Random (constant)" iter_size num_iterations
     Bench.measure (random_vec + [1]) "Append Single" iter_size num_iterations
     Bench.measure (random_vec + random_vec_2) "Append Large" iter_size num_iterations
     Bench.measure (random_vec.sum) "Sum" iter_size num_iterations

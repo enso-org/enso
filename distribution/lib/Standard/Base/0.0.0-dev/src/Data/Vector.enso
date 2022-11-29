@@ -87,7 +87,7 @@ type Vector a
 
              Vector.fill length=50 item=42
     fill : Integer -> Any -> Vector Any
-    fill length ~item =
+    fill length item =
         Vector.new length _->item
 
     ## Creates a new vector builder instance.
@@ -1092,6 +1092,8 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector self =
+        ## This creates a fresh copy of the builders storage, so any future
+           changes to the builder will not affect the returned vector.
         Vector.from_polyglot_array self.java_builder.toArray
 
 ## UNSTABLE
