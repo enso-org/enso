@@ -1,5 +1,8 @@
+//! Support code for managing Enso releases.
+
 use crate::prelude::*;
 
+use crate::changelog::Changelog;
 use crate::context::BuildContext;
 use crate::paths::generated;
 use crate::paths::TargetTriple;
@@ -24,6 +27,8 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
+
+
 /// Get the prefix of URL of the release's asset in GitHub.
 ///
 /// By joining it with the asset name, we can get the URL of the asset.
@@ -41,22 +46,19 @@ pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> String {
     format!("https://github.com/{repo}/releases/download/{version}",)
 }
 
-pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
-    // Generate the release notes.
-    let changelog_contents = ide_ci::fs::read_to_string(&context.repo_root.changelog_md)?;
-    let latest_changelog_body =
-        crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
-
-
-    let mut available_variables = BTreeMap::<&str, serde_json::Value>::new();
-    available_variables.insert(
+/// Generate placeholders for the release notes.
+pub fn release_body_placeholders(
+    context: &BuildContext,
+) -> Result<BTreeMap<&'static str, serde_json::Value>> {
+    let mut ret = BTreeMap::new();
+    ret.insert(
         "is_stable",
         (!version::Kind::deduce(&context.triple.versions.version)?.is_prerelease()).into(),
     );
-    available_variables.insert("version", context.triple.versions.version.to_string().into());
-    available_variables.insert("edition", context.triple.versions.edition_name().into());
-    available_variables.insert("repo", serde_json::to_value(&context.remote_repo)?);
-    available_variables.insert(
+    ret.insert("version", context.triple.versions.version.to_string().into());
+    ret.insert("edition", context.triple.versions.edition_name().into());
+    ret.insert("repo", serde_json::to_value(&context.remote_repo)?);
+    ret.insert(
         "download_prefix",
         format!(
             "https://github.com/{}/releases/download/{}",
@@ -64,16 +66,31 @@ pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
         )
         .into(),
     );
-    available_variables.insert("changelog", latest_changelog_body.contents.into());
+
+    // Generate the release notes.
+    let changelog_contents = ide_ci::fs::read_to_string(&context.repo_root.changelog_md)?;
+    let latest_changelog_body = Changelog(&changelog_contents).top_release_notes()?;
+    ret.insert("changelog", latest_changelog_body.contents.into());
+    Ok(ret)
+}
+
+/// Generate the release notes.
+///
+/// They are generated from the template file `release-body.md` by replacing the placeholders.
+pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
+    let available_placeholders = release_body_placeholders(context)?;
 
     let handlebars = handlebars::Handlebars::new();
     let template = include_str!("../release-body.md");
-    let body = handlebars.render_template(template, &available_variables)?;
+    let body = handlebars.render_template(template, &available_placeholders)?;
     Ok(body)
 }
 
-// #[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(),
-// commit)]
+/// Create a new release draft on GitHub.
+///
+/// As it is a draft, it will not be visible to the public until it is published.
+#[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(),
+commit)]
 pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result<Release> {
     let versions = &context.triple.versions;
     let tag = versions.tag();
@@ -126,6 +143,9 @@ pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result
     Ok(release)
 }
 
+/// Publish a previously drafted release and update edition file in the cloud.
+///
+/// Requires the release ID to be set in the environment variable `ENSO_RELEASE_ID`.
 pub async fn publish_release(context: &BuildContext) -> Result {
     let remote_repo = context.remote_repo_handle();
     let BuildContext { inner: project::Context { .. }, triple, .. } = context;
@@ -281,6 +301,7 @@ pub async fn put_files_gzipping(
     Ok(())
 }
 
+/// Deploy the built GUI (frontend) to the cloud.
 #[context("Failed to notify the cloud about GUI upload in version {}.", version)]
 pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     let body = json!({
@@ -298,6 +319,7 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     handle_error_response(response).await
 }
 
+/// Generate a new version number of a requested kind.
 pub async fn resolve_version_designation(
     context: &BuildContext,
     designation: Designation,
@@ -307,6 +329,9 @@ pub async fn resolve_version_designation(
     version_set.generate_version(designation)
 }
 
+/// Generate a new version and make it visible to CI.
+///
+/// Sets `ENSO_VERSION`, `ENSO_EDITION` and `ENSO_RELEASE_MODE` environment variables.
 #[instrument]
 pub async fn promote_release(context: &BuildContext, version_designation: Designation) -> Result {
     let version = resolve_version_designation(context, version_designation).await?;

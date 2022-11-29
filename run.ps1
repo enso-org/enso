@@ -18,4 +18,4 @@ if ($BuildScriptProcess.ExitCode -ne 0) {
     Exit $BuildScriptProcess.ExitCode
 }
 $BuildScriptBinProcess = Start-Process $TargetExe -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $args
-Exit $LASTEXITCODE
+Exit $BuildScriptBinProcess.ExitCode

@@ -62,37 +62,47 @@ tied to the Enso version that it is released with.
 
 ## Release Workflow
 
-Enso does not use release branches, but instead uses tags to mark releases. The same commit may be tagged multiple times, once for each release that it is a part of. 
+Enso does not use release branches, but instead uses tags to mark releases. The
+same commit may be tagged multiple times, once for each release that it is a
+part of.
 
 Cutting a release for Enso proceeds as follows:
 
-1. Ensure that the release notes are up to date and that the top header refers to the version that is being released.
+1. Ensure that the release notes are up to date and that the top header refers
+   to the version that is being released.
 2. Invoke the "Promote Release" workflow, either by:
-   * Triggering it using [web interface](https://github.com/enso-org/enso/actions/workflows/promote.yml);
-   * Triggering it using [GitHub CLI](https://cli.github.com/). The following command should be issued from the root of the repository:
+
+   - Triggering it using
+     [web interface](https://github.com/enso-org/enso/actions/workflows/promote.yml);
+   - Triggering it using [GitHub CLI](https://cli.github.com/). The following
+     command should be issued from the root of the repository:
      ```bash
      gh workflow run promote.yml -f designator=<designator>
      ```
-     where `<designator>` is denotes what kind of release is being made. It can be one of:
-     * `stable` - a stable release (bump to minor version);
-     * `patch` - a patch release (stable release with a bump to patch version);
-     * `rc` - a release candidate for the next stable release;
-     * `nightly` - a nightly release.
+     where `<designator>` is denotes what kind of release is being made. It can
+     be one of:
+     - `stable` - a stable release (bump to minor version);
+     - `patch` - a patch release (stable release with a bump to patch version);
+     - `rc` - a release candidate for the next stable release;
+     - `nightly` - a nightly release.
 
    The `promote` workflow acts in the following steps:
-    * generate a new version string for the release;
-    * create a release draft on GitHub;
-    * build and upload assets for the release on all platforms;
-    * publish the release on GitHub.
-   
-    The final step also tags the released commit with the version string. 
-4. If the release was stable or patch, immediately update the [changelog](../CHANGELOG.md) by adding a new header for the next release, and marking the released one with the version generated.
+
+   - generate a new version string for the release;
+   - create a release draft on GitHub;
+   - build and upload assets for the release on all platforms;
+   - publish the release on GitHub.
+
+   The final step also tags the released commit with the version string.
+
+3. If the release was stable or patch, immediately update the
+   [changelog](../CHANGELOG.md) by adding a new header for the next release, and
+   marking the released one with the version generated.
 
 ### Tag Naming
 
-Tags for releases are named as follows `version`, where `version` is the
-semver string (see [versioning](#versioning)) representing the version being
-released.
+Tags for releases are named as follows `version`, where `version` is the semver
+string (see [versioning](#versioning)) representing the version being released.
 
 ### Manifest Files
 
