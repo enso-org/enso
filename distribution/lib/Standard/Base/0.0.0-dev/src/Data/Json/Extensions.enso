@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Json.Json
+import project.Data.Locale.Locale
 import project.Data.Map.Map
 import project.Data.Numbers.Number
 import project.Data.Range.Extensions
@@ -174,3 +175,20 @@ Vector.to_default_visualization_data self =
 Array.to_default_visualization_data : Text
 Array.to_default_visualization_data self =
     Vector.from_polyglot_array self . to_default_visualization_data
+
+## A Locale to Json conversion
+
+   > Example
+     Convert the default locale to JSON.
+
+         import Standard.Base.Data.Locale.Locale
+
+         example_to_json = Locale.default.to_json
+Locale.to_json : Json
+Locale.to_json self =
+    b = Vector.new_builder
+    b.append ["type", "Locale"]
+    if self.language.is_nothing.not then b.append ["language", self.language]
+    if self.country.is_nothing.not then b.append ["country", self.country]
+    if self.variant.is_nothing.not then b.append ["variant", self.variant]
+    Json.from_pairs b.to_vector

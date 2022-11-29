@@ -77,7 +77,9 @@ import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Regression
 import project.Data.Statistics
+import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
@@ -109,7 +111,9 @@ export project.Data.Pair.Pair
 export project.Data.Range.Range
 export project.Data.Range.Extensions
 export project.Data.Regression
+export project.Data.Text.Case.Case
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
+export project.Data.Text.Encoding.Encoding
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
@@ -133,8 +137,6 @@ from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
 import project.Data.Text
-import project.Data.Text.Case
-import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
 import project.Data.Text.Text_Matcher
@@ -143,10 +145,8 @@ import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode
-import project.Error.Common
 import project.Meta
 
-export project.Data.Text.Case_Sensitivity
 export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode
 export project.Data.Text.Text_Ordering
@@ -156,7 +156,8 @@ export project.Meta
 
 from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
 from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
-from project.Data.Text.Encoding export Encoding, Encoding_Error
+from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity, Case
 from project.Data.Text.Span export all
+
+import project.Error.Common
 from project.Error.Common export all

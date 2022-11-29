@@ -6,7 +6,7 @@ import Standard.Base.Data.Array.Array
 import Standard.Base.Data.Text.Regex
 
 import Standard.Base.Data.Text.Matching_Mode
-import Standard.Base.Data.Text.Case
+import Standard.Base.Data.Text.Case.Case
 import Standard.Base.Data.Text.Location
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
@@ -17,7 +17,6 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Meta
 
 export Standard.Base.Data.Text.Matching_Mode
-export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Location
 
 polyglot java import com.ibm.icu.lang.UCharacter

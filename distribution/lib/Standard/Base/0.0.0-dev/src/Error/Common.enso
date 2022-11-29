@@ -372,3 +372,12 @@ type File_Error
         File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
 
+## One or more byte sequences were not decodable using the Encoding.
+type Encoding_Error
+    Error (message:Text)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Encoding_Error: " + self.message

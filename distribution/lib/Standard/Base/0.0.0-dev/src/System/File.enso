@@ -4,7 +4,6 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Encoding.Encoding_Error
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode
 import project.Data.Text.Text
@@ -22,7 +21,7 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, Illegal_Argument_Error_Data, File_Error
+from project.Error.Common import Unsupported_File_Type, Illegal_Argument_Error_Data, File_Error, Encoding_Error
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
