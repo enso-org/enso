@@ -75,7 +75,6 @@ pub enum Notification {
 /// Handle providing executed graph controller interface.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
-    #[allow(missing_docs)]
     /// A handle to basic graph operations.
     graph:         Rc<RefCell<controller::Graph>>,
     /// Execution Context handle, its call stack top contains `graph`'s definition.

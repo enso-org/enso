@@ -210,12 +210,12 @@ pub mod mock {
             &self,
             module: model::Module,
             db: Rc<model::SuggestionDatabase>,
-        ) -> crate::controller::Graph {
+        ) -> controller::Graph {
             let parser = self.parser.clone_ref();
             let method = self.method_pointer();
             let definition =
                 module.lookup_method(self.project_name.clone(), &method).expect("Lookup failed.");
-            crate::controller::Graph::new(module, db, parser, definition)
+            controller::Graph::new(module, db, parser, definition)
                 .expect("Graph could not be created")
         }
 
@@ -296,6 +296,7 @@ pub mod mock {
                 &project,
                 executed_graph.clone_ref(),
                 searcher_mode,
+                enso_text::Byte(0),
             )
             .unwrap();
             executor.run_until_stalled();

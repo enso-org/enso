@@ -1,5 +1,4 @@
 //! This module contains all structures related to Searcher Controller.
-
 use crate::model::traits::*;
 use crate::prelude::*;
 
@@ -22,11 +21,12 @@ use double_representation::node::NodeInfo;
 use engine_protocol::language_server;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::entry::Id as EntryId;
+use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
-use parser_scala::Parser;
+
 
 
 // ==============
@@ -36,6 +36,7 @@ use parser_scala::Parser;
 pub mod action;
 pub mod breadcrumbs;
 pub mod component;
+pub mod input;
 
 pub use action::Action;
 
@@ -55,7 +56,6 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 const ENSO_PROJECT_SPECIAL_MODULE: &str =
     concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
 
-const MINIMUM_PATTERN_OFFSET: usize = 1;
 
 
 // ==============
@@ -155,166 +155,6 @@ impl Default for Actions {
 
 
 
-// ===================
-// === Input Parts ===
-// ===================
-
-/// An identification of input fragment filled by picking suggestion.
-///
-/// Essentially, this is a crumb for ParsedInput's expression.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(missing_docs)]
-pub enum CompletedFragmentId {
-    /// The called "function" part, defined as a `func` element in Prefix Chain
-    /// (see `ast::prefix::Chain`).
-    Function,
-    /// The `id`th argument of the called function.
-    Argument { index: usize },
-}
-
-/// The enum summarizing what user is currently doing basing on the searcher input.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UserAction {
-    /// User is about to type/chose function (the input is likely empty).
-    StartingTypingFunction,
-    /// User is about to type next argument.
-    StartingTypingArgument,
-    /// User is in the middle of typing function.
-    TypingFunction,
-    /// User is in the middle of typing argument.
-    TypingArgument,
-}
-
-/// A Searcher Input which is parsed to the _expression_ and _pattern_ parts.
-///
-/// We parse the input for better understanding what user wants to add.
-#[derive(Clone, Debug, Default)]
-pub struct ParsedInput {
-    /// The part of input which is treated as completed function and some set of arguments.
-    ///
-    /// The expression is kept as prefix chain, as it allows us to easily determine what kind of
-    /// entity we can put at this moment (is it a function or argument? What type of the
-    /// argument?).
-    pub expression:     Option<ast::Shifted<ast::prefix::Chain>>,
-    /// An offset between expression and pattern.
-    pub pattern_offset: usize,
-    /// The part of input being a function/argument which is still typed by user. It is used
-    /// for filtering actions.
-    pub pattern:        String,
-}
-
-impl ParsedInput {
-    /// Constructor from the plain input.
-    #[profile(Debug)]
-    fn new(input: impl Into<String>, parser: &Parser) -> FallibleResult<Self> {
-        let mut input = input.into();
-        let leading_spaces = input.chars().take_while(|c| *c == ' ').count();
-        // To properly guess what is "still typed argument" we simulate type of one letter by user.
-        // This letter will be added to the last argument (or function if there is no argument), or
-        // will be a new argument (so the user starts filling a new argument).
-        //
-        // See also `parsed_input` test to see all cases we want to cover.
-        input.push('a');
-        let ast = parser.parse_line_ast(input.trim_start())?;
-        let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
-        if let Some(last_arg) = prefix.args.pop() {
-            let mut last_arg_repr = last_arg.sast.wrapped.repr();
-            last_arg_repr.pop();
-            Ok(ParsedInput {
-                expression:     Some(ast::Shifted::new(leading_spaces, prefix)),
-                pattern_offset: last_arg.sast.off,
-                pattern:        last_arg_repr,
-            })
-        } else {
-            let mut func_repr = prefix.func.repr();
-            func_repr.pop();
-            Ok(ParsedInput {
-                expression:     None,
-                pattern_offset: leading_spaces,
-                pattern:        func_repr,
-            })
-        }
-    }
-
-    fn new_from_ast(ast: &Ast) -> Self {
-        let prefix = ast::prefix::Chain::from_ast_non_strict(ast);
-        ParsedInput {
-            expression:     Some(ast::Shifted::new(default(), prefix)),
-            pattern_offset: 0,
-            pattern:        default(),
-        }
-    }
-
-    /// Returns the id of the next fragment potentially filled by picking completion suggestion.
-    fn next_completion_id(&self) -> CompletedFragmentId {
-        match &self.expression {
-            None => CompletedFragmentId::Function,
-            Some(expression) => CompletedFragmentId::Argument { index: expression.args.len() },
-        }
-    }
-
-    /// Get the picked fragment from the Searcher's input.
-    pub fn completed_fragment(&self, fragment: CompletedFragmentId) -> Option<String> {
-        use CompletedFragmentId::*;
-        match (fragment, &self.expression) {
-            (_, None) => None,
-            (Function, Some(expr)) => Some(expr.func.repr()),
-            (Argument { index }, Some(expr)) => Some(expr.args.get(index)?.sast.wrapped.repr()),
-        }
-    }
-
-    /// Get the user action basing of this input (see `UserAction` docs).
-    pub fn user_action(&self) -> UserAction {
-        use UserAction::*;
-        let empty_pattern = self.pattern.is_empty();
-        match self.next_completion_id() {
-            CompletedFragmentId::Function if empty_pattern => StartingTypingFunction,
-            CompletedFragmentId::Function => TypingFunction,
-            CompletedFragmentId::Argument { .. } if empty_pattern => StartingTypingArgument,
-            CompletedFragmentId::Argument { .. } => TypingArgument,
-        }
-    }
-
-    /// Convert the current input to Prefix Chain representation.
-    pub fn as_prefix_chain(&self, parser: &Parser) -> Option<ast::Shifted<ast::prefix::Chain>> {
-        let parsed_pattern = parser.parse_line_ast(&self.pattern).ok();
-        let pattern_sast = parsed_pattern.map(|p| ast::Shifted::new(self.pattern_offset, p));
-        // If there is an expression part of input, we add current pattern as the last argument.
-        if let Some(chain) = &self.expression {
-            let mut chain = chain.clone();
-            if let Some(sast) = pattern_sast {
-                let prefix_id = None;
-                let argument = ast::prefix::Argument { sast, prefix_id };
-                chain.wrapped.args.push(argument);
-            }
-            Some(chain)
-        // If there isn't any expression part, the pattern is the whole input.
-        } else if let Some(sast) = pattern_sast {
-            let chain = ast::prefix::Chain::from_ast_non_strict(&sast.wrapped);
-            Some(ast::Shifted::new(self.pattern_offset, chain))
-        } else {
-            None
-        }
-    }
-}
-
-impl HasRepr for ParsedInput {
-    fn repr(&self) -> String {
-        let mut repr = self.expression.as_ref().map_or("".to_string(), HasRepr::repr);
-        repr.extend(itertools::repeat_n(' ', self.pattern_offset));
-        repr.push_str(&self.pattern);
-        repr
-    }
-}
-
-impl Display for ParsedInput {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.repr())
-    }
-}
-
-
-
 // ================
 // === ThisNode ===
 // ================
@@ -391,7 +231,7 @@ impl Mode {
     pub fn node_id(&self) -> ast::Id {
         match self {
             Mode::NewNode { node_id, .. } => *node_id,
-            Mode::EditNode { node_id } => *node_id,
+            Mode::EditNode { node_id, .. } => *node_id,
         }
     }
 }
@@ -402,29 +242,19 @@ impl Mode {
 /// what imports should be added when inserting node.
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub struct FragmentAddedByPickingSuggestion {
-    pub id:                CompletedFragmentId,
-    pub picked_suggestion: action::Suggestion,
+pub struct PickedSuggestion {
+    pub entry:         action::Suggestion,
+    pub inserted_code: String,
 }
 
-impl FragmentAddedByPickingSuggestion {
+impl PickedSuggestion {
     /// Check if the picked fragment is still unmodified by user.
-    fn is_still_unmodified(&self, input: &ParsedInput) -> bool {
-        let expected = self.code_to_insert(&None);
-        input.completed_fragment(self.id).contains(&expected)
-    }
-
-    fn code_to_insert(&self, this_node: &Option<ThisNode>) -> Cow<str> {
-        let generate_this = self.id != CompletedFragmentId::Function || this_node.is_none();
-        self.picked_suggestion.code_to_insert(generate_this)
-    }
-
-    fn required_imports(
-        &self,
-        db: &model::SuggestionDatabase,
-        current_module: QualifiedNameRef,
-    ) -> impl IntoIterator<Item = suggestion_database::entry::Import> {
-        self.picked_suggestion.required_imports(db, current_module)
+    fn is_still_unmodified(&self, input: &input::Input) -> bool {
+        match &input.ast {
+            input::InputAst::Line(ast) =>
+                ast.elem.iter_recursive().any(|ast_node| ast_node.repr() == self.inserted_code),
+            input::InputAst::Invalid(string) => *string == self.inserted_code,
+        }
     }
 }
 
@@ -432,14 +262,14 @@ impl FragmentAddedByPickingSuggestion {
 #[derive(Clone, Debug, Default)]
 pub struct Data {
     /// The current searcher's input.
-    pub input: ParsedInput,
+    pub input:              input::Input,
     /// The action list which should be displayed.
-    pub actions: Actions,
+    pub actions:            Actions,
     /// The component list which should be displayed.
-    pub components: component::List,
-    /// All fragments of input which were added by picking suggestions. If the fragment will be
-    /// changed by user, it will be removed from this list.
-    pub fragments_added_by_picking: Vec<FragmentAddedByPickingSuggestion>,
+    pub components:         component::List,
+    /// All picked suggestions. If the user changes the generated code, it will be removed from
+    /// this list.
+    pub picked_suggestions: Vec<PickedSuggestion>,
 }
 
 impl Data {
@@ -452,35 +282,16 @@ impl Data {
     #[profile(Debug)]
     fn new_with_edited_node(
         graph: &controller::Graph,
-        database: &model::SuggestionDatabase,
         edited_node_id: ast::Id,
+        cursor_position: Byte,
     ) -> FallibleResult<Self> {
         let edited_node = graph.node(edited_node_id)?;
-        let input = ParsedInput::new_from_ast(&edited_node.info.expression());
+        let input_ast = ast::BlockLine { elem: edited_node.info.expression(), off: 0 };
+        let input = input::Input::new(input_ast, cursor_position);
         let actions = default();
         let components = default();
-        let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
-        let initial_entry = intended_method.and_then(|metadata| database.lookup_method(metadata));
-        let initial_fragment = initial_entry.and_then(|entry| {
-            let fragment = FragmentAddedByPickingSuggestion {
-                id:                CompletedFragmentId::Function,
-                picked_suggestion: action::Suggestion::FromDatabase(entry),
-            };
-            // This is meant to work with single function calls (without "this" argument).
-            // In other case we should know what the function is from the engine, as the function
-            // should be resolved.
-            fragment.is_still_unmodified(&input).then_some(fragment)
-        });
-        let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
-        initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
-        Ok(Data { input, actions, components, fragments_added_by_picking })
-    }
-
-    fn find_picked_fragment(
-        &self,
-        id: CompletedFragmentId,
-    ) -> Option<&FragmentAddedByPickingSuggestion> {
-        self.fragments_added_by_picking.iter().find(|fragment| fragment.id == id)
+        let picked_suggestions = default();
+        Ok(Data { input, actions, components, picked_suggestions })
     }
 }
 
@@ -598,9 +409,10 @@ impl Searcher {
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
+        cursor_position: Byte,
     ) -> FallibleResult<Self> {
         let graph = controller::ExecutedGraph::new(project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(ide, project, graph, mode)
+        Self::new_from_graph_controller(ide, project, graph, mode, cursor_position)
     }
 
     /// Abort editing and perform cleanup.
@@ -615,11 +427,11 @@ impl Searcher {
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
+        cursor_position: Byte,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
-        let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
-            Data::new_with_edited_node(&graph.graph(), &database, node_id)?
+            Data::new_with_edited_node(&graph.graph(), node_id, cursor_position)?
         } else {
             default()
         };
@@ -658,7 +470,7 @@ impl Searcher {
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
     pub fn is_filtering(&self) -> bool {
-        !self.data.borrow().input.pattern.is_empty()
+        !self.data.borrow().input.pattern().is_empty()
     }
 
     /// Subscribe to controller's notifications.
@@ -725,24 +537,24 @@ impl Searcher {
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
-    pub fn set_input(&self, new_input: String) -> FallibleResult {
-        debug!("Manually setting input to {new_input}.");
-        let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
-        let old_expr = self.data.borrow().input.expression.repr();
-        let new_expr = parsed_input.expression.repr();
+    pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
+        warn!("Manually setting input to {new_input} with cursor position {cursor_position}");
+        let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
+        let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
+        let old_input = mem::replace(&mut self.data.borrow_mut().input, parsed_input);
+        let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
 
-        self.data.borrow_mut().input = parsed_input;
-        self.invalidate_fragments_added_by_picking();
-        let expression_changed = old_expr != new_expr;
-        if expression_changed {
+        self.invalidate_picked_suggestions();
+        let context_changed = old_context != new_context;
+        if context_changed {
             debug!("Reloading list.");
             self.reload_list();
         } else {
             let data = self.data.borrow();
-            data.components.update_filtering(&data.input.pattern);
+            data.components.update_filtering(data.input.pattern());
             if let Actions::Loaded { list } = &data.actions {
                 debug!("Update filtering.");
-                list.update_filtering(&data.input.pattern);
+                list.update_filtering(data.input.pattern());
                 executor::global::spawn(self.notifier.publish(Notification::NewActionList));
             }
         }
@@ -753,68 +565,38 @@ impl Searcher {
         self.this_arg.deref().as_ref().map(|this| this.var.as_ref())
     }
 
-    /// Code that will be inserted by expanding given suggestion at given location.
-    ///
-    /// Code depends on the location, as the first fragment can introduce `self` variable access,
-    /// and then we don't want to put any module name.
-    fn code_to_insert<'a>(&self, fragment: &'a FragmentAddedByPickingSuggestion) -> Cow<'a, str> {
-        fragment.code_to_insert(&self.this_arg)
-    }
-
     /// Pick a completion suggestion.
     ///
     /// This function should be called when user do the _use as suggestion_ action as a code
     /// suggestion (see struct documentation). The picked suggestion will be remembered, and the
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
-    pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
+    pub fn use_suggestion(
+        &self,
+        picked_suggestion: action::Suggestion,
+    ) -> FallibleResult<text::Change<Byte, String>> {
         info!("Picking suggestion: {picked_suggestion:?}.");
-        let id = self.data.borrow().input.next_completion_id();
-        let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
-        let code_to_insert = self.code_to_insert(&picked_completion);
-        debug!("Code to insert: \"{code_to_insert}\"");
-        let added_ast = self.ide.parser().parse_line_ast(code_to_insert)?;
-        let pattern_offset = self.data.borrow().input.pattern_offset;
-        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
-        let new_parsed_input = ParsedInput {
-            expression:     Some(new_expression_chain),
-            pattern_offset: 1,
-            pattern:        "".to_string(),
+        let change = {
+            let mut data = self.data.borrow_mut();
+            let inserted = data.input.after_inserting_suggestion(&picked_suggestion);
+            let new_cursor_position = inserted.inserted_text.end;
+            let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
+            data.input =
+                input::Input::parse(self.ide.parser(), &inserted.new_input, new_cursor_position);
+            data.picked_suggestions
+                .push(PickedSuggestion { entry: picked_suggestion, inserted_code });
+            inserted.input_change()
         };
-        let new_input = new_parsed_input.repr();
-        self.data.borrow_mut().input = new_parsed_input;
-        self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
         self.reload_list();
         self.breadcrumbs.set_content(iter::empty());
-        Ok(new_input)
-    }
-
-    fn create_new_expression_chain(
-        &self,
-        added_ast: Ast,
-        pattern_offset: usize,
-    ) -> ast::Shifted<ast::prefix::Chain> {
-        match self.data.borrow().input.expression.clone() {
-            None => {
-                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
-                ast::Shifted::new(pattern_offset, ast)
-            }
-            Some(mut expression) => {
-                let new_argument = ast::prefix::Argument {
-                    sast:      ast::Shifted::new(
-                        pattern_offset.max(MINIMUM_PATTERN_OFFSET),
-                        added_ast,
-                    ),
-                    prefix_id: default(),
-                };
-                expression.args.push(new_argument);
-                expression
-            }
-        }
+        Ok(change)
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn use_as_suggestion(&self, index: usize) -> FallibleResult<String> {
+    pub fn use_as_suggestion(
+        &self,
+        index: usize,
+    ) -> FallibleResult<enso_text::Change<Byte, String>> {
         let error = || NoSuchAction { index };
         let suggestion = {
             let data = self.data.borrow();
@@ -851,27 +633,18 @@ impl Searcher {
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
-        let id = self.data.borrow().input.next_completion_id();
-        let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
-        let code_to_insert = self.code_to_insert(&picked_completion);
-        debug!("Code to insert: \"{code_to_insert}\".",);
-        let added_ast = self.ide.parser().parse_line_ast(code_to_insert)?;
-        let pattern_offset = self.data.borrow().input.pattern_offset;
+        let preview_change =
+            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion);
+        let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
+        let expression = self.get_expression(preview_ast.as_ref());
+
         {
             // This block serves to limit the borrow of `self.data`.
-            let current_fragments = &self.data.borrow().fragments_added_by_picking;
-            let fragments_added_by_picking =
-                current_fragments.iter().chain(iter::once(&picked_completion));
-            self.add_required_imports(fragments_added_by_picking, false)?;
+            let data = self.data.borrow();
+            let picked_so_far = data.picked_suggestions.iter().map(|ps| &ps.entry);
+            let all_suggestions = picked_so_far.chain(iter::once(&picked_suggestion));
+            self.add_required_imports(all_suggestions, false)?;
         }
-        let new_expression_chain = self.create_new_expression_chain(added_ast, pattern_offset);
-        let expression = self.get_expression(Some(new_expression_chain));
-        let intended_method = self.intended_method();
-
-        self.graph.graph().module.with_node_metadata(
-            self.mode.node_id(),
-            Box::new(|md| md.intended_method = intended_method),
-        )?;
         debug!("Previewing expression: \"{:?}\".", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
@@ -938,7 +711,6 @@ impl Searcher {
     /// Preview the action in the searcher.
     #[profile(Task)]
     pub fn preview_action_by_index(&self, index: usize) -> FallibleResult<()> {
-        //TODO[MM] the actual functionality here will be implemented as part of task #182634050.
         let error = || NoSuchAction { index };
         let action = {
             let data = self.data.borrow();
@@ -947,19 +719,6 @@ impl Searcher {
         };
         debug!("Previewing action: {action:?}");
         Ok(())
-    }
-
-    /// Check if the first fragment in the input (i.e. the one representing the called function)
-    /// is still unmodified.
-    ///
-    /// False if it was modified after picking or if it wasn't picked at all.
-    pub fn is_function_fragment_unmodified(&self) -> bool {
-        with(self.data.borrow(), |data| {
-            data.fragments_added_by_picking.first().contains_if(|frag| {
-                let is_function = frag.id == CompletedFragmentId::Function;
-                is_function && frag.is_still_unmodified(&data.input)
-            })
-        })
     }
 
     /// Commit the current input as a new node expression.
@@ -971,24 +730,18 @@ impl Searcher {
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         self.clear_temporary_imports();
+
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
-        let data_borrowed = self.data.borrow();
-        let fragments = data_borrowed.fragments_added_by_picking.iter();
-        self.add_required_imports(fragments, true)?;
+        {
+            let data = self.data.borrow();
+            let suggestions = data.picked_suggestions.iter().map(|ps| &ps.entry);
+            self.add_required_imports(suggestions, true)?;
+        }
 
         let node_id = self.mode.node_id();
-        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
-        let expression = self.get_expression(input_chain);
-        let intended_method = self.intended_method();
+        let expression = self.get_expression(self.data.borrow().input.ast());
         self.graph.graph().set_expression(node_id, expression)?;
-        if let Mode::NewNode { .. } = self.mode.as_ref() {
-            self.graph.graph().introduce_name_on(node_id)?;
-        }
-        self.graph
-            .graph()
-            .module
-            .with_node_metadata(node_id, Box::new(|md| md.intended_method = intended_method))?;
         let graph = self.graph.graph();
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
@@ -1001,11 +754,10 @@ impl Searcher {
         Ok(node_id)
     }
 
-    fn get_expression(&self, input_chain: Option<ast::Shifted<ast::prefix::Chain>>) -> String {
-        let expression = match (self.this_var(), input_chain) {
-            (Some(this_var), Some(input)) =>
-                apply_this_argument(this_var, &input.wrapped.into_ast()).repr(),
-            (None, Some(input)) => input.wrapped.into_ast().repr(),
+    fn get_expression(&self, input: Option<&Ast>) -> String {
+        let expression = match (self.this_var(), input) {
+            (Some(this_var), Some(input)) => apply_this_argument(this_var, input).repr(),
+            (None, Some(input)) => input.repr(),
             (_, None) => "".to_owned(),
         };
         expression
@@ -1061,21 +813,21 @@ impl Searcher {
     }
 
     #[profile(Debug)]
-    fn invalidate_fragments_added_by_picking(&self) {
+    fn invalidate_picked_suggestions(&self) {
         let mut data = self.data.borrow_mut();
-        let data = data.deref_mut();
+        let data = &mut *data;
         let input = &data.input;
-        data.fragments_added_by_picking.drain_filter(|frag| !frag.is_still_unmodified(input));
+        data.picked_suggestions.drain_filter(|frag| !frag.is_still_unmodified(input));
     }
 
     #[profile(Debug)]
     fn add_required_imports<'a>(
         &self,
-        fragments: impl Iterator<Item = &'a FragmentAddedByPickingSuggestion>,
+        suggestions: impl Iterator<Item = &'a action::Suggestion>,
         permanent: bool,
     ) -> FallibleResult {
-        let imports = fragments.flat_map(|frag| {
-            frag.required_imports(&self.database, self.module_qualified_name().as_ref())
+        let imports = suggestions.flat_map(|suggestion| {
+            suggestion.required_imports(&self.database, self.module_qualified_name().as_ref())
         });
         let mut module = self.module();
         // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
@@ -1142,12 +894,7 @@ impl Searcher {
     #[profile(Debug)]
     fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
-        let return_types = match self.data.borrow().input.next_completion_id() {
-            CompletedFragmentId::Function => vec![],
-            CompletedFragmentId::Argument { index } =>
-                self.return_types_for_argument_completion(index),
-        };
-        self.gather_actions_from_engine(this_type, return_types, None);
+        self.gather_actions_from_engine(this_type, None);
         self.data.borrow_mut().actions = Actions::Loading;
         executor::global::spawn(self.notifier.publish(Notification::NewActionList));
     }
@@ -1156,84 +903,49 @@ impl Searcher {
     /// type information might not have came yet from the Language Server.
     #[profile(Debug)]
     fn this_arg_type_for_next_completion(&self) -> impl Future<Output = Option<String>> {
-        let next_id = self.data.borrow().input.next_completion_id();
+        let is_first_function = self.data.borrow().input.replaced_range().start == Byte(0);
         let graph = self.graph.clone_ref();
         let this = self.this_arg.clone_ref();
         async move {
-            let is_function_fragment = next_id == CompletedFragmentId::Function;
-            if !is_function_fragment {
-                return None;
+            if is_first_function {
+                let ThisNode { id, .. } = this.deref().as_ref()?;
+                let opt_type = graph.expression_type(*id).await.map(Into::into);
+                opt_type.map_none(move || error!("Failed to obtain type for this node."))
+            } else {
+                None
             }
-            let ThisNode { id, .. } = this.deref().as_ref()?;
-            let opt_type = graph.expression_type(*id).await.map(Into::into);
-            opt_type.map_none(move || error!("Failed to obtain type for this node."))
         }
-    }
-
-    /// Get the type that suggestions for the next completion should return.
-    ///
-    /// Generally this corresponds to the type of the currently filled function argument. Returns
-    /// empty list if no type could be determined.
-    fn return_types_for_argument_completion(&self, arg_index: usize) -> Vec<String> {
-        let suggestions = if let Some(intended) = self.intended_function_suggestion() {
-            std::iter::once(intended).collect()
-        } else {
-            self.possible_function_calls()
-        };
-        suggestions
-            .into_iter()
-            .filter_map(|suggestion| {
-                let arg_index = arg_index + if self.this_arg.is_some() { 1 } else { 0 };
-                let arg_index = arg_index + if self.has_this_argument() { 1 } else { 0 };
-                let parameter = suggestion.argument_types().into_iter().nth(arg_index)?;
-                Some(parameter)
-            })
-            .collect()
     }
 
     fn gather_actions_from_engine(
         &self,
         this_type: impl Future<Output = Option<String>> + 'static,
-        return_types: impl IntoIterator<Item = String>,
         tags: Option<Vec<language_server::SuggestionEntryType>>,
     ) {
         let ls = self.language_server.clone_ref();
         let graph = self.graph.graph();
         let position = self.my_utf16_location().span.into();
         let this = self.clone_ref();
-        let return_types = return_types.into_iter().collect_vec();
-        let return_types_for_engine = if return_types.is_empty() {
-            vec![None]
-        } else {
-            return_types.iter().cloned().map(Some).collect()
-        };
         executor::global::spawn(async move {
             let this_type = this_type.await;
             info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");
-            let requests = return_types_for_engine.into_iter().map(|return_type| {
-                info!("Requesting suggestions for returnType {return_type:?}.");
-                let file = graph.module.path().file_path();
-                ls.completion(file, &position, &this_type, &return_type, &tags)
-            });
-            let responses: Result<Vec<language_server::response::Completion>, _> =
-                futures::future::join_all(requests).await.into_iter().collect();
-            match responses {
-                Ok(responses) => {
+            let file = graph.module.path().file_path();
+            let response = ls.completion(file, &position, &this_type, &None, &tags).await;
+            match response {
+                Ok(response) => {
                     info!("Received suggestions from Language Server.");
-                    let list = this.make_action_list(responses.iter());
+                    let list = this.make_action_list(&response);
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
-                    let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components =
-                        this.make_component_list(completions, &this_type, &return_types);
+                    let completions = response.results;
+                    data.components = this.make_component_list(completions, &this_type);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!("{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components =
-                        this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components = this.make_component_list(this.database.keys(), &this_type);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1242,9 +954,9 @@ impl Searcher {
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
     #[profile(Debug)]
-    fn make_action_list<'a>(
+    fn make_action_list(
         &self,
-        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+        completion_response: &language_server::response::Completion,
     ) -> action::List {
         let creating_new_node = matches!(self.mode.deref(), Mode::NewNode { .. });
         let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
@@ -1269,20 +981,18 @@ impl Searcher {
         if should_add_additional_entries {
             Self::add_enso_project_entries(&libraries_cat);
         }
-        for response in completion_responses {
-            let entries = response.results.iter().filter_map(|id| {
-                self.database
-                    .lookup(*id)
-                    .map(|entry| Action::Suggestion(action::Suggestion::FromDatabase(entry)))
-                    .handle_err(|e| {
-                        error!(
-                            "Response provided a suggestion ID that cannot be \
-                        resolved: {e}."
-                        )
-                    })
-            });
-            libraries_cat.extend(entries);
-        }
+        let entries = completion_response.results.iter().filter_map(|id| {
+            self.database
+                .lookup(*id)
+                .map(|entry| Action::Suggestion(action::Suggestion::FromDatabase(entry)))
+                .handle_err(|e| {
+                    error!(
+                        "Response provided a suggestion ID that cannot be \
+                    resolved: {e}."
+                    )
+                })
+        });
+        libraries_cat.extend(entries);
 
         actions.build()
     }
@@ -1292,7 +1002,6 @@ impl Searcher {
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
         this_type: &Option<String>,
-        return_types: &[String],
     ) -> component::List {
         let favorites = self.graph.component_groups();
         let module_name = self.module_qualified_name();
@@ -1301,7 +1010,7 @@ impl Searcher {
             module_name.as_ref(),
             &*favorites,
         );
-        add_virtual_entries_to_builder(&mut builder, this_type, return_types);
+        add_virtual_entries_to_builder(&mut builder, this_type);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1325,88 +1034,12 @@ impl Searcher {
         self.location_to_utf16(location)
     }
 
-    fn possible_function_calls(&self) -> Vec<action::Suggestion> {
-        let opt_result = || {
-            let call_ast = self.data.borrow().input.expression.as_ref()?.func.clone_ref();
-            let call = SimpleFunctionCall::try_new(&call_ast)?;
-            if let Some(module) = self.module_whose_method_is_called(&call) {
-                let name = call.function_name;
-                let entry = self.database.lookup_module_method(name, &module);
-                Some(entry.into_iter().map(action::Suggestion::FromDatabase).collect())
-            } else {
-                let name = &call.function_name;
-                let location = self.my_utf16_location();
-                let entries = self.database.lookup_at(name, &location);
-                Some(entries.into_iter().map(action::Suggestion::FromDatabase).collect())
-            }
-        };
-        opt_result().unwrap_or_default()
-    }
-
-    /// For the simple function call checks if the function is called on the module (if it can be
-    /// easily determined) and returns the module's qualified name if it is.
-    fn module_whose_method_is_called(&self, call: &SimpleFunctionCall) -> Option<QualifiedName> {
-        let location = self.my_utf16_location();
-        let this_name = ast::identifier::name(call.this_argument.as_ref()?)?;
-        let matching_locals = self.database.lookup_locals_at(this_name, &location);
-        let module_name = location.module;
-        let not_local_name = matching_locals.is_empty();
-        not_local_name.and_option_from(|| {
-            if this_name == module_name.name().deref() {
-                Some(module_name)
-            } else {
-                self.module().iter_imports().find_map(|import| {
-                    import
-                        .qualified_module_name()
-                        .ok()
-                        .filter(|module| module.name().deref() == this_name)
-                })
-            }
-        })
-    }
-
-    /// Get the suggestion that was selected by the user into the function.
-    ///
-    /// This suggestion shall be used to request better suggestions from the engine.
-    pub fn intended_function_suggestion(&self) -> Option<action::Suggestion> {
-        let id = CompletedFragmentId::Function;
-        let fragment = self.data.borrow().find_picked_fragment(id).cloned();
-        fragment.map(|f| f.picked_suggestion.clone_ref())
-    }
-
-    /// Returns the Id of method user intends to be called in this node.
-    ///
-    /// The method may be picked by user from suggestion, but there are many methods with the same
-    /// name.
-    fn intended_method(&self) -> Option<MethodId> {
-        self.intended_function_suggestion()?.method_id()
-    }
-
-    /// If the function fragment has been filled and also contains the initial "this" argument.
-    ///
-    /// While we maintain chain consisting of target and applied arguments, the target itself might
-    /// need to count for a one argument, as it may of form `this.method`.
-    fn has_this_argument(&self) -> bool {
-        self.data
-            .borrow()
-            .input
-            .expression
-            .as_ref()
-            .and_then(|expr| ast::opr::as_access_chain(&expr.func))
-            .is_some()
-    }
-
     fn module(&self) -> double_representation::module::Info {
         double_representation::module::Info { ast: self.graph.graph().module.ast() }
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.module_qualified_name(&*self.project)
-    }
-
-    /// Get the user action basing of current input (see `UserAction` docs).
-    pub fn current_user_action(&self) -> UserAction {
-        self.data.borrow().input.user_action()
     }
 
     /// Add to the action list the special mocked entry of `Enso_Project.data`.
@@ -1458,16 +1091,9 @@ fn component_list_builder_with_favorites<'a>(
 fn add_virtual_entries_to_builder(
     builder: &mut component::builder::List,
     this_type: &Option<String>,
-    return_types: &[String],
 ) {
     if this_type.is_none() {
-        let snippets = if return_types.is_empty() {
-            component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
-        } else {
-            let parse_type_qn = |s| QualifiedName::from_text(s).ok();
-            let rt_qns = return_types.iter().filter_map(parse_type_qn);
-            component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
-        };
+        let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
         let group_name = component::hardcoded::INPUT_GROUP_NAME;
         let project = project::QualifiedName::standard_base_library();
         builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
@@ -1607,31 +1233,6 @@ impl Drop for EditGuard {
     }
 }
 
-
-
-// === SimpleFunctionCall ===
-
-/// A simple function call is an AST where function is a single identifier with optional
-/// argument applied by `ACCESS` operator (dot).
-struct SimpleFunctionCall {
-    this_argument: Option<Ast>,
-    function_name: String,
-}
-
-impl SimpleFunctionCall {
-    fn try_new(call: &Ast) -> Option<Self> {
-        if let Some(name) = ast::identifier::name(call) {
-            Some(Self { this_argument: None, function_name: name.to_owned() })
-        } else {
-            let infix = ast::opr::to_access(call)?;
-            let name = ast::identifier::name(&infix.rarg)?;
-            Some(Self {
-                this_argument: Some(infix.larg.clone_ref()),
-                function_name: name.to_owned(),
-            })
-        }
-    }
-}
 
 fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     if let Ok(opr) = ast::known::Opr::try_from(ast) {

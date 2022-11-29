@@ -343,7 +343,6 @@ impl Repository {
 /// Owns [`Repository`] and keeps track of open modules.
 #[derive(Debug, Default)]
 pub struct Manager {
-    #[allow(missing_docs)]
     /// Repository with undo and redo stacks.
     pub repository: Rc<Repository>,
     /// Currently available modules.

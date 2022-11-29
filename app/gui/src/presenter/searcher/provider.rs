@@ -33,9 +33,7 @@ pub fn create_providers_from_controller(controller: &controller::Searcher) -> An
     match controller.actions() {
         Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
         Actions::Loaded { list } => {
-            let user_action = controller.current_user_action();
-            let intended_function = controller.intended_function_suggestion();
-            let provider = Action { actions: list, user_action, intended_function };
+            let provider = Action { actions: list };
             as_any(Rc::new(provider))
         }
         Actions::Error(err) => {
@@ -61,9 +59,7 @@ where P: list_view::entry::ModelProvider<view::searcher::Entry>
 /// An searcher actions provider, based on the action list retrieved from the searcher controller.
 #[derive(Clone, Debug)]
 pub struct Action {
-    actions:           Rc<controller::searcher::action::List>,
-    user_action:       controller::searcher::UserAction,
-    intended_function: Option<controller::searcher::action::Suggestion>,
+    actions: Rc<controller::searcher::action::List>,
 }
 
 impl Action {
@@ -126,11 +122,7 @@ impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
 
 impl ide_view::searcher::DocumentationProvider for Action {
     fn get(&self) -> Option<String> {
-        use controller::searcher::UserAction::*;
-        self.intended_function.as_ref().and_then(|function| match self.user_action {
-            StartingTypingArgument => function.documentation_html().map(ToOwned::to_owned),
-            _ => None,
-        })
+        None
     }
 
     fn get_for_entry(&self, id: usize) -> Option<String> {

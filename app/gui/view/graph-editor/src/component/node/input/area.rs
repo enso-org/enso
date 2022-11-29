@@ -23,6 +23,8 @@ use ensogl::display;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
+use ensogl_component::text::buffer::selection::Selection;
+use ensogl_component::text::FromInContextSnapped;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -849,6 +851,8 @@ ensogl::define_endpoints! {
         /// Set the node expression.
         set_expression (node::Expression),
 
+        edit_expression (text::Range<Byte>, ImString),
+
         /// Set the mode in which the cursor will indicate that editing of the node is possible.
         set_edit_ready_mode (bool),
 
@@ -890,6 +894,8 @@ ensogl::define_endpoints! {
         pointer_style       (cursor::Style),
         width               (f32),
         expression          (ImString),
+        expression_edit     (ImString, Vec<Selection<Byte>>),
+
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
@@ -1013,9 +1019,16 @@ impl Area {
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
+            legit_edit <- frp.input.edit_expression.gate(&frp.input.set_editing);
+            model.label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
+            model.label.insert <+ legit_edit._1();
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
             expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
             frp.output.source.expression <+ expression_changed_by_user.ref_into();
+            frp.output.source.expression_edit <+ model.label.selections.map2(&expression_changed_by_user, f!([model](selection, full_content) {
+                (full_content.into(), selection.iter().map(|sel| sel.map(|loc| text::Byte::from_in_context_snapped(&model.label, loc))).collect_vec())
+            }));
+            trace frp.output.source.expression_edit;
 
 
             // === Expression Type ===

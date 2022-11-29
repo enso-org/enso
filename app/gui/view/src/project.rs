@@ -27,6 +27,8 @@ use ensogl::display;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::DEPRECATED_Animation;
+use ensogl_component::text;
+use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
 
@@ -101,7 +103,7 @@ ensogl::define_endpoints! {
         /// Is **not** emitted with every graph's node expression change, only when
         /// [`INPUT_CHANGE_DELAY_MS`] passes since last change, so we won't needlessly update the
         /// Component Browser when user is quickly typing in the input.
-        searcher_input_changed         (ImString),
+        searcher_input_changed         (ImString, Vec<Selection<text::Byte>>),
         is_searcher_opened             (bool),
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
@@ -598,6 +600,20 @@ impl View {
                 graph.deselect_all_nodes();
                 graph.select_node(node);
             });
+
+
+            // === Editing ===
+
+            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
+            frp.source.searcher <+ existing_node_edited.map(
+                |&node| Some(SearcherParams::new_for_edited_node(node))
+            );
+            searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher, |(node_id, expr, selections), searcher| {
+                (searcher.as_ref()?.input == *node_id).then(|| (expr.clone_ref(), selections.clone()))
+            });
+            searcher_input_change <- searcher_input_change_opt.filter_map(|change| change.clone());
+            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
+            frp.source.searcher_input_changed <+ searcher_input_change.sample(&input_change_delay.on_expired);
 
 
             // === Searcher Position and Visibility ===
