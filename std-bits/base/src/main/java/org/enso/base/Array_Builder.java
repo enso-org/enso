@@ -68,7 +68,7 @@ public class Array_Builder<T> {
             doubleArray[size++] = d;
         } else {
             objectArray = new Object[doubleArray.length];
-            for (int i = 0; i < doubleArray.length; i++) {
+            for (int i = 0; i < size; i++) {
                 objectArray[i] = doubleArray[i];
             }
             primitiveArray = null;
@@ -78,22 +78,18 @@ public class Array_Builder<T> {
         assert objectArray == null;
         assert primitiveArray == null;
         assert size == 0;
-        switch (e) {
-            case Long l -> {
-                var arr = new long[capacity];
-                arr[0] = l;
-                primitiveArray = arr;
-            }
-            case Double d -> {
-                var arr = new double[capacity];
-                arr[0] = d;
-                primitiveArray = arr;
-            }
-            default -> {
-                var arr = new Object[capacity];
-                arr[0] = e;
-                objectArray = arr;
-            }
+        if (e instanceof Long l) {
+          var arr = new long[capacity];
+          arr[0] = l;
+          primitiveArray = arr;
+        } else if (e instanceof Double d) {
+          var arr = new double[capacity];
+          arr[0] = d;
+          primitiveArray = arr;
+        } else {
+          var arr = new Object[capacity];
+          arr[0] = e;
+          objectArray = arr;
         }
         size = 1;
     }
