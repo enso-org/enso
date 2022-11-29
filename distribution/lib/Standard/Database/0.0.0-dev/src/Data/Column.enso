@@ -132,7 +132,7 @@ type Column
         prepare_operand operand operand_type = case operand of
             other_column : Column ->
                 if Helpers.check_integrity self other_column then other_column.expression else
-                    Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot use columns coming from different contexts in one expression without a join."
+                    Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 SQL_Expression.Constant actual_operand_type constant
