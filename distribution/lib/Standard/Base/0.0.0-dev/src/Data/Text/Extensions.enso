@@ -18,6 +18,7 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Text.Text_Matcher.Text_Matcher
+import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Error.Problem_Behavior.Problem_Behavior
@@ -28,8 +29,6 @@ from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data, Encoding_Error
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
-import project.Data.Text.Text_Sub_Range as Text_Sub_Range_Module
-import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -862,7 +861,7 @@ Text.repeat self count=1 =
          "Hello World!".take (Sample 3 seed=42) == "l d"
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds_Error
 Text.take self range=(Index_Sub_Range.First 1) =
-    ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
+    ranges = Codepoint_Ranges.find self range
     case ranges of
         Range.Value start end 1 ->
             Text_Utils.substring self start end
@@ -908,7 +907,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop self range=(Index_Sub_Range.First 1) =
-    ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
+    ranges = Codepoint_Ranges.find self range
     case ranges of
         Range.Value start end 1 ->
             if start == 0 then Text_Utils.drop_first self end else
