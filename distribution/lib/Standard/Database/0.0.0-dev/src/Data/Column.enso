@@ -6,7 +6,6 @@ import Standard.Table.Data.Column.Column as Materialized_Column
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Integrity_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -15,7 +14,7 @@ import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import Unsupported_Database_Operation, Integrity_Error
 
 type Column
 

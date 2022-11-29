@@ -26,7 +26,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Query.Query
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
 import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
@@ -1071,7 +1071,7 @@ type Table
     insert : Vector Any -> Nothing
     insert self values =
         table_name = case self.context.from_spec of
-            From_Spec.From_Table name _ -> name
+            From_Spec.Table name _ -> name
             _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
@@ -1145,23 +1145,6 @@ type Table
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
-
-type Integrity_Error
-
-    ## UNSTABLE
-
-       Signalizes that an operation tried using objects coming from different
-       contexts.
-
-       To use columns from different tables, you must first join them.
-    Error object_description
-
-    # Return a readable description of this error.
-    to_text : Text
-    to_text self = self.object_description + " comes from a different context."
-
-    to_display_text : Text
-    to_display_text self = self.to_text
 
 ## PRIVATE
 

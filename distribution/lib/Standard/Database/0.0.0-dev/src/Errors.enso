@@ -78,3 +78,52 @@ type SQL_Timeout
        Pretty print the timeout error.
     to_display_text : Text
     to_display_text self = self.to_text
+
+
+## UNSTABLE
+
+   Signals that a name for a column or table is not supported.
+
+   Arguments:
+   - text: The name that is not supported.
+
+   Currently the names can only include ASCII letters, numbers and the
+   underscore. This is a temporary limitation simplifying name handling. It will
+   be removed in a future version.
+type Unsupported_Name
+    Error text
+
+    ## PRIVATE
+
+       Creates a human-readable representation of the unsupported name error.
+    to_text : Text
+    to_text self =
+        "The name " + self.text + " is not currently supported by the Database library."
+
+    ## UNSTABLE
+
+       Pretty print the unsupported name error.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+
+type Integrity_Error
+    ## UNSTABLE
+
+       Signalizes that an operation tried using objects coming from different
+       contexts.
+
+       To use columns from different tables, you must first join them.
+    Error object_description
+
+    ## PRIVATE
+
+       Creates a human-readable representation of the integrity error.
+    to_text : Text
+    to_text self = self.object_description + " comes from a different context."
+
+    ## UNSTABLE
+
+       Pretty print the integrity error.
+    to_display_text : Text
+    to_display_text self = self.to_text
