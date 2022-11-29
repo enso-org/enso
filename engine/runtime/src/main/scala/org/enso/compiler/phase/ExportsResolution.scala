@@ -170,7 +170,9 @@ class ExportsResolution {
     modules.foreach { module =>
       val bindings = getBindings(module)
       val ownEntities =
-        bindings.definedEntities.map(e => (e.name, List(e.resolvedIn(module))))
+        bindings.definedEntities
+          .filter(_.canExport)
+          .map(e => (e.name, List(e.resolvedIn(module))))
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _)
             if mod.module.unsafeAsModule() != module =>

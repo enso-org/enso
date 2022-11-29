@@ -312,10 +312,10 @@ impl Printer for GlobalVarStorage {
 The following spacing rules are _also_ employed in order to create a visual flow
 to our code to aid readability:
 
-- The type operator is not spaced: `fn test(foo:String, bar:Int) { ... }`
+- The type operator is spaced: `fn test(foo: String, bar: Int) { ... }`
 - Commas between complex expressions (including the argument list) are spaced
-- Commas between simple elements are not spaced: `Result<Self,Error>`
-- Arguments to functions are not spaced: `build(builder,"out",qual)`
+- Commas between simple elements are spaced: `Result<Self, Error>`
+- Arguments to functions are spaced: `build(builder, "out", qual)`
 - Operators are always spaced: `let foo = a + b * c;`
 
 #### Spacing Examples as Function Definitions
@@ -324,40 +324,40 @@ The following function definitions are all good examples of correct use of
 spacing.
 
 ```rust
-pub fn new<Dom:Str>(dom:Dom, logger:Logger) -> Result<Self,Error> {
+pub fn new<Dom:Str>(dom: Dom, logger: Logger) -> Result<Self, Error> {
     ...
 }
 ```
 
 ```rust
-pub fn new<Dom:Str>(dom:Dom, logger:Logger) -> Result<Self,Error> {
+pub fn new<Dom: Str>(dom: Dom, logger: Logger) -> Result<Self, Error> {
     ...
 }
 ```
 
 ```rust
-pub fn new<Dom:Str>
-(dom:Dom, logger:Logger, on_dirty:OnDirty) -> Result<Self,Error> {
+pub fn new<Dom: Str>
+(dom: Dom, logger: Logger, on_dirty: OnDirty) -> Result<Self, Error> {
     ...
 }
 ```
 
 ```rust
-pub fn new<Dom:Str>
-(dom:Dom, logger:Logger, on_dirty:OnDirty, on_remove:OnRemove)
--> Result<Self,Error> {
+pub fn new<Dom: Str>
+(dom: Dom, logger: Logger, on_dirty: OnDirty, on_remove: OnRemove)
+-> Result<Self, Error> {
     ...
 }
 ```
 
 ```rust
-pub fn new<Dom:Str>
+pub fn new<Dom: Str>
 ( dom        : Dom
 , logger     : Logger
 , on_dirty   : OnDirty
 , on_remove  : OnRemove
 , on_replace : OnReplace
-) -> Result<Self,Error> {
+) -> Result<Self, Error> {
     ...
 }
 ```
@@ -365,8 +365,8 @@ pub fn new<Dom:Str>
 Long `where` clauses are formatted like this:
 
 ```rust
-pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
-where D:AsRef<str>, L:IsLogger {
+pub fn new<D, L>(dom: D, logger: L) -> Result<Self, Error>
+where D: AsRef<str>, L: IsLogger {
     ...
 }
 ```
@@ -374,9 +374,9 @@ where D:AsRef<str>, L:IsLogger {
 Or, in case they are really long, like this:
 
 ```rust
-pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
-where D:AsRef<str>
-      L:IsLogger
+pub fn new<D, L>(dom: D, logger: L) -> Result<Self, Error>
+where D: AsRef<str>
+      L: IsLogger
       ... {
     ...
 }

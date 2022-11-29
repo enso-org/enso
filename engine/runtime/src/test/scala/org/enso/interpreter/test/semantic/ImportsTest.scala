@@ -123,6 +123,17 @@ class ImportsTest extends PackageTest {
     ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
   }
 
+  "Polyglot symbols" should "not be exported" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Polyglot_Exports"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(
+      2
+    ) shouldEqual "Main.enso[5:16-5:19]: The name `Long` could not be found."
+  }
+
   "Constructors" should "be importable" in {
     evalTestProject("Test_Type_Imports").toString shouldEqual "(Some 10)"
   }
