@@ -196,7 +196,7 @@ public @interface Builtin {
    *     try {
    *       return self.get(index);
    *     } catch (java.lang.IndexOutOfBoundsException e) {
-   *       Builtins builtins = Context.get(this).getBuiltins();
+   *       Builtins builtins = EnsoContext.get(this).getBuiltins();
    *       throw new PanicException(builtins.error().makeInvalidArrayIndexError(self, index), this);
    *     }
    *   }
@@ -226,7 +226,7 @@ public @interface Builtin {
    *     try {
    *       return self.create(path)
    *     } catch (java.io.IOException e) {
-   *       Builtins builtins = Context.get(this).getBuiltins();
+   *       Builtins builtins = EnsoContext.get(this).getBuiltins();
    *       throw new PanicException(builtins.error().makePolyglotError(e), this);
    *     }
    *   }
@@ -340,7 +340,7 @@ public @interface Builtin {
    *
    *   {@link Specialization @Specialization}
    *   Foo doString(Object path, @Cached("build()") ExpectStringNode expectStringNode) {
-   *     Context context = Context.get(this);
+   *     EnsoContext context = EnsoContext.get(this);
    *     java.lang.String pathCached = expectStringNode.execute(path);
    *     return Foo.create(context, pathCached);
    *   }

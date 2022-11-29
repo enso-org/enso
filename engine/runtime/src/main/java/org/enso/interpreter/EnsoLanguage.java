@@ -184,7 +184,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private static final OptionDescriptors OPTIONS =
       OptionDescriptors.createUnion(
-          new LanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
+          new EnsoLanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
 
   /** {@inheritDoc} */
   @Override
