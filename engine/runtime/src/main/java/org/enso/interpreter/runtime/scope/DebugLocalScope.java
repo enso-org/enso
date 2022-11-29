@@ -3,9 +3,11 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -141,7 +143,7 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   boolean isMemberModifiable(String memberName) {
-    return false;
+    return allBindings.containsKey(memberName);
   }
 
   @ExportMessage
@@ -195,8 +197,12 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  void writeMember(String member, Object value) throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+  void writeMember(String member, Object value) throws UnknownIdentifierException {
+    if (!allBindings.containsKey(member)) {
+      throw UnknownIdentifierException.create(member);
+    }
+    FramePointer framePtr = allBindings.get(member);
+    setValue(frame, framePtr, value);
   }
 
   @ExportMessage
@@ -250,6 +256,15 @@ public class DebugLocalScope implements TruffleObject {
   private Object getValue(MaterializedFrame frame, FramePointer ptr) {
     return ptr == null ? null :
         getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+  }
+
+  private void setValue(MaterializedFrame frame, FramePointer ptr, Object value) {
+    assert ptr != null;
+    MaterializedFrame properFrame = getProperFrame(frame, ptr);
+    properFrame.setObject(
+        ptr.getFrameSlotIdx(),
+        value
+    );
   }
 
   private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {

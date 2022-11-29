@@ -5,10 +5,14 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
@@ -17,8 +21,11 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.state.IOPermissions;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -172,6 +179,38 @@ public final class Language extends TruffleLanguage<Context> {
   protected CallTarget parse(ParsingRequest request) {
     RootNode root = ProgramRootNode.build(this, request.getSource());
     return root.getCallTarget();
+  }
+
+  @Override
+  protected ExecutableNode parse(InlineParsingRequest request) {
+    if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      var module = ensoRootNode.getModuleScope().getModule();
+      var localScope = ensoRootNode.getLocalScope();
+      var inlineContext = new InlineContext(
+          module,
+          scala.Some.apply(localScope),
+          scala.Some.apply(false),
+          scala.Option.empty(),
+          scala.Option.empty(),
+          new CompilerConfig(false, false)
+      );
+      var context = Context.get(request.getLocation());
+      scala.Option<ExpressionNode> exprNode = context.getCompiler()
+          .runInline(
+              request.getSource().getCharacters().toString(),
+              inlineContext
+          );
+      if (exprNode.isDefined()) {
+        var language = Language.get(exprNode.get());
+        return new ExecutableNode(language) {
+          @Override
+          public Object execute(VirtualFrame frame) {
+            return exprNode.get().executeGeneric(frame);
+          }
+        };
+      }
+    }
+    return null;
   }
 
   @Option(

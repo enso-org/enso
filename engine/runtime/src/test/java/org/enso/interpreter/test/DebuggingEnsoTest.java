@@ -236,13 +236,98 @@ public class DebuggingEnsoTest {
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       switch (event.getSourceSection().getCharacters().toString().strip()) {
         case "tmp = 42" -> {
-          // nop
+          DebugStackFrame stackFrame = event.getTopStackFrame();
+          DebugValue evaluatedValue = stackFrame.eval("a + b");
+          assertTrue(evaluatedValue.isNumber());
+          assertEquals(30, evaluatedValue.asInt());
         }
       }
       event.getSession().suspendNextExecution();
     })) {
       session.suspendNextExecution();
-      fooFunc.execute(Module.EVAL_EXPRESSION, 0);
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
+  public void testRewriteLocalVariable() {
+    Source src = createEnsoSource("""
+        foo x =
+            a = 10
+            b = 20
+            tmp = a + b
+            end = 42
+        """);
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      switch (event.getSourceSection().getCharacters().toString().strip()) {
+        case "tmp = a + b" -> {
+          DebugStackFrame stackFrame = event.getTopStackFrame();
+          assertTrue(stackFrame.getScope().getDeclaredValue("a").isWritable());
+          assertTrue(stackFrame.getScope().getDeclaredValue("b").isWritable());
+
+          stackFrame.getScope().getDeclaredValue("a").set(
+              stackFrame.eval("1")
+          );
+          stackFrame.getScope().getDeclaredValue("b").set(
+              stackFrame.eval("2")
+          );
+          assertEquals(3, stackFrame.eval("a + b").asInt());
+        }
+        case "end = 42" -> {
+          DebugStackFrame stackFrame = event.getTopStackFrame();
+          assertEquals(1, stackFrame.getScope().getDeclaredValue("a").asInt());
+          assertEquals(2, stackFrame.getScope().getDeclaredValue("b").asInt());
+          assertEquals(3, stackFrame.getScope().getDeclaredValue("tmp").asInt());
+        }
+      }
+      event.getSession().suspendNextExecution();
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
+  public void testRewriteVariableInCallerStackFrame() {
+    Source src = createEnsoSource("""
+        polyglot java import java.nio.file.Path
+        bar =
+            loc_bar = 42
+        
+        foo x =
+            a = 10  # Will get modified to 1
+            b = 20  # Will get modified to 2
+            bar
+            a + b
+        """);
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      switch (event.getSourceSection().getCharacters().toString().strip()) {
+        case "loc_bar = 42" -> {
+          // Modify variables in the caller's frame
+          List<DebugStackFrame> frames = new ArrayList<>();
+          event.getStackFrames().iterator().forEachRemaining(frames::add);
+          assertEquals(2, frames.size());
+          DebugStackFrame callerStackFrame = frames.get(1);
+          callerStackFrame.getScope().getDeclaredValue("a").set(
+              callerStackFrame.eval("1")
+          );
+          callerStackFrame.getScope().getDeclaredValue("b").set(
+              callerStackFrame.eval("2")
+          );
+
+        }
+      }
+      event.getSession().suspendNextExecution();
+    })) {
+      session.suspendNextExecution();
+      Value valFromFoo = fooFunc.execute(0);
+      assertEquals(3, valFromFoo.asInt());
     }
   }
 
