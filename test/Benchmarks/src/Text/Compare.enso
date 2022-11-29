@@ -28,23 +28,23 @@ bench =
            Faker is changed, this must be modified accordingly.
         make_alpha_template length = Vector.new length _-> character_template
         very_short_template = make_alpha_template 4
-        very_short = Vector.new 100000 _-> '🤩' + faker.string_value very_short_template
+        very_short = Vector.new 10 _-> '🤩' + faker.string_value very_short_template
         medium_template = make_alpha_template 64
-        medium = Vector.new 10000 _-> faker.string_value medium_template
+        medium = Vector.new 1 _-> faker.string_value medium_template
 
         big_a_codepoint = 65
-        big_template = make_alpha_template 100000
-        big_random = Vector.new 100 _-> faker.string_value big_template
-        big_early_difference = Vector.new 100 ix->
+        big_template = make_alpha_template 10
+        big_random = Vector.new 10 _-> faker.string_value big_template
+        big_early_difference = Vector.new 10 ix->
             "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
-        prefix = common_prefix.repeat 100000
-        big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
+        prefix = common_prefix.repeat 10
+        big_late_difference = Vector.new 10 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
-        Bench.measure (compare_all_adjacent very_short) suite_prefix+"very short" 10 10
-        Bench.measure (compare_all_adjacent medium) suite_prefix+"medium" 10 10
-        Bench.measure (compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
-        Bench.measure (compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
-        Bench.measure (compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
+        Bench.measure (compare_all_adjacent very_short) suite_prefix+"very short" 1 1
+        Bench.measure (compare_all_adjacent medium) suite_prefix+"medium" 1 1
+        Bench.measure (compare_all_adjacent big_random) suite_prefix+"big - random" 1 1
+        Bench.measure (compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 1 1
+        Bench.measure (compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 1 1
 
     bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
     bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'

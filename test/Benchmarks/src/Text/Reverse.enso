@@ -18,11 +18,11 @@ bench =
 
         very_short_template = make_alpha_template 4
         very_short_random = faker.string_value very_short_template
-        big_template = make_alpha_template 100000
+        big_template = make_alpha_template 100
         big_random = faker.string_value big_template
 
-        Bench.measure (very_short_random.reverse) suite_prefix+" 4" 10 10
-        Bench.measure (big_random.reverse) suite_prefix+" 100000" 10 10
+        Bench.measure (very_short_random.reverse) suite_prefix+" 4" 1 1
+        Bench.measure (big_random.reverse) suite_prefix+" 10000" 1 1
 
     bench_reverse "Text.reverse" (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.char_vector)
 

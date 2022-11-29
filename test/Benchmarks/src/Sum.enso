@@ -70,21 +70,21 @@ sum_co n =
     res
 
 bench =
-    hundred_mil = 100000000
+    hundred_mil = 1
     IO.println "Measuring Sum TCO Corecursive"
-    Bench.measure (sum_co hundred_mil) "sum_tco_corecursive" 100 10
+    Bench.measure (sum_co hundred_mil) "sum_tco_corecursive" 1 1
     IO.println "Measuring Sum TCO Decimal"
-    Bench.measure (sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
+    Bench.measure (sum_tco_decimal hundred_mil) "sum_tco_float" 1 1
     IO.println "Measuring SumTCO"
-    Bench.measure (sum_tco hundred_mil) "sum_tco" 100 10
+    Bench.measure (sum_tco hundred_mil) "sum_tco" 1 1
     IO.println "Measuring SumTCO Java"
-    Bench.measure (sum_tco_java hundred_mil) "sum_tco_java" 100 10
+    Bench.measure (sum_tco_java hundred_mil) "sum_tco_java" 1 1
     IO.println "Measuring SumTCO Eval"
-    Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
+    Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 1 1
     IO.println "Measuring State"
-    Bench.measure (sum_state hundred_mil) "sum_state" 100 10
+    Bench.measure (sum_state hundred_mil) "sum_state" 1 1
     IO.println "Measuring Co-State"
-    Bench.measure (sum_co_state hundred_mil) "sum_co_state" 100 10
+    Bench.measure (sum_co_state hundred_mil) "sum_co_state" 1 1
     IO.println "Bye."
 
 main = bench

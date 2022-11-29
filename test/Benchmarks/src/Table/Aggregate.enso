@@ -7,9 +7,9 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 2500
-iter_size = 20
-num_iterations = 3
+vector_size = 25
+iter_size = 1
+num_iterations = 1
 
 create_table : Integer -> Integer -> Table
 create_table rows (seed=1646322139) =

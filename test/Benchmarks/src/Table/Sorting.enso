@@ -13,7 +13,7 @@ type My
 
 vector_size = 100000
 iter_size = 20
-num_iterations = 10
+num_iterations = 1
 
 # The Benchmarks ==============================================================
 bench =
