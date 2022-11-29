@@ -11,10 +11,15 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.ScanJoin;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
+import org.enso.table.util.NameDeduplicator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +28,7 @@ import java.util.stream.Collectors;
 public class Table {
 
   private final Column[] columns;
+  @Deprecated
   private final Index index;
   private final AggregatedProblems problems;
 
@@ -270,82 +276,93 @@ public class Table {
   }
 
   /**
-   * Joins this table with another, by combining rows from this with rows of other with a matching
-   * index.
+   * Performs a join of this table with the right table, based on the provided
+   * conditions.
    *
-   * @param other the table being joined with
-   * @param dropUnmatched whether the rows containing unmatched values in this should be dropped
-   * @param on a column name in this that should be used as the join key. If this is null, index is
-   *     used instead
-   * @param lsuffix the suffix to add to names of columns of this in case there's a name conflict
-   * @param rsuffix the suffix to add to names of columns of other in case there's a name conflict
-   * @return the result of performing the join
+   * The parameters {@code keepLeftUnmatched}, {@code keepMatched} and {@code keepRightUnmatched} control which rows should be returned. They can all be set to {@code false} to emulate an empty result in erroneous conditions.
+   *
+   * The parameters {@code includeLeftColumns} and {@code includeRightColumns} control which columns should be included in the result. In most cases they will both be set to true. They allow to easily implement exclusive joins which only keep columns form one table.
+   *
+   * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  @SuppressWarnings("unchecked")
-  public Table join(Table other, boolean dropUnmatched, String on, String lsuffix, String rsuffix) {
-    if (other.index == index) {
-      // The tables have exactly the same indexes, so they may be just be concatenated horizontally
-      return hconcat(other, lsuffix, rsuffix);
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
+    // TODO adding prefix for right columns
+    NameDeduplicator deduplicator = new NameDeduplicator();
+
+    JoinStrategy strategy = new ScanJoin();
+    JoinResult joinResult = null;
+    // Only compute the join if there are any results to be returned.
+    if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
+      joinResult = strategy.join(this, right, conditions);
     }
-    int s = rowCount();
-    List<Integer>[] matches = new List[s];
-    if (on == null) {
-      for (int i = 0; i < s; i++) {
-        matches[i] = other.index.loc(index.iloc(i));
-      }
-    } else {
-      Storage<?> onS = getColumnByName(on).getStorage();
-      for (int i = 0; i < s; i++) {
-        matches[i] = other.index.loc(onS.getItemBoxed(i));
+
+    List<Integer> leftRows = new ArrayList<>();
+    List<Integer> rightRows = new ArrayList<>();
+
+    if (keepMatched) {
+      for (var match : joinResult.matchedRows()) {
+        leftRows.add(match.getLeft());
+        rightRows.add(match.getRight());
       }
     }
-    int outSize = 0;
-    int[] countMask = new int[s];
-    for (int i = 0; i < s; i++) {
-      if (matches[i] == null) {
-        countMask[i] = dropUnmatched ? 0 : 1;
-      } else {
-        countMask[i] = matches[i].size();
+
+    if (keepLeftUnmatched) {
+      HashSet<Integer> matchedLeftRows = new HashSet<>();
+      for (var match : joinResult.matchedRows()) {
+        matchedLeftRows.add(match.getLeft());
       }
-      outSize += countMask[i];
-    }
-    int[] orderMaskArr = new int[outSize];
-    int orderMaskPosition = 0;
-    for (int i = 0; i < s; i++) {
-      if (matches[i] == null) {
-        if (!dropUnmatched) {
-          orderMaskArr[orderMaskPosition++] = Index.NOT_FOUND;
-        }
-      } else {
-        for (Integer x : matches[i]) {
-          orderMaskArr[orderMaskPosition++] = x;
+
+      for (int i = 0; i < this.rowCount(); i++) {
+        if (!matchedLeftRows.contains(i)) {
+          leftRows.add(i);
+          rightRows.add(Index.NOT_FOUND);
         }
       }
     }
-    OrderMask orderMask = new OrderMask(orderMaskArr);
-    Column[] newColumns = new Column[this.columns.length + other.columns.length];
-    Index newIndex = index.countMask(countMask, outSize);
-    Set<String> lnames =
-        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());
-    Set<String> rnames =
-        Arrays.stream(other.columns).map(Column::getName).collect(Collectors.toSet());
-    for (int i = 0; i < columns.length; i++) {
-      Column original = columns[i];
-      newColumns[i] =
-          new Column(
-              suffixIfNecessary(rnames, original.getName(), lsuffix),
-              newIndex,
-              original.getStorage().countMask(countMask, outSize));
+
+    if (keepRightUnmatched) {
+      HashSet<Integer> matchedRightRows = new HashSet<>();
+      for (var match : joinResult.matchedRows()) {
+        matchedRightRows.add(match.getRight());
+      }
+
+      for (int i = 0; i < right.rowCount(); i++) {
+        if (!matchedRightRows.contains(i)) {
+          leftRows.add(Index.NOT_FOUND);
+          rightRows.add(i);
+        }
+      }
     }
-    for (int i = 0; i < other.columns.length; i++) {
-      Column original = other.columns[i];
-      newColumns[i + columns.length] =
-          new Column(
-              suffixIfNecessary(lnames, original.getName(), rsuffix),
-              newIndex,
-              original.getStorage().applyMask(orderMask));
+
+    OrderMask leftMask = OrderMask.fromList(leftRows);
+    OrderMask rightMask = OrderMask.fromList(rightRows);
+
+    List<Column> newColumns = new ArrayList<>();
+
+    if (includeLeftColumns) {
+      for (Column column : this.columns) {
+        deduplicator.markUsed(column.getName());
+        Column newColumn = column.applyMask(leftMask);
+        newColumns.add(newColumn);
+      }
     }
-    return new Table(newColumns, newIndex);
+
+    if (includeRightColumns) {
+      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
+      for (Column column : right.getColumns()) {
+        if (toDrop.contains(column.getName())) {
+          continue;
+        }
+
+        // TODO drop columns from Equals conditions if equal names too
+        String newName = deduplicator.makeUnique(column.getName());
+        Storage<?> newStorage = column.getStorage().applyMask(rightMask);
+        Column newColumn = new Column(newName, newStorage);
+        newColumns.add(newColumn);
+      }
+    }
+
+    return new Table(newColumns.toArray(new Column[0]));
   }
 
   /**
