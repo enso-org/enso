@@ -32,6 +32,20 @@ const ENTRY_WIDTH: f32 = 130.0;
 const ENTRY_HEIGHT: f32 = 28.0;
 /// The grid is intended to take up 20% of the viewport height, expressed as a fraction;
 const GRID_HEIGHT_RATIO: f32 = 0.2;
+/// The top margin of the [`ProjectsTable`], in pixels.
+// FIXME [NP]: Make the margins into StyleWatchFrp variables?
+const TOP_MARGIN: f32 = 10f32;
+/// The bottom margin of the [`ProjectsTable`], in pixels.
+const BOTTOM_MARGIN: f32 = 10f32;
+/// The left margin of the [`ProjectsTable`], in pixels.
+const LEFT_MARGIN: f32 = 10f32;
+/// The right margin of the [`ProjectsTable`], in pixels.
+const RIGHT_MARGIN: f32 = 10f32;
+/// The combined horizontal margin of the [`ProjectsTable`], in pixels.
+const HORIZONTAL_MARGIN: f32 = LEFT_MARGIN + RIGHT_MARGIN;
+/// The combined vertical margin of the [`ProjectsTable`], in pixels.
+const VERTICAL_MARGIN: f32 = TOP_MARGIN + BOTTOM_MARGIN;
+
 /// In the future, we want to display the last modification time of a [`Project`]. For now, the API
 /// does not provide that information so we use a placeholder value.
 ///
@@ -278,25 +292,14 @@ impl Model {
         self.projects_table.resize_grid(row, col);
     }
 
-    fn refit_grid_to_shape(&self, shape: &ensogl::display::scene::Shape) {
-        // FIXME [NP]: Make the margins into StyleWatchFrp variables?
-        const TOP_MARGIN: f32 = 10f32;
-        const BOTTOM_MARGIN: f32 = 10f32;
-        const LEFT_MARGIN: f32 = 10f32;
-        const RIGHT_MARGIN: f32 = 10f32;
-        const HORIZONTAL_MARGIN: f32 = LEFT_MARGIN + RIGHT_MARGIN;
-        const VERTICAL_MARGIN: f32 = TOP_MARGIN + BOTTOM_MARGIN;
-
-        // === Resize ===
-
+    fn resize_grid_to_shape(&self, shape: &ensogl::display::scene::Shape) -> Vector2<f32> {
         let screen_size = Vector2::from(shape);
         let margin = Vector2::new(HORIZONTAL_MARGIN, VERTICAL_MARGIN);
         let size = screen_size - margin;
-        self.projects_table.scroll_frp().resize(size);
+        size
+    }
 
-
-        // === Reposition ===
-
+    fn reposition_grid_to_shape(&self, shape: &ensogl::display::scene::Shape) {
         let screen_size = Vector2::from(shape);
         let screen_size_halved = screen_size / 2.0;
         let viewport_min_y = -screen_size_halved.y + BOTTOM_MARGIN;
@@ -306,14 +309,6 @@ impl Model {
         let grid_max_y = viewport_min_y + grid_height;
         let position = Vector2::new(grid_min_x, grid_max_y);
         self.projects_table.set_xy(position);
-    }
-
-    fn refit_entries_to_shape(&self, shape: &ensogl::display::scene::Shape) {
-        // === Resize ===
-
-        let width = shape.width / Columns::LEN as f32;
-        let size = Vector2(width, ENTRY_HEIGHT);
-        self.projects_table.set_entries_size(size);
     }
 
     /// Returns the information about what section the requested visible entry is in.
@@ -500,10 +495,12 @@ impl View {
         let network = &self.frp.network;
         let model = &self.model;
         let scene = &model.application.display.default_scene;
+        let projects_table = &model.projects_table;
+        let scroll_frp = projects_table.scroll_frp();
         
         frp::extend! { network
-            eval scene.frp.shape ((shape) model.refit_grid_to_shape(shape));
-            eval scene.frp.shape ((shape) model.refit_entries_to_shape(shape));
+            scroll_frp.resize <+ scene.frp.shape.map(f!((shape) model.resize_grid_to_shape(shape)));
+            eval scene.frp.shape ((shape) model.reposition_grid_to_shape(shape));
         }
     }
 
