@@ -77,7 +77,7 @@ type Vector a
 
        Arguments:
        - length: The length of the vector (>= 0).
-       - constructor: A value fo be placed into each element of the vector.
+       - item: A value to be placed into each element of the vector.
 
        A vector allows to store an arbitrary number of elements in linear memory. It
        is the recommended data structure for most applications.
