@@ -19,7 +19,6 @@ import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
-  DefaultGitRepoDir,
   MasterRef,
   RepoExists
 }
@@ -29,12 +28,16 @@ import zio.blocking.effectBlocking
 
 import java.time.Instant
 
-private class Git extends VcsApi[BlockingIO] {
+private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
-  private def repository(path: Path): Repository = {
+  private val gitDir = ensoDataDirectory
+    .map(_.resolve(VcsApi.DefaultRepoDir))
+    .getOrElse(Path.of(VcsApi.DefaultRepoDir))
+
+  private def repository(root: Path): Repository = {
     val builder = new FileRepositoryBuilder()
     builder
-      .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
+      .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
       .build()
   }
@@ -45,16 +48,43 @@ private class Git extends VcsApi[BlockingIO] {
       if (!rootFile.exists()) {
         throw new FileNotFoundException("unable to find project repo: " + root)
       }
-      val repoLocation = root.resolve(DefaultGitRepoDir)
+
+      val repoLocation = root.resolve(gitDir)
       if (repoLocation.toFile.exists()) {
         throw new RepoExists()
       }
 
+      if (!repoLocation.getParent.toFile.exists()) {
+        if (!repoLocation.getParent.toFile.mkdirs()) {
+          throw new FileNotFoundException(
+            "unable to create project repository at " + repoLocation
+          )
+        }
+      }
+
       val jgit = JGit
         .init()
-        .setDirectory(rootFile)
+        .setGitDir(repoLocation.toFile)
+        .setDirectory(root.toFile)
         .setBare(false)
         .call()
+
+      ensoDataDirectory.foreach { _ =>
+        // When `gitDir` is set, JGit **always** creates a .git file (not a directory!) that points at the real
+        // directory that has the repository.
+        // The presence of the `.git` file is unnecessary and may be confusing to the users;
+        // all operations specify explicitly the location of Git metadata directory.
+        val dotGit = root.resolve(".git").toFile
+        if (dotGit.exists() && dotGit.isFile) {
+          dotGit.delete()
+        }
+
+        // Exclude <enso-data>/.git
+        jgit
+          .reset()
+          .addPath(gitDir.toString)
+          .call()
+      }
 
       jgit
         .commit()
@@ -80,6 +110,13 @@ private class Git extends VcsApi[BlockingIO] {
       jgit
         .add()
         .addFilepattern(".")
+        .call()
+
+      // Include deletion
+      jgit
+        .add()
+        .addFilepattern(".")
+        .setUpdate(true)
         .call()
 
       val revCommit = jgit
@@ -191,18 +228,19 @@ private class Git extends VcsApi[BlockingIO] {
 }
 
 object Git {
-  private val DefaultGitRepoDir = ".git"
-  private val MasterRef         = "refs/heads/master"
-  private val AuthorName        = "Enso VCS"
-  private val AuthorEmail       = "vcs@enso.io"
+  private val MasterRef   = "refs/heads/master"
+  private val AuthorName  = "Enso VCS"
+  private val AuthorEmail = "vcs@enso.io"
 
   private class RepoExists extends Exception
 
   /** Returns a Git implementation of VcsApi that ignores gitconfig file in
     * user's home directory.
     */
-  def withEmptyUserConfig(): VcsApi[BlockingIO] = {
+  def withEmptyUserConfig(
+    dataDir: Option[Path]
+  ): VcsApi[BlockingIO] = {
     SystemReader.setInstance(new EmptyUserConfigReader)
-    new Git()
+    new Git(dataDir)
   }
 }
