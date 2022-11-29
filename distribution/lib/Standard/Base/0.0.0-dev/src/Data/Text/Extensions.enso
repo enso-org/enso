@@ -2,12 +2,13 @@
 
 from Standard.Base import all
 
-import Standard.Base.Data.Array.Array
+import project.Data.Array.Array
+import project.Data.Text.Case.Case
+import project.Data.Text.Location
+
 import Standard.Base.Data.Text.Regex
 
 import Standard.Base.Data.Text.Matching_Mode
-import Standard.Base.Data.Text.Case.Case
-import Standard.Base.Data.Text.Location
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Text_Sub_Range as Text_Sub_Range_Module
@@ -17,7 +18,6 @@ from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Meta
 
 export Standard.Base.Data.Text.Matching_Mode
-export Standard.Base.Data.Text.Location
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator

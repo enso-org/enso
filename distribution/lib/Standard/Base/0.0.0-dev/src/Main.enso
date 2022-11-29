@@ -81,6 +81,7 @@ import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
+import project.Data.Text.Location
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -115,6 +116,7 @@ export project.Data.Text.Case.Case
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Encoding.Encoding
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
+export project.Data.Text.Location
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
 export project.Data.Time.Date_Period.Date_Period
@@ -138,7 +140,6 @@ from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 # Not refactored modules below:
 import project.Data.Text
 import project.Data.Text.Extensions
-import project.Data.Text.Matching
 import project.Data.Text.Text_Matcher
 import project.Data.Text.Regex_Matcher
 import project.Data.Text.Text_Ordering
@@ -154,9 +155,8 @@ export project.Data.Text.Text_Matcher
 export project.Data.Text.Regex_Matcher
 export project.Meta
 
-from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
-from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity, Case
+from project.Data.Text.Extensions export Text, Matching_Mode
+from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity, Case, Location, Matching
 from project.Data.Text.Span export all
 
 import project.Error.Common
