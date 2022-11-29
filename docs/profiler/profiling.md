@@ -1,6 +1,3 @@
-- Lead:Michael Mauderer
-- Start Date: 2021-11-15
-
 # Summary
 
 This document provides a guide on how to achieve and maintain high-performance evaluation of Enso (IDE, Engine, Language Server, and other services). It is divided into the following chapters:
