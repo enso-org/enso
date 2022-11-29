@@ -3,7 +3,7 @@
    This lets you configure how you want to match, from the `First` match only,
    to matching on the `Full` content of the input text.
 
-import Standard.Base.Data.Text.Matching_Mode
+import project.Data.Text.Matching_Mode
 
 type Regex_Mode
     ## The regex will make all possible matches.

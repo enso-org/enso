@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Base.Data.Text.Regex import No_Such_Group_Error_Data
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -15,7 +15,7 @@ spec =
     Test.group "The default regex engine's options handling" <|
 
         Test.specify "should convert options to Java" <|
-            options = [Global_Option.Comments, Global_Option.Multiline, Default_Engine.Unix_Lines]
+            options = [Regex_Option.Comments, Regex_Option.Multiline, Default_Engine.Unix_Lines]
             expected_mask = Java_Pattern.UNIX_LINES.bit_or Java_Pattern.COMMENTS . bit_or Java_Pattern.MULTILINE . bit_or default_mask
             actual_mask = Default_Engine.from_enso_options options
 
@@ -27,12 +27,12 @@ spec =
             actual_mask . should_equal default_mask
 
         Test.specify "should handle ascii matching by disabling unicode" <|
-            actual_mask = Default_Engine.from_enso_options [Global_Option.Ascii_Matching]
+            actual_mask = Default_Engine.from_enso_options [Regex_Option.Ascii_Matching]
             actual_mask . should_equal 0
 
         Test.specify "should result in an error when an option is invalid" <|
             Default_Engine.from_enso_options [""] . should_fail_with Default_Engine.Invalid_Option_Error_Data
-            Default_Engine.from_enso_options ["", Global_Option.Ascii_Matching] . should_fail_with Default_Engine.Invalid_Option_Error_Data
+            Default_Engine.from_enso_options ["", Regex_Option.Ascii_Matching] . should_fail_with Default_Engine.Invalid_Option_Error_Data
 
     Test.group "The default regex engine (Default_Engine)" <|
 
@@ -45,9 +45,9 @@ spec =
 
         Test.specify "should be able to compile patterns with global options" <|
             engine = Default_Engine.new
-            pattern = engine.compile "^a$" [Global_Option.Multiline]
+            pattern = engine.compile "^a$" [Regex_Option.Multiline]
             pattern.engine . should_equal engine
-            pattern.options . should_equal [Global_Option.Multiline]
+            pattern.options . should_equal [Regex_Option.Multiline]
             pattern.internal_pattern.flags . should_equal (default_mask.bit_or Java_Pattern.MULTILINE)
 
         Test.specify "should be able to compile patterns with engine-specific options" <|
@@ -59,10 +59,10 @@ spec =
 
         Test.specify "should be able to compile patterns with combined options" <|
             engine = Default_Engine.new [Default_Engine.Literal_Pattern]
-            pattern = engine.compile "^a$" [Global_Option.Comments]
+            pattern = engine.compile "^a$" [Regex_Option.Comments]
             pattern.engine . should_equal engine
             pattern.options.contains Default_Engine.Literal_Pattern . should_be_true
-            pattern.options.contains Global_Option.Comments . should_be_true
+            pattern.options.contains Regex_Option.Comments . should_be_true
             pattern.internal_pattern.flags . should_equal (default_mask . bit_or Java_Pattern.LITERAL . bit_or Java_Pattern.COMMENTS)
 
         Test.specify "should return a syntax error of the regex syntax is invalid" <|

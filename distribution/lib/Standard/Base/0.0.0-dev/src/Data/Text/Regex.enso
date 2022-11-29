@@ -11,7 +11,7 @@ import Standard.Base.Data.Text.Regex.Engine
 # TODO[DB] Fix composite types #183857386
 import Standard.Base.Data.Text.Regex.Engine.Engine as Engine_Type
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Option
+import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
 
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
@@ -64,7 +64,7 @@ import Standard.Base.Data.Text.Regex.Option
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Engine_Type -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Engine.Pattern ! Compile_Error
+compile : Text -> Engine_Type -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Regex_Option -> Engine.Pattern ! Compile_Error
 compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
@@ -86,7 +86,7 @@ escape expression engine=Default_Engine.new = engine.escape expression
 ## PRIVATE
 
    Turns the options flags into a vector of options.
-from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Vector Option.Option
+from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Regex_Option -> Vector Regex_Option
 from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts =
     builder = Vector.new_builder
 
@@ -95,19 +95,19 @@ from_flags match_ascii case_insensitive dot_matches_newline multiline comments e
         _ : Boolean -> if param then builder.append option
         Nothing -> if extra_opts.contains option then builder.append option
 
-    process_override match_ascii Option.Ascii_Matching
-    process_override case_insensitive Option.Case_Insensitive
-    process_override dot_matches_newline Option.Dot_Matches_Newline
-    process_override multiline Option.Multiline
-    process_override comments Option.Comments
+    process_override match_ascii Regex_Option.Ascii_Matching
+    process_override case_insensitive Regex_Option.Case_Insensitive
+    process_override dot_matches_newline Regex_Option.Dot_Matches_Newline
+    process_override multiline Regex_Option.Multiline
+    process_override comments Regex_Option.Comments
 
     ## Add any non-overridable options from extra_opts
     extra_opts.each opt->
-        not_ascii = opt != Option.Ascii_Matching
-        not_insensitive = opt != Option.Case_Insensitive
-        not_dot_matches_newline = opt != Option.Dot_Matches_Newline
-        not_multiline = opt != Option.Multiline
-        not_comments = opt != Option.Comments
+        not_ascii = opt != Regex_Option.Ascii_Matching
+        not_insensitive = opt != Regex_Option.Case_Insensitive
+        not_dot_matches_newline = opt != Regex_Option.Dot_Matches_Newline
+        not_multiline = opt != Regex_Option.Multiline
+        not_comments = opt != Regex_Option.Comments
 
         if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_comments then
             builder.append opt
