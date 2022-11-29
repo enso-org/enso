@@ -290,7 +290,7 @@ pub mod projects_table {
     #[derive(Clone, CloneRef, Debug)]
     struct Model {
         display_object: display::object::Instance,
-        grid:           ProjectsTable,
+        projects_table: ProjectsTable,
         application:    Application,
         projects:       ide_view_graph_editor::SharedVec<view::project::Project>,
     }
@@ -302,10 +302,10 @@ pub mod projects_table {
         fn new(app: &Application) -> Self {
             let application = app.clone_ref();
             let display_object = display::object::Instance::new();
-            let grid = ProjectsTable::new(app);
+            let projects_table = ProjectsTable::new(app);
             let projects = ide_view_graph_editor::SharedVec::new();
-            display_object.add_child(&grid);
-            Self { application, display_object, grid, projects }
+            display_object.add_child(&projects_table);
+            Self { application, display_object, projects_table, projects }
         }
 
         fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
@@ -375,7 +375,7 @@ pub mod projects_table {
 
             let row = self.rows();
             let col = Columns::LEN;
-            self.grid.resize_grid(row, col);
+            self.projects_table.resize_grid(row, col);
         }
 
         fn refit_grid_to_shape(&self, shape: &ensogl::display::scene::Shape) {
@@ -392,7 +392,7 @@ pub mod projects_table {
             let screen_size = Vector2::from(shape);
             let margin = Vector2::new(HORIZONTAL_MARGIN, VERTICAL_MARGIN);
             let size = screen_size - margin;
-            self.grid.scroll_frp().resize(size);
+            self.projects_table.scroll_frp().resize(size);
 
 
             // === Reposition ===
@@ -405,7 +405,7 @@ pub mod projects_table {
             let grid_min_x = viewport_min_x;
             let grid_max_y = viewport_min_y + grid_height;
             let position = Vector2::new(grid_min_x, grid_max_y);
-            self.grid.set_xy(position);
+            self.projects_table.set_xy(position);
         }
 
         fn refit_entries_to_shape(&self, shape: &ensogl::display::scene::Shape) {
@@ -413,7 +413,41 @@ pub mod projects_table {
 
             let width = shape.width / Columns::LEN as f32;
             let size = Vector2(width, ENTRY_HEIGHT);
-            self.grid.set_entries_size(size);
+            self.projects_table.set_entries_size(size);
+        }
+
+        /// Returns the information about what section the requested visible entry is in.
+        /// 
+        /// The grid view wants to know what to display as a header of the top of the viewport in
+        /// the current column. Therefore, it asks about information about the section the topmost
+        /// visible entry is in.
+        /// 
+        /// `section_info_needed` assumes that there may be more than one section, therefore it
+        /// needs to know the span of rows belonging to the returned section (so it knows when to
+        /// ask about another one).
+        /// 
+        /// Since we use separate tables to display separate types of data in the dashboard, this
+        /// table only ever has one section. So it should always return the range `1..=self.rows()`.
+        /// However since we don't have easy access to the number of projects in the table, we just
+        /// return [`usize::MAX`], which is provides what we want because we always want all rows to
+        /// be part of the one section.
+        fn position_to_requested_section(&self, position: Position) -> (Range<Row>, Col, EntryModel) {
+            /// The first row in the section the requested visible entry is in.
+            /// 
+            /// This is always `0` because we only have one section, so the first row is the first
+            /// visible one in the table.
+            const SECTION_START: usize = 0;
+            /// The last row in the section the requested visible entry is in.
+            /// 
+            /// This is always [`usize::MAX`] because we only have one section, so all rows are in
+            /// the current section.
+            const SECTION_END: usize = usize::MAX;
+
+            let Position { row: _, column } = position;
+            let position = (SECTION_START, column).into();
+            let model = header_entry_model(position);
+            let section_range = SECTION_START..SECTION_END;
+            (section_range, column, model)
         }
     }
 
@@ -454,36 +488,65 @@ pub mod projects_table {
     }
 
 
-    // === Main `impl` ===
+    // === Internal `impl` ===
 
     impl View {
         fn new(app: &Application) -> Self {
             let frp = Frp::new();
-            let network = &frp.network;
             let model = Model::new(app);
+            Self { frp, model }.init(app)
+        }
 
-            let projects_table = &model.grid;
+        fn init(self, app: &Application) -> Self {
+            let frp = &self.frp;
+            let model = &self.model;
             let root = &model.display_object;
             let input = &frp.public.input;
-            let scene = &app.display.default_scene;
+
+            self.init_projects_table_model_data_loading();
+            self.init_projects_table_grid_resizing();
+            self.init_projects_table_entries_models();
+            self.init_projects_table_grid();
+            self.init_projects_table_header();
+            self.init_projects_table_scroll_parameters();
+            self.init_event_tracing();
+
+            app.display.add_child(root);
+
+            populate_table_with_data(input.clone_ref());
+
+            self
+        }
+
+        fn init_projects_table_model_data_loading(&self) {
+            let frp = &self.frp;
+            let network = &frp.network;
+            let model = &self.model;
+            let input = &frp.public.input;
 
             frp::extend! { network
-
-
-                // === Model I/O ===
-
                 // FIXME [NP]: How do we get rid of this clone?
                 eval input.set_projects((projects) model.set_projects(projects.clone()));
+            }
+        }
 
-
-                // === Grid Resizing ===
-
+        fn init_projects_table_grid_resizing(&self) {
+            let network = &self.frp.network;
+            let model = &self.model;
+            let scene = &model.application.display.default_scene;
+           
+            frp::extend! { network
                 eval scene.frp.shape ((shape) model.refit_grid_to_shape(shape));
                 eval scene.frp.shape ((shape) model.refit_entries_to_shape(shape));
+            }
+        }
 
+        fn init_projects_table_entries_models(&self) {
+            let network = &self.frp.network;
+            let model = &self.model;
+            let projects_table = &model.projects_table;
 
-                // === Entries Models ===
-
+            frp::extend! { network
                 // FIXME [NP]: How do we stop the grid from calling `model_for_entry` on the
                 // header row? It should be handled via the later extension to the network.
                 projects_table.model_for_entry <+
@@ -492,67 +555,70 @@ pub mod projects_table {
                         (row, col, entry_model)
                     })));
             }
-
-            configure_projects_table_grid(projects_table, &model);
-            configure_projects_table_header(projects_table, network);
-            configure_projects_table_scroll_parameters(projects_table);
-
-            app.display.add_child(root);
-
-            populate_table_with_data(input.clone_ref());
-
-            Self { frp, model }
         }
-    }
 
-    fn configure_projects_table_grid(projects_table: &ProjectsTable, model: &Model) {
-        let entry_size = Vector2(ENTRY_WIDTH, ENTRY_HEIGHT);
-        projects_table.set_entries_size(entry_size);
-        let params = ensogl_grid_view::simple::EntryParams {
-            // FIXME [NP]: Turn these into StyleWatchFrp values or at the very least constants.
-            bg_color: color::Lcha::transparent(),
-            bg_margin: 1.0,
-            // TODO [NP]: Apply the hover color to the whole row, not just the selected entry.
-            hover_color: color::Lcha::from(color::Rgba(
-                62f32 / u8::MAX as f32,
-                81f32 / u8::MAX as f32,
-                95f32 / u8::MAX as f32,
-                0.05,
-            )),
-            selection_color: color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)),
-            ..default()
-        };
-        projects_table.set_entries_params(params);
-        let row = model.rows();
-        let col = Columns::LEN;
-        projects_table.reset_entries(row, col);
-        projects_table.focus();
-    }
+        fn init_projects_table_grid(&self) {
+            let model = &self.model;
+            let projects_table = &model.projects_table;
 
-    fn configure_projects_table_header(
-        projects_table: &ProjectsTable,
-        network: &enso_frp::Network,
-    ) {
-        let header_frp = projects_table.header_frp();
-        frp::extend! { network
-            requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
-                let sections_size = 2 + col;
-                let section_start = row - (row % sections_size);
-                let section_end = section_start + sections_size;
-                let position = (section_start, col).into();
-                let model = header_entry_model(position);
-                (section_start..section_end, col, model)
-            });
-            header_frp.section_info <+ requested_section;
+            let entry_size = Vector2(ENTRY_WIDTH, ENTRY_HEIGHT);
+            projects_table.set_entries_size(entry_size);
+            let params = ensogl_grid_view::simple::EntryParams {
+                // FIXME [NP]: Turn these into StyleWatchFrp values or at the very least constants.
+                bg_color: color::Lcha::transparent(),
+                bg_margin: 1.0,
+                // TODO [NP]: Apply the hover color to the whole row, not just the selected entry.
+                hover_color: color::Lcha::from(color::Rgba(
+                    62f32 / u8::MAX as f32,
+                    81f32 / u8::MAX as f32,
+                    95f32 / u8::MAX as f32,
+                    0.05,
+                )),
+                selection_color: color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)),
+                ..default()
+            };
+            projects_table.set_entries_params(params);
+            let row = model.rows();
+            let col = Columns::LEN;
+            projects_table.reset_entries(row, col);
+            projects_table.focus();
         }
-    }
 
-    fn configure_projects_table_scroll_parameters(projects_table: &ProjectsTable) {
-        // These sizes are arbitrary, because the grid will get resized as soon as the WebGL
-        // context is ready (because the shape of the viewport will change as a result).
-        let viewport_size = Vector2(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-        let scroll_frp = projects_table.scroll_frp();
-        scroll_frp.resize(viewport_size);
+        fn init_projects_table_header(&self) {
+            let model = &self.model;
+            let network = self.frp.network();
+            let header_frp = model.projects_table.header_frp();
+
+            frp::extend! { network
+                requested_section <- header_frp.section_info_needed.map(f!((position) model.position_to_requested_section((*position).into())));
+                header_frp.section_info <+ requested_section;
+            }
+        }
+
+        fn init_projects_table_scroll_parameters(&self) {
+            let projects_table = &self.model.projects_table;
+            let scroll_frp = projects_table.scroll_frp();
+            // These sizes are arbitrary, because the grid will get resized as soon as the WebGL
+            // context is ready (because the shape of the viewport will change as a result).
+            let viewport_size = Vector2(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+            scroll_frp.resize(viewport_size);
+        }
+        
+        fn init_event_tracing(&self) {
+            let frp = &self.frp;
+            let network = &frp.network;
+            let model = &self.model;
+            let projects_table = &model.projects_table;
+            let input = &frp.public.input;
+            let scene = &model.application.display.default_scene;
+
+            frp::extend! { network
+                trace input.set_projects;
+                trace input.model_for_entry;
+                trace projects_table.model_for_entry;
+                trace scene.frp.shape;
+            }
+        }
     }
 
     fn populate_table_with_data(input: api::public::Input) {
