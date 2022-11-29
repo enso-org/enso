@@ -11,6 +11,8 @@ from project.Data.Column import get_item_string
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Join_Condition.Join_Condition
+import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Storage.Storage
@@ -19,9 +21,10 @@ import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
+import project.Internal.Aggregate_Column_Helper
+import project.Internal.Join_Helpers
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
-import project.Internal.Aggregate_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Data.Expression.Expression
@@ -38,6 +41,7 @@ import Standard.Visualization
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import java.util.UUID
@@ -1036,45 +1040,88 @@ type Table
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column_Data i
 
-    ## ALIAS Join Table
-
-       Efficiently joins two or more tables based on either the index or the
-       specified key column.
+    ## Joins two tables according to the specified join conditions.
 
        Arguments:
-       - other: The table (or vector of tables) being the right operand of this
-         join operation.
-       - on: The column of `self` that should be used as the join key. If this
-         argument is not provided, the index of `self` will be used.
-       - drop_unmatched: Whether the rows of `self` without corresponding
-         matches in `other` should be dropped from the result.
-       - left_suffix: A suffix that should be added to the columns of `self`
-         when there's a name conflict with a column of `other`.
-       - right_suffix: A suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `self`.
+       - right: The table to join with.
+       - join_kind: The `Join_Kind` for the joining the two tables.
+       - on: A single condition or a common column name, or a list thereof, on
+         which to correlate rows from the two tables. If multiple conditions
+         are supplied, rows are correlated only if all are true.
+         If common column names are provided, these columns should be present
+         in both tables and an equality condition is added for each of them.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
 
-       The resulting table contains rows of `self` extended with rows of
-       `other` with matching indexes. If the index values in `other` are not
-       unique, the corresponding rows of `self` will be duplicated in the
-       result.
+         - If a column name cannot be found, a `No_Such_Column` is reported
+           and an empty result is reported.
+         - If a column index is invalid, an `Index_Out_Of_Bounds_Error` is
+           reported and an empty result is reported.
+         - If a join condition correlates columns whose types are not compatible
+           (for example comparing numeric types with text), a
+           `Invalid_Value_Type` is reported.
+         - If decimal columns are joined on equality, a
+           `Floating_Point_Grouping` is reported.
 
-       > Example
-         Join the popularity table and the inventory table to see the relative
-         popularity of the items in the shop inventory.
+         In any of the above cases, if a problem occurs, the resulting table
+         will have the desired structure, but it will be empty to indicate that
+         the join has failed due to an erroneous join condition.
 
-             import Standard.Examples
+       ? Column Renaming
 
-             example_join =
-                 Examples.inventory_table.join Examples.popularity_table
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
 
-       Icon: join
-    join : Vector Table | Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
-    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        case other of
-            _ : Vector -> other.fold self current->item->(current.join item on drop_unmatched left_suffix right_suffix)
-            Column.Column_Data _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
-            Table.Table_Data t ->
-                Table.Table_Data (self.java_table.join t drop_unmatched on left_suffix right_suffix)
+       ? Result Ordering
+
+         The ordering of rows in the resulting table is not specified.
+
+       ? Joining on equality of columns with the same name
+
+         When joining two columns with the same name and an equality condition,
+         only one copy of column will be included in the output (avoiding
+         unnecessary duplication and renaming).
+
+       ? Same-name column join shorthand
+
+         As a shorthand, providing a column name or a list of column names
+         allows to join the two tables on equality of corresponding columns with
+         the same name. So `table.join other on=["A", "B"]` is a shorthand for:
+             table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    join : Table -> Join_Kind -> Join_Condition | Vector Join_Condition | Vector Text -> Text -> Problem_Behavior -> Table
+    join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
+        # TODO check for cross-backend joins
+
+        # [left_unmatched, matched, right_unmatched]
+        rows_to_keep = case join_kind of
+            Join_Kind.Inner           -> [False, True, False]
+            Join_Kind.Left_Outer      -> [True, True, False]
+            Join_Kind.Right_Outer     -> [False, True, True]
+            Join_Kind.Full            -> [True, True, True]
+            Join_Kind.Left_Exclusive  -> [True, False, False]
+            Join_Kind.Right_Exclusive -> [False, False, True]
+
+        columns_to_keep = case join_kind of
+            Join_Kind.Left_Exclusive  -> [True, False]
+            Join_Kind.Right_Exclusive -> [False, True]
+            _                         -> [True, True]
+
+        join_resolution = make_join_helpers self right . resolve on on_problems
+        right_columns_to_drop = join_resolution.redundant_column_names
+
+        case join_resolution.conditions of
+            # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
+            Nothing ->
+                new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                Table.Table_Data new_table
+            java_conditions ->
+                new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                Table.Table_Data new_table
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1341,3 +1388,12 @@ print_table header rows indices_count format_term =
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Table.Table_Data (table.java_table.slice normalized.to_array)
+
+## PRIVATE
+make_join_helpers left_table right_table =
+    make_equals left right = Java_Join_Equals.new left.java_column right.java_column
+    make_equals_ignore_case _ _ =
+        unimplemented "Conditions other than Equals are not implemented yet."
+    make_between _ _ _ =
+        unimplemented "Conditions other than Equals are not implemented yet."
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
