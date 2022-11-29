@@ -285,8 +285,7 @@ impl DefinitionInfo {
         let off = line.off;
         let first_line = ast::BlockLine { elem, off };
         let is_orphan = false;
-        let ty = ast::BlockType::Discontinuous {};
-        let block = ast::Block { ty, indent, empty_lines, first_line, lines, is_orphan };
+        let block = ast::Block { indent, empty_lines, first_line, lines, is_orphan };
         let body_ast = Ast::new(block, None);
         self.set_body_ast(body_ast);
         Ok(())

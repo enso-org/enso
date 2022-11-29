@@ -216,9 +216,9 @@ pub struct Unit {}
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(CloneRef, Eq, PartialEq, Debug, Deref, DerefMut)]
+#[derive(CloneRef, Eq, PartialEq, Debug, Deref)]
 pub struct Ast {
-    pub wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
+    wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
 }
 
 impl Clone for Ast {
@@ -282,7 +282,7 @@ impl Ast {
     }
 
     /// Just wraps shape, id and len into Ast node.
-    fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: usize) -> Ast {
+    pub fn from_ast_id_len(shape: Shape<Ast>, id: Option<Id>, char_count: usize) -> Ast {
         let with_length = WithLength { wrapped: shape, length: char_count };
         let with_id = WithID { wrapped: with_length, id };
         Ast { wrapped: Rc::new(with_id) }
@@ -557,9 +557,6 @@ pub enum Shape<T> {
     /// Block is the sequence of equally indented lines. Lines may contain some child `T` or be
     /// empty. Block is used for all code blocks except for the root one, which uses `Module`.
     Block {
-        /// Type of Block, depending on whether it is introduced by an operator.
-        /// Note [mwu] Doesn't really do anything right now, likely to be removed.
-        ty:          BlockType,
         /// Absolute's block indent, counting from the module's root.
         indent:      usize,
         /// Leading empty lines. Each line is represented by absolute count of spaces
@@ -599,7 +596,7 @@ pub enum Shape<T> {
     Modified(Modified<T>),
 }
 
-/// Macrot that calls its argument (possibly other macro
+/// Macro that calls its argument (possibly other macro
 #[macro_export]
 macro_rules! with_shape_variants {
     ($f:ident) => {
@@ -716,12 +713,6 @@ pub enum Escape {
 // =============
 // === Block ===
 // =============
-
-#[ast_node]
-pub enum BlockType {
-    Continuous {},
-    Discontinuous {},
-}
 
 /// Holder for line in `Block` or `Module`. Lines store value of `T` and trailing whitespace info.
 #[ast]
@@ -1357,7 +1348,6 @@ impl<T> Module<T> {
         let is_empty = |line: &&BlockLine<Option<T>>| line.elem.is_none();
         let empty_lines = self.lines.iter().take_while(is_empty);
         let empty_lines = empty_lines.map(|line| line.off).collect_vec();
-        let ty = BlockType::Discontinuous {};
         let first_line = self.lines.iter().find_map(|line| {
             Some(BlockLine { off: line.off, elem: line.elem.as_ref()?.clone() })
         })?;
@@ -1368,7 +1358,7 @@ impl<T> Module<T> {
         // block at all. Also, having inline expression can make invalid AST when the only line is
         // an assignment and we want to use block as a definition's body.
         let is_orphan = false;
-        Some(Block { ty, indent, empty_lines, first_line, lines, is_orphan })
+        Some(Block { indent, empty_lines, first_line, lines, is_orphan })
     }
 }
 
@@ -1459,7 +1449,6 @@ impl Block<Ast> {
     /// If there are no tail lines, the first line will be "inline" and the whole block.
     /// If there are tail lines, block will be leaded with a newline.
     pub fn from_lines(first_line: &Ast, tail_lines: &[Option<Ast>]) -> Block<Ast> {
-        let ty = BlockType::Discontinuous {};
         let indent = 0;
         let empty_lines = Vec::new();
         let first_line = BlockLine::new(first_line.clone_ref());
@@ -1470,7 +1459,7 @@ impl Block<Ast> {
         // block at all. Also, having inline expression can make invalid AST when the only line is
         // an assignment and we want to use block as a definition's body.
         let is_orphan = false;
-        Block { ty, indent, empty_lines, first_line, lines, is_orphan }
+        Block { indent, empty_lines, first_line, lines, is_orphan }
     }
 }
 
@@ -1876,7 +1865,6 @@ mod tests {
 
     #[test]
     fn all_lines_of_block() {
-        let ty = BlockType::Discontinuous {};
         let indent = 4;
         let empty_lines = vec![5];
         let first_line = BlockLine { elem: Ast::var("head"), off: 3 };
@@ -1886,7 +1874,7 @@ mod tests {
             BlockLine { elem: Some(Ast::var("tail2")), off: 3 },
         ];
         let is_orphan = false;
-        let block = Block { ty, indent, empty_lines, first_line, lines, is_orphan };
+        let block = Block { indent, empty_lines, first_line, lines, is_orphan };
         let expected_repr = "\n     \n    head   \n    tail0  \n \n    tail2   ";
         assert_eq!(block.repr(), expected_repr);
 

@@ -1391,3 +1391,38 @@ impl<'s> Tree<'s> {
         self.visit_mut(&mut visitor);
     }
 }
+
+
+
+// =================
+// === Traversal ===
+// =================
+
+impl<'s> Tree<'s> {
+    /// Return an iterator over the operands of the given left-associative operator, in reverse
+    /// order.
+    pub fn left_assoc_rev<'t, 'o>(&'t self, operator: &'o str) -> LeftAssocRev<'o, 't, 's> {
+        let tree = Some(self);
+        LeftAssocRev { operator, tree }
+    }
+}
+
+/// Iterator over the operands of a particular left-associative operator, in reverse order.
+#[derive(Debug)]
+pub struct LeftAssocRev<'o, 't, 's> {
+    operator: &'o str,
+    tree:     Option<&'t Tree<'s>>,
+}
+
+impl<'o, 't, 's> Iterator for LeftAssocRev<'o, 't, 's> {
+    type Item = &'t Tree<'s>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if let box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) = &self.tree?.variant
+            && opr.code == self.operator {
+            self.tree = lhs.into();
+            rhs.into()
+        } else {
+            self.tree.take()
+        }
+    }
+}

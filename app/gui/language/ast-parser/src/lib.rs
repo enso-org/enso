@@ -105,33 +105,12 @@ pub struct Parser {
     scala_parser: parser_scala::Parser,
 }
 
+
+// === Core methods provided by the underlying parser ===
+
 impl Parser {
     pub fn new() -> api::Result<Self> {
-        parser_scala::Parser::new().map(Into::into)
-    }
-
-    pub fn new_or_panic() -> Self {
-        parser_scala::Parser::new_or_panic().into()
-    }
-
-    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
-        self.scala_parser.parse_module(program, ids)
-    }
-
-    pub fn parse_line_ast(&self, program: impl Str) -> FallibleResult<ast::Ast> {
-        self.scala_parser.parse_line_ast(program)
-    }
-
-    pub fn parse_line(&self, program: impl Str) -> FallibleResult<ast::BlockLine<ast::Ast>> {
-        self.scala_parser.parse_line(program)
-    }
-
-    pub fn parse_line_ast_with_id_map(
-        &self,
-        program: impl Str,
-        id_map: IdMap,
-    ) -> FallibleResult<ast::Ast> {
-        self.scala_parser.parse_line_ast_with_id_map(program, id_map)
+        parser_scala::Parser::new().map(|scala_parser| Self { scala_parser })
     }
 
     pub fn parse(&self, program: String, ids: IdMap) -> api::Result<ast::Ast> {
@@ -142,12 +121,58 @@ impl Parser {
         &self,
         program: String,
     ) -> api::Result<api::ParsedSourceFile<M>> {
-        self.scala_parser.parse_with_metadata(program).map(Into::into)
+        self.scala_parser
+            .parse_with_metadata(program)
+            .map(Into::into)
     }
 }
 
-impl From<parser_scala::Parser> for Parser {
-    fn from(scala_parser: parser_scala::Parser) -> Self {
-        Self { scala_parser }
+
+// === Convenience methods ===
+
+impl Parser {
+    pub fn new_or_panic() -> Self {
+        Self::new().unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
+    }
+
+    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
+        let ast = self.parse(program.into(), ids)?;
+        ast::known::Module::try_from(ast).map_err(|_| parser_scala::api::Error::NonModuleRoot)
+    }
+
+    pub fn parse_line_ast(&self, program: impl Str) -> FallibleResult<ast::Ast> {
+        self.parse_line(program).map(|line| line.elem)
+    }
+
+    pub fn parse_line(&self, program: impl Str) -> FallibleResult<ast::BlockLine<ast::Ast>> {
+        self.parse_line_with_id_map(program, default())
+    }
+
+    pub fn parse_line_ast_with_id_map(
+        &self,
+        program: impl Str,
+        id_map: IdMap,
+    ) -> FallibleResult<ast::Ast> {
+        self.parse_line_with_id_map(program, id_map).map(|line| line.elem)
+    }
+
+    /// Program is expected to be single non-empty line module. Return the parsed line.
+    fn parse_line_with_id_map(
+        &self,
+        program: impl Str,
+        id_map: IdMap,
+    ) -> FallibleResult<ast::BlockLine<ast::Ast>> {
+        let module = self.parse_module(program, id_map)?;
+        let mut lines =
+            module.lines.clone().into_iter().filter_map(|line| line.map(|elem| elem).transpose());
+        if let Some(first_non_empty_line) = lines.next() {
+            if lines.next().is_some() {
+                Err(parser_scala::api::TooManyLinesProduced.into())
+            } else {
+                Ok(first_non_empty_line)
+            }
+        } else {
+            Err(parser_scala::api::NoLinesProduced.into())
+        }
     }
 }

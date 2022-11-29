@@ -1,0 +1,16 @@
+[package]
+name = "enso-parser-bridge-tests"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+ast = { path = "../ast/impl" }
+enso-parser = { path = "../../../../lib/rust/parser" }
+parser-scala = { path = "../parser-scala" }
+enso-parser-bridge = { path = "../parser2" }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-test = "0.3"

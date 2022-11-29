@@ -361,7 +361,6 @@ impl Fixture {
 
     fn deserialize_block(&mut self) {
         self.test_shape(" foo\n bar", |block: &Block<Ast>| {
-            assert_eq!(block.ty, BlockType::Continuous {});
             assert_eq!(block.indent, 1);
             assert_eq!(block.empty_lines.len(), 0);
             assert!(block.is_orphan);

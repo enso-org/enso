@@ -2294,6 +2294,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-parser-bridge"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-parser",
+ "enso-prelude",
+ "enso-profiler",
+ "uuid 0.8.2",
+]
+
+[[package]]
+name = "enso-parser-bridge-tests"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-parser",
+ "enso-parser-bridge",
+ "parser-scala",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "enso-parser-debug"
 version = "0.1.0"
 dependencies = [
@@ -5304,6 +5327,8 @@ dependencies = [
  "bytes 1.1.0",
  "console_error_panic_hook",
  "enso-data-structures",
+ "enso-parser",
+ "enso-parser-bridge",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
