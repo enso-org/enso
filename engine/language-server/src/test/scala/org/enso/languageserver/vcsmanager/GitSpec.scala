@@ -17,7 +17,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "VCS initialization" should {
     "create a new repository" in new TestCtx {
-      val targetRepo = repoPath.resolve(".git")
+      val targetRepo = repoPath.resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile shouldNot exist
       val result = vcs.init(repoPath).unsafeRunSync()
       result.isRight shouldBe true
@@ -30,18 +30,33 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       result.isLeft shouldBe true
       result.swap.getOrElse(null) shouldBe an[ProjectNotFound]
 
-      val targetRepo = path.resolve(".git")
+      val targetRepo = path.resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile shouldNot exist
     }
 
     "fail to create a repo for a project that is already under vcs" in new TestCtx
       with InitialRepoSetup {
-      val targetRepo = repoPath.resolve(".git")
+      val targetRepo = repoPath.resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile should exist
       val result = vcs.init(repoPath).unsafeRunSync()
       result.isLeft shouldBe true
       result.swap.getOrElse(null) shouldBe an[RepoAlreadyExists.type]
       targetRepo.toFile should exist
+    }
+
+    "create a vcs meta directory at a custom location" in new TestCtx {
+      val dataDirectory = Path.of(".enso")
+      override lazy val vcs = Git.withEmptyUserConfig(
+        Some(dataDirectory)
+      )
+
+      val targetRepo =
+        repoPath.resolve(dataDirectory).resolve(VcsApi.DefaultRepoDir)
+      targetRepo.toFile shouldNot exist
+      val result = vcs.init(repoPath).unsafeRunSync()
+      result.isRight shouldBe true
+      targetRepo.toFile should exist
+      repoPath.resolve(VcsApi.DefaultRepoDir).toFile shouldNot exist
     }
   }
 
@@ -307,12 +322,12 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     def testRepo(repoDir: Path): Repository = {
       val builder = new FileRepositoryBuilder();
       builder
-        .setGitDir(repoDir.resolve(".git").toFile)
+        .setGitDir(repoDir.resolve(VcsApi.DefaultRepoDir).toFile)
         .setMustExist(true)
         .build()
     }
 
-    val vcs = Git.withEmptyUserConfig()
+    lazy val vcs = Git.withEmptyUserConfig(None)
 
     def listCommits(repoDir: Path): List[RevCommit] = {
       listCommits(testRepo(repoDir))
@@ -346,9 +361,11 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     setup()
 
     def setup(): Unit = {
+      val gitRepoPath = repoPath.resolve(VcsApi.DefaultRepoDir)
       val jgit = JGit
         .init()
         .setDirectory(repoPath.toFile)
+        .setGitDir(gitRepoPath.toFile)
         .setBare(false)
         .call()
 

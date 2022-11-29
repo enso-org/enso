@@ -18,8 +18,8 @@ use std::vec::Drain;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut, Reflect)]
 #[reflect(transparent)]
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
+#[derive(crate::serde_reexports::Serialize)]
+#[derive(crate::serde_reexports::Deserialize)]
 pub struct NonEmptyVec<T, I = usize> {
     #[reflect(as = "Vec<T>")]
     pub elems: VecIndexedBy<T, I>,

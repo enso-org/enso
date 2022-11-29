@@ -97,7 +97,7 @@ pub trait Variant {
 /// Internal representation of every unit.
 #[repr(transparent)]
 #[derive(Reflect)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[reflect(transparent)]
 pub struct UnitData<V, R> {
     repr:    R,
@@ -520,7 +520,7 @@ macro_rules! define {
             pub type $name = $crate::unit2::Unit<[<$name:snake:upper>]>;
             $(#$meta)*
             #[derive(Debug, Clone, Copy, Reflect)]
-            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+            #[derive(serde::Serialize, serde::Deserialize)]
             pub struct [<$name:snake:upper>];
 
             impl $crate::unit2::Variant for [<$name:snake:upper>] {
