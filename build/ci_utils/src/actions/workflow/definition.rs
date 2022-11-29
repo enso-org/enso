@@ -703,7 +703,7 @@ pub enum RunnerLabel {
     Engine,
     #[serde(rename = "macos-latest")]
     MacOSLatest,
-    #[serde(rename = "linux-latest")]
+    #[serde(rename = "ubuntu-latest")]
     LinuxLatest,
     #[serde(rename = "windows-latest")]
     WindowsLatest,

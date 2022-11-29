@@ -77,7 +77,7 @@ impl JobArchetype for CancelWorkflow {
             // as all currently available GH runners have this label). If we limited it only to
             // our self-hosted machines (as we usually do), it'd be enqueued after other jobs
             // and wouldn't be able to cancel them.
-            runs_on: vec![RunnerLabel::X64],
+            runs_on: vec![RunnerLabel::LinuxLatest],
             steps: vec![cancel_workflow_action()],
             ..default()
         }
