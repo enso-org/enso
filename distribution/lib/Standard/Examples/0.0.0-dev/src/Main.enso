@@ -273,4 +273,4 @@ match : Default_Engine_Match
 match =
     engine = Default_Engine.new
     pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
-    pattern.match "aa ab abc a bc bcd" mode=Regex_Mode.First
+    pattern.match "aa ab abc a bc bcd" mode=Matching_Mode.First
