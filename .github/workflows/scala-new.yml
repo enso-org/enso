@@ -9,7 +9,7 @@ jobs:
   enso-build-cli-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
-      - X64
+      - ubuntu-latest
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
