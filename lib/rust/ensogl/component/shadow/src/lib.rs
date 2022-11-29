@@ -46,17 +46,15 @@ pub struct Parameters {
 
 /// Loads shadow parameters from the given style, at the given path. The structure of the style
 /// definition should be analogous to that at `ensogl_hardcoded_theme::shadow`.
-#[allow(clippy::needless_borrow)] // This produces false positives that do not recognise that the
-                                  // value would be moved without the borrow.
 pub fn parameters_from_style_path(style: &StyleWatch, path: impl Into<style::Path>) -> Parameters {
     let path: style::Path = path.into();
     Parameters {
         base_color: style.get_color(&path).into(),
-        fading:     style.get_color(&path.sub("fading")).into(),
-        size:       style.get_number(&path.sub("size")).into(),
-        spread:     style.get_number(&path.sub("spread")).into(),
-        exponent:   style.get_number(&path.sub("exponent")).into(),
-        offset_x:   style.get_number(&path.sub("offset_x")).into(),
+        fading:     style.get_color(path.sub("fading")).into(),
+        size:       style.get_number(path.sub("size")).into(),
+        spread:     style.get_number(path.sub("spread")).into(),
+        exponent:   style.get_number(path.sub("exponent")).into(),
+        offset_x:   style.get_number(path.sub("offset_x")).into(),
         offset_y:   style.get_number(path.sub("offset_y")).into(),
     }
 }
@@ -145,17 +143,15 @@ pub struct ParametersFrp {
 }
 
 /// Return FRP endpoints for the parameters that define a shadow.
-#[allow(clippy::needless_borrow)] // This produces false positives that do not recognise that the
-                                  // value would be moved without the borrow.
 pub fn frp_from_style(style: &StyleWatchFrp, path: impl Into<style::Path>) -> ParametersFrp {
     let path: style::Path = path.into();
     ParametersFrp {
         base_color: style.get_color(&path),
-        fading:     style.get_color(&path.sub("fading")),
-        size:       style.get_number(&path.sub("size")),
-        spread:     style.get_number(&path.sub("spread")),
-        exponent:   style.get_number(&path.sub("exponent")),
-        offset_x:   style.get_number(&path.sub("offset_x")),
+        fading:     style.get_color(path.sub("fading")),
+        size:       style.get_number(path.sub("size")),
+        spread:     style.get_number(path.sub("spread")),
+        exponent:   style.get_number(path.sub("exponent")),
+        offset_x:   style.get_number(path.sub("offset_x")),
         offset_y:   style.get_number(path.sub("offset_y")),
     }
 }
