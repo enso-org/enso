@@ -1,4 +1,3 @@
-
 //! Module containing the [`ProjectsTable`], which is used to display a list of [`Project`]s in the
 //! Cloud dashboard.
 //!
@@ -507,15 +506,13 @@ impl View {
         let projects_table = &model.projects_table;
 
         frp::extend! { network
-            // FIXME [NP]: How do we stop the grid from calling `model_for_entry` on the header row?
-            // It should be handled via the later extension to the network.
             // We want to work with our `Position` struct rather than a coordinate pair, so convert.
             needed_entries <- projects_table.model_for_entry_needed.map(|position| Position::from(*position));
             // The first row is the header row, which is displayed with a different entry model.
-            needed_entries <- needed_entries.filter(|&position| position.row > 0);
+            needed_entries_body <- needed_entries.filter(|&position| position.row > 0);
 
             projects_table.model_for_entry <+
-                needed_entries.filter_map(f!((position) model.model_for_entry(*position).map(|(position, entry_model)| {
+                needed_entries_body.filter_map(f!((position) model.model_for_entry(*position).map(|(position, entry_model)| {
                     let (row, col) = position.into();
                     (row, col, entry_model)
                 })));
