@@ -30,14 +30,6 @@ use ensogl_grid_view::Row;
 const ENTRY_WIDTH: f32 = 130.0;
 /// The height of a single entry in the [`ProjectsTable`], in pixels.
 const ENTRY_HEIGHT: f32 = 28.0;
-/// A placeholder value for the initial height of the viewport. This value is a placeholder because
-/// the value must be provided when creating the viewport, but is not used since the viewport is
-/// resized to fit the [`ProjectsTable`] when the graphics context is initialized.
-const VIEWPORT_HEIGHT: f32 = 300.0;
-/// A placeholder value for the initial width of the viewport. This value is a placeholder because
-/// the value must be provided when creating the viewport, but is not used since the viewport is
-/// resized to fit the [`ProjectsTable`] when the graphics context is initialized.
-const VIEWPORT_WIDTH: f32 = 400.0;
 /// The grid is intended to take up 20% of the viewport height, expressed as a fraction;
 const GRID_HEIGHT_RATIO: f32 = 0.2;
 /// In the future, we want to display the last modification time of a [`Project`]. For now, the API
@@ -256,12 +248,18 @@ impl Model {
     }
 
     fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
-        let (row, column) = (position.row, position.column);
-        // The first row is the header row, which is displayed with a different entry model, so we
-        // should ignore it here.
-        if row == 0 {
-            return None;
-        }
+        let Position { row, column: _ } = position;
+        assert!(row != 0, "Row was {row}, but we can't render a project row for the header.");
+        let idx = self.project_index_for_entry(position)?;
+        let column = column_for_entry(position)?;
+        let project = &self.projects.raw.borrow()[idx];
+        let entry_model = project_entry_model(project, column);
+        Some((position, entry_model))
+    }
+
+    fn project_index_for_entry(&self, position: Position) -> Option<usize> {
+        let Position { row, column: _ } = position;
+        assert!(row != 0, "Row was 0, but we cannot display a project in the header row.");
         // The rows of the grid are zero-indexed, but the first row is the header row, so we need to
         // subtract 1 to get the index of the project we want to display.
         let idx = row - 1;
@@ -269,51 +267,7 @@ impl Model {
             warn!("Attempted to display entry at index {idx}, but we only have data up to index {}.", self.projects.len());
             return None;
         }
-        let column = match Columns::from_discriminant(column) {
-            Some(column) => column,
-            None => {
-                warn!("Attempted to display entry at column {column}, but we the table only has {} columns.", Columns::LEN);
-                return None;
-            }
-        };
-
-        let project = &self.projects.raw.borrow()[idx];
-        // Map the requested column to the corresponding field of the `Project` struct.
-        let model = match column {
-            Columns::Projects => {
-                // TODO [NP]: Use a proper icon to display the project state.
-                let state = &project.state;
-                let name = &project.name;
-                let state = match state {
-                    view::project::StateTag::New => "New".to_string(),
-                    view::project::StateTag::Created => "Created".to_string(),
-                    view::project::StateTag::OpenInProgress => "OpenInProgress".to_string(),
-                    view::project::StateTag::Opened => "Opened".to_string(),
-                    view::project::StateTag::Closed => "Closed".to_string(),
-                };
-                format!("({state}) {name}")
-            }
-            Columns::LastModified => LAST_MODIFIED.to_string(),
-            // TODO [NP]: Display icons for users/groups with access to the project and their
-            // corresponding permissions (e.g., read/write/execute).
-            Columns::SharedWith => SHARED_WITH.to_string(),
-            // TODO [NP]: Display icons for the project's labels. Labels may be user-defined or
-            // system-defined (e.g., labels indicating high resource usage or outdated version).
-            Columns::Labels => LABELS.to_string(),
-            // TODO [NP]: Display icons for datasets associated with the project, as well as what
-            // permissions are set on the dataset, from the user's perspective.
-            Columns::DataAccess => DATA_ACCESS.to_string(),
-            // TODO [NP]: Display which usage plan the project is configured for (e.g.,
-            // "Interactive" or cron-style, etc.).
-            Columns::UsagePlan => USAGE_PLAN.to_string(),
-        };
-
-        let entry_model = EntryModel {
-            text:           model.into(),
-            disabled:       Immutable(false),
-            override_width: Immutable(None),
-        };
-        Some((position, entry_model))
+        Some(idx)
     }
 
     fn set_projects(&self, projects: Rc<Vec<view::project::Project>>) {
@@ -391,9 +345,77 @@ impl Model {
 
         let Position { row: _, column } = position;
         let position = (SECTION_START, column).into();
-        let model = header_entry_model(position);
+        let model = self.header_entry_model(position);
         let section_range = SECTION_START..SECTION_END;
         (section_range, column, model)
+    }
+
+    fn header_entry_model(&self, position: Position) -> EntryModel {
+        let Position { row, column: _ } = position;
+        assert!(row == 0, "Header row was {row}, but it is expected to be first row in the table.");
+        let column = column_for_entry(position);
+        let entry_model = column.map(|column| {
+            EntryModel {
+                // TODO [NP]: Columns should not only render their name, but also their sorting,
+                // represented by an arrow icon.
+                text:           column.to_string().into(),
+                disabled:       Immutable(true),
+                override_width: Immutable(None),
+            }
+        });
+        let entry_model = entry_model.unwrap_or_else(invalid_entry_model);
+        entry_model
+    }
+}
+
+/// Returns an [`EntryModel`] representing a [`Project`] in the [`ProjectsTable`].
+/// 
+/// [`Project`]: ::enso_cloud_view::project::Project
+fn project_entry_model(project: &view::project::Project, column: Columns) -> EntryModel {
+    // Map the requested column to the corresponding field of the `Project` struct.
+    let model = match column {
+        Columns::Projects => {
+            // TODO [NP]: Use a proper icon to display the project state.
+            let state = &project.state;
+            let name = &project.name;
+            let state = match state {
+                view::project::StateTag::New => "New".to_string(),
+                view::project::StateTag::Created => "Created".to_string(),
+                view::project::StateTag::OpenInProgress => "OpenInProgress".to_string(),
+                view::project::StateTag::Opened => "Opened".to_string(),
+                view::project::StateTag::Closed => "Closed".to_string(),
+            };
+            format!("({state}) {name}")
+        }
+        Columns::LastModified => LAST_MODIFIED.to_string(),
+        // TODO [NP]: Display icons for users/groups with access to the project and their
+        // corresponding permissions (e.g., read/write/execute).
+        Columns::SharedWith => SHARED_WITH.to_string(),
+        // TODO [NP]: Display icons for the project's labels. Labels may be user-defined or
+        // system-defined (e.g., labels indicating high resource usage or outdated version).
+        Columns::Labels => LABELS.to_string(),
+        // TODO [NP]: Display icons for datasets associated with the project, as well as what
+        // permissions are set on the dataset, from the user's perspective.
+        Columns::DataAccess => DATA_ACCESS.to_string(),
+        // TODO [NP]: Display which usage plan the project is configured for (e.g.,
+        // "Interactive" or cron-style, etc.).
+        Columns::UsagePlan => USAGE_PLAN.to_string(),
+    };
+
+    EntryModel {
+        text:           model.into(),
+        disabled:       Immutable(false),
+        override_width: Immutable(None),
+    }
+}
+
+/// Returns an [`EntryModel`] representing an "invalid" entry, which is used to fill in the table in
+/// the event that we request a [`Position`] that is out of bounds.
+fn invalid_entry_model() -> EntryModel {
+    EntryModel {
+        text:           "Invalid entry".into(),
+        disabled:       Immutable(false),
+        override_width: Immutable(None),
     }
 }
 
@@ -454,7 +476,6 @@ impl View {
         self.init_projects_table_entries_models();
         self.init_projects_table_grid();
         self.init_projects_table_header();
-        self.init_projects_table_scroll_parameters();
         self.init_event_tracing();
 
         app.display.add_child(root);
@@ -471,8 +492,7 @@ impl View {
         let input = &frp.public.input;
 
         frp::extend! { network
-            // FIXME [NP]: How do we get rid of this clone?
-            eval input.set_projects((projects) model.set_projects(projects.clone()));
+            eval input.set_projects((projects) model.set_projects(projects.clone_ref()));
         }
     }
 
@@ -495,8 +515,13 @@ impl View {
         frp::extend! { network
             // FIXME [NP]: How do we stop the grid from calling `model_for_entry` on the header row?
             // It should be handled via the later extension to the network.
+            // We want to work with our `Position` struct rather than a coordinate pair, so convert.
+            needed_entries <- projects_table.model_for_entry_needed.map(|position| Position::from(*position));
+            // The first row is the header row, which is displayed with a different entry model.
+            needed_entries <- needed_entries.filter(|&position| position.row > 0);
+
             projects_table.model_for_entry <+
-                projects_table.model_for_entry_needed.filter_map(f!((input) model.model_for_entry((*input).into()).map(|(position, entry_model)| {
+                needed_entries.filter_map(f!((position) model.model_for_entry(*position).map(|(position, entry_model)| {
                     let (row, col) = position.into();
                     (row, col, entry_model)
                 })));
@@ -540,15 +565,6 @@ impl View {
             header_frp.section_info <+ requested_section;
         }
     }
-
-    fn init_projects_table_scroll_parameters(&self) {
-        let projects_table = &self.model.projects_table;
-        let scroll_frp = projects_table.scroll_frp();
-        // These sizes are arbitrary, because the grid will get resized as soon as the WebGL context
-        // is ready (because the shape of the viewport will change as a result).
-        let viewport_size = Vector2(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-        scroll_frp.resize(viewport_size);
-    }
     
     fn init_event_tracing(&self) {
         let frp = &self.frp;
@@ -574,28 +590,20 @@ fn populate_table_with_data(input: api::public::Input) {
     get_projects(client, input);
 }
 
-// FIXME [NP]: Should we be assuming that the `row, col` are always in bounds? If we do so, we can
-// avoid having to return `Option` here, but we run the risk of panicking in the event of an out of
-// bounds `row, col`. Though this should only happen on implementation error.
-fn header_entry_model(position: Position) -> EntryModel {
-    let Position { row, column } = position;
-    assert!(row == 0, "Header row was {row}, but it is expected to be first row in the table.");
-
+/// Returns the [`Columns`] variant for the entry at the given [`Position`], letting us select over
+/// what field of data from a [`Project`] we want to display.
+/// 
+/// [`Project`]: ::enso_cloud_view::project::Project
+fn column_for_entry(position: Position) -> Option<Columns> {
+    let Position { row: _, column } = position;
     let column = match Columns::from_discriminant(column) {
         Some(column) => column,
-        None => panic!(
-            "Attempted to display entry at column {column}, but we the table only has {} columns.",
-            Columns::LEN
-        ),
+        None => {
+            warn!("Attempted to display entry at column {column}, but we the table only has {} columns.", Columns::LEN);
+            return None;
+        }
     };
-
-    EntryModel {
-        // TODO [NP]: Columns should not only render their name, but also their sorting, represented
-        // by an arrow icon.
-        text:           column.to_string().into(),
-        disabled:       Immutable(true),
-        override_width: Immutable(None),
-    }
+    Some(column)
 }
 
 fn get_projects(
