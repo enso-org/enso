@@ -1,9 +1,10 @@
-from Standard.Base import all
-from Standard.Base.Data.Text.Matching import match_criteria_implementation
-
-# TODO Dubious constructor export
-from project.Data.Text.Text_Matcher.Text_Matcher import all
-from project.Data.Text.Text_Matcher.Text_Matcher export all
+import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Locale.Locale
+import project.Data.Text.Matching
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Problem_Behavior.Problem_Behavior
 
 ## Represents exact text matching mode.
 type Text_Matcher
@@ -27,8 +28,8 @@ type Text_Matcher
              Text_Matcher.match_single_criterion "Foobar" "foo" == False
     match_single_criterion : Text -> Text -> Boolean
     match_single_criterion self name criterion = case self of
-        Case_Sensitive -> name == criterion
-        Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
+        Text_Matcher.Case_Sensitive -> name == criterion
+        Text_Matcher.Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
 
     ## UNSTABLE
        Selects objects from an input list that match any of the provided criteria.
@@ -68,5 +69,5 @@ type Text_Matcher
          ordering the result according to the order of criteria that matched them.
 
              Text_Matcher.match_criteria [Pair.new "foo" 42, Pair.new "bar" 33, Pair.new "baz" 10, Pair.new "foo" 0, Pair.new 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair.new "bar" 33, Pair.new "foo" 42, Pair.new "foo" 0]
-    match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-    match_criteria self = match_criteria_implementation self
+    match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! Matching.No_Matches_Found
+    match_criteria self = Matching.match_criteria_implementation self

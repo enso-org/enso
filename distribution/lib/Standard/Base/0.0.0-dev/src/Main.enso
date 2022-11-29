@@ -89,6 +89,7 @@ import project.Data.Text.Matching_Mode
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex.Regex_Option.Regex_Option
 import project.Data.Text.Regex_Matcher.Regex_Matcher
+export project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
@@ -132,6 +133,7 @@ export project.Data.Text.Matching_Mode
 export project.Data.Text.Regex.Regex_Mode.Regex_Mode
 export project.Data.Text.Regex.Regex_Option.Regex_Option
 export project.Data.Text.Regex_Matcher.Regex_Matcher
+export project.Data.Text.Text_Matcher.Text_Matcher
 export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
@@ -156,9 +158,6 @@ from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 
 # Not refactored modules below:
-import project.Data.Text.Text_Matcher
-export project.Data.Text.Text_Matcher
-
 import project.Data.Text.Regex
 export project.Data.Text.Regex
 
