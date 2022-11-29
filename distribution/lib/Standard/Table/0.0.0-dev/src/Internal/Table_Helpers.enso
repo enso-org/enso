@@ -208,7 +208,6 @@ type Table_Column_Helper
         _ ->
             self.resolve_column_helper selector.name problem_builder=problem_builder
 
-
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
    implementations of various Table variants. See the documentation for the
