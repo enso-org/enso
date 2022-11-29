@@ -254,7 +254,7 @@ impl<T: FlagOps1, OnMut: FnMut0> HasSet1 for Flag<T, OnMut> {
 
 impl<T: HasUnset0, OnMut> HasUnset0 for Flag<T, OnMut> {
     fn unset(&mut self) {
-        //trace!("Unsetting.");
+        trace!("Unsetting.");
         self.data.unset()
     }
 }
@@ -263,7 +263,7 @@ impl<T: HasUnset1, OnMut> HasUnset1 for Flag<T, OnMut>
 where Arg<T>: Display
 {
     fn unset(&mut self, arg: &Self::Arg) {
-        //trace!("Unsetting {arg}.");
+        trace!("Unsetting {arg}.");
         self.data.unset(arg)
     }
 }

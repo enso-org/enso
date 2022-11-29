@@ -352,7 +352,7 @@ where
             self.local_time = time.since_animation_loop_started;
             (self.callback)(time);
         } else {
-            //debug!("Animations running slow. Skipping {} frames.", skipped_frames);
+            debug!("Animations running slow. Skipping {} frames.", skipped_frames);
             self.local_time = time.since_animation_loop_started;
             self.time_buffer = 0.ms();
             (self.on_too_many_frames_skipped)();

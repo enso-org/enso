@@ -192,7 +192,7 @@ pub fn init_tracing(level: tracing::Level) {
 }
 
 pub fn init_global() {
-    init_tracing(TRACE);
+    init_tracing(WARN);
     init_global_internal();
 }
 

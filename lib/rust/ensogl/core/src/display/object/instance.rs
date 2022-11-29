@@ -492,7 +492,7 @@ impl Model {
 
     fn set_vis_true(&self, scene: Option<&Scene>, parent_layer: Option<&WeakLayer>) {
         if !self.visible.get() {
-            //trace!("Showing.");
+            trace!("Showing.");
             self.visible.set(true);
             let assigned_layer_borrow = self.assigned_layer.borrow();
             let assigned_layer = assigned_layer_borrow.as_ref();
@@ -545,7 +545,7 @@ impl Model {
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind: ParentBind) {
-        //trace!("Adding new parent bind.");
+        trace!("Adding new parent bind.");
         if let Some(parent) = bind.parent() {
             self.parent_bind.set_bind(bind);
             self.dirty.new_parent.set();
@@ -636,7 +636,7 @@ impl Model {
             let new_origin = self.transformation.borrow().matrix;
             if origin_changed || layer_changed {
                 if origin_changed {
-                    //trace!("Self origin changed.");
+                    trace!("Self origin changed.");
                 } else {
                     trace!("Self origin did not change, but the layers changed");
                 }
@@ -658,7 +658,7 @@ impl Model {
                     })
                 }
             } else {
-                //trace!("Self origin and layers did not change.");
+                trace!("Self origin and layers did not change.");
                 if self.dirty.modified_children.check_all() {
                     debug_span!("Updating dirty children.").in_scope(|| {
                         self.dirty.modified_children.take().iter().for_each(|ix| {
@@ -747,7 +747,7 @@ impl InstanceDef {
     fn add_child(&self, child: &InstanceDef) {
         child.unset_parent();
         let child_index = self.register_child(child);
-        //trace!("Adding a new child at index {child_index}.");
+        trace!("Adding a new child at index {child_index}.");
         let parent_bind = ParentBind { parent: self.downgrade(), child_index };
         child.set_parent_bind(parent_bind);
     }
