@@ -56,7 +56,7 @@ available commands use `--help` argument. Read the detailed
 
 ### License
 
-The Enso is released under the terms of the
+Enso is released under the terms of the
 [Apache v2 License](https://github.com/enso-org/enso/blob/develop/LICENSE).
 
 <br/>
