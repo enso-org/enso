@@ -1,8 +1,6 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
-import project.Data.Json.Json
-import project.Data.Json.Extensions
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
@@ -745,15 +743,6 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Vector to JSON conversion.
-
-       > Example
-         Convert a vector of numbers to JSON.
-
-             [1, 2, 3].to_json
-    to_json : Json
-    to_json self = Json.Array (self.map .to_json)
-
     ## Get the first element from the vector, or an `Empty_Error` if the vector
        is empty.
 
@@ -928,16 +917,6 @@ type Vector a
                         builder.append item
                         existing.insert key True
             if result.is_error then result else builder.to_vector
-
-
-    ## UNSTABLE
-
-       Transform the vector into text for displaying as part of its default
-       visualization.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        json = self.take (Index_Sub_Range.First 100) . to_json
-        json.to_text
 
     ## UNSTABLE
        Converts the vector to a list with the same elements.

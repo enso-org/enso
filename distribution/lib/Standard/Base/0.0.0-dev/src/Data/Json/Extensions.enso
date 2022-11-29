@@ -1,7 +1,11 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Json.Json
 import project.Data.Map.Map
+import project.Data.Numbers.Number
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 
@@ -39,6 +43,56 @@ Any.to_json self =
         Meta.Polyglot_Data _ -> Json.Null
         Meta.Primitive_Data _ -> Json.Null
 
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
+
+   Types defining their own versions of this method should ensure that the
+   result is reasonably small and that the operation is quick to compute.
+
+   > Example
+     Converting the number `2` into visualization data.
+
+         2.to_default_visualization_data
+Any.to_default_visualization_data : Text
+Any.to_default_visualization_data self = self.to_json.to_text
+
+## UNSTABLE
+
+   Returns a JSON representation of the dataflow error.
+
+   > Example
+     Converting a dataflow error to JSON.
+
+         import Standard.Examples
+
+         example_to_json = Examples.throw_error.to_json
+Error.to_json : Json
+Error.to_json self =
+    error_type = ["type", "Error"]
+    caught = self.catch
+    error_content = ["content", caught.to_json]
+    error_message = ["message", caught.to_display_text]
+    Json.from_pairs [error_type, error_content, error_message]
+
+## UNSTABLE
+
+   Returns a display representation of the dataflow error on which it is called.
+
+   > Example
+     Displaying a dataflow error.
+
+         import Standard.Examples
+
+         example_display = Examples.throw_error.to_default_visualization_data
+Error.to_default_visualization_data : Text
+Error.to_default_visualization_data self = self.catch Any .to_default_visualization_data
+
 ## Text to JSON conversion.
 
    > Example
@@ -75,3 +129,48 @@ Boolean.to_json self = Json.Boolean self
          Nothing.to_json
 Nothing.to_json : Json
 Nothing.to_json self = Json.Null
+
+
+## Number to JSON conversion.
+
+   > Example
+     Convert the number 8 to JSON.
+
+         8.to_json
+Number.to_json : Json
+Number.to_json self = Json.Number self
+
+## Vector to JSON conversion.
+
+   > Example
+     Convert a vector of numbers to JSON.
+
+         [1, 2, 3].to_json
+Vector.to_json : Json
+Vector.to_json self = Json.Array (self.map .to_json)
+
+## UNSTABLE
+
+   Transform the vector into text for displaying as part of its default
+   visualization.
+Vector.to_default_visualization_data : Text
+Vector.to_default_visualization_data self =
+    json = self.take 100 . to_json
+    json.to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
+
+   > Example
+     Converting an array to its default visualization representation.
+
+         [1, 2, 3, 4].to_array.to_default_visualization_data
+Array.to_default_visualization_data : Text
+Array.to_default_visualization_data self =
+    Vector.from_polyglot_array self . to_default_visualization_data

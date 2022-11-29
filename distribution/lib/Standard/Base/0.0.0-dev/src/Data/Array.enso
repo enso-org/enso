@@ -168,20 +168,3 @@ type Array
             eq_at i = self.at i == that.at i
             Panic.catch_primitive handler=(_ -> False)
                 if self.length == that.length then 0.up_to self.length . all eq_at else False
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this value in the IDE.
-
-       The particular representation is left unspecified and subject to change in
-       the future. The current implementation uses JSON serialization as the
-       default.
-
-       > Example
-         Converting an array to its default visualization representation.
-
-             [1, 2, 3, 4].to_array.to_default_visualization_data
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        Vector.from_polyglot_array self . to_default_visualization_data

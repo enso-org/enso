@@ -1,5 +1,3 @@
-import project.Data.Json.Json
-import project.Data.Json.Extensions
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Text.Text
@@ -396,22 +394,3 @@ type Any
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
     >> self ~that = x -> that (self x)
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this value in the IDE.
-
-       The particular representation is left unspecified and subject to change in
-       the future. The current implementation uses JSON serialization as the
-       default.
-
-       Types defining their own versions of this method should ensure that the
-       result is reasonably small and that the operation is quick to compute.
-
-       > Example
-         Converting the number `2` into visualization data.
-
-             2.to_default_visualization_data
-    to_default_visualization_data : Text
-    to_default_visualization_data self = self.to_json.to_text

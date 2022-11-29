@@ -1,6 +1,4 @@
 import project.Any.Any
-import project.Data.Json.Json
-import project.Data.Json.Extensions
 import project.Data.Text.Text
 import project.Meta
 import project.Panic.Panic
@@ -96,37 +94,6 @@ type Error
             case error_value.is_a error_type of
                 True -> handler error_value
                 False -> self
-
-    ## UNSTABLE
-
-       Returns a display representation of the dataflow error on which it is called.
-
-       > Example
-         Displaying a dataflow error.
-
-             import Standard.Examples
-
-             example_display = Examples.throw_error.to_default_visualization_data
-    to_default_visualization_data : Text
-    to_default_visualization_data self = self.catch Any .to_default_visualization_data
-
-    ## UNSTABLE
-
-       Returns a JSON representation of the dataflow error.
-
-       > Example
-         Converting a dataflow error to JSON.
-
-             import Standard.Examples
-
-             example_to_json = Examples.throw_error.to_json
-    to_json : Json
-    to_json self =
-        error_type = ["type", "Error"]
-        caught = self.catch
-        error_content = ["content", caught.to_json]
-        error_message = ["message", caught.to_display_text]
-        Json.from_pairs [error_type, error_content, error_message]
 
     ## Transforms an error.
 
