@@ -7,6 +7,7 @@
 //! rendered.
 //!
 //! [`Project`]: ::enso_cloud_view::project::Project
+
 use ensogl::prelude::*;
 
 use enso_cloud_view as view;
@@ -204,8 +205,7 @@ impl Display for Columns {
 /// property each column represents.
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
-pub type ProjectsTable =
-    ensogl_grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders;
+pub type ProjectsTable = ensogl_grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders;
 
 
 
@@ -292,7 +292,10 @@ impl Model {
         // subtract 1 to get the index of the project we want to display.
         let idx = row - 1;
         if idx >= self.projects.len() {
-            warn!("Attempted to display entry at index {idx}, but we only have data up to index {}.", self.projects.len());
+            warn!(
+                "Attempted to display entry at index {idx}, but we only have data up to index {}.",
+                self.projects.len()
+            );
             return None;
         }
         Some(idx)
@@ -324,15 +327,15 @@ impl Model {
     }
 
     /// Returns the information about what section the requested visible entry is in.
-    /// 
+    ///
     /// The grid view wants to know what to display as a header of the top of the viewport in the
     /// current column. Therefore, it asks about information about the section the topmost visible
     /// entry is in.
-    /// 
+    ///
     /// `section_info_needed` assumes that there may be more than one section, therefore it needs to
     /// know the span of rows belonging to the returned section (so it knows when to ask about
     /// another one).
-    /// 
+    ///
     /// Since we use separate tables to display separate types of data in the dashboard, this table
     /// only ever has one section. So it should always return the range `1..=self.rows()`.  However
     /// since we don't have easy access to the number of projects in the table, we just return
@@ -340,12 +343,12 @@ impl Model {
     /// the one section.
     fn position_to_requested_section(&self, position: Position) -> (Range<Row>, Col, EntryModel) {
         /// The first row in the section the requested visible entry is in.
-        /// 
+        ///
         /// This is always `0` because we only have one section, so the first row is the first
         /// visible one in the table.
         const SECTION_START: usize = 0;
         /// The last row in the section the requested visible entry is in.
-        /// 
+        ///
         /// This is always [`usize::MAX`] because we only have one section, so all rows are in the
         /// current section.
         const SECTION_END: usize = usize::MAX;
@@ -361,12 +364,10 @@ impl Model {
         let Position { row, column: _ } = position;
         assert!(row == 0, "Header row was {row}, but it is expected to be first row in the table.");
         let column = column_for_entry(position);
-        let entry_model = column.map(|column| {
-            EntryModel {
-                text:           column.to_string().into(),
-                disabled:       Immutable(true),
-                override_width: Immutable(None),
-            }
+        let entry_model = column.map(|column| EntryModel {
+            text:           column.to_string().into(),
+            disabled:       Immutable(true),
+            override_width: Immutable(None),
         });
         let entry_model = entry_model.unwrap_or_else(invalid_entry_model);
         entry_model
@@ -387,7 +388,7 @@ impl Model {
 }
 
 /// Returns an [`EntryModel`] representing a [`Project`] in the [`ProjectsTable`].
-/// 
+///
 /// [`Project`]: ::enso_cloud_view::project::Project
 fn project_entry_model(project: &view::project::Project, column: Columns) -> EntryModel {
     // Map the requested column to the corresponding field of the `Project` struct.
@@ -514,7 +515,7 @@ impl View {
         let scene = &model.application.display.default_scene;
         let projects_table = &model.projects_table;
         let scroll_frp = projects_table.scroll_frp();
-        
+
         frp::extend! { network
             scroll_frp.resize <+ scene.frp.shape.map(f!((shape) model.resize_grid_to_shape(shape)));
             eval scene.frp.shape ((shape) model.reposition_grid_to_shape(shape));
@@ -586,7 +587,7 @@ impl View {
             header_frp.section_info <+ requested_section;
         }
     }
-    
+
     fn init_event_tracing(&self) {
         let frp = &self.frp;
         let network = &frp.network;
@@ -613,7 +614,7 @@ fn populate_table_with_data(input: api::public::Input) {
 
 /// Returns the [`Columns`] variant for the entry at the given [`Position`], letting us select over
 /// what field of data from a [`Project`] we want to display.
-/// 
+///
 /// [`Project`]: ::enso_cloud_view::project::Project
 fn column_for_entry(position: Position) -> Option<Columns> {
     let Position { row: _, column } = position;
@@ -627,10 +628,7 @@ fn column_for_entry(position: Position) -> Option<Columns> {
     Some(column)
 }
 
-fn get_projects(
-    client: enso_cloud_http::Client,
-    input: crate::projects_table::api::public::Input,
-) {
+fn get_projects(client: enso_cloud_http::Client, input: crate::projects_table::api::public::Input) {
     // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909482
     // Replace `wasm_bindgen_futures` with the futures runtime used throughout the remainder of the
     // project.
