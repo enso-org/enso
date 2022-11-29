@@ -8,10 +8,12 @@ use crate::controller::ide::StatusNotificationPublisher;
 use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
+use engine_protocol::common::error::code;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
+use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
@@ -227,6 +229,35 @@ impl Project {
                 enso_config::language_edition_supported
             );
             self.status_notifications.publish_event(message);
+        }
+    }
+}
+
+
+// === Project Snapshotting ===
+
+impl Project {
+    /// Saves a snapshot of the current state of the project to the VCS.
+    #[profile(Detail)]
+    pub fn save_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            let response = language_server.write_vcs(&root_path, &None).await;
+            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+                code: error_code, ..
+            })) = response
+            {
+                if error_code == code::FILE_NOT_FOUND {
+                    language_server.init_vcs(&root_path).await?;
+                    language_server.write_vcs(&root_path, &None).await?;
+                    return Ok(());
+                }
+            }
+            response?;
+            Ok(())
         }
     }
 }

@@ -8,7 +8,6 @@ use crate::prelude::*;
 use crate::controller::FilePath;
 use crate::model::module::TextChange;
 
-use engine_protocol::common::error::code;
 use engine_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
@@ -94,34 +93,6 @@ impl Handle {
                 response.map(|response| response.contents)
             }
             Module { controller } => Ok(controller.code()),
-        }
-    }
-
-    /// Save the project to the VCS.
-    #[profile(Detail)]
-    pub fn save_project_to_vcs(&self) -> impl Future<Output = FallibleResult> {
-        let language_server = match self.file.clone_ref() {
-            FileHandle::PlainText { language_server, .. } => language_server,
-            FileHandle::Module { controller } => controller.language_server,
-        };
-        let project_root = language_server.project_root().id();
-        let path_segments: [&str; 0] = [];
-        let root_path = language_server::Path::new(project_root, &path_segments);
-
-        async move {
-            let response = language_server.write_vcs(&root_path, &None).await;
-            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
-                code: error_code, ..
-            })) = response
-            {
-                if error_code == code::FILE_NOT_FOUND {
-                    language_server.init_vcs(&root_path).await?;
-                    language_server.write_vcs(&root_path, &None).await?;
-                    return Ok(());
-                }
-            }
-            response?;
-            Ok(())
         }
     }
 
