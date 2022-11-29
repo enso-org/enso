@@ -246,7 +246,7 @@ ensogl_core::define_endpoints_2! {
         /// decrease the precision by one step.
         set_precision_adjustment_step_size(f32),
         /// Set whether the precision adjustment mechansim is disabled.
-        set_precision_adjustment_disabled(bool), 
+        set_precision_adjustment_disabled(bool),
         /// Set the slider's label. The label will be displayed to the left of the slider's value
         /// display.
         set_label(ImString),
