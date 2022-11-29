@@ -80,7 +80,11 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         Paths.get(testContentRoot.file.toString, "foo", "bar", "baz.txt")
       Files.readAllLines(path).get(0) shouldBe "123456789"
 
-      testContentRoot.file.toPath.resolve(".git").toFile should exist
+      testContentRoot.file.toPath.resolve(".git").toFile shouldNot exist
+      testContentRoot.file.toPath
+        .resolve(".enso")
+        .resolve(".git")
+        .toFile should exist
     }
 
     "fail to create a repository for an already existing project" taggedAs Retry in withCleanRoot {
@@ -832,15 +836,25 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   def withCleanRoot[T](test: WsTestClient => T): T = {
     FileUtils.deleteQuietly(testContentRoot.file)
     val path = testContentRoot.file
+    val vcsRepoPath =
+      path.toPath.resolve(config.vcsManager.dataDirectory).resolve(".git")
     val jgit =
       JGit
         .init()
         .setDirectory(path)
+        .setGitDir(vcsRepoPath.toFile)
         .setBare(false)
         .call()
 
+    path.toPath.resolve(".git").toFile.delete() shouldBe true
+
+    Files.write(
+      path.toPath.resolve(".gitignore"),
+      config.vcsManager.dataDirectory.toString.getBytes(StandardCharsets.UTF_8)
+    )
+
     val client = getInitialisedWsClient()
-    jgit.add().addFilepattern(".enso").call()
+    jgit.add().addFilepattern(".").call()
     jgit
       .commit()
       .setAllowEmpty(true)
@@ -854,7 +868,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   private def repository(path: Path): Repository = {
     val builder = new FileRepositoryBuilder();
     builder
-      .setGitDir(path.resolve(".git").toFile)
+      .setGitDir(
+        path.resolve(config.vcsManager.dataDirectory).resolve(".git").toFile
+      )
       .setMustExist(true)
       .build()
   }
@@ -883,8 +899,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   }
 
   def isClean(root: File): Boolean = {
-    val jgit = new JGit(repository(root.toPath))
-    jgit.status().call().isClean
+    val jgit   = new JGit(repository(root.toPath))
+    val status = jgit.status().call()
+    status.isClean
   }
 
 }
