@@ -3,11 +3,12 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Illegal_Argument_Error_Data, Illegal_State_Error_Data
+from project.Error.Common import Illegal_Argument_Error_Data, Illegal_State_Error_Data
 
 ## Represents a right-exclusive range of integer values.
 type Range

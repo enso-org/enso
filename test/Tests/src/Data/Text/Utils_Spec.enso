@@ -56,8 +56,8 @@ spec =
                 folded.findGrapheme ix . index
             grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
 
-            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error_Data
-            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error_Data
+            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error.Polyglot_Error_Data
+            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error.Polyglot_Error_Data
 
         Test.specify "should correctly take prefix and suffix of a string" <|
             txt = 's\u0301ąśc\u0301'

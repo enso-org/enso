@@ -1,12 +1,13 @@
 import project.Data.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Unsupported_File_Type, unimplemented
+from project.Error.Common import Unsupported_File_Type, unimplemented
 
 from project.System.File_Format.Plain_Text_Format import Plain_Text
 from project.System.File_Format.Plain_Text_Format export Plain_Text

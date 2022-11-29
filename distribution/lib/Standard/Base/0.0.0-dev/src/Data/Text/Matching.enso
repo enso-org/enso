@@ -1,7 +1,7 @@
 from Standard.Base import all
+import project.Panic.Wrapped_Dataflow_Error
 
 from Standard.Base.Error.Problem_Behavior import Report_Warning
-from Standard.Base.Error.Common import Wrapped_Dataflow_Error_Data
 
 # TODO Dubious constructor export
 from project.Data.Text.Matching.No_Matches_Found import all
@@ -85,10 +85,10 @@ make_match_matrix matcher objects criteria object_name_mapper=(x->x) criterion_m
     Match_Matrix_Data matrix criteria objects
 
 ## PRIVATE
-internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error_Data (handler = x-> x.payload.unwrap) <|
+internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error.Error (handler = x-> x.payload.unwrap) <|
     ## TODO [RW] discuss: this line of code also shows an issue we had with ensuring input dataflow-errors are correctly propagated, later on we stopped doing that and testing for that as it was too cumbersome. Maybe it could be helped with an @Accepts_Error annotation similar to the one from the interpreter???
     [matcher, objects, criteria, reorder, name_mapper] . each v->
-        Panic.rethrow (v.map_error Wrapped_Dataflow_Error_Data)
+        Panic.rethrow (v.map_error Wrapped_Dataflow_Error.Error)
 
     match_matrix = make_match_matrix matcher objects criteria name_mapper
     unmatched_criteria = match_matrix.unmatched_criteria

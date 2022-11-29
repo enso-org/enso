@@ -5,10 +5,12 @@ import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Function
 import project.IO
 import project.Math
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Polyglot
 import project.Polyglot.Java
 import project.Runtime
@@ -31,9 +33,11 @@ export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map
 export project.Data.Vector.Vector
+export project.Error.Error
 export project.IO
 export project.Math
 export project.Nothing.Nothing
+export project.Panic.Panic
 export project.Polyglot
 export project.Polyglot.Java
 export project.Runtime

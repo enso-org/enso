@@ -434,7 +434,7 @@ js_array_date year month=1 day=1 =
     js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDate.parse date_text formatter

@@ -4,13 +4,15 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparator
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Range import all
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Error, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
+from project.Error.Common import Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
