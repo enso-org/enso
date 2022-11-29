@@ -120,6 +120,7 @@ spec prefix connection pending=Nothing =
             t2.at "b" . to_vector . should_equal [2]
             t2.at "c" . to_vector . should_equal [3]
 
+    # TODO these tests will soon be out of date, superseded by Common_Table_Spec
     Test.group prefix+"Joining Tables" pending=pending <|
         a = upload "TA" <| Table.new [["x", [0, 1, 7, 3, 6]], ["y", ["foo", "bar", "baz", "spam", "eggs"]]]
         b = upload "TB" <| Table.new [["w", [6, 3, 5, 5, 3, 3]], ["z", ["foo", "foo", "bar", "spam", "bar", "eggs"]]]
