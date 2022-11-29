@@ -245,7 +245,7 @@ struct Model {
 }
 
 
-// === Main `impl` ===
+// === Internal `impl` ===
 
 impl Model {
     fn new(app: &Application) -> Self {
@@ -280,14 +280,6 @@ impl Model {
         Some(idx)
     }
 
-    fn set_projects(&self, projects: Rc<Vec<view::project::Project>>) {
-        *self.projects.raw.borrow_mut() = projects.to_vec();
-
-        let row = self.rows();
-        let col = Columns::LEN;
-        self.projects_table.resize_grid(row, col);
-    }
-
     fn resize_grid_to_shape(&self, shape: &ensogl::display::scene::Shape) -> Vector2<f32> {
         let screen_size = Vector2::from(shape);
         let margin = Vector2::new(HORIZONTAL_MARGIN, VERTICAL_MARGIN);
@@ -305,6 +297,12 @@ impl Model {
         let grid_max_y = viewport_min_y + grid_height;
         let position = Vector2::new(grid_min_x, grid_max_y);
         self.projects_table.set_xy(position);
+    }
+
+    fn refit_entries_to_shape(&self, shape: &ensogl::display::scene::Shape) -> Vector2<f32> {
+        let width = shape.width / Columns::LEN as f32;
+        let size = Vector2(width, ENTRY_HEIGHT);
+        size
     }
 
     /// Returns the information about what section the requested visible entry is in.
@@ -356,6 +354,19 @@ impl Model {
         });
         let entry_model = entry_model.unwrap_or_else(invalid_entry_model);
         entry_model
+    }
+}
+
+
+// === Setter `impl` ===
+
+impl Model {
+    fn set_projects(&self, projects: Rc<Vec<view::project::Project>>) {
+        *self.projects.raw.borrow_mut() = projects.to_vec();
+
+        let row = self.rows();
+        let col = Columns::LEN;
+        self.projects_table.resize_grid(row, col);
     }
 }
 
@@ -497,6 +508,7 @@ impl View {
         frp::extend! { network
             scroll_frp.resize <+ scene.frp.shape.map(f!((shape) model.resize_grid_to_shape(shape)));
             eval scene.frp.shape ((shape) model.reposition_grid_to_shape(shape));
+            projects_table.set_entries_size <+ scene.frp.shape.map(f!((shape) model.refit_entries_to_shape(shape)));
         }
     }
 
