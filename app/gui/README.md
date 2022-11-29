@@ -12,14 +12,9 @@
          alt="Chat">
   </a>
   <a href="https://github.com/enso-org/enso/blob/develop/LICENSE">
-    <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
+    <img src="https://img.shields.io/static/v1?label=Enso%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/enso-org/enso/tree/develop/gui/LICENSE">
-    <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
-         alt="License">
-  </a>
-</p>
 
 Enso is an award-winning interactive programming language with dual visual and
 textual representations. It is a tool that spans the entire stack, going from
@@ -61,15 +56,8 @@ available commands use `--help` argument. Read the detailed
 
 ### License
 
-The Enso Language Compiler is released under the terms of the
-[Apache v2 License](https://github.com/enso-org/enso/blob/develop/LICENSE). The
-Enso Graphical Interface and it's rendering engine are released under the terms
-of the
-[AGPL v3 License](https://github.com/enso-org/enso/blob/develop/app/gui/LICENSEE).
-This license set was choosen to both provide you with a complete freedom to use
-Enso, create libraries, and release them under any license of your choice, while
-also allowing us to release commercial products on top of the platform,
-including Enso Cloud and Enso Enterprise on-premise server managers.
+The Enso is released under the terms of the
+[Apache v2 License](https://github.com/enso-org/enso/blob/develop/LICENSE).
 
 <br/>
 
