@@ -136,7 +136,7 @@ public class EnsoCompilerTest {
   @Test
   public void testImport() throws Exception {
     parseTest("""
-    from Standard.Base.Data.Any import all
+    from Standard.Base.Any import all
     import project.IO
     import Standard.Base as Enso_List
     from Standard.Base import all hiding Number, Boolean, Decimal, Any

@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
 import project.Data.List.List
@@ -28,7 +28,7 @@ import project.System.Process
 import project.System.Process.Exit_Code.Exit_Code
 import project.Warning.Warning
 
-export project.Data.Any.Any
+export project.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map

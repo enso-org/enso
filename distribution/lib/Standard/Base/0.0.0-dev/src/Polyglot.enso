@@ -2,7 +2,7 @@
     Polyglot is a term that refers to other languages (such as Java) that are
     running on the same JVM.
 
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
