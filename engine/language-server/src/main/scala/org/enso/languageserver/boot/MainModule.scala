@@ -105,7 +105,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val fileSystem: FileSystem = new FileSystem
   log.trace("Created file system [{}].", fileSystem)
 
-  val git = Git.withEmptyUserConfig()
+  val git = Git.withEmptyUserConfig(
+    Some(languageServerConfig.vcsManager.dataDirectory)
+  )
   log.trace("Created git [{}].", git)
 
   implicit val versionCalculator: ContentBasedVersioning =
