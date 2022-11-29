@@ -229,9 +229,6 @@ ensogl_core::define_endpoints_2! {
         set_projects(Rc<Vec<view::project::Project>>),
         model_for_entry(Position, EntryModel),
     }
-    Output {
-        model_for_entry_needed(Position),
-    }
 }
 
 
