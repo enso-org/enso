@@ -283,9 +283,9 @@ impl CompilerData {
                     let now = (self.performance.now() as f32).ms();
                     let deadline = time.frame_start() + FRAME_TIME_THRESHOLD;
                     if now > deadline {
-                        let msg1 = "Shaders compilation takes more than the available frame time.";
-                        let msg2 = "To be continued in the next frame.";
-                        trace!("{msg1} {msg2}");
+                        //let msg1 = "Shaders compilation takes more than the available frame time.";
+                        //let msg2 = "To be continued in the next frame.";
+                        //trace!("{msg1} {msg2}");
                         break;
                     }
                 }
@@ -324,7 +324,7 @@ impl CompilerData {
                         trace!("{msg1} {msg2}");
                     }
                 } else if jobs.khr_completion_check.is_empty() {
-                    trace!("All shaders compiled.");
+                    //trace!("All shaders compiled.");
                     self.dirty = false;
                 }
                 no_progress
@@ -342,7 +342,7 @@ impl CompilerData {
 
     #[profile(Debug)]
     fn run_khr_completion_check_jobs(&mut self) {
-        trace!("Running KHR parallel shader compilation check job.");
+        //trace!("Running KHR parallel shader compilation check job.");
         let jobs = &mut self.jobs.khr_completion_check;
         let ready_jobs =
             jobs.drain_filter(|job| match job.khr.is_ready(&self.context, &job.program) {
@@ -422,12 +422,12 @@ impl CompilerData {
 
     fn with_next_job<T>(
         &mut self,
-        label: &str,
+        _label: &str,
         mut jobs: impl FnMut(&mut Self) -> &mut Vec<Job<T>>,
         f: impl FnOnce(&mut Self, Job<T>) -> Result<(), Error>,
     ) -> Result<(), Error> {
         while let Some(job) = jobs(self).pop() {
-            trace!("Running {label} job.");
+            //trace!("Running {label} job.");
             if job.handler.exists() {
                 return f(self, job);
             } else {
