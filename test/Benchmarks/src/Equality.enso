@@ -39,7 +39,7 @@ count_entries_polyglot vector element expected_count=1 =
         IO.println msg
         Panic.throw (Illegal_State_Error msg)
 
-main =
+bench =
     n = 100000
     iter_size = 100
     num_iterations = 10
@@ -80,3 +80,5 @@ main =
     Bench.measure (count_entries_polyglot polyglot_vec (Graal_Pair.create 110 200)) "Java Polyglot .equals" iter_size num_iterations
 
     Nothing
+
+main = bench

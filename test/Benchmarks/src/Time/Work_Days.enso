@@ -4,7 +4,7 @@ from Standard.Test import Bench
 
 polyglot java import java.util.Random
 
-main =
+bench =
     iter_size = 50
     num_iterations = 10
 
@@ -23,3 +23,5 @@ main =
         Bench.measure (dates.map date-> date.add_work_days shift holidays=holidays) "(Shift="+shift.to_text+") add work days with holidays" iter_size num_iterations
 
     Nothing
+
+main = bench

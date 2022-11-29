@@ -3,8 +3,10 @@ import project.Text.Compare
 import project.Text.Contains
 import project.Text.Reverse
 
-main =
-    Build.main
-    Compare.main
-    Contains.main
-    Reverse.main
+bench =
+    Build.bench
+    Compare.bench
+    Contains.bench
+    Reverse.bench
+
+main = bench

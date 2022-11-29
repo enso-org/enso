@@ -69,7 +69,7 @@ sum_co n =
     res = sum_co_2 n 0
     res
 
-main =
+bench =
     hundred_mil = 100000000
     IO.println "Measuring Sum TCO Corecursive"
     Bench.measure (sum_co hundred_mil) "sum_tco_corecursive" 100 10
@@ -86,3 +86,5 @@ main =
     IO.println "Measuring Co-State"
     Bench.measure (sum_co_state hundred_mil) "sum_co_state" 100 10
     IO.println "Bye."
+
+main = bench

@@ -2,7 +2,9 @@ import project.Vector.Distinct
 import project.Vector.Sort
 import project.Vector.Operations
 
-main =
-    Distinct.main
-    Sort.main
-    Operations.main
+bench =
+    Distinct.bench
+    Sort.bench
+    Operations.bench
+
+main = bench

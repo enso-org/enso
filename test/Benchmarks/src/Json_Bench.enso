@@ -9,6 +9,8 @@ prep_json size =
     str = "[" + (many.join ",") + "]"
     str
 
-main =
+bench =
     large_json = prep_json 1000000
     Bench.measure (Json.parse large_json) "parse json" 10 10
+
+main = bench

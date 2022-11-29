@@ -16,7 +16,7 @@ num_iterations = 10
 
 # The Benchmarks ==============================================================
 
-main =
+bench =
     random_vec = Utils.make_random_vec 10000
     uniform_vec = Base.Vector.fill 10000 1
 
@@ -28,3 +28,5 @@ main =
 
     Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
     Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations
+
+main = bench

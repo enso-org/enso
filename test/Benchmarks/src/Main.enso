@@ -1,6 +1,6 @@
 import project.Collections
 import project.Equality
-import project.Json
+import project.Json_Bench
 import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Sum
@@ -15,14 +15,14 @@ import project.Vector
    sometimes we want to run all benchmarks to ensure our language changes are
    not breaking them.
 main =
-    Collections.main
-    Equality.main
-    Json.main
-    Natural_Order_Sort.main
-    Number_Parse.main
-    Sum.main
-    Statistics.main
-    Table.main
-    Text.main
-    Time.main
-    Vector.main
+    Collections.bench
+    Equality.bench
+    Json_Bench.bench
+    Natural_Order_Sort.bench
+    Number_Parse.bench
+    Sum.bench
+    Statistics.bench
+    Table.bench
+    Text.bench
+    Time.bench
+    Vector.bench
