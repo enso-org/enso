@@ -15,7 +15,7 @@ import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation_Error, Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 type Column
 
@@ -641,7 +641,7 @@ type Column
     take self range=(First 1) =
         _ = range
         msg = "`Column.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
        Creates a new Column from the input with the specified range of rows
@@ -653,7 +653,7 @@ type Column
     drop self range=(First 1) =
         _ = range
         msg = "`Column.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
 

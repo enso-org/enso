@@ -12,7 +12,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -58,7 +58,7 @@ type SQLite_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
         True ->
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
@@ -66,7 +66,7 @@ type SQLite_Dialect
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
         False ->
@@ -110,7 +110,7 @@ resolve_target_sql_type aggregate = case aggregate of
 
 ## PRIVATE
 unsupported name =
-    Error.throw (Unsupported_Database_Operation_Error_Data name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
+    Error.throw (Unsupported_Database_Operation.Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->

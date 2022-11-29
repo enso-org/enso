@@ -2,14 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.sql.SQLException
 
-# TODO Dubious constructor export
-from project.Errors.Unsupported_Database_Operation_Error import all
-from project.Errors.Unsupported_Database_Operation_Error export all
-
 ## Indicates that a requested operation is not supported, for example because a
    particular database backend does not support it.
-type Unsupported_Database_Operation_Error
-    Unsupported_Database_Operation_Error_Data message
+type Unsupported_Database_Operation
+    Error message
 
     ## UNSTABLE
 

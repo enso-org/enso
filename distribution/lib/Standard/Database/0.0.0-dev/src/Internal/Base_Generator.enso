@@ -11,7 +11,7 @@ import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 from project.Data.SQL import code
 
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 type Internal_Dialect
 
@@ -249,7 +249,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant sql_type value -> SQL.interpolation sql_type value
     SQL_Expression.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
     query : Query -> generate_query dialect query
@@ -373,7 +373,7 @@ generate_query dialect query = case query of
         code "SELECT * " ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation_Error_Data "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."
 
 ## PRIVATE
    Arguments:

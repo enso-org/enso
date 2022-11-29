@@ -26,7 +26,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Query.Query
 
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
@@ -401,7 +401,7 @@ type Table
                _ : Filter_Condition ->
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
-               _ : Function -> Error.throw (Unsupported_Database_Operation_Error_Data "Filtering with a custom predicate is not supported in the database.")
+               _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ : Text ->
            table_at = self.at column
            if table_at.is_error.not then self.filter table_at filter on_problems else
@@ -430,7 +430,7 @@ type Table
     take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -443,7 +443,7 @@ type Table
     drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
 
@@ -675,7 +675,7 @@ type Table
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
         _ = [columns, case_sensitivity, on_problems]
-        Error.throw (Unsupported_Database_Operation_Error_Data "`Table.distinct` is not yet implemented for the database backend.")
+        Error.throw (Unsupported_Database_Operation.Error "`Table.distinct` is not yet implemented for the database backend.")
 
     ## UNSTABLE
 
@@ -898,7 +898,7 @@ type Table
            because we need to keep the API consistent with the in-memory table.
         _ = [value_formatter, column_types, on_problems]
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -973,7 +973,7 @@ type Table
     to_sql self =
         cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
-            True -> Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot generate SQL for a table with no columns."
+            True -> Error.throw <| Unsupported_Database_Operation.Error "Cannot generate SQL for a table with no columns."
             False ->
                 query = Query.Select cols self.context
                 self.connection.dialect.generate_sql query

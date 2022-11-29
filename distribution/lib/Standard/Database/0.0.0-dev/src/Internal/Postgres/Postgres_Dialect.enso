@@ -15,7 +15,7 @@ import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -236,7 +236,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
     case internal_column.sql_type.is_likely_text of
         True ->
             ## In the future we can modify this error to suggest using a custom defined collation.
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
@@ -244,7 +244,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
                             upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
