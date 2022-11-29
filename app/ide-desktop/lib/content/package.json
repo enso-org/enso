@@ -22,16 +22,16 @@
   "dependencies": {
     "@types/semver": "^7.3.9",
     "enso-studio-common": "1.0.0",
-    "firebase": "^8.6.8",
-    "firebaseui": "^4.8.0",
-    "html-loader": "^1.3.2",
-    "mixpanel-browser": "2.40.1",
+    "firebase": "^9.14.0",
+    "firebaseui": "^6.0.2",
+    "html-loader": "^4.2.0",
+    "mixpanel-browser": "2.45.0",
     "enso-gui-server": "^1.0.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
-    "esbuild": "^0.14.43",
+    "esbuild": "^0.15.14",
     "esbuild-dev-server": "^0.3.0",
     "esbuild-copy-static-files": "^0.1.0",
     "esbuild-plugin-alias": "^0.2.1",
@@ -39,9 +39,9 @@
     "esbuild-plugin-yaml": "^0.0.1",
     "glob": "^8.0.3",
     "ts-node": "^10.9.1",
-    "source-map-loader": "^3.0.1",
+    "source-map-loader": "^4.0.1",
     "ts-loader": "^9.3.0",
-    "typescript": "^4.7.2",
+    "typescript": "^4.9.3",
     "yaml-loader": "^0.8.0",
     "enso-gui-server": "^1.0.0",
     "enso-copy-plugin": "^1.0.0"

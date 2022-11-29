@@ -717,6 +717,8 @@ object BindingsMap {
     def resolvedIn(module: Module): ResolvedName = resolvedIn(
       ModuleReference.Concrete(module)
     )
+    // Determines if this entity can be exported during export resolution pass
+    def canExport: Boolean
   }
 
   /** A representation of a constructor.
@@ -737,19 +739,25 @@ object BindingsMap {
     override val name: String,
     members: Seq[Cons],
     builtinType: Boolean
-  ) extends DefinedEntity
+  ) extends DefinedEntity {
+    override def canExport: Boolean = true
+  }
 
   /** A representation of an imported polyglot symbol.
     *
     * @param name the name of the symbol.
     */
-  case class PolyglotSymbol(override val name: String) extends DefinedEntity
+  case class PolyglotSymbol(override val name: String) extends DefinedEntity {
+    override def canExport: Boolean = false
+  }
 
   /** A representation of a method defined on the current module.
     *
     * @param name the name of the method.
     */
-  case class ModuleMethod(override val name: String) extends DefinedEntity
+  case class ModuleMethod(override val name: String) extends DefinedEntity {
+    override def canExport: Boolean = true
+  }
 
   /** A name resolved to a sum type.
     *
