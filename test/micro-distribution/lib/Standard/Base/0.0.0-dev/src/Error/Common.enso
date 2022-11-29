@@ -1,10 +1,3 @@
-from project.Data.Any import Any
-
-@Builtin_Type
-type Panic
-    throw payload = @Builtin_Method "Panic.throw"
-    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
-
 # TODO Dubious constructor export
 from project.Error.Common.Syntax_Error import all
 from project.Error.Common.Syntax_Error export all
@@ -53,11 +46,3 @@ from project.Error.Common.Arity_Error export all
 @Builtin_Type
 type Arity_Error
     Arity_Error_Data expected_min expected_max actual
-
-@Builtin_Type
-type Error
-    throw payload = @Builtin_Method "Error.throw"
-    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
-    catch self (error_type = Any) (handler = x->x) =
-        _ = error_type
-        self.catch_primitive handler

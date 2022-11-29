@@ -1,0 +1,9 @@
+import project.Any.Any
+
+@Builtin_Type
+type Error
+    throw payload = @Builtin_Method "Error.throw"
+    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
+    catch self (error_type = Any) (handler = x->x) =
+        _ = error_type
+        self.catch_primitive handler
