@@ -1,4 +1,7 @@
 import project.Any.Any
+import project.Data.Json.Json
+import project.Data.Json.Extensions
+import project.Data.Json.Marshalling_Error
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Numbers.Decimal
@@ -12,7 +15,6 @@ import project.Panic.Panic
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Marshalling_Error
 
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
