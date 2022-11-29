@@ -24,14 +24,12 @@
 #![recursion_limit = "256"]
 
 mod bool;
-#[cfg(feature = "futures")]
 pub mod channel;
 mod collections;
 mod data;
 pub mod debug;
 pub mod env;
 mod fail;
-#[cfg(feature = "futures")]
 pub mod future;
 mod leak;
 mod macros;
@@ -42,7 +40,6 @@ mod range;
 mod rc;
 mod reference;
 mod result;
-#[cfg(feature = "serde")]
 mod serde;
 mod smallvec;
 mod std_reexports;
@@ -54,7 +51,6 @@ mod vec;
 mod wrapper;
 
 pub use crate::bool::*;
-#[cfg(feature = "serde")]
 pub use crate::serde::*;
 pub use crate::smallvec::*;
 pub use anyhow;
@@ -133,7 +129,6 @@ pub mod std_ext {
 ///
 /// They cannot be directly reexported from prelude, as the methods `serialize` and `deserialize`
 /// that would be brought into scope by this, would collide with the other IDE-defined traits.
-#[cfg(feature = "serde")]
 pub mod serde_reexports {
     pub use serde::Deserialize;
     pub use serde::Serialize;
