@@ -21,10 +21,6 @@ type Unsupported_Database_Operation
     to_display_text self =
         "Unsupported database operation: " + self.message
 
-# TODO Dubious constructor export
-from project.Errors.SQL_Error import all
-from project.Errors.SQL_Error export all
-
 type SQL_Error
     ## UNSTABLE
 
@@ -35,7 +31,7 @@ type SQL_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    SQL_Error_Data java_exception related_query=Nothing
+    Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -56,13 +52,9 @@ type SQL_Error
        Throws an error as if a SQL Exception was thrown.
     throw_sql_error : Text -> SQL_Error
     throw_sql_error message =
-        Error.throw (SQL_Error_Data (SQLException.new message))
+        Error.throw (SQL_Error.Error (SQLException.new message))
 
-# TODO Dubious constructor export
-from project.Errors.SQL_Timeout_Error import all
-from project.Errors.SQL_Timeout_Error export all
-
-type SQL_Timeout_Error
+type SQL_Timeout
     ## UNSTABLE
 
        Indicates that an operation has timed out.
@@ -71,7 +63,7 @@ type SQL_Timeout_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    SQL_Timeout_Error_Data java_exception related_query=Nothing
+    Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
