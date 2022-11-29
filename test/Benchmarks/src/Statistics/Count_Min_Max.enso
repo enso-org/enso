@@ -5,14 +5,14 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 100
-iter_size = 1
-num_iterations = 1
+vector_size = 10000000
+iter_size = 5
+num_iterations = 5
 
 create_vector : Integer -> Integer -> Vector
 create_vector rows (seed=1646322139) =
     faker = Faker.new seed
-    0.up_to rows . map _-> faker.make_some_nothing (faker.integer 0 100)
+    0.up_to rows . map _-> faker.make_some_nothing (faker.integer 0 1000000)
 
 # The Benchmarks ==============================================================
 bench =

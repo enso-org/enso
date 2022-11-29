@@ -6,7 +6,7 @@ polyglot java import java.util.Random
 
 bench =
     iter_size = 50
-    num_iterations = 1
+    num_iterations = 10
 
     first_day = Date.new 2020 1 1
     dates = Vector.new 1000 (x -> first_day + (Period.new days=x))

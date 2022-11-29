@@ -13,8 +13,8 @@ polyglot java import org.enso.base.Time_Utils
 ## Bench Utilities ============================================================
 
 vector_size = 1000000
-iter_size = 1
-num_iterations = 1
+iter_size = 100
+num_iterations = 10
 
 make_sorted_ascending_vec : Integer -> Vector
 make_sorted_ascending_vec n = 0.up_to n+1 . to_vector

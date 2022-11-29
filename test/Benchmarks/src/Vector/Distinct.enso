@@ -11,8 +11,8 @@ polyglot java import org.enso.base.Time_Utils
 
 ## Bench Utilities ============================================================
 
-iter_size = 1
-num_iterations = 1
+iter_size = 100
+num_iterations = 10
 
 # The Benchmarks ==============================================================
 
