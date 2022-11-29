@@ -10,7 +10,7 @@ use crate::debug::Stats;
 use crate::display;
 use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
-use crate::display::layout::Alignment;
+use crate::display::layout::alignment::Alignment;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -296,7 +296,7 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let initial_alignment = Self::uv_offset(Alignment::center());
+        let initial_alignment = Self::uv_offset(alignment::dim2::center());
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
@@ -333,7 +333,7 @@ impl SpriteSystem {
     }
 
     /// Set alignment of sprites.
-    pub fn set_alignment(&self, alignment: Alignment) {
+    pub fn set_alignment(&self, alignment: Vector2<Alignment>) {
         self.alignment.set(Self::uv_offset(alignment));
     }
 
@@ -414,17 +414,9 @@ impl SpriteSystem {
         material
     }
 
-    fn uv_offset(alignment: Alignment) -> Vector2<f32> {
-        let x = match alignment.horizontal {
-            alignment::Horizontal::Left => 0.0,
-            alignment::Horizontal::Center => 0.5,
-            alignment::Horizontal::Right => 1.0,
-        };
-        let y = match alignment.vertical {
-            alignment::Vertical::Top => 1.0,
-            alignment::Vertical::Center => 0.5,
-            alignment::Vertical::Bottom => 0.0,
-        };
+    fn uv_offset(alignment: Vector2<Alignment>) -> Vector2<f32> {
+        let x = alignment.x.as_number();
+        let y = alignment.y.as_number();
         Vector2::new(x, y)
     }
 }

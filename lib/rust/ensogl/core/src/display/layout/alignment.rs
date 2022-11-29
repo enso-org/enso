@@ -8,104 +8,86 @@ use crate::prelude::*;
 // === Alignment ===
 // =================
 
-/// Alignment abstraction. Example usage is camera origin placement allowing it to behave correctly
-/// when scaling the scene.
+/// Alignment. In one dimension the alignment is either start, center, or end. In 2 dimensions,
+/// [`Start`] means "left" horizontally and "bottom" vertically, while [`End`] means "right"
+/// horizontally and "top" vertically.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
-pub struct Alignment {
-    pub horizontal: Horizontal,
-    pub vertical:   Vertical,
+pub enum Alignment {
+    Start,
+    Center,
+    End,
 }
 
-/// Horizontal alignments.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(missing_docs)]
-pub enum Horizontal {
-    Left,
-    Center,
-    Right,
-}
-
-/// Vertical alignments.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(missing_docs)]
-pub enum Vertical {
-    Top,
-    Center,
-    Bottom,
+impl Alignment {
+    pub fn as_number(self) -> f32 {
+        match self {
+            Alignment::Start => 0.0,
+            Alignment::Center => 0.5,
+            Alignment::End => 1.0,
+        }
+    }
 }
 
 
 // === Smart Constructors ===
 
+/// 2-dimensional alignment.
 #[allow(missing_docs)]
-#[allow(missing_docs)]
-impl Alignment {
+pub mod dim2 {
+    use super::*;
+
     /// Constructor.
-    pub fn new(horizontal: Horizontal, vertical: Vertical) -> Self {
-        Self { horizontal, vertical }
+    pub fn new(horizontal: Alignment, vertical: Alignment) -> Vector2<Alignment> {
+        Vector2(horizontal, vertical)
     }
 
-    pub fn center() -> Self {
-        Self::new(Horizontal::Center, Vertical::Center)
+    pub fn center() -> Vector2<Alignment> {
+        new(Alignment::Center, Alignment::Center)
     }
-    pub fn bottom_left() -> Self {
-        Self::new(Horizontal::Left, Vertical::Bottom)
+
+    pub fn bottom_left() -> Vector2<Alignment> {
+        new(Alignment::Start, Alignment::Start)
     }
-    pub fn bottom_right() -> Self {
-        Self::new(Horizontal::Right, Vertical::Bottom)
+
+    pub fn bottom_right() -> Vector2<Alignment> {
+        new(Alignment::End, Alignment::Start)
     }
-    pub fn bottom_center() -> Self {
-        Self::new(Horizontal::Center, Vertical::Bottom)
+
+    pub fn bottom_center() -> Vector2<Alignment> {
+        new(Alignment::Center, Alignment::Start)
     }
-    pub fn top_left() -> Self {
-        Self::new(Horizontal::Left, Vertical::Top)
+
+    pub fn top_left() -> Vector2<Alignment> {
+        new(Alignment::Start, Alignment::End)
     }
-    pub fn top_right() -> Self {
-        Self::new(Horizontal::Right, Vertical::Top)
+
+    pub fn top_right() -> Vector2<Alignment> {
+        new(Alignment::End, Alignment::End)
     }
-    pub fn top_center() -> Self {
-        Self::new(Horizontal::Center, Vertical::Top)
+
+    pub fn top_center() -> Vector2<Alignment> {
+        new(Alignment::Center, Alignment::End)
     }
-    pub fn center_left() -> Self {
-        Self::new(Horizontal::Left, Vertical::Center)
+
+    pub fn center_left() -> Vector2<Alignment> {
+        new(Alignment::Start, Alignment::Center)
     }
-    pub fn center_right() -> Self {
-        Self::new(Horizontal::Right, Vertical::Center)
+
+    pub fn center_right() -> Vector2<Alignment> {
+        new(Alignment::End, Alignment::Center)
     }
 }
 
 
 // === Defaults ===
 
-impl Default for Horizontal {
-    fn default() -> Self {
-        Self::Left
-    }
-}
-impl Default for Vertical {
-    fn default() -> Self {
-        Self::Bottom
-    }
-}
 impl Default for Alignment {
     fn default() -> Self {
-        let horizontal = default();
-        let vertical = default();
-        Self { horizontal, vertical }
+        Self::Start
     }
 }
 
-impl From<&Horizontal> for Horizontal {
-    fn from(t: &Horizontal) -> Self {
-        *t
-    }
-}
-impl From<&Vertical> for Vertical {
-    fn from(t: &Vertical) -> Self {
-        *t
-    }
-}
 impl From<&Alignment> for Alignment {
     fn from(t: &Alignment) -> Self {
         *t

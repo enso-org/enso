@@ -37,6 +37,7 @@ pub mod unit;
 pub mod unit2;
 
 pub use algebra::*;
+pub use dim::*;
 pub use topology::*;
 
 

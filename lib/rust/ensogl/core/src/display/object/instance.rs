@@ -832,8 +832,33 @@ macro_rules! generate_transformation_getters_and_setters {
                 self.with_mut_borrowed_transformation(|t| t.[<set_ $name>](v));
             }
 
-            fn [<mod_ $name>](&self, f: impl FnOnce(&mut Vector3<f32>)) {
-                self.with_mut_borrowed_transformation(|t| t.[<mod_ $name>](f));
+            fn [<update_ $name>](&self, f: impl FnOnce(Vector3<f32>) -> Vector3<f32>) {
+                self.with_mut_borrowed_transformation(|t| t.[<update_ $name>](f));
+            }
+
+            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector3<f32>)) {
+                self.with_mut_borrowed_transformation(|t| t.[<modify_ $name>](f));
+            }
+
+            fn [<set_ $name _dim>]<D>(&self, dim: D, value: f32)
+            where Vector3<f32>: DimSetter<D> {
+                self.with_mut_borrowed_transformation(|t|
+                    t.[<modify_ $name>](|v| v.set_dim(dim, value))
+                );
+            }
+
+            fn [<update_ $name _dim>]<D: Copy>(&self, dim: D, f: impl FnOnce(f32) -> f32)
+            where Vector3<f32>: DimSetter<D> {
+                self.with_mut_borrowed_transformation(|t|
+                    t.[<modify_ $name>](|v| v.update_dim(dim, f))
+                );
+            }
+
+            fn [<modify_ $name _dim>]<D: Copy>(&self, dim: D, f: impl FnOnce(&mut f32))
+            where Vector3<f32>: DimSetter<D> {
+                self.with_mut_borrowed_transformation(|t|
+                    t.[<modify_ $name>](|v| v.modify_dim(dim, f))
+                );
             }
         )*}
     }};
@@ -1059,6 +1084,12 @@ impl IntoResizing for Vector2<f32> {
     }
 }
 
+impl IntoResizing for Vector2<Resizing> {
+    fn into_resizing(self) -> Vector2<Resizing> {
+        self
+    }
+}
+
 macro_rules! tuple_into_resizing {
     ($a:tt, $b:tt) => {
         impl IntoResizing for ($a, $b) {
@@ -1096,10 +1127,9 @@ pub enum Layout {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct LayoutOptions {
-    pub alignment:          Alignment,
-    pub spacing:            f32,
-    pub horizontal_padding: f32,
-    pub vertical_padding:   f32,
+    pub alignment: Vector2<Alignment>,
+    pub spacing:   f32,
+    pub padding:   Vector2<f32>,
 }
 
 impl Layout {
@@ -1199,88 +1229,94 @@ impl Model {
         }
         let resizing = self.layout.resizing.get();
         match resizing.x {
-            Resizing::Fixed(v) => {
-                self.layout.size.modify(|t| t.x = v);
-            }
+            Resizing::Fixed(v) => self.layout.size.modify_(|t| t.x = v),
             _ => {}
         }
         match resizing.y {
-            Resizing::Fixed(v) => {
-                self.layout.size.modify(|t| t.y = v);
-            }
+            Resizing::Fixed(v) => self.layout.size.modify_(|t| t.y = v),
             _ => {}
         }
         match self.layout.layout.get() {
             None => {}
-            Some(Layout::Horizontal(opts)) => {
-                let children = self.children();
-                let resizing = self.layout.resizing.get().x;
-                let space_left = if resizing.is_fixed() || resizing.is_fill() {
-                    let mut allocated_space = 0.0;
-                    let mut children_to_fill = vec![];
-                    for child in &children {
-                        if child.layout.resizing.get().x.is_fill() {
-                            children_to_fill.push(child);
-                        } else {
-                            child.update_layout();
-                            allocated_space += child.layout.size.get().x;
-                        }
-                    }
-                    let children_to_fill_count = children_to_fill.len();
-                    let width = self.layout.size.get().x;
-                    let space_left = (width
-                        - allocated_space
-                        - 2.0 * opts.horizontal_padding
-                        - (children.len() - 1) as f32 * opts.spacing);
-                    let child_size = space_left.max(0.0) / children_to_fill_count as f32;
-                    for child in children_to_fill {
-                        child.layout.size.modify(|t| t.x = child_size);
-                        child.update_layout();
-                    }
-                    if children_to_fill_count > 0 {
-                        0.0
-                    } else {
-                        space_left
-                    }
-                } else {
-                    let mut size = 0.0;
-                    for child in &children {
-                        if child.layout.resizing.get().x.is_fill() {
-                            child.layout.size.modify(|t| t.x = 0.0);
-                        }
-                        child.update_layout();
-                        size += child.layout.size.get().x;
-                    }
-                    size +=
-                        2.0 * opts.horizontal_padding + (children.len() - 1) as f32 * opts.spacing;
-                    self.layout.size.modify(|t| t.x = size);
-                    0.0
-                };
-                let mut pos = opts.horizontal_padding;
-                match opts.alignment.horizontal {
-                    alignment::Horizontal::Left => {}
-                    alignment::Horizontal::Center => {
-                        pos += space_left / 2.0;
-                    }
-                    alignment::Horizontal::Right => {
-                        pos += space_left;
-                    }
-                }
-                let height = self.layout.size.get().y;
-                for child in &children {
-                    let size = child.size();
-                    child.set_x(pos);
-                    pos += size.x + opts.spacing;
-                    match opts.alignment.vertical {
-                        alignment::Vertical::Bottom => child.set_y(0.0),
-                        alignment::Vertical::Center => child.set_y((height - size.y) / 2.0),
-                        alignment::Vertical::Top => child.set_y(height - size.y),
-                    }
-                }
-                pos += opts.horizontal_padding;
-            }
+            Some(Layout::Horizontal(opts)) => self.update_layout_one_dimension(X, Y, opts),
+            Some(Layout::Vertical(opts)) => self.update_layout_one_dimension(Y, X, opts),
             _ => panic!(),
         }
+    }
+
+    #[inline(always)]
+    fn update_layout_one_dimension<Dim1: Copy, Dim2: Copy>(
+        &self,
+        x: Dim1,
+        y: Dim2,
+        opts: LayoutOptions,
+    ) where
+        Vector2<Resizing>: DimSetter<Dim1>,
+        Vector2<Alignment>: DimSetter<Dim1>,
+        Vector2<Resizing>: DimSetter<Dim2>,
+        Vector2<Alignment>: DimSetter<Dim2>,
+        Vector2<f32>: DimSetter<Dim1>,
+        Vector2<f32>: DimSetter<Dim2>,
+        Vector3<f32>: DimSetter<Dim1>,
+        Vector3<f32>: DimSetter<Dim2>,
+    {
+        let children = self.children();
+        let resizing = self.layout.resizing.get_dim(x);
+        let space_left = if resizing.is_fixed() || resizing.is_fill() {
+            let mut allocated_space = 0.0;
+            let mut children_to_fill = vec![];
+            for child in &children {
+                if child.layout.resizing.get_dim(x).is_fill() {
+                    children_to_fill.push(child);
+                } else {
+                    child.update_layout();
+                    allocated_space += child.layout.size.get_dim(x);
+                }
+            }
+            let children_to_fill_count = children_to_fill.len();
+            let width = self.layout.size.get_dim(x);
+            let space_left = width
+                - allocated_space
+                - 2.0 * opts.padding.get_dim(x)
+                - (children.len() - 1) as f32 * opts.spacing;
+            let child_size = space_left.max(0.0) / children_to_fill_count as f32;
+            for child in children_to_fill {
+                child.layout.size.set_dim(x, child_size);
+                child.update_layout();
+            }
+            if children_to_fill_count > 0 {
+                0.0
+            } else {
+                space_left
+            }
+        } else {
+            let mut size = Vector2(0.0, 0.0);
+            for child in &children {
+                if child.layout.resizing.get_dim(x).is_fill() {
+                    child.layout.size.modify(|t| t.set_dim(x, 0.0));
+                }
+                child.update_layout();
+                size.x += child.layout.size.get_dim(x);
+                size.y = size.y.max(child.layout.size.get_dim(y) + child.position().get_dim(y));
+            }
+            size.x += 2.0 * opts.padding.get_dim(x) + (children.len() - 1) as f32 * opts.spacing;
+            self.layout.size.set_dim(x, size.x);
+            self.layout.size.set_dim(y, size.y);
+            0.0
+        };
+        let mut pos = opts.padding.get_dim(x);
+        pos += opts.alignment.get_dim(x).as_number() * space_left;
+        let padding_y = opts.padding.get_dim(y);
+        let height = self.layout.size.get_dim(y);
+        for child in &children {
+            let size = child.size();
+            child.set_position_dim(x, pos);
+            pos += size.get_dim(x) + opts.spacing;
+            let pos_y =
+                padding_y + opts.alignment.get_dim(y).as_number() * (height - size.get_dim(y));
+            child.set_position_dim(y, pos_y);
+        }
+        pos += opts.padding.get_dim(x);
     }
 }
 
@@ -1291,30 +1327,176 @@ mod tests2 {
     use crate::display::world::World;
     use std::f32::consts::PI;
 
-    #[test]
-    fn layout_test() {
-        let world = World::new();
-        let scene = &world.default_scene;
+    #[derive(Default)]
+    pub struct TestThreeChildrenResult {
+        root_position:  Option<[f32; 2]>,
+        node1_position: Option<[f32; 2]>,
+        node2_position: Option<[f32; 2]>,
+        node3_position: Option<[f32; 2]>,
+        root_size:      Option<[f32; 2]>,
+        node1_size:     Option<[f32; 2]>,
+        node2_size:     Option<[f32; 2]>,
+        node3_size:     Option<[f32; 2]>,
+    }
 
-        let root = Instance::new();
-        let node1 = Instance::new();
-        let node2 = Instance::new();
-        root.set_layout(Layout::horizontal());
-        root.set_resizing((Resizing::Hug, 100.0));
-        node1.set_resizing((Resizing::Fill, 100.0));
-        node2.set_resizing((100.0, 100.0));
-        root.add_child(&node1);
-        root.add_child(&node2);
-        root.update(&scene);
-        println!("root: {:?}", root);
-        println!("node1: {:?}", node1);
-        println!("node2: {:?}", node2);
-        node1.set_resizing((50.0, 100.0));
-        root.update(&scene);
-        println!("root: {:?}", root);
-        println!("node1: {:?}", node1);
-        println!("node2: {:?}", node2);
-        assert_eq!(node2.position(), Vector3(100.0, 0.0, 0.0));
+    impl TestThreeChildrenResult {
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        pub fn root_position(mut self, pos: [f32; 2]) -> Self {
+            self.root_position = Some(pos);
+            self
+        }
+
+        pub fn node1_position(mut self, pos: [f32; 2]) -> Self {
+            self.node1_position = Some(pos);
+            self
+        }
+
+        pub fn node2_position(mut self, pos: [f32; 2]) -> Self {
+            self.node2_position = Some(pos);
+            self
+        }
+
+        pub fn node3_position(mut self, pos: [f32; 2]) -> Self {
+            self.node3_position = Some(pos);
+            self
+        }
+
+        pub fn root_size(mut self, size: [f32; 2]) -> Self {
+            self.root_size = Some(size);
+            self
+        }
+
+        pub fn node1_size(mut self, size: [f32; 2]) -> Self {
+            self.node1_size = Some(size);
+            self
+        }
+
+        pub fn node2_size(mut self, size: [f32; 2]) -> Self {
+            self.node2_size = Some(size);
+            self
+        }
+
+        pub fn node3_size(mut self, size: [f32; 2]) -> Self {
+            self.node3_size = Some(size);
+            self
+        }
+    }
+
+    ///         root
+    ///      /   |   \
+    /// node1  node2  node3
+    #[derive(Debug, Clone, Default)]
+    pub struct TestThreeChildren {
+        world: World,
+        root:  Instance,
+        node1: Instance,
+        node2: Instance,
+        node3: Instance,
+    }
+
+    impl TestThreeChildren {
+        fn new() -> Self {
+            let world = World::new();
+            let root = Instance::new();
+            let node1 = Instance::new();
+            let node2 = Instance::new();
+            let node3 = Instance::new();
+            root.add_child(&node1);
+            root.add_child(&node2);
+            root.add_child(&node3);
+            Self { world, root, node1, node2, node3 }
+        }
+
+        fn reset_positions(&self) {
+            self.root.set_position(Vector3::zero());
+            self.node1.set_position(Vector3::zero());
+            self.node2.set_position(Vector3::zero());
+            self.node3.set_position(Vector3::zero());
+        }
+
+        fn run(&self, r: TestThreeChildrenResult) {
+            self.root.update(&self.world.default_scene);
+            r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
+            r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
+            r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
+            r.node3_position.for_each(|t| assert_eq!(self.node3.position().xy().as_slice(), t));
+            r.root_size.for_each(|t| assert_eq!(self.root.size().as_slice(), t));
+            r.node1_size.for_each(|t| assert_eq!(self.node1.size().as_slice(), t));
+            r.node2_size.for_each(|t| assert_eq!(self.node2.size().as_slice(), t));
+            r.node3_size.for_each(|t| assert_eq!(self.node3.size().as_slice(), t));
+        }
+    }
+
+    fn test_simple_hug_resizing() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(Layout::horizontal());
+        test.node1.set_resizing((20.0, 200.0));
+        test.node2.set_resizing((30.0, 300.0));
+        test.node3.set_resizing((50.0, 500.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([20.0, 0.0])
+                .node3_position([50.0, 0.0])
+                .root_size([100.0, 500.0])
+                .node1_size([20.0, 200.0])
+                .node2_size([30.0, 300.0])
+                .node3_size([50.0, 500.0]),
+        );
+
+        test.reset_positions();
+        test.root.set_layout(Layout::vertical());
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([0.0, 200.0])
+                .node3_position([0.0, 500.0])
+                .root_size([50.0, 1000.0])
+                .node1_size([20.0, 200.0])
+                .node2_size([30.0, 300.0])
+                .node3_size([50.0, 500.0]),
+        );
+    }
+
+    #[test]
+    fn test_nested_hug_resizing() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(Layout::horizontal());
+        test.node1.set_resizing((200.0, Resizing::Hug));
+        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
+        test.node3.set_resizing((Resizing::Fill, Resizing::Hug));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([200.0, 0.0])
+                .node3_position([200.0, 0.0])
+                .root_size([200.0, 0.0])
+                .node1_size([200.0, 0.0])
+                .node2_size([0.0, 0.0])
+                .node3_size([0.0, 0.0]),
+        );
+
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(Layout::horizontal());
+        test.node1.set_resizing((Resizing::Hug, 200.0));
+        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
+        test.node3.set_resizing((Resizing::Hug, Resizing::Fill));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([0.0, 0.0])
+                .node3_position([0.0, 0.0])
+                .root_size([0.0, 200.0])
+                .node1_size([0.0, 200.0])
+                .node2_size([0.0, 0.0]), // .node3_size([0.0, 200.0]),
+        );
     }
 }
 
@@ -1523,12 +1705,31 @@ macro_rules! gen_object_trans {
                 self.display_object().def.$trans()
             }
 
-            fn [<mod_ $trans>]<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
-                self.display_object().def.[<mod_ $trans>](f)
-            }
-
             fn [<set_ $trans>](&self, t: Vector3<f32>) {
                 self.display_object().def.[<set_ $trans>](t);
+            }
+
+            fn [<update_ $trans>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&self, f: F) {
+                self.display_object().def.[<update_ $trans>](f)
+            }
+
+            fn [<modify_ $trans>]<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+                self.display_object().def.[<modify_ $trans>](f)
+            }
+
+            fn [<set_ $trans _dim>]<D>(&self, dim: D, value: f32)
+            where Vector3<f32>: DimSetter<D> {
+                self.display_object().def.[<set_ $trans _dim>](dim, value)
+            }
+
+            fn [<update_ $trans _dim>]<D: Copy>(&self, dim: D, f: impl FnOnce(f32) -> f32)
+            where Vector3<f32>: DimSetter<D> {
+                self.display_object().def.[<update_ $trans _dim>](dim, f)
+            }
+
+            fn [<modify_ $trans _dim>]<D: Copy>(&self, dim: D, f: impl FnOnce(&mut f32))
+            where Vector3<f32>: DimSetter<D> {
+                self.display_object().def.[<modify_ $trans _dim>](dim, f)
             }
         }
         enso_types::with_swizzling_for_dim!(1, gen_getters, $trans $(,$tx_name)?);
@@ -1555,20 +1756,28 @@ macro_rules! gen_getters {
 
 macro_rules! gen_setters {
     ([$tx:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
-        gen_setters! {@ $tx $( [<set_ $name>] [<mod_ $name>] $name $dim )* }
+        gen_setters! {@ $tx $( [<set_ $name>] [<modify_ $name>] [<update_ $name>] $name $dim )* }
     };
     ([$tx:tt, $tx_name:tt] $_dim:tt $( $name:ident $dim:tt $_dim_ix:tt $_dim_ord:tt )*) => {
-        gen_setters! {@ $tx $( [<set_ $tx_name _ $name>] [<mod_ $tx_name _ $name>] $name $dim )* }
+        gen_setters! {@ $tx $( [<set_ $tx_name _ $name>] [<modify_ $tx_name _ $name>]
+            [<update_ $tx_name _ $name>] $name $dim )* }
     };
-    (@ $tx:tt $( $set_name:tt $mod_name:tt $name:tt $dim:tt )*) => { paste! {
+    (@ $tx:tt $( $set_name:tt $mod_name:tt $update_name:tt $name:tt $dim:tt )*) => { paste! {
         $(
             fn $set_name(&self, value: [<Vector $dim>]<f32>) {
-                self.[<mod_ $tx>](|p| p.[<set_ $name>](value));
+                self.[<modify_ $tx>](|p| p.[<set_ $name>](value));
             }
 
             fn $mod_name<F>(&self, f: F)
+            where F: FnOnce(&mut [<Vector $dim>]<f32>) {
+                let mut value = self.$name();
+                f(&mut value);
+                self.$set_name(value);
+            }
+
+            fn $update_name<F>(&self, f: F)
             where F: FnOnce([<Vector $dim>]<f32>) -> [<Vector $dim>]<f32> {
-                self.[<set_ $name>](f(self.$name()));
+                self.$set_name(f(self.$name()));
             }
         )*
     }};
@@ -1740,7 +1949,7 @@ mod tests {
         assert_eq!(node2.global_position(), Vector3::new(0.0, 0.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(0.0, 0.0, 0.0));
 
-        node1.mod_position(|t| t.x += 7.0);
+        node1.modify_position(|t| t.x += 7.0);
         node1.add_child(&node2);
         node2.add_child(&node3);
         assert_eq!(node1.position(), Vector3::new(7.0, 0.0, 0.0));
@@ -1758,19 +1967,19 @@ mod tests {
         assert_eq!(node2.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 0.0, 0.0));
 
-        node2.mod_position(|t| t.y += 5.0);
+        node2.modify_position(|t| t.y += 5.0);
         node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(7.0, 5.0, 0.0));
 
-        node3.mod_position(|t| t.x += 1.0);
+        node3.modify_position(|t| t.x += 1.0);
         node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
         assert_eq!(node3.global_position(), Vector3::new(8.0, 5.0, 0.0));
 
-        node2.mod_rotation(|t| t.z += PI / 2.0);
+        node2.modify_rotation(|t| t.z += PI / 2.0);
         node1.update(scene);
         assert_eq!(node1.global_position(), Vector3::new(7.0, 0.0, 0.0));
         assert_eq!(node2.global_position(), Vector3::new(7.0, 5.0, 0.0));
@@ -2047,10 +2256,10 @@ mod tests {
 
         // === Position Modification  ===
 
-        node3.mod_position(|t| t.x += 1.0);
-        node4.mod_position(|t| t.x += 3.0);
-        node5.mod_position(|t| t.x += 5.0);
-        node6.mod_position(|t| t.x += 7.0);
+        node3.modify_position(|t| t.x += 1.0);
+        node4.modify_position(|t| t.x += 3.0);
+        node5.modify_position(|t| t.x += 5.0);
+        node6.modify_position(|t| t.x += 7.0);
 
         root.update(scene);
 
