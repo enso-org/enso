@@ -1248,13 +1248,14 @@ type Table
             java_key_columns = grouping.map .java_column
             index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
-            name_mapper = if validated_values.length == 1 then (_ -> "") else
-                all_same = Aggregate_Column_Helper.all_same_column validated_values
-                c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
+            name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
+                if validated_values.length == 1 then (_ -> "") else
+                    all_same = Aggregate_Column_Helper.all_same_column validated_values
+                    c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
 
             data_columns = validated_values.map c->
-                    col_name = c.new_name.if_nothing (name_mapper c)
-                    Aggregate_Column_Helper.java_aggregator col_name c
+                col_name = c.new_name.if_nothing (name_mapper c)
+                Aggregate_Column_Helper.java_aggregator col_name c
 
             result = case matched_name.is_empty of
                 True ->
