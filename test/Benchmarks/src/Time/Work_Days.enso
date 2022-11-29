@@ -14,7 +14,7 @@ bench =
     shifts = [1, 5, 20, 100]
 
     shifts.each shift->
-        shifted_dates = dates.map (d -> d + shift.days)
+        shifted_dates = dates.map (d -> d + (Period.new days=shift))
         Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2) "(Shift="+shift.to_text+") work_days_until" iter_size num_iterations
         Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays) "(Shift="+shift.to_text+") work_days_until with holidays" iter_size num_iterations
 

@@ -21,8 +21,8 @@ main =
     Natural_Order_Sort.bench
     Number_Parse.bench
     Sum.bench
-    Statistics.bench
-    Table.bench
-    Text.bench
-    Time.bench
-    Vector.bench
+    Statistics.Main.bench
+    Table.Main.bench
+    Text.Main.bench
+    Time.Main.bench
+    Vector.Main.bench

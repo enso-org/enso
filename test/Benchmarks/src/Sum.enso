@@ -79,8 +79,12 @@ bench =
     Bench.measure (sum_tco hundred_mil) "sum_tco" 1 1
     IO.println "Measuring SumTCO Java"
     Bench.measure (sum_tco_java hundred_mil) "sum_tco_java" 1 1
-    IO.println "Measuring SumTCO Eval"
-    Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 1 1
+
+    ## This test is disabled because it fails when running from a common entry point.
+       See the bug: https://www.pivotaltracker.com/story/show/183914580
+    # IO.println "Measuring SumTCO Eval"
+    # Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 1 1
+
     IO.println "Measuring State"
     Bench.measure (sum_state hundred_mil) "sum_state" 1 1
     IO.println "Measuring Co-State"
