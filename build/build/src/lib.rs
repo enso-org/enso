@@ -124,7 +124,7 @@ pub fn retrieve_github_access_token() -> Result<String> {
         .or_else(|_| get_token_from_file())
 }
 
-// #[context("Failed to setup GitHub API client.")]
+#[context("Failed to setup GitHub API client.")]
 pub async fn setup_octocrab() -> Result<Octocrab> {
     let builder = octocrab::OctocrabBuilder::new();
     let octocrab = if let Ok(access_token) = retrieve_github_access_token() {

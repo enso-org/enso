@@ -38,10 +38,7 @@ pub trait ResultExt<T, E>: Sized {
 
     /// Executes another future if this is an error. The error value is passed to a closure to
     /// create this subsequent future.
-    fn or_else_async<'a, F, Fut>(
-        self,
-        f: F,
-    ) -> Either<Ready<Self>, futures::future::IntoFuture<Fut>>
+    fn or_else_async<F, Fut>(self, f: F) -> Either<Ready<Self>, futures::future::IntoFuture<Fut>>
     where
         F: FnOnce(E) -> Fut,
         Fut: TryFuture<Ok = T, Error = E>;

@@ -213,7 +213,7 @@ impl Context {
         fields: &[pretty_format::Placeholder],
     ) -> Result<Vec<Vec<String>>> {
         let field_count = fields.len();
-        let format = fields.into_iter().map(ToString::to_string).join(RECORD_SEPARATOR);
+        let format = fields.iter().map(ToString::to_string).join(RECORD_SEPARATOR);
         let output = self
             .cmd()?
             .arg(Command::Log)

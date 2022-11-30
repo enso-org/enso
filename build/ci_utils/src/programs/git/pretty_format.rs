@@ -251,8 +251,12 @@ pub fn refs_from_decoration(text: &str) -> Vec<&str> {
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .flat_map(|s| {
-            if s.starts_with("HEAD -> ") { vec!["HEAD", &s["HEAD -> ".len()..]] } else { vec![s] }
-                .into_iter()
+            if let Some(stripped) = s.strip_prefix("HEAD -> ") {
+                vec!["HEAD", stripped]
+            } else {
+                vec![s]
+            }
+            .into_iter()
         })
         .map(|s| s.trim_start_matches("tag: "))
         .collect_vec()
