@@ -64,6 +64,10 @@ abstract class VcsApi[F[_, _]] {
   ): F[VcsFailure, List[RepoCommit]]
 }
 
+object VcsApi {
+  val DefaultRepoDir = ".git"
+}
+
 /** `RepoStatus` encapsulates the current state of the project under VCS.
   *
   * @param isDirty `true`, if there are any unsaved changes to the project, `false` otherwise

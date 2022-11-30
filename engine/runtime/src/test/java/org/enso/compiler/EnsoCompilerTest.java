@@ -1191,6 +1191,14 @@ public class EnsoCompilerTest {
     """);
   }
 
+
+  @Test
+  public void testNPE183892665() throws Exception {
+    parseTest("""
+    foo : Integer ->
+    """);
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
