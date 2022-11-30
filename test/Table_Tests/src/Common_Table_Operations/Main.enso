@@ -4,10 +4,11 @@ from Standard.Test import Test_Suite
 
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
-import project.Common_Table_Operations.Expression_Spec
+#import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
 import project.Common_Table_Operations.Join_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
+import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
 
@@ -36,8 +37,9 @@ spec prefix table_builder test_selection =
     Column_Operations_Spec.spec prefix table_builder test_selection
     Filter_Spec.spec prefix table_builder test_selection
     Missing_Values_Spec.spec prefix table_builder test_selection
+    Order_By_Spec.spec prefix table_builder test_selection
     Take_Drop_Spec.spec prefix table_builder test_selection
-    Expression_Spec.spec prefix table_builder test_selection
+    # Expression_Spec.spec prefix table_builder test_selection
     Join_Spec.spec prefix table_builder test_selection
 
 ## These tests are parametrized by various backends and so they should be run in
