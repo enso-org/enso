@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Meta
 import project.Panic.Panic
-import project.Runtime
+import project.Runtime.Stack_Trace_Element
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -121,7 +121,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector Runtime.Stack_Trace_Element
+    stack_trace : Vector Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
 

@@ -45,5 +45,5 @@ find_expected_enso_type_for_sql sql_type =
     if sql_type.is_definitely_integer then "Standard.Base.Data.Numbers.Integer" else
         if sql_type.is_definitely_double then "Standard.Base.Data.Numbers.Decimal" else
             if sql_type.is_definitely_text then "Standard.Base.Data.Text.Text" else
-                if sql_type.is_definitely_boolean then "Standard.Base.Boolean.Boolean" else
+                if sql_type.is_definitely_boolean then "Standard.Base.Data.Boolean.Boolean" else
                     Nothing

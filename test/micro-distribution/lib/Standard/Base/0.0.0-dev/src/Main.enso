@@ -16,8 +16,8 @@ export project.Any.Any
 import project.Data.Array.Array
 export project.Data.Array.Array
 
-import project.Boolean
-from project.Boolean export Boolean, True, False
+import project.Data.Boolean
+from project.Data.Boolean export Boolean, True, False
 
 import project.Data.List.List
 export project.Data.List.List
