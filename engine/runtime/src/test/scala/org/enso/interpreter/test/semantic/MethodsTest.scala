@@ -24,7 +24,7 @@ class MethodsTest extends InterpreterTest {
 
     "execute `self` argument once" in {
       val code =
-        """from Standard.Base.IO import all
+        """import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |Nothing.Nothing.foo = 0
@@ -90,7 +90,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.Any.method self =
+          |Any.method self =
           |    x = self * self
           |    y = x * 2
           |    y + 1
@@ -120,7 +120,7 @@ class MethodsTest extends InterpreterTest {
           |type Bar
           |type Baz
           |
-          |Any.Any.method self = case self of
+          |Any.method self = case self of
           |    Foo -> 1
           |    Bar -> 2
           |    Baz -> 3
@@ -167,7 +167,7 @@ class MethodsTest extends InterpreterTest {
 
     "be callable on types when non-static, with additional self arg" in {
       val code =
-        """from Standard.Base.IO import all
+        """import Standard.Base.IO
           |
           |type Foo
           |    Mk_Foo a

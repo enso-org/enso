@@ -22,7 +22,7 @@ class RuntimeManagementTest extends InterpreterTest {
 
       val code =
         """import Standard.Base.Runtime.Thread
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |foo x =
@@ -92,7 +92,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
           |type Mock_File
           |    Value i
@@ -124,7 +124,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |type Mock_File
@@ -158,7 +158,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |type Mock_File
