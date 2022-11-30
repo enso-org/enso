@@ -89,16 +89,30 @@ prepare_aggregate_columns aggregates table =
 
    Assumes that the `Aggregate_Column` is resolved. You may need to transform it
    with `resolve_aggregate` first.
-default_aggregate_column_name aggregate_column =
+default_aggregate_column_name aggregate_column include_column=True =
     case aggregate_column of
         Group_By c _ -> c.name
         Count _ -> "Count"
         Count_Distinct columns _ _ ->
             "Count Distinct " + (columns.map .name . join " ")
-        Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + c.name
+        Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + (if include_column then c.name else "")
         _ ->
             prefix = Meta.get_simple_type_name aggregate_column . replace "_" " "
-            prefix + " " + aggregate_column.column.name
+            c = aggregate_column.column
+            prefix + " " + (if include_column then c.name else "")
+
+## Utility function to check if all same column
+all_same_column : Vector Aggregate_Column -> Boolean
+all_same_column aggregates =
+    is_not_count c = case c of
+        Count _ -> False
+        Count_Distinct _ _ _ -> False
+        _ -> True
+    without_count = aggregates.filter is_not_count
+
+    if without_count.length < 2 then True else
+        column = without_count.first.column.name
+        without_count.all c->(c.column.name == column)
 
 ## PRIVATE
    Returns a copy of this aggregate where all column descriptors (names,
