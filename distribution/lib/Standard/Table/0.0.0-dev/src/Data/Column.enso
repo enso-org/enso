@@ -31,6 +31,15 @@ type Column
     from_vector : Text -> Vector -> Column
     from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
 
+    ## Creates a new column given a name and a vector of elements repeated over and over.
+
+       Arguments:
+       - name: The name of the column to create.
+       - items: The elements to contain in the column.
+       - repeats: The number of times to repeat the vector.
+    from_vector_repeated : Text -> Vector -> Integer -> Column
+    from_vector_repeated name items repeats = Column_Data (Java_Column.fromRepeatedItems name items.to_array repeats)
+
     ## PRIVATE
 
        A representation of a column in a Table.
