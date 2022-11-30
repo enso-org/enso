@@ -1,5 +1,6 @@
 from Standard.Base import all hiding First, Last
 
+import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Data.Dialect.Dialect
