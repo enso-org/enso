@@ -232,7 +232,7 @@ pub fn base_version(changelog_path: impl AsRef<Path>) -> Result<Version> {
 }
 
 pub fn current_year() -> u64 {
-    chrono::Utc::today().year() as u64
+    chrono::Utc::now().year() as u64
 }
 
 pub fn generate_initial_version() -> Version {

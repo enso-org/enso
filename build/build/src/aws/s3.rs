@@ -171,7 +171,7 @@ impl ContentHeaders {
         if let Some(content_encoding) = self.content_encoding() {
             request = request.content_encoding(content_encoding);
         }
-        request.content_type(&self.content_type.to_string())
+        request.content_type(self.content_type.to_string())
     }
 }
 
