@@ -17,6 +17,8 @@
 #![feature(step_trait)]
 #![feature(specialization)]
 #![feature(once_cell)]
+#![feature(is_sorted)]
+#![feature(array_windows)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

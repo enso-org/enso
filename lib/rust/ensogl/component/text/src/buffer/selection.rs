@@ -264,23 +264,24 @@ impl<T: Boundary> Selection<T> {
 
 /// A set of zero or more selections.
 ///
-/// The selections are kept in sorted order to maintain a good performance in algorithms. It is used
-/// in many places, including selection merging process.
+/// Some algorithms, such as selection merging, require the selections to be in sorted order. This
+/// invariant is restored as needed, to support asymptotically-efficient addition of selections to
+/// the collection.
 #[derive(Clone, Debug, Default)]
 pub struct Group {
-    sorted_selections: Vec<Selection>,
+    sorted_selections: LazyInvariantVec<Selection, SortAndMerge>,
 }
 
 impl Deref for Group {
     type Target = [Selection];
     fn deref(&self) -> &[Selection] {
-        &self.sorted_selections
+        self.sorted_selections.as_slice()
     }
 }
 
 impl DerefMut for Group {
     fn deref_mut(&mut self) -> &mut [Selection] {
-        &mut self.sorted_selections
+        self.sorted_selections.as_mut_slice()
     }
 }
 
@@ -304,22 +305,24 @@ impl Group {
 
     /// Reference to the newest created selection if any.
     pub fn newest(&self) -> Option<&Selection> {
-        self.sorted_selections.iter().max_by(|x, y| x.id.cmp(&y.id))
+        self.sorted_selections.iter().max_by_key(|x| x.id)
     }
 
     /// Reference to the oldest created selection if any.
     pub fn oldest(&self) -> Option<&Selection> {
-        self.sorted_selections.iter().min_by(|x, y| x.id.cmp(&y.id))
+        self.sorted_selections.iter().min_by_key(|x| x.id)
     }
 
     /// Mutable reference to the newest created selection if any.
     pub fn newest_mut(&mut self) -> Option<&mut Selection> {
-        self.sorted_selections.iter_mut().max_by(|x, y| x.id.cmp(&y.id))
+        let i = self.sorted_selections.iter().enumerate().max_by_key(|(_, x)| x.id).map(|(i, _)| i);
+        i.and_then(|i| self.sorted_selections.get_mut(i))
     }
 
     /// Mutable reference to the oldest created selection if any.
     pub fn oldest_mut(&mut self) -> Option<&mut Selection> {
-        self.sorted_selections.iter_mut().min_by(|x, y| x.id.cmp(&y.id))
+        let i = self.sorted_selections.iter().enumerate().min_by_key(|(_, x)| x.id).map(|(i, _)| i);
+        i.and_then(|i| self.sorted_selections.get_mut(i))
     }
 
     /// Merge new selection with the group. This method implements merging logic.
@@ -328,39 +331,12 @@ impl Group {
     /// not cause a merge. A cursor merges with a non-cursor if it is in the interior or on either
     /// edge. Two cursors merge if they are the same offset.
     ///
-    /// Performance note: should be O(1) if the new region strictly comes after all the others in
-    /// the selection, otherwise O(n).
+    /// Performance:
+    /// This operation is O(1), but reading from the vector when `d` new selections have been added
+    /// since the last read requires re-establishing the invariant, which involves a `O(d log d)`
+    /// operation.
     pub fn merge(&mut self, region: Selection) {
-        let mut ix = self.selection_index_on_the_left_to(region.min());
-        if ix == self.sorted_selections.len() {
-            self.sorted_selections.push(region);
-        } else {
-            let mut region = region;
-            let mut end_ix = ix;
-            if self.sorted_selections[ix].min() <= region.min() {
-                if self.sorted_selections[ix].should_merge_sorted(region) {
-                    region = region.merge_with(self.sorted_selections[ix]);
-                } else {
-                    ix += 1;
-                }
-                end_ix += 1;
-            }
-
-            let max_ix = self.sorted_selections.len();
-            while end_ix < max_ix && region.should_merge_sorted(self.sorted_selections[end_ix]) {
-                region = region.merge_with(self.sorted_selections[end_ix]);
-                end_ix += 1;
-            }
-
-            if ix == end_ix {
-                self.sorted_selections.insert(ix, region);
-            } else {
-                let start = ix + 1;
-                let len = end_ix - ix - 1;
-                self.sorted_selections[ix] = region;
-                self.sorted_selections.drain(start..start + len);
-            }
-        }
+        self.sorted_selections.push(region);
     }
 
     /// The smallest index so that offset > region.max() for all preceding regions. Note that the
@@ -380,7 +356,7 @@ impl Group {
 
 impl From<Selection> for Group {
     fn from(t: Selection) -> Self {
-        let sorted_selections = vec![t];
+        let sorted_selections = vec![t].into();
         Self { sorted_selections }
     }
 }
@@ -417,5 +393,118 @@ impl FromIterator<Selection> for Group {
             group.merge(selection);
         }
         group
+    }
+}
+
+
+// === Merging ===
+
+#[derive(Copy, Clone, Debug, Default)]
+struct SortAndMerge;
+
+impl<T: Boundary> lazy_invariant_vec::RestoreInvariant<Selection<T>> for SortAndMerge {
+    fn restore_invariant(&mut self, clean: usize, elements: &'_ mut Vec<Selection<T>>) {
+        sort_and_merge(clean, elements)
+    }
+}
+
+/// Given a collection `elements`, the first `clean` of which are sorted, update it so that it is
+/// fully-sorted, and overlapping elements have been merged.
+///
+/// Time complexity: `O(n + m log m)`, where `n` is the number of old elements, and `m` is the
+/// number of newly-added elements.
+fn sort_and_merge<T: Boundary>(clean: usize, elements: &mut Vec<Selection<T>>) {
+    let new = Vec::with_capacity(elements.len());
+    let mut old = mem::replace(elements, new);
+    // Sort the newly-added elements using a standard, fast sorting implementation. Some may
+    // overlap; we'll merge them below.
+    old[clean..].sort_unstable_by_key(|x| x.min());
+    let mut ys = old.split_off(clean).into_iter().peekable();
+    let mut xs = old.into_iter().peekable();
+    // Buffer the next element to be emitted; this is so we can merge selections, while merging the
+    // sorted lists of selections.
+    let mut a: Option<Selection<_>> = None;
+    loop {
+        // Advance `xs` or `ys` (whichever has a lesser next element), putting the result in `b`.
+        let b = match (xs.peek(), ys.peek()) {
+            (Some(x), Some(y)) =>
+                if x.min() <= y.min() {
+                    xs.next()
+                } else {
+                    ys.next()
+                },
+            _ => xs.next().or_else(|| ys.next()),
+        };
+        // Move data along this path: `b --> a --> elements`.
+        // While doing so, merge `(a,b) --> a` if appropriate.
+        match (a, b) {
+            (Some(a_), Some(next)) if a_.should_merge_sorted(next) => a = Some(a_.merge_with(next)),
+            (Some(a_), _) => {
+                elements.push(a_);
+                a = b;
+            }
+            (None, Some(b)) => a = Some(b),
+            (None, None) => break,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // Check that some specific cases are completely correct, including the results of merging
+    // different selections.
+    #[test]
+    fn test_sort_and_merge_cases() {
+        let mut selections: LazyInvariantVec<Selection<_>, SortAndMerge> = default();
+        selections.push(Selection::new(1, 3, Id { value: 1 }));
+        selections.push(Selection::new(0, 2, Id { value: 0 }));
+        assert_eq!(selections.as_slice(), &[Selection::new(0, 3, Id { value: 0 })]);
+        selections.push(Selection::new(4, 4, Id { value: 2 }));
+        selections.push(Selection::new(0, 5, Id { value: 3 }));
+        assert_eq!(selections.as_slice(), &[Selection::new(0, 5, Id { value: 0 })]);
+        selections.push(Selection::new(7, 9, Id { value: 4 }));
+        selections.push(Selection::new(8, 10, Id { value: 5 }));
+        assert_eq!(selections.as_slice(), &[
+            Selection::new(0, 5, Id { value: 0 }),
+            Selection::new(7, 10, Id { value: 4 }),
+        ]);
+        selections.push(Selection::new(20, 20, Id { value: 20 }));
+        selections.push(Selection::new(19, 21, Id { value: 19 }));
+        assert_eq!(selections.as_slice(), &[
+            Selection::new(0, 5, Id { value: 0 }),
+            Selection::new(7, 10, Id { value: 4 }),
+            Selection::new(19, 21, Id { value: 19 }),
+        ]);
+        selections.push(Selection::new(-1, 100, Id { value: 100 }));
+        let _ = selections.as_slice();
+        assert_eq!(selections.as_slice(), &[Selection::new(-1, 100, Id { value: 100 })]);
+    }
+
+    // Check that the outputs obey the sorted-and-merged invariant for random inputs. This property
+    // doesn't guarantee that the results are correct, but it's a property we can easily verify for
+    // arbitrarily many inputs.
+    #[test]
+    fn test_sort_and_merge_property() {
+        use rand::Rng;
+        use rand::SeedableRng;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(0);
+        let mut selections: LazyInvariantVec<Selection<_>, SortAndMerge> = default();
+        for i in 1..=100 {
+            // Generate a batch of changes. Expand the range with each batch, so that new each new
+            // batch will have a chance of containing values greater or lower than all previous
+            // values.
+            for _ in 0..10 {
+                let start = rng.gen_range(-(i * 2)..i * 10);
+                let end = rng.gen_range(-(i * 2)..i * 10);
+                selections.push(Selection::new(start, end, Id { value: 0 }));
+            }
+            let selections_are_sorted = selections.iter().is_sorted_by_key(|x| x.min());
+            assert!(selections_are_sorted);
+            let no_unmerged_pairs =
+                !selections.array_windows::<2>().any(|&[a, b]| a.should_merge_sorted(b));
+            assert!(no_unmerged_pairs);
+        }
     }
 }
