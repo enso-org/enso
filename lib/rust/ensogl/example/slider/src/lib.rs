@@ -25,9 +25,6 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-
-
-
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::application::View;
@@ -59,7 +56,7 @@ fn make_slider(app: &Application) -> slider::Slider {
 // === Model definition ===
 // ========================
 
-/// The slider collection model contains a set of sliders that can be instantiated and dropped.
+/// The slider collection model holds a set of sliders that can be instantiated and dropped.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
     /// Vector that holds example sliders until they are dropped.
@@ -241,6 +238,8 @@ impl FrpNetworkProvider for SliderCollection {
 // === Slider collection ===
 // ==========================
 
+/// A component that stores an array of slider components. It receives shortcuts to either
+/// instantiate a new set of sliders or to drop the existing ones.
 #[derive(Clone, Debug, Deref)]
 struct SliderCollection {
     #[deref]
@@ -304,7 +303,7 @@ impl View for SliderCollection {
 // === Entry Point ===
 // ===================
 
-/// An entry point.
+/// Entry point for the example scene.
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
@@ -321,6 +320,7 @@ pub fn main() {
 // === Init Application ===
 // ========================
 
+/// Initialize a `SliderCollection` and do not drop it.
 fn init(app: &Application) {
     theme::builtin::dark::register(app);
     theme::builtin::light::register(app);
