@@ -2,7 +2,9 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
@@ -23,6 +25,7 @@ import org.enso.table.util.NameDeduplicator;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /** A representation of a table structure. */
 public class Table {
@@ -396,6 +399,61 @@ public class Table {
       this.name = name;
       this.builder = new InferredBuilder(size);
     }
+  }
+
+
+  /**
+   * Transpose tables.
+   *
+   * @param id_columns the columns to use as the id values in the output.
+   * @param to_transpose the columns to transpose.
+   * @param name_field the name of the Name field in the output.
+   * @param value_field the name of the Value field in the output.
+   * @return a table result from transposing the specified columns.
+   */
+  public static Table transpose(Column[] id_columns, Column[] to_transpose, String name_field, String value_field) {
+    if (to_transpose.length == 0) {
+      // Nothing to transpose, add two null columns to the existing set.
+      Column[] newColumns = new Column[id_columns.length + 2];
+      System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
+
+      int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
+      Builder builder = new StringBuilder(size);
+      builder.appendNulls(size);
+      Storage newStorage = builder.seal();
+      newColumns[id_columns.length] = new Column(name_field, newStorage);
+      newColumns[id_columns.length + 1] = new Column(value_field, newStorage);
+      return new Table(newColumns);
+    }
+
+    // Calculate Dimensions
+    int size = to_transpose[0].getSize();
+    int new_count = size * to_transpose.length;
+
+    // Create Storage
+    Builder[] storage = new Builder[id_columns.length + 2];
+    IntStream.range(0, id_columns.length).forEach(i -> storage[i] = Builder.getForType(id_columns[i].getStorage().getType(), new_count));
+    storage[id_columns.length] = new StringBuilder(new_count);
+    storage[id_columns.length + 1] = new InferredBuilder(new_count);
+
+    // Load Data
+    for (int row = 0; row < size; row++) {
+      for (Column column : to_transpose) {
+        for (int i = 0; i < id_columns.length; i++) {
+          storage[i].append(id_columns[i].getStorage().getItemBoxed(row));
+        }
+
+        storage[id_columns.length].append(column.getName());
+        storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
+      }
+    }
+
+    // Create Table
+    Column[] new_columns = new Column[id_columns.length + 2];
+    IntStream.range(0, id_columns.length).forEach(i -> new_columns[i] = new Column(id_columns[i].getName(), storage[i].seal()));
+    new_columns[id_columns.length] = new Column(name_field, storage[id_columns.length].seal());
+    new_columns[id_columns.length + 1] = new Column(value_field, storage[id_columns.length + 1].seal());
+    return new Table(new_columns);
   }
 
   /**
