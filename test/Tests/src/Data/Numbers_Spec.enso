@@ -185,6 +185,11 @@ spec =
             Integer.parse "123A" . should_fail_with Number_Parse_Error.Error
             Integer.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
+        Test.specify "should parse hundred factorial" <|
+            txt = hundred_factorial.to_text
+            number = Integer.parse txt
+            number . should_equal hundred_factorial
+
         Test.specify "should be able to parse alternate bases" <|
             Integer.parse "1245623" 8 . should_equal 347027
             Integer.parse "-1245623" 8 . should_equal -347027

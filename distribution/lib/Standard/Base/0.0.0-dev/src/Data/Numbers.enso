@@ -975,13 +975,15 @@ type Integer
 
             Integer.parse "20220216"
     parse : Text -> Text -> Integer ! Parse_Error
-    parse text (radix=10) =
-        Panic.catch NumberFormatException (Long.parseLong text radix) _->
-             Error.throw (Number_Parse_Error.Error text)
+    parse text (radix=10) = Integer.parse_internal text radix
+
+    parse_internal text radix = @Builtin_Method "Integer.parse"
 
 ## UNSTABLE
 
+
    A syntax error when parsing a double.
+@Builtin_Type
 type Number_Parse_Error
     Error text
 

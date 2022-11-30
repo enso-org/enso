@@ -35,6 +35,7 @@ public class Error {
   private final NotInvokableError notInvokableError;
   private final InvalidConversionTargetError invalidConversionTargetError;
   private final NoSuchFieldError noSuchFieldError;
+  private final NumberParseError numberParseError;
   private final Panic panic;
   private final CaughtPanic caughtPanic;
   private final ForbiddenOperation forbiddenOperation;
@@ -67,6 +68,7 @@ public class Error {
     notInvokableError = builtins.getBuiltinType(NotInvokableError.class);
     invalidConversionTargetError = builtins.getBuiltinType(InvalidConversionTargetError.class);
     noSuchFieldError = builtins.getBuiltinType(NoSuchFieldError.class);
+    numberParseError = builtins.getBuiltinType(NumberParseError.class);
     panic = builtins.getBuiltinType(Panic.class);
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
@@ -223,5 +225,9 @@ public class Error {
 
   public ForbiddenOperation getForbiddenOperation() {
     return forbiddenOperation;
+  }
+
+  public Atom makeNumberParseError(String message) {
+    return numberParseError.newInstance(Text.create(message));
   }
 }
