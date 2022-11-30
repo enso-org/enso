@@ -77,7 +77,7 @@ type Vector a
 
        Arguments:
        - length: The length of the vector (>= 0).
-       - constructor: A value fo be placed into each element of the vector.
+       - item: A value to be placed into each element of the vector.
 
        A vector allows to store an arbitrary number of elements in linear memory. It
        is the recommended data structure for most applications.
@@ -87,10 +87,8 @@ type Vector a
 
              Vector.fill length=50 item=42
     fill : Integer -> Any -> Vector Any
-    fill length ~item =
-        builder = (0.up_to length).fold (Vector.new_builder length) builder-> _->
-            builder.append item
-        builder.to_vector
+    fill length item =
+        Vector.new length _->item
 
     ## Creates a new vector builder instance.
 
@@ -215,11 +213,15 @@ type Vector a
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce self function =
-        case self.not_empty of
-            True -> if self.length == 1 then self.at 0 else
-                f = acc -> ix -> function acc (self.at ix)
-                1.up_to self.length . fold (self.at 0) f
-            False -> Error.throw Empty_Error
+        len = self.length
+        case len of
+            0 -> Error.throw Empty_Error
+            1 -> self.at 0
+            _ ->
+                fold_function current idx =
+                    if idx == len then current else
+                        @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
+                fold_function (self.at 0) 1
 
     ## Computes the sum of the values in the vector.
 
@@ -267,13 +269,8 @@ type Vector a
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find self predicate =
-        len = self.length
-        go idx =
-            if (idx >= len) then Error.throw Nothing else
-                elem = self.at idx
-                if predicate elem then elem else
-                    @Tail_Call go idx+1
-        go 0
+        found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
+        if found.is_nothing then Error.throw Nothing else self.at found
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -1097,8 +1094,7 @@ type Builder
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
-        new_array = self.java_builder.toArray
-        Vector.from_polyglot_array new_array
+        Vector.from_polyglot_array self.java_builder.toArray
 
 ## UNSTABLE
 
