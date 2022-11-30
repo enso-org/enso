@@ -968,12 +968,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(49, 7)
-    val yId        = metadata.addItem(65, 5)
-    val mainResId  = metadata.addItem(75, 12)
+    val xId        = metadata.addItem(40, 7)
+    val yId        = metadata.addItem(56, 5)
+    val mainResId  = metadata.addItem(66, 12)
 
     val code =
-      """from Standard.Base.IO import all
+      """import Standard.Base.IO
         |
         |main =
         |    x = 1 + foo
