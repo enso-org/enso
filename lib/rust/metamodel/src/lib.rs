@@ -44,7 +44,6 @@
 //! Java code after all computation is completed.
 
 // === Features ===
-#![feature(map_first_last)]
 #![feature(option_get_or_insert_default)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

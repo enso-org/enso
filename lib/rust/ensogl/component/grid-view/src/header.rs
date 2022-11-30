@@ -104,7 +104,7 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
         let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0 - contour_offset.y;
         let x = entry::visible::position_x(col, entry_size, column_widths);
-        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).min(max_y).max(min_y);
+        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).clamp(min_y, max_y);
         entry::MovedHeaderPosition { position: Vector2(x, y), y_range: min_y..=max_y }
     }
 }

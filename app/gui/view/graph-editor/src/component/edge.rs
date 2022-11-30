@@ -248,8 +248,8 @@ impl FocusedEdge {
     fn fill<C: Into<Var<color::Rgba>>>(&self, focused_color: C, unfocused_color: C) -> AnyShape {
         let focused_color = focused_color.into();
         let unfocused_color = unfocused_color.into();
-        let focused = self.focused.fill(&focused_color);
-        let unfocused = self.unfocused.fill(&unfocused_color);
+        let focused = self.focused.fill(focused_color);
+        let unfocused = self.unfocused.fill(unfocused_color);
         (focused + unfocused).into()
     }
 }
