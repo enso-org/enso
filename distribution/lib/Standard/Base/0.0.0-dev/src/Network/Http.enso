@@ -8,7 +8,7 @@ import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.Http.Response
-import Standard.Base.Network.Http.Version
+import Standard.Base.Network.Http.HTTP_Version.HTTP_Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
 
@@ -46,8 +46,8 @@ polyglot java import org.enso.base.Http_Utils
 
          example_new =
             Http.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.new "example.com" 8080)
-new : Duration -> Boolean -> Proxy -> Http
-new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+new : Duration -> Boolean -> Proxy -> HTTP_Version -> Http
+new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = HTTP_Version.HTTP_1_1) =
     Http_Data timeout follow_redirects proxy version
 
 ## Send an Options request.
@@ -670,7 +670,7 @@ type Http
         builder.followRedirects redirect_policy
         # proxy
         case self.proxy of
-            Proxy.Proxy_Addr proxy_host proxy_port ->
+            Proxy.Address proxy_host proxy_port ->
                 proxy_selector = ProxySelector.of (InetSocketAddress.new proxy_host proxy_port)
                 builder.proxy proxy_selector
             Proxy.System ->
@@ -680,9 +680,9 @@ type Http
                 Nothing
         # version
         case self.version of
-            Version.Http_1_1 ->
+            HTTP_Version.HTTP_1_1 ->
                 builder.version HttpClient.Version.HTTP_1_1
-            Version.Http_2 ->
+            HTTP_Version.HTTP_2 ->
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build

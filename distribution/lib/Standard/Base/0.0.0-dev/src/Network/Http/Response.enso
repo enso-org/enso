@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Response.Body as Response_Body
-import Standard.Base.Network.Http.Status_Code
+import project.Network.Http.Status_Code.Status_Code
 
 polyglot java import org.enso.base.Http_Utils
 
@@ -57,7 +57,7 @@ type Response
 
              example_code = Examples.get_response.code
     code : Status_Code
-    code self = Status_Code.Status_Code_Data self.internal_http_response.statusCode
+    code self = Status_Code.Value self.internal_http_response.statusCode
 
     ## Convert the response to JSON.
 
