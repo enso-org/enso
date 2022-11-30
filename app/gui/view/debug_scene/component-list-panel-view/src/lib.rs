@@ -40,6 +40,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
+use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
@@ -164,6 +165,17 @@ fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, gri
     Some((entry, model))
 }
 
+fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> Vector2 {
+    let device_size = scene_shape.device_pixels();
+    let origin_left_top_pos = Vector2(device_size.width, device_size.height) / 2.0;
+    let origin_snapped = Vector2(origin_left_top_pos.x.floor(), origin_left_top_pos.y.floor());
+    let origin_offset = origin_snapped - origin_left_top_pos;
+    let panel_left_top_pos = (size * scene_shape.pixel_ratio) / 2.0;
+    let panel_snapped = Vector2(panel_left_top_pos.x.floor(), panel_left_top_pos.y.floor());
+    let panel_offset = panel_snapped - panel_left_top_pos;
+    origin_offset - panel_offset
+}
+
 
 
 // ===================
@@ -191,9 +203,14 @@ pub fn main() {
         //TODO[ao] should be done by panel itself.
         let grid = &panel.model().grid;
         frp::extend! { network
+            init <- source_();
             grid.model_for_header <+ grid.model_for_header_needed.filter_map(|&id| get_header_model(id));
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(|&id| get_entry_model(id));
+            size <- all_with(&init, &panel.size, |(), panel_size| *panel_size);
+            snap <- all_with(&size, &scene.frp.shape, |sz, sh| snap_to_pixel_offset(*sz, sh));
+            eval snap((snap) panel.set_xy(*snap));
         }
+        init.emit(());
 
         grid.reset(content_info());
         scene.add_child(&panel);

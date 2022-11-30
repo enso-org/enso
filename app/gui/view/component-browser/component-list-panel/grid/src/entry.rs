@@ -328,12 +328,16 @@ impl Data {
         let icon_x = left + style.icon_size / 2.0;
         let icon_y = local_scope_offset;
         self.icon.borrow().set_xy(Vector2(icon_x, icon_y));
+        let text_y_offset = match kind {
+            Kind::Header => style.text_y_offset_header,
+            _ => style.text_y_offset,
+        };
         let text_x = Self::text_x_position(kind, style, grid_style);
-        let text_y = style.text_y_offset + local_scope_offset;
+        let text_y = text_y_offset + local_scope_offset;
         self.label.set_xy(Vector2(text_x, text_y));
     }
 
-    fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
+    fn contour(grid_style: &GridStyle, entry_size: Vector2) -> Contour {
         let height = entry_size.y;
         Contour::rectangular(Vector2(grid_style.column_width(), height))
     }
@@ -361,7 +365,7 @@ impl Data {
     fn text_x_position(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
         let left = -grid_style.column_width() / 2.0 + style.padding;
         if kind == Kind::Header {
-            left
+            left + style.text_x_offset_header
         } else {
             left + style.icon_size + style.icon_text_padding
         }
@@ -441,8 +445,8 @@ impl grid_view::Entry for View {
             eval layout_data ((((kind, style, grid_style), entry_sz))
                 data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ layout_data.map(|((kind, _, grid_style), entry_sz)| {
-                Data::contour(*kind, grid_style, *entry_sz)
+            out.contour <+ layout_data.map(|((_, _, grid_style), entry_sz)| {
+                Data::contour(grid_style, *entry_sz)
             });
             out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
             out.highlight_contour <+ out.contour.map2(&style, |c, s| Data::highlight_contour(*c, s));

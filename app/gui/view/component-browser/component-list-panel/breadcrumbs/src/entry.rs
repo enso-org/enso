@@ -39,7 +39,9 @@ pub mod separator {
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
             let offset_x = style.get_number(theme::separator::offset_x).px();
+            let offset_y = style.get_number(theme::separator::offset_y).px();
             let triangle = triangle.translate_x(offset_x);
+            let triangle = triangle.translate_y(offset_y);
             let shape = triangle.fill(color);
             shape.into()
         }
@@ -73,6 +75,10 @@ pub mod ellipsis {
             let background = background.corners_radius(background_corners_radius.px());
             let background = background.fill(background_color);
             let shape = background + circles;
+            let offset_x = style.get_number(theme::ellipsis::offset_x).px();
+            let offset_y = style.get_number(theme::ellipsis::offset_y).px();
+            let shape = shape.translate_x(offset_x);
+            let shape = shape.translate_y(offset_y);
             shape.into()
         }
     }
@@ -207,8 +213,8 @@ impl EntryData {
     fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
         let size = contour.size;
         self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
-        self.separator.size.set(size);
-        self.ellipsis.size.set(size);
+        self.separator.size.set(Vector2(separator::ICON_WIDTH, size.y));
+        self.ellipsis.size.set(Vector2(ellipsis::ICON_WIDTH, size.y));
     }
 
     fn set_default_color(&self, color: color::Lcha) {

@@ -273,7 +273,7 @@ impl Navigator {
         let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
         let bottom_padding = style.navigator.bottom_padding;
-        let x_pos = left + width / 2.0 - size / 2.0;
+        let x_pos = left + (width / 2.0).floor() - size / 2.0;
         let top_buttons_y = top - top_padding;
         let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
         self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));

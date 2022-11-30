@@ -190,7 +190,7 @@ define_themes! { [light:0, dark:1]
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
-                    width = 414.0, 414.0;
+                    width = 413.0, 413.0;
                     height = 414.0, 414.0;
                     padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
@@ -204,18 +204,20 @@ define_themes! { [light:0, dark:1]
                     // component group.
                     entry {
                         background.intensity = 0.08, 0.08;
-                        dimmed = Rgb::from_base_255(158.0, 162.0, 165.0), Rgb::from_base_255(158.0, 162.0, 165.0);
+                        dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
                         padding = 16.0, 16.0;
                         text {
                             font = "mplus1p", "mplus1p";
                             y_offset = 8.0, 8.0;
+                            y_offset_header = 5.0, 5.0;
+                            x_offset_header = 1.0, 1.0;
                             size = 11.5, 11.5;
                             color = 1.0, 1.0;
                             highlight_bold = 0.01, 0.01;
                         }
                         icon {
                             size = 16.0, 16.0;
-                            text_padding = 8.0, 8.0;
+                            text_padding = 9.0, 9.0;
                             color = 1.0, 1.0;
                             dull_color_alpha = 0.25, 0.25;
                         }
@@ -275,7 +277,7 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 44.0, 44.0;
+                menu_height = 45.0, 45.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 menu_divider_height = 0.5,0.5;
@@ -290,6 +292,7 @@ define_themes! { [light:0, dark:1]
                             height = 6.0, 6.0;
                             color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                             offset_x = 1.0, 1.0;
+                            offset_y = -2.0, -2.0;
                         }
                         ellipsis {
                             background_width = 28.0, 28.0;
@@ -299,12 +302,14 @@ define_themes! { [light:0, dark:1]
                             circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgba(0.0, 0.0, 0.0, 0.17);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;
+                            offset_x = 0.0, 0.0;
+                            offset_y = -2.0, -2.0;
                         }
                         entry {
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
                             font = "mplus1p", "mplus1p";
-                            text_y_offset = 8.0, 8.0;
+                            text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
                             selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.0, 0.0, 0.0, 0.46);
@@ -316,8 +321,6 @@ define_themes! { [light:0, dark:1]
                 navigator {
                     width = 41.0, 41.0;
                     button_size = 32.0, 32.0;
-                    icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
                     top_padding = 8.0, 8.0;
                     bottom_padding = 4.0, 4.0;
                     hover_color = Rgba::transparent(), Rgba::transparent();
@@ -332,7 +335,7 @@ define_themes! { [light:0, dark:1]
                             submodules = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
                             popular = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
                         }
-                        inactive = Rgb::from_base_255(201.0, 203.0, 205.0), Rgb::from_base_255(201.0, 203.0, 205.0);
+                        inactive = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                     }
                 }
             }

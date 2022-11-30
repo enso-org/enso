@@ -160,6 +160,10 @@ pub struct Style {
     pub text_size:                f32,
     #[theme_path = "entry_theme::text::y_offset"]
     pub text_y_offset:            f32,
+    #[theme_path = "entry_theme::text::y_offset_header"]
+    pub text_y_offset_header:     f32,
+    #[theme_path = "entry_theme::text::x_offset_header"]
+    pub text_x_offset_header:     f32,
     /// The distance between right edge of the icon and left edge of the caption.
     #[theme_path = "entry_theme::icon::text_padding"]
     pub icon_text_padding:        f32,
@@ -218,9 +222,10 @@ impl ResolvedColors {
             );
             color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
 
-            // We do not support semi-transparent background of entries. Instead, we mix
-            // the color of the component browser's background and the main color of the
-            // component group.
+            // We do not support the semi-transparent background of entries. Because headers share
+            // the same background color; therefore, the semi-transparent header's background
+            // reveals the underlying entries. Instead, we mix the color of the component browser's
+            // background and the main color of the component group.
             panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
             panel_bg_and_main <- all(&panel_bg, &color_anim.value);
             bg_intensity <- colors.map(|c| c.background_intensity);
