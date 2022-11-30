@@ -107,11 +107,11 @@ pub struct GetComponentGroups {
     pub component_groups: Vec<LibraryComponentGroup>,
 }
 
-/// Response of `write_vcs` method.
+/// Response of `save_vcs` method.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
-pub struct GetVcsEntry {
+pub struct SaveVcs {
     pub commit_id: String,
     pub message:   String,
 }
@@ -120,6 +120,6 @@ pub struct GetVcsEntry {
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
-pub struct GetVcsEntryList {
-    pub saves: Vec<GetVcsEntry>,
+pub struct ListVcs {
+    pub saves: Vec<SaveVcs>,
 }

@@ -181,11 +181,11 @@ trait API {
 
     /// Save project to VCS at the specified root.
     #[MethodInput=VcsWriteInput, rpc_name="vcs/save"]
-    fn write_vcs(&self, root: Path, name: Option<String>) -> response::GetVcsEntry;
+    fn save_vcs(&self, root: Path, name: Option<String>) -> response::SaveVcs;
 
     /// Return a list of all project states that are saved to the VCS.
     #[MethodInput=VcsListInput, rpc_name="vcs/list"]
-    fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::GetVcsEntryList;
+    fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::ListVcs;
 }}
 
 
