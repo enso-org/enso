@@ -24,7 +24,7 @@ pub struct MyLayer;
 
 impl<S: Subscriber + Debug + for<'a> LookupSpan<'a>> tracing_subscriber::Layer<S> for MyLayer {
     fn register_callsite(&self, metadata: &'static Metadata<'static>) -> Interest {
-        if metadata.module_path().is_some_and(|p| is_our_module_path(p)) {
+        if metadata.module_path().is_some_and(is_our_module_path) {
             Interest::always()
         } else {
             // dbg!(metadata);

@@ -847,7 +847,7 @@ lazy_static! {
 /// the sRGB color space. Please read the docs of `LCH_MAX_LIGHTNESS_CHROMA_IN_SRGB_CORRELATION` to
 /// learn more.
 fn lch_lightness_to_max_chroma_in_srgb(l: f32) -> f32 {
-    let l = l.max(0.0).min(100.0);
+    let l = l.clamp(0.0, 100.0);
     let l_scaled = l * 100.0;
     let l_scaled_floor = l_scaled.floor();
     let l_scaled_ceil = l_scaled.ceil();
