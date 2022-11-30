@@ -6,7 +6,7 @@ import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
-import Standard.Base.Network.Http.Status_Code
+import Standard.Base.Network.Http.HTTP_Status_Code.HTTP_Status_Code
 import Standard.Base.Network.Http.HTTP_Version.HTTP_Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
@@ -57,7 +57,7 @@ spec =
                   "args": {}
                 }
             res = Http.new.get url_get
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should send Get request using module method" <|
             expected_response = Json.parse <| '''
@@ -71,7 +71,7 @@ spec =
                   "args": {}
                 }
             res = Http.get url_get
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
         Test.specify "should fetch the body of a Get request" <|
@@ -92,7 +92,7 @@ spec =
 
         Test.specify "should send Head request" <|
             res = Http.new.head url_get
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_text.should_equal ''
 
         Test.specify "should Post empty body" <|
@@ -112,7 +112,7 @@ spec =
                 }
             body_empty = Request_Body.Empty
             res = Http.new.post url_post body_empty
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post empty body using module method" <|
             expected_response = Json.parse <| '''
@@ -131,7 +131,7 @@ spec =
                 }
             body_empty = Request_Body.Empty
             res = Http.post url_post body_empty
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post text body" <|
             expected_response = Json.parse <| '''
@@ -151,7 +151,7 @@ spec =
                 }
             body_text = Request_Body.Text "Hello World!"
             res = Http.new.post url_post body_text
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text" <|
             expected_response = Json.parse <| '''
@@ -171,7 +171,7 @@ spec =
                 }
             form_parts = [Form.text_field "key" "val"]
             res = Http.new.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text using module method" <|
             expected_response = Json.parse <| '''
@@ -191,18 +191,18 @@ spec =
                 }
             form_parts = [Form.text_field "key" "val"]
             res = Http.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
         Test.specify "should Post form multipart" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts [Header.multipart_form_data]
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
         Test.specify "should Post Json" <|
             expected_response = Json.parse <| '''
                 {
@@ -224,7 +224,7 @@ spec =
             json = Json.parse <| '''
                 {"key":"val"}
             res = Http.new.post_json url_post json
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post Json using module method" <|
             expected_response = Json.parse <| '''
@@ -247,7 +247,7 @@ spec =
             json = Json.parse <| '''
                 {"key":"val"}
             res = Http.post_json url_post json
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post binary" <|
             expected_response = Json.parse <| '''
@@ -267,7 +267,7 @@ spec =
                 }
             body_bytes = Request_Body.Bytes "Hello World!".utf_8
             res = Http.new.post url_post body_bytes
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
         Test.specify "should create and send Get request" <|
@@ -283,7 +283,7 @@ spec =
                 }
             req = Request.new Method.Get url_get
             res = Http.new.request req
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should create and send Post request with json body" <|
             expected_response = Json.parse <| '''
@@ -308,7 +308,7 @@ spec =
             req = Request.new Method.Post url_post
             req_with_body = req.with_json json_body
             res = Http.new.request req_with_body
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should create and send Post request with json text" <|
             expected_response = Json.parse <| '''
@@ -333,7 +333,7 @@ spec =
             req = Request.new Method.Post url_post
             req_with_body = req.with_json json_text
             res = Http.new.request req_with_body
-            res.code.should_equal Status_Code.ok
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
 main = Test_Suite.run_main spec
