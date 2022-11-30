@@ -68,6 +68,6 @@ async fn main() -> Result {
     downloader.download_all_to(temp.path()).await?;
 
     let expected_path = temp.path().join(artifact_name);
-    assert_eq!(std::fs::read(&expected_path)?, std::fs::read(&file)?);
+    assert_eq!(std::fs::read(expected_path)?, std::fs::read(&file)?);
     Ok(())
 }

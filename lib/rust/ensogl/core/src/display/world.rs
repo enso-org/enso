@@ -333,7 +333,7 @@ impl WorldData {
         let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(
-                &logger,
+                logger,
                 self.default_scene.symbols(),
                 &self.default_scene.layers,
             ))

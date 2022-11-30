@@ -111,7 +111,7 @@ fn init_theme(scene: &display::Scene) {
     theme.set(COLOR_PATH, color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
     theme.set("component.label.text", color::Lcha::black());
     theme_manager.register("theme", theme);
-    theme_manager.set_enabled(&["theme".to_string()]);
+    theme_manager.set_enabled(["theme".to_string()]);
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
     style_watch.get(COLOR_PATH);
 }
