@@ -27,6 +27,7 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 
@@ -495,6 +496,8 @@ type Table
 
        Arguments:
        - columns: Vector of `Aggregate_Column` specifying the aggregated table.
+         Expressions can be used within the aggregate column to perform more
+         complicated calculations.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -513,7 +516,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Group_By "Key", Count Nothing]
-    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+    aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
@@ -971,7 +974,7 @@ type Table
     evaluate : Text -> Column
     evaluate self expression =
         get_column name = self.at name
-        make_constant value = Column.from_vector (UUID.randomUUID.to_text) (Vector.new self.row_count _->value)
+        make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
 
     ## Returns the vector of columns contained in this table.
@@ -1191,6 +1194,126 @@ type Table
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
             Table.Table_Data (Java_Table.concat java_tables.to_array)
         Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
+
+    ## Returns a new table with a chosen subset of columns left unchanged and
+       the other columns pivoted to rows with a single name field and a single
+       value field.
+
+       Arguments:
+       - id_fields: Set of fields to remain as columns. These values will be
+         repeated for each data field that is pivoted.
+       - name_field: The name of the field that will contain the names of the
+         pivoted fields. If this name is already in use, it will be renamed
+         with a numeric suffix.
+       - value_field: The name of the field that will contain the values of the
+         pivoted fields. If this name is already in use, it will be renamed
+         with a numeric suffix.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in columns is not in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
+         - If there are no columns to transpose, a `No_Input_Columns`.
+    transpose : Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
+    transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
+        columns_helper = self.columns_helper
+        unique = Unique_Name_Strategy.new
+        problem_builder = Problem_Builder.new
+
+        id_columns = columns_helper.select_columns_helper id_fields False problem_builder
+        count = self.column_count - id_columns.length
+        if count == 0 then problem_builder.report_other_warning No_Input_Columns_Selected
+
+        selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
+
+        data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
+        java_data = data.map .java_column
+
+        java_id = id_columns.map .java_column
+
+        id_columns.each k-> unique.make_unique k.name
+        result = Table.Table_Data (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
+        problem_builder.attach_problems_after on_problems result
+
+    ## Returns a new table using a chosen field as the column header and then
+       aggregating the rows within each value as specified. Optionally, a set of
+       fields can be used to group the rows.
+
+       Arguments:
+       - group_by: Set of fields to group by. If not provided, a single row will
+         be produced.
+       - name_column: The field to use as the column header. If this field is
+         not found, then each value will be a single column.
+       - values: The aggregation to perform on each set of rows. Can be a single
+         aggregation or a vector of aggregations. Expressions can be used within
+         the aggregation to perform more complicated calculations.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column in the input is not in the input table, a
+           `Missing_Input_Columns`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - In `grouping`, if duplicate column names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - In `grouping`, If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`, with the column included the first
+           time it is matched.
+         - If grouping on, using as the column name, or computing the `Mode` on
+           a floating point number, a `Floating_Point_Grouping`.
+         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
+         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
+    cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
+    cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
+        columns_helper = self.columns_helper
+        problem_builder = Problem_Builder.new
+
+        ## validate the name and group_by columns
+        matched_name = columns_helper.select_columns_helper [name_column] True problem_builder
+        grouping = columns_helper.select_columns_helper group_by True problem_builder
+
+        ## Validate the values
+        values_vector = case values of
+            _ : Vector -> values
+            _ -> [values]
+        resolved_values = values_vector.map (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        is_group_by c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument_Error_Data "Cannot use group_by for a cross_tab value.")
+        validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
+
+        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument_Error.handle_java_exception <|
+            java_key_columns = grouping.map .java_column
+            index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
+
+            name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
+                if validated_values.length == 1 then (_ -> "") else
+                    all_same = Aggregate_Column_Helper.all_same_column validated_values
+                    c -> Aggregate_Column_Helper.default_aggregate_column_name c all_same
+
+            data_columns = validated_values.map c->
+                col_name = c.new_name.if_nothing (name_mapper c)
+                Aggregate_Column_Helper.java_aggregator col_name c
+
+            result = case matched_name.is_empty of
+                True ->
+                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                    index.makeTable (group_by + data_columns).to_array
+                False ->
+                    index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
+
+            on_problems.attach_problems_after (Table.Table_Data result) <|
+                problems = result.getProblems
+                Aggregate_Column_Helper.parse_aggregated_problems problems
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
