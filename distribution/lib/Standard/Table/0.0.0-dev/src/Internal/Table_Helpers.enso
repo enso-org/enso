@@ -196,7 +196,7 @@ type Table_Column_Helper
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
                     expression = (self.table.evaluate selector).catch Any _->Nothing
-                    if expression != Nothing then expression else
+                    if Nothing != expression then expression else
                         problem_builder.report_missing_input_columns [selector]
                         Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of

@@ -127,6 +127,24 @@ public class Column {
   }
 
   /**
+   * Creates a new column with given name and elements.
+   *
+   * @param name the name to use
+   * @param items the items contained in the column
+   * @return a column with given name and items
+   */
+  public static Column fromRepeatedItems(String name, List<Value> items, int repeat) {
+    var totalSize = items.size() * repeat;
+    var builder = new InferredBuilder(totalSize);
+    for (int i = 0; i < totalSize; i++) {
+      var item = items.get(i % items.size());
+      var converted = Polyglot_Utils.convertPolyglotValue(item);
+      builder.appendNoGrow(converted);
+    }
+    return new Column(name, new DefaultIndex(totalSize), builder.seal());
+  }
+
+  /**
    * Changes the index of this column.
    *
    * @param ix the index to use
