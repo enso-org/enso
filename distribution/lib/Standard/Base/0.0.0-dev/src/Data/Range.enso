@@ -141,13 +141,13 @@ type Range
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
     each self function =
-        go end_condition current =
-            if end_condition current self.end then Nothing else
-                function current
-                @Tail_Call go end_condition current+self.step
-        if self.step > 0 then go (>=) self.start else
-            if self.step < 0 then go (<=) self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go current =
+                if end_condition current self.end then Nothing else
+                    function current
+                    @Tail_Call go current+self.step
+            go self.start
 
     ## PRIVATE
        Applies a function to each element of the range.
@@ -165,13 +165,13 @@ type Range
              (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self function =
-        go end_condition ix current =
-            if end_condition current self.end then Nothing else
-                function ix current
-                @Tail_Call go end_condition ix+1 current+self.step
-        if self.step > 0 then go (>=) 0 self.start else
-            if self.step < 0 then go (<=) 0 self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go ix current =
+                if end_condition current self.end then Nothing else
+                    function ix current
+                    @Tail_Call go ix+1 current+self.step
+            go 0 self.start
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -193,13 +193,14 @@ type Range
              0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold self init function =
-        go end_condition acc current =
-            if end_condition current self.end then acc else
-                new_acc = function acc current
-                @Tail_Call go end_condition new_acc current+self.step
-        if self.step > 0 then go (>=) init self.start else
-            if self.step < 0 then go (<=) init self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go acc current =
+                if end_condition current self.end then acc else
+                    new_acc = function acc current
+                    @Tail_Call go new_acc current+self.step
+            go init self.start
+
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
@@ -257,13 +258,13 @@ type Range
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
     find self predicate =
-        go end_condition current =
-            if end_condition current self.end then Nothing else
-                if predicate current then current else
-                    @Tail_Call go end_condition current+self.step
-        if self.step > 0 then go (>=) self.start else
-            if self.step < 0 then go (<=) self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go current =
+                if end_condition current self.end then Nothing else
+                    if predicate current then current else
+                        @Tail_Call go current+self.step
+            go self.start
 
     ## Converts the range to a vector containing the numbers in the range.
 
