@@ -108,6 +108,8 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Network.Extensions
+import project.Network.URI.URI
 import project.Random
 
 export project.Data
@@ -153,6 +155,8 @@ export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 export project.Error.Problem_Behavior.Problem_Behavior
+export project.Network.Extensions
+export project.Network.URI.URI
 export project.Random
 
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
