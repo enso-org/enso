@@ -1,11 +1,16 @@
-import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
+import {
+    CognitoHostedUIIdentityProvider,
+    FederatedSignInOptions,
+    FederatedSignInOptionsCustom
+} from "@aws-amplify/auth";
 import { Auth } from "aws-amplify"
 import { amplifyConfig } from "./amplify"
 
 const googleButton = document.getElementById('google-signin')
+const githubButton = document.getElementById('github-signin')
 
-function setUrlOpener(config) {
-    config.oauth.options.urlOpener = async (url, redirectSignIn) => {
+function setUrlOpener(config: any) {
+    config.oauth.options.urlOpener = async (url: string, redirectSignIn: string) => {
         console.log('urlOpener', url, redirectSignIn)
         window.loginAPI.open(url)
     }
@@ -29,7 +34,7 @@ async function getAccessToken() {
     return jwt
 }
 
-async function authenticate(provider: CognitoHostedUIIdentityProvider) {
+async function authenticate(options: FederatedSignInOptions | FederatedSignInOptionsCustom) {
     let authConfig = getAuthConfig()
     console.log('Auth.configure', authConfig)
     Auth.configure(authConfig)
@@ -39,7 +44,7 @@ async function authenticate(provider: CognitoHostedUIIdentityProvider) {
 
     if (!accessToken) {
         console.log('Auth.federatedSignIn')
-        await Auth.federatedSignIn({ provider: provider });
+        await Auth.federatedSignIn(options);
     } else {
         console.log('authenticate authenticated!')
         window.loginAPI.authenticatedRedirect()
@@ -49,7 +54,8 @@ async function authenticate(provider: CognitoHostedUIIdentityProvider) {
 window.onload = async () => {
     console.log('LOGIN window.onload', window.location.search)
 
-    googleButton.addEventListener('click', () => authenticate(CognitoHostedUIIdentityProvider.Google))
+    googleButton.addEventListener('click', () => authenticate({ provider: CognitoHostedUIIdentityProvider.Google }))
+    githubButton.addEventListener('click', () => authenticate({ provider: 'GitHub' }))
 
     let authConfig = getAuthConfig()
     Auth.configure(authConfig)

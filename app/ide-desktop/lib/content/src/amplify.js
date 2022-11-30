@@ -20,6 +20,9 @@ const REDIRECT_SIGN_OUT = process.env.NEXT_PUBLIC_AUTH_REDIRECT_SIGN_OUT || 'ens
 // provided a refresh token.
 const RESPONSE_TYPE = "code";
 
+const GITHUB_ENDPOINT_NAME = 'GitHub'
+const GITHUB_ENDPOINT_URL = 'https://py4rm53d36.execute-api.us-east-1.amazonaws.com/signin'
+
 /// Configuration object to configure Amplify library, which provides our authentication
 /// functionality via external OAuth providers (e.g. Google) through Amazon Cognito.
 export const amplifyConfig = {
@@ -30,6 +33,7 @@ export const amplifyConfig = {
     oauth: {
         options: {},
         domain: DOMAIN,
+        scope: ['email', 'openid'],
         redirectSignIn: REDIRECT_SIGN_IN,
         redirectSignOut: REDIRECT_SIGN_OUT,
         responseType: RESPONSE_TYPE,
