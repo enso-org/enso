@@ -2986,13 +2986,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval out.node_editing_started ([model] (id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(true);
+                node.model().input.set_editing(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_finished");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(false);
+                node.model().input.set_editing(false);
             }
         });
     }

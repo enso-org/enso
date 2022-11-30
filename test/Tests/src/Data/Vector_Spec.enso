@@ -257,6 +257,26 @@ spec = Test.group "Vectors" <|
         vec.each vec_mut.append
         vec_mut.to_vector . should_equal vec
 
+    Test.specify "should accept changed elements" <|
+        vec_mut = Vector.new_builder
+        vec_mut.append 1
+        vec_mut.append 1.1
+        vec_mut.append Nothing
+
+        vec = vec_mut.to_vector
+        vec.length . should_equal 3
+        vec.at 0 . should_equal 1
+        vec.at 1 . should_equal 1.1
+        vec.at 2 . should_equal Nothing
+
+    Test.specify "should accept Nothing" <|
+        vec_mut = Vector.new_builder
+        vec_mut.append Nothing
+
+        vec = vec_mut.to_vector
+        vec.length . should_equal 1
+        vec.at 0 . should_equal Nothing
+
     Test.specify "should allow reversing" <|
         [1, 2, 3].reverse . should_equal [3, 2, 1]
 

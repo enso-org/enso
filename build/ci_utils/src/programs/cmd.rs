@@ -126,10 +126,9 @@ pub async fn compare_env(
 
     changes.extend(
         environment_before
-            .into_iter()
-            .map(|(variable_name, _)| Modification { variable_name, action: env::Action::Remove }),
+            .into_keys()
+            .map(|variable_name| Modification { variable_name, action: env::Action::Remove }),
     );
-    // dbg!(&changes);
 
     Ok(changes)
 }
