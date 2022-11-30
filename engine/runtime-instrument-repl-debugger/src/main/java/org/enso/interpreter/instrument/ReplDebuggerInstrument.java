@@ -21,7 +21,7 @@ import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -176,7 +176,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     protected void onEnter(VirtualFrame frame) {
       CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = Context.get(this).getNothing();
+      Object lastReturn = EnsoContext.get(this).getNothing();
       // Note [Safe Access to State in the Debugger Instrument]
       monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
       nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);

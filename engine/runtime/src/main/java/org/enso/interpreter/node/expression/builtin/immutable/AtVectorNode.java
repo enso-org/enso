@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.DataflowError;
 
@@ -33,7 +33,7 @@ public class AtVectorNode extends Node {
       long actualIndex = index < 0 ? index + self.length(interop) : index;
       return self.readArrayElement(actualIndex, interop, convert);
     } catch (InvalidArrayIndexException e) {
-      Context ctx = Context.get(this);
+      EnsoContext ctx = EnsoContext.get(this);
       return DataflowError.withoutTrace(
           ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, self.length(interop)), this);
     }

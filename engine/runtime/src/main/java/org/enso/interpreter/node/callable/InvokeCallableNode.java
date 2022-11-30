@@ -12,7 +12,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -254,7 +254,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
-    Atom error = Context.get(this).getBuiltins().error().makeNotInvokableError(callable);
+    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokableError(callable);
     throw new PanicException(error, this);
   }
 

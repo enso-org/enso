@@ -1,0 +1,4 @@
+type Atom
+    Value a b
+
+    new x y = Atom.Value x y

@@ -7,7 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Supplier;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -20,7 +20,7 @@ public class MethodRootNode extends ClosureRootNode {
   private final String methodName;
 
   private MethodRootNode(
-      Language language,
+      EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
@@ -54,7 +54,7 @@ public class MethodRootNode extends ClosureRootNode {
    * @return a node representing the specified closure
    */
   public static MethodRootNode build(
-      Language language,
+      EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       Supplier<ExpressionNode> body,
@@ -72,7 +72,7 @@ public class MethodRootNode extends ClosureRootNode {
   }
 
   public static MethodRootNode build(
-      Language language,
+      EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,

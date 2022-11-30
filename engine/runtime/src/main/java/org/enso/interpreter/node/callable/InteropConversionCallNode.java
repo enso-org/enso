@@ -13,7 +13,7 @@ import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
@@ -46,8 +46,8 @@ public abstract class InteropConversionCallNode extends Node {
         args, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.PRE_EXECUTED, 1);
   }
 
-  Context getContext() {
-    return Context.get(this);
+  EnsoContext getContext() {
+    return EnsoContext.get(this);
   }
 
   @Specialization(
