@@ -1,11 +1,11 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.*;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(type = "Integer", name = "parse", description = """
 Parse integer number""", autoRegister = false)
@@ -17,11 +17,9 @@ public final class ParseIntegerNode extends Node {
     try {
       return Long.parseLong(toJavaString.execute(value), Math.toIntExact(radix));
     } catch (NumberFormatException ex) {
-      var err = Context.get(this).getBuiltins().error();
-      throw new PanicException(
-        err.makeNumberParseError(ex.getMessage()),
-        this
-      );
+      var errors = Context.get(this).getBuiltins().error();
+      var err = errors.makeNumberParseError(ex.getMessage());
+      return DataflowError.withoutTrace(err, this);
     }
   }
 }
