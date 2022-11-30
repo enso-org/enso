@@ -10,6 +10,7 @@ import project.Error.Error
 import project.Function
 import project.IO
 import project.Math
+import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot
@@ -38,6 +39,7 @@ export project.Data.Vector.Vector
 export project.Error.Error
 export project.IO
 export project.Math
+export project.Meta
 export project.Nothing.Nothing
 export project.Panic.Panic
 export project.Polyglot
@@ -165,8 +167,5 @@ from project.Error.Problem_Behavior.Problem_Behavior export all
 from project.System.File_Format.Plain_Text_Format export Plain_Text
 
 ## ToDo:
-import project.Meta
-export project.Meta
-
 import project.Error.Common
 from project.Error.Common export all
