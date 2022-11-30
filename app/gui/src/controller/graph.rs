@@ -225,7 +225,7 @@ pub struct NodeTrees {
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
-        let inputs = SpanTree::new(&node.visible_expression(), context).ok()?;
+        let inputs = SpanTree::new(&node.expression(), context).ok()?;
         let macros_info = *node.main_line.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
@@ -242,6 +242,9 @@ impl NodeTrees {
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
         use ast::crumbs::Crumb::Infix;
+        // If we have macros in the expression, we need to skip their crumbs, as [`SKIP`] and
+        // [`FREEZE`] macros are not displayed in the expression.
+        let skip_macros = self.macros_info.macros_count();
         if let Some(outputs) = self.outputs.as_ref() {
             // Node in assignment form. First crumb decides which span tree to use.
             let first_crumb = ast_crumbs.get(0);
@@ -251,12 +254,10 @@ impl NodeTrees {
                 Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
                 _ => None,
             };
-            // If we have macros in the expression, we need to skip their crumbs, as [`SKIP`] and
-            // [`FREEZE`] macros are not displayed in the expression.
-            let skip = if is_input { self.macros_info.macros_count() + 1 } else { 1 };
+            let skip = if is_input { skip_macros + 1 } else { 1 };
             tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
         } else {
-            let skip = self.macros_info.macros_count();
+            let skip = skip_macros;
             // Expression node - there is only inputs span tree.
             self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
         }
@@ -585,7 +586,7 @@ impl Handle {
     /// The caller should make sure that obtained name won't collide with any symbol usage before
     /// actually introducing it. See `variable_name_for`.
     pub fn variable_name_base_for(node: &MainLine) -> String {
-        name_for_ast(&node.visible_expression())
+        name_for_ast(&node.expression())
     }
 
     /// Identifiers introduced or referred to in the current graph's scope.
@@ -642,7 +643,7 @@ impl Handle {
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
         let destination_node = self.node_info(connection.destination.node)?;
-        let target_node_ast = destination_node.visible_expression();
+        let target_node_ast = destination_node.expression();
         EndpointInfo::new(&connection.destination, &target_node_ast, context)
     }
 
@@ -1224,7 +1225,7 @@ main =
             let get_invocation_info = || {
                 let node = &graph.nodes().unwrap()[0];
                 assert_eq!(node.info.id(), id);
-                let expression = node.info.visible_expression().repr();
+                let expression = node.info.expression().repr();
                 graph.call_info(id, Some(expression.as_str()))
             };
 

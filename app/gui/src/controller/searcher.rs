@@ -455,7 +455,7 @@ impl Data {
         edited_node_id: ast::Id,
     ) -> FallibleResult<Self> {
         let edited_node = graph.node(edited_node_id)?;
-        let input = ParsedInput::new_from_ast(&edited_node.info.visible_expression());
+        let input = ParsedInput::new_from_ast(&edited_node.info.expression());
         let actions = default();
         let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
@@ -1484,7 +1484,7 @@ impl EditGuard {
             ),
             Mode::EditNode { .. } => {
                 let node = self.graph.graph().node(self.node_id)?;
-                let previous_expression = node.info.main_line.visible_expression().to_string();
+                let previous_expression = node.info.main_line.expression().to_string();
                 module.with_node_metadata(
                     self.node_id,
                     Box::new(|metadata| {
@@ -2540,7 +2540,7 @@ pub mod test {
         let Fixture { test: _test, mut searcher, .. } = Fixture::new();
         let graph = searcher.graph.graph();
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let initial_node_expression = node.main_line.visible_expression();
+        let initial_node_expression = node.main_line.expression();
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
@@ -2558,7 +2558,7 @@ pub mod test {
                     assert_eq!(
                         metadata.edit_status,
                         Some(NodeEditStatus::Edited {
-                            previous_expression:      node.info.visible_expression().to_string(),
+                            previous_expression:      node.info.expression().to_string(),
                             previous_intended_method: None,
                         })
                     );
@@ -2579,7 +2579,7 @@ pub mod test {
         // Verify the node was reverted.
 
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.main_line.visible_expression();
+        let final_node_expression = node.main_line.expression();
         assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
     }
 
@@ -2602,7 +2602,7 @@ pub mod test {
         // Verify the node is not reverted after the searcher is dropped.
         drop(searcher);
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.main_line.visible_expression();
+        let final_node_expression = node.main_line.expression();
         assert_eq!(final_node_expression.to_string(), new_expression);
     }
 }

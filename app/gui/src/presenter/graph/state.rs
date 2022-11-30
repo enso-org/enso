@@ -446,7 +446,7 @@ impl<'a> ControllerChange<'a> {
         let (is_skipped, is_frozen) = (macros_info.skip, macros_info.freeze);
         let new_displayed_expr = node_view::Expression {
             pattern: node.info.pattern().map(|t| t.repr()),
-            code: node.info.visible_expression().repr().into(),
+            code: node.info.expression().repr().into(),
             whole_expression_id: node.info.expression().id,
             input_span_tree: trees.inputs,
             output_span_tree: trees.outputs.unwrap_or_else(default),
@@ -668,7 +668,8 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Mark the node as skipped and return its AST id.
+    /// Mark the node as skipped and return its AST id. Returns `None` if no changes to the
+    /// expression are needed.
     pub fn set_node_skip(&self, id: ViewNodeId, skip: bool) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
@@ -681,7 +682,8 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Mark the node as frozen and return its AST id.
+    /// Mark the node as frozen and return its AST id. Returns `None` if no changes to the
+    /// expression are needed.
     pub fn set_node_freeze(&self, id: ViewNodeId, freeze: bool) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
@@ -947,7 +949,7 @@ mod tests {
         use ast::crumbs::InfixCrumb;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["2 + 3"]);
         let view = nodes[0].view;
-        let node_ast = nodes[0].node.main_line.visible_expression();
+        let node_ast = nodes[0].node.main_line.expression();
         let left_operand = node_ast.get(&InfixCrumb::LeftOperand.into()).unwrap().id.unwrap();
         let right_operand = node_ast.get(&InfixCrumb::RightOperand.into()).unwrap().id.unwrap();
         let updater = state.update_from_controller();

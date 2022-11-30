@@ -11,6 +11,7 @@ use ast::known;
 use ast::macros::skip_and_freeze::prefix_macro_body;
 use ast::macros::skip_and_freeze::prepend_with_macro;
 use ast::macros::skip_and_freeze::preserving_skip;
+use ast::macros::skip_and_freeze::preserving_skip_and_freeze;
 use ast::macros::skip_and_freeze::without_macros;
 use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::skip_and_freeze::FREEZE_MACRO_IDENTIFIER;
@@ -299,7 +300,7 @@ impl MainLine {
     pub fn id(&self) -> Id {
         // Panic must not happen, as the only available constructors checks that
         // there is an ID present.
-        self.expression().id.expect("Node AST must bear an ID")
+        self.whole_expression().id.expect("Node AST must bear an ID")
     }
 
     /// Updates the node's AST so the node bears the given ID.
@@ -320,16 +321,13 @@ impl MainLine {
     }
 
     /// Visible portion of the node's expression. Does not contain `SKIP` and `FREEZE` macro calls.
-    pub fn visible_expression(&self) -> Ast {
-        if self.macros_info().has_any_macros() {
-            without_macros(self.expression(), self.macros_info())
-        } else {
-            self.expression().clone()
-        }
+    pub fn expression(&self) -> Ast {
+        without_macros(self.whole_expression())
     }
 
-    /// AST of the node's expression.
-    pub fn expression(&self) -> &Ast {
+    /// AST of the node's expression. Typically no external user wants to access it directly. Use
+    /// [`Self::expression`] instead.
+    fn whole_expression(&self) -> &Ast {
         match self {
             MainLine::Binding { infix, .. } => &infix.rarg,
             MainLine::Expression { ast, .. } => ast,
@@ -346,19 +344,9 @@ impl MainLine {
 
     /// Mutable AST of the node's expression. Maintains ID.
     pub fn set_expression(&mut self, expression: Ast) {
-        let id = self.id();
-        match self {
-            MainLine::Binding { ref mut infix, ref mut macros_info } => {
-                *macros_info = MacrosInfo::from_ast(&expression);
-                infix.update_shape(|infix| infix.rarg = expression);
-            }
-            MainLine::Expression { ref mut ast, ref mut macros_info } => {
-                *macros_info = MacrosInfo::from_ast(&expression);
-                *ast = expression
-            }
-        };
-        // Id might have been overwritten by the AST we have set. Now we restore it.
-        self.set_id(id);
+        self.modify_expression(move |ast| {
+            *ast = preserving_skip_and_freeze(ast, |ast| *ast = expression.clone());
+        });
     }
 
     /// The whole AST of node.
@@ -431,59 +419,52 @@ impl MainLine {
         }
     }
 
-    fn modify_expression(&mut self, f: impl Fn(&mut Ast, &MacrosInfo)) {
+    /// Modify expression, preserving the AST id.
+    fn modify_expression(&mut self, f: impl Fn(&mut Ast)) {
+        let id = self.id();
         match self {
-            Self::Binding { infix, macros_info } => {
-                infix.update_shape(|infix| f(&mut infix.rarg, macros_info));
+            Self::Binding { infix, .. } => {
+                infix.update_shape(|infix| f(&mut infix.rarg));
             }
-            Self::Expression { ast, macros_info } => f(ast, macros_info),
+            Self::Expression { ast, .. } => f(ast),
         }
+        self.set_id(id);
     }
 
     /// Add [`SKIP`] macro call to the AST. Preserves the expression id and [`FREEZE`] macro calls.
     fn add_skip_macro(&mut self) {
-        let id = self.id();
-        self.modify_expression(|ast, _| {
+        self.modify_expression(|ast| {
             prepend_with_macro(ast, SKIP_MACRO_IDENTIFIER);
         });
         self.macros_info_mut().skip = true;
-        self.set_id(id);
     }
 
     /// Remove [`SKIP`] macro call from the AST. Preserves the expression id and [`FREEZE`] macro
     /// calls.
     fn remove_skip_macro(&mut self) {
-        let id = self.id();
-        self.modify_expression(|ast, _| {
+        self.modify_expression(|ast| {
             *ast = prefix_macro_body(ast);
         });
         self.macros_info_mut().skip = false;
-        self.set_id(id);
     }
 
     /// Add [`FREEZE`] macro call to the AST. Preserves the expression id and [`SKIP`] macro calls.
     fn add_freeze_macro(&mut self) {
-        let id = self.id();
-        self.modify_expression(|ast, macros_info| {
-            *ast = preserving_skip(ast, macros_info, |ast| {
-                prepend_with_macro(ast, FREEZE_MACRO_IDENTIFIER)
-            });
+        self.modify_expression(|ast| {
+            *ast = preserving_skip(ast, |ast| prepend_with_macro(ast, FREEZE_MACRO_IDENTIFIER));
         });
         self.macros_info_mut().freeze = true;
-        self.set_id(id);
     }
 
     /// Remove [`FREEZE`] macro call from the AST. Preserves the expression id and [`SKIP`] macro
     /// calls.
     fn remove_freeze_macro(&mut self) {
-        let id = self.id();
-        self.modify_expression(|ast, macros_info| {
-            *ast = preserving_skip(ast, macros_info, |ast| {
+        self.modify_expression(|ast| {
+            *ast = preserving_skip(ast, |ast| {
                 *ast = prefix_macro_body(ast);
             });
         });
         self.macros_info_mut().freeze = false;
-        self.set_id(id);
     }
 
     /// Clear the pattern (left side of assignment) for node.
