@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, MethodNames}
 
@@ -18,7 +18,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val langCtx = interpreterContext.ctx
         .getBindings(LanguageInfo.ID)
         .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-        .asHostObject[Context]()
+        .asHostObject[EnsoContext]()
 
       val code =
         """import Standard.Base.Runtime.Thread

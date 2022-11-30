@@ -4,7 +4,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(type = "Array", name = "length", description = "Length of polyglot array")
@@ -15,7 +15,7 @@ public class ArrayLengthNode extends Node {
     try {
       return iop.getArraySize(self);
     } catch (UnsupportedMessageException ex) {
-      var ctx = Context.get(this);
+      var ctx = EnsoContext.get(this);
       var pay =
           ctx.getBuiltins()
               .error()

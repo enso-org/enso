@@ -84,7 +84,7 @@ class RuntimeErrorsTest
     val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-      .asHostObject[org.enso.interpreter.runtime.Context]
+      .asHostObject[org.enso.interpreter.runtime.EnsoContext]
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
     );
