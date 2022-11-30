@@ -52,4 +52,15 @@ spec =
             Ordering.Greater.compare_to Ordering.Equal . should_equal Ordering.Greater
             Ordering.Greater.compare_to Ordering.Greater . should_equal Ordering.Equal
 
+        Test.specify "should allow lexicographical composition" <|
+            Ordering.Less.and_then Ordering.Less . should_equal Ordering.Less
+            Ordering.Less.and_then Ordering.Equal . should_equal Ordering.Less
+            Ordering.Less.and_then Ordering.Greater . should_equal Ordering.Less
+            Ordering.Equal.and_then Ordering.Less . should_equal Ordering.Less
+            Ordering.Equal.and_then Ordering.Equal . should_equal Ordering.Equal
+            Ordering.Equal.and_then Ordering.Greater . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Less . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Equal . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
+
 main = Test_Suite.run_main spec
