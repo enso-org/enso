@@ -4,6 +4,20 @@ import org.enso.table.data.column.storage.Storage;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
+  public static Builder getForType(int type, int size) {
+    return switch (type) {
+      case Storage.Type.OBJECT -> new ObjectBuilder(size);
+      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
+      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.STRING -> new StringBuilder(size);
+      case Storage.Type.BOOL -> new BoolBuilder();
+      case Storage.Type.DATE -> new DateBuilder(size);
+      case Storage.Type.TIME_OF_DAY -> new TimeOfDayBuilder(size);
+      case Storage.Type.DATE_TIME -> new DateTimeBuilder(size);
+      default -> new InferredBuilder(size);
+    };
+  }
+
   /**
    * Append a new item to this builder, assuming that it has enough allocated space.
    *
