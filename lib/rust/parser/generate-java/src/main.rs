@@ -52,6 +52,6 @@ fn main() {
     let dir = args.next().expect("Usage: generate-java <output-dir>");
     for class in graph {
         let code = class.to_string();
-        std::fs::write(format!("{}/{}.java", &dir, &class.name), &code).unwrap();
+        std::fs::write(format!("{}/{}.java", &dir, &class.name), code).unwrap();
     }
 }
