@@ -129,8 +129,8 @@ impl AddNodeButton {
         let screen = camera.screen();
         let x = -screen.width / 2.0 + margin + size / 2.0;
         let y = -screen.height / 2.0 + margin + size / 2.0;
-        view.set_position_x(x.round());
-        view.set_position_y(y.round());
+        view.set_x(x.round());
+        view.set_y(y.round());
     }
 }
 

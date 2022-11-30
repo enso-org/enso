@@ -18,7 +18,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::display::Scene;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::MovedHeaderPosition;
@@ -267,7 +266,7 @@ impl CurrentIcon {
 }
 
 impl display::Object for CurrentIcon {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }
@@ -332,16 +331,16 @@ impl Data {
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
         let bg_y = -gap_over_header / 2.0 + overlap / 2.0 + local_scope_offset;
-        self.background.set_position_y(bg_y);
+        self.background.set_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let left = -entry_size.x / 2.0 + style.padding;
         let icon_x = left + style.icon_size / 2.0;
         let icon_y = local_scope_offset;
-        self.icon.borrow().set_position_xy(Vector2(icon_x, icon_y));
+        self.icon.borrow().set_xy(Vector2(icon_x, icon_y));
         let text_x = Self::text_x_position(kind, style, grid_style);
         let text_y = style.text_size / 2.0 + local_scope_offset;
-        self.label.set_position_xy(Vector2(text_x, text_y));
+        self.label.set_xy(Vector2(text_x, text_y));
     }
 
     fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
@@ -517,7 +516,7 @@ impl grid_view::Entry for View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }
 }

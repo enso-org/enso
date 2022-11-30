@@ -79,7 +79,7 @@ ensogl_core::shape! {
 /// [module's docs](mod@self) for more info.
 pub fn set_viewport(shape: &View, viewport: Viewport) {
     shape.size.set(viewport.size());
-    shape.set_position_xy(viewport.center_point());
+    shape.set_xy(viewport.center_point());
 }
 
 

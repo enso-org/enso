@@ -107,7 +107,6 @@
 //! it, and probably never will.)
 
 // === Features ===
-#![feature(map_first_last)]
 #![feature(associated_type_defaults)]
 #![feature(option_get_or_insert_default)]
 // === Standard Linter Configuration ===

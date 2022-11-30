@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -24,7 +24,7 @@ public class ClosureRootNode extends EnsoRootNode {
   private final boolean usedInBinding;
 
   ClosureRootNode(
-      Language language,
+      EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
@@ -52,7 +52,7 @@ public class ClosureRootNode extends EnsoRootNode {
    * @return a node representing the specified closure
    */
   public static ClosureRootNode build(
-      Language language,
+      EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,

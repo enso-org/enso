@@ -778,7 +778,7 @@ type Match
     span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
     span self id = case self.group id of
         Nothing -> Nothing
-        _ -> Utf_16_Span_Data (Range_Data (self.start id) (self.end id)) self.input
+        _ -> Utf_16_Span_Data ((self.start id).up_to (self.end id)) self.input
 
     ## Returns the start character index of the match's region.
 

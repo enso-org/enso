@@ -18,7 +18,7 @@ import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.IOPermissions;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -68,12 +68,12 @@ import org.graalvm.options.OptionType;
   AvoidIdInstrumentationTag.class,
   Patchable.Tag.class
 })
-public final class Language extends TruffleLanguage<Context> {
+public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
-  private static final LanguageReference<Language> REFERENCE =
-      LanguageReference.create(Language.class);
+  private static final LanguageReference<EnsoLanguage> REFERENCE =
+      LanguageReference.create(EnsoLanguage.class);
 
-  public static Language get(Node node) {
+  public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
   }
 
@@ -86,7 +86,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @return a new Enso context
    */
   @Override
-  protected Context createContext(Env env) {
+  protected EnsoContext createContext(Env env) {
     boolean logMasking = env.getOptions().get(RuntimeOptions.LOG_MASKING_KEY);
     MaskingFactory.getInstance().setup(logMasking);
 
@@ -97,7 +97,7 @@ public final class Language extends TruffleLanguage<Context> {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
-    TruffleLogger logger = env.getLogger(Language.class);
+    TruffleLogger logger = env.getLogger(EnsoLanguage.class);
 
     var environment = new Environment() {};
     var distributionManager = new DistributionManager(environment);
@@ -115,8 +115,8 @@ public final class Language extends TruffleLanguage<Context> {
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     }
 
-    Context context =
-        new Context(
+    EnsoContext context =
+        new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
     idExecutionInstrument =
         Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
@@ -136,7 +136,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @param context the language context
    */
   @Override
-  protected void initializeContext(Context context) {
+  protected void initializeContext(EnsoContext context) {
     context.initialize();
   }
 
@@ -146,7 +146,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @param context the language context
    */
   @Override
-  protected void finalizeContext(Context context) {
+  protected void finalizeContext(EnsoContext context) {
     context.shutdown();
   }
 
@@ -184,7 +184,7 @@ public final class Language extends TruffleLanguage<Context> {
 
   private static final OptionDescriptors OPTIONS =
       OptionDescriptors.createUnion(
-          new LanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
+          new EnsoLanguageOptionDescriptors(), RuntimeOptions.OPTION_DESCRIPTORS);
 
   /** {@inheritDoc} */
   @Override
@@ -199,7 +199,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @return the language's top scope
    */
   @Override
-  protected Object getScope(Context context) {
+  protected Object getScope(EnsoContext context) {
     return context.getTopScope();
   }
 

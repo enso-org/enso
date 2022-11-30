@@ -19,7 +19,7 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
@@ -36,7 +36,7 @@ import scala.jdk.OptionConverters._
   * @param context the language context
   */
 class Compiler(
-  val context: Context,
+  val context: EnsoContext,
   val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
@@ -54,7 +54,7 @@ class Compiler(
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger           = context.getLogger(getClass)
-  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -406,7 +406,7 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing: [$other]."
+          s"Unexpected import type after processing ${module.getName}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray

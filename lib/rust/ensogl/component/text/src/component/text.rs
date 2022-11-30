@@ -807,7 +807,7 @@ impl TextModel {
         let camera = self.layer.get().camera();
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
+        let inv_object_matrix = self.transformation_matrix().try_inverse().unwrap();
 
         let shape = self.app.display.default_scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
@@ -1154,17 +1154,17 @@ impl TextModel {
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
-                            let line_diff = line_diff.value as usize;
-                            for i in 0..line_diff {
-                                let index_to_insert = second_line_index + ViewLine(i);
+                            let new_lines = iter::from_fn(|| {
                                 let new_line = self.new_line();
                                 new_line.set_baseline(first_line_baseline);
                                 new_line.skip_baseline_animation();
-                                if index_to_insert < ViewLine(lines.len()) {
-                                    lines.insert(index_to_insert, new_line);
-                                } else {
-                                    lines.push(new_line);
-                                }
+                                Some(new_line)
+                            });
+                            let new_lines = new_lines.take(line_diff.value as usize);
+                            if second_line_index < ViewLine(lines.len()) {
+                                lines.extend_at(second_line_index, new_lines);
+                            } else {
+                                lines.extend(new_lines);
                             }
                         } else if line_diff < LineDiff(0) {
                             // Remove lines that are no longer needed. This is needed for proper
@@ -1369,8 +1369,8 @@ impl TextModel {
                             glyph.set_properties(shaped_glyph_set.non_variable_variations);
                             glyph.set_glyph_id(shaped_glyph.id());
                             glyph.x_advance.set(x_advance);
-                            glyph.view.set_position_xy(glyph_render_offset * magic_scale);
-                            glyph.set_position_xy(Vector2(glyph_offset_x, 0.0));
+                            glyph.view.set_xy(glyph_render_offset * magic_scale);
+                            glyph.set_xy(Vector2(glyph_offset_x, 0.0));
 
                             glyph_offset_x += x_advance;
                             divs.push(glyph_offset_x);
@@ -1469,7 +1469,7 @@ impl TextModel {
             if let Some(cursor) = &last_cursor {
                 cursor.right_side().add_child(glyph);
                 glyph.attached_to_cursor.set(true);
-                glyph.mod_position_x(|p| p - last_cursor_target_x);
+                glyph.mod_x(|p| p - last_cursor_target_x);
                 attached_glyphs.push(glyph.downgrade());
             }
             column += Column(1);
@@ -1491,7 +1491,7 @@ impl TextModel {
                     if let Some(glyph) = glyph.upgrade() {
                         self.lines.borrow_mut()[line].add_child(&glyph);
                         let pos_x = selection.position_target.value().x;
-                        glyph.mod_position_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                        glyph.mod_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                         glyph.attached_to_cursor.set(false);
                     }
                 }

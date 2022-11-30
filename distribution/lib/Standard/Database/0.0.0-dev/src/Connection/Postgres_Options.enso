@@ -54,7 +54,7 @@ type Postgres_Options
             Nothing ->
                 env_user = Environment.get "PGUSER"
                 env_password = Environment.get "PGPASSWORD"
-                case Pair.Value env_user env_password of
+                case (Pair.new env_user env_password) of
                     Pair.Value Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
                     Pair.Value Nothing _ ->
@@ -62,16 +62,16 @@ type Postgres_Options
                     Pair.Value username Nothing ->
                         Pgpass.read self.host self.port self.database username
                     Pair.Value username password ->
-                        [Pair.Value 'user' username, Pair.Value 'password' password]
+                        [Pair.new 'user' username, Pair.new 'password' password]
             Credentials.Username_And_Password username password ->
-                [Pair.Value 'user' username, Pair.Value 'password' password]
+                [Pair.new 'user' username, Pair.new 'password' password]
 
         ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        (if self.schema == '' then [] else [Pair.Value 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
+        (if self.schema == '' then [] else [Pair.new 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
@@ -79,14 +79,14 @@ type Postgres_Options
 ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     SSL_Mode.Disable -> []
-    SSL_Mode.Prefer -> [Pair.Value 'sslmode' 'prefer']
-    SSL_Mode.Require -> [Pair.Value 'sslmode' 'require']
+    SSL_Mode.Prefer -> [Pair.new 'sslmode' 'prefer']
+    SSL_Mode.Require -> [Pair.new 'sslmode' 'require']
     SSL_Mode.Verify_CA cert_file ->
-        if cert_file.is_nothing then [Pair.Value 'sslmode' 'verify-ca'] else
-            [Pair.Value 'sslmode' 'verify-ca', Pair.Value 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair.new 'sslmode' 'verify-ca'] else
+            [Pair.new 'sslmode' 'verify-ca', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
     SSL_Mode.Full_Verification cert_file ->
-        if cert_file.is_nothing then [Pair.Value 'sslmode' 'verify-full'] else
-            [Pair.Value 'sslmode' 'verify-full', Pair.Value 'sslrootcert' (File.new cert_file).absolute.path]
+        if cert_file.is_nothing then [Pair.new 'sslmode' 'verify-full'] else
+            [Pair.new 'sslmode' 'verify-full', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
 
 ## PRIVATE
 default_postgres_host = Environment.get_or_else "PGHOST" "localhost"

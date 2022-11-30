@@ -5,7 +5,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.data.Vector;
 
@@ -30,7 +30,7 @@ public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
 
   @Fallback
   Vector doOther(Object arr) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     throw new PanicException(
         ctx.getBuiltins().error().makeTypeError("polyglot array", arr, "array"), this);
   }

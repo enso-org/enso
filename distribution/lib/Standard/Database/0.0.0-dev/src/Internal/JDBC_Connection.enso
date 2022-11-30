@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Resource
-from Standard.Base.Runtime.Resource import Managed_Resource
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
@@ -72,7 +71,7 @@ type JDBC_Connection
 
         go template holes =
             handle_sql_errors related_query=template <|
-                Resource.bracket (prepare template holes) .close action
+                Managed_Resource.bracket (prepare template holes) .close action
 
         case query of
             _ : Text -> go query []
@@ -107,8 +106,8 @@ type JDBC_Connection
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
-            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
-                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+            Managed_Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                     num_rows = table.row_count
                     columns = table.columns
                     check_rows updates_array expected_size =
