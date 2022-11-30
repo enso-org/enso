@@ -86,6 +86,7 @@ import project.Data.Text.Extensions
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode
+import project.Data.Text.Regex
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Regex.Regex_Option.Regex_Option
 import project.Data.Text.Regex_Matcher.Regex_Matcher
@@ -104,7 +105,7 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Error.Problem_Behavior
+import project.Error.Problem_Behavior.Problem_Behavior
 import project.Random
 
 export project.Data
@@ -130,6 +131,7 @@ export project.Data.Text.Extensions
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Location
 export project.Data.Text.Matching_Mode
+export project.Data.Text.Regex
 export project.Data.Text.Regex.Regex_Mode.Regex_Mode
 export project.Data.Text.Regex.Regex_Option.Regex_Option
 export project.Data.Text.Regex_Matcher.Regex_Matcher
@@ -148,18 +150,21 @@ export project.Data.Text.Span.Utf_16_Span
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Error.Problem_Behavior.Problem_Behavior
 export project.Random
 
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
-from project.Error.Problem_Behavior export all
 
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Error.Problem_Behavior.Problem_Behavior import all
+from project.System.File_Format.Plain_Text_Format import Plain_Text
+
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
+from project.Error.Problem_Behavior.Problem_Behavior export all
+from project.System.File_Format.Plain_Text_Format export Plain_Text
 
-import project.Data.Text.Regex
-export project.Data.Text.Regex
-
+## ToDo:
 import project.Meta
 export project.Meta
 

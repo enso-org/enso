@@ -28,21 +28,21 @@ Any.to_json : Json
 Any.to_json self =
     m = Meta.meta self
     case m of
-        Meta.Atom_Data _ ->
-            cons = Meta.Constructor_Data m.constructor
+        _ : Meta.Atom ->
+            cons = Meta.Constructor.Constructor_Data m.constructor
             fs = m.fields
             fnames = cons.fields
             json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
                 m.insert (fnames.at i) (fs.at i . to_json)
             with_tp = json_fs . insert "type" (Json.String cons.name)
             Json.Object with_tp
-        Meta.Constructor_Data _ ->
+        _ : Meta.Constructor ->
             Json.Object (Map.empty . insert "type" (Json.String m.name))
 
         ## The following two cases cannot be handled generically and should
            instead define their own `to_json` implementations.
-        Meta.Polyglot_Data _ -> Json.Null
-        Meta.Primitive_Data _ -> Json.Null
+        _ : Meta.Polyglot -> Json.Null
+        _ : Meta.Primitive -> Json.Null
 
 ## UNSTABLE
    ADVANCED

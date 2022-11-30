@@ -9,9 +9,6 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Unsupported_File_Type, unimplemented
 
-from project.System.File_Format.Plain_Text_Format import Plain_Text
-from project.System.File_Format.Plain_Text_Format export Plain_Text
-
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
 ## PRIVATE
@@ -50,8 +47,8 @@ type Plain_Text_Format
     for_file : File -> Plain_Text_Format | Nothing
     for_file file =
         case file.extension of
-            ".txt" -> Plain_Text
-            ".log" -> Plain_Text
+            ".txt" -> Plain_Text_Format.Plain_Text
+            ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
     ## PRIVATE
