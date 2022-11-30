@@ -92,8 +92,8 @@ impl JsonIdMap {
         let mut cursor = xi_rope::Cursor::new(&code.rope, 0);
         let char_offsets = iter::once(0).chain(cursor.iter::<Utf16CodeUnitsMetric>()).collect_vec();
         let mapped_vec = id_map.vec.iter().map(|(range, id)| {
-            let byte_start = range.start.value as usize;
-            let byte_end = range.end.value as usize;
+            let byte_start = range.start.value;
+            let byte_end = range.end.value;
             let start = char_offsets.binary_search(&byte_start).unwrap_both();
             let end = char_offsets.binary_search(&byte_end).unwrap_both();
             let size = end - start;
