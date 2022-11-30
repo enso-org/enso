@@ -29,7 +29,7 @@ type My
         My.Data x1 y1 -> My.Data y1 x1
 
 spec =
-    common_spec
+    run_common_spec Common_Table_Operations.Main.spec
 
     Test.group "JSON construction" <|
         geo_json = Json.parse <| '''
@@ -1140,9 +1140,15 @@ spec =
 
             # ToDo: Verify the warnings and error handling within cross_tab.
 
-common_spec =
+run_common_spec spec =
     selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
-    Common_Table_Operations.Main.spec "[In-Memory] " table_builder=Table.new test_selection=selection
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config
+
+    table = (enso_project.data / "data.csv") . read
+    empty_table = Table.new <| table.columns.map c->[c.name, []]
+    materialize = x->x
+
+    spec "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection
 
 main = Test_Suite.run_main spec
 

@@ -11,6 +11,8 @@ import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
+import project.Common_Table_Operations.Aggregate_Spec
+import project.Common_Table_Operations.Aggregate_Spec.Test_Selection as Aggregate_Test_Selection
 
 import project.In_Memory.Table_Spec as In_Memory_Table_Spec
 
@@ -23,18 +25,27 @@ type Test_Selection
    database backends.
 
    Arguments:
-   - prefix: A prefix to attach to the names of test groups, for easier
-     identification.
-   - table_builder: A function which takes a list of column descriptions and
-     builds a Table using the backend that is meant to be tested. Each column
-     description is a triple of column name, column type and a vector containing
-     column elements.
+   - prefix: A name to prepend to test groups to identify the tested backend.
+   - table: A table using the tested backend containing data from
+     `data/data.csv`.
+   - empty_table: An empty table using the tested backend.
+   - table_builder: A function used to build a table using the tested backend
+     from a vector of columns represented as pairs of name and vector of values.
+   - materialize: A helper function which materializes a table from the tested
+     backend as an in-memory table. Used to easily inspect results of a
+     particular query/operation.
    - test_selection: A selection of which suites should be run. Can be used to
      skip checks for backends which do not support particular features.
-spec prefix table_builder test_selection =
+   - aggregate_test_selection: A selection of which aggregate test suites should
+     be run. Can be used to skip checks for backends which do not support
+     particular features.
+   - pending: An optional mark to disable all test groups. Can be used to
+     indicate that some tests are disabled due to missing test setup.
+spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection.Config aggregate_test_selection=Aggregate_Test_Selection.Config pending=Nothing =
     Core_Spec.spec prefix table_builder test_selection
     Select_Columns_Spec.spec prefix table_builder test_selection
     Column_Operations_Spec.spec prefix table_builder test_selection
+    Aggregate_Spec.spec prefix table empty_table table_builder materialize is_database aggregate_test_selection pending
     Filter_Spec.spec prefix table_builder test_selection
     Missing_Values_Spec.spec prefix table_builder test_selection
     Order_By_Spec.spec prefix table_builder test_selection
@@ -47,4 +58,4 @@ spec prefix table_builder test_selection =
    a shortcut that allows to run these tests with the in-memory backend by
    running the Main file.
 main =
-    Test_Suite.run_main In_Memory_Table_Spec.common_spec
+    Test_Suite.run_main (In_Memory_Table_Spec.run_common_spec spec)
