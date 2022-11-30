@@ -32,6 +32,9 @@ type Ordering
         Ordering.Greater -> 1
         Ordering.Equal -> 0
 
+    compare_to : Ordering -> Ordering
+    compare_to self other = self.to_sign.compare_to other.to_sign
+
     ## Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:
