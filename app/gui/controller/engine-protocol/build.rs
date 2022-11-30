@@ -86,7 +86,7 @@ impl ApiProvider {
     /// Generates rust files from FlatBuffers schemas.
     pub fn generate_files(&self) {
         let fbs_dir = self.out_dir.join(ZIP_CONTENT);
-        for entry in fs::read_dir(&fbs_dir).expect("Could not read content of dir") {
+        for entry in fs::read_dir(fbs_dir).expect("Could not read content of dir") {
             let path = entry.expect("Invalid content of dir").path();
             let result = flatc_rust::run(flatc_rust::Args {
                 inputs: &[&path],
