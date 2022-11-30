@@ -16,7 +16,7 @@ import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.Boolean;
@@ -32,7 +32,7 @@ import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -108,10 +108,10 @@ public class Builtins {
   /**
    * Creates an instance with builtin methods installed.
    *
-   * @param context the current {@link Context} instance
+   * @param context the current {@link EnsoContext} instance
    */
-  public Builtins(Context context) {
-    Language language = context.getLanguage();
+  public Builtins(EnsoContext context) {
+    EnsoLanguage language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
 
@@ -160,7 +160,7 @@ public class Builtins {
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(ModuleScope scope, Language language) {
+  private void registerBuiltinMethods(ModuleScope scope, EnsoLanguage language) {
     for (Builtin builtin : builtins.values()) {
       var type = builtin.getType();
       String tpeName = type.getName();
@@ -258,7 +258,7 @@ public class Builtins {
 
   /** Initialize builting types in the context of the given language and module scope */
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
-      List<Constructor<? extends Builtin>> constrs, Language language, ModuleScope scope) {
+      List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
     constrs.forEach(
         constr -> {
@@ -357,7 +357,7 @@ public class Builtins {
                     @SuppressWarnings("unchecked")
                     Class<BuiltinRootNode> clazz =
                             (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-                    Method meth = clazz.getMethod("makeFunction", Language.class);
+                    Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class);
                     LoadedBuiltinMethod meta = new LoadedBuiltinMethod(meth, isStatic, isAutoRegister);
                     return new AbstractMap.SimpleEntry<String, LoadedBuiltinMethod>(builtinMeta[0], meta);
                   } catch (ClassNotFoundException | NoSuchMethodException e) {
@@ -377,7 +377,7 @@ public class Builtins {
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, Language language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(String type, String methodName, EnsoLanguage language) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, LoadedBuiltinMethod> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) return Optional.empty();
@@ -386,7 +386,7 @@ public class Builtins {
     return builtin.toFunction(language);
   }
 
-  public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, Language language) {
+  public Optional<BuiltinFunction> getBuiltinFunction(Type type, String methodName, EnsoLanguage language) {
     return getBuiltinFunction(type.getName(), methodName, language);
   }
 
@@ -611,7 +611,7 @@ public class Builtins {
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
-    Optional<BuiltinFunction> toFunction(Language language) {
+    Optional<BuiltinFunction> toFunction(EnsoLanguage language) {
       try {
         return Optional.ofNullable((Function) meth.invoke(null, language)).map(f-> new BuiltinFunction(f, isAutoRegister));
       } catch (Exception e) {

@@ -13,7 +13,7 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -40,12 +40,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
  */
-public class Context {
+public class EnsoContext {
 
-  private static final TruffleLanguage.ContextReference<Context> REFERENCE =
-      TruffleLanguage.ContextReference.create(Language.class);
+  private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
+      TruffleLanguage.ContextReference.create(EnsoLanguage.class);
 
-  private final Language language;
+  private final EnsoLanguage language;
   private final Env environment;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
@@ -63,7 +63,7 @@ public class Context {
   private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
-  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
@@ -81,8 +81,8 @@ public class Context {
    * @param lockManager the lock manager instance
    * @param distributionManager a distribution manager
    */
-  public Context(
-      Language language,
+  public EnsoContext(
+      EnsoLanguage language,
       String home,
       Env environment,
       NotificationHandler notificationHandler,
@@ -102,7 +102,7 @@ public class Context {
         environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
-    this.rootIOPermissions = environment.getOptions().get(Language.IO_ENVIRONMENT);
+    this.rootIOPermissions = environment.getOptions().get(EnsoLanguage.IO_ENVIRONMENT);
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
@@ -158,11 +158,11 @@ public class Context {
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
    */
-  public static Context get(Node node) {
+  public static EnsoContext get(Node node) {
     return REFERENCE.get(node);
   }
 
-  public static TruffleLanguage.ContextReference<Context> getReference() {
+  public static TruffleLanguage.ContextReference<EnsoContext> getReference() {
     return REFERENCE;
   }
 
@@ -212,7 +212,7 @@ public class Context {
    *
    * @return the language to which this context belongs
    */
-  public Language getLanguage() {
+  public EnsoLanguage getLanguage() {
     return language;
   }
 

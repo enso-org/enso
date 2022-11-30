@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -35,7 +35,7 @@ public abstract class PowNode extends Node {
 
   @Fallback
   double doOther(double self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
     var number = builtins.number().getNumber();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
