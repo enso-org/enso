@@ -152,7 +152,7 @@ impl Expression {
 
     /// Simple reference (identity) expression constructor.
     pub fn reference(path: impl Into<Path>) -> Self {
-        Self::new(&[path.into()], |t| t[0].clone())
+        Self::new([path.into()], |t| t[0].clone())
     }
 }
 

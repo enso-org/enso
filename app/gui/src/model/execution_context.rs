@@ -581,7 +581,7 @@ mod tests {
 
         // Set two errors. One of old values is overridden
         let update1 = value_update_with_dataflow_error(expr2);
-        let update2 = value_update_with_dataflow_panic(expr3, &error_msg);
+        let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
         assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));

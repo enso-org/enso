@@ -86,7 +86,7 @@ impl BuiltEnso {
             let google_api_test_data_dir =
                 paths.repo_root.join("test").join("Google_Api_Test").join("data");
             ide_ci::fs::create_dir_if_missing(&google_api_test_data_dir)?;
-            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), &gdoc_key)?;
+            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;

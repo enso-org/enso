@@ -35,7 +35,7 @@ pub mod background {
             let color_path    = theme::graph_editor::visualization::background;
             let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
-            let background    = Rect((&width,&height)).corners_radius(&corner_radius);
+            let background    = Rect((&width,&height)).corners_radius(corner_radius);
             let background    = background.fill(color_bg);
             background.into()
         }
