@@ -245,6 +245,7 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -389,6 +390,7 @@
 [3874]: https://github.com/enso-org/enso/pull/3874
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
+[3919]: https://github.com/enso-org/enso/pull/3919
 
 #### Enso Compiler
 
