@@ -136,7 +136,7 @@ class InjectedMethodParameter extends SpecializedMethodParameter {
 
   @Override
   public Optional<String> auxParamDef() {
-    return Optional.of("Context " + param.name() + " = Context.get(this);");
+    return Optional.of("EnsoContext " + param.name() + " = EnsoContext.get(this);");
   }
 
   @Override

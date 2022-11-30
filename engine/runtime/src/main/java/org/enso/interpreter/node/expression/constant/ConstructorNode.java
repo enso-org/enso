@@ -4,7 +4,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** Represents a type constructor definition. */
@@ -37,7 +37,7 @@ public abstract class ConstructorNode extends ExpressionNode {
    */
   @Specialization
   Object doExecute(VirtualFrame frame) {
-    var builtins = Context.get(this).getBuiltins();
+    var builtins = EnsoContext.get(this).getBuiltins();
     if (constructor == builtins.bool().getTrue()) {
       return true;
     }

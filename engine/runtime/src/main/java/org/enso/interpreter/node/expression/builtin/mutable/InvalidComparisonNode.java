@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -28,8 +28,9 @@ public abstract class InvalidComparisonNode extends Node {
   @Specialization
   int doPanic(Object result) {
     CompilerDirectives.transferToInterpreter();
-    var ordering = Context.get(this).getBuiltins().ordering().getType();
+    var ordering = EnsoContext.get(this).getBuiltins().ordering().getType();
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeTypeError(ordering, result, "result"), this);
+        EnsoContext.get(this).getBuiltins().error().makeTypeError(ordering, result, "result"),
+        this);
   }
 }

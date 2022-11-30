@@ -262,7 +262,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       switch (returnTpe.kind()) {
         case VOID:
           methodBody.add("  " + qual + "." + name + "(" + paramsApplied + ");");
-          methodBody.add("  return Context.get(this).getBuiltins().nothing();");
+          methodBody.add("  return EnsoContext.get(this).getBuiltins().nothing();");
           break;
         case ARRAY:
           methodBody.add(

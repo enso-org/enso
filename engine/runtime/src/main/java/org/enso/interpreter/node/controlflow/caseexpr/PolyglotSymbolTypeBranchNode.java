@@ -11,12 +11,10 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
@@ -71,7 +69,7 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   @CompilerDirectives.TruffleBoundary
   private Atom reportError(Object expected, Object target) {
-    Builtins builtins = Context.get(this).getBuiltins();
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
     return builtins
         .error()
         .makeCompileError("unable to check if " + target + " is an instance of " + polyglotSymbol);

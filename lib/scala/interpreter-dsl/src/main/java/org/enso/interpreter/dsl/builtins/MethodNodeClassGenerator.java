@@ -138,7 +138,7 @@ public abstract class MethodNodeClassGenerator {
           "com.oracle.truffle.api.nodes.Node",
           "org.enso.interpreter.dsl.*",
           "org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode",
-          "org.enso.interpreter.runtime.Context",
+          "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.Array",
           "org.enso.interpreter.runtime.error.PanicException");
