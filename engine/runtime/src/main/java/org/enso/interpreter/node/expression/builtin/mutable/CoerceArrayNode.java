@@ -7,10 +7,9 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Vector;
@@ -36,11 +35,11 @@ public abstract class CoerceArrayNode extends Node {
     try {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
           builtins.error().makeInvalidArrayIndexError(arr, e.getInvalidIndex()), this);
     }
@@ -54,11 +53,11 @@ public abstract class CoerceArrayNode extends Node {
     try {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
           builtins.error().makeInvalidArrayIndexError(arr, e.getInvalidIndex()), this);
     }
@@ -76,7 +75,7 @@ public abstract class CoerceArrayNode extends Node {
 
   @Fallback
   Object[] doOther(Object arr) {
-    Builtins builtins = Context.get(this).getBuiltins();
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
     Atom error = builtins.error().makeTypeError("array", arr, "arr");
     throw new PanicException(error, this);
   }

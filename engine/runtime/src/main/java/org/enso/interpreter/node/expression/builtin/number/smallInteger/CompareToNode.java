@@ -1,13 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -53,12 +52,12 @@ public abstract class CompareToNode extends Node {
 
   @Fallback
   DataflowError doOther(long self, Object that) {
-    var builtins = Context.get(this).getBuiltins();
+    var builtins = EnsoContext.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
     return DataflowError.withoutTrace(typeError, this);
   }
 
   Ordering getOrdering() {
-    return Context.get(this).getBuiltins().ordering();
+    return EnsoContext.get(this).getBuiltins().ordering();
   }
 }

@@ -3,7 +3,7 @@ package org.enso.compiler.test.semantic
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames}
@@ -129,7 +129,7 @@ class TypeSignaturesTest
   private val langCtx = ctx.ctx
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-    .asHostObject[Context]()
+    .asHostObject[EnsoContext]()
 
   private val Module = QualifiedName.fromString("Unnamed.Test")
 

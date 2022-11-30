@@ -9,7 +9,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -27,7 +27,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   CatchTypeBranchNode(Type tpe, RootCallTarget functionNode) {
     super(functionNode);
     this.expectedType = tpe;
-    this.isArrayType = Context.get(this).getBuiltins().array() == expectedType;
+    this.isArrayType = EnsoContext.get(this).getBuiltins().array() == expectedType;
   }
 
   /**

@@ -28,14 +28,14 @@ public record SafeWrapException(Attribute.Class from, Attribute.Class to) {
             return List.of(
                 "  } catch (" + from + " e) {",
                 "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
-                "    Builtins builtins = Context.get(this).getBuiltins();",
+                "    Builtins builtins = EnsoContext.get(this).getBuiltins();",
                 "    throw new PanicException(e.getMessage(), this);"
             );
         } else {
             return List.of(
                 "  } catch (" + from + " e) {",
                 "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
-                "    Context ctx = Context.get(this);",
+                "    EnsoContext ctx = EnsoContext.get(this);",
                 "    Builtins builtins = ctx.getBuiltins();",
                 "    throw new PanicException(builtins.error().get" + to + "().wrap(ctx, e), this);"
             );

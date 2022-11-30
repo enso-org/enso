@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -23,7 +23,7 @@ public abstract class GCNode extends Node {
   @Specialization
   Object doGc() {
     runGC();
-    return Context.get(this).getBuiltins().nothing();
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @CompilerDirectives.TruffleBoundary

@@ -12,7 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
@@ -56,7 +56,7 @@ public final class Warning implements TruffleObject {
       description = "Creates a new instance of the primitive warning value.",
       autoRegister = false)
   @Builtin.Specialize
-  public static Warning create(Context ctx, Object payload, Object origin) {
+  public static Warning create(EnsoContext ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.clockTick());
   }
 
@@ -72,7 +72,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   public static WithWarnings attach(
-      Context ctx, WithWarnings value, Object warning, Object origin) {
+      EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
     return value.prepend(new Warning(warning, origin, ctx.clockTick()));
   }
 
@@ -81,7 +81,7 @@ public final class Warning implements TruffleObject {
       description = "Attaches the given warning to the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static WithWarnings attach(Context ctx, Object value, Object warning, Object origin) {
+  public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
     return new WithWarnings(value, new Warning(warning, origin, ctx.clockTick()));
   }
 
@@ -196,6 +196,6 @@ public final class Warning implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().warning();
+    return EnsoContext.get(thisLib).getBuiltins().warning();
   }
 }
