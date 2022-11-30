@@ -4,7 +4,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import com.oracle.truffle.api.nodes.Node;
 
 public abstract class CoerceNothing extends Node {
@@ -23,7 +23,7 @@ public abstract class CoerceNothing extends Node {
 
   @Specialization(guards = "interop.isNull(value)")
   public Object doNothing(Object value, @CachedLibrary(limit = "1") InteropLibrary interop) {
-    return Context.get(this).getBuiltins().nothing();
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Fallback

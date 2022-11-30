@@ -6,7 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -66,7 +66,11 @@ public class GetFieldWithMatchNode extends RootNode {
       }
     }
     throw new PanicException(
-        Context.get(this).getBuiltins().error().getNoSuchFieldError().newInstance(atom, nameText),
+        EnsoContext.get(this)
+            .getBuiltins()
+            .error()
+            .getNoSuchFieldError()
+            .newInstance(atom, nameText),
         this);
   }
 
