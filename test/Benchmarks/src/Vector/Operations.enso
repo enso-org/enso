@@ -4,9 +4,9 @@ import Standard.Base
 
 from Standard.Test import Bench
 
-polyglot java import java.util.Random
-polyglot java import org.enso.base.Time_Utils
+import project.Vector.Utils
 
+polyglot java import java.util.Random
 
 ## Bench Utilities ============================================================
 
@@ -14,21 +14,16 @@ vector_size = 1000000
 iter_size = 100
 num_iterations = 10
 
-make_random_vec : Integer -> Base.Vector
-make_random_vec n =
-    random_gen = Random.new n
-    Base.Vector.fill n random_gen.nextLong
-
 # The Benchmarks ==============================================================
 
-main =
-    random_vec = make_random_vec vector_size
-    random_vec_2 = make_random_vec 100000
+bench =
+    random_vec = Utils.make_random_vec vector_size
+    random_vec_2 = Utils.make_random_vec 100000
     random_gen = Random.new 123456
 
     Bench.measure (Base.Vector.new vector_size i->i) "New Vector" iter_size num_iterations
-    Bench.measure (Base.Vector.new vector_size _->42) "New Constant" iter_size num_iterations    
-    Bench.measure (Base.Vector.new vector_size _->random_gen.nextLong) "New Random" iter_size num_iterations    
+    Bench.measure (Base.Vector.new vector_size _->42) "New Constant" iter_size num_iterations
+    Bench.measure (Base.Vector.new vector_size _->random_gen.nextLong) "New Random" iter_size num_iterations
     Bench.measure (Base.Vector.fill vector_size 42) "Fill Constant" iter_size num_iterations
     Bench.measure (Base.Vector.fill vector_size random_gen.nextLong) "Fill Random (constant)" iter_size num_iterations
     Bench.measure (random_vec + [1]) "Append Single" iter_size num_iterations
@@ -38,6 +33,8 @@ main =
     Bench.measure ((random_vec.drop (Last 20)).sum) "Drop Last 20 and Sum" iter_size num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
     Bench.measure (random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
+
+    random_gen = Random.new 0
     Bench.measure (random_vec . map (x -> x +  random_gen.nextLong) . filter (x -> x % 3 == 1)) "Map & Filter" iter_size num_iterations
     Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" iter_size num_iterations
     Bench.measure (random_vec.partition_with_index (i-> x-> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
@@ -46,3 +43,5 @@ main =
        s = State.get Number
        State.put s+x
     Bench.measure (State.run Number 0 <| random_vec.each stateful_fun) "Each" iter_size num_iterations
+
+main = bench
