@@ -12,7 +12,6 @@ import Standard.Test.Extensions
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
-import project.Aggregate_Spec
 
 sqlite_specific_spec connection =
     Test.group "[SQLite] Schemas and Databases" <|
@@ -121,12 +120,12 @@ sqlite_spec connection prefix =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    aggregate_selection = Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
 
-    Common_Table_Operations.Main.spec prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=selection
+    Common_Table_Operations.Main.spec prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
 
     connection.close
 
