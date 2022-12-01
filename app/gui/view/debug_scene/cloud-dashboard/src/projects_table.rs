@@ -28,31 +28,31 @@ use ensogl_grid_view::Row;
 
 /// The width of a single entry in the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const ENTRY_WIDTH: f32 = 130.0;
 /// The height of a single entry in the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const ENTRY_HEIGHT: f32 = 28.0;
 /// The grid is intended to take up 20% of the viewport height, expressed as a fraction;
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const GRID_HEIGHT_RATIO: f32 = 0.2;
 /// The top margin of the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const TOP_MARGIN: f32 = 10f32;
 /// The bottom margin of the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const BOTTOM_MARGIN: f32 = 10f32;
 /// The left margin of the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const LEFT_MARGIN: f32 = 10f32;
 /// The right margin of the [`ProjectsTable`], in pixels.
 // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909467
-// Move the style constants to StyleWatchFrp variables.
+//             Move the style constants to StyleWatchFrp variables.
 const RIGHT_MARGIN: f32 = 10f32;
 /// The combined horizontal margin of the [`ProjectsTable`], in pixels.
 const HORIZONTAL_MARGIN: f32 = LEFT_MARGIN + RIGHT_MARGIN;
@@ -64,35 +64,35 @@ const VERTICAL_MARGIN: f32 = TOP_MARGIN + BOTTOM_MARGIN;
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909494
-// Remove the unused columns from the `"Projects" Table`.
+//            Remove the unused columns from the `"Projects" Table`.
 const LAST_MODIFIED: &str = "2022-10-08 13:30";
 /// In the future, we want to display icons for users/groups with access to the [`Project`] and
 /// their corresponding permissions (e.g., read/write/execute).
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909494
-// Remove the unused columns from the `"Projects" Table`.
+//            Remove the unused columns from the `"Projects" Table`.
 const SHARED_WITH: &str = "Baron von Münchhausen (Read/Write)";
 /// In the future, we want to display icons for the [`Project`]'s labels. Labels may be user-defined
 /// or system-defined (e.g., labels indicating high resource usage or outdated version).
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909420
-// `"Home Screen" User` can see a `"running" Label` for any currently running `Project`s.
+//            `"Home Screen" User` can see a `"running" Label` for any currently running `Project`s.
 const LABELS: &str = "(!) outdated version";
 /// In the future, we want to display icons for datasets associated with the [`Project`], as well as
 /// what permissions are set on the dataset, from the user's perspective.
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909494
-// Remove the unused columns from the `"Projects" Table`.
+//            Remove the unused columns from the `"Projects" Table`.
 const DATA_ACCESS: &str = "./user_data";
 /// In the future, we want to display which usage plan the [`Project`] is configured for (e.g.,
 /// "Interactive" or cron-style, etc.).
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909494
-// Remove the unused columns from the `"Projects" Table`.
+//            Remove the unused columns from the `"Projects" Table`.
 const USAGE_PLAN: &str = "Interactive";
 
 /// ID of the Amazon API Gateway serving the Cloud API.
@@ -103,7 +103,7 @@ const API_GATEWAY_ID: &str = "7aqkn3tnbc";
 const AWS_REGION: enso_cloud_http::AwsRegion = enso_cloud_http::AwsRegion::EuWest1;
 /// Access token used to authenticate requests to the Cloud API.
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909294
-// `"Home Screen" User` is authenticated using the browser-stored `Access Token`.
+//            `"Home Screen" User` is authenticated using the browser-stored `Access Token`.
 const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXhJRDlmY3EwPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI0YjBhMzExNy1hNmI5LTRkYmYtOGEyMC0wZGZmNWE4NjA2ZGYiLCJjb2duaXRvOmdyb3VwcyI6WyJldS13ZXN0LTFfOUt5Y3UyU2JEX0dvb2dsZSJdLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV85S3ljdTJTYkQiLCJ2ZXJzaW9uIjoyLCJjbGllbnRfaWQiOiI0ajliZnM4ZTc0MTVlcmY4MmwxMjl2MHFoZSIsIm9yaWdpbl9qdGkiOiI4MDYxMDkxMS01OGVlLTRjYzctYjU0Ny1lNmZjNzY2OTMwNmYiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6Im9wZW5pZCBlbWFpbCIsImF1dGhfdGltZSI6MTY2ODUyNzkwNiwiZXhwIjoxNjY5NjczOTAyLCJpYXQiOjE2Njk2NzAzMDIsImp0aSI6IjUyYzE3NzkzLTA2YmYtNDkxYi1iYmExLWZjMTI0MTUxZTQ1NSIsInVzZXJuYW1lIjoiR29vZ2xlXzEwNDA4MDA2MTY5NTg0NDYwMDk2OCJ9.KsFezaQrtDOJiy-edAJEtWH0hXE5SfBQGczazgvXUGMY4xluKZMle_Q0x2myFxu_1-eb8ND8M-2nOU9Kz09hKLrxqiJI6BRZrAlNKk0B6c2mtJM-OXS5Nyvs83xTfjHJPnBOPD6qadDZPx82FZkiI99HCiSEn1s1lyMy9-GPAHcIFa-PMDtrf0mzAbJUnCCfJPjxz49003FKTThOLCBVvjrgiTCCYIzvF96ERIVL2bMJ08bQEIwsbHxFvONgHh1yjGFjYDT0JC6OXZraQ3wFQFOnCwL33sijtn8_p9b3f22UttbaOFg03V-I7tSx5YUTiVDJHWEKYqlmm_fHUFWlVw";
 
 
@@ -395,7 +395,7 @@ fn project_entry_model(project: &view::project::Project, column: Columns) -> Ent
     let model = match column {
         Columns::Projects => {
             // TODO [NP]: https://www.pivotaltracker.com/story/show/183909391
-            // `"Home Screen" User` can see an `Icon` representing the `Project`'s state.
+            //            `"Home Screen" User` can see an `Icon` representing the `Project`'s state.
             let state = &project.state;
             let name = &project.name;
             let state = match state {
@@ -409,7 +409,9 @@ fn project_entry_model(project: &view::project::Project, column: Columns) -> Ent
         }
         Columns::LastModified => LAST_MODIFIED.to_string(),
         Columns::SharedWith => SHARED_WITH.to_string(),
-        // TODO [NP]: 003
+        // TODO [NP]: https://www.pivotaltracker.com/story/show/183909420
+        //            `"Home Screen" User` can see a `"running" Label` for any currently running
+        //            `Project`s.
         Columns::Labels => LABELS.to_string(),
         Columns::DataAccess => DATA_ACCESS.to_string(),
         Columns::UsagePlan => USAGE_PLAN.to_string(),
@@ -550,15 +552,16 @@ impl View {
         projects_table.set_entries_size(entry_size);
         let params = ensogl_grid_view::simple::EntryParams {
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909458
-            // Move the EntryParams values to StyleWatchFrp values.
+            //             Move the EntryParams values to StyleWatchFrp values.
             bg_color: color::Lcha::transparent(),
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909458
-            // Move the EntryParams values to StyleWatchFrp values.
+            //             Move the EntryParams values to StyleWatchFrp values.
             bg_margin: 1.0,
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909458
-            // Move the EntryParams values to StyleWatchFrp values.
+            //             Move the EntryParams values to StyleWatchFrp values.
             // TODO [NP]: https://www.pivotaltracker.com/story/show/183909450
-            // `"Home Screen" User` can see `Project` row is highlighted when hovering over the row.
+            //            `"Home Screen" User` can see `Project` row is highlighted when hovering
+            //            over the row.
             hover_color: color::Lcha::from(color::Rgba(
                 62f32 / u8::MAX as f32,
                 81f32 / u8::MAX as f32,
@@ -566,7 +569,7 @@ impl View {
                 0.05,
             )),
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909458
-            // Move the EntryParams values to StyleWatchFrp values.
+            //             Move the EntryParams values to StyleWatchFrp values.
             selection_color: color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)),
             ..default()
         };
@@ -630,8 +633,8 @@ fn column_for_entry(position: Position) -> Option<Columns> {
 
 fn get_projects(client: enso_cloud_http::Client, input: crate::projects_table::api::public::Input) {
     // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909482
-    // Replace `wasm_bindgen_futures` with the futures runtime used throughout the remainder of the
-    // project.
+    //             Replace `wasm_bindgen_futures` with the futures runtime used throughout the
+    //             remainder of the project.
     wasm_bindgen_futures::spawn_local(async move {
         let response = client.list_projects().await.unwrap();
         let projects = response.projects;
