@@ -120,6 +120,7 @@ spec =
             t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
             t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
 
+    # TODO these tests will soon be out of date, superseded by Common_Table_Spec
     Test.group "[Codegen] Joining Tables" <|
         t2 = test_connection.query (SQL_Query.Table_Name "T2")
         t3 = test_connection.query (SQL_Query.Table_Name "T3")

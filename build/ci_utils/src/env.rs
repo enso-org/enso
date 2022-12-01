@@ -204,7 +204,7 @@ pub mod new {
         }
     }
 
-    impl<Value, Borrowed: ?Sized> const RawVariable for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
         fn name(&self) -> &str {
             self.name
         }

@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -32,7 +32,7 @@ public abstract class CopyNode extends Node {
   Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
-    return Context.get(this).getBuiltins().nothing();
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Specialization(guards = "arrays.hasArrayElements(src)")
@@ -53,18 +53,18 @@ public abstract class CopyNode extends Node {
       throw new IllegalStateException("Unreachable");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .makeInvalidArrayIndexError(src, e.getInvalidIndex()),
           this);
     }
-    return Context.get(this).getBuiltins().nothing();
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Fallback
   Object doOther(Object src, long source_index, Array dest, long dest_index, long count) {
-    Builtins builtins = Context.get(this).getBuiltins();
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
     throw new PanicException(builtins.error().makeTypeError(builtins.array(), src, "src"), this);
   }
 }

@@ -101,7 +101,7 @@ fn init(app: &Application) {
     theme::builtin::light::enable(app);
 
     let scene = &app.display.default_scene;
-    scene.camera().set_position_xy(Vector2(100.0, -100.0));
+    scene.camera().set_xy(Vector2(100.0, -100.0));
 
     let navigator = Navigator::new(scene, &scene.camera());
     navigator.disable_wheel_panning();
@@ -125,8 +125,8 @@ fn init(app: &Application) {
     scroll_area.add_child(&background);
     scene.layers.below_main.add(&background);
     background.size.set(Vector2::new(200.0, 200.0));
-    background.set_position_x(100.0);
-    background.set_position_y(-100.0);
+    background.set_x(100.0);
+    background.set_y(-100.0);
     std::mem::forget(background);
 
 
@@ -135,8 +135,8 @@ fn init(app: &Application) {
     let content = content::View::new();
     scroll_area.content().add_child(&content);
     content.size.set(Vector2::new(300.0, 1000.0));
-    content.set_position_x(150.0);
-    content.set_position_y(-500.0);
+    content.set_x(150.0);
+    content.set_y(-500.0);
     std::mem::forget(content);
 
 

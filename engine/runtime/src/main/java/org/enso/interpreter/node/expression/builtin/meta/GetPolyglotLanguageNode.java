@@ -3,7 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
@@ -23,7 +23,7 @@ public abstract class GetPolyglotLanguageNode extends Node {
 
   @Specialization
   Text doExecute(Object value) {
-    if (Context.get(this).getEnvironment().isHostObject(value)) {
+    if (EnsoContext.get(this).getEnvironment().isHostObject(value)) {
       return java;
     } else {
       return unknown;

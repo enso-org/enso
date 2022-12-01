@@ -34,8 +34,8 @@ macro_rules! ranged_fn {
 
 pub trait Index = Copy + From<usize> + Into<usize>;
 
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
-#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
+#[derive(crate::serde_reexports::Serialize)]
+#[derive(crate::serde_reexports::Deserialize)]
 #[derive(Derivative, Deref, DerefMut, From, Into)]
 #[derivative(Clone(bound = "T: Clone, A: Allocator + Clone"))]
 #[derivative(Debug(bound = "T: Debug, A: Allocator"))]
@@ -43,13 +43,10 @@ pub trait Index = Copy + From<usize> + Into<usize>;
 #[derivative(PartialEq(bound = "Vec<T, A>: PartialEq"))]
 #[derivative(Eq(bound = "Vec<T, A>: PartialEq"))]
 pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
-    #[cfg_attr(
-        feature = "serde",
-        serde(bound(
-            serialize = "Vec<T, A>: crate::serde_reexports::Serialize",
-            deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
-        ))
-    )]
+    #[serde(bound(
+        serialize = "Vec<T, A>: crate::serde_reexports::Serialize",
+        deserialize = "Vec<T, A>: crate::serde_reexports::Deserialize<'de>"
+    ))]
     #[deref]
     #[deref_mut]
     vec: Vec<T, A>,

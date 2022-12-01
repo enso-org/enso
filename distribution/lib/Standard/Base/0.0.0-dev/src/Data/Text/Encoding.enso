@@ -14,11 +14,7 @@ all_character_sets =
 ## Get all available Encodings.
 all_encodings : Vector Encoding
 all_encodings =
-    all_character_sets.map Encoding_Data
-
-# TODO Dubious constructor export
-from project.Data.Text.Encoding.Encoding import all
-from project.Data.Text.Encoding.Encoding export all
+    all_character_sets.map Encoding.Value
 
 ## Represents a character encoding.
 type Encoding
@@ -26,7 +22,7 @@ type Encoding
 
        Arguments:
        - character_set: java.nio.charset name.
-    Encoding_Data (character_set:Text)
+    Value (character_set:Text)
 
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset
@@ -37,75 +33,71 @@ type Encoding
 
     ## Encoding for ASCII.
     ascii : Encoding
-    ascii = Encoding_Data "US-ASCII"
+    ascii = Encoding.Value "US-ASCII"
 
     ## Encoding for Unicode UTF-8.
     utf_8 : Encoding
-    utf_8 = Encoding_Data "UTF-8"
+    utf_8 = Encoding.Value "UTF-8"
 
     ## Encoding for Unicode UTF-16 Little Endian.
     utf_16_le : Encoding
-    utf_16_le = Encoding_Data "UTF-16LE"
+    utf_16_le = Encoding.Value "UTF-16LE"
 
     ## Encoding for Unicode UTF-16 Big Endian.
     utf_16_be : Encoding
-    utf_16_be = Encoding_Data "UTF-16BE"
+    utf_16_be = Encoding.Value "UTF-16BE"
 
     ## Encoding for Unicode UTF-32 Little Endian.
     utf_32_le : Encoding
-    utf_32_le = Encoding_Data "UTF-32LE"
+    utf_32_le = Encoding.Value "UTF-32LE"
 
     ## Encoding for Unicode UTF-32 Big Endian.
     utf_32_be : Encoding
-    utf_32_be = Encoding_Data "UTF-32BE"
+    utf_32_be = Encoding.Value "UTF-32BE"
 
     ## Encoding for Central European (Windows).
     windows_1250 : Encoding
-    windows_1250 = Encoding_Data "windows-1250"
+    windows_1250 = Encoding.Value "windows-1250"
 
     ## Encoding for Cyrillic (Windows).
     windows_1251 : Encoding
-    windows_1251 = Encoding_Data "windows-1251"
+    windows_1251 = Encoding.Value "windows-1251"
 
     ## ALIAS ISO-8859-1
 
        Encoding for Western European (Windows).
     windows_1252 : Encoding
-    windows_1252 = Encoding_Data "windows-1252"
+    windows_1252 = Encoding.Value "windows-1252"
 
     ## Encoding for Greek (Windows).
     windows_1253 : Encoding
-    windows_1253 = Encoding_Data "windows-1253"
+    windows_1253 = Encoding.Value "windows-1253"
 
     ## ALIAS ISO-8859-9
 
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
-    windows_1254 = Encoding_Data "windows-1254"
+    windows_1254 = Encoding.Value "windows-1254"
 
     ## Encoding for Hebrew (Windows).
     windows_1255 : Encoding
-    windows_1255 = Encoding_Data "windows-1255"
+    windows_1255 = Encoding.Value "windows-1255"
 
     ## Encoding for Arabic (Windows).
     windows_1256 : Encoding
-    windows_1256 = Encoding_Data "windows-1256"
+    windows_1256 = Encoding.Value "windows-1256"
 
     ## Encoding for Baltic (Windows).
     windows_1257 : Encoding
-    windows_1257 = Encoding_Data "windows-1257"
+    windows_1257 = Encoding.Value "windows-1257"
 
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
-    windows_1258 = Encoding_Data "windows-1258"
-
-# TODO Dubious constructor export
-from project.Data.Text.Encoding.Encoding_Error import all
-from project.Data.Text.Encoding.Encoding_Error export all
+    windows_1258 = Encoding.Value "windows-1258"
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error
-    Encoding_Error_Data (message:Text)
+    Error (message:Text)
 
     ## PRIVATE
 

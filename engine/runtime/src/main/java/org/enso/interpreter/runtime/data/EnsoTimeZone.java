@@ -8,7 +8,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -89,6 +89,6 @@ public final class EnsoTimeZone implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().timeZone();
+    return EnsoContext.get(thisLib).getBuiltins().timeZone();
   }
 }

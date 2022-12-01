@@ -15,7 +15,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -215,7 +215,7 @@ public final class Vector implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().vector();
+    return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 
   //

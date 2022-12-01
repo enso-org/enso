@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 import Standard.Base.System.File.Input_Stream
-from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
+from Standard.Base.System.File import wrap_io_exception
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -43,7 +43,7 @@ read_file format file on_problems =
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
-    file.with_input_stream [File.Option.Read] stream->
+    file.with_input_stream [File_Access.Read] stream->
         read_stream format stream on_problems related_file=file
 
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
@@ -107,10 +107,10 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         _ : Integer -> format.row_limit
         _ ->
             Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
-    warnings_as_errors = on_problems == Report_Error
+    warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     quote_characters = case format.quote_style of
-        Quote_Style.No_Quotes -> Pair.Value Nothing Nothing
-        Quote_Style.With_Quotes _ quote quote_escape -> Pair.Value quote quote_escape
+        Quote_Style.No_Quotes -> Pair.new Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair.new quote quote_escape
     base_parser = case format.quote_style of
         Quote_Style.No_Quotes -> IdentityParser.new
         Quote_Style.With_Quotes _ quote _ ->
@@ -165,11 +165,11 @@ type Detected_File_Metadata
    count.
 detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
 detect_metadata file format =
-    on_problems = Ignore
+    on_problems = Problem_Behavior.Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         trailing_line_separator = newline_at_eof file format.encoding
         has_trailing_line_separator = trailing_line_separator.is_nothing.not
-        file.with_input_stream [File.Option.Read] stream->
+        file.with_input_stream [File_Access.Read] stream->
             stream.with_stream_decoder format.encoding on_problems java_reader->
                 ## We don't need to close this one, as closing the parent stream
                    will suffice.
@@ -198,7 +198,7 @@ detect_metadata file format =
                     False -> trailing_line_separator
                 has_any_content = reader.getVisitedCharactersCount > 0
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
-    result.catch File.File_Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
+    result.catch File_Error.Not_Found (_->(Detected_File_Metadata.Value Nothing Nothing False False))
 
 ## PRIVATE
    Checks if the file has a newline at the end.
@@ -231,7 +231,7 @@ handle_parsing_exception =
 
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
-    Error.throw (File.wrap_io_exception related_file java_exception)
+    Error.throw (wrap_io_exception related_file java_exception)
 
 ## PRIVATE
 default_max_columns = 4096

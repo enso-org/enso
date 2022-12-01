@@ -15,7 +15,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -36,7 +36,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().duration();
+    return EnsoContext.get(thisLib).getBuiltins().duration();
   }
 
   @Builtin.Method(
@@ -89,7 +89,7 @@ public final class EnsoDuration implements TruffleObject {
   private static PanicException createNotDateTimePanic(
       String varName, Object object, InteropLibrary interop) {
     return new PanicException(
-        Context.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
+        EnsoContext.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
         interop);
   }
 

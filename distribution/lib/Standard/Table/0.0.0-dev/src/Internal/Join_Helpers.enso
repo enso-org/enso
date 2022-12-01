@@ -1,0 +1,64 @@
+from Standard.Base import all
+
+import project.Data.Join_Condition.Join_Condition
+import project.Internal.Problem_Builder.Problem_Builder
+
+from project.Errors import No_Such_Column_Error_Data
+
+type Join_Condition_Resolver
+    ## PRIVATE
+    Value left_at right_at make_equals make_equals_ignore_case make_between
+
+    ## PRIVATE
+       Resolves the columns in the provided join conditions, handling any errors
+       and capturing redundant columns.
+
+       Resolution errors are aggregated from all conditions (all found errors
+       are reported instead of only the first one). If there were any errors,
+       `Nothing` will be returned as the conditions indicating that state.
+       Besides, a list of redundant columns from equality joins is aggregated
+       which can be used to deduplicate them.
+    resolve : Join_Condition | Vector Join_Condition -> Problem_Behavior -> Join_Condition_Resolution
+    resolve self conditions on_problems =
+        redundant_names = Vector.new_builder
+        problem_builder = Problem_Builder.new
+
+        resolve_selector resolver selector =
+            r_1 = resolver selector
+            r_2 = r_1.catch No_Such_Column_Error_Data _->
+                problem_builder.report_missing_input_columns [selector]
+                Nothing
+            r_2.catch Index_Out_Of_Bounds_Error_Data _->
+                problem_builder.report_oob_indices [selector]
+                Nothing
+        resolve_left = resolve_selector self.left_at
+        resolve_right = resolve_selector self.right_at
+
+        conditions_vector = case conditions of
+            _ : Vector -> conditions
+            single_condition : Join_Condition -> [single_condition]
+        converted = conditions_vector.map condition-> case condition of
+            Join_Condition.Equals left_selector right_selector ->
+                left = resolve_left left_selector
+                right = resolve_right right_selector
+                if left.is_nothing || right.is_nothing then Nothing else
+                    if left.name == right.name then
+                        redundant_names.append right.name
+                    self.make_equals left right
+            Join_Condition.Equals_Ignore_Case left_selector right_selector ->
+                left = resolve_left left_selector
+                right = resolve_right right_selector
+                if left.is_nothing || right.is_nothing then Nothing else
+                    self.make_equals_ignore_case left right
+            Join_Condition.Between left_selector right_lower_selector right_upper_selector ->
+                left = resolve_left left_selector
+                right_lower = resolve_right right_lower_selector
+                right_upper = resolve_right right_upper_selector
+                if left.is_nothing || right_lower.is_nothing || right_upper.is_nothing then Nothing else
+                    self.make_between left right_lower right_upper
+        short_circuited = if converted.contains Nothing then Nothing else converted
+        problem_builder.attach_problems_after on_problems <|
+            Join_Condition_Resolution.Result short_circuited redundant_names.to_vector
+
+type Join_Condition_Resolution
+    Result (conditions : Nothing | Vector Any) (redundant_column_names : Vector Text)

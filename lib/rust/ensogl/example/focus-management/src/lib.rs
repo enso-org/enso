@@ -37,7 +37,22 @@ mod rectangle {
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
             let inside = rect.shrink(BORDER_SIZE.px());
             let border = &inside.grow((border_size - 1.0).px()) - &inside;
-            let shape = inside.fill(color) + border.fill(border_color);
+            let shape = border.fill(border_color) + inside.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            // let line = Line(4.0.px()).fill(color::Rgba(1.0,0.0,0.0,1.0));
+
+            // let shape = inside.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            // let shape = shape + line;
+            shape.into()
+        }
+    }
+}
+
+mod rectangle2 {
+    use super::*;
+    ensogl_core::shape! {
+        (style: Style) {
+            let rect = Rect((10.px(), 10.px()));
+            let shape = rect.fill(color::Rgba::new(0.0, 1.0, 0.0, 1.0));
             shape.into()
         }
     }
@@ -108,8 +123,13 @@ pub fn main() {
     let container = define_rect(container_size * 2.0, container_size, network);
     let left_stack = define_stack(network);
     let right_stack = define_stack(network);
-    left_stack.mod_position_x(|x| x - (container_size) / 2.0);
-    right_stack.mod_position_x(|x| x + (container_size) / 2.0);
+    left_stack.mod_x(|x| x - (container_size) / 2.0);
+    right_stack.mod_x(|x| x + (container_size) / 2.0);
+
+    let rect = rectangle2::View::new();
+    rect.size.set(Vector2::new(2.0, 2.0));
+    world.add_child(&rect);
+    mem::forget(rect);
 
     world.add_child(&container);
     container.add_child(&left_stack);

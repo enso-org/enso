@@ -1,8 +1,6 @@
 from Standard.Base import all
 import Standard.Base
 
-import Standard.Base.System.Platform
-
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
 polyglot java import java.lang.Exception as JException

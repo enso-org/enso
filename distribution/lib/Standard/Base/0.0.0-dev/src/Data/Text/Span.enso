@@ -43,7 +43,7 @@ type Span
                  text = "Hello!"
                  range = 0.up_to 3
                  Span.Span_Data range text
-    Span_Data (range : Range.Range) (parent : Text)
+    Span_Data (range : Range) (parent : Text)
 
     ## The index of the first character included in the span.
 
@@ -110,7 +110,7 @@ type Utf_16_Span
              example_span =
                  text = 'a\u{301}bc'
                  Span.Utf_16_Span_Data (Range 0 3) text
-    Utf_16_Span_Data (range : Range.Range) (parent : Text)
+    Utf_16_Span_Data (range : Range) (parent : Text)
 
     ## The index of the first code unit included in the span.
     start : Integer
@@ -152,7 +152,7 @@ type Utf_16_Span
             case self.start == self.end of
                 True ->
                     grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start
-                    Span_Data (Range_Data grapheme_ix grapheme_ix) self.parent
+                    Span_Data (grapheme_ix.up_to grapheme_ix) self.parent
                 False ->
                     grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1].to_array
                     grapheme_first = grapheme_ixes.at 0
@@ -162,7 +162,7 @@ type Utf_16_Span
                        only a part of a grapheme were contained in our original span, the resulting span will be
                        extended to contain this whole grapheme.
                     grapheme_end = grapheme_last + 1
-                    Span_Data (Range_Data grapheme_first grapheme_end) self.parent
+                    Span_Data (grapheme_first.up_to grapheme_end) self.parent
 
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
@@ -172,19 +172,19 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
-    is_valid = (Range_Data 0 len+1).contains
+    is_valid = (0.up_to len+1).contains
 
-    case (Pair.Value (is_valid start) (is_valid end)) of
+    case Pair.new (is_valid start) (is_valid end) of
         Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
         Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
         Pair.Value True True ->
-            if start>=end then (Range_Data 0 0) else
+            if start>=end then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance
                 iterator.setText text
 
                 start_index = iterator.next start
                 end_index = iterator.next (end - start)
-                Range_Data start_index end_index
+                start_index.up_to end_index
 
 Span.from (that:Utf_16_Span) = that.to_grapheme_span
 Utf_16_Span.from (that:Span) = that.to_utf_16_span

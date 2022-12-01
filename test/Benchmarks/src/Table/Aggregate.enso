@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column_Selector
-from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 from Standard.Test import Bench, Faker
 
@@ -24,7 +24,7 @@ create_table rows (seed=1646322139) =
     Table.new [key1, key2, key3, value1, value2, text1, text2]
 
 # The Benchmarks ==============================================================
-main =
+bench =
     IO.println <| "Making table data..."
     table = create_table vector_size
 
@@ -51,3 +51,5 @@ main =
     Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value"]) "StDev 2 level groups" iter_size num_iterations
     # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Median "Value"]) "Median 2 level groups" iter_size num_iterations
     # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Mode "Index"]) "Mode 2 level groups" iter_size num_iterations
+
+main = bench

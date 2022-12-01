@@ -5,7 +5,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -29,7 +29,7 @@ public final class ModuleScope implements TruffleObject {
    * @param module the module related to the newly created scope.
    * @param context the current langauge context
    */
-  public ModuleScope(Module module, Context context) {
+  public ModuleScope(Module module, EnsoContext context) {
     this.module = module;
     this.associatedType =
         Type.createSingleton(

@@ -68,7 +68,10 @@ class ImportsTest extends PackageTest {
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
       .head should include("The name `Atom` could not be found.")
+  }
 
+  "Importing everything from the module" should "should not bring module into the scope when resolving names" in {
+    evalTestProject("Test_Import_Case") shouldEqual 0
   }
 
   "Exports system" should "detect cycles" in {
@@ -121,6 +124,17 @@ class ImportsTest extends PackageTest {
     outLines(
       1
     ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
+  }
+
+  "Polyglot symbols" should "not be exported" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Polyglot_Exports"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(
+      2
+    ) shouldEqual "Main.enso[5:16-5:19]: The name `Long` could not be found."
   }
 
   "Constructors" should "be importable" in {
