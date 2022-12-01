@@ -6,6 +6,7 @@ from Standard.Table import Table
 from Standard.Database import Database, Redshift, AWS_Credential, SQL_Query
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator

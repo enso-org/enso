@@ -5,6 +5,7 @@ polyglot java import org.enso.base.text.CaseFoldedString
 polyglot java import com.ibm.icu.text.BreakIterator
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec =
     Test.group "Text_Utils" <|

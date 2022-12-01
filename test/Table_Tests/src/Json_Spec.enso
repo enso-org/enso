@@ -1,7 +1,9 @@
 from Standard.Base import all
 from Standard.Table import Table
+import Standard.Table.Main as Table_Module
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 import project.Util
 
