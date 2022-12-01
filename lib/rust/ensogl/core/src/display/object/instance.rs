@@ -1516,6 +1516,92 @@ mod tests2 {
     use crate::display::world::World;
 
 
+    // === Utils ===
+
+    /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
+    /// three of its children:
+    ///
+    ///  ╭─ ROOT ──────────────────────────────────╮
+    ///  │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    ///  │  ╰─────────╯  ╰─────────╯  ╰─────────╯  │
+    ///  ╰─────────────────────────────────────────╯
+    #[derive(Debug, Clone, Default)]
+    pub struct TestThreeChildren {
+        world: World,
+        root:  Instance,
+        node1: Instance,
+        node2: Instance,
+        node3: Instance,
+    }
+
+    impl TestThreeChildren {
+        fn new() -> Self {
+            let world = World::new();
+            let root = Instance::new();
+            let node1 = Instance::new();
+            let node2 = Instance::new();
+            let node3 = Instance::new();
+            root.add_child(&node1);
+            root.add_child(&node2);
+            root.add_child(&node3);
+            Self { world, root, node1, node2, node3 }
+        }
+
+        fn reset_positions(&self) {
+            self.root.set_position(Vector3::zero());
+            self.node1.set_position(Vector3::zero());
+            self.node2.set_position(Vector3::zero());
+            self.node3.set_position(Vector3::zero());
+        }
+
+        fn run(&self, r: TestThreeChildrenResult) {
+            self.root.update(&self.world.default_scene);
+            r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
+            r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
+            r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
+            r.node3_position.for_each(|t| assert_eq!(self.node3.position().xy().as_slice(), t));
+            r.root_size.for_each(|t| assert_eq!(self.root.size().as_slice(), t));
+            r.node1_size.for_each(|t| assert_eq!(self.node1.size().as_slice(), t));
+            r.node2_size.for_each(|t| assert_eq!(self.node2.size().as_slice(), t));
+            r.node3_size.for_each(|t| assert_eq!(self.node3.size().as_slice(), t));
+        }
+    }
+
+    /// Macro generating a struct used for testing the results of [`TestThreeChildren`] test suite.
+    macro_rules! gen_test_result_struct {
+        ($($node: ident),*) => { paste! {
+            #[derive(Default, Clone, Copy)]
+            pub struct TestThreeChildrenResult {
+                $(
+                    [< $node _position >]: Option<[f32; 2]>,
+                    [< $node _size >]: Option<[f32; 2]>,
+                )*
+            }
+
+            impl TestThreeChildrenResult {
+                pub fn new() -> Self {
+                    Self::default()
+                }
+                $(
+                    pub fn [< $node _position >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _position >] = Some(val);
+                        self
+                    }
+
+                    pub fn [< $node _size >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _size >] = Some(val);
+                        self
+                    }
+                )*
+            }
+        }};
+    }
+
+    gen_test_result_struct!(root, node1, node2, node3);
+
+
+    // === Tests ===
+
     /// Input:
     ///
     ///  ╭▷ ROOT ──────────────────────────╮
@@ -1595,124 +1681,76 @@ mod tests2 {
         assert_eq!(r2.size(), Vector2(30.0, 50.0));
     }
 
-
-    /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
-    /// three of its children:
-    ///
-    ///         root
-    ///      /   |   \
-    /// node1  node2  node3
-    #[derive(Debug, Clone, Default)]
-    pub struct TestThreeChildren {
-        world: World,
-        root:  Instance,
-        node1: Instance,
-        node2: Instance,
-        node3: Instance,
-    }
-
-    impl TestThreeChildren {
-        fn new() -> Self {
-            let world = World::new();
-            let root = Instance::new();
-            let node1 = Instance::new();
-            let node2 = Instance::new();
-            let node3 = Instance::new();
-            root.add_child(&node1);
-            root.add_child(&node2);
-            root.add_child(&node3);
-            Self { world, root, node1, node2, node3 }
-        }
-
-        fn reset_positions(&self) {
-            self.root.set_position(Vector3::zero());
-            self.node1.set_position(Vector3::zero());
-            self.node2.set_position(Vector3::zero());
-            self.node3.set_position(Vector3::zero());
-        }
-
-        fn run(&self, r: TestThreeChildrenResult) {
-            self.root.update(&self.world.default_scene);
-            r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
-            r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
-            r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
-            r.node3_position.for_each(|t| assert_eq!(self.node3.position().xy().as_slice(), t));
-            r.root_size.for_each(|t| assert_eq!(self.root.size().as_slice(), t));
-            r.node1_size.for_each(|t| assert_eq!(self.node1.size().as_slice(), t));
-            r.node2_size.for_each(|t| assert_eq!(self.node2.size().as_slice(), t));
-            r.node3_size.for_each(|t| assert_eq!(self.node3.size().as_slice(), t));
-        }
-    }
-
-    /// Macro generating a struct used for testing the results of [`TestThreeChildren`] test suite.
-    macro_rules! gen_test_result_struct {
-        ($($node: ident),*) => { paste! {
-            #[derive(Default, Clone, Copy)]
-            pub struct TestThreeChildrenResult {
-                $(
-                    [< $node _position >]: Option<[f32; 2]>,
-                    [< $node _size >]: Option<[f32; 2]>,
-                )*
-            }
-
-            impl TestThreeChildrenResult {
-                pub fn new() -> Self {
-                    Self::default()
-                }
-                $(
-                    pub fn [< $node _position >](mut self, val: [f32; 2]) -> Self {
-                        self.[< $node _position >] = Some(val);
-                        self
-                    }
-
-                    pub fn [< $node _size >](mut self, val: [f32; 2]) -> Self {
-                        self.[< $node _size >] = Some(val);
-                        self
-                    }
-                )*
-            }
-        }};
-    }
-
-    gen_test_result_struct!(root, node1, node2, node3);
-
-
+    ///  ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
+    ///  │       ⋯5            ⋯5            ⋯5        │
+    ///  │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
+    ///  │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
+    ///  │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
+    ///  │       ⋯5            ⋯5            ⋯5        │
+    ///  ╰─────────────────────────────────────────────╯
     #[test]
-    fn test_simple_hug_resizing() {
+    fn test_horizontal_hug_resizing() {
         let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal());
+        test.root.set_layout(AutoLayout::horizontal().padding(Vector2(3.0, 5.0)).spacing(1.0));
         test.node1.set_resizing((20.0, 200.0));
         test.node2.set_resizing((30.0, 300.0));
         test.node3.set_resizing((50.0, 500.0));
         test.run(
             TestThreeChildrenResult::new()
                 .root_position([0.0, 0.0])
-                .node1_position([0.0, 0.0])
-                .node2_position([20.0, 0.0])
-                .node3_position([50.0, 0.0])
-                .root_size([100.0, 500.0])
-                .node1_size([20.0, 200.0])
-                .node2_size([30.0, 300.0])
-                .node3_size([50.0, 500.0]),
-        );
-
-        test.reset_positions();
-        test.root.set_layout(AutoLayout::vertical());
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([0.0, 0.0])
-                .node2_position([0.0, 200.0])
-                .node3_position([0.0, 500.0])
-                .root_size([50.0, 1000.0])
+                .node1_position([3.0, 5.0])
+                .node2_position([24.0, 5.0])
+                .node3_position([55.0, 5.0])
+                .root_size([108.0, 510.0])
                 .node1_size([20.0, 200.0])
                 .node2_size([30.0, 300.0])
                 .node3_size([50.0, 500.0]),
         );
     }
 
+    ///  ╭─ ROOT ─ ▶ ◀ ────╮
+    ///  ▽       ⋯5        │
+    ///  │   ╭─ node3 ─╮   │
+    ///  │ ⋯ │         │ ⋯ │
+    ///  │ 3 ╰─────────╯ 3 │
+    ///  │       ⋯1        │
+    ///  │   ╭─ node2 ─╮   ▼
+    ///  │ ⋯ │         │ ⋯ │
+    ///  │ 3 ╰─────────╯ 3 ▲
+    ///  │       ⋯1        │
+    ///  │   ╭─ node1 ─╮   │
+    ///  │ ⋯ │         │ ⋯ │
+    ///  │ 3 ╰─────────╯ 3 │
+    ///  │       ⋯5        │
+    ///  ╰─────────────────╯
     #[test]
-    fn test_nested_hug_resizing() {
+    fn test_vertical_hug_resizing() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::vertical().padding(Vector2(3.0, 5.0)).spacing(1.0));
+        test.node1.set_resizing((20.0, 200.0));
+        test.node2.set_resizing((30.0, 300.0));
+        test.node3.set_resizing((50.0, 500.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([3.0, 5.0])
+                .node2_position([3.0, 206.0])
+                .node3_position([3.0, 507.0])
+                .root_size([56.0, 1012.0])
+                .node1_size([20.0, 200.0])
+                .node2_size([30.0, 300.0])
+                .node3_size([50.0, 500.0]),
+        );
+    }
+
+    ///  ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
+    ///  │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    ///  │  │         ▼  │         ▼  │         ▼  ▼
+    ///  │  │         ▲  │         ▲  │         ▲  ▲
+    ///  │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
+    ///  ╰─────────────────────────────────────────╯
+    #[test]
+    fn test_horizontal_nested_hug_resizing() {
         let mut test = TestThreeChildren::new();
         test.root.set_layout(AutoLayout::horizontal());
         test.node1.set_resizing((200.0, Resizing::Hug));
@@ -1729,7 +1767,24 @@ mod tests2 {
                 .node2_size([0.0, 0.0])
                 .node3_size([0.0, 0.0]),
         );
+    }
 
+    ///  ╭─ ROOT ─ ▶ ◀ ──╮
+    ///  ▽  ╭─ node1 ─╮  │
+    ///  │  │         │  │
+    ///  │  │         │  │
+    ///  │  ╰── ▶ ◀ ──╯  │
+    ///  │  ╭─ node2 ─╮  │
+    ///  │  │         ▼  ▼
+    ///  │  │         ▲  ▲
+    ///  │  ╰── ▶ ◀ ──╯  │
+    ///  │  ╭─ node3 ─╮  │
+    ///  │  │         ▲  │
+    ///  │  │         ▼  │
+    ///  │  ╰── ▶ ◀ ──╯  │
+    ///  ╰───────────────╯
+    #[test]
+    fn test_vertical_nested_hug_resizing() {
         let mut test = TestThreeChildren::new();
         test.root.set_layout(AutoLayout::horizontal());
         test.node1.set_resizing((Resizing::Hug, 200.0));
