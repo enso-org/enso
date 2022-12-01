@@ -38,10 +38,10 @@ spec = Test.group "Range" <|
         10.down_to 0 . with_step 2 . should_equal (Range.Value 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
-        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error_Data
-        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error_Data
-        0.up_to 2.0 . should_fail_with Illegal_Argument_Error_Data
-        0.down_to 2.0 . should_fail_with Illegal_Argument_Error_Data
+        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument.Error
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument.Error
+        0.up_to 2.0 . should_fail_with Illegal_Argument.Error
+        0.down_to 2.0 . should_fail_with Illegal_Argument.Error
         Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error_Data
         Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error_Data
 
@@ -146,11 +146,11 @@ spec = Test.group "Range" <|
         3.up_to 5 . contains 2 . should_be_false
         0.up_to 10 . contains -3 . should_be_false
 
-        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
-        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
+        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument.Error
+        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument.Error
 
-        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
-        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
+        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument.Error
+        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument.Error
 
 
     verify_contains range expected unexpected =

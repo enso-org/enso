@@ -190,12 +190,12 @@ spec =
             f.read_bytes.should_equal (data + data_2)
             f.delete_if_exists
 
-        Test.specify "should fail with Illegal_Argument_Error when trying to write invalid byte vector" <|
+        Test.specify "should fail with Illegal_Argument when trying to write invalid byte vector" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument_Error_Data
-            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
+            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument.Error
 
         Test.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
@@ -203,12 +203,12 @@ spec =
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
             data.write_bytes f
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
             f_bak.exists.should_be_false
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
             f.delete_if_exists
 

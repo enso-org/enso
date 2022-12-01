@@ -212,7 +212,7 @@ spec =
             "".split "." . should_equal [""]
             "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
             'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
-            'abc'.split '' . should_fail_with Illegal_Argument_Error_Data
+            'abc'.split '' . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
             matcher = Text_Matcher.Case_Insensitive
@@ -222,7 +222,7 @@ spec =
             "baB".split "b" matcher . should_equal ["", "a", ""]
             "".split "a" matcher . should_equal [""]
             'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
-            'abc'.split '' matcher . should_fail_with Illegal_Argument_Error_Data
+            'abc'.split '' matcher . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to split the text on Regex patterns" <|
             "cababdabe" . split "ab" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["c", "", "d", "e"]
@@ -234,7 +234,7 @@ spec =
             ".a.".split "\." (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ["", "a", ""]
             "".split "a" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_equal [""]
             'aśbs\u{301}c'.split 'ś' (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_equal ['a', 'b', 'c']
-            'abc'.split '' (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_fail_with Illegal_Argument_Error_Data
+            'abc'.split '' (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split "\s+" (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive) . should_equal utf_8_whitespace_split
@@ -495,7 +495,7 @@ spec =
             "ABC".take (By_Index -1) . should_equal "C"
             "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
             "ABC".take (By_Index []) . should_equal ""
-            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument_Error_Data
+            "ABC".take (By_Index ((-2).up_to -1)) . should_fail_with Illegal_Argument.Error
             "".take (Every 2) . should_equal ""
             "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
@@ -1019,9 +1019,9 @@ spec =
             "HELLO".pad 8 "AB" . should_equal "HELLOABA"
             "HELLO".pad 8 "AB" Location.Start . should_equal "BABHELLO"
             "".pad 4 . should_equal "    "
-            "A".pad 3 "" . should_fail_with Illegal_Argument_Error_Data
-            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument_Error_Data
-            "".pad 0 "" . should_fail_with Illegal_Argument_Error_Data
+            "A".pad 3 "" . should_fail_with Illegal_Argument.Error
+            "ABCDE".pad 3 "" . should_fail_with Illegal_Argument.Error
+            "".pad 0 "" . should_fail_with Illegal_Argument.Error
 
             "".pad 0 . should_equal ""
             "ABC".pad 3 . should_equal "ABC"
