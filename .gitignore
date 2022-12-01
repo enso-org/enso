@@ -24,6 +24,7 @@ wasm-pack.log
 generated/
 /target
 /build/rust/target/
+lib/rust/types/src/dim_macros.rs
 
 ###########
 ## Scala ##
