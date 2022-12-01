@@ -975,7 +975,11 @@ type Integer
 
             Integer.parse "20220216"
     parse : Text -> Text -> Integer ! Parse_Error
-    parse text (radix=10) = Integer.parse_internal text radix
+    parse text (radix=10) = Integer.parse_builtin text radix
+
+    ## PRIVATE
+
+        Internally handles the parsing.
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
 
