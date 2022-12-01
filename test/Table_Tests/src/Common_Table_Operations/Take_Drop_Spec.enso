@@ -7,8 +7,14 @@ from Standard.Test import Test
 import Standard.Test.Extensions
 
 from project.Util import all
+from project.Common_Table_Operations.Util import run_default_backend
 
-spec prefix table_builder test_selection =
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
     take_drop_by_pending = if test_selection.take_drop.not then
         "TODO: take/drop are not yet supported by this backend."
     Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|

@@ -5,7 +5,13 @@ from Standard.Table.Errors import all
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-spec prefix table_builder =
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
     Test.group prefix+"Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]

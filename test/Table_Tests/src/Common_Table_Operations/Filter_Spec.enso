@@ -8,11 +8,19 @@ from Standard.Database.Errors import SQL_Error_Data
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt
    this in the future. For now we implicitly assume the ordering is preserved,
    as that seems to be the case.
-spec prefix table_builder test_selection =
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
+
     check_empty expected_column_names table =
         table.columns.map .name . should_equal expected_column_names
         expected_column_names.each x->

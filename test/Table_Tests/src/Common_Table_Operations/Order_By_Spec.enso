@@ -6,7 +6,14 @@ from Standard.Table.Errors import all
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-spec prefix table_builder test_selection =
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
     order_by_pending = if test_selection.order_by.not then
         "TODO: order_by is not yet supported by this backend."
     Test.group prefix+"Table.order_by" pending=order_by_pending <|

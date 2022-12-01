@@ -9,26 +9,25 @@ from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
+from project.Common_Table_Operations.Util import run_default_backend
+
 polyglot java import java.lang.Double
+
+main = run_default_backend spec
 
 type Test_Selection
     Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
 ## Runs the common aggregate tests.
+spec setup =
+    prefix = setup.prefix
+    table = setup.table
+    empty_table = setup.empty_table
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    is_database = setup.is_database
+    test_selection = setup.aggregate_test_selection
 
-   Arguments:
-   - prefix: A name to prepend to test groups to identify the tested backend.
-   - table: A table using the tested backend containing data from
-     `data/data.csv`.
-   - empty_table: An empty table using the tested backend.
-   - table_builder: A function used to build a table using the tested backend
-     from a vector of columns represented as pairs of name and vector of values.
-   - materialize: A helper function which materializes a table from the tested
-     backend as an in-memory table. Used to easily inspect results of a
-     particular query/operation.
-   - test_selection: A selection of which suites should be run. Can be used to
-     skip checks for backends which do not support particular features.
-spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection.Config =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 

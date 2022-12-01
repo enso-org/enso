@@ -7,9 +7,14 @@ from Standard.Table.Errors import all
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import expect_column_names
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
-spec prefix table_builder test_selection =
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
     table =
         col1 = ["foo", [1,2,3]]
         col2 = ["bar", [4,5,6]]

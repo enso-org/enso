@@ -9,7 +9,14 @@ from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 from Standard.Test import Test
 import Standard.Test.Extensions
 
-spec prefix table_builder test_selection =
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
     Test.group prefix+"Dropping Missing Values" <|
         t0 = table_builder [["a", [0, 1, Nothing, 42, Nothing, 5]], ["b", [True, Nothing, True, False, Nothing, False]], ["c", ["", "foo", "bar", Nothing, Nothing, " "]]]
         t1 =

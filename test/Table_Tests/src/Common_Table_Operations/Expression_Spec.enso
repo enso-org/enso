@@ -9,8 +9,14 @@ from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 from project.Util import all
+from project.Common_Table_Operations.Util import run_default_backend
 
-spec prefix table_builder detailed=False =
+main = run_default_backend (spec detailed=True)
+
+spec detailed setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
     # Create Test Table
     column_a = ["A", [1, 2, 3, 4, 5]]
     column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
@@ -290,5 +296,3 @@ spec prefix table_builder detailed=False =
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
             expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
-
-#main = Test_Suite.run_main (spec True)
