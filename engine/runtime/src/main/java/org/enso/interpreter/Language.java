@@ -1,9 +1,9 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
@@ -13,6 +13,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
@@ -25,8 +26,8 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.service.ExecutionService;
@@ -37,11 +38,10 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
-
-import java.util.Optional;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
+
+import java.util.Optional;
 
 /**
  * The root of the Enso implementation.
@@ -181,25 +181,44 @@ public final class Language extends TruffleLanguage<Context> {
     return root.getCallTarget();
   }
 
+  /**
+   * Parses the given Enso source code snippet in {@code request}.
+   *
+   * @param request request for inline parsing
+   * @throws Exception if the compiler failed to parse
+   * @return An {@link ExecutableNode} representing an AST fragment if the request contains
+   *   syntactically correct Enso source, {@code null} otherwise.
+   */
   @Override
-  protected ExecutableNode parse(InlineParsingRequest request) {
+  protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var module = ensoRootNode.getModuleScope().getModule();
       var localScope = ensoRootNode.getLocalScope();
+      var silentConfig = new CompilerConfig(false, false, true);
       var inlineContext = new InlineContext(
           module,
           scala.Some.apply(localScope),
           scala.Some.apply(false),
           scala.Option.empty(),
           scala.Option.empty(),
-          new CompilerConfig(false, false)
+          silentConfig
       );
       var context = Context.get(request.getLocation());
-      scala.Option<ExpressionNode> exprNode = context.getCompiler()
-          .runInline(
-              request.getSource().getCharacters().toString(),
-              inlineContext
-          );
+      var silentCompiler = context.getCompiler().duplicateWithConfig(silentConfig);
+      scala.Option<ExpressionNode> exprNode;
+      try {
+        exprNode = silentCompiler
+            .runInline(
+                request.getSource().getCharacters().toString(),
+                inlineContext
+            );
+      } catch (UnhandledEntity e) {
+        // Wrap UnhandledEntity in a checked exception, so that truffle can be notified
+        // that parsing failed.
+        throw new Exception("Unhandled entity " + e.entity(), e);
+      } finally {
+        silentCompiler.shutdown(false);
+      }
       if (exprNode.isDefined()) {
         var language = Language.get(exprNode.get());
         return new ExecutableNode(language) {

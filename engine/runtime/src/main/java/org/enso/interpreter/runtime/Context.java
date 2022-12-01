@@ -106,7 +106,7 @@ public class Context {
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    this.compilerConfig = new CompilerConfig(isParallelismEnabled, true);
+    this.compilerConfig = new CompilerConfig(isParallelismEnabled, true, false);
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
