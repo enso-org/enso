@@ -128,7 +128,7 @@ type No_Such_Group
 
     ## PRIVATE
 
-       Provides a human-readable representation of the `No_Such_Group_Error`.
+       Provides a human-readable representation of the `No_Such_Group`.
     to_display_text : Text
     to_display_text self = case self.id of
         _ : Integer -> "No group exists with the index " + self.id.to_text + "."

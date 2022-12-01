@@ -47,7 +47,7 @@ type Form
 
              example_form_new = Form.new (Form.text_field "foo" "bar")
     new : Vector -> Form
-    new parts = Value parts
+    new parts = Form.Value parts
 
     ## PRIVATE
 

@@ -9,8 +9,6 @@ import project.Nothing.Nothing
 
 from project.Error.Common import unimplemented
 
-// No_Such_Group_Error
-
 ## The `Data.Text.Regex.Engine.Match` interface.
 type Match
 
@@ -18,7 +16,7 @@ type Match
 
        Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
-       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+       exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
        - id: The index or name of that group.
