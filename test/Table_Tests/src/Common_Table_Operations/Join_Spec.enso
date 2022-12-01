@@ -8,7 +8,7 @@ from Standard.Test import Test, Problems
 
 from project.Common_Table_Operations.Util import expect_column_names
 
-spec prefix table_builder test_selection pending=Nothing =
+spec prefix table_builder test_selection =
     join_pending = if prefix.contains "In-Memory" then Nothing else "New Joining API is not supported by the database backends yet."
     Test.group prefix+"Table.join" pending=join_pending <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]

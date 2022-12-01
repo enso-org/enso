@@ -5,10 +5,9 @@ from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
 
-spec prefix table_builder test_selection pending=Nothing =
-    order_by_pending = if pending.is_nothing.not then pending else
-        if test_selection.order_by.not then "TODO: order_by is not yet supported by this backend." else
-            Nothing
+spec prefix table_builder test_selection =
+    order_by_pending = if test_selection.order_by.not then
+        "TODO: order_by is not yet supported by this backend."
     Test.group prefix+"Table.order_by" pending=order_by_pending <|
         table =
             col1 = ["alpha", [3, 2, 1, 0]]

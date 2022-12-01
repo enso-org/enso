@@ -4,8 +4,8 @@ from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
 
-spec prefix table_builder test_selection pending=Nothing =
-    Test.group prefix+"Column Operations" pending=pending <|
+spec prefix table_builder test_selection =
+    Test.group prefix+"Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
             t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]

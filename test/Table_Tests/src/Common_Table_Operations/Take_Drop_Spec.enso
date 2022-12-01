@@ -7,10 +7,9 @@ from Standard.Test import Test
 
 from project.Util import all
 
-spec prefix table_builder test_selection pending=Nothing =
-    take_drop_by_pending = if pending.is_nothing.not then pending else
-        if test_selection.take_drop.not then "TODO: take/drop are not yet supported by this backend." else
-            Nothing
+spec prefix table_builder test_selection =
+    take_drop_by_pending = if test_selection.take_drop.not then
+        "TODO: take/drop are not yet supported by this backend."
     Test.group prefix+"Table.take/drop" pending=take_drop_by_pending <|
         table =
             col1 = ["alpha", [1,2,3,4,5,6,7,8]]

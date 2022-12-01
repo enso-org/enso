@@ -12,8 +12,8 @@ import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-redshift_specific_spec connection pending =
-    Test.group "[Redshift] Info" pending=pending <|
+redshift_specific_spec connection =
+    Test.group "[Redshift] Info" <|
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.query (SQL_Query.Table_Name tinfo)
@@ -32,7 +32,7 @@ redshift_specific_spec connection pending =
             t.at "reals" . sql_type . is_definitely_double . should_be_true
         connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
-run_tests connection pending=Nothing =
+run_tests connection =
     prefix = "[Redshift] "
     name_counter = Ref.new 0
     tables = Vector.new_builder
@@ -52,8 +52,8 @@ run_tests connection pending=Nothing =
             Panic.rethrow <| connection.execute_update sql
     materialize = .read
 
-    Common_Spec.spec prefix connection pending=pending
-    redshift_specific_spec connection pending=pending
+    Common_Spec.spec prefix connection
+    redshift_specific_spec connection
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
@@ -116,8 +116,7 @@ spec =
 
     case connection_details of
         _ : Text ->
-            connection = Error.throw connection_details
-            run_tests connection pending=connection_details
+            Test.group "Redshift tests" pending=connection_details Nothing
         _ ->
             connection = Database.connect connection_details
             run_tests connection

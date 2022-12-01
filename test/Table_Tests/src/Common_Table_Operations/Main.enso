@@ -39,13 +39,11 @@ type Test_Selection
    - aggregate_test_selection: A selection of which aggregate test suites should
      be run. Can be used to skip checks for backends which do not support
      particular features.
-   - pending: An optional mark to disable all test groups. Can be used to
-     indicate that some tests are disabled due to missing test setup.
-spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection.Config aggregate_test_selection=Aggregate_Test_Selection.Config pending=Nothing =
+spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection.Config aggregate_test_selection=Aggregate_Test_Selection.Config =
     Core_Spec.spec prefix table_builder test_selection
     Select_Columns_Spec.spec prefix table_builder test_selection
     Column_Operations_Spec.spec prefix table_builder test_selection
-    Aggregate_Spec.spec prefix table empty_table table_builder materialize is_database aggregate_test_selection pending
+    Aggregate_Spec.spec prefix table empty_table table_builder materialize is_database aggregate_test_selection
     Filter_Spec.spec prefix table_builder test_selection
     Missing_Values_Spec.spec prefix table_builder test_selection
     Order_By_Spec.spec prefix table_builder test_selection
