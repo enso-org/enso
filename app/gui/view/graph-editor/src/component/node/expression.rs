@@ -16,8 +16,6 @@ use span_tree::SpanTree;
 pub struct Expression {
     pub pattern:             Option<String>,
     pub code:                ImString,
-    pub is_skipped:          bool,
-    pub is_frozen:           bool,
     pub whole_expression_id: Option<ast::Id>,
     pub input_span_tree:     SpanTree,
     pub output_span_tree:    SpanTree,
@@ -32,15 +30,7 @@ impl Expression {
             code.as_str().generate_tree(&span_tree::generate::context::Empty).unwrap_or_default();
         let output_span_tree = default();
         let whole_expression_id = default();
-        Self {
-            pattern,
-            code,
-            is_skipped: false,
-            is_frozen: false,
-            whole_expression_id,
-            input_span_tree,
-            output_span_tree,
-        }
+        Self { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
     }
 }
 

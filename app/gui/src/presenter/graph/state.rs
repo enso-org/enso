@@ -28,6 +28,8 @@ pub struct Node {
     pub view_id:       Option<ViewNodeId>,
     pub position:      Vector2,
     pub expression:    node_view::Expression,
+    pub is_skipped:    bool,
+    pub is_frozen:     bool,
     pub error:         Option<node_view::Error>,
     pub visualization: Option<visualization_view::Path>,
 
@@ -42,6 +44,8 @@ impl Default for Node {
             view_id:                None,
             position:               Vector2::default(),
             expression:             node_view::Expression::default(),
+            is_skipped:             false,
+            is_frozen:              false,
             error:                  None,
             visualization:          None,
             expression_auto_update: true,
@@ -442,16 +446,12 @@ impl<'a> ControllerChange<'a> {
         trees: controller::graph::NodeTrees,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
         let ast_id = node.main_line.id();
-        let macros_info = node.info.main_line.macros_info();
-        let (is_skipped, is_frozen) = (macros_info.skip, macros_info.freeze);
         let new_displayed_expr = node_view::Expression {
-            pattern: node.info.pattern().map(|t| t.repr()),
-            code: node.info.expression().repr().into(),
+            pattern:             node.info.pattern().map(|t| t.repr()),
+            code:                node.info.expression().repr().into(),
             whole_expression_id: node.info.expression().id,
-            input_span_tree: trees.inputs,
-            output_span_tree: trees.outputs.unwrap_or_else(default),
-            is_skipped,
-            is_frozen,
+            input_span_tree:     trees.inputs,
+            output_span_tree:    trees.outputs.unwrap_or_else(default),
         };
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
@@ -466,6 +466,36 @@ impl<'a> ControllerChange<'a> {
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
             self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
             Some((displayed.view_id?, new_displayed_expr))
+        } else {
+            None
+        }
+    }
+
+    /// Check if `SKIP` macro is present in the expression and return the updated state (whether the
+    /// macro is present). Returns `None` if no changes to the state are needed.
+    pub fn set_node_skip(&self, node: &controller::graph::Node) -> Option<bool> {
+        let ast_id = node.main_line.id();
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        let skip = node.info.main_line.macros_info().skip;
+        if displayed.is_skipped != skip {
+            displayed.is_skipped = skip;
+            Some(skip)
+        } else {
+            None
+        }
+    }
+
+    /// Check if `FREEZE` macro is present in the expression and return the updated state (whether
+    /// the macro is present). Returns `None` if no changes to the state are needed.
+    pub fn set_node_freeze(&self, node: &controller::graph::Node) -> Option<bool> {
+        let ast_id = node.main_line.id();
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        let freeze = node.info.main_line.macros_info().freeze;
+        if displayed.is_frozen != freeze {
+            displayed.is_frozen = freeze;
+            Some(freeze)
         } else {
             None
         }
@@ -674,8 +704,8 @@ impl<'a> ViewChange<'a> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
-        if displayed.expression.is_skipped != skip {
-            displayed.expression.is_skipped = skip;
+        if displayed.is_skipped != skip {
+            displayed.is_skipped = skip;
             Some(ast_id)
         } else {
             None
@@ -688,8 +718,8 @@ impl<'a> ViewChange<'a> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
-        if displayed.expression.is_frozen != freeze {
-            displayed.expression.is_frozen = freeze;
+        if displayed.is_frozen != freeze {
+            displayed.is_frozen = freeze;
             Some(ast_id)
         } else {
             None
@@ -916,8 +946,6 @@ mod tests {
             whole_expression_id: Some(node_id),
             input_span_tree:     new_trees.inputs.clone(),
             output_span_tree:    default(),
-            is_skipped:          false,
-            is_frozen:           false,
         };
         let updater = state.update_from_controller();
         assert_eq!(
