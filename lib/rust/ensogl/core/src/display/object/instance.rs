@@ -1120,7 +1120,7 @@ pub struct Horizontal;
 pub struct Vertical;
 
 #[derive(Clone, Copy, Debug)]
-pub enum Layout {
+pub enum AutoLayout {
     Horizontal(LayoutOptions),
     Vertical(LayoutOptions),
 }
@@ -1132,7 +1132,7 @@ pub struct LayoutOptions {
     pub padding:   Vector2<f32>,
 }
 
-impl Layout {
+impl AutoLayout {
     pub fn horizontal() -> LayoutBuilder<Horizontal> {
         default()
     }
@@ -1154,15 +1154,32 @@ pub struct LayoutBuilder<Layout> {
     pub tp:      PhantomData<Layout>,
 }
 
-impl From<LayoutBuilder<Horizontal>> for Option<Layout> {
-    fn from(builder: LayoutBuilder<Horizontal>) -> Self {
-        Some(Layout::Horizontal(builder.options))
+impl<Layout> LayoutBuilder<Layout> {
+    pub fn alignment(mut self, alignment: Vector2<Alignment>) -> Self {
+        self.options.alignment = alignment;
+        self
+    }
+
+    pub fn spacing(mut self, spacing: f32) -> Self {
+        self.options.spacing = spacing;
+        self
+    }
+
+    pub fn padding(mut self, padding: Vector2<f32>) -> Self {
+        self.options.padding = padding;
+        self
     }
 }
 
-impl From<LayoutBuilder<Vertical>> for Option<Layout> {
+impl From<LayoutBuilder<Horizontal>> for Option<AutoLayout> {
+    fn from(builder: LayoutBuilder<Horizontal>) -> Self {
+        Some(AutoLayout::Horizontal(builder.options))
+    }
+}
+
+impl From<LayoutBuilder<Vertical>> for Option<AutoLayout> {
     fn from(builder: LayoutBuilder<Vertical>) -> Self {
-        Some(Layout::Vertical(builder.options))
+        Some(AutoLayout::Vertical(builder.options))
     }
 }
 
@@ -1186,19 +1203,42 @@ impl Debug for Instance {
 // === LayoutModel ===
 // ===================
 
+// ▲ ◀ ▶ ▼ ◎ ● ○ ◌ ◍ ◎ ● ○ ◌ ◍
+///  ╭────◀─▶─────╮  ╭─────────▶─◀─────────╮  
+///  │ ╭───────╮  │  │ ╭───────╮ ╭───────╮ │  
+///  │ │   ┬   │  ▼  │ │   ▲   │ │   ┬   │ ▲  
+///  │ │ ├─┼─┤ │  │  │ │ ├─┼─┤ │ │ ├─┼─┤ │ │  
+///  │ │   ┴   │  ▲  │ │   ▼   │ │   ┴   │ ▼  
+///  │ ╰───────╯  │  │ ╰───────╯ ╰───────╯ │  
+///  ╰────────────╯  ╰─────────────────────╯  
+///                                           
+
+///  ╭────────────────────────────────╮
+///  │   ╭── ◀ ▶ ───╮   ╭─ ▶ ◀ ───╮   │
+///  │   │ ╭ ◀ ▶ ╮  │   │ ╭───╮   │   │
+///  │   │ │     │  │   │ │   ▲   │   │
+///  │   │ │     │  │   │ │   ▼   │   │
+///  │   │ │     │  ▼   │ ╰───╯   ▲   │
+///  │   │ │     │  ▲   │ ╭───╮   ▼   │
+///  │   │ │     │  │   │ │   ▲   │   │
+///  │   │ │     │  │   │ │   ▼   │   │
+///  │   │ ╰─────╯  │   │ ╰───╯   │   │
+///  │   ╰──────────╯   ╰─────────╯   │
+///  ╰────────────────────────────────╯                                     
+
 #[derive(Debug)]
 pub struct LayoutModel {
-    layout:   Cell<Option<Layout>>,
+    auto:     Cell<Option<AutoLayout>>,
     size:     Cell<Vector2<f32>>,
     resizing: Cell<Vector2<Resizing>>,
 }
 
 impl LayoutModel {
     pub fn new(network: &frp::Network) -> Self {
-        let layout = default();
+        let auto = default();
         let size = default();
         let resizing = default();
-        Self { layout, size, resizing }
+        Self { auto, size, resizing }
     }
 }
 
@@ -1218,38 +1258,154 @@ impl Model {
 }
 
 impl Model {
-    fn set_layout(&self, layout: impl Into<Option<Layout>>) {
+    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
         self.dirty.transformation.set();
-        self.layout.layout.set(layout.into());
+        self.layout.auto.set(layout.into());
     }
 
     fn update_layout(&self) {
-        if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
-            return;
-        }
-        let resizing = self.layout.resizing.get();
-        match resizing.x {
-            Resizing::Fixed(v) => self.layout.size.modify_(|t| t.x = v),
-            _ => {}
-        }
-        match resizing.y {
-            Resizing::Fixed(v) => self.layout.size.modify_(|t| t.y = v),
-            _ => {}
-        }
-        match self.layout.layout.get() {
-            None => {}
-            Some(Layout::Horizontal(opts)) => self.update_layout_one_dimension(X, Y, opts),
-            Some(Layout::Vertical(opts)) => self.update_layout_one_dimension(Y, X, opts),
-            _ => panic!(),
+        self.update_layout_internal(true);
+        if self.layout.auto.get().is_some() {
+            self.update_layout_internal(false);
         }
     }
 
+
+    fn update_layout_internal(&self, first_pass: bool) {
+        if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
+            return;
+        }
+        if first_pass {
+            let resizing = self.layout.resizing.get();
+            match resizing.x {
+                Resizing::Fixed(v) => self.layout.size.modify_(|t| t.x = v),
+                _ => {}
+            }
+            match resizing.y {
+                Resizing::Fixed(v) => self.layout.size.modify_(|t| t.y = v),
+                _ => {}
+            }
+        }
+        match self.layout.auto.get() {
+            None => {
+                let children = self.children();
+                if !children.is_empty() {
+                    let mut max_size: Vector2<f32> = default();
+                    for child in children {
+                        child.update_layout();
+                        let child_size = child.size() + child.position().xy();
+                        max_size.x = max_size.x.max(child_size.x);
+                        max_size.y = max_size.y.max(child_size.y);
+                    }
+                    let resizing = self.layout.resizing.get();
+                    if resizing.x.is_hug() {
+                        self.layout.size.set_x(max_size.x);
+                    }
+                    if resizing.y.is_hug() {
+                        self.layout.size.set_y(max_size.y);
+                    }
+                }
+            }
+            Some(AutoLayout::Horizontal(opts)) =>
+                self.update_linear_layout(X, Y, first_pass, opts, first_pass),
+            Some(AutoLayout::Vertical(opts)) =>
+                self.update_linear_layout(Y, X, !first_pass, opts, first_pass),
+        }
+    }
+
+
+
+    /// Updates a linear (horizontal or vertical) layout.
+    ///
+    ///
+    /// # The two-pass update algorithm
+    /// The layout update is a two pass algorithm. First, the sizes and positions of elements is
+    /// updated in the horizontal direction, then in the vertical direction. To better illustrate
+    /// the need of such a solution, consider the following example:
+    ///
+    ///  ╭▷ ROOT ──────────────────────────╮
+    ///  │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
+    ///  │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
+    ///  │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
+    ///  │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
+    ///  │   │ │     │  ▼   │ ╰────╯   ▲   │
+    ///  │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
+    ///  │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
+    ///  │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
+    ///  │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
+    ///  │   ╰──────────╯   ╰──────────╯   │
+    ///  ╰─────────────────────────────────╯
+    ///
+    /// 1. In the first pass, we are updating the horizontal layout.
+    ///    a) First, we are traversing the `L` object. It's X-axis resizing is set to `Fill`, so we
+    ///       can't determine its width yet. Neither we can update the X-axis layout of its child,
+    ///       as it may depend on the `L` object width.
+    ///    b) Then, we are traversing the `R` object. It's X-axis resizing is set to `Hug`, so we
+    ///       need to traverse its children to find the widest one. It's layout is set to vertical,
+    ///       unlike in the case of the `L` and `R` objects, we are computing the size in the
+    ///       orthogonal direction than the layout the children are placed in.
+    ///    c) As the `ROOT` object's width resizing is set to `Fixed`, after finding the `R` object
+    ///       width, we can compute the `L` object width.
+    ///    d) Finally, we can update the `L` object children layout.
+    ///
+    /// 2. In the second pass, we are updating the vertical layout.
+    ///    a) First, we are traversing the `L` object. It's Y-axis resizing is set to `Hug`, so we
+    ///       need to traverse its children to find the tallest one.
+    ///    b) The `L1` object's Y-axis resizing is set to `Fixed`, so we can simply update its
+    ///       height.
+    ///    c) Next, we are traversing the `R` object. It's Y-axis resizing is set to `Fill`, so we
+    ///       can compute it, as the `ROOT` object height is fixed.
+    ///    d) Finally, we can update the `R` object children layout. Both children Y-axis resizing
+    ///       is set to `Fill`, so they are equally using the available space.
+    ///
+    /// Please note, that this algorithm could not be realized in a single pass, as we can't compute
+    /// `L` object width without first computing the `R` object width, and we can't compute the
+    /// `R` object height without first computing the `L` object height.
+    ///
+    /// The result of the algorithm is presented below. Please note that only the dimensions written
+    /// in parentheses were set manually.
+    ///
+    ///  ╭▷ ROOT ─────────────────────────────────────────╮
+    ///  │                          ╭R─ ▶ ◀ ──────╮       │
+    ///  │                          ▽ ╭────╮      │       │
+    ///  │                          │ │ R2 ▲ 50   │       │
+    ///  │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
+    ///  │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
+    ///  │  │ │ L1  │        ▼      │  (30)       │       │
+    ///  │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
+    ///  │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
+    ///  │  │   70           │      │ │ R1 ▲ 50   │       │
+    ///  │  ╰────────────────╯      │ │    ▼      │       │
+    ///  │         70               │ ╰────╯      │       │
+    ///  │                          │  (20)       │       │
+    ///  │                          ╰─────────────╯       │
+    ///  │                               30               │
+    ///  ╰────────────────────────────────────────────────╯
+    ///                       (100)   
+    ///
+    ///
+    /// # Meaning of the function parameters.
+    /// In order to make the code easy to understand, all variables were named as if the code was
+    /// updating horizontal layout only. In reality, the variables [`x`] and [`y`] can be flipped to
+    /// update vertical layout instead.
+    ///
+    /// The [`update_x`] flag indicates whether we are updating the X- or the Y- local axis. For
+    /// example, in the example described above, during the horizontal layout update, the `R` object
+    /// children were traversed. During the traversal. the [`x`] variable was set to the Y-axis, and
+    /// the [`y`] variable was set to the X-axis, so the `R1` and `R2` objects can be considered as
+    /// placed in an horizontal layout. The [`update_x`] flag was set to `false`, as we were
+    /// interested in the width of `R1` and `R2`, which in the local coordinate system was the
+    /// Y-axis.
+    ///
+    /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
     #[inline(always)]
-    fn update_layout_one_dimension<Dim1: Copy, Dim2: Copy>(
+    fn update_linear_layout<Dim1: Copy, Dim2: Copy>(
         &self,
         x: Dim1,
         y: Dim2,
+        update_x: bool,
         opts: LayoutOptions,
+        first_pass: bool,
     ) where
         Vector2<Resizing>: DimSetter<Dim1>,
         Vector2<Alignment>: DimSetter<Dim1>,
@@ -1262,61 +1418,94 @@ impl Model {
     {
         let children = self.children();
         let resizing = self.layout.resizing.get_dim(x);
-        let space_left = if resizing.is_fixed() || resizing.is_fill() {
-            let mut allocated_space = 0.0;
-            let mut children_to_fill = vec![];
-            for child in &children {
-                if child.layout.resizing.get_dim(x).is_fill() {
-                    children_to_fill.push(child);
-                } else {
-                    child.update_layout();
-                    allocated_space += child.layout.size.get_dim(x);
+        if update_x {
+            // === Recomputing X-axis elements size of the X-axis horizontal layout ===
+
+            let total_padding_x = 2.0 * opts.padding.get_dim(x);
+            let total_spacing_x = (children.len() - 1) as f32 * opts.spacing;
+            let space_left = if resizing.is_fixed() || resizing.is_fill() {
+                let mut space_used = 0.0;
+                let mut children_to_fill = vec![];
+                for child in &children {
+                    if child.layout.resizing.get_dim(x).is_fill() {
+                        children_to_fill.push(child);
+                    } else {
+                        child.update_layout_internal(first_pass);
+                        space_used += child.layout.size.get_dim(x);
+                    }
                 }
-            }
-            let children_to_fill_count = children_to_fill.len();
-            let width = self.layout.size.get_dim(x);
-            let space_left = width
-                - allocated_space
-                - 2.0 * opts.padding.get_dim(x)
-                - (children.len() - 1) as f32 * opts.spacing;
-            let child_size = space_left.max(0.0) / children_to_fill_count as f32;
-            for child in children_to_fill {
-                child.layout.size.set_dim(x, child_size);
-                child.update_layout();
-            }
-            if children_to_fill_count > 0 {
-                0.0
-            } else {
+                let width = self.layout.size.get_dim(x);
+                let mut space_left = width - space_used - total_padding_x - total_spacing_x;
+                let fill_size = space_left.max(0.0) / children_to_fill.len() as f32;
+                for child in children_to_fill {
+                    child.layout.size.set_dim(x, fill_size);
+                    child.update_layout_internal(first_pass);
+                    space_left -= fill_size;
+                }
                 space_left
+            } else {
+                // Hug resizing branch.
+                let mut max_x = 0.0;
+                for child in &children {
+                    if child.layout.resizing.get_dim(x).is_fill() {
+                        child.layout.size.modify(|t| t.set_dim(x, 0.0));
+                    }
+                    child.update_layout_internal(first_pass);
+                    max_x += child.layout.size.get_dim(x);
+                }
+                max_x += total_padding_x + total_spacing_x;
+                self.layout.size.set_dim(x, max_x);
+                0.0
+            };
+
+
+            // === Recomputing X-axis elements position of the X-axis horizontal layout ===
+
+            let mut pos_x = opts.padding.get_dim(x);
+            pos_x += opts.alignment.get_dim(x).as_number() * space_left;
+            for child in &children {
+                let size = child.size();
+                child.set_position_dim(x, pos_x);
+                pos_x += size.get_dim(x) + opts.spacing;
             }
         } else {
-            let mut size = Vector2(0.0, 0.0);
+            // === Recomputing Y-axis elements size of the X-axis horizontal layout ===
+
+            let padding_y = opts.padding.get_dim(y);
+            let total_padding_y = 2.0 * opts.padding.get_dim(y);
+            let mut children_to_fill = vec![];
+            let mut height: f32 = 0.0;
             for child in &children {
-                if child.layout.resizing.get_dim(x).is_fill() {
-                    child.layout.size.modify(|t| t.set_dim(x, 0.0));
+                if child.layout.resizing.get_dim(y).is_fill() {
+                    children_to_fill.push(child);
+                } else {
+                    child.update_layout_internal(first_pass);
+                    // TODO: + child.position().get_dim(y)) if manual layout
+                    height = height.max(child.layout.size.get_dim(y));
                 }
-                child.update_layout();
-                size.x += child.layout.size.get_dim(x);
-                size.y = size.y.max(child.layout.size.get_dim(y) + child.position().get_dim(y));
             }
-            size.x += 2.0 * opts.padding.get_dim(x) + (children.len() - 1) as f32 * opts.spacing;
-            self.layout.size.set_dim(x, size.x);
-            self.layout.size.set_dim(y, size.y);
-            0.0
-        };
-        let mut pos = opts.padding.get_dim(x);
-        pos += opts.alignment.get_dim(x).as_number() * space_left;
-        let padding_y = opts.padding.get_dim(y);
-        let height = self.layout.size.get_dim(y);
-        for child in &children {
-            let size = child.size();
-            child.set_position_dim(x, pos);
-            pos += size.get_dim(x) + opts.spacing;
-            let pos_y =
-                padding_y + opts.alignment.get_dim(y).as_number() * (height - size.get_dim(y));
-            child.set_position_dim(y, pos_y);
+
+            if self.layout.resizing.get_dim(y).is_hug() {
+                let height = height + 2.0 * opts.padding.get_dim(y);
+                self.layout.size.set_dim(y, height);
+            } else {
+                height = self.layout.size.get_dim(y) - total_padding_y;
+            }
+
+            for child in children_to_fill {
+                child.layout.size.set_dim(y, height);
+                child.update_layout_internal(first_pass);
+            }
+
+
+            // === Recomputing Y-axis elements position of the X-axis horizontal layout ===
+
+            for child in &children {
+                let space_left = height - child.size().get_dim(y);
+                let pos_y = padding_y + opts.alignment.get_dim(y).as_number() * space_left;
+                child.set_position_dim(y, pos_y);
+            }
         }
-        pos += opts.padding.get_dim(x);
     }
 }
 
@@ -1325,66 +1514,91 @@ impl Model {
 mod tests2 {
     use super::*;
     use crate::display::world::World;
-    use std::f32::consts::PI;
 
-    #[derive(Default)]
-    pub struct TestThreeChildrenResult {
-        root_position:  Option<[f32; 2]>,
-        node1_position: Option<[f32; 2]>,
-        node2_position: Option<[f32; 2]>,
-        node3_position: Option<[f32; 2]>,
-        root_size:      Option<[f32; 2]>,
-        node1_size:     Option<[f32; 2]>,
-        node2_size:     Option<[f32; 2]>,
-        node3_size:     Option<[f32; 2]>,
+
+    /// Input:
+    ///
+    ///  ╭▷ ROOT ──────────────────────────╮
+    ///  │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
+    ///  │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
+    ///  │   │ │ L1  │  │   │ │ R1 ▲   │   │
+    ///  │   │ │     │  │   │ │    ▼   │   │
+    ///  │   │ │     │  ▼   │ ╰────╯   ▲   │
+    ///  │   │ │     │  ▲   │ ╭────╮   ▼   │
+    ///  │   │ │     │  │   │ │ R2 ▲   │   │
+    ///  │   │ │     │  │   │ │    ▼   │   │
+    ///  │   │ ╰─────╯  │   │ ╰────╯   │   │
+    ///  │   ╰──────────╯   ╰──────────╯   │
+    ///  ╰─────────────────────────────────╯
+    ///    
+    ///
+    /// Output:
+    /// The dimensions in parentheses were provided manually.
+    ///
+    ///  ╭▷ ROOT ─────────────────────────────────────────╮
+    ///  │                          ╭R─ ▶ ◀ ──────╮       │
+    ///  │                          ▽ ╭────╮      │       │
+    ///  │                          │ │ R2 ▲ 50   │       │
+    ///  │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
+    ///  │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
+    ///  │  │ │ L1  │        ▼      │  (30)       │       │
+    ///  │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
+    ///  │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
+    ///  │  │   70           │      │ │ R1 ▲ 50   │       │
+    ///  │  ╰────────────────╯      │ │    ▼      │       │
+    ///  │         70               │ ╰────╯      │       │
+    ///  │                          │  (20)       │       │
+    ///  │                          ╰─────────────╯       │
+    ///  │                               30               │
+    ///  ╰────────────────────────────────────────────────╯
+    ///                       (100)   
+    #[test]
+    fn test_mixed_layouts() {
+        let world = World::new();
+        let root = Instance::new();
+        let l = Instance::new();
+        let l1 = Instance::new();
+        let r = Instance::new();
+        let r1 = Instance::new();
+        let r2 = Instance::new();
+        root.add_child(&l);
+        root.add_child(&r);
+        l.add_child(&l1);
+        r.add_child(&r1);
+        r.add_child(&r2);
+
+        root.set_layout(AutoLayout::horizontal().alignment(alignment::dim2::center()));
+        root.set_resizing((100.0, 100.0));
+
+        l.set_layout(AutoLayout::horizontal());
+        l.set_resizing((Resizing::Fill, Resizing::Hug));
+        l1.set_resizing((Resizing::Fill, 50.0));
+
+        r.set_layout(AutoLayout::vertical());
+        r.set_resizing((Resizing::Hug, Resizing::Fill));
+        r1.set_resizing((20.0, Resizing::Fill));
+        r2.set_resizing((30.0, Resizing::Fill));
+
+        root.update(&world.default_scene);
+
+        assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(l.position().xy(), Vector2(0.0, 25.0));
+        assert_eq!(r.position().xy(), Vector2(70.0, 0.0));
+        assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(r2.position().xy(), Vector2(0.0, 50.0));
+
+        assert_eq!(root.size(), Vector2(100.0, 100.0));
+        assert_eq!(l.size(), Vector2(70.0, 50.0));
+        assert_eq!(r.size(), Vector2(30.0, 100.0));
+        assert_eq!(r1.size(), Vector2(20.0, 50.0));
+        assert_eq!(r2.size(), Vector2(30.0, 50.0));
     }
 
-    impl TestThreeChildrenResult {
-        pub fn new() -> Self {
-            Self::default()
-        }
 
-        pub fn root_position(mut self, pos: [f32; 2]) -> Self {
-            self.root_position = Some(pos);
-            self
-        }
-
-        pub fn node1_position(mut self, pos: [f32; 2]) -> Self {
-            self.node1_position = Some(pos);
-            self
-        }
-
-        pub fn node2_position(mut self, pos: [f32; 2]) -> Self {
-            self.node2_position = Some(pos);
-            self
-        }
-
-        pub fn node3_position(mut self, pos: [f32; 2]) -> Self {
-            self.node3_position = Some(pos);
-            self
-        }
-
-        pub fn root_size(mut self, size: [f32; 2]) -> Self {
-            self.root_size = Some(size);
-            self
-        }
-
-        pub fn node1_size(mut self, size: [f32; 2]) -> Self {
-            self.node1_size = Some(size);
-            self
-        }
-
-        pub fn node2_size(mut self, size: [f32; 2]) -> Self {
-            self.node2_size = Some(size);
-            self
-        }
-
-        pub fn node3_size(mut self, size: [f32; 2]) -> Self {
-            self.node3_size = Some(size);
-            self
-        }
-    }
-
+    /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
+    /// three of its children:
+    ///
     ///         root
     ///      /   |   \
     /// node1  node2  node3
@@ -1430,9 +1644,43 @@ mod tests2 {
         }
     }
 
+    /// Macro generating a struct used for testing the results of [`TestThreeChildren`] test suite.
+    macro_rules! gen_test_result_struct {
+        ($($node: ident),*) => { paste! {
+            #[derive(Default, Clone, Copy)]
+            pub struct TestThreeChildrenResult {
+                $(
+                    [< $node _position >]: Option<[f32; 2]>,
+                    [< $node _size >]: Option<[f32; 2]>,
+                )*
+            }
+
+            impl TestThreeChildrenResult {
+                pub fn new() -> Self {
+                    Self::default()
+                }
+                $(
+                    pub fn [< $node _position >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _position >] = Some(val);
+                        self
+                    }
+
+                    pub fn [< $node _size >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _size >] = Some(val);
+                        self
+                    }
+                )*
+            }
+        }};
+    }
+
+    gen_test_result_struct!(root, node1, node2, node3);
+
+
+    #[test]
     fn test_simple_hug_resizing() {
         let mut test = TestThreeChildren::new();
-        test.root.set_layout(Layout::horizontal());
+        test.root.set_layout(AutoLayout::horizontal());
         test.node1.set_resizing((20.0, 200.0));
         test.node2.set_resizing((30.0, 300.0));
         test.node3.set_resizing((50.0, 500.0));
@@ -1449,7 +1697,7 @@ mod tests2 {
         );
 
         test.reset_positions();
-        test.root.set_layout(Layout::vertical());
+        test.root.set_layout(AutoLayout::vertical());
         test.run(
             TestThreeChildrenResult::new()
                 .root_position([0.0, 0.0])
@@ -1466,7 +1714,7 @@ mod tests2 {
     #[test]
     fn test_nested_hug_resizing() {
         let mut test = TestThreeChildren::new();
-        test.root.set_layout(Layout::horizontal());
+        test.root.set_layout(AutoLayout::horizontal());
         test.node1.set_resizing((200.0, Resizing::Hug));
         test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
         test.node3.set_resizing((Resizing::Fill, Resizing::Hug));
@@ -1483,7 +1731,7 @@ mod tests2 {
         );
 
         let mut test = TestThreeChildren::new();
-        test.root.set_layout(Layout::horizontal());
+        test.root.set_layout(AutoLayout::horizontal());
         test.node1.set_resizing((Resizing::Hug, 200.0));
         test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
         test.node3.set_resizing((Resizing::Hug, Resizing::Fill));
@@ -1495,7 +1743,8 @@ mod tests2 {
                 .node3_position([0.0, 0.0])
                 .root_size([0.0, 200.0])
                 .node1_size([0.0, 200.0])
-                .node2_size([0.0, 0.0]), // .node3_size([0.0, 200.0]),
+                .node2_size([0.0, 0.0])
+                .node3_size([0.0, 200.0]),
         );
     }
 }

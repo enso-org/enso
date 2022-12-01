@@ -17,7 +17,7 @@ use nalgebra::Vector4;
 // === Dim* Traits ===
 // ===================
 
-macro_rules! gen_dim_trait {
+macro_rules! gen_dim_x_trait {
     ([$prev_dim:tt] $dim:tt
         $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*
     ) => { paste! {
@@ -65,10 +65,10 @@ macro_rules! gen_dim_trait {
 pub trait Dim0 {}
 impl<T> Dim0 for T {}
 
-crate::with_swizzling_for_dim!(1, gen_dim_trait, 0);
-crate::with_swizzling_for_dim!(2, gen_dim_trait, 1);
-crate::with_swizzling_for_dim!(3, gen_dim_trait, 2);
-crate::with_swizzling_for_dim!(4, gen_dim_trait, 3);
+crate::with_swizzling_for_dim!(1, gen_dim_x_trait, 0);
+crate::with_swizzling_for_dim!(2, gen_dim_x_trait, 1);
+crate::with_swizzling_for_dim!(3, gen_dim_x_trait, 2);
+crate::with_swizzling_for_dim!(4, gen_dim_x_trait, 3);
 
 
 
@@ -128,6 +128,32 @@ macro_rules! gen_dim_x_setter_trait {
                     let mut value = self.$name();
                     f(&mut value);
                     self.[<set_ $name>](value)
+                }
+            )*
+        }
+
+        impl<T: [<DimSetterInterior $dim>]> [<DimSetterInterior $dim>] for Rc<T> {
+            $(
+                fn [<set_$name>](&self, value: Self::[<Dim $swizzling_dim Type>]) {
+                    (**self).[<set_$name>](value);
+                }
+            )*
+        }
+
+        impl<T: Copy + [<DimSetter $dim>]> [<DimSetterInterior $dim>] for Cell<T> {
+            $(
+                fn [<set_$name>](&self, value: Self::[<Dim $swizzling_dim Type>]) {
+                    let mut t = self.get();
+                    t.[<set_$name>](value);
+                    self.set(t)
+                }
+            )*
+        }
+
+        impl<T: [<DimSetter $dim>]> [<DimSetterInterior $dim>] for RefCell<T> {
+            $(
+                fn [<set_$name>](&self, value: Self::[<Dim $swizzling_dim Type>]) {
+                    self.borrow_mut().[<set_$name>](value);
                 }
             )*
         }
