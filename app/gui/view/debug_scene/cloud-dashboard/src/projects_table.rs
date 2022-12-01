@@ -256,7 +256,6 @@ ensogl_core::define_endpoints_2! {
 struct Model {
     display_object: display::object::Instance,
     projects_table: ProjectsTable,
-    application:    Application,
     projects:       ide_view_graph_editor::SharedVec<view::project::Project>,
 }
 
@@ -265,12 +264,11 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let application = app.clone_ref();
         let display_object = display::object::Instance::new();
         let projects_table = ProjectsTable::new(app);
         let projects = ide_view_graph_editor::SharedVec::new();
         display_object.add_child(&projects_table);
-        Self { application, display_object, projects_table, projects }
+        Self { display_object, projects_table, projects }
     }
 
     fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
@@ -486,11 +484,11 @@ impl View {
         let input = &frp.public.input;
 
         self.init_projects_table_model_data_loading();
-        self.init_projects_table_grid_resizing();
+        self.init_projects_table_grid_resizing(app);
         self.init_projects_table_entries_models();
         self.init_projects_table_grid();
         self.init_projects_table_header();
-        self.init_event_tracing();
+        self.init_event_tracing(app);
 
         app.display.add_child(root);
 
@@ -510,10 +508,10 @@ impl View {
         }
     }
 
-    fn init_projects_table_grid_resizing(&self) {
+    fn init_projects_table_grid_resizing(&self, app: &Application) {
         let network = &self.frp.network;
         let model = &self.model;
-        let scene = &model.application.display.default_scene;
+        let scene = &app.display.default_scene;
         let projects_table = &model.projects_table;
         let scroll_frp = projects_table.scroll_frp();
 
@@ -590,13 +588,13 @@ impl View {
         }
     }
 
-    fn init_event_tracing(&self) {
+    fn init_event_tracing(&self, app: &Application) {
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
         let projects_table = &model.projects_table;
         let input = &frp.public.input;
-        let scene = &model.application.display.default_scene;
+        let scene = &app.display.default_scene;
 
         frp::extend! { network
             trace input.set_projects;
