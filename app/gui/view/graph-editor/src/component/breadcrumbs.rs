@@ -135,6 +135,8 @@ ensogl::define_endpoints! {
         /// The `gap_width` describes an empty space on the left of all the content. This space will
         /// be covered by the background and is intended to make room for windows control buttons.
         gap_width                   (f32),
+        /// Set whether the project was changed since the last snapshot save.
+        set_project_changed(bool),
     }
     Output {
         /// Signalizes when a new breadcrumb is pushed.
@@ -517,6 +519,7 @@ impl Breadcrumbs {
             frp.source.project_name_hovered <+ model.project_name.is_hovered;
             frp.source.project_mouse_down   <+ model.project_name.mouse_down;
 
+            eval frp.input.set_project_changed((v) model.project_name.set_project_changed(v));
 
             // === User Interaction ===
 

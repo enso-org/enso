@@ -75,6 +75,8 @@ ensogl::define_endpoints! {
        /// Indicates the IDE is in edit mode. This means a click on some editable text should
        /// start editing it.
        ide_text_edit_mode (bool),
+        /// Set whether the project was changed since the last snapshot save.
+        set_project_changed(bool),
     }
 
     Output {
@@ -345,6 +347,8 @@ impl ProjectName {
              frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
                 cursor::Style::cursor()
              );
+
+             trace frp.input.set_project_changed;
         }
 
         frp.deselect();

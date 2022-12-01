@@ -171,9 +171,12 @@ impl Model {
 
     fn save_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
+        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.save_project_snapshot().await {
                 error!("Error while saving module: {err}");
+            } else {
+                breadcrumbs.set_project_changed(true);
             }
         })
     }
