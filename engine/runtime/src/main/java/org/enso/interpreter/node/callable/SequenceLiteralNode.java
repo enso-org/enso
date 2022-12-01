@@ -5,7 +5,13 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
 public class SequenceLiteralNode extends ExpressionNode {
@@ -35,9 +41,19 @@ public class SequenceLiteralNode extends ExpressionNode {
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     Object[] itemValues = new Object[items.length];
+    ArrayRope<Warning> warnings = new ArrayRope<>();
     for (int i = 0; i < items.length; i++) {
       itemValues[i] = items[i].executeGeneric(frame);
+      if (itemValues[i] instanceof WithWarnings) {
+        WithWarnings withWarnings = (WithWarnings) itemValues[i];
+        warnings = warnings.prepend(withWarnings.getReassignedWarnings(this));
+      }
     }
-    return Vector.fromArray(new Array(itemValues));
+    Array arr = new Array(itemValues);
+    if (warnings.isEmpty()) {
+      return Vector.fromArray(arr);
+    } else {
+      return WithWarnings.appendTo(Vector.fromArray(arr), warnings);
+    }
   }
 }

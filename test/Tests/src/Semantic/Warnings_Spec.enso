@@ -158,4 +158,13 @@ spec = Test.group "Dataflow Warnings" <|
         result = x.is_static_nothing x
         result . should_equal False
 
+    Test.specify "should be allowed in Vector" <|
+        a = Warning.attach "a" 1
+        b = Warning.attach "b" 2
+        c = [a, b]
+        d = Warning.attach "d" c
+        c . should_equal [1, 2]
+        Warning.get_all c . map .value . should_equal ["b", "a"]
+        Warning.get_all d . map .value . should_equal ["d", "b", "a"]
+
 main = Test_Suite.run_main spec
