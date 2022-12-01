@@ -7,6 +7,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 spec prefix table_builder test_selection =
     Test.group prefix+"Dropping Missing Values" <|

@@ -4,6 +4,7 @@ from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
+import Standard.Test.Extensions
 
 spec prefix table_builder test_selection =
     order_by_pending = if test_selection.order_by.not then

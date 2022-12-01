@@ -6,6 +6,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import SQL_Error_Data
 
 from Standard.Test import Test, Problems
+import Standard.Test.Extensions
 
 ## Currently these tests rely on filtering preserving the insertion ordering
    within tables. This is not necessarily guaranteed by RDBMS, so we may adapt

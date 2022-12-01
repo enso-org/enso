@@ -4,6 +4,7 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Ev
 from Standard.Table.Errors import all
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 from project.Util import all
 

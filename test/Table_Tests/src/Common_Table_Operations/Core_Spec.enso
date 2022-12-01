@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table.Errors import all
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 spec prefix table_builder test_selection =
     table =
