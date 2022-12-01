@@ -177,10 +177,7 @@ public class DebuggingEnsoTest {
   public void unsafeRecursiveAtom() throws Exception {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
-      ).build();
+      .build();
     Context ctx = Context.newBuilder()
       .engine(eng)
       .allowIO(true)
