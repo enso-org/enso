@@ -13,7 +13,7 @@ import Standard.Visualization
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Common_Table_Spec
+import project.Common_Table_Operations
 from project.Util import all
 
 type My
@@ -29,6 +29,8 @@ type My
         My.Data x1 y1 -> My.Data y1 x1
 
 spec =
+    run_common_spec Common_Table_Operations.Main.spec
+
     Test.group "JSON construction" <|
         geo_json = Json.parse <| '''
             {
@@ -362,7 +364,7 @@ spec =
             r1.at "Y" . to_vector . to_text . should_equal "['', Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
 
-            # TODO this could be moved to Common_Table_Spec once replace_text is implemented for Database too
+            # TODO this could be moved to Common_Table_Operations once replace_text is implemented for Database too
             t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
             r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
             r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
@@ -454,7 +456,7 @@ spec =
             r.at 'datetimes' . to_vector . should_equal [Date_Time.new 2020 1 1 12, Date_Time.new 2000 10 3 10 20 30, Date_Time.new 2000 10 3 23 59 59, Date_Time.new 1999 1 1 1 30 40, Date_Time.new 1999 12 31 12 30 0]
             df.at 'datetimes' . to_vector . should_equal datetimes
 
-            # TODO move this test to Common_Table_Spec once we support dates there
+            # TODO move this test to Common_Table_Operations once we support dates there
             r2 = df.order_by (Sort_Column_Selector.By_Name ['dates'])
             r2.at 'dates' . to_vector . should_equal [Date.new 1999, Date.new 1999 12 31, Date.new 2000 2 7, Date.new 2000 10 3, Date.new 2020]
             r2.at 'ints' . to_vector . should_equal [2, 4, 5, 3, 1]
@@ -663,9 +665,6 @@ spec =
             c_3_3 = ['name', ["foo", "bar", "baz"]]
             t_3 = Table.new [c_3_1, c_3_2, c_3_3]
             t_3.default_visualization.should_equal Visualization.Id.table
-
-    selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
-    Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
@@ -1047,6 +1046,7 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
+    # TODO move these to Common_Table_Operations
     Test.group "[In-Memory] Table.transpose" <|
         Test.specify "should transpose all columns by default" <|
             t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
@@ -1085,6 +1085,7 @@ spec =
 
             # ToDo: Verify the warnings and error handling within transpose.
 
+    # TODO move these to Common_Table_Operations
     Test.group "[In-Memory] Table.cross_tab" <|
         Test.specify "should cross_tab counts by default using first column as names" <|
             t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
@@ -1140,6 +1141,17 @@ spec =
             t1.at "Count" . to_vector . should_equal [9]
 
             # ToDo: Verify the warnings and error handling within cross_tab.
+
+run_common_spec spec =
+    selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config
+
+    table = (enso_project.data / "data.csv") . read
+    empty_table = Table.new <| table.columns.map c->[c.name, []]
+    materialize = x->x
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection
+    spec setup
 
 main = Test_Suite.run_main spec
 
