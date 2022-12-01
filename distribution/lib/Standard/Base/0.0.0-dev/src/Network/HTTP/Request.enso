@@ -1,134 +1,135 @@
-from Standard.Base import all
+import project.Any.Any
+import project.Data.Json.Json
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Network.HTTP.Form.Form
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request_Body.Request_Body
+import project.Network.URI.URI
+import project.Panic.Panic
 
-import Standard.Base.Network.HTTP.Form.Form
-import Standard.Base.Network.HTTP.Header.Header
-import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-import Standard.Base.Network.URI.URI
-import Standard.Base.Network.HTTP.Request.Body as Request_Body
-
-## Create new HTTP request.
-
-   Arguments:
-   - method: The HTTP method represented by the request.
-   - addr: The address for the request.
-   - headers: A vector containing headers for the request.
-   - body: The body of the request.
-
-   > Example
-     Create a new post request with no headers and no body.
-
-         import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.URI.URI
-
-         example_new = Request.new Method.Post (URI.parse "http://example.com")
-new : HTTP_Method -> (Text | URI) -> Vector -> Request_Body -> Request
-new method addr (headers = []) (body = Request_Body.Empty) =
-    Panic.recover Any (Request_Data method (Panic.rethrow (addr.to_uri)) headers body)
-
-## Create an Options request.
-
-   Arguments:
-
-   > Example
-     Create a new options request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.URI.URI
-
-         example_options = Request.options (URI.parse "http://example.com")
-options : (Text | URI) -> Vector -> Request
-options addr (headers = []) = new HTTP_Method.Options addr headers
-
-## Create a Get request.
-
-   Arguments:
-   - addr: The address for the request.
-   - headers: A vector containing headers for the request.
-
-   > Example
-     Create a new get request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.URI.URI
-
-         example_get = Request.get (URI.parse "http://example.com")
-get : (Text | URI) -> Vector -> Request
-get addr (headers = []) = new HTTP_Method.Get addr headers
-
-## Create a Head request.
-
-   Arguments:
-   - addr: The address for the request.
-   - headers: A vector containing headers for the request.
-
-   > Example
-     Create a new head request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.URI.URI
-
-         example_head = Request.head (URI.parse "http://example.com")
-head : (Text | URI) -> Vector -> Request
-head addr (headers = []) = new HTTP_Method.Head addr headers
-
-## Create a Post request.
-
-   Arguments:
-   - addr: The address for the request.
-   - body: The body for the request.
-   - headers: A vector containing headers for the request.
-
-   > Example
-     Create a new post request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.HTTP.Request.Body as Request_Body
-         import Standard.Base.Network.URI.URI
-
-         example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
-post : (Text | URI) -> Request_Body -> Vector -> Request
-post addr body (headers = []) = new HTTP_Method.Post addr headers body
-
-## Create a Put request.
-
-   Arguments:
-   - addr: The address for the request.
-   - body: The body for the request.
-   - headers: A vector containing headers for the request.
-
-   > Example
-     Create a new put request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.HTTP.Request.Body as Request_Body
-         import Standard.Base.Network.URI.URI
-
-         example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
-put : (Text | URI) -> Request_Body -> Vector -> Request
-put addr body (headers = []) = new HTTP_Method.Put addr headers body
-
-## Create a Delete request.
-
-   Arguments:
-   - addr: The address for the request.
-   - headers: A vector containing headers for the request.
-
-   > Example
-     Create a new delete request.
-
-         import Standard.Base.Network.HTTP.Request
-         import Standard.Base.Network.URI.URI
-
-         example_delete = Request.delete (URI.parse "http://example.com")
-delete : (Text | URI) -> Vector -> Request
-delete addr (headers = []) = new HTTP_Method.Delete addr headers
-
-## TODO Dubious constructor export
-from project.Network.HTTP.Request.Request import all
-from project.Network.HTTP.Request.Request export all
+from project.Data.Boolean import Boolean, True, False
 
 type Request
+    ## Create new HTTP request.
+
+       Arguments:
+       - method: The HTTP method represented by the request.
+       - addr: The address for the request.
+       - headers: A vector containing headers for the request.
+       - body: The body of the request.
+
+       > Example
+         Create a new post request with no headers and no body.
+
+             import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.URI.URI
+
+             example_new = Request.new Method.Post (URI.parse "http://example.com")
+    new : HTTP_Method -> (Text | URI) -> Vector -> Request_Body -> Request
+    new method addr (headers = []) (body = Request_Body.Empty) =
+        Panic.recover Any (Request.Value method (Panic.rethrow (addr.to_uri)) headers body)
+
+    ## Create an Options request.
+
+       Arguments:
+
+       > Example
+         Create a new options request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.URI.URI
+
+             example_options = Request.options (URI.parse "http://example.com")
+    options : (Text | URI) -> Vector -> Request
+    options addr (headers = []) = Request.new HTTP_Method.Options addr headers
+
+    ## Create a Get request.
+
+       Arguments:
+       - addr: The address for the request.
+       - headers: A vector containing headers for the request.
+
+       > Example
+         Create a new get request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.URI.URI
+
+             example_get = Request.get (URI.parse "http://example.com")
+    get : (Text | URI) -> Vector -> Request
+    get addr (headers = []) = Request.new HTTP_Method.Get addr headers
+
+    ## Create a Head request.
+
+       Arguments:
+       - addr: The address for the request.
+       - headers: A vector containing headers for the request.
+
+       > Example
+         Create a new head request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.URI.URI
+
+             example_head = Request.head (URI.parse "http://example.com")
+    head : (Text | URI) -> Vector -> Request
+    head addr (headers = []) = Request.new HTTP_Method.Head addr headers
+
+    ## Create a Post request.
+
+       Arguments:
+       - addr: The address for the request.
+       - body: The body for the request.
+       - headers: A vector containing headers for the request.
+
+       > Example
+         Create a new post request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.Request_Body.Request_Body
+             import Standard.Base.Network.URI.URI
+
+             example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
+    post : (Text | URI) -> Request_Body -> Vector -> Request
+    post addr body (headers = []) = Request.new HTTP_Method.Post addr headers body
+
+    ## Create a Put request.
+
+       Arguments:
+       - addr: The address for the request.
+       - body: The body for the request.
+       - headers: A vector containing headers for the request.
+
+       > Example
+         Create a new put request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
+             import Standard.Base.Network.URI.URI
+
+             example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
+    put : (Text | URI) -> Request_Body -> Vector -> Request
+    put addr body (headers = []) = Request.new HTTP_Method.Put addr headers body
+
+    ## Create a Delete request.
+
+       Arguments:
+       - addr: The address for the request.
+       - headers: A vector containing headers for the request.
+
+       > Example
+         Create a new delete request.
+
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.URI.URI
+
+             example_delete = Request.delete (URI.parse "http://example.com")
+    delete : (Text | URI) -> Vector -> Request
+    delete addr (headers = []) = Request.new HTTP_Method.Delete addr headers
 
     ## PRIVATE
 
@@ -139,7 +140,7 @@ type Request
        - uri: The URI for the request.
        - headers: A vector containing headers for the request.
        - body: The body of the request.
-    Request_Data method uri headers body
+    Value method uri headers body
 
     ## Sets the header for the request.
 
@@ -150,7 +151,7 @@ type Request
        > Example
          Create a request and add a new header to it.
 
-             import Standard.Base.Network.HTTP.Request
+             import Standard.Base.Network.HTTP.Request.Request
 
              example_with_header = Request.delete.with_header "Foo" "bar"
     with_header : Text -> Text -> Request
@@ -163,7 +164,7 @@ type Request
        new_headers = case self.headers.fold (Pair.new [] False) update_header of
            Pair.Value acc True -> acc
            Pair.Value acc False -> acc + [new_header]
-       Request_Data self.method self.uri new_headers self.body
+       Request.Value self.method self.uri new_headers self.body
 
     ## Sets the headers in the request.
 
@@ -174,10 +175,10 @@ type Request
        > Example
          Create a request and unset all the headers.
 
-             import Standard.Base.Network.HTTP.Request
+             import Standard.Base.Network.HTTP.Request.Request
 
              example_with_headers = Request.delete.with_headers []
-    with_headers : [Header] -> Request
+    with_headers : Vector Header -> Request
     with_headers self new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
         new_headers.fold self update_header
@@ -190,14 +191,14 @@ type Request
         > Example
           Unsetting the body in a post request.
 
-             import Standard.Base.Network.HTTP.Request
-             import Standard.Base.Network.HTTP.Request.Body as Request_Body
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Base.Network.URI.URI
 
              example_with_body =
                  Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
-    with_body self new_body = Request_Data self.method self.uri self.headers new_body
+    with_body self new_body = Request.Value self.method self.uri self.headers new_body
 
     ## Set the body text in the request encoded as "application/json".
 
@@ -208,8 +209,8 @@ type Request
         > Example
           Setting the body in a post request to some JSON.
 
-             import Standard.Base.Network.HTTP.Request
-             import Standard.Base.Network.HTTP.Request.Body as Request_Body
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Base.Network.URI.URI
 
              example_with_json =
@@ -217,7 +218,7 @@ type Request
     with_json : (Text | Json) -> Request
     with_json self json_body =
         new_body = Request_Body.Json json_body
-        Request_Data self.method self.uri self.headers new_body . with_headers [Header.application_json]
+        Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
     ## Set body as vector of parts encoded as "application/x-www-form-urlencoded".
 
@@ -227,7 +228,7 @@ type Request
        > Example
          Create a delete request with an empty form.
 
-             import Standard.Base.Network.HTTP.Request
+             import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_delete =
@@ -235,4 +236,4 @@ type Request
     with_form : (Vector | Form) -> Request
     with_form self parts =
         new_body = Request_Body.Form (Form.new parts)
-        Request_Data self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
+        Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]

@@ -31,11 +31,11 @@
      network request.
 
          import Standard.Base.Network.HTTP.HTTP
-         import Standard.Base.Network.HTTP.Header
-         import Standard.Base.Network.HTTP.Request.Body
+         import Standard.Base.Network.HTTP.Header.Header
+         import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
          example_post =
-             body = Body.Bytes "Hello".utf_8
+             body = Request_Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              HTTP.new.post "http://httpbin.org/post" body [header_binary]
 

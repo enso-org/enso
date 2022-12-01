@@ -2,8 +2,8 @@ from Standard.Base import all
 
 import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
-import Standard.Base.Network.HTTP.Request
-import Standard.Base.Network.HTTP.Request.Body as Request_Body
+import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

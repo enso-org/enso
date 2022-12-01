@@ -10,8 +10,8 @@ import project.Panic.Panic
 
 import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Form.Part_Value
-import project.Network.HTTP.Request
-import project.Network.HTTP.Request.Body as Request_Body
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response
 
 import project.Network.HTTP.Header.Header
@@ -203,11 +203,11 @@ type HTTP
          network request.
 
              import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request.Body
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_post =
-                 body = Body.Bytes "Hello".utf_8
+                 body = Request_Body.Bytes "Hello".utf_8
                  Examples.http_client.post "http://httpbin.org/post" body [header_binary]
     post : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
     post self uri body (headers = []) =
@@ -286,11 +286,11 @@ type HTTP
          Send a Put request with binary data.
 
              import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request.Body
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_put =
-                 body = Body.Bytes "contents".utf_8
+                 body = Request_Body.Bytes "contents".utf_8
                  Examples.http_client.put "http://httpbin.org/post" body [header_binary]
     put : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
     put self uri body (headers = []) =
@@ -347,7 +347,7 @@ type HTTP
 
              import Standard.Base.Network.HTTP.HTTP
              import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-             import Standard.Base.Network.HTTP.Request
+             import Standard.Base.Network.HTTP.Request.Request
 
              example_request =
                  req = Request.new HTTP_Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
@@ -359,8 +359,8 @@ type HTTP
          will send a network request.
 
              import Standard.Base.Network.HTTP.Form.Form
-             import Standard.Base.Network.HTTP.Request
-             import Standard.Base.Network.HTTP.Request.Body
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
@@ -375,13 +375,13 @@ type HTTP
          send a network request.
 
              import Standard.Base.Network.HTTP.Form.Form
-             import Standard.Base.Network.HTTP.Request
-             import Standard.Base.Network.HTTP.Request.Body
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
                  form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
-                 req = Request.post "http://httpbin.org/post" Body.Empty . with_form form
+                 req = Request.post "http://httpbin.org/post" Request_Body.Empty . with_form form
                  Examples.http_client.request req
 
        > Example
@@ -390,13 +390,13 @@ type HTTP
 
              import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request
-             import Standard.Base.Network.HTTP.Request.Body
+             import Standard.Base.Network.HTTP.Request.Request
+             import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
                  form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
-                 req = Request.post "http://httpbin.org/post" Body.Empty
+                 req = Request.post "http://httpbin.org/post" Request_Body.Empty
                  with_form = req.with_form form
                  with_headers = with_form.with_headers [Header.multipart_form_data]
                  Examples.http_client.request with_headers
@@ -409,7 +409,7 @@ type HTTP
              import Standard.Base.Network.HTTP.HTTP
              import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-             import Standard.Base.Network.HTTP.Request
+             import Standard.Base.Network.HTTP.Request.Request
 
              example_request =
                  form = [Form.text_field "name" "John Doe"]
