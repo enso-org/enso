@@ -977,7 +977,7 @@ type Integer
     parse : Text -> Text -> Integer ! Parse_Error
     parse text (radix=10) = Integer.parse_internal text radix
 
-    parse_internal text radix = @Builtin_Method "Integer.parse"
+    parse_builtin text radix = @Builtin_Method "Integer.parse"
 
 ## UNSTABLE
 
