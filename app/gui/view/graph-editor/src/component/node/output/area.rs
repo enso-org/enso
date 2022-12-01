@@ -240,7 +240,6 @@ impl Model {
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
-        self.label.set_x(-self.label.width.value() - input::area::TEXT_OFFSET);
     }
 
     /// Update expression type for the particular `ast::Id`.
@@ -482,6 +481,9 @@ impl Area {
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
             frp.source.size <+ frp.set_size;
+
+            expr_label_x <- model.label.width.map(|width| -width - input::area::TEXT_OFFSET);
+            eval expr_label_x ((x) model.label.set_x(*x));
 
             frp.source.type_label_visibility <+ frp.set_type_label_visibility;
 

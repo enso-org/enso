@@ -1,6 +1,8 @@
 import project.Data.Json.Json
 import project.Data.Ordering.Ordering
 import project.Data.Text.Text
+import project.Data.Locale.Locale
+import project.Nothing
 
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Panic,Error,Illegal_Argument_Error
@@ -10,6 +12,8 @@ polyglot java import java.lang.Math
 polyglot java import java.lang.String
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.text.NumberFormat
+polyglot java import java.text.ParseException
 
 ## The root type of the Enso numeric hierarchy.
 
@@ -591,14 +595,17 @@ type Decimal
 
        Arguments:
        - text: The text to parse into a decimal.
+       - locale: The locale that specifies the format to use when parsing
 
        > Example
          Parse the text "7.6" into a decimal number.
 
              Decimal.parse "7.6"
-    parse : Text -> Decimal ! Parse_Error
-    parse text =
-        Panic.catch NumberFormatException (Double.parseDouble text) _->
+    parse : Text -> Locale | Nothing -> Decimal ! Parse_Error
+    parse text locale=Nothing = case locale of
+        Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
+            Error.throw (Number_Parse_Error.Error text)
+        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
 ## Integer is the type of integral numbers in Enso. They are of unbounded
@@ -975,13 +982,18 @@ type Integer
 
             Integer.parse "20220216"
     parse : Text -> Text -> Integer ! Parse_Error
-    parse text (radix=10) =
-        Panic.catch NumberFormatException (Long.parseLong text radix) _->
-             Error.throw (Number_Parse_Error.Error text)
+    parse text (radix=10) = Integer.parse_builtin text radix
+
+    ## PRIVATE
+
+        Internally handles the parsing.
+
+    parse_builtin text radix = @Builtin_Method "Integer.parse"
 
 ## UNSTABLE
 
    A syntax error when parsing a double.
+@Builtin_Type
 type Number_Parse_Error
     Error text
 

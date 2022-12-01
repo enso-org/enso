@@ -90,6 +90,20 @@ class ImportsTest extends PackageTest {
     outLines(3) shouldEqual "(Mk_C 10)"
   }
 
+  "Importing module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_1") shouldEqual 42
+  }
+
+  "The unqualified import of a module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_2") shouldEqual 42
+  }
+
+  "Importing module's types" should "not bring extension methods into the scope " in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Extension_Methods_Failure"
+    ) should have message "Method `foo` of 1 (Integer) could not be found."
+  }
+
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestSubmodulesNameConflict"

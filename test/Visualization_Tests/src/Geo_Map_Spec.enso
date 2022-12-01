@@ -4,6 +4,7 @@ from Standard.Table import Table
 import Standard.Visualization.Geo_Map
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 import project.Helpers
 
