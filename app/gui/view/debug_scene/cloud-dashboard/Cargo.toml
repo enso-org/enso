@@ -11,7 +11,6 @@ enso_cloud_http = { path = "./cloud-http" }
 enso_cloud_view = { path = "./cloud-view" }
 ide-view-graph-editor = { path = "../../../../../app/gui/view/graph-editor" }
 enso-frp = { path = "../../../../../lib/rust/frp" }
-enso-prelude = { path = "../../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../../lib/rust/profiler" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }

@@ -1,7 +1,6 @@
 //! Model definitions for [`Project`] and related types.
 
 use enso_prelude::*;
-use crate::prelude::*;
 
 use crate::id;
 
@@ -53,14 +52,14 @@ pub struct Ami(pub String);
 // === Trait `impl`s ===
 
 impl FromStr for Ami {
-    type Err = Error;
+    type Err = crate::Error;
 
     fn from_str(ami: &str) -> Result<Self, Self::Err> {
         /// A valid ami ID starts with `ami-` prefix.
         const AMI_PREFIX: &str = "ami-";
 
         if !ami.starts_with(AMI_PREFIX) {
-            return Err(anyhow!("Bad Ami format: {}", ami))?;
+            return Err(format!("Bad Ami format: {}", ami))?;
         };
         Ok(Self(ami.to_string()))
     }
