@@ -541,7 +541,7 @@ type Column
 
             rs = s.iif true_val false_val
             Column.Column_Data (Java_Column.new "Result" ix rs)
-        _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
+        _ -> Error.throw (Illegal_Argument.Error "`iif` can only be used with boolean columns.")
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.

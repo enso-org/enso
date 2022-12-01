@@ -174,7 +174,7 @@ concat_ops =
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
     True -> code "COUNT(DISTINCT (" ++ args.first ++ "))"
-    False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
@@ -183,7 +183,7 @@ agg_count_distinct_include_null args = case args.length == 1 of
         count = code "COUNT(DISTINCT " ++ arg ++ ")"
         all_nulls_case = code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
         count ++ " + " ++ all_nulls_case
-    False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->

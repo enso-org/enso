@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 from Standard.Base.Data.Vector import handle_incomparable_value
-import Standard.Base.Error.Common as Errors
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 
@@ -505,7 +504,7 @@ type Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
-        on_problems.attach_problems_before validated.problems <| Illegal_Argument_Error.handle_java_exception <|
+        on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -614,7 +613,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument_Error.handle_java_exception <| handle_incomparable_value <|
+            java_table = Illegal_Argument.handle_java_exception <| handle_incomparable_value <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -654,7 +653,7 @@ type Table
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
-        java_table = Illegal_Argument_Error.handle_java_exception <|
+        java_table = Illegal_Argument.handle_java_exception <|
             self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table.Table_Data java_table) <|
             problems = java_table.getProblems
@@ -1273,10 +1272,10 @@ type Table
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
-        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument_Error_Data "Cannot use group_by for a cross_tab value.")
+        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.")
         validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
 
-        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument_Error.handle_java_exception <|
+        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
             index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -1369,7 +1368,7 @@ type Table
 
        Returns:
        - If an unsupported `File_Format` is specified, an
-         `Illegal_Argument_Error` is raised.
+         `Illegal_Argument` is raised.
        - If the path to the parent location cannot be found or the filename is
          invalid, a `File_Error.Not_Found` is raised.
        - If another IO error occurs, such as access denied, an
@@ -1386,7 +1385,7 @@ type Table
          - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
            the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
+           `Illegal_Argument` is raised. To write out the table as plain
            text, the user needs to call the `Text.from Table` method and then
            use the `Text.write` function.
 
@@ -1405,18 +1404,18 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                Panic.catch No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
                     name = Meta.get_constructor_name (Meta.meta format).constructor
-                    Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
+                    Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

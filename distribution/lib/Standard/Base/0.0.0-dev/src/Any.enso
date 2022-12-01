@@ -261,13 +261,13 @@ type Any
          matching type. By default this is identity.
 
        > Example
-         Catching an `Illegal_Argument_Error` and returning its message.
+         Catching an `Illegal_Argument` and returning its message.
 
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error_Data "My message")
-                 error.catch Illegal_Argument_Error_Data (err -> err.message)
+                 error = Error.throw (Illegal_Argument.Error "My message")
+                 error.catch Illegal_Argument.Error (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.

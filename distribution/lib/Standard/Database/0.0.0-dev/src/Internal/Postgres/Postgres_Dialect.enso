@@ -192,7 +192,7 @@ concat_ops =
 
 
 ## PRIVATE
-agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT requires at least one argument.")) else
+agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.

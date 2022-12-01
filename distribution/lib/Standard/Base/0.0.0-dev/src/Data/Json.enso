@@ -11,7 +11,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Illegal_Argument_Error_Data
+from project.Error.Common import Illegal_Argument
 
 ## Represents a JSON structure.
 type Json
@@ -166,7 +166,7 @@ type Json
         Json.Object _ -> self.fields.get field . map_error case _ of
             No_Value_For_Key.Error _ -> No_Such_Field.Error field
             x -> x
-        _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
+        _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object")
 
 ## UNSTABLE
 

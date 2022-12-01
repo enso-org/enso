@@ -19,7 +19,7 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument_Error_Data, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -558,7 +558,7 @@ type Vector a
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument_Error_Data "The `max_entries` parameter must be positive." else
+        if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
             prefix = self.take (Index_Sub_Range.First max_entries)
             if prefix.length == self.length then self.to_text else
                 remaining_count = self.length - prefix.length

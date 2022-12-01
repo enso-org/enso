@@ -20,7 +20,7 @@ type Delimited_Format
 
        Arguments:
        - delimiter: The delimiter character to split the file into columns. An
-         `Illegal_Argument_Error` error is returned if this is an empty string.
+         `Illegal_Argument` error is returned if this is an empty string.
        - encoding: The encoding to use when reading the file.
        - skip_rows: The number of rows to skip from the top of the file.
        - row_limit: The maximum number of rows to read from the file. This count

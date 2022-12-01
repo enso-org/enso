@@ -6,7 +6,6 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Illegal_Argument_Error
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math

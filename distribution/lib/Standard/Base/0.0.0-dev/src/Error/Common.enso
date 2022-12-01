@@ -24,12 +24,7 @@ type Illegal_State
     to_display_text : Text
     to_display_text self = "Illegal State: " + self.message
 
-
-# TODO Dubious constructor export
-from project.Error.Common.Illegal_Argument_Error import all
-from project.Error.Common.Illegal_Argument_Error export all
-
-type Illegal_Argument_Error
+type Illegal_Argument
 
     ## UNSTABLE
 
@@ -39,12 +34,18 @@ type Illegal_Argument_Error
        Arguments:
        - message: the error message explaining why the argument is illegal.
        - cause: (optional) another error that is the cause of this one.
-    Illegal_Argument_Error_Data message cause=Nothing
+    Error message cause=Nothing
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Illegal Argument: " + self.message
 
     ## PRIVATE
        Capture a Java IllegalArgumentException and rethrow
     handle_java_exception =
-        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error_Data cause.getMessage cause))
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument.Error cause.getMessage cause))
 
 # TODO Dubious constructor export
 from project.Error.Common.Index_Out_Of_Bounds_Error import all

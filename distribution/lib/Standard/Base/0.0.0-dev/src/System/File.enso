@@ -21,7 +21,7 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, Illegal_Argument_Error_Data, File_Error, Encoding_Error
+from project.Error.Common import Unsupported_File_Type, Illegal_Argument, File_Error, Encoding_Error
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
@@ -57,7 +57,7 @@ type File
       case path of
         _ : Text -> get_file path
         _ : File -> path
-        _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
+        _        -> Error.throw (Illegal_Argument.Error "new file should be either a File or a Text")
 
     ## ALIAS Current Directory
 

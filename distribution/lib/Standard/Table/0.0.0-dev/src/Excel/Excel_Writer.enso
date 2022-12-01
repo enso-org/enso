@@ -73,5 +73,5 @@ handle_writer ~writer =
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
         Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
-            Illegal_Argument_Error.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
+            Illegal_Argument.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer
