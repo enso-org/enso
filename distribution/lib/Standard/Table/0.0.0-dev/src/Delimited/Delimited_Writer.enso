@@ -8,8 +8,9 @@ import project.Data.Match_Columns.Match_Columns
 import project.Data.Storage.Storage
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Delimited.Delimited_Reader
+import project.Delimited.Delimited_Reader.Detected_Headers
 
-from project.Delimited.Delimited_Reader import Detected_Headers, detect_metadata
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.write.DelimitedWriter
@@ -50,7 +51,7 @@ append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_B
 append_to_file table format file match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument.Error <|
         inferring_format = format.with_line_endings Infer
-        metadata = detect_metadata file inferring_format
+        metadata = Delimited_Reader.detect_metadata file inferring_format
         preexisting_headers = metadata.headers
         effective_line_separator = case format.line_endings of
             Infer -> metadata.line_separator.if_nothing default_line_separator_for_writing.to_text
