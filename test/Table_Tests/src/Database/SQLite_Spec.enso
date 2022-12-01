@@ -11,8 +11,7 @@ import Standard.Test.Extensions
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
-import project.Common_Table_Spec
-import project.Aggregate_Spec
+import project.Common_Table_Operations
 
 sqlite_specific_spec connection =
     Test.group "[SQLite] Schemas and Databases" <|
@@ -110,8 +109,8 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
-    common_selection = Common_Table_Spec.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False
-    Common_Table_Spec.spec prefix table_builder test_selection=common_selection
+
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -121,11 +120,13 @@ sqlite_spec connection prefix =
        - creating complex nested queries using NTILE to compute the stats,
        - compiling SQLite library on our own and adding native extensions for
          the missing statistics.
-    selection = Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False nan=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
-    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    Common_Table_Operations.Main.spec setup
 
     connection.close
 
