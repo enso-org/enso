@@ -6,6 +6,12 @@ import project.Panic.Panic
 
 polyglot java import java.lang.IllegalArgumentException
 
+polyglot java import java.io.IOException
+polyglot java import java.nio.file.AccessDeniedException
+polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.FileAlreadyExistsException
+polyglot java import java.lang.ClassCastException
+
 type Illegal_State
     ## UNSTABLE
 
@@ -280,18 +286,14 @@ from project.Error.Common.No_Such_Conversion_Error export all
 type No_Such_Conversion_Error
     No_Such_Conversion_Error_Data target that conversion
 
-## TODO Dubious constructor export
-from project.Error.Common.Unimplemented_Error import all
-from project.Error.Common.Unimplemented_Error export all
-
 ## UNSTABLE
 
    A type used to represent that something has not yet been implemented.
 
    Arguments:
    - message: The message describing what implementation is missing.
-type Unimplemented_Error
-    Unimplemented_Error_Data message
+type Unimplemented
+    Error message
 
     ## PRIVATE
 
@@ -299,22 +301,22 @@ type Unimplemented_Error
     to_display_text : Text
     to_display_text self = "An implementation is missing: " + self.message
 
-## ADVANCED
+    ## ADVANCED
 
-   A function that can be used to indicate that something hasn't been
-   implemented yet.
+       A function that can be used to indicate that something hasn't been
+       implemented yet.
 
-   Arguments:
-   - message: A description of what implementation is missing.
+       Arguments:
+       - message: A description of what implementation is missing.
 
-   > Example
-     Throwing an error to show that something is unimplemented.
+       > Example
+         Throwing an error to show that something is unimplemented.
 
-         import Standard.Base.Error.Common as Errors
+             import Standard.Base.Error.Common as Errors
 
-         example_unimplemented = Errors.unimplemented
-unimplemented : Text -> Nothing
-unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)
+             example_unimplemented = Errors.Unimplemented.throw
+    throw : Text -> Nothing
+    throw message="" = Panic.throw (Unimplemented.Error message)
 
 type Time_Error
 
@@ -346,6 +348,16 @@ type Unsupported_File_Type
    An error indicating that some elements are incomparable.
 
 type Incomparable_Values_Error
+    ## ADVANCED
+       Catches possible errors from comparing values and throws an
+       Incomparable_Values_Error if any occur.
+    handle_errors ~function =
+        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
+        handle ClassCastException <|
+            handle No_Such_Method_Error_Data <|
+                handle Type_Error_Data <|
+                    handle Unsupported_Argument_Types_Data <|
+                        function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
 
 ## Errors when reading or writing to a file.
 type File_Error
@@ -374,6 +386,22 @@ type File_Error
         File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
         File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+
+    ## PRIVATE
+
+       Utility method for running an action with Java exceptions mapping.
+    handle_java_exceptions file ~action =
+        Panic.catch IOException action caught_panic->
+            File_Error.wrap_io_exception file caught_panic.payload.cause
+
+    ## PRIVATE
+
+       Converts a Java `IOException` into its Enso counterpart.
+    wrap_io_exception file io_exception =
+        if io_exception.is_a NoSuchFileException then Error.throw (File_Error.Not_Found file) else
+            if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Error.Already_Exists file) else
+                if io_exception.is_a AccessDeniedException then Error.throw (File_Error.IO_Error file "You do not have permission to access the file") else
+                    Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error

@@ -21,7 +21,7 @@ import project.Data.Text.Regex.Regex_Option.Regex_Option
 import project.Data.Text.Regex.Invalid_Option
 import project.Data.Vector.Vector
 
-from project.Error.Common import Compile_Error, unimplemented
+from project.Error.Common import Compile_Error, Unimplemented
 
 ## The `Data.Text.Regex.Engine.Engine` interface.
 type Engine
@@ -37,7 +37,7 @@ type Engine
        - options: The options to configure the matching process with. These are
          merged with the specific `engine_opts`.
     compile : Text -> Vector Regex_Option -> Pattern ! (Compile_Error | Invalid_Option)
-    compile self _ _ = unimplemented "This is an interface only."
+    compile self _ _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -47,4 +47,4 @@ type Engine
        Arguments:
        - expression: The expression to escape metacharacters in.
     escape : Text -> Text
-    escape self _ = unimplemented "This is an interface only."
+    escape self _ = Unimplemented.throw "This is an interface only."

@@ -4,9 +4,8 @@ import project.Data.Text.Matching_Mode
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Unimplemented
 import project.Nothing.Nothing
-
-from project.Error.Common import unimplemented
 
 ## The `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
@@ -27,7 +26,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     match : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Match | Vector Match | Nothing
-    match self _ _ = unimplemented "This is an interface only."
+    match self _ _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -37,7 +36,7 @@ type Pattern
        Arguments:
        - input: The text to check for matching.
     matches : Text -> Boolean
-    matches self _ = unimplemented "This is an interface only."
+    matches self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -57,7 +56,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     find : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Text | Vector Text | Nothing
-    find self _ _ = unimplemented "This is an interface only."
+    find self _ _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -70,7 +69,7 @@ type Pattern
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element.
     split : Text -> (Matching_Mode.First | Integer | Regex_Mode) -> Vector Text
-    split self _ _ = unimplemented "This is an interface only."
+    split self _ _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -86,4 +85,4 @@ type Pattern
        If this method performs no replacements it will return the `input` text
        unchanged.
     replace : Text -> Text -> Regex_Mode | Matching_Mode.First | Matching_Mode.Last | Integer -> Text
-    replace self _ _ _ = unimplemented "This is an interface only."
+    replace self _ _ _ = Unimplemented.throw "This is an interface only."

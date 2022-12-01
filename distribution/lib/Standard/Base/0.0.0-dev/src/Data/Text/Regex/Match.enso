@@ -5,9 +5,8 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Text
 import project.Data.Text.Regex.No_Such_Group
 import project.Data.Vector.Vector
+import project.Error.Common.Unimplemented
 import project.Nothing.Nothing
-
-from project.Error.Common import unimplemented
 
 ## The `Data.Text.Regex.Engine.Match` interface.
 type Match
@@ -28,7 +27,7 @@ type Match
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
     group : Integer | Text -> Text | Nothing ! No_Such_Group
-    group self _ = unimplemented "This is an interface only."
+    group self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -48,7 +47,7 @@ type Match
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
     groups : Any -> Vector (Text | Any)
-    groups self _ = unimplemented "This is an interface only."
+    groups self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -61,7 +60,7 @@ type Match
          index did not participate in the match. This should default to
          `Nothing`.
     named_groups : Any -> Map Text (Text | Any)
-    named_groups self _ = unimplemented "This is an interface only."
+    named_groups self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -72,7 +71,7 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the start index for.
     start : Integer | Text -> Integer | Nothing ! No_Such_Group
-    start self _ = unimplemented "This is an interface only."
+    start self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
@@ -83,7 +82,7 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the end index for.
     end : Integer | Text -> Integer | Nothing ! No_Such_Group
-    end self _ = unimplemented "This is an intercace only."
+    end self _ = Unimplemented.throw "This is an intercace only."
 
     ## PRIVATE
 
@@ -93,14 +92,14 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the end index for.
     span : Integer | Text -> Span | Nothing ! No_Such_Group
-    span self _ = unimplemented "This is an interface only."
+    span self _ = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
 
        Returns the start character index of the match's region.
     start_position : Integer
-    start_position self = unimplemented "This is an interface only."
+    start_position self = Unimplemented.throw "This is an interface only."
 
     ## Returns the end character index of the match's region.
     end_position : Integer
-    end_position self = unimplemented "This is an interface only."
+    end_position self = Unimplemented.throw "This is an interface only."

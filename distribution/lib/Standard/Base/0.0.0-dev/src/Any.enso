@@ -7,7 +7,6 @@ import project.Nothing.Nothing
 import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import dataflow_error_handler
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 

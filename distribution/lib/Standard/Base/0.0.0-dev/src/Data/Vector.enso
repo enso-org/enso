@@ -23,7 +23,6 @@ from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
-polyglot java import java.lang.ClassCastException
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -871,7 +870,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        handle_incomparable_value <|
+        Incomparable_Values_Error.handle_errors <|
             new_vec_arr.sort compare
             Vector.from_polyglot_array new_vec_arr
 
@@ -909,7 +908,7 @@ type Vector a
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        handle_incomparable_value <|
+        Incomparable_Values_Error.handle_errors <|
             builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->
@@ -1093,17 +1092,6 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The vector is empty."
-
-## ADVANCED
-   Catches possible errors from comparing values and throws an
-   Incomparable_Values_Error if any occur.
-handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
-    handle ClassCastException <|
-        handle No_Such_Method_Error_Data <|
-            handle Type_Error_Data <|
-                handle Unsupported_Argument_Types_Data <|
-                    function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
-from Standard.Base.Data.Vector import handle_incomparable_value
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 
@@ -613,7 +612,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument.handle_java_exception <| handle_incomparable_value <|
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values_Error.handle_errors <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -1500,7 +1499,7 @@ slice_ranges table ranges =
 make_join_helpers left_table right_table =
     make_equals left right = Java_Join_Equals.new left.java_column right.java_column
     make_equals_ignore_case _ _ =
-        unimplemented "Conditions other than Equals are not implemented yet."
+        Unimplemented.throw "Conditions other than Equals are not implemented yet."
     make_between _ _ _ =
-        unimplemented "Conditions other than Equals are not implemented yet."
+        Unimplemented.throw "Conditions other than Equals are not implemented yet."
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between

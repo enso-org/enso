@@ -1,16 +1,14 @@
 from Standard.Base import all
 
 import project.Data.Table.Table
+import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Writer
 
-from project.Delimited.Delimited_Format import Delimited_Format, Delimited
-from project.Errors import unimplemented
+Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    if format.is_a Delimited_Format.Delimited then Delimited_Reader.read_text that format on_problems else
+        Unimplemented.throw "Table.from for fixed-width files is not yet implemented."
 
-Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a Delimited then Delimited_Reader.read_text that format on_problems else
-        unimplemented "Table.from for fixed-width files is not yet implemented."
-
-Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
-    if format.is_a Delimited then Delimited_Writer.write_text that format else
-        unimplemented "Text.from for fixed-width files is not yet implemented."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
+    if format.is_a Delimited_Format.Delimited then Delimited_Writer.write_text that format else
+        Unimplemented.throw "Text.from for fixed-width files is not yet implemented."
