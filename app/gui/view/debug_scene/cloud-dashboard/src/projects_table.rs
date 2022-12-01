@@ -340,26 +340,23 @@ impl Model {
     /// another one).
     ///
     /// Since we use separate tables to display separate types of data in the dashboard, this table
-    /// only ever has one section. So it should always return the range `1..=self.rows()`.  However
-    /// since we don't have easy access to the number of projects in the table, we just return
-    /// [`usize::MAX`], which is provides what we want because we always want all rows to be part of
-    /// the one section.
+    /// only ever has one section. So it should always return the range `0..=self.rows()`.
     fn position_to_requested_section(&self, position: Position) -> (Range<Row>, Col, EntryModel) {
         /// The first row in the section the requested visible entry is in.
         ///
         /// This is always `0` because we only have one section, so the first row is the first
         /// visible one in the table.
         const SECTION_START: usize = 0;
-        /// The last row in the section the requested visible entry is in.
-        ///
-        /// This is always [`usize::MAX`] because we only have one section, so all rows are in the
-        /// current section.
-        const SECTION_END: usize = usize::MAX;
+        /// The last row in the section the requested visible entry is in is an inclusive value, so
+        /// we need to increment `self.rows()` by 1 to get it, since `self.rows()` isn't including
+        /// the header row.
+        const HEADER_OFFSET: usize = 1;
 
         let Position { row: _, column } = position;
         let position = (SECTION_START, column).into();
         let model = self.header_entry_model(position);
-        let section_range = SECTION_START..SECTION_END;
+        let section_end = self.projects.len() + HEADER_OFFSET;
+        let section_range = SECTION_START..section_end;
         (section_range, column, model)
     }
 
@@ -381,12 +378,12 @@ impl Model {
 // === Setter `impl` ===
 
 impl Model {
-    fn set_projects(&self, projects: Rc<Vec<view::project::Project>>) {
+    fn set_projects(&self, projects: Rc<Vec<view::project::Project>>) -> (Row, Col) {
         *self.projects.raw.borrow_mut() = projects.to_vec();
 
-        let row = self.rows();
-        let col = Columns::LEN;
-        self.projects_table.resize_grid(row, col);
+        let rows = self.rows();
+        let cols = Columns::LEN;
+        (rows, cols)
     }
 }
 
@@ -511,9 +508,12 @@ impl View {
         let network = &frp.network;
         let model = &self.model;
         let input = &frp.public.input;
+        let projects_table = &model.projects_table;
 
         frp::extend! { network
-            eval input.set_projects((projects) model.set_projects(projects.clone_ref()));
+            grid_size <- input.set_projects.map(f!((projects) model.set_projects(projects.clone_ref())));
+            projects_table.resize_grid <+ grid_size;
+            projects_table.reset_entries <+ grid_size;
         }
     }
 
