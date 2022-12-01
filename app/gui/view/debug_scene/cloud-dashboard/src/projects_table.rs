@@ -272,11 +272,17 @@ impl Model {
 
     fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
         let Position { row, .. } = position;
-        assert!(row != 0, "Row was {row}, but we can't render a project row for the header.");
-        let idx = self.project_index_for_entry(position)?;
-        let column = column_for_entry(position)?;
-        let project = &self.projects.raw.borrow()[idx];
-        let entry_model = project_entry_model(project, column);
+        let entry_model;
+        // If the row is the first one in the table, we're trying to render a header so we use that
+        // model instead.
+        if row == 0 {
+            entry_model = self.header_entry_model(position);
+        } else {
+            let idx = self.project_index_for_entry(position)?;
+            let column = column_for_entry(position)?;
+            let project = &self.projects.raw.borrow()[idx];
+            entry_model = project_entry_model(project, column);
+        }
         Some((position, entry_model))
     }
 
@@ -539,11 +545,8 @@ impl View {
         frp::extend! { network
             // We want to work with our `Position` struct rather than a coordinate pair, so convert.
             needed_entries <- projects_table.model_for_entry_needed.map(|position| Position::from(*position));
-            // The first row is the header row, which is displayed with a different entry model.
-            needed_entries_body <- needed_entries.filter(|&position| position.row > 0);
-
             projects_table.model_for_entry <+
-                needed_entries_body.filter_map(f!((position) model.model_for_entry(*position).map(|(position, entry_model)| {
+                needed_entries.filter_map(f!((position) model.model_for_entry(*position).map(|(position, entry_model)| {
                     let (row, col) = position.into();
                     (row, col, entry_model)
                 })));
