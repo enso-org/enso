@@ -66,6 +66,7 @@ pub fn main() {
         let scene = &app.display.default_scene;
 
         let projects_table = app.new_view::<projects_table::View>();
+        let projects_table = projects_table.init().expect("Failed to initialize projects table.");
         scene.add_child(&projects_table);
 
         std::mem::forget(projects_table);

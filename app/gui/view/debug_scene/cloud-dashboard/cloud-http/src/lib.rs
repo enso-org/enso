@@ -71,7 +71,7 @@ pub struct Client {
     ///
     /// If you are developing against a deployed environment, the AWS API Gateway URL can be
     /// looking in the Terraform output logs after a successful deployment.
-    base_url: String,
+    base_url: reqwest::Url,
     /// The JSON Web Token (JWT) used to authenticate requests to our API.
     token:    AccessToken,
     /// Underlying HTTP client used to make requests.
@@ -90,10 +90,10 @@ impl Client {
     ///
     /// For more info about how the arguments are used, see the documentation of the [`Client`]
     /// struct and its fields, or the type documentation for the arguments.
-    pub fn new(api_gateway_id: ApiGatewayId, aws_region: AwsRegion, token: AccessToken) -> Self {
-        let base_url = format!("https://{api_gateway_id}.execute-api.{aws_region}.amazonaws.com");
+    pub fn new(api_gateway_id: ApiGatewayId, aws_region: AwsRegion, token: AccessToken) -> Result<Self, Error> {
+        let base_url = format!("https://{api_gateway_id}.execute-api.{aws_region}.amazonaws.com").parse()?;
         let http = reqwest::Client::new();
-        Self { base_url, token, http }
+        Ok(Self { base_url, token, http })
     }
 
     /// Returns the list of [`Project`]s the user has access to.
@@ -126,7 +126,7 @@ impl Client {
         let method = route.method();
         let relative_path = route.to_string();
         let mut url = self.base_url.clone();
-        url.push_str(&relative_path);
+        url.set_path(&relative_path);
 
         let request = self.http.request(method, url);
         let request = request.bearer_auth(&self.token);

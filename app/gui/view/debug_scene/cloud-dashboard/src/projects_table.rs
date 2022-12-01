@@ -485,10 +485,10 @@ impl View {
     fn new(app: Application) -> Self {
         let frp = Frp::new();
         let model = Model::new(&app);
-        Self { frp, model, app }.init()
+        Self { frp, model, app }
     }
 
-    fn init(self) -> Self {
+    pub(crate) fn init(self) -> anyhow::Result<Self> {
         let frp = &self.frp;
         let model = &self.model;
         let app = &self.app;
@@ -504,9 +504,9 @@ impl View {
 
         app.display.add_child(root);
 
-        populate_table_with_data(input.clone_ref());
+        populate_table_with_data(input.clone_ref())?;
 
-        self
+        Ok(self)
     }
 
     fn init_projects_table_model_data_loading(&self) {
@@ -616,11 +616,12 @@ impl View {
     }
 }
 
-fn populate_table_with_data(input: api::public::Input) {
+fn populate_table_with_data(input: api::public::Input) -> anyhow::Result<()> {
     let api_gateway_id = enso_cloud_http::ApiGatewayId(API_GATEWAY_ID.to_string());
     let token = enso_cloud_http::AccessToken(TOKEN.to_string());
-    let client = enso_cloud_http::Client::new(api_gateway_id, AWS_REGION, token);
+    let client = enso_cloud_http::Client::new(api_gateway_id, AWS_REGION, token)?;
     get_projects(client, input);
+    Ok(())
 }
 
 /// Returns the [`Columns`] variant for the entry at the given [`Position`], letting us select over
