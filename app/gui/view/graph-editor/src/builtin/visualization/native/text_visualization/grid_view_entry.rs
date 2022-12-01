@@ -1,3 +1,6 @@
+//! This module contains the `Entry` used in the `TextGrid` visualizations well as associated
+//! structs.
+
 use super::*;
 use ensogl::prelude::*;
 
@@ -11,11 +14,22 @@ use ensogl_component::grid_view::entry::EntryFrp;
 
 
 
+// =============
+// === Model ===
+// =============
+
+
 /// Model that contains the data that is required to populate the data in an `Entry`.
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub text: String,
 }
+
+
+
+// ==============
+// === Params ===
+// ==============
 
 /// Parameters that are required to set up an `Entry`.
 #[derive(Clone, Debug, Default)]
@@ -28,6 +42,13 @@ pub struct Params {
     /// Font size in pixels.
     pub font_size: f32,
 }
+
+
+
+// =============
+// === Entry ===
+// =============
+
 
 /// Entry for use in GridView. Contains a dom element with a text, the Entry frp, and a dummy
 /// display object for compatibility with `GridView`. The `dummy_root` is not used for
@@ -48,8 +69,6 @@ impl Entry {
         if let Some(parent) = &params.parent {
             parent.append_or_warn(self.text.dom());
         }
-        self.text.set_style_or_warn("font-family", params.font_name.clone());
-        self.text.set_style_or_warn("font-size", format!("{}px", params.font_size as u32));
     }
 
     fn set_position_and_size(&self, pos: &Vector2, size: &Vector2) {

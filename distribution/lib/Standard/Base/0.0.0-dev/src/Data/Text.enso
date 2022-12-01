@@ -4,7 +4,6 @@ import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error, Type_Error_Data
-from Standard.Visualization.Text import get_lazy_visualisation_text_window
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -97,10 +96,3 @@ type Text
              "aaa".not_empty
     not_empty : Boolean
     not_empty self = self.is_empty.not
-
-    ## UNSTABLE
-       ADVANCED
-           Returns the data requested to render a lazy view of the text.
-    to_lazy_visualization_data : Text
-    to_lazy_visualization_data self text_window_position text_window_size chunk_size =
-        get_lazy_visualisation_text_window self text_window_position text_window_size chunk_size

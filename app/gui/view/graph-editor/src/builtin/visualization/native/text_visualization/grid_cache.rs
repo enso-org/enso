@@ -1,7 +1,9 @@
-//! A cache that stores a grid of items. The cache contains a grid of items, and aa padding around
-//! the inner grid. The padding is used to store items that are expected to be accessed soon.  
-//! Once an item outside of the inner grid is requested, the position of the inner grids is moved
-//! and new items are requested to the cache.
+//! A cache that stores a grid of items. The cache contains a grid of items, and a padding around
+//! the inner grid. The padding is used to store items that are adjacent to the inner grid, and are
+//! expected to be accessed next when moving the location of the inner grid to the left/right or
+//! up/down. Once an item outside of the inner grid is requested, the position of the inner grids
+//! is moved to contain the accessed item. Then further new items are requested to the cache
+//! according to the new grid location.
 //!
 //! Example
 //! -------
@@ -39,22 +41,30 @@ use super::GridWindow;
 
 
 
+// =================
+// === GridCache ===
+// =================
+
+
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
+/// A cache that stores a grid of items. The cache contains a grid of items, and a padding around
+/// the inner grid. The padding is used to store items that are adjacent to the inner grid. For
+/// fore details see the module documentation.
 pub struct GridCache<T> {
     cached_grid_pos:  GridPosition,
     cached_grid_size: GridSize,
-
     #[derivative(Debug = "ignore")]
-    data:          HashMap<GridPosition, T>,
-    /// Number of row/columns that should be fetched, which are not visible
-    cache_padding: i32,
-
+    data:             HashMap<GridPosition, T>,
+    /// Number of row/columns that should be fetched, which are not visible.
+    cache_padding:    i32,
     #[derivative(Debug = "ignore")]
-    request_fn: Box<dyn Fn(GridWindow)>,
+    /// A callback that is called when the cache requires an update.
+    request_fn:       Box<dyn Fn(GridWindow)>,
 }
 
 impl<T: Clone> GridCache<T> {
+    /// Create a new `GridCache`.
     pub fn new(
         starting_pos: GridPosition,
         starting_size: GridSize,
@@ -86,6 +96,7 @@ impl<T: Clone> GridCache<T> {
         self
     }
 
+    /// Get the item at the given position. If the item is not in the cache, it will be requested.
     pub fn get_item(&mut self, index: GridPosition) -> Option<T> {
         self.register_cache_access(index);
         let item = self.data.get(&index).cloned();
@@ -95,6 +106,7 @@ impl<T: Clone> GridCache<T> {
         item
     }
 
+    /// Add an item to the cache at the given position.
     pub fn add_item(&mut self, index: GridPosition, item: T) {
         self.data.insert(index, item);
     }
@@ -103,7 +115,7 @@ impl<T: Clone> GridCache<T> {
         if let Some(offset) = self.distance_from_displayed_grid(index) {
             debug_assert!(
                 offset != Vector2::new(0, 0),
-                "The index {} should not be in the displayed grid with pos {} and size {}",
+                "The index {} should not be in the displayed grid with pos {} and size {}.",
                 index,
                 self.cached_grid_pos,
                 self.cached_grid_size
@@ -142,19 +154,21 @@ impl<T: Clone> GridCache<T> {
         (x_start..x_end).cartesian_product(y_start..y_end).map(|(x, y)| GridPosition::new(x, y))
     }
 
+    /// Get the distance of the given index from the displayed grid. If the index is in the
+    /// displayed grid, `None` is returned.
     fn distance_from_displayed_grid(&self, index: GridPosition) -> Option<GridVector> {
         let bottom_right = self.cached_grid_pos + self.cached_grid_size;
 
         if index >= self.cached_grid_pos && index <= bottom_right {
             None
         } else {
-            let dx =
-                distance_from_segment(self.cached_grid_pos.x, self.cached_grid_size.x, index.x);
-            let dy =
-                distance_from_segment(self.cached_grid_pos.y, self.cached_grid_size.y, index.y);
+            let cached_grid_pos = self.cached_grid_pos;
+            let cached_grid_size = self.cached_grid_size;
+            let dx = distance_from_segment(cached_grid_pos.x, cached_grid_size.x, index.x);
+            let dy = distance_from_segment(cached_grid_pos.y, cached_grid_size.y, index.y);
             debug_assert!(
                 dx != 0 || dy != 0,
-                "The index {} should not be in the displayed grid with pos {} and size {}",
+                "The index {} should not be in the displayed grid with pos {} and size {}.",
                 index,
                 self.cached_grid_pos,
                 self.cached_grid_size
@@ -164,6 +178,9 @@ impl<T: Clone> GridCache<T> {
     }
 }
 
+/// Get the distance of the given index from the segment defined by the start and size.
+/// For example, if the segment is [0, 10[ (start is 0, size is 10) and the value is 15
+/// the distance is 6.
 fn distance_from_segment(start: i32, size: i32, value: i32) -> i32 {
     let delta = value - start;
     if value >= start && value < start + size {
@@ -174,6 +191,13 @@ fn distance_from_segment(start: i32, size: i32, value: i32) -> i32 {
         delta
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,20 @@
-//! Lazy text visualisation that can show text based data from the backend.
+//! Text visualisation that can show text based data from the backend. If the text is larger than
+//! the available space, it will use lazy loading to request only a subset of the data to
+//! display. This is useful for large texts to avoid overwhelming the visualisation.
+//!
+//! The visualisation is made up of text `chunks` that are cached and will be requested form the
+//! backend. The size of the chunks is determined by the `chunk_size` parameter and each hunk is
+//! shown as a cell in a grid.
+//!
+//! Example:
+//! ```text
+//! ┌──────────┬──────────┬────
+//! │chunk(0,0)│chunk(1,0)│ ...
+//! ├──────────┼──────────┼───
+//! │chunk(0,1 │chunk(1,1)│ ...
+//! ├──────────┼──────────┼───
+//! │ ...      │ ....     │ ...
+//! ```
 
 
 
@@ -35,8 +51,14 @@ pub use entry::Entry;
 // === Constants ===
 // =================
 
-/// Number of characters that can be displayed in one grid cell. Also referred to as `chunk`.
-const CHARS_PER_CELL: f32 = 10.0;
+/// Number of characters that can be displayed in one grid cell and will be requested together from
+/// the engine. Also referred to as `chunk`. This value can be changed to tweak the size of the
+/// messages sent to the visualisation as well as the caching performance. A larger value will
+/// result in fewer, smaller messages, but the visualisation might have to load more data that is
+/// not needed, as it will be cropped. For example, a value of 100, would mean that the
+/// visualisation would request 100 characters per chunk, even if it can only show 10 characters at
+/// once in the available viewport.
+const CHARS_PER_CHUNK: usize = 20;
 /// Extra chunks to load around the visible grid to ensure smooth scrolling. Extra chunks are
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
@@ -133,14 +155,11 @@ impl<T: 'static> Model<T> {
     fn set_size(&self, size: Vector2) {
         self.scroll_bar_horizontal.set_position_y(-size.y / 2.0);
         self.scroll_bar_horizontal.set_length(size.x);
-        self.scroll_bar_horizontal
-            .mod_position_y(|y| y + (scrollbar::WIDTH - scrollbar::PADDING) / 2.0);
-
+        let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
+        self.scroll_bar_horizontal.mod_position_y(|y| y + scrollbar_width / 2.0);
         self.scroll_bar_vertical.set_position_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
-        self.scroll_bar_vertical
-            .mod_position_x(|x| x - (scrollbar::WIDTH - scrollbar::PADDING) / 2.0);
-
+        self.scroll_bar_vertical.mod_position_x(|x| x - scrollbar_width / 2.0);
         self.clipping_div.set_size(size);
         self.size.set(size);
     }
@@ -229,12 +248,14 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
-            longest_line <- text_provider.longest_line.map(f!([longest_observed_line](longest_line) {
-                let observed_value = longest_observed_line.get();
-                let longest_line = observed_value.max(*longest_line);
-                longest_observed_line.set(longest_line);
-                longest_line
-            })).on_change();
+            longest_line <- text_provider.longest_line.map(
+                f!([longest_observed_line](longest_line) {
+                    let observed_value = longest_observed_line.get();
+                    let longest_line = observed_value.max(*longest_line);
+                    longest_observed_line.set(longest_line);
+                    longest_line
+                })
+            ).on_change();
 
             line_count <- text_provider.line_count.map(f!([max_observed_lines](line_count) {
                 let observed_value = max_observed_lines.get();
@@ -243,8 +264,9 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                 max_lines
             })).on_change();
 
-            content_size <- all(init, on_data_update, longest_line, line_count).map(|(_, _, width,height)| {
-                let columns = (*width as usize / CHARS_PER_CELL as usize) + 1;
+            content_size <- all(init, on_data_update, longest_line, line_count).map(
+                |(_, _, width,height)| {
+                let columns = (*width as usize / CHARS_PER_CHUNK) + 1;
                 let rows = *height as usize;
                 ( rows.max(1), columns.max(1) )
             }).on_change();
@@ -258,15 +280,26 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             text_grid_content_size_y <- text_grid.content_size.map(|size| size.y).on_change();
             text_grid_content_size_y_previous <- text_grid_content_size_y.previous();
 
-            horizontal_scrollbar_change_args <- all(text_grid_content_size_x, text_grid_content_size_x_previous, scrollbar_h.thumb_position);
-            on_content_size_x_change <- horizontal_scrollbar_change_args.sample(&text_grid_content_size_x);
-            scrollbar_h.jump_to <+ on_content_size_x_change.map(|(content_size_x, content_size_x_previous, thumb_position)| {
+            horizontal_scrollbar_change_args <- all(
+                text_grid_content_size_x,
+                text_grid_content_size_x_previous,
+                scrollbar_h.thumb_position
+            );
+            on_content_size_x_change <- horizontal_scrollbar_change_args
+                .sample(&text_grid_content_size_x);
+            scrollbar_h.jump_to <+ on_content_size_x_change.map(
+                |(content_size_x, content_size_x_previous, thumb_position)| {
                 thumb_position * content_size_x_previous / content_size_x
             });
 
-            vertical_scrollbar_change_args <- all(text_grid_content_size_y, text_grid_content_size_y_previous, scrollbar_v.thumb_position);
-            on_content_size_y_change <- vertical_scrollbar_change_args.sample(&text_grid_content_size_y);
-            scrollbar_v.jump_to <+ on_content_size_y_change.map(|(content_size_y, content_size_y_previous, thumb_position)| {
+            vertical_scrollbar_change_args <- all(text_grid_content_size_y,
+                text_grid_content_size_y_previous,
+                scrollbar_v.thumb_position
+            );
+            on_content_size_y_change <- vertical_scrollbar_change_args
+                .sample(&text_grid_content_size_y);
+            scrollbar_v.jump_to <+ on_content_size_y_change.map(
+                |(content_size_y, content_size_y_previous, thumb_position)| {
                 thumb_position * content_size_y_previous / content_size_y
             });
 
@@ -283,21 +316,27 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             scrollbar_h.set_thumb_size <+ scrollbar_sizes._0();
             scrollbar_v.set_thumb_size <+ scrollbar_sizes._1();
 
-            viewport <- all_with4(&init, &scroll_positition, &frp.set_size, &text_grid.content_size, f!([dom_entry_root](_, scroll_position, vis_size, content_size) {
-                let (scroll_x, scroll_y) = *scroll_position;
-                let top = -scroll_y * content_size.y;
-                let bottom = top - vis_size.y;
-                let left = scroll_x * content_size.x;
-                let right = left +  vis_size.x;
+            viewport <- all_with4(
+                &init,
+                &scroll_positition,
+                &frp.set_size,
+                &text_grid.content_size,
+                f!([dom_entry_root](_, scroll_position, vis_size, content_size) {
+                    let (scroll_x, scroll_y) = *scroll_position;
+                    let top = -scroll_y * content_size.y;
+                    let bottom = top - vis_size.y;
+                    let left = scroll_x * content_size.x;
+                    let right = left +  vis_size.x;
 
-                // Set DOM element size
-                dom_entry_root.set_style_or_warn("top", format!("{}px", top));
-                dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
+                    // Set DOM element size.
+                    dom_entry_root.set_style_or_warn("top", format!("{}px", top));
+                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
 
-                // Output viewport
-                let viewport = grid_view::Viewport {top,bottom,left,right};
-                viewport
-            }));
+                    // Output viewport.
+                    let viewport = grid_view::Viewport {top, bottom, left, right};
+                    viewport
+                })
+            );
             text_grid.set_viewport <+ viewport;
         }
 
@@ -307,18 +346,24 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         frp::extend! { network
 
             theme_update <- all(init, font_name, font_size);
-            text_grid.set_entries_params <+  theme_update.map(f!([dom_entry_root]((_, font_name, font_size)) {
-                let parent = Some(dom_entry_root.clone_ref());
-                let font_name = font_name.clone();
-                let font_size = *font_size;
-                grid_view_entry::Params { parent, font_name, font_size}
-            }));
+            text_grid.set_entries_params <+  theme_update.map(
+                f!([dom_entry_root]((_, font_name, font_size)) {
+
+                    dom_entry_root.set_style_or_warn("font-family", font_name.clone());
+                    dom_entry_root.set_style_or_warn("font-size", format!("{}px", *font_size as u32));
+
+                    let parent = Some(dom_entry_root.clone_ref());
+                    let font_name = font_name.clone();
+                    let font_size = *font_size;
+                    grid_view_entry::Params { parent, font_name, font_size}
+                })
+            );
 
             item_width_update <- all(init, font_name, font_size);
             item_width <- item_width_update.map(f!([]((_, font_name, font_size)) {
                 let font_size = *font_size;
                 let char_width = measure_character_width(font_name, font_size);
-                CHARS_PER_CELL * char_width
+                CHARS_PER_CHUNK as f32 * char_width
             })).on_change();
             item_update <- all(init, item_width, font_size);
             text_grid.set_entries_size <+ item_update.map(f!([]((_, item_width, item_height)) {
@@ -379,9 +424,9 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
 
 /// A text grid backed by a `String`. Used for testing and backend agnostic development and demos.
 /// Should not be used in production as it is not optimized for performance.
-pub type StringTextGridVisualisation = TextGrid<String>;
+pub type DebugTextGridVisualisation = TextGrid<String>;
 /// A text grid backed by a the engine. Requests data from the engine on demand and renders it.
-pub type LazyTextVisualisation = TextGrid<BackendTextProvider>;
+pub type TextVisualisation = TextGrid<BackendTextProvider>;
 
 /// Return definition of a lazy text visualisation.
 pub fn lazy_text_visualisation() -> visualization::Definition {
@@ -389,7 +434,7 @@ pub fn lazy_text_visualisation() -> visualization::Definition {
     visualization::Definition::new(
         visualization::Signature::new_for_any_type(path, visualization::Format::Json),
         |app| {
-            let grid = LazyTextVisualisation::new(app.clone_ref());
+            let grid = TextVisualisation::new(app.clone_ref());
             grid.set_text_provider(BackendTextProvider::new(
                 grid.frp.inputs.send_data.clone_ref(),
                 grid.frp.preprocessor_change.clone_ref(),

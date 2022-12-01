@@ -1,13 +1,14 @@
 //! Text providers that can be used to back a text grid visualization.
-//! Contains a dummy implementation `StringTextProvider` that is backed by a `String` that can be
+//!
+//! Contains a dummy implementation [`StringTextProvider`] that is backed by a `String` that can be
 //! used for testing, and the text provider `BackendTextProvider` used for communicating with the
 //! backend.
 
-use crate::builtin::visualization::native::lazy_text_visualization::*;
+use crate::builtin::visualization::native::text_visualization::*;
 use crate::prelude::*;
 
-use crate::builtin::visualization::native::lazy_text_visualization::grid_cache::GridCache;
-use crate::builtin::visualization::native::lazy_text_visualization::CACHE_PADDING;
+use crate::builtin::visualization::native::text_visualization::grid_cache::GridCache;
+use crate::builtin::visualization::native::text_visualization::CACHE_PADDING;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 
@@ -42,10 +43,10 @@ pub trait TextProvider {
 // ===========================
 
 ensogl::define_endpoints_2! {
-        Input {}
-        Output {
-            line_count(u32),
-            longest_line(u32),
+    Input {}
+    Output {
+        line_count(u32),
+        longest_line(u32),
     }
 }
 
@@ -64,15 +65,14 @@ pub struct StringTextProvider {
 }
 
 impl StringTextProvider {
-    /// Create a new `StringTextProvider`.
+    /// Create a new [`StringTextProvider`].
     pub fn new(text: String, chunk_size: usize) -> Self {
         let frp = Frp::new();
 
         frp.private().output.line_count.emit(text.lines().count() as u32);
-        frp.private()
-            .output
-            .longest_line
-            .emit(text.lines().map(|line| line.chars().count()).max().unwrap_or(0) as u32);
+        let longest_line_frp = &frp.private().output.longest_line;
+        let longest_line = text.lines().map(|line| line.chars().count()).max().unwrap_or(0) as u32;
+        longest_line_frp.emit(longest_line);
 
         Self { text, frp, chunk_size }
     }
@@ -100,6 +100,7 @@ impl TextProvider for StringTextProvider {
 // === Backend Text Provider ===
 // =============================
 
+const DEFAULT_GRID_SIZE: i32 = 20;
 
 /// A cache for a grid of Strings.
 ///
@@ -118,7 +119,7 @@ impl BackendTextProvider {
         receive_data: frp::Source<visualization::Data>,
         preprocessor_update: frp::Any<PreprocessorConfiguration>,
     ) -> Self {
-        let frp = text_provider::Frp::new();
+        let frp = Frp::new();
         let network = frp.network();
         let output = frp.private().output.clone_ref();
 
@@ -126,21 +127,17 @@ impl BackendTextProvider {
             grid_window <- any_mut::<GridWindow>();
         }
 
-        let grid_cache_update = f!([grid_window](new_window) {
-           grid_window.emit(new_window)
-        });
+        let grid_cache_update = f!((new_window) grid_window.emit(new_window));
 
         let text_cache = Rc::new(RefCell::new(GridCache::<String>::new(
-            GridPosition::new(0, 0),
-            GridSize::new(20, 20),
+            GridPosition::default(),
+            GridSize::new(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE),
             CACHE_PADDING,
             Box::new(grid_cache_update),
         )));
 
         frp::extend! { network
-
             register_access <- any_mut();
-
             update_preprocessor <- all(register_access, grid_window);
             update_preprocessor <- update_preprocessor._1();
             preprocessor_update <+ update_preprocessor.map(|grid_window| {
@@ -148,7 +145,6 @@ impl BackendTextProvider {
                 let grid_size = grid_window.size;
                 lazy_text_preprocessor(grid_posititon, grid_size)
             });
-
             grid_data_update <- receive_data.map(|data| {
                 LazyGridData::try_from(data.clone()).ok()
             });
@@ -159,10 +155,8 @@ impl BackendTextProvider {
                     text_cache.borrow_mut().add_item(*pos, text.clone());
                 }
             });
-
             output.line_count <+ grid_data_update.map(|grid_data| grid_data.line_count);
             output.longest_line <+ grid_data_update.map(|grid_data| grid_data.longest_line);
-
         }
 
         Self { frp, text_cache, register_access }
@@ -192,9 +186,12 @@ fn lazy_text_preprocessor(
         "Standard.Visualization.Preprocessor",
         "lazy_preprocessor",
         vec![
-            serde_json::to_string(&grid_position).unwrap(),
-            serde_json::to_string(&grids_size).unwrap(),
-            serde_json::to_string(&(CHARS_PER_CELL as u32)).unwrap(),
+            serde_json::to_string(&grid_position)
+                .expect("Could not serialise [`GridPosition`] as JSON string."),
+            serde_json::to_string(&grids_size)
+                .expect("Could not serialise [`GridSize`] as JSON string."),
+            serde_json::to_string(&(CHARS_PER_CHUNK as u32))
+                .expect("Could not serialise [`u32`] as JSON string."),
         ],
     )
 }
@@ -220,24 +217,11 @@ impl TryFrom<visualization::Data> for LazyGridData {
 
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
         if let visualization::Data::Json { content } = data {
-            if let Some(chunks) = content.get("chunks") {
-                let line_count =
-                    content.get("lines").map_or_default(|l| l.as_u64().unwrap_or_default() as u32);
-                let longest_line = content
-                    .get("max_line_length")
-                    .map_or_default(|l| l.as_u64().unwrap_or_default() as u32);
-                let chunks: Vec<(GridPosition, String)> = chunks
-                    .as_str()
-                    .map(serde_json::from_str)
-                    .transpose()
-                    .unwrap_or_default()
-                    .unwrap_or_default();
-                Ok(LazyGridData { chunks, line_count, longest_line })
-            } else {
+            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|_| {
                 let data_str = serde_json::to_string_pretty(&*content);
-                let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
-                Ok(data_str.into())
-            }
+                let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}.>", e));
+                data_str.into()
+            }))
         } else {
             Err(visualization::DataError::BinaryNotSupported)
         }
@@ -246,24 +230,71 @@ impl TryFrom<visualization::Data> for LazyGridData {
 
 impl From<String> for LazyGridData {
     fn from(content: String) -> Self {
-        let chunks = content
-            .lines()
-            .enumerate()
+        let lines = content.lines();
+        let numbered_lines = lines.enumerate();
+        let chunks = numbered_lines
             .flat_map(|(line_ix, line)| {
-                line.chars()
-                    .chunks(CHARS_PER_CELL as usize)
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(chunk_ix, chunk)| {
-                        let chunk = chunk.collect::<String>();
-                        let pos = GridPosition::new(chunk_ix as i32, line_ix as i32);
-                        (pos, chunk)
-                    })
-                    .collect_vec()
+                let chunks = line.chars().chunks(CHARS_PER_CHUNK);
+                let numbered_chunks = chunks.into_iter().enumerate();
+                let chunks_with_position = numbered_chunks.map(move |(chunk_ix, chunk)| {
+                    let chunk = chunk.collect::<String>();
+                    let pos = GridPosition::new(chunk_ix as i32, line_ix as i32);
+                    (pos, chunk)
+                });
+                chunks_with_position.collect_vec()
             })
             .collect();
         let line_count = content.lines().count() as u32;
         let longest_line = content.lines().map(|l| l.len()).max().unwrap_or_default() as u32;
         LazyGridData { chunks, line_count, longest_line }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_backend_message_deserialization() {
+        let sample_message =
+            r#"{"chunks":[[[0, 0], "ABCDE"], [[0, 1], "12345"]],"line_count":2,"longest_line":19}"#;
+        let json =
+            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
+        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
+    }
+
+    #[test]
+    fn test_backend_message_with_null_deserialization() {
+        let sample_message =
+            r#"{"chunks":[[[0, 0], "ABCDE"], [[0, 1], null]],"line_count":2,"longest_line":19}"#;
+        let json =
+            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
+        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
+    }
+
+    #[test]
+    fn test_backend_message_simple_string_deserialization() {
+        let sample_message = r#""Just a simple string
+            with two lines.""#;
+        let json =
+            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
+        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
+        let lazy_grid = result.unwrap();
+        assert_eq!(lazy_grid.line_count, 2);
+    }
+
+    #[test]
+    fn test_backend_message_multiline_string_deserialization() {
+        let sample_message = "10";
+        let json =
+            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
+        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
+        let lazy_grid = result.unwrap();
+        assert_eq!(lazy_grid.line_count, 2);
     }
 }

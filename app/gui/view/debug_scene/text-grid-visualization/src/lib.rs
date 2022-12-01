@@ -17,7 +17,7 @@
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::lazy_text_visualization::TextGrid;
+use crate::text_visualization::TextGrid;
 
 use ensogl::animation;
 use ensogl::application::Application;
@@ -26,8 +26,8 @@ use ensogl::system::web;
 use ensogl::system::web::traits::DocumentOps;
 use ensogl::system::web::traits::ElementOps;
 use ensogl_text_msdf::run_once_initialized;
-use ide_view::graph_editor::builtin::visualization::native::lazy_text_visualization;
-use ide_view::graph_editor::builtin::visualization::native::lazy_text_visualization::text_provider;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization;
+use ide_view::graph_editor::builtin::visualization::native::text_visualization::text_provider;
 
 
 
@@ -95,7 +95,8 @@ fn init(app: &Application) {
         let camera = scene.camera();
         let navigator = Navigator::new(scene, &camera);
 
-        let text_source = text_provider::StringTextProvider::new(sample_text(), 15);
+        let sample_text_data = sample_text();
+        let text_source = text_provider::StringTextProvider::new(sample_text_data, 15);
 
         let grid = TextGrid::new(app.clone_ref());
         grid.set_text_provider(text_source);

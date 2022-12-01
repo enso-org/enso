@@ -7,7 +7,6 @@ import project.Meta
 from project.Data.Json import all
 from project.Data.Boolean import Boolean, True, False
 from project.Error.Common import Error, dataflow_error_handler
-from Standard.Visualization.Text import get_lazy_visualisation_text_window
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -413,14 +412,3 @@ type Any
              2.to_default_visualization_data
     to_default_visualization_data : Text
     to_default_visualization_data self = self.to_json.to_text
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns the data requested to render a lazy view of the default visualisation.
-    to_lazy_visualization_data : Text
-    to_lazy_visualization_data self text_window_position text_window_size chunk_size =
-        text = self.to_default_visualization_data
-        min_length_for_laziness = chunk_size * (text_window_size.at 0) * (text_window_size.at 1)
-        if text.length <= min_length_for_laziness then text else
-            get_lazy_visualisation_text_window text text_window_position text_window_size chunk_size
