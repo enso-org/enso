@@ -281,12 +281,20 @@ impl Model {
         Some((position, entry_model))
     }
 
+    /// Returns the index of the [`Project`] in the list of [`Project`]s that corresponds to the
+    /// provided [`Position`] of the [`ProjectsTable`].
+    ///
+    /// Aside from the header row, each row of the [`ProjectsTable`] contains data on a [`Project`]
+    /// from the backing [`Model.projects`] list. But the index of the row doesn't correspond to the
+    /// index in the table, since the header row doesn't contain data on a [`Project`]. So this
+    /// function performs a conversion between the two indices.
+    ///
+    /// [`Project`]: ::enso_cloud_view::project::Project
     fn project_index_for_entry(&self, position: Position) -> Option<usize> {
         let Position { row, column: _ } = position;
-        assert!(row != 0, "Row was 0, but we cannot display a project in the header row.");
         // The rows of the grid are zero-indexed, but the first row is the header row, so we need to
         // subtract 1 to get the index of the project we want to display.
-        let idx = row - 1;
+        let idx = row.checked_sub(1)?;
         if idx >= self.projects.len() {
             warn!(
                 "Attempted to display entry at index {idx}, but we only have data up to index {}.",
