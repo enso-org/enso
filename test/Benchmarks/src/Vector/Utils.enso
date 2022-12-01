@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+polyglot java import java.util.Random
+
+make_random_vec : Integer -> Vector.Vector
+make_random_vec n =
+    random_gen = Random.new n
+    Vector.fill n random_gen.nextLong

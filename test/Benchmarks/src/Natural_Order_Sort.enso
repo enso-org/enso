@@ -11,7 +11,7 @@ num_iterations = 10
 
 # The Benchmarks ==============================================================
 
-main =
+bench =
     l = Faker.upper_case_letters
     n = Faker.numbers
     template = [l, l, l, n, n, n, n, n, l]
@@ -25,3 +25,5 @@ main =
 
     IO.println <| "Benchmarking..."
     Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" iter_size num_iterations
+
+main = bench

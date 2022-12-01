@@ -3,6 +3,8 @@ import Standard.Base
 
 from Standard.Test import Bench
 
+import project.Vector.Utils
+
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Time_Utils
 
@@ -12,15 +14,10 @@ polyglot java import org.enso.base.Time_Utils
 iter_size = 100
 num_iterations = 10
 
-make_random_vec : Integer -> Base.Vector
-make_random_vec n =
-    random_gen = Random.new n
-    Base.Vector.new n _->random_gen.nextLong
-
 # The Benchmarks ==============================================================
 
-main =
-    random_vec = make_random_vec 10000
+bench =
+    random_vec = Utils.make_random_vec 10000
     uniform_vec = Base.Vector.fill 10000 1
 
     random_text_vec = random_vec.map .to_text
@@ -31,3 +28,5 @@ main =
 
     Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
     Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations
+
+main = bench
