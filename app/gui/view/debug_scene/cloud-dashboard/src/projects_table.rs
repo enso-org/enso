@@ -462,8 +462,9 @@ impl Model {
 /// accordingly.
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 pub struct View {
+    #[deref]
     frp:   Frp,
     model: Model,
 }
@@ -643,13 +644,6 @@ fn get_projects(client: enso_cloud_http::Client, input: crate::projects_table::a
 
 
 // === Trait `impl`s ===
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
 
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
