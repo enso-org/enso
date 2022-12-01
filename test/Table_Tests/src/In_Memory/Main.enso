@@ -10,9 +10,6 @@ import project.In_Memory.Table_Date_Time_Spec
 import project.In_Memory.Table_Time_Of_Day_Spec
 import project.In_Memory.Unique_Naming_Strategy_Spec
 
-# TODO temporary placeholder, move to common
-import project.In_Memory.Expression_Spec
-
 spec =
     Table_Spec.spec
     Column_Spec.spec
@@ -21,6 +18,5 @@ spec =
     Table_Time_Of_Day_Spec.spec
     Aggregate_Column_Spec.spec
     Unique_Naming_Strategy_Spec.spec
-    Expression_Spec.spec
 
 main = Test_Suite.run_main spec
