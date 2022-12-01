@@ -665,7 +665,7 @@ type Match
              example_groups =
                  match = Examples.match
                  match.groups default="UNMATCHED"
-    groups : (a : Any) -> Vector (Text | a)
+    groups : Any -> Vector (Text | Any)
     groups self default=Nothing =
         group_numbers = 0.up_to self.internal_match.groupCount+1
         group_numbers.map n->
@@ -690,7 +690,7 @@ type Match
              example_groups =
                  match = Examples.match
                  matcg.named_groups default="UNMATCHED"
-    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups : Any -> Map Text (Text | Any)
     named_groups self default=Nothing =
         group_names = Vector.from_polyglot_array <|
             Regex_Utils.get_group_names self.internal_match.pattern
