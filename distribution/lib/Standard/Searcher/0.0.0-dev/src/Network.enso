@@ -7,7 +7,7 @@
    > Example
      Download a file. NOTE: This example will make a network request.
 
-         import Standard.Base.Network.HTTP
+         import Standard.Base.Network.HTTP.HTTP
          import Standard.Examples
 
          example_fetch =
@@ -18,25 +18,25 @@
      Send authenticated Get request (note the use of TLS). NOTE: This example
      will make a network request.
 
-         import Standard.Base.Network.HTTP
+         import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header
 
          example_get =
             headers = [Header.authorization_basic "user" "pass"]
-            HTTP.get "https://httpbin.org/basic-auth/user/pass" headers
+            HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
      Send a Post request with binary data. NOTE: This example will make a
      network request.
 
-         import Standard.Base.Network.HTTP
+         import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header
          import Standard.Base.Network.HTTP.Request.Body
 
          example_post =
              body = Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
-             HTTP.post "http://httpbin.org/post" body [header_binary]
+             HTTP.new.post "http://httpbin.org/post" body [header_binary]
 
    > Example
      Parse URI text.

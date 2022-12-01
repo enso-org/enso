@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Network.HTTP
 import Standard.Base.Network.HTTP.Response.Response as HTTP_Response
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
@@ -142,7 +141,7 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
      Calling this method will cause Enso to make a network request to a data
      endpoint.
 get_response : HTTP_Response
-get_response = HTTP.get geo_data_url
+get_response = HTTP.fetch geo_data_url
 
 ## Gets HTTP data from a network endpoint.
 

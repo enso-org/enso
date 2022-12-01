@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Network.HTTP
 import Standard.Base.Network.HTTP.Form
 import Standard.Base.Network.HTTP.Header.Header
 import Standard.Base.Network.HTTP.Request
@@ -41,7 +40,7 @@ spec =
         Test.specify "should throw error when requesting invalid URI" <|
             HTTP.new.get "not a uri" . should_fail_with Syntax_Error_Data
 
-        Test.specify "should send Get request" <|
+        Test.specify "should send Get request using fetch" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -66,7 +65,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = HTTP.get url_get
+            res = HTTP.fetch url_get
             res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
@@ -84,7 +83,7 @@ spec =
             res = HTTP.fetch url_get
             res.to_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
-            HTTP.fetch "http://undefined_host" . should_fail_with HTTP.Request_Error_Data
+            HTTP.fetch "http://undefined_host" . should_fail_with HTTP.Request_Error.Error
 
         Test.specify "should send Head request" <|
             res = HTTP.new.head url_get
@@ -126,7 +125,7 @@ spec =
                   "json": null
                 }
             body_empty = Request_Body.Empty
-            res = HTTP.post url_post body_empty
+            res = HTTP.new.post url_post body_empty
             res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post text body" <|
@@ -186,7 +185,7 @@ spec =
                   "json": null
                 }
             form_parts = [Form.text_field "key" "val"]
-            res = HTTP.post_form url_post form_parts
+            res = HTTP.new.post_form url_post form_parts
             res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
@@ -242,7 +241,7 @@ spec =
                 }
             json = Json.parse <| '''
                 {"key":"val"}
-            res = HTTP.post_json url_post json
+            res = HTTP.new.post_json url_post json
             res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post binary" <|
