@@ -116,7 +116,7 @@ spec =
 
     case connection_details of
         _ : Text ->
-            Test.group "Redshift tests" pending=connection_details Nothing
+            Test.group "[Redshift] Database tests" pending=connection_details Nothing
         _ ->
             connection = Database.connect connection_details
             run_tests connection
