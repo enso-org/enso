@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -124,7 +124,7 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().number().getBigInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
   }
 
   @Override

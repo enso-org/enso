@@ -2956,6 +2956,8 @@ dependencies = [
  "ensogl-text-msdf",
  "ordered-float",
  "owned_ttf_parser",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "rustybuzz",
  "serde",
  "wasm-bindgen-test",

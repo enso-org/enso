@@ -10,7 +10,7 @@ num_iterations = 10
 
 # The Benchmarks ==============================================================
 
-main =
+bench =
     ## No specific significance to this constant, just fixed to make generated set deterministic
     fixed_random_seed = 1644575867
     faker = Faker.new fixed_random_seed
@@ -24,3 +24,5 @@ main =
     int_strings = Vector.new vector_size _->(faker.integer -1000000000 1000000000).to_text
     IO.println <| "Benchmarking Integer.parse"
     Bench.measure (int_strings.map Integer.parse) "Integer.parse" iter_size num_iterations
+
+main = bench

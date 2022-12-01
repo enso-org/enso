@@ -14,7 +14,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -156,7 +156,7 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.hasArrayElements(self)) {
       if (methodResolverNode != null) {
-        var ctx = Context.get(library);
+        var ctx = EnsoContext.get(library);
         var arrayType = ctx.getBuiltins().array();
         var fn = methodResolverNode.execute(arrayType, symbol);
         if (fn != null) {
@@ -203,14 +203,14 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be invocable.");
     } catch (ArityException e) {
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
@@ -230,7 +230,7 @@ public abstract class HostMethodCallNode extends Node {
     if (args.length != 0) {
       errorProfile.enter();
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
+          EnsoContext.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
       return hostValueToEnsoNode.execute(members.readMember(self, symbol));
@@ -255,14 +255,14 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be instantiable.");
     } catch (ArityException e) {
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
