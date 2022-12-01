@@ -11,6 +11,7 @@ import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec

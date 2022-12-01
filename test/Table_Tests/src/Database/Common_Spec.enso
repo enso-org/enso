@@ -8,6 +8,7 @@ from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test, Problems
+import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
 

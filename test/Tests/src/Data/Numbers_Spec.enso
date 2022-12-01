@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 Integer.is_even self = self % 2 == 0
 

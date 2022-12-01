@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Managed_Resource" <|
     Test.specify "should call the destructor even if the action fails" <|

@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type My_Generator
 My_Generator.step self _ _ = 1

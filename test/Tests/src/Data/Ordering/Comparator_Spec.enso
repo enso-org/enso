@@ -5,6 +5,7 @@ import Standard.Base.Data.Ordering.Comparator
 polyglot java import java.lang.ClassCastException
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 # === Test Resources ===
 

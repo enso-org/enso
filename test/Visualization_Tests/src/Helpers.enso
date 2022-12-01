@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table import Column
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 import Standard.Test.Test_Result.Test_Result
 
 Column.expect : Text -> Vector -> Test_Result
