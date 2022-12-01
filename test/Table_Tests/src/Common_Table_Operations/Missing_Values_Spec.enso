@@ -4,7 +4,7 @@ from Standard.Table import Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -118,7 +118,7 @@ spec setup =
         if test_selection.is_nan_and_nothing_distinct.not then
             Test.specify "this backend treats NaN as Nothing" <|
                 t3.at "X" . to_vector . should_equal [2.0, 1.5, Nothing, Nothing]
-                t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation_Error_Data
+                t3.at "X" . is_nan . to_vector . should_fail_with Unsupported_Database_Operation.Error
 
         Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [Nothing, "", Nothing, Nothing]], ["Z", [Nothing, True, False, Nothing]]]

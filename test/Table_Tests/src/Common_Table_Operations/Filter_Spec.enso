@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import SQL_Error_Data
+from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -45,7 +45,7 @@ spec setup =
             v = t.filter "X" (Filter_Condition.Equal to="SOME TEXT :)") . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v.should_equal []
-                False -> v.should_fail_with SQL_Error_Data
+                False -> v.should_fail_with SQL_Error.Error
 
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal [3]
@@ -67,7 +67,7 @@ spec setup =
             v = t.filter "X" (Filter_Condition.Equal to=52) . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v.should_equal []
-                False -> v.should_fail_with SQL_Error_Data
+                False -> v.should_fail_with SQL_Error.Error
 
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca"]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=(t.at "Y")) . at "X" . to_vector . should_equal ["abb", "baca", "b", "c"]
@@ -202,11 +202,11 @@ spec setup =
             v1 = t.filter "X" (Filter_Condition.Is_In ["c", "f", "b", "b", "b", 15, Nothing]) on_problems=Report_Error . at "X" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v1.should_equal ["b", "f"]
-                False -> v1.should_fail_with SQL_Error_Data
+                False -> v1.should_fail_with SQL_Error.Error
             v2 = t.filter "ix" (Filter_Condition.Is_In ["c", 3, 2, "a"]) on_problems=Report_Error . at "ix" . to_vector
             case test_selection.allows_mixed_type_comparisons of
                 True -> v2.should_equal [2, 3]
-                False -> v2.should_fail_with SQL_Error_Data
+                False -> v2.should_fail_with SQL_Error.Error
 
             t2 = table_builder [["A", [True, False, True]], ["B", [False, False, False]], ["C", [True, False, Nothing]]]
             t2.filter "A" (Filter_Condition.Is_In (t1.at "bool")) . at "A" . to_vector . should_equal [True, True]

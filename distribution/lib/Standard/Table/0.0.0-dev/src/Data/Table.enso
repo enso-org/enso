@@ -27,13 +27,14 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
+import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
-from project.Delimited.Delimited_Format import Delimited
-from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Rows_View import Rows_View
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
+
+from project.Data.Column import get_item_string
+from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -1418,7 +1419,7 @@ type Table
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (Delimited delimiter=",")
+    to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
