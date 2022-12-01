@@ -981,6 +981,10 @@ type Builder
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
+    ## Gets the current length of the builder.
+    length : Integer
+    length self = self.java_builder.getSize
+
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
