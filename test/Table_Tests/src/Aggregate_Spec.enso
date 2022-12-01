@@ -7,6 +7,7 @@ from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out
 from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 polyglot java import java.lang.Double
 

@@ -7,6 +7,7 @@ from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import SQL_Error_Data
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator

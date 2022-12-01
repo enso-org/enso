@@ -1,6 +1,7 @@
 import Standard.Base.Runtime
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 in_fn : Int -> Int in Input
 in_fn a = a * 2

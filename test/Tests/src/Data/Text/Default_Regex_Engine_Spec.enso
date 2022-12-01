@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Regex.Option as Global_Option
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
 
