@@ -119,9 +119,7 @@ const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXh
 /// enum, and are defined programmatically rather than manually. This helps avoid drift and bugs due
 /// to programmer error.
 macro_rules! define_columns_enum  {
-    (
-        $($column_name:ident),*
-    ) => {
+    ($($column_name:ident),*) => {
         // ===============
         // === Columns ===
         // ===============
