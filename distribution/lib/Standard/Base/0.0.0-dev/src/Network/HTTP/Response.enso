@@ -1,14 +1,14 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Http.Header
-import Standard.Base.Network.Http.Response.Body as Response_Body
-import project.Network.Http.HTTP_Status_Code.HTTP_Status_Code
+import Standard.Base.Network.HTTP.Header
+import Standard.Base.Network.HTTP.Response.Body as Response_Body
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 
 polyglot java import org.enso.base.Http_Utils
 
 ## TODO Dubious constructor export
-from project.Network.Http.Response.Response import all
-from project.Network.Http.Response.Response export all
+from project.Network.HTTP.Response.Response import all
+from project.Network.HTTP.Response.Response export all
 
 type Response
 
@@ -17,7 +17,7 @@ type Response
        A type representing an HTTP response.
 
        Arguments:
-       - internal_http_response: The internal represnetation of the HTTP
+       - internal_http_response: The internal representation of the HTTP
          response.
     Response_Data internal_http_response
 

@@ -13,4 +13,4 @@ import project.Error.Common.Syntax_Error
 
          example_parse = "http://example.com".to_uri
 Text.to_uri : URI ! Syntax_Error
-Text.to_uri self = parse self
+Text.to_uri self = URI.parse self

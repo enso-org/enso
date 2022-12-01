@@ -851,7 +851,7 @@ type Table
            because we need to keep the API consistent with the in-memory table.
         _ = [id_fields, name_field, value_field, on_problems]
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
@@ -888,7 +888,7 @@ type Table
            because we need to keep the API consistent with the in-memory table.
         _ = [group_by, name_column, values, on_problems]
         msg = "Cross tab of database tables is not supported, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## Parsing values is not supported in database tables, the table has to be
        loaded into memory first with `read`.

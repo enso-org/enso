@@ -109,10 +109,10 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Network.Extensions
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.HTTP_Version.HTTP_Version
 import project.Network.URI.URI
-import project.Network.Http.HTTP_Method.HTTP_Method
-import project.Network.Http.HTTP_Status_Code.HTTP_Status_Code
-import project.Network.Http.HTTP_Version.HTTP_Version
 import project.Random
 
 export project.Data
@@ -159,6 +159,9 @@ export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 export project.Error.Problem_Behavior.Problem_Behavior
 export project.Network.Extensions
+export project.Network.HTTP.HTTP_Method.HTTP_Method
+export project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+export project.Network.HTTP.HTTP_Version.HTTP_Version
 export project.Network.URI.URI
 export project.Random
 

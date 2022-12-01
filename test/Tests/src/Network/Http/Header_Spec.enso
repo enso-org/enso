@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Http.Header
+import Standard.Base.Network.HTTP.Header.Header
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
@@ -12,3 +12,5 @@ spec =
             Header.new "A" "B" . should_equal (Header.new "a" "B")
             (Header.new "A" "B" == Header.new "A" "b") . should_equal False
             (Header.new "A" "B" == Header.new "a" "b") . should_equal False
+
+main = Test_Suite.run_main spec
