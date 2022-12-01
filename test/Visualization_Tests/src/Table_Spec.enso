@@ -9,6 +9,7 @@ import Standard.Database.Data.Table.Table as Database_Table
 import Standard.Visualization.Table.Visualization
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 polyglot java import java.util.UUID
 

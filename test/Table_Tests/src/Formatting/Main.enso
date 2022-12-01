@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+from Standard.Test import Test_Suite
+
+import project.Formatting.Data_Formatter_Spec
+import project.Formatting.Parse_Values_Spec
+
+spec =
+    Data_Formatter_Spec.spec
+    Parse_Values_Spec.spec
+
+main = Test_Suite.run_main spec

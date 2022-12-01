@@ -1,9 +1,12 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
+import Standard.Table.Data.Table_Conversions
+import Standard.Table.Main as Table_Module
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 import project.Util
 

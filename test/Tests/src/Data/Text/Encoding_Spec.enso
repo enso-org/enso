@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Encoding import all_character_sets, all_encodings, Encoding
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 spec =
     Test.group "Encoding object" <|

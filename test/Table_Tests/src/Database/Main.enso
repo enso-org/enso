@@ -7,10 +7,10 @@ import project.Database.SQLite_Spec
 import project.Database.Postgres_Spec
 import project.Database.Redshift_Spec
 
-databases_spec =
+spec =
     Codegen_Spec.spec
     SQLite_Spec.spec
     Postgres_Spec.spec
     Redshift_Spec.spec
 
-main = Test_Suite.run_main databases_spec
+main = Test_Suite.run_main spec

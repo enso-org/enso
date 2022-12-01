@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
+
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
@@ -432,6 +433,20 @@ public final class Module implements TruffleObject {
   /** @return the runtime scope of this module. */
   public ModuleScope getScope() {
     return scope;
+  }
+
+  /**
+   * Returns the runtime scope of this module that filters out only the requested types. If the list
+   * of requested types is empty, returns the unchanged runtime scope.
+   *
+   * @param types a list of types to include in the scope
+   */
+  public ModuleScope getScope(List<String> types) {
+    if (types.isEmpty()) {
+      return scope;
+    } else {
+      return scope.withTypes(types);
+    }
   }
 
   /** @return the qualified name of this module. */

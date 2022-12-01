@@ -5,6 +5,7 @@ import Standard.Table.Data.Storage.Storage
 import Standard.Examples
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
