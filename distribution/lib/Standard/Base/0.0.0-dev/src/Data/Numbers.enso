@@ -985,7 +985,6 @@ type Integer
 
 ## UNSTABLE
 
-
    A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
