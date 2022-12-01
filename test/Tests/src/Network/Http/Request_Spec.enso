@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Network.HTTP.Form
+import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
 import Standard.Base.Network.HTTP.Request
 import Standard.Base.Network.HTTP.Request.Body as Request_Body
@@ -45,7 +45,7 @@ spec =
         Test.specify "should set form body" <|
             body_form = [Form.text_field "key" "val"]
             req = Request.get test_uri . with_form body_form
-            req.body.should_equal (Request_Body.Form body_form.to_form)
+            req.body.should_equal (Request_Body.Form (Form.new body_form))
             req.headers.should_equal [Header.application_x_www_form_urlencoded]
 
 main = Test_Suite.run_main spec

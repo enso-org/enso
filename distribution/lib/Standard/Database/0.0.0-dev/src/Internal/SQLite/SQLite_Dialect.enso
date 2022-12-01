@@ -154,7 +154,7 @@ first_last_aggregators =
 
 ## PRIVATE
 window_aggregate window_type ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State_Error_Data "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_exprs = args.tail
 

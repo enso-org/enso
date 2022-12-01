@@ -496,7 +496,7 @@ type Table
             True ->
                 is_used_in_index = self.context.meta_index.exists i-> i.name == name
                 case is_used_in_index of
-                    True -> Error.throw <| Illegal_State_Error_Data "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                    True -> Error.throw <| Illegal_State.Error "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                     False ->
                         resolved = case column of
                             _ : Text -> self.evaluate column
@@ -704,7 +704,7 @@ type Table
         _ : Table -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
-                Panic.throw <| Illegal_State_Error_Data "left_suffix must be different from right_suffix"
+                Panic.throw <| Illegal_State.Error "left_suffix must be different from right_suffix"
             kind = if drop_unmatched then Join_Kind.Inner else Join_Kind.Left
 
             # Prepare the left and right pairs of indices along which the join will be performed.
@@ -715,7 +715,7 @@ type Table
                     (Helpers.unify_vector_singleton on).map (self.resolve >> .as_internal)
             right_join_index = other.context.meta_index
             if left_join_index.length != right_join_index.length then
-                Panic.throw <| Illegal_State_Error_Data "Cannot join with multi-indexes of different lengths."
+                Panic.throw <| Illegal_State.Error "Cannot join with multi-indexes of different lengths."
 
             # TODO [RW] We may be able to avoid creating subqueries if there are no groups, orders or wheres,
             #  so it may be worth optimizing that here (#1515).
@@ -941,7 +941,7 @@ type Table
     read : (Integer | Nothing) -> Materialized_Table
     read self max_rows=Nothing =
         case self.context.meta_index.length > 1 of
-            True -> Error.throw <| Illegal_State_Error_Data "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
+            True -> Error.throw <| Illegal_State.Error "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
                 preprocessed = self.reset_index.limit max_rows
                 case preprocessed.internal_columns.is_empty of
@@ -1072,14 +1072,14 @@ type Table
     insert self values =
         table_name = case self.context.from_spec of
             From_Spec.Table name _ -> name
-            _ -> Error.throw <| Illegal_State_Error_Data "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State.Error "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = self.internal_columns.zip values col-> value->
             [col.name, SQL_Expression.Constant col.sql_type value]
         query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
         affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
-            False -> Error.throw <| Illegal_State_Error_Data "The update unexpectedly affected "+affected_rows.to_text+" rows."
+            False -> Error.throw <| Illegal_State.Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
 
     ## Provides a simplified text representation for display in the REPL and errors.
@@ -1225,7 +1225,7 @@ combine_names left_names right_names left_suffix right_suffix =
         new_name = pair.second
         case new_name!=original_name && (new_names_count new_name > 1) of
             True ->
-                Panic.throw <| Illegal_State_Error_Data "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
+                Panic.throw <| Illegal_State.Error "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
             False -> Nothing
     catch_ambiguity left_pairs
     catch_ambiguity right_pairs

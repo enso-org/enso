@@ -13,7 +13,7 @@ import project.Runtime
 import project.System
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Type_Error_Data, Time_Error, Illegal_Argument_Error, Illegal_Argument_Error_Data, Illegal_State_Error, Illegal_State_Error_Data
+from project.Error.Common import Type_Error_Data, Time_Error, Illegal_Argument_Error, Illegal_Argument_Error_Data, Illegal_State
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
@@ -256,24 +256,24 @@ type Duration
 
     ## UNSTABLE
        Convert the duration to total milliseconds.
-    total_milliseconds : Integer ! Illegal_State_Error
+    total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
-            Error.throw (Illegal_State_Error_Data "The duration is too large to convert it to milliseconds")
+            Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
     ## UNSTABLE
        Convert the duration to total seconds.
-    total_seconds : Decimal ! Illegal_State_Error
+    total_seconds : Decimal ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
     ## UNSTABLE
        Convert the duration to total minutes.
-    total_minutes : Decimal ! Illegal_State_Error
+    total_minutes : Decimal ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
     ## UNSTABLE
        Convert the duration to total minutes.
-    total_hours : Decimal ! Illegal_State_Error
+    total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
     ## Convert this duration to a Vector of hours, minutes, seconds, milliseconds

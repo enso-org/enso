@@ -182,7 +182,7 @@ type Table_Column_Helper
                     Nothing -> True
                     1 -> True
                     0 -> False
-                    _ -> Panic.throw (Illegal_State_Error_Data "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+                    _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
        A helper function which selects a single column from the table. It is aligned
@@ -193,7 +193,7 @@ type Table_Column_Helper
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
                     expression = (self.table.evaluate selector).catch Any _->Nothing
                     if Nothing != expression then expression else
                         problem_builder.report_missing_input_columns [selector]

@@ -68,7 +68,7 @@ handle_writer ~writer =
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
     ## Should be impossible - occurs if no fallback serializer is provided.
-    throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error_Data caught_panic.payload.cause.getMessage)
+    throw_illegal_state caught_panic = Panic.throw (Illegal_State.Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|

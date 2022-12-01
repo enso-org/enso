@@ -1,57 +1,53 @@
-from Standard.Base import all
-
-## Create Form data from Parts.
-
-   Arguments:
-   - parts: A vector of parts to make up the form.
-
-   > Example
-     Create a new form
-
-         import Standard.Base.Network.HTTP.Form
-
-         example_form_new = Form.new (Form.text_field "foo" "bar")
-new : Vector -> Form
-new parts = Form_Data parts
+import project.Data.Text.Text
+import project.Data.Vector.Vector
 
 # Helpers for creating different parts of the form.
 
-## Create a text field of a Form.
-
-   Arguments:
-   - key: The key for the field in the form.
-   - val: The text for the textual field.
-
-   > Example
-     Create a textual form field.
-
-         import Standard.Base.Network.HTTP.Form
-
-         example_text_field = Form.text_field "Foo" "bar"
-text_field : Text -> Text -> Part
-text_field key val = Part_Data key (Part_Text val)
-
-## Create a file field of a Form.
-
-   Arguments:
-   - key: The key for the field in the form.
-   - file: The textual file contents.
-
-   > Example
-     Create a file form field.
-
-         import Standard.Base.Network.HTTP.Form
-
-         example_text_field = Form.file_field "Foo" "My file contents"
-file_field : Text -> Text -> Part
-file_field key file = Part_Data key (Part_File file)
-
-## TODO Dubious constructor export
-from project.Network.HTTP.Form.Form import all
-from project.Network.HTTP.Form.Form export all
-
 ## The HTTP form containing a vector of parts.
 type Form
+    ## Create a text field of a Form.
+
+       Arguments:
+       - key: The key for the field in the form.
+       - val: The text for the textual field.
+
+       > Example
+         Create a textual form field.
+
+             import Standard.Base.Network.HTTP.Form.Form
+
+             example_text_field = Form.text_field "Foo" "bar"
+    text_field : Text -> Text -> Part
+    text_field key val = Part.Value key (Part_Value.Text val)
+
+    ## Create a file field of a Form.
+
+       Arguments:
+       - key: The key for the field in the form.
+       - file: The textual file contents.
+
+       > Example
+         Create a file form field.
+
+             import Standard.Base.Network.HTTP.Form.Form
+
+             example_text_field = Form.file_field "Foo" "My file contents"
+    file_field : Text -> Text -> Part
+    file_field key file = Part.Value key (Part_Value.File file)
+
+    ## Create Form data from Parts.
+
+       Arguments:
+       - parts: A vector of parts to make up the form.
+
+       > Example
+         Create a new form
+
+             import Standard.Base.Network.HTTP.Form.Form
+
+             example_form_new = Form.new (Form.text_field "foo" "bar")
+    new : Vector -> Form
+    new parts = Value parts
 
     ## PRIVATE
 
@@ -59,61 +55,40 @@ type Form
 
        Arguments:
        - parts: A vector of form segments.
-    Form_Data parts
+    Value parts
 
     ## Convert this to a Form.
 
        > Example
          Convert to a form.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
+             import Standard.Base.Network.HTTP.Form.Part
+             import Standard.Base.Network.HTTP.Form.Part_Value
 
-             example_to_form = Form.new [Part "foo" (Part_Text "bar")] . to_form
+             example_to_form = Form.new [Part "foo" (Part_Value.Text "bar")] . to_form
     to_form : Form
     to_form self = self
 
-## Convert Vector to a Form.
-
-   > Example
-     Create a vector of form parts and convert it to a form.
-
-         import Standard.Base.Network.HTTP.Form
-
-         example_to_form =
-             part_1 = Form.text_field "Foo" "bar"
-             part_2 = Form.text_field "Baz" "quux"
-             [part_1, part_2].to_form
-Vector.to_form self = Form_Data self
-
-## TODO Dubious constructor export
-from project.Network.HTTP.Form.Part import all
-from project.Network.HTTP.Form.Part export all
-
 ## The key-value element of the form.
 type Part
-
     ## A form part.
 
        Arguments:
        - key: The key for the form section.
        - value: The value of the form section.
-    Part_Data key value
-
-## TODO Dubious constructor export
-from project.Network.HTTP.Form.Part_Value import all
-from project.Network.HTTP.Form.Part_Value export all
+    Value key value
 
 ## The value of the form element.
 type Part_Value
-
     ## A textual value for a form part.
 
        Arguments:
        - part_text: The text for the form part.
-    Part_Text part_text
+    Text part_text
 
     ## A file value for a form part.
 
        Arguments:
        - part_file: The file for the form part.
-    Part_File part_file
+    File part_file

@@ -604,7 +604,7 @@ type Column
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State.Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
                     Column.Value new_name self.connection self.sql_type self.expression self.context
 

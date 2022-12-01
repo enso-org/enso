@@ -45,7 +45,7 @@ spec =
                 action . catch Illegal_Argument_Error_Data err->
                     "recovered error: "+err.message
             (recover_illegal_argument (Error.throw (Illegal_Argument_Error_Data "foo"))) . should_equal "recovered error: foo"
-            (recover_illegal_argument (Error.throw (Illegal_State_Error_Data "bar"))) . should_fail_with Illegal_State_Error_Data
+            (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State.Error
 
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
@@ -199,9 +199,9 @@ spec =
                 caught_panic.payload.message
             message_1 . should_equal "msg"
 
-            error = Panic.recover Any <| Panic.catch Illegal_Argument_Error_Data (Panic.throw (Illegal_State_Error_Data "foo" Nothing)) caught_panic->
+            error = Panic.recover Any <| Panic.catch Illegal_Argument_Error_Data (Panic.throw (Illegal_State.Error "foo" Nothing)) caught_panic->
                 caught_panic.payload.message
-            error.catch . should_be_an Illegal_State_Error_Data
+            error.catch . should_be_an Illegal_State.Error
 
             message_2 = Panic.catch Any (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) _->
                 "caught"
@@ -224,10 +224,10 @@ spec =
             Panic.recover Illegal_Argument_Error_Data (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch . should_be_an Illegal_Argument_Error_Data
             Panic.recover Any (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch . should_be_an Illegal_Argument_Error_Data
             Panic.recover [Illegal_Argument_Error_Data] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch . should_be_an Illegal_Argument_Error_Data
-            Panic.recover [Illegal_State_Error_Data, Illegal_Argument_Error_Data] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch . should_be_an Illegal_Argument_Error_Data
+            Panic.recover [Illegal_State.Error, Illegal_Argument_Error_Data] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch . should_be_an Illegal_Argument_Error_Data
 
-            Test.expect_panic_with <| Panic.recover Illegal_State_Error_Data (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch
-            Test.expect_panic_with <| Panic.recover [Illegal_State_Error_Data, Polyglot_Error.Polyglot_Error_Data] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover Illegal_State.Error (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover [Illegal_State.Error, Polyglot_Error.Polyglot_Error_Data] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch
             Test.expect_panic_with <| Panic.recover [] (Panic.throw (Illegal_Argument_Error_Data "msg" Nothing)) . catch
 
             Panic.recover [Polyglot_Error.Polyglot_Error_Data] (do_a_parse "foo") . catch . should_be_a Polyglot_Error.Polyglot_Error_Data

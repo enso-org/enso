@@ -18,7 +18,7 @@ import project.Error.Error
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, Illegal_State_Error, Illegal_State_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, Illegal_State, Illegal_Argument_Error, Illegal_Argument_Error_Data
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -145,8 +145,8 @@ type Utf_16_Span
          extended == Span.Value (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
          extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.parent) then Error.throw (Illegal_State_Error_Data "Utf_16_Span indices are out of range of the associated text.") else
-        if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
+    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.parent) then Error.throw (Illegal_State.Error "Utf_16_Span indices are out of range of the associated text.") else
+        if self.end < self.start then Error.throw (Illegal_State.Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->
                     grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start

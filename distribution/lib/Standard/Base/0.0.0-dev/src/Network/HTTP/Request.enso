@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Network.HTTP.Form
+import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
 import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
 import Standard.Base.Network.URI.URI
@@ -234,5 +234,5 @@ type Request
                 Request.delete (URI.parse "http://example.com") . with_form []
     with_form : (Vector | Form) -> Request
     with_form self parts =
-        new_body = Request_Body.Form parts.to_form
+        new_body = Request_Body.Form (Form.new parts)
         Request_Data self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]

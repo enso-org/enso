@@ -319,7 +319,7 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
 
         c1.jdbc_properties . should_equal <| add_ssl []
         Test_Environment.unsafe_with_environment_override "PGPASSWORD" "somepassword" <|
-            c1.jdbc_properties . should_fail_with Illegal_State_Error_Data
+            c1.jdbc_properties . should_fail_with Illegal_State.Error
             c1.jdbc_properties.catch.message . should_equal "PGPASSWORD is set, but PGUSER is not."
 
             Test_Environment.unsafe_with_environment_override "PGUSER" "someuser" <|

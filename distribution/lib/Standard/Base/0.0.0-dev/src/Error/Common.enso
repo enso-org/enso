@@ -6,12 +6,7 @@ import project.Panic.Panic
 
 polyglot java import java.lang.IllegalArgumentException
 
-# TODO Dubious constructor export
-from project.Error.Common.Illegal_State_Error import all
-from project.Error.Common.Illegal_State_Error export all
-
-type Illegal_State_Error
-
+type Illegal_State
     ## UNSTABLE
 
        A generic error that indicates that a given operation cannot be performed
@@ -21,7 +16,14 @@ type Illegal_State_Error
        - message: the error message explaining why the operation cannot be
          performed.
        - cause: (optional) another error that is the cause of this one.
-    Illegal_State_Error_Data message cause=Nothing
+    Error message cause=Nothing
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Illegal State: " + self.message
+
 
 # TODO Dubious constructor export
 from project.Error.Common.Illegal_Argument_Error import all

@@ -8,7 +8,7 @@ import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-import project.Network.HTTP.Form
+import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Request
 import project.Network.HTTP.Request.Body as Request_Body
 import project.Network.HTTP.Response
@@ -227,7 +227,7 @@ type HTTP
          Send a Post request with form. NOTE: This example will make a network
          request.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Examples
 
              example_post_form =
@@ -238,7 +238,7 @@ type HTTP
          Send a Post request with form encoded as "multipart/form-data". NOTE: This
          example will make a network request.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Header.Header
              import Standard.Examples
 
@@ -248,7 +248,7 @@ type HTTP
     post_form : (Text | URI) -> (Vector | Form) -> Vector -> Response ! Request_Error
     post_form self uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
-        req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
+        req = Request.post uri (Request_Body.Form (Form.new parts)) new_headers . with_headers headers
         self.request req
 
     ## Send a Post request with body with content-type "application/json".
@@ -357,7 +357,7 @@ type HTTP
          Open a connection and send a Post request with form. NOTE: This example
          will send a network request.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Request
              import Standard.Base.Network.HTTP.Request.Body
              import Standard.Examples
@@ -373,7 +373,7 @@ type HTTP
          Send a Post request with urlencoded form data. NOTE: This example will
          send a network request.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Request
              import Standard.Base.Network.HTTP.Request.Body
              import Standard.Examples
@@ -387,7 +387,7 @@ type HTTP
          Send a Post request with form encoded as "multipart/form-data". NOTE:
          This example will send a network request.
 
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Header.Header
              import Standard.Base.Network.HTTP.Request
              import Standard.Base.Network.HTTP.Request.Body
@@ -406,7 +406,7 @@ type HTTP
 
              import Standard.Base.Data.Time.Duration.Duration
              import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.Form
+             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
              import Standard.Base.Network.HTTP.Request
 
@@ -439,15 +439,15 @@ type HTTP
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
                         form.parts.map part-> case part.value of
-                            Form.Part_Text text -> body_builder.add_part_text part.key text
-                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                            Part_Value.Text text -> body_builder.add_part_text part.key text
+                            Part_Value.File file -> body_builder.add_part_file part.key file.path
                         boundary = body_builder.get_boundary
                         Pair.new (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
                     add_urlencoded form =
                         body_builder = Http_Utils.urlencoded_body_builder
                         form.parts.map part-> case part.value of
-                            Form.Part_Text text -> body_builder.add_part_text part.key text
-                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                            Part_Value.Text text -> body_builder.add_part_text part.key text
+                            Part_Value.File file -> body_builder.add_part_file part.key file.path
                         Pair.new req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
