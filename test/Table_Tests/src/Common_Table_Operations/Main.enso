@@ -40,16 +40,16 @@ type Test_Selection
      be run. Can be used to skip checks for backends which do not support
      particular features.
 spec prefix table empty_table table_builder materialize is_database test_selection=Test_Selection.Config aggregate_test_selection=Aggregate_Test_Selection.Config =
-    Core_Spec.spec prefix table_builder test_selection
+    Core_Spec.spec prefix table_builder
     Select_Columns_Spec.spec prefix table_builder test_selection
-    Column_Operations_Spec.spec prefix table_builder test_selection
+    Column_Operations_Spec.spec prefix table_builder
     Aggregate_Spec.spec prefix table empty_table table_builder materialize is_database aggregate_test_selection
     Filter_Spec.spec prefix table_builder test_selection
     Missing_Values_Spec.spec prefix table_builder test_selection
     Order_By_Spec.spec prefix table_builder test_selection
     Take_Drop_Spec.spec prefix table_builder test_selection
     # Expression_Spec.spec prefix table_builder test_selection
-    Join_Spec.spec prefix table_builder test_selection
+    Join_Spec.spec prefix table_builder
 
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide

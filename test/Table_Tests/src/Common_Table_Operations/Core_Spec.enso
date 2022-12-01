@@ -5,7 +5,7 @@ from Standard.Table.Errors import all
 from Standard.Test import Test
 import Standard.Test.Extensions
 
-spec prefix table_builder test_selection =
+spec prefix table_builder =
     table =
         col1 = ["foo", [1,2,3]]
         col2 = ["bar", [4,5,6]]
