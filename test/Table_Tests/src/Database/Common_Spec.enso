@@ -12,7 +12,7 @@ import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
 
-spec prefix connection pending=Nothing =
+spec prefix connection =
     tables_to_clean = Vector.new_builder
     upload prefix data =
         name = Name_Generator.random_name prefix
@@ -21,7 +21,7 @@ spec prefix connection pending=Nothing =
         table
 
     t1 = upload "T1" (Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
-    Test.group prefix+"Basic Table Access" pending=pending <|
+    Test.group prefix+"Basic Table Access" <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.read
             a = t1.at 'a' . read
@@ -61,7 +61,7 @@ spec prefix connection pending=Nothing =
             table = upload "Big" original
             table.read.row_count . should_equal n
 
-    Test.group prefix+"Mapping Operations" pending=pending <|
+    Test.group prefix+"Mapping Operations" <|
         t2 = upload "T2" <| Table.new [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
         x = t2.at "x"
         y = t2.at "y"
@@ -110,7 +110,7 @@ spec prefix connection pending=Nothing =
             s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
             s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
 
-    Test.group prefix+"Masking Tables" pending=pending <|
+    Test.group prefix+"Masking Tables" <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = t1.filter (t1.at "a" == 1)
             df = t2.read
@@ -122,7 +122,7 @@ spec prefix connection pending=Nothing =
             t2.at "c" . to_vector . should_equal [3]
 
     # TODO these tests will soon be out of date, superseded by Common_Table_Spec
-    Test.group prefix+"Joining Tables" pending=pending <|
+    Test.group prefix+"Joining Tables" <|
         a = upload "TA" <| Table.new [["x", [0, 1, 7, 3, 6]], ["y", ["foo", "bar", "baz", "spam", "eggs"]]]
         b = upload "TB" <| Table.new [["w", [6, 3, 5, 5, 3, 3]], ["z", ["foo", "foo", "bar", "spam", "bar", "eggs"]]]
 
@@ -170,7 +170,7 @@ spec prefix connection pending=Nothing =
             df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
             df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
 
-    Test.group prefix+"Missing Values" pending=pending <|
+    Test.group prefix+"Missing Values" <|
         t4 = upload "T4" <|
             Table.new [["a", [0, 1, Nothing, 42, Nothing]], ["b", [True, Nothing, True, False, Nothing]], ["c", ["", "foo", "bar", Nothing, Nothing]]]
         Test.specify "fill_missing should replace nulls" <|
@@ -185,7 +185,7 @@ spec prefix connection pending=Nothing =
             col.count . should_equal 3
             col.count_missing . should_equal 2
 
-    Test.group prefix+"Sorting" pending=pending <|
+    Test.group prefix+"Sorting" <|
         df = upload "clothes" <|
             Table.new [["id", [1,2,3,4,5,6]], ["name", ["shoes","trousers","dress","skirt","blouse","t-shirt"]], ["quantity", [20,10,20,10,30,30]], ["rating", [3.0,Nothing,7.3,3.0,2.2,Nothing]], ["price", [37.2,42.1,64.1,87.4,13.5,64.2]]]
 
@@ -244,7 +244,7 @@ spec prefix connection pending=Nothing =
             r_2 = c.sort order=Sort_Direction.Descending
             r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
 
-    Test.group prefix+"Index" pending=pending <|
+    Test.group prefix+"Index" <|
         t0 = upload "Tix" <|
             Table.new [["ix", [1,2,3]], ["c1", [4,5,6]]]
         t = t0.set_index 'ix'
@@ -258,7 +258,7 @@ spec prefix connection pending=Nothing =
             df_col.to_vector . should_equal vec
             df_col.index.to_vector . should_equal [1, 2, 3]
 
-    Test.group prefix+"Aggregation" pending=pending <|
+    Test.group prefix+"Aggregation" <|
         builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]
         insert v =
             builders.zip v .append
@@ -319,7 +319,7 @@ spec prefix connection pending=Nothing =
             t2.at  "sum price" . to_vector . should_equal [110.2]
             t2.at  "sum quantity" . to_vector . should_equal [312]
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
-    Test.group prefix+"Table.filter" pending=pending <|
+    Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
             t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation_Error_Data
 
