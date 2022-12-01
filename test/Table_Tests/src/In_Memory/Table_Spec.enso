@@ -1046,6 +1046,7 @@ spec =
             check_timing "dates" <|
                 t.filter date_col (Filter_Condition.Is_In dates_vec) . at "X" . to_vector . should_equal expected_vector
 
+    # TODO move these to Common_Table_Operations
     Test.group "[In-Memory] Table.transpose" <|
         Test.specify "should transpose all columns by default" <|
             t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
@@ -1084,6 +1085,7 @@ spec =
 
             # ToDo: Verify the warnings and error handling within transpose.
 
+    # TODO move these to Common_Table_Operations
     Test.group "[In-Memory] Table.cross_tab" <|
         Test.specify "should cross_tab counts by default using first column as names" <|
             t = Table.new [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
