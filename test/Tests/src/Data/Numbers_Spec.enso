@@ -186,6 +186,16 @@ spec =
             Integer.parse "123A" . should_fail_with Number_Parse_Error.Error
             Integer.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
+        Test.specify "should parse hundred factorial" <|
+            txt = hundred_factorial.to_text
+            number = Integer.parse txt
+            number . should_equal hundred_factorial
+
+        Test.specify "should fail on too huge decimal" <|
+            txt = hundred_factorial.to_text + ".345"
+            number = Integer.parse txt
+            number . should_fail_with Number_Parse_Error.Error
+
         Test.specify "should be able to parse alternate bases" <|
             Integer.parse "1245623" 8 . should_equal 347027
             Integer.parse "-1245623" 8 . should_equal -347027
@@ -220,6 +230,21 @@ spec =
             Decimal.parse "000000" . should_equal 0
             Decimal.parse "000000.0001" . should_equal 0.0001
             Decimal.parse "aaaa" . should_fail_with Number_Parse_Error.Error
+
+        Test.specify "parse with locale" <|
+            l = Locale.new "cs"
+            Decimal.parse "32,5" l . should_equal 32.5
+            Decimal.parse "0122,5" l . should_equal 122.5
+            Decimal.parse "-98,5" l . should_equal -98.5
+            Decimal.parse "000000" l . should_equal 0
+            Decimal.parse "000000,0001" l . should_equal 0.0001
+            Decimal.parse "aaaa" l . should_fail_with Number_Parse_Error.Error
+
+        Test.specify "decimal should parse hundred factorial well" <|
+            txt = hundred_factorial.to_text + ".345"
+            decimal = Decimal.parse txt
+            is_huge = decimal > (hundred_factorial / 5)
+            is_huge . should_equal True
 
     Test.group "Numbers" <|
 
