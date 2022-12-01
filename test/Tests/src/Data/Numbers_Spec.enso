@@ -230,6 +230,15 @@ spec =
             Decimal.parse "000000.0001" . should_equal 0.0001
             Decimal.parse "aaaa" . should_fail_with Number_Parse_Error.Error
 
+        Test.specify "parse with locale" <|
+            l = Locale.new "cs"
+            Decimal.parse "32,5" l . should_equal 32.5
+            Decimal.parse "0122,5" l . should_equal 122.5
+            Decimal.parse "-98,5" l . should_equal -98.5
+            Decimal.parse "000000" l . should_equal 0
+            Decimal.parse "000000,0001" l . should_equal 0.0001
+            Decimal.parse "aaaa" l . should_fail_with Number_Parse_Error.Error
+
         Test.specify "decimal should parse hundred factorial well" <|
             txt = hundred_factorial.to_text + ".345"
             decimal = Decimal.parse txt
