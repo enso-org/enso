@@ -242,7 +242,6 @@ impl From<Position> for (Row, Col) {
 ensogl_core::define_endpoints_2! {
     Input {
         set_projects(Rc<Vec<view::project::Project>>),
-        model_for_entry(Position, EntryModel),
     }
 }
 
@@ -608,7 +607,6 @@ impl View {
 
         frp::extend! { network
             trace input.set_projects;
-            trace input.model_for_entry;
             trace projects_table.model_for_entry;
             trace scene.frp.shape;
         }
