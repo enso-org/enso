@@ -39,7 +39,7 @@ count_entries_polyglot vector element expected_count=1 =
         IO.println msg
         Panic.throw (Illegal_State_Error msg)
 
-main =
+bench =
     n = 100000
     iter_size = 100
     num_iterations = 10
@@ -50,11 +50,11 @@ main =
     text_vec = integer_vec.map .to_text
 
     uniform_atom_vec = integer_vec.map x->
-        Only_Ctor (x + 10) (x * 2)
+        Uniform_Type.Only_Ctor (x + 10) (x * 2)
     simple_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Variant_A else Variant_B
+        if x % 5 == 0 then Simple_Sum_Type.Variant_A else Simple_Sum_Type.Variant_B
     complex_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Ctor_A (x + 10) (x * 2) else Ctor_B x
+        if x % 5 == 0 then Sum_Type_With_Values.Ctor_A (x + 10) (x * 2) else Sum_Type_With_Values.Ctor_B x
 
     polyglot_vec = integer_vec.map x->
         Graal_Pair.create (x + 10) (x * 2)
@@ -72,11 +72,13 @@ main =
     Bench.measure (count_entries date_vec (Date.new 1980 12 30)) "Date Equality" iter_size num_iterations
     Bench.measure (count_entries datetime_vec (Date_Time.new 1971 1 2 12 30)) "Date_Time Equality" iter_size num_iterations
 
-    Bench.measure (count_entries uniform_atom_vec (Only_Ctor 110 200)) "Custom Atom Equality - single constructor" iter_size num_iterations
-    Bench.measure (count_entries simple_variant_atom_vec Variant_A expected_count=(n . div 5)) "Custom Atom Equality - 2 constructors without data" iter_size num_iterations
-    Bench.measure (count_entries complex_variant_atom_vec (Ctor_B 123)) "Custom Atom Equality - 2 constructors with data" iter_size num_iterations
+    Bench.measure (count_entries uniform_atom_vec (Uniform_Type.Only_Ctor 110 200)) "Custom Atom Equality - single constructor" iter_size num_iterations
+    Bench.measure (count_entries simple_variant_atom_vec Simple_Sum_Type.Variant_A expected_count=(n . div 5)) "Custom Atom Equality - 2 constructors without data" iter_size num_iterations
+    Bench.measure (count_entries complex_variant_atom_vec (Sum_Type_With_Values.Ctor_B 123)) "Custom Atom Equality - 2 constructors with data" iter_size num_iterations
 
     Bench.measure (count_entries polyglot_vec (Graal_Pair.create 110 200)) "Java Polyglot ==" iter_size num_iterations
     Bench.measure (count_entries_polyglot polyglot_vec (Graal_Pair.create 110 200)) "Java Polyglot .equals" iter_size num_iterations
 
     Nothing
+
+main = bench
