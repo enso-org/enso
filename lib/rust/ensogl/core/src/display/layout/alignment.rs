@@ -4,92 +4,120 @@ use crate::prelude::*;
 
 
 
-// =================
-// === Alignment ===
-// =================
+// ===============================
+// === 1-dimensional Alignment ===
+// ===============================
 
 /// Alignment. In one dimension the alignment is either start, center, or end. In 2 dimensions,
 /// [`Start`] means "left" horizontally and "bottom" vertically, while [`End`] means "right"
 /// horizontally and "top" vertically.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
-pub enum Alignment {
+pub enum Dim1 {
     Start,
     Center,
     End,
 }
 
-impl Alignment {
+/// Constructors
+#[allow(missing_docs)]
+impl Dim1 {
+    pub fn left() -> Self {
+        Self::Start
+    }
+    pub fn center() -> Self {
+        Self::Center
+    }
+    pub fn right() -> Self {
+        Self::End
+    }
+    pub fn bottom() -> Self {
+        Self::Start
+    }
+    pub fn top() -> Self {
+        Self::End
+    }
+}
+
+impl Dim1 {
     pub fn as_number(self) -> f32 {
         match self {
-            Alignment::Start => 0.0,
-            Alignment::Center => 0.5,
-            Alignment::End => 1.0,
+            Dim1::Start => 0.0,
+            Dim1::Center => 0.5,
+            Dim1::End => 1.0,
         }
     }
 }
 
-
-// === Smart Constructors ===
-
-/// 2-dimensional alignment.
-#[allow(missing_docs)]
-pub mod dim2 {
-    use super::*;
-
-    /// Constructor.
-    pub fn new(horizontal: Alignment, vertical: Alignment) -> Vector2<Alignment> {
-        Vector2(horizontal, vertical)
-    }
-
-    pub fn center() -> Vector2<Alignment> {
-        new(Alignment::Center, Alignment::Center)
-    }
-
-    pub fn bottom_left() -> Vector2<Alignment> {
-        new(Alignment::Start, Alignment::Start)
-    }
-
-    pub fn bottom_right() -> Vector2<Alignment> {
-        new(Alignment::End, Alignment::Start)
-    }
-
-    pub fn bottom_center() -> Vector2<Alignment> {
-        new(Alignment::Center, Alignment::Start)
-    }
-
-    pub fn top_left() -> Vector2<Alignment> {
-        new(Alignment::Start, Alignment::End)
-    }
-
-    pub fn top_right() -> Vector2<Alignment> {
-        new(Alignment::End, Alignment::End)
-    }
-
-    pub fn top_center() -> Vector2<Alignment> {
-        new(Alignment::Center, Alignment::End)
-    }
-
-    pub fn center_left() -> Vector2<Alignment> {
-        new(Alignment::Start, Alignment::Center)
-    }
-
-    pub fn center_right() -> Vector2<Alignment> {
-        new(Alignment::End, Alignment::Center)
-    }
-}
-
-
-// === Defaults ===
-
-impl Default for Alignment {
+impl Default for Dim1 {
     fn default() -> Self {
         Self::Start
     }
 }
 
-impl From<&Alignment> for Alignment {
-    fn from(t: &Alignment) -> Self {
+impl From<&Dim1> for Dim1 {
+    fn from(t: &Dim1) -> Self {
         *t
+    }
+}
+
+
+
+// ===============================
+// === 1-dimensional Alignment ===
+// ===============================
+
+#[derive(Clone, Copy, Debug, Deref, Default, PartialEq)]
+pub struct Dim2 {
+    pub vector: Vector2<Dim1>,
+}
+
+/// Constructors.
+#[allow(missing_docs)]
+impl Dim2 {
+    pub fn new(horizontal: Dim1, vertical: Dim1) -> Self {
+        Self { vector: Vector2(horizontal, vertical) }
+    }
+
+    pub fn left_bottom() -> Self {
+        Self::new(Dim1::left(), Dim1::bottom())
+    }
+
+    pub fn left_center() -> Self {
+        Self::new(Dim1::left(), Dim1::center())
+    }
+
+    pub fn left_top() -> Self {
+        Self::new(Dim1::left(), Dim1::top())
+    }
+
+    pub fn center_bottom() -> Self {
+        Self::new(Dim1::center(), Dim1::bottom())
+    }
+
+    pub fn center() -> Self {
+        Self::new(Dim1::center(), Dim1::center())
+    }
+
+    pub fn center_top() -> Self {
+        Self::new(Dim1::center(), Dim1::top())
+    }
+
+    pub fn right_bottom() -> Self {
+        Self::new(Dim1::right(), Dim1::bottom())
+    }
+
+    pub fn right_center() -> Self {
+        Self::new(Dim1::right(), Dim1::center())
+    }
+
+    pub fn right_top() -> Self {
+        Self::new(Dim1::right(), Dim1::top())
+    }
+}
+
+impl Dim2 {
+    pub fn as_number(self) -> Vector2<f32> {
+        Vector2(self.vector.x.as_number(), self.vector.y.as_number())
     }
 }

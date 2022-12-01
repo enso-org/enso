@@ -1111,7 +1111,74 @@ tuple_into_resizing!(Resizing, Resizing);
 // ==============
 
 use crate::display::layout::alignment;
-use crate::display::layout::alignment::Alignment;
+
+#[derive(Clone, Copy, Debug, PartialEq, From)]
+pub enum AlignmentMode {
+    Packed(alignment::Dim1),
+    Spaced,
+}
+
+impl Default for AlignmentMode {
+    fn default() -> Self {
+        AlignmentMode::Packed(default())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deref, PartialEq)]
+pub struct Alignment {
+    vector: Vector2<AlignmentMode>,
+}
+
+impl Alignment {
+    pub fn new(vector: Vector2<AlignmentMode>) -> Self {
+        Self { vector }
+    }
+
+    pub fn left_bottom() -> Self {
+        Self::new(Vector2(
+            AlignmentMode::Packed(alignment::Dim1::left()),
+            AlignmentMode::Packed(alignment::Dim1::bottom()),
+        ))
+    }
+
+    pub fn left_center() -> Self {
+        Self::new(alignment::Dim2::left_center().vector.map(|t| t.into()))
+    }
+
+    pub fn left_top() -> Self {
+        Self::new(alignment::Dim2::left_top().vector.map(|t| t.into()))
+    }
+
+    pub fn center_bottom() -> Self {
+        Self::new(alignment::Dim2::center_bottom().vector.map(|t| t.into()))
+    }
+
+    pub fn center() -> Self {
+        Self::new(alignment::Dim2::center().vector.map(|t| t.into()))
+    }
+
+    pub fn center_top() -> Self {
+        Self::new(alignment::Dim2::center_top().vector.map(|t| t.into()))
+    }
+
+    pub fn right_bottom() -> Self {
+        Self::new(alignment::Dim2::right_bottom().vector.map(|t| t.into()))
+    }
+
+    pub fn right_center() -> Self {
+        Self::new(alignment::Dim2::right_center().vector.map(|t| t.into()))
+    }
+
+    pub fn right_top() -> Self {
+        Self::new(alignment::Dim2::right_top().vector.map(|t| t.into()))
+    }
+}
+
+macro_rules! gen_alignment_cons {
+    ([$($h: ident),*] [$($v: ident),*]) => {
+        paste! {}
+    };
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Horizontal;
@@ -1127,9 +1194,10 @@ pub enum AutoLayout {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct LayoutOptions {
-    pub alignment: Vector2<Alignment>,
+    pub alignment: Alignment,
     pub spacing:   f32,
     pub padding:   Vector2<f32>,
+    pub reversed:  bool,
 }
 
 impl AutoLayout {
@@ -1155,7 +1223,7 @@ pub struct LayoutBuilder<Layout> {
 }
 
 impl<Layout> LayoutBuilder<Layout> {
-    pub fn alignment(mut self, alignment: Vector2<Alignment>) -> Self {
+    pub fn alignment(mut self, alignment: Alignment) -> Self {
         self.options.alignment = alignment;
         self
     }
@@ -1167,6 +1235,11 @@ impl<Layout> LayoutBuilder<Layout> {
 
     pub fn padding(mut self, padding: Vector2<f32>) -> Self {
         self.options.padding = padding;
+        self
+    }
+
+    pub fn reversed(mut self) -> Self {
+        self.options.reversed = !self.options.reversed;
         self
     }
 }
@@ -1323,38 +1396,40 @@ impl Model {
     /// updated in the horizontal direction, then in the vertical direction. To better illustrate
     /// the need of such a solution, consider the following example:
     ///
-    ///  ╭▷ ROOT ──────────────────────────╮
-    ///  │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
-    ///  │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
-    ///  │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
-    ///  │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
-    ///  │   │ │     │  ▼   │ ╰────╯   ▲   │
-    ///  │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
-    ///  │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
-    ///  │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
-    ///  │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
-    ///  │   ╰──────────╯   ╰──────────╯   │
-    ///  ╰─────────────────────────────────╯
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────╮
+    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
+    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
+    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
+    /// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
+    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
+    /// │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
+    /// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
+    /// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
+    /// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
+    /// │   ╰──────────╯   ╰──────────╯   │
+    /// ╰─────────────────────────────────╯
+    /// ```
     ///
     /// 1. In the first pass, we are updating the horizontal layout.
-    ///    a) First, we are traversing the `L` object. It's X-axis resizing is set to `Fill`, so we
+    ///    a) First, we are visiting the `L` object. It's X-axis resizing is set to `Fill`, so we
     ///       can't determine its width yet. Neither we can update the X-axis layout of its child,
     ///       as it may depend on the `L` object width.
-    ///    b) Then, we are traversing the `R` object. It's X-axis resizing is set to `Hug`, so we
-    ///       need to traverse its children to find the widest one. It's layout is set to vertical,
-    ///       unlike in the case of the `L` and `R` objects, we are computing the size in the
-    ///       orthogonal direction than the layout the children are placed in.
+    ///    b) Then, we are visiting the `R` object. It's X-axis resizing is set to `Hug`, so we need
+    ///       to visit its children to find the widest one. It's layout is set to vertical. Unlike
+    ///       in the case of the `L` and `R` objects, we are computing the size in the orthogonal
+    ///       direction than the layout the children are placed in.
     ///    c) As the `ROOT` object's width resizing is set to `Fixed`, after finding the `R` object
     ///       width, we can compute the `L` object width.
     ///    d) Finally, we can update the `L` object children layout.
     ///
     /// 2. In the second pass, we are updating the vertical layout.
-    ///    a) First, we are traversing the `L` object. It's Y-axis resizing is set to `Hug`, so we
-    ///       need to traverse its children to find the tallest one.
+    ///    a) First, we are visiting the `L` object. It's Y-axis resizing is set to `Hug`, so we
+    ///       need to visit its children to find the tallest one.
     ///    b) The `L1` object's Y-axis resizing is set to `Fixed`, so we can simply update its
     ///       height.
-    ///    c) Next, we are traversing the `R` object. It's Y-axis resizing is set to `Fill`, so we
-    ///       can compute it, as the `ROOT` object height is fixed.
+    ///    c) Next, we are visiting the `R` object. It's Y-axis resizing is set to `Fill`, so we can
+    ///       compute it, as the `ROOT` object height is fixed.
     ///    d) Finally, we can update the `R` object children layout. Both children Y-axis resizing
     ///       is set to `Fill`, so they are equally using the available space.
     ///
@@ -1365,24 +1440,25 @@ impl Model {
     /// The result of the algorithm is presented below. Please note that only the dimensions written
     /// in parentheses were set manually.
     ///
-    ///  ╭▷ ROOT ─────────────────────────────────────────╮
-    ///  │                          ╭R─ ▶ ◀ ──────╮       │
-    ///  │                          ▽ ╭────╮      │       │
-    ///  │                          │ │ R2 ▲ 50   │       │
-    ///  │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
-    ///  │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
-    ///  │  │ │ L1  │        ▼      │  (30)       │       │
-    ///  │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
-    ///  │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
-    ///  │  │   70           │      │ │ R1 ▲ 50   │       │
-    ///  │  ╰────────────────╯      │ │    ▼      │       │
-    ///  │         70               │ ╰────╯      │       │
-    ///  │                          │  (20)       │       │
-    ///  │                          ╰─────────────╯       │
-    ///  │                               30               │
-    ///  ╰────────────────────────────────────────────────╯
-    ///                       (100)   
-    ///
+    /// ```text
+    /// ╭▷ ROOT ─────────────────────────────────────────╮
+    /// │                          ╭R─ ▶ ◀ ──────╮       │
+    /// │                          ▽ ╭────╮      │       │
+    /// │                          │ │ R2 ▲ 50   │       │
+    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
+    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
+    /// │  │ │ L1  │        ▼      │  (30)       │       │
+    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
+    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
+    /// │  │   70           │      │ │ R1 ▲ 50   │       │
+    /// │  ╰────────────────╯      │ │    ▼      │       │
+    /// │         70               │ ╰────╯      │       │
+    /// │                          │  (20)       │       │
+    /// │                          ╰─────────────╯       │
+    /// │                               30               │
+    /// ╰────────────────────────────────────────────────╯
+    ///                      (100)   
+    /// ```
     ///
     /// # Meaning of the function parameters.
     /// In order to make the code easy to understand, all variables were named as if the code was
@@ -1391,7 +1467,7 @@ impl Model {
     ///
     /// The [`update_x`] flag indicates whether we are updating the X- or the Y- local axis. For
     /// example, in the example described above, during the horizontal layout update, the `R` object
-    /// children were traversed. During the traversal. the [`x`] variable was set to the Y-axis, and
+    /// children were traversed. During the traversal, the [`x`] variable was set to the Y-axis, and
     /// the [`y`] variable was set to the X-axis, so the `R1` and `R2` objects can be considered as
     /// placed in an horizontal layout. The [`update_x`] flag was set to `false`, as we were
     /// interested in the width of `R1` and `R2`, which in the local coordinate system was the
@@ -1408,15 +1484,15 @@ impl Model {
         first_pass: bool,
     ) where
         Vector2<Resizing>: DimSetter<Dim1>,
-        Vector2<Alignment>: DimSetter<Dim1>,
         Vector2<Resizing>: DimSetter<Dim2>,
-        Vector2<Alignment>: DimSetter<Dim2>,
+        Vector2<AlignmentMode>: DimSetter<Dim1>,
+        Vector2<AlignmentMode>: DimSetter<Dim2>,
         Vector2<f32>: DimSetter<Dim1>,
         Vector2<f32>: DimSetter<Dim2>,
         Vector3<f32>: DimSetter<Dim1>,
         Vector3<f32>: DimSetter<Dim2>,
     {
-        let children = self.children();
+        let children = if opts.reversed { self.children().reversed() } else { self.children() };
         let resizing = self.layout.resizing.get_dim(x);
         if update_x {
             // === Recomputing X-axis elements size of the X-axis horizontal layout ===
@@ -1461,12 +1537,25 @@ impl Model {
 
             // === Recomputing X-axis elements position of the X-axis horizontal layout ===
 
-            let mut pos_x = opts.padding.get_dim(x);
-            pos_x += opts.alignment.get_dim(x).as_number() * space_left;
-            for child in &children {
-                let size = child.size();
-                child.set_position_dim(x, pos_x);
-                pos_x += size.get_dim(x) + opts.spacing;
+            match opts.alignment.get_dim(x) {
+                AlignmentMode::Packed(alignment) => {
+                    let mut pos_x = opts.padding.get_dim(x);
+                    pos_x += alignment.as_number() * space_left;
+                    for child in &children {
+                        let size = child.size();
+                        child.set_position_dim(x, pos_x);
+                        pos_x += size.get_dim(x) + opts.spacing;
+                    }
+                }
+                AlignmentMode::Spaced => {
+                    let mut pos_x = opts.padding.get_dim(x);
+                    let spacing = space_left / (children.len() - 1) as f32;
+                    for child in &children {
+                        let size = child.size();
+                        child.set_position_dim(x, pos_x);
+                        pos_x += size.get_dim(x) + opts.spacing + spacing;
+                    }
+                }
             }
         } else {
             // === Recomputing Y-axis elements size of the X-axis horizontal layout ===
@@ -1500,10 +1589,17 @@ impl Model {
 
             // === Recomputing Y-axis elements position of the X-axis horizontal layout ===
 
-            for child in &children {
-                let space_left = height - child.size().get_dim(y);
-                let pos_y = padding_y + opts.alignment.get_dim(y).as_number() * space_left;
-                child.set_position_dim(y, pos_y);
+            match opts.alignment.get_dim(y) {
+                AlignmentMode::Packed(alignment) =>
+                    for child in &children {
+                        let space_left = height - child.size().get_dim(y);
+                        let pos_y = padding_y + alignment.as_number() * space_left;
+                        child.set_position_dim(y, pos_y);
+                    },
+                AlignmentMode::Spaced =>
+                    for child in &children {
+                        child.set_position_dim(y, padding_y);
+                    },
             }
         }
     }
@@ -1521,10 +1617,12 @@ mod tests2 {
     /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
     /// three of its children:
     ///
-    ///  ╭─ ROOT ──────────────────────────────────╮
-    ///  │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
-    ///  │  ╰─────────╯  ╰─────────╯  ╰─────────╯  │
-    ///  ╰─────────────────────────────────────────╯
+    /// ```text
+    /// ╭─ ROOT ──────────────────────────────────╮
+    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    /// │  ╰─────────╯  ╰─────────╯  ╰─────────╯  │
+    /// ╰─────────────────────────────────────────╯
+    /// ```
     #[derive(Debug, Clone, Default)]
     pub struct TestThreeChildren {
         world: World,
@@ -1604,40 +1702,43 @@ mod tests2 {
 
     /// Input:
     ///
-    ///  ╭▷ ROOT ──────────────────────────╮
-    ///  │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
-    ///  │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
-    ///  │   │ │ L1  │  │   │ │ R1 ▲   │   │
-    ///  │   │ │     │  │   │ │    ▼   │   │
-    ///  │   │ │     │  ▼   │ ╰────╯   ▲   │
-    ///  │   │ │     │  ▲   │ ╭────╮   ▼   │
-    ///  │   │ │     │  │   │ │ R2 ▲   │   │
-    ///  │   │ │     │  │   │ │    ▼   │   │
-    ///  │   │ ╰─────╯  │   │ ╰────╯   │   │
-    ///  │   ╰──────────╯   ╰──────────╯   │
-    ///  ╰─────────────────────────────────╯
-    ///    
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────╮
+    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
+    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
+    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │
+    /// │   │ │     │  │   │ │    ▼   │   │
+    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
+    /// │   │ │     │  ▲   │ ╭────╮   ▼   │
+    /// │   │ │     │  │   │ │ R2 ▲   │   │
+    /// │   │ │     │  │   │ │    ▼   │   │
+    /// │   │ ╰─────╯  │   │ ╰────╯   │   │
+    /// │   ╰──────────╯   ╰──────────╯   │
+    /// ╰─────────────────────────────────╯
+    /// ```
     ///
     /// Output:
     /// The dimensions in parentheses were provided manually.
     ///
-    ///  ╭▷ ROOT ─────────────────────────────────────────╮
-    ///  │                          ╭R─ ▶ ◀ ──────╮       │
-    ///  │                          ▽ ╭────╮      │       │
-    ///  │                          │ │ R2 ▲ 50   │       │
-    ///  │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
-    ///  │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
-    ///  │  │ │ L1  │        ▼      │  (30)       │       │
-    ///  │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
-    ///  │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
-    ///  │  │   70           │      │ │ R1 ▲ 50   │       │
-    ///  │  ╰────────────────╯      │ │    ▼      │       │
-    ///  │         70               │ ╰────╯      │       │
-    ///  │                          │  (20)       │       │
-    ///  │                          ╰─────────────╯       │
-    ///  │                               30               │
-    ///  ╰────────────────────────────────────────────────╯
-    ///                       (100)   
+    /// ```text
+    /// ╭▷ ROOT ─────────────────────────────────────────╮
+    /// │                          ╭R─ ▶ ◀ ──────╮       │
+    /// │                          ▽ ╭────╮      │       │
+    /// │                          │ │ R2 ▲ 50   │       │
+    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
+    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
+    /// │  │ │ L1  │        ▼      │  (30)       │       │
+    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
+    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
+    /// │  │   70           │      │ │ R1 ▲ 50   │       │
+    /// │  ╰────────────────╯      │ │    ▼      │       │
+    /// │         70               │ ╰────╯      │       │
+    /// │                          │  (20)       │       │
+    /// │                          ╰─────────────╯       │
+    /// │                               30               │
+    /// ╰────────────────────────────────────────────────╯
+    ///                      (100)
+    /// ```   
     #[test]
     fn test_mixed_layouts() {
         let world = World::new();
@@ -1653,7 +1754,7 @@ mod tests2 {
         r.add_child(&r1);
         r.add_child(&r2);
 
-        root.set_layout(AutoLayout::horizontal().alignment(alignment::dim2::center()));
+        root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
         root.set_resizing((100.0, 100.0));
 
         l.set_layout(AutoLayout::horizontal());
@@ -1681,13 +1782,15 @@ mod tests2 {
         assert_eq!(r2.size(), Vector2(30.0, 50.0));
     }
 
-    ///  ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
-    ///  │       ⋯5            ⋯5            ⋯5        │
-    ///  │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
-    ///  │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
-    ///  │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
-    ///  │       ⋯5            ⋯5            ⋯5        │
-    ///  ╰─────────────────────────────────────────────╯
+    /// ```text
+    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
+    /// │       ⋯5            ⋯5            ⋯5        │
+    /// │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
+    /// │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
+    /// │       ⋯5            ⋯5            ⋯5        │
+    /// ╰─────────────────────────────────────────────╯
+    /// ```
     #[test]
     fn test_horizontal_hug_resizing() {
         let mut test = TestThreeChildren::new();
@@ -1708,21 +1811,23 @@ mod tests2 {
         );
     }
 
-    ///  ╭─ ROOT ─ ▶ ◀ ────╮
-    ///  ▽       ⋯5        │
-    ///  │   ╭─ node3 ─╮   │
-    ///  │ ⋯ │         │ ⋯ │
-    ///  │ 3 ╰─────────╯ 3 │
-    ///  │       ⋯1        │
-    ///  │   ╭─ node2 ─╮   ▼
-    ///  │ ⋯ │         │ ⋯ │
-    ///  │ 3 ╰─────────╯ 3 ▲
-    ///  │       ⋯1        │
-    ///  │   ╭─ node1 ─╮   │
-    ///  │ ⋯ │         │ ⋯ │
-    ///  │ 3 ╰─────────╯ 3 │
-    ///  │       ⋯5        │
-    ///  ╰─────────────────╯
+    /// ```text
+    /// ╭─ ROOT ─ ▶ ◀ ────╮
+    /// ▽       ⋯5        │
+    /// │   ╭─ node3 ─╮   │
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 │
+    /// │       ⋯1        │
+    /// │   ╭─ node2 ─╮   ▼
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 ▲
+    /// │       ⋯1        │
+    /// │   ╭─ node1 ─╮   │
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 │
+    /// │       ⋯5        │
+    /// ╰─────────────────╯
+    /// ```
     #[test]
     fn test_vertical_hug_resizing() {
         let mut test = TestThreeChildren::new();
@@ -1743,12 +1848,14 @@ mod tests2 {
         );
     }
 
-    ///  ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
-    ///  │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
-    ///  │  │         ▼  │         ▼  │         ▼  ▼
-    ///  │  │         ▲  │         ▲  │         ▲  ▲
-    ///  │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
-    ///  ╰─────────────────────────────────────────╯
+    /// ```text
+    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
+    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    /// │  │         ▼  │         ▼  │         ▼  ▼
+    /// │  │         ▲  │         ▲  │         ▲  ▲
+    /// │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
+    /// ╰─────────────────────────────────────────╯
+    /// ```
     #[test]
     fn test_horizontal_nested_hug_resizing() {
         let mut test = TestThreeChildren::new();
@@ -1769,20 +1876,22 @@ mod tests2 {
         );
     }
 
-    ///  ╭─ ROOT ─ ▶ ◀ ──╮
-    ///  ▽  ╭─ node1 ─╮  │
-    ///  │  │         │  │
-    ///  │  │         │  │
-    ///  │  ╰── ▶ ◀ ──╯  │
-    ///  │  ╭─ node2 ─╮  │
-    ///  │  │         ▼  ▼
-    ///  │  │         ▲  ▲
-    ///  │  ╰── ▶ ◀ ──╯  │
-    ///  │  ╭─ node3 ─╮  │
-    ///  │  │         ▲  │
-    ///  │  │         ▼  │
-    ///  │  ╰── ▶ ◀ ──╯  │
-    ///  ╰───────────────╯
+    /// ```text
+    /// ╭─ ROOT ─ ▶ ◀ ──╮
+    /// ▽  ╭─ node1 ─╮  │
+    /// │  │         │  │
+    /// │  │         │  │
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// │  ╭─ node2 ─╮  │
+    /// │  │         ▼  ▼
+    /// │  │         ▲  ▲
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// │  ╭─ node3 ─╮  │
+    /// │  │         ▲  │
+    /// │  │         ▼  │
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// ╰───────────────╯
+    /// ```
     #[test]
     fn test_vertical_nested_hug_resizing() {
         let mut test = TestThreeChildren::new();
@@ -1802,6 +1911,198 @@ mod tests2 {
                 .node3_size([0.0, 200.0]),
         );
     }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮           │
+    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯           │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_left_alignment() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 450.0])
+                .node2_position([100.0, 450.0])
+                .node3_position([200.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
+    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_center_alignment() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([350.0, 450.0])
+                .node2_position([450.0, 450.0])
+                .node3_position([550.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
+    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_right_alignment() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([700.0, 450.0])
+                .node2_position([800.0, 450.0])
+                .node3_position([900.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ────────────╮
+    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
+    /// │ │         │  │    │    │  │         │
+    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯    
+    /// ╰───────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_left_alignment_overflow() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
+        test.root.set_resizing((150.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([100.0, 0.0])
+                .node3_position([200.0, 0.0])
+                .root_size([150.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    ///      ╭▷ ROOT ──────────────────╮
+    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
+    /// │    │    │  │         │  │    │    │
+    /// ╰─────────╯  ╰─────────╯  ╰─────────╯    
+    ///      ╰─────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_center_alignment_overflow() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
+        test.root.set_resizing((200.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([-50.0, 0.0])
+                .node2_position([50.0, 0.0])
+                .node3_position([150.0, 0.0])
+                .root_size([200.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    ///                   ╭▷ ROOT ────────────╮
+    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮ │
+    /// │         │  │    │    │  │         │ │
+    /// ╰─────────╯  ╰─────────╯  ╰─────────╯ │  
+    ///                   ╰───────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_right_alignment_overflow() {
+        let mut test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+        test.root.set_resizing((150.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([-150.0, 0.0])
+                .node2_position([-50.0, 0.0])
+                .node3_position([50.0, 0.0])
+                .root_size([150.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    // /// ```text
+    // /// ╭▷ ROOT ────────────────────────────────────────────╮
+    // /// │ ╭─ node1 ─╮        ╭─ node2 ─╮        ╭─ node3 ─╮ │
+    // /// │ ╰─────────╯        ╰─────────╯        ╰─────────╯ │
+    // /// ╰───────────────────────────────────────────────────╯
+    // /// ```
+    // #[test]
+    // fn test_horizontal_spaced_alignment() {
+    //     let mut test = TestThreeChildren::new();
+    //     test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+    //     test.root.set_resizing((1000.0, 100.0));
+    //     test.node1.set_resizing((100.0, 100.0));
+    //     test.node2.set_resizing((100.0, 100.0));
+    //     test.node3.set_resizing((100.0, 100.0));
+    //     test.run(
+    //         TestThreeChildrenResult::new()
+    //             .root_position([0.0, 0.0])
+    //             .node1_position([700.0, 0.0])
+    //             .node2_position([800.0, 0.0])
+    //             .node3_position([900.0, 0.0])
+    //             .root_size([1000.0, 1000.0])
+    //             .node1_size([100.0, 100.0])
+    //             .node2_size([100.0, 100.0])
+    //             .node3_size([100.0, 100.0]),
+    //     );
+    // }
 }
 
 

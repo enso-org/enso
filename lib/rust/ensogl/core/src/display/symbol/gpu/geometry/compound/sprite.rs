@@ -10,7 +10,6 @@ use crate::debug::Stats;
 use crate::display;
 use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
-use crate::display::layout::alignment::Alignment;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -296,7 +295,7 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let initial_alignment = Self::uv_offset(alignment::dim2::center());
+        let initial_alignment = alignment::Dim2::center().as_number();
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
@@ -333,8 +332,8 @@ impl SpriteSystem {
     }
 
     /// Set alignment of sprites.
-    pub fn set_alignment(&self, alignment: Vector2<Alignment>) {
-        self.alignment.set(Self::uv_offset(alignment));
+    pub fn set_alignment(&self, alignment: alignment::Dim2) {
+        self.alignment.set(alignment.as_number());
     }
 
     /// Run the renderer.
@@ -412,12 +411,6 @@ impl SpriteSystem {
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
         material.set_main("output_color = vec4(0.0,0.0,0.0,1.0); output_id=vec4(0.0,0.0,0.0,0.0);");
         material
-    }
-
-    fn uv_offset(alignment: Vector2<Alignment>) -> Vector2<f32> {
-        let x = alignment.x.as_number();
-        let y = alignment.y.as_number();
-        Vector2::new(x, y)
     }
 }
 
