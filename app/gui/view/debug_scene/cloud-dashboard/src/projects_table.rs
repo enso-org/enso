@@ -271,7 +271,7 @@ impl Model {
     }
 
     fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
-        let Position { row, column: _ } = position;
+        let Position { row, .. } = position;
         assert!(row != 0, "Row was {row}, but we can't render a project row for the header.");
         let idx = self.project_index_for_entry(position)?;
         let column = column_for_entry(position)?;
@@ -290,7 +290,7 @@ impl Model {
     ///
     /// [`Project`]: ::enso_cloud_view::project::Project
     fn project_index_for_entry(&self, position: Position) -> Option<usize> {
-        let Position { row, column: _ } = position;
+        let Position { row, .. } = position;
         // The rows of the grid are zero-indexed, but the first row is the header row, so we need to
         // subtract 1 to get the index of the project we want to display.
         let idx = row.checked_sub(1)?;
@@ -352,7 +352,7 @@ impl Model {
         /// the header row.
         const HEADER_OFFSET: usize = 1;
 
-        let Position { row: _, column } = position;
+        let Position { column, .. } = position;
         let position = (SECTION_START, column).into();
         let model = self.header_entry_model(position);
         let section_end = self.projects.len() + HEADER_OFFSET;
@@ -361,7 +361,7 @@ impl Model {
     }
 
     fn header_entry_model(&self, position: Position) -> EntryModel {
-        let Position { row, column: _ } = position;
+        let Position { row, .. } = position;
         assert!(row == 0, "Header row was {row}, but it is expected to be first row in the table.");
         let column = column_for_entry(position);
         let entry_model = column.map(|column| EntryModel {
@@ -625,7 +625,7 @@ fn populate_table_with_data(input: api::public::Input) {
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
 fn column_for_entry(position: Position) -> Option<Columns> {
-    let Position { row: _, column } = position;
+    let Position { column, .. } = position;
     let column = match Columns::from_discriminant(column) {
         Some(column) => column,
         None => {
