@@ -465,21 +465,23 @@ pub struct View {
     #[deref]
     frp:   Frp,
     model: Model,
+    app: Application,
 }
 
 
 // === Internal `impl` ===
 
 impl View {
-    fn new(app: &Application) -> Self {
+    fn new(app: Application) -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
-        Self { frp, model }.init(app)
+        let model = Model::new(&app);
+        Self { frp, model, app }.init()
     }
 
-    fn init(self, app: &Application) -> Self {
+    fn init(self) -> Self {
         let frp = &self.frp;
         let model = &self.model;
+        let app = &self.app;
         let root = &model.display_object;
         let input = &frp.public.input;
 
@@ -661,11 +663,12 @@ impl application::View for View {
     }
 
     fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
         Self::new(app)
     }
 
     fn app(&self) -> &Application {
-        &self.model.application
+        &self.app
     }
 }
 
