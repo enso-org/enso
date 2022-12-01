@@ -48,7 +48,7 @@ type File
        > Example
          Create a new file pointing to the `data.csv` file in the project directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
              import Standard.Examples
 
              example_new = File.new Examples.csv_path
@@ -66,7 +66,7 @@ type File
        > Example
          Get the program's current working directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
 
              example_cwd = File.current_directory
     current_directory : File
@@ -79,7 +79,7 @@ type File
        > Example
          Get the current user's home directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
 
              example_home = File.home
     home : File

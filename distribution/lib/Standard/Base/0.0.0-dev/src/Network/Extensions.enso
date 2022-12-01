@@ -9,7 +9,7 @@ import project.Error.Common.Syntax_Error
    > Example
      Parse URI text.
 
-         import Standard.Base.Network.URI
+         import Standard.Base.Network.URI.Extensions
 
          example_parse = "http://example.com".to_uri
 Text.to_uri : URI ! Syntax_Error

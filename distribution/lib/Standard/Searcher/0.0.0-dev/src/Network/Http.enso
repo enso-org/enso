@@ -42,6 +42,6 @@
    > Example
      Parse URI text.
 
-         import Standard.Base.Network.URI
+         import Standard.Base.Network.URI.URI
 
          example_parse = URI.parse "http://example.com"

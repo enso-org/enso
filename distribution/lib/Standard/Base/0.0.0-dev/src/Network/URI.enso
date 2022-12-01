@@ -35,7 +35,7 @@ type URI
        > Example
          Parse URI text.
 
-             import Standard.Base.Network.URI
+             import Standard.Base.Network.URI.URI
 
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
@@ -199,7 +199,7 @@ type URI
        > Example
          Convert a URI to JSON.
 
-             import Standard.Base.Network.URI
+             import Standard.Base.Network.URI.URI
              import Standard.Examples
 
              example_to_json = Examples.uri.to_json
@@ -211,7 +211,7 @@ type URI
        > Example
          Check if two URIs are equal.
 
-             import Standard.Base.Network.URI
+             import Standard.Base.Network.URI.URI
 
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : URI -> Boolean
