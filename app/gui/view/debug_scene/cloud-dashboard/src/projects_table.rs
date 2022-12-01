@@ -465,7 +465,7 @@ pub struct View {
     #[deref]
     frp:   Frp,
     model: Model,
-    app: Application,
+    app:   Application,
 }
 
 

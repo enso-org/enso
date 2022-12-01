@@ -16,7 +16,7 @@ use enso_prelude::*;
 
 /// This is a macro that is used to define the [`Route`]s to our Cloud API endpoints and the
 /// responses returned by the Cloud API for requests to those endpoints.
-/// 
+///
 /// The macro exists to keep the names of the [`Route`]s and their response structs in sync, rather
 /// than for any code generation purposes. This is because each [`Route`] has a unique response type
 /// and structure, so we can't use the macro to reduce code duplication.
@@ -30,10 +30,10 @@ macro_rules! declare_routes_and_responses {
 
         /// A combination of the HTTP method and the relative URL path to an endpoint of our Cloud
         /// API.
-        /// 
+        ///
         /// Instead of constructing HTTP requests manually using this enum, use the convenience
         /// methods on [`Client`] to send requests to the Cloud API instead -- it's simpler.
-        /// 
+        ///
         /// Each variant in this enum corresponds to an available endpoint in our Cloud API. The
         /// [`Display`] impl of this enum provides the relative path to the endpoint. When combined
         /// with the base URL of our Cloud API (see [`Client`] for details), this becomes the full
@@ -87,8 +87,9 @@ macro_rules! declare_routes_and_responses {
             #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
             #[allow(missing_docs)]
             pub struct $list_projects {
-                /// A list of all [`Project`]s that the user has access to. The list may be empty, if the
-                /// user has access to no [`Project`]s or no [`Project`]s have been created.
+                /// A list of all [`Project`]s that the user has access to. The list may be empty,
+                /// if the user has access to no [`Project`]s or no [`Project`]s have been
+                /// created.
                 ///
                 /// [`Project`]: ::enso_cloud_view::project::Project
                 pub projects: Vec<view::project::Project>,

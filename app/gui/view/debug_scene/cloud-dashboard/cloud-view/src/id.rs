@@ -15,10 +15,10 @@ use serde::de;
 
 /// When manually implementing [`Deserialize`] for a struct, [`serde`] requires that we provide a
 /// user-facing name for the struct being deserialized, for error messages.
-/// 
+///
 /// This constant provides the user-facing name of the [`Id`] struct for deserialization error
 /// messages.
-/// 
+///
 /// [`Deserialize`]: ::serde::de::Deserialize
 const ID_STRUCT_NAME: &str = stringify!(Id);
 /// Separator used in string representations of [`Id`]s. See [`Id`] for details.
@@ -56,12 +56,12 @@ pub type ProjectId = Id<ProjectIdVariant>;
 /// field to keep track of the type of the [`Id`]. Any struct implementing this [`IdVariant`] trait
 /// can thus be used as a marker, by passing it as a type parameter to [`Id::<T>`] (e.g.,
 /// [`Id::<ProjectIdVariant>`] becomes a [`Project`] identifier).
-/// 
+///
 /// By implementing this trait on a struct, you are creating a new variant of identifier marker. An
 /// [`Id<T>`] parameterized with this marker will then have all the useful methods and traits
 /// implemented by the [`Id`] struct available to it. For example, your [`Id`] variant will have
 /// [`Display`], [`Serialize`], etc.
-/// 
+///
 /// To keep things simple, we recommend that you implement this trait on an empty newtype struct (
 /// see [`ProjectIdVariant`] for an example). Then provide a type alias for an [`Id::<T>`]
 /// parameterized with said struct (see [`ProjectId`] for an example). Then use only the type alias.
@@ -70,7 +70,7 @@ pub type ProjectId = Id<ProjectIdVariant>;
 /// [`Project`]: crate::project::Project
 pub trait IdVariant {
     /// Prefix applied to serialized representations of the [`Id`].
-    /// 
+    ///
     /// For example, the [`ProjectId`] type has a prefix of `"proj"`, so the serialized
     /// representation of a [`ProjectId`] will look like `"proj-27xJM00p8jWoL2qByTo6tQfciWC"`.
     const PREFIX: &'static str;
@@ -79,8 +79,8 @@ pub trait IdVariant {
 
 // === Trait `impl`s ===
 
-// Implement IdVariant for Id<T> itself so that the associated items of the marker type are available
-// through Id itself (i.e., so you can do `ProjectId::PREFIX` rather than doing
+// Implement IdVariant for Id<T> itself so that the associated items of the marker type are
+// available through Id itself (i.e., so you can do `ProjectId::PREFIX` rather than doing
 // `ProjectIdVariant::PREFIX`).
 impl<T> IdVariant for Id<T>
 where T: IdVariant
@@ -134,7 +134,7 @@ impl IdVariant for ProjectIdVariant {
 
 /// An identifer that is used to uniquely identify entities in the Cloud backend (e.g.,
 /// [`Project`]s).
-/// 
+///
 /// Internally, this is a [K-Sortable Unique IDentifier] (KSUID). KSUIDs are a variant of unique
 /// identifier that have some nice properties that are useful to us. For example, KSUIDs are
 /// naturally ordered by generation time because they incorporate a timestamp as part of the
@@ -146,7 +146,7 @@ impl IdVariant for ProjectIdVariant {
 /// # use enso_prelude::*;
 /// let id = enso_cloud_view::id::ProjectId::from_str("proj-27xJM00p8jWoL2qByTo6tQfciWC").unwrap();
 /// ```
-/// 
+///
 /// An [`Id`] string contains: the type of the entity this identifier is for (e.g.
 /// [`ProjectId::PREFIX`] for [`Project`], [`OrganizationId::PREFIX`] for organization, etc.),
 /// followed by the [`ID_PREFIX_SEPARATOR`], then the base62-encoded KSUID.
@@ -203,7 +203,7 @@ where T: IdVariant
 /// [`serde`] can't derive [`Deserialize`] for. By manually implementing [`Deserialize`], we can
 /// delegate deserialization to our [`FromStr`] implementation which can parse an [`Id`] from a
 /// [`String`] by splitting it into its [`PREFIX`] and [`Ksuid`] components.
-/// 
+///
 /// [`Deserialize`]: ::serde::de::Deserialize
 /// [`PREFIX`]: crate::id::IdVariant::PREFIX
 /// [`Ksuid`]: ::svix_ksuid::Ksuid

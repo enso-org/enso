@@ -11,7 +11,7 @@ use crate::id;
 // ================
 
 /// Enum representing what state a Cloud backend [`Project`] is in.
-/// 
+///
 /// A [`Project`]'s state has a lot of implementation details that are irrelevant to the Cloud
 /// frontend. So this enum contains only the tag used to discriminate between different variants.
 /// This is returned in API responses from the backend where the content of the state is irrelevant

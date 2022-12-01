@@ -576,7 +576,8 @@ pub trait SplitTwice {
         start_marker: P,
         end_marker: P,
     ) -> Option<(&'a Self, &'a Self, &'a Self)>
-    where P: pattern::Pattern<'a>;
+    where
+        P: pattern::Pattern<'a>;
 }
 
 impl SplitTwice for str {
@@ -585,7 +586,8 @@ impl SplitTwice for str {
         start_marker: P,
         end_marker: P,
     ) -> Option<(&'a str, &'a str, &'a str)>
-    where P: pattern::Pattern<'a>
+    where
+        P: pattern::Pattern<'a>,
     {
         let (prefix, rest) = self.split_once(start_marker)?;
         let (mid, suffix) = rest.split_once(end_marker)?;

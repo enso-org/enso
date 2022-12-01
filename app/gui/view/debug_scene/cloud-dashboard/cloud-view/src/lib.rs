@@ -7,14 +7,14 @@
 //! Thus, this crate contains representations of the same types that exist in `enso_cloud_lambdas`,
 //! but with only the minimum information necessary. The full types in `enso_cloud_lambdas` are then
 //! built on top of these definitions.
-//! 
+//!
 //! The types in this crate are used by the:
 //! - **Cloud frontend** when *requests* are send to the Cloud backend,
 //! - **Cloud backend** when *requests* are deserialized prior to being handled,
 //! - **Cloud backend** when *responses* are serialized prior to being returned to the Cloud
 //! frontend,
 //! - **Cloud frontend** when *responses* are deserialized.
-//! 
+//!
 //! Defining the types in this shared crate keeps our API *definition* and *usage* consistent in
 //! both the frontend and the backend.
 
@@ -23,7 +23,6 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -65,7 +64,7 @@ pub mod project;
 // ===============
 
 /// A module to let consumers of this crate import common Cloud-related types.
-/// 
+///
 /// For example, the [`Error`] type is used in almost all Cloud-related crates so it is desirable
 /// to always have it in scope. Glob-importing this module makes this easy to do.
 pub mod prelude {
