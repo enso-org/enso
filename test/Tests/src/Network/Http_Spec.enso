@@ -12,6 +12,7 @@ import Standard.Base.Network.Proxy
 import Standard.Base.Network.URI
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 polyglot java import java.lang.System
 

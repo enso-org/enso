@@ -12,6 +12,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import SQL_Error_Data, Unsupported_Database_Operation_Error_Data
 
 from Standard.Test import Test, Problems
+import Standard.Test.Extensions
 
 from project.Util import all
 

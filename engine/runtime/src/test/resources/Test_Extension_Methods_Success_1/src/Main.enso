@@ -1,0 +1,4 @@
+import project.Atom
+
+main =
+    1.foo 41

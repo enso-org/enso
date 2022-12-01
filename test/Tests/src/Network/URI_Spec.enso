@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Network.URI
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 spec =
     Test.group "URI" <|

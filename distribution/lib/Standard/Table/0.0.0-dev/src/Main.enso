@@ -40,6 +40,7 @@ export project.Excel.Excel_Range.Excel_Range
 export project.Data.Data_Formatter.Data_Formatter
 
 from Standard.Geo.Geo_Json import Object_Type
+import Standard.Geo.Geo_Json
 
 ## ALIAS To Table
 

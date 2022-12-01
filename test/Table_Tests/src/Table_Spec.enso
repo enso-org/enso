@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
+import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
@@ -10,6 +11,7 @@ from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Ou
 import Standard.Visualization
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 import project.Common_Table_Spec
 from project.Util import all

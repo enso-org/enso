@@ -6,6 +6,7 @@ import Standard.Table.Data.Expression.Expression_Error
 import Standard.Visualization
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 import project.Common_Table_Spec
 from project.Util import all

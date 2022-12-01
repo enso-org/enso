@@ -8,6 +8,7 @@ from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_C
 import Standard.Visualization
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|

@@ -15,8 +15,8 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Data.Json import Json
-from project.Data.Range import Range
+from project.Data.Json import all
+from project.Data.Range import all
 from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument_Error_Data, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
