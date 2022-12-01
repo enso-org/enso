@@ -348,7 +348,7 @@ mod tests {
         let root_path_clone = root_path.clone();
         json_client.expect.init_vcs(move |path| {
             assert_eq!(path, &root_path_clone);
-            assert_eq!(vcs_clone.init.get(), false, "VCS is already initialized.");
+            assert!(!vcs_clone.init.get(), "VCS is already initialized.");
             vcs_clone.init.set(true);
             Ok(())
         });
@@ -372,7 +372,7 @@ mod tests {
         json_client.expect.save_vcs(move |path, name| {
             assert_eq!(path, &root_path);
             assert_eq!(name, &None);
-            assert_eq!(vcs.init.get(), true, "VCS is not initialized.");
+            assert!(vcs.init.get(), "VCS is not initialized.");
             let count = vcs.commit_count.get();
             vcs.commit_count.set(count + 1);
             Ok(vcs_entry)
@@ -394,7 +394,7 @@ mod tests {
             let project_controller = controller::Project::new(project, default());
             let result = project_controller.save_project_snapshot().await;
             assert_matches!(result, Ok(()));
-            assert_eq!(vcs.init.get(), true, "VCS is not initialized.");
+            assert!(vcs.init.get(), "VCS is not initialized.");
             assert_eq!(vcs.commit_count.get(), 3);
         });
     }
@@ -410,7 +410,7 @@ mod tests {
             let project_controller = controller::Project::new(project, default());
             let result = project_controller.save_project_snapshot().await;
             assert_matches!(result, Ok(()));
-            assert_eq!(vcs.init.get(), true, "VCS is not initialized.");
+            assert!(vcs.init.get(), "VCS is not initialized.");
             assert_eq!(vcs.commit_count.get(), 1);
         });
     }
