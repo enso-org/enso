@@ -11,7 +11,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -34,7 +34,7 @@ public final class ArrayProxy implements TruffleObject {
       InteropLibrary interop = InteropLibrary.getUncached();
       if (!interop.isExecutable(at)) {
         throw new PanicException(
-            Context.get(interop).getBuiltins().error().makeTypeError("Function", at, "at"),
+            EnsoContext.get(interop).getBuiltins().error().makeTypeError("Function", at, "at"),
             interop);
       }
     }
@@ -79,6 +79,6 @@ public final class ArrayProxy implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().array();
+    return EnsoContext.get(thisLib).getBuiltins().array();
   }
 }

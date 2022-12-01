@@ -68,7 +68,10 @@ class ImportsTest extends PackageTest {
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
       .head should include("The name `Atom` could not be found.")
+  }
 
+  "Importing everything from the module" should "should not bring module into the scope when resolving names" in {
+    evalTestProject("Test_Import_Case") shouldEqual 0
   }
 
   "Exports system" should "detect cycles" in {

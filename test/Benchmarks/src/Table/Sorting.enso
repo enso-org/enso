@@ -16,7 +16,7 @@ iter_size = 20
 num_iterations = 10
 
 # The Benchmarks ==============================================================
-main =
+bench =
     ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
     start = Date_Time.new 1990 1 1
     dates = ints.map x->
@@ -35,3 +35,5 @@ main =
 
     Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations
     Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations
+
+main = bench

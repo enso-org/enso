@@ -19,7 +19,7 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -115,7 +115,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Cached MethodResolverNode methodResolverNode) {
     Function function =
-        methodResolverNode.execute(Context.get(this).getBuiltins().dataflowError(), symbol);
+        methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
       return self;
     } else {
@@ -234,7 +234,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       var str = interop.asString(self);
       var text = Text.create(str);
-      var ctx = Context.get(this);
+      var ctx = EnsoContext.get(this);
       var textType = ctx.getBuiltins().text();
       var function = methodResolverNode.expectNonNull(text, textType, symbol);
       arguments[0] = text;
@@ -259,7 +259,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") TypesLibrary types,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     var arrayType = ctx.getBuiltins().array();
     var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
     arguments[0] = self;
@@ -281,7 +281,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
       var date = new EnsoDate(hostLocalDate);
@@ -309,7 +309,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
@@ -339,7 +339,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var duration = interop.asDuration(self);
       var ensoDuration = new EnsoDuration(duration);
@@ -377,7 +377,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
       var hostLocalTime = interop.asTime(self);
@@ -407,7 +407,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var hostZone = interop.asTimeZone(self);
       var dateTime = new EnsoTimeZone(hostZone);
@@ -435,7 +435,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode methodResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     try {
       var hostLocalTime = interop.asTime(self);
       var dateTime = new EnsoTimeOfDay(hostLocalTime);
@@ -463,7 +463,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached MethodResolverNode anyResolverNode) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     Function function = anyResolverNode.expectNonNull(self, ctx.getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }

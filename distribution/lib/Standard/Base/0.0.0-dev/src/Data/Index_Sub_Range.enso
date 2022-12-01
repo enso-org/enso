@@ -6,7 +6,7 @@ import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Range import Range
+from project.Data.Range import all
 from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data
 
 type Index_Sub_Range

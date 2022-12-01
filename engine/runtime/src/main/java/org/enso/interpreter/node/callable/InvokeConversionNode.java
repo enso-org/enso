@@ -11,7 +11,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -76,7 +76,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       return (Type) self;
     } else {
       throw new PanicException(
-          Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
+          EnsoContext.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
           thisNode);
     }
   }
@@ -113,7 +113,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.execute(
-            extractConstructor(self), Context.get(this).getBuiltins().dataflowError(), conversion);
+            extractConstructor(self),
+            EnsoContext.get(this).getBuiltins().dataflowError(),
+            conversion);
     if (function != null) {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } else {
@@ -183,7 +185,10 @@ public abstract class InvokeConversionNode extends BaseNode {
       Text txt = Text.create(str);
       Function function =
           conversionResolverNode.expectNonNull(
-              txt, extractConstructor(self), Context.get(this).getBuiltins().text(), conversion);
+              txt,
+              extractConstructor(self),
+              EnsoContext.get(this).getBuiltins().text(),
+              conversion);
       arguments[0] = txt;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
@@ -207,7 +212,10 @@ public abstract class InvokeConversionNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
+        EnsoContext.get(this)
+            .getBuiltins()
+            .error()
+            .makeNoSuchConversionError(self, that, conversion),
         this);
   }
 

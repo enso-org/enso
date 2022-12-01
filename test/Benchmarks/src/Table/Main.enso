@@ -1,0 +1,8 @@
+import project.Table.Aggregate
+import project.Table.Sorting
+
+bench =
+    Aggregate.bench
+    Sorting.bench
+
+main = bench

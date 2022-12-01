@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 from Standard.Base.Data.Vector import Empty_Error
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Test, Test_Suite
 
@@ -50,8 +51,21 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
 
+        r = Ref.new 0
+        next =
+            r.put r.get+1
+        const = Vector.new 4 _->next
+        const.should_equal [0, 1, 2, 3]
+
+
     Test.specify "should allow vector creation with a constant constructor" <|
         Vector.fill 100 1 . fold (0) (+) . should_equal 100
+
+        r = Ref.new 0
+        next =
+            r.put r.get+1
+        const = Vector.fill 4 next
+        const.should_equal [0, 0, 0, 0]
 
     Test.specify "should allow creation from arrays without mutability" <|
         built_from_js = Vector.from_polyglot_array generate_js_array

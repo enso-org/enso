@@ -7,9 +7,11 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.Arrays;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
@@ -77,7 +79,10 @@ public abstract class TypeToDisplayTextNode extends Node {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
     } else {
-      return "a polyglot object";
+      // In case we forgot to handle some of the builtin types, the following
+      // piece of code will handle that.
+      String typeName = Types.getName(value);
+      return typeName != null ? typeName : "a polyglot object";
     }
   }
 }
