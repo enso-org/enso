@@ -5,6 +5,7 @@ from Standard.Table import Table, Column
 import Standard.Visualization.Histogram
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 import project
 

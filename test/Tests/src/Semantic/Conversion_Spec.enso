@@ -4,6 +4,7 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 type Foo
     Value foo

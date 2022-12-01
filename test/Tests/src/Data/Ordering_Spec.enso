@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 # === Test Resources ===
 

@@ -4,6 +4,7 @@ from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Column_Na
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 from project.Util import all
 

@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.CompilerDirectives;
-
-import java.util.*;
-
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -12,16 +10,25 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 /** A representation of Enso's per-file top-level scope. */
 public final class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
-  private Map<String, Object> polyglotSymbols = new HashMap<>();
-  private Map<String, Type> types = new HashMap<>();
-  private Map<Type, Map<String, Function>> methods = new HashMap<>();
-  private Map<Type, Map<Type, Function>> conversions = new HashMap<>();
-  private Set<ModuleScope> imports = new HashSet<>();
-  private Set<ModuleScope> exports = new HashSet<>();
+  private Map<String, Object> polyglotSymbols;
+  private Map<String, Type> types;
+  private Map<Type, Map<String, Function>> methods;
+  private Map<Type, Map<Type, Function>> conversions;
+  private Set<ModuleScope> imports;
+  private Set<ModuleScope> exports;
 
   /**
    * Creates a new object of this class.
@@ -30,6 +37,12 @@ public final class ModuleScope implements TruffleObject {
    * @param context the current langauge context
    */
   public ModuleScope(Module module, EnsoContext context) {
+    this.polyglotSymbols = new HashMap<>();
+    this.types = new HashMap<>();
+    this.methods = new HashMap<>();
+    this.conversions = new HashMap<>();
+    this.imports = new HashSet<>();
+    this.exports = new HashSet<>();
     this.module = module;
     this.associatedType =
         Type.createSingleton(
@@ -37,6 +50,25 @@ public final class ModuleScope implements TruffleObject {
             this,
             context == null ? null : context.getBuiltins().any(),
             false);
+  }
+
+  public ModuleScope(
+      Module module,
+      Type associatedType,
+      Map<String, Object> polyglotSymbols,
+      Map<String, Type> types,
+      Map<Type, Map<String, Function>> methods,
+      Map<Type, Map<Type, Function>> conversions,
+      Set<ModuleScope> imports,
+      Set<ModuleScope> exports) {
+    this.module = module;
+    this.associatedType = associatedType;
+    this.polyglotSymbols = polyglotSymbols;
+    this.types = types;
+    this.methods = methods;
+    this.conversions = conversions;
+    this.imports = imports;
+    this.exports = exports;
   }
 
   public void registerType(Type type) {
@@ -150,7 +182,7 @@ public final class ModuleScope implements TruffleObject {
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
     Function definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
     if (definedWithAtom != null) {
@@ -169,7 +201,7 @@ public final class ModuleScope implements TruffleObject {
         .orElse(null);
   }
 
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Function lookupConversionDefinition(Type type, Type target) {
     Function definedWithAtom = type.getDefinitionScope().getConversionsFor(target).get(type);
     if (definedWithAtom != null) {
@@ -261,5 +293,51 @@ public final class ModuleScope implements TruffleObject {
     types = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
+  }
+
+  /**
+   * Create a copy of this `ModuleScope` while taking into account only the provided list of types.
+   *
+   * @param typeNames list of types to copy to the new scope
+   * @return a copy of this scope modulo the requested types
+   */
+  public ModuleScope withTypes(List<String> typeNames) {
+    Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
+    Map<String, Type> requestedTypes = new HashMap<>(this.types);
+    Map<Type, Map<String, Function>> methods = new HashMap<>();
+    Map<Type, Map<Type, Function>> conversions = new HashMap<>();
+    Set<ModuleScope> imports = new HashSet<>(this.imports);
+    Set<ModuleScope> exports = new HashSet<>(this.exports);
+    this.types
+        .entrySet()
+        .forEach(
+            entry -> {
+              if (typeNames.contains(entry.getKey())) {
+                requestedTypes.put(entry.getKey(), entry.getValue());
+              }
+            });
+    Collection<Type> validTypes = requestedTypes.values();
+    this.methods.forEach(
+        (tpe, meths) -> {
+          if (validTypes.contains(tpe)) {
+            methods.put(tpe, meths);
+          }
+        });
+    this.conversions.forEach(
+        (tpe, meths) -> {
+          if (validTypes.contains(tpe)) {
+            conversions.put(tpe, meths);
+          }
+        });
+
+    return new ModuleScope(
+        module,
+        associatedType,
+        polyglotSymbols,
+        requestedTypes,
+        methods,
+        conversions,
+        imports,
+        exports);
   }
 }

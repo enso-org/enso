@@ -769,7 +769,7 @@ class Config {
     public use_loader: boolean = true
     public wasm_url: string = '/assets/ide.wasm'
     public wasm_glue_url: string = '/assets/wasm_imports.js'
-    public node_labels: boolean = false
+    public node_labels: boolean = true
     public crash_report_host: string = defaultLogServerHost
     public data_gathering: boolean = true
     public is_in_cloud: boolean = false

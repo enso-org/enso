@@ -3,6 +3,7 @@ from Standard.Base import all
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 with_locale locale ~test =
     default_locale = JavaLocale.getDefault

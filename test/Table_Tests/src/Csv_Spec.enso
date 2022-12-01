@@ -1,8 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Column, Delimited, Column_Selector
+import Standard.Table.Main as Table_Module
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 from project.Util import all
 

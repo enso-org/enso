@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Bench
 
-import project.Vector.Vector as Vector_Utils
+import project.Vector.Utils
 
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Time_Utils
@@ -52,10 +52,10 @@ make_partially_sorted_vec n =
 
 # The Benchmarks ==============================================================
 
-main =
+bench =
     sorted_vec = make_sorted_ascending_vec vector_size
     partially_sorted_vec = make_partially_sorted_vec vector_size
-    random_vec = Vector_Utils.make_random_vec vector_size
+    random_vec = Utils.make_random_vec vector_size
     projection = x -> x % 10
     comparator = l -> r -> r.compare_to l
 
@@ -67,3 +67,5 @@ main =
     Bench.measure (random_vec.sort order=Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
     Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" iter_size num_iterations
     Bench.measure (random_vec.sort by=comparator) "Sorting with a Custom Comparison" iter_size num_iterations
+
+main = bench

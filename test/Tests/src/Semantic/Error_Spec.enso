@@ -7,6 +7,7 @@ polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type My_Type
     Value foo
