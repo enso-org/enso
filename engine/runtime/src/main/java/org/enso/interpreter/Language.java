@@ -36,11 +36,15 @@ import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.syntax2.Line;
+import org.enso.syntax2.Tree;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -184,6 +188,14 @@ public final class Language extends TruffleLanguage<Context> {
   /**
    * Parses the given Enso source code snippet in {@code request}.
    *
+   * Inline parsing does not handle the following expressions:
+   * <ul>
+   *     <li>Assignments</li>
+   *     <li>Imports and exports</li>
+   * </ul>
+   * When given the aforementioned expressions in the request, {@code null}
+   * will be returned.
+   *
    * @param request request for inline parsing
    * @throws Exception if the compiler failed to parse
    * @return An {@link ExecutableNode} representing an AST fragment if the request contains
@@ -192,6 +204,17 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      var context = Context.get(request.getLocation());
+      Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
+      var undesirableExprTypes = List.of(
+              Tree.Assignment.class,
+              Tree.Import.class,
+              Tree.Export.class
+      );
+      if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
+        throw new Exception("Inline parsing request contains some of undesirable expression types");
+      }
+
       var module = ensoRootNode.getModuleScope().getModule();
       var localScope = ensoRootNode.getLocalScope();
       var silentConfig = new CompilerConfig(false, false, true);
@@ -203,7 +226,6 @@ public final class Language extends TruffleLanguage<Context> {
           scala.Option.empty(),
           silentConfig
       );
-      var context = Context.get(request.getLocation());
       var silentCompiler = context.getCompiler().duplicateWithConfig(silentConfig);
       scala.Option<ExpressionNode> exprNode;
       try {
@@ -230,6 +252,26 @@ public final class Language extends TruffleLanguage<Context> {
       }
     }
     return null;
+  }
+
+  /**
+   * Returns true if the given ast transitively contains any of {@code exprTypes}.
+   */
+  private boolean astContainsExprTypes(Tree ast, List<Class<? extends Tree>> exprTypes) {
+    boolean astMatchesExprType = exprTypes
+          .stream()
+          .anyMatch(exprType -> exprType.equals(ast.getClass()));
+    if (astMatchesExprType) {
+      return true;
+    } else if (ast instanceof Tree.BodyBlock block) {
+      return block
+              .getStatements()
+              .stream()
+              .map(Line::getExpression)
+              .anyMatch((Tree expr) -> astContainsExprTypes(expr, exprTypes));
+    } else {
+      return false;
+    }
   }
 
   @Option(

@@ -24,6 +24,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax2.Tree
 
 import java.io.{OutputStream, PrintStream, StringReader}
 import java.util.logging.Level
@@ -600,6 +601,14 @@ class Compiler(
     */
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
+
+  /**
+   * Parses the given source with the new Rust parser.
+   *
+   * @param source
+   * @return
+   */
+  def parseInline(source: Source): Tree = ensoCompiler.parse(source)
 
   /** Parses the metadata of the provided language sources.
     *

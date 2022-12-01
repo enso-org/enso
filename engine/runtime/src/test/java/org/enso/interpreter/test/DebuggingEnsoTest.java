@@ -3,6 +3,8 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.debug.DebugException;
@@ -21,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -293,7 +297,6 @@ public class DebuggingEnsoTest {
   @Test
   public void testRewriteVariableInCallerStackFrame() {
     Source src = createEnsoSource("""
-        polyglot java import java.nio.file.Path
         bar =
             loc_bar = 42
         
@@ -331,6 +334,38 @@ public class DebuggingEnsoTest {
     }
   }
 
+  @Test
+  public void testFailingEvaluations() {
+    Source src = createEnsoSource("foo x = x");
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      // This snippet is actually called from chromeinspector
+      assertThrows("Evaluating syntactically incorrect snippet should throw exception",
+          DebugException.class,
+          () -> event.getTopStackFrame().eval("(async function(){ await 1;})()")
+      );
+      assertThrows("Evaluating non existing identifiers should throw PanicException, wrapped in DebugException",
+          DebugException.class,
+          () -> event.getTopStackFrame().eval("non_existing_identifier")
+      );
+      assertThrows(
+              DebugException.class,
+              () -> event.getTopStackFrame().eval("13 + non_existing_identifier")
+      );
+      assertThrows("Imports should not be evaluated",
+              DebugException.class,
+              () -> event.getTopStackFrame().eval("from Standard.Base import all")
+      );
+      assertThrows("Assignments should not be evaluated",
+              DebugException.class,
+              () -> event.getTopStackFrame().eval("tmp = 45")
+      );
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
 
   // TODO[PM]: Re-enable (https://www.pivotaltracker.com/story/show/183854585)
   @Test
