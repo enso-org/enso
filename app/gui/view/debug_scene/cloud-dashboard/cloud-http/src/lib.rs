@@ -134,7 +134,7 @@ impl Client {
 
         let response = self.http.execute(request).await?;
         if !response.status().is_success() {
-            let message = format!("Unexpected response: {response:?}.");
+            let message = anyhow!("Unexpected response: {response:?}.");
             Err(message)?
         }
 

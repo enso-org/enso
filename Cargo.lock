@@ -1549,6 +1549,7 @@ name = "debug-scene-cloud-dashboard"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
+ "enso-prelude",
  "enso-profiler",
  "enso_cloud_http",
  "enso_cloud_view",

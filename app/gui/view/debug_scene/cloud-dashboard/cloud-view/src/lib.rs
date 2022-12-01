@@ -47,7 +47,6 @@
 #![warn(variant_size_differences)]
 #![warn(unreachable_pub)]
 
-use std::error;
 
 
 // ==============
@@ -68,22 +67,8 @@ pub mod project;
 /// For example, the [`Error`] type is used in almost all Cloud-related crates so it is desirable
 /// to always have it in scope. Glob-importing this module makes this easy to do.
 pub mod prelude {
-    pub use crate::Error;
+    pub use enso_prelude::anyhow::Error;
 }
-
-
-
-// =============
-// === Error ===
-// =============
-
-/// Type alias for a thread-safe boxed [`Error`].
-///
-/// Convert your error to this type when your error can not be recovered from, or no further context
-/// can be added to it.
-///
-/// [`Error`]: ::std::error::Error
-pub type Error = Box<dyn error::Error + Send + Sync>;
 
 
 

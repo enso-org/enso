@@ -4,6 +4,7 @@
 //! implement new identifier variants (e.g., [`ProjectId`], [`OrganizationId`]).
 
 use enso_prelude::*;
+use crate::prelude::*;
 
 use serde::de;
 
@@ -185,15 +186,15 @@ where Id<T>: Display
 impl<T> FromStr for Id<T>
 where T: IdVariant
 {
-    type Err = crate::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ksuid_str = match s.split_twice(T::PREFIX, ID_PREFIX_SEPARATOR) {
             Some(("", "", s)) => s,
-            _ => Err(format!("\"{s}\" is not an {ID_STRUCT_NAME}."))?,
+            _ => Err(anyhow!("\"{s}\" is not an {ID_STRUCT_NAME}."))?,
         };
         let ksuid = svix_ksuid::Ksuid::from_str(ksuid_str)
-            .map_err(|_| format!("\"{ksuid_str}\" is not a Ksuid."))?;
+            .map_err(|_| anyhow!("\"{ksuid_str}\" is not a Ksuid."))?;
         let marker = PhantomData;
         Ok(Self { ksuid, marker })
     }
