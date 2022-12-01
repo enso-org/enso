@@ -23,12 +23,12 @@ import java.util.Set;
 public final class ModuleScope implements TruffleObject {
   private final Type associatedType;
   private final Module module;
-  private @CompilationFinal Map<String, Object> polyglotSymbols;
-  private @CompilationFinal Map<String, Type> types;
-  private @CompilationFinal Map<Type, Map<String, Function>> methods;
-  private @CompilationFinal Map<Type, Map<Type, Function>> conversions;
-  private @CompilationFinal Set<ModuleScope> imports;
-  private @CompilationFinal Set<ModuleScope> exports;
+  private Map<String, Object> polyglotSymbols;
+  private Map<String, Type> types;
+  private Map<Type, Map<String, Function>> methods;
+  private Map<Type, Map<Type, Function>> conversions;
+  private Set<ModuleScope> imports;
+  private Set<ModuleScope> exports;
 
   /**
    * Creates a new object of this class.
@@ -303,7 +303,7 @@ public final class ModuleScope implements TruffleObject {
    */
   public ModuleScope withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
-    Map<String, Type> types = new HashMap<>(this.types);
+    Map<String, Type> requestedTypes = new HashMap<>(this.types);
     Map<Type, Map<String, Function>> methods = new HashMap<>();
     Map<Type, Map<Type, Function>> conversions = new HashMap<>();
     Set<ModuleScope> imports = new HashSet<>(this.imports);
@@ -313,10 +313,10 @@ public final class ModuleScope implements TruffleObject {
         .forEach(
             entry -> {
               if (typeNames.contains(entry.getKey())) {
-                types.put(entry.getKey(), entry.getValue());
+                requestedTypes.put(entry.getKey(), entry.getValue());
               }
             });
-    Collection<Type> validTypes = types.values();
+    Collection<Type> validTypes = requestedTypes.values();
     this.methods.forEach(
         (tpe, meths) -> {
           if (validTypes.contains(tpe)) {
@@ -331,6 +331,13 @@ public final class ModuleScope implements TruffleObject {
         });
 
     return new ModuleScope(
-        module, associatedType, polyglotSymbols, types, methods, conversions, imports, exports);
+        module,
+        associatedType,
+        polyglotSymbols,
+        requestedTypes,
+        methods,
+        conversions,
+        imports,
+        exports);
   }
 }
