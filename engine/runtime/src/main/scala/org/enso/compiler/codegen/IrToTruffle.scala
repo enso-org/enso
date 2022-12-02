@@ -84,6 +84,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -178,7 +179,11 @@ class IrToTruffle(
       imp.target match {
         case BindingsMap.ResolvedType(_, _) =>
         case ResolvedModule(module) =>
-          moduleScope.addImport(module.unsafeAsModule().getScope)
+          val mod = module.unsafeAsModule()
+          val scope: ModuleScope = imp.importDef.onlyNames
+            .map(only => mod.getScope(only.map(_.name).asJava))
+            .getOrElse(mod.getScope())
+          moduleScope.addImport(scope)
       }
     }
 

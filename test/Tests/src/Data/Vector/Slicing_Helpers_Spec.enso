@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Vector Slicing Helpers" <|
     Test.specify "should be able to sort correctly merge neighboring sequences" <|

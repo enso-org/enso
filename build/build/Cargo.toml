@@ -29,7 +29,7 @@ futures = "0.3.17"
 futures-util = "0.3.17"
 glob = "0.3.0"
 #graphql_client = "0.10.0"
-#handlebars = "4.2.1"
+handlebars = "4.3.5"
 heck = "0.4.0"
 humantime = "2.1.0"
 enso-build-base = { path = "../base" }

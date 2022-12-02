@@ -7,6 +7,7 @@ from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type Auto
     Value a

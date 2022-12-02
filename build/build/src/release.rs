@@ -1,5 +1,8 @@
+//! Support code for managing Enso releases.
+
 use crate::prelude::*;
 
+use crate::changelog::Changelog;
 use crate::context::BuildContext;
 use crate::paths::generated;
 use crate::paths::TargetTriple;
@@ -10,34 +13,119 @@ use crate::project::Gui;
 use crate::project::IsTarget;
 use crate::source::ExternalSource;
 use crate::source::FetchTargetJob;
+use crate::version;
+use crate::version::promote::Designation;
+use crate::version::Versions;
 
 use ide_ci::github;
-use ide_ci::github::release::ReleaseHandle;
 use ide_ci::io::web::handle_error_response;
 use ide_ci::programs::Docker;
 use ide_ci::programs::SevenZip;
 use octocrab::models::repos::Release;
+use octocrab::params::repos::Reference;
 use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
 
 
-pub fn release_from_env(context: &BuildContext) -> Result<ReleaseHandle> {
-    let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-    Ok(ReleaseHandle::new(&context.octocrab, context.remote_repo.clone(), release_id))
+/// Get the prefix of URL of the release's asset in GitHub.
+///
+/// By joining it with the asset name, we can get the URL of the asset.
+///
+/// ```
+/// # use enso_build::prelude::*;
+/// # use enso_build::release::download_asset_prefix;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let prefix = download_asset_prefix(&repo, &version);
+/// assert_eq!(prefix, "https://github.com/enso-org/enso/releases/download/2020.1.1");
+/// ```
+pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> String {
+    format!("https://github.com/{repo}/releases/download/{version}",)
 }
 
-pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
-    let versions = &context.triple.versions;
-    let commit = ide_ci::actions::env::GITHUB_SHA.get()?;
+/// Generate placeholders for the release notes.
+pub fn release_body_placeholders(
+    context: &BuildContext,
+) -> Result<BTreeMap<&'static str, serde_json::Value>> {
+    let mut ret = BTreeMap::new();
+    ret.insert(
+        "is_stable",
+        (!version::Kind::deduce(&context.triple.versions.version)?.is_prerelease()).into(),
+    );
+    ret.insert("version", context.triple.versions.version.to_string().into());
+    ret.insert("edition", context.triple.versions.edition_name().into());
+    ret.insert("repo", serde_json::to_value(&context.remote_repo)?);
+    ret.insert(
+        "download_prefix",
+        format!(
+            "https://github.com/{}/releases/download/{}",
+            context.remote_repo, context.triple.versions.version
+        )
+        .into(),
+    );
 
+    // Generate the release notes.
     let changelog_contents = ide_ci::fs::read_to_string(&context.repo_root.changelog_md)?;
-    let latest_changelog_body =
-        crate::changelog::Changelog(&changelog_contents).top_release_notes()?;
+    let latest_changelog_body = Changelog(&changelog_contents).top_release_notes()?;
+    ret.insert("changelog", latest_changelog_body.contents.into());
+    Ok(ret)
+}
+
+/// Generate the release notes.
+///
+/// They are generated from the template file `release-body.md` by replacing the placeholders.
+pub async fn generate_release_body(context: &BuildContext) -> Result<String> {
+    let available_placeholders = release_body_placeholders(context)?;
+
+    let handlebars = handlebars::Handlebars::new();
+    let template = include_str!("../release-body.md");
+    let body = handlebars.render_template(template, &available_placeholders)?;
+    Ok(body)
+}
+
+/// Create a new release draft on GitHub.
+///
+/// As it is a draft, it will not be visible to the public until it is published.
+#[context("Failed to draft a new release {} from the commit {}.", context.triple.versions.tag(),
+commit)]
+pub async fn draft_a_new_release(context: &BuildContext, commit: &str) -> Result<Release> {
+    let versions = &context.triple.versions;
+    let tag = versions.tag();
+
+    // We don't require being run from a git repository context, but if we do happen to be, then
+    // the local HEAD is required to be the same as the commit we read from environment.
+    if let Ok(git) = context.git().await {
+        let head_hash = git.head_hash().await?;
+        ensure!(
+            head_hash == commit,
+            "Local HEAD {} is not the same as the commit {} we were ordered to build.",
+            head_hash,
+            commit
+        );
+    }
+
+    // Make sure that this version has not been released yet.
+    let repo = &context.remote_repo_handle();
+    if let Ok(colliding_release) = repo.find_release_by_tag(&tag).await {
+        ensure!(colliding_release.draft, "Release {} has already been published.", tag);
+        warn!(
+            "Release {tag} has already been drafted: {}. Creating a new one.",
+            colliding_release.html_url
+        );
+    }
+
+    // Check if the remote repository contains a conflicting tag.
+    let colliding_remote_tag = repo.get_ref(&Reference::Tag(tag.clone())).await;
+    if let Ok(colliding_remote_tag) = colliding_remote_tag {
+        bail!("Tag {} already exists on remote as {:?}.", tag, colliding_remote_tag.object);
+    }
+
+    let is_prerelease = version::Kind::deduce(&versions.version)?.is_prerelease();
 
     debug!("Preparing release {} for commit {}", versions.version, commit);
-
     let release = context
         .remote_repo_handle()
         .repos()
@@ -45,8 +133,8 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
         .create(&versions.tag())
         .target_commitish(&commit)
         .name(&versions.pretty_name())
-        .body(&latest_changelog_body.contents)
-        .prerelease(true)
+        .body(&generate_release_body(context).await?)
+        .prerelease(is_prerelease)
         .draft(true)
         .send()
         .await?;
@@ -55,6 +143,9 @@ pub async fn draft_a_new_release(context: &BuildContext) -> Result<Release> {
     Ok(release)
 }
 
+/// Publish a previously drafted release and update edition file in the cloud.
+///
+/// Requires the release ID to be set in the environment variable `ENSO_RELEASE_ID`.
 pub async fn publish_release(context: &BuildContext) -> Result {
     let remote_repo = context.remote_repo_handle();
     let BuildContext { inner: project::Context { .. }, triple, .. } = context;
@@ -210,6 +301,7 @@ pub async fn put_files_gzipping(
     Ok(())
 }
 
+/// Deploy the built GUI (frontend) to the cloud.
 #[context("Failed to notify the cloud about GUI upload in version {}.", version)]
 pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     let body = json!({
@@ -217,7 +309,7 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
         "versionType": "Ide"
     });
     let response = reqwest::Client::new()
-        .post("https://nngmxi3zr4.execute-api.eu-west-1.amazonaws.com/versions")
+        .post("https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/versions")
         .header("x-enso-organization-id", "org-2BqGX0q2yCdONdmx3Om1MVZzmv3")
         .header("Content-Type", "application/json")
         .json(&body)
@@ -226,6 +318,28 @@ pub async fn notify_cloud_about_gui(version: &Version) -> Result<Response> {
     debug!("Response code from the cloud: {}.", response.status());
     handle_error_response(response).await
 }
+
+/// Generate a new version number of a requested kind.
+pub async fn resolve_version_designation(
+    context: &BuildContext,
+    designation: Designation,
+) -> Result<Version> {
+    let git = context.git().await?;
+    let version_set = version::promote::Releases::from_remote(&git).await?;
+    version_set.generate_version(designation)
+}
+
+/// Generate a new version and make it visible to CI.
+///
+/// Sets `ENSO_VERSION`, `ENSO_EDITION` and `ENSO_RELEASE_MODE` environment variables.
+#[instrument]
+pub async fn promote_release(context: &BuildContext, version_designation: Designation) -> Result {
+    let version = resolve_version_designation(context, version_designation).await?;
+    let versions = Versions::new(version);
+    versions.publish().await?;
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {

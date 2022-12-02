@@ -178,23 +178,29 @@ impl Workflow {
         key
     }
 
-    pub fn add<J: JobArchetype>(&mut self, os: OS) -> String {
-        self.add_customized::<J>(os, |_| {})
+    pub fn add(&mut self, os: OS, job: impl JobArchetype) -> String {
+        self.add_customized(os, job, |_| {})
     }
 
-    pub fn add_customized<J: JobArchetype>(&mut self, os: OS, f: impl FnOnce(&mut Job)) -> String {
-        let (key, mut job) = J::entry(os);
+    pub fn add_customized(
+        &mut self,
+        os: OS,
+        job: impl JobArchetype,
+        f: impl FnOnce(&mut Job),
+    ) -> String {
+        let (key, mut job) = job.entry(os);
         f(&mut job);
         self.jobs.insert(key.clone(), job);
         key
     }
 
-    pub fn add_dependent<J: JobArchetype>(
+    pub fn add_dependent(
         &mut self,
         os: OS,
+        job: impl JobArchetype,
         needed: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
-        let (key, mut job) = J::entry(os);
+        let (key, mut job) = job.entry(os);
         for needed in needed {
             self.expose_outputs(needed.as_ref(), &mut job);
         }
@@ -308,7 +314,7 @@ pub enum WorkflowDispatchInputType {
     Choice {
         #[serde(skip_serializing_if = "Option::is_none")]
         default: Option<String>,
-        choices: Vec<String>, // should be non-empty
+        options: Vec<String>, // should be non-empty
     },
     Boolean {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -355,12 +361,30 @@ impl WorkflowDispatchInput {
     pub fn new_string(
         description: impl Into<String>,
         required: bool,
-        default: impl Into<String>,
+        default: Option<impl Into<String>>,
     ) -> Self {
         Self {
-            r#type: WorkflowDispatchInputType::String { default: Some(default.into()) },
+            r#type: WorkflowDispatchInputType::String { default: default.map(Into::into) },
             ..Self::new(description, required)
         }
+    }
+
+    pub fn new_choice(
+        description: impl Into<String>,
+        required: bool,
+        options: impl IntoIterator<Item: Into<String>>,
+        default: Option<impl Into<String>>,
+    ) -> Result<Self> {
+        let options = options.into_iter().map(Into::into).collect_vec();
+        ensure!(!options.is_empty(), "The options for a choice input must not be empty.");
+        let default = default.map(Into::into);
+        if let Some(default) = &default {
+            ensure!(options.contains(default), "The default value  must be one of the options.");
+        }
+        Ok(Self {
+            r#type: WorkflowDispatchInputType::Choice { default, options },
+            ..Self::new(description, required)
+        })
     }
 
     pub fn new_boolean(description: impl Into<String>, required: bool, default: bool) -> Self {
@@ -394,8 +418,115 @@ impl WorkflowDispatch {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[serde(tag = "type")]
+pub enum WorkflowCallInputType {
+    String {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        default: Option<String>,
+    },
+    Boolean {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        default: Option<bool>,
+    },
+    Number {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        default: Option<f64>,
+    },
+}
+
+impl Default for WorkflowCallInputType {
+    fn default() -> Self {
+        Self::String { default: None }
+    }
+}
+
+impl TryFrom<WorkflowDispatchInputType> for WorkflowCallInputType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: WorkflowDispatchInputType) -> Result<Self> {
+        Ok(match value {
+            WorkflowDispatchInputType::String { default } => Self::String { default },
+            WorkflowDispatchInputType::Boolean { default } => Self::Boolean { default },
+            WorkflowDispatchInputType::Choice { default, .. } => Self::String { default },
+            WorkflowDispatchInputType::Environment { .. } =>
+                bail!("Environment is not supported for workflow call inputs!"),
+        })
+    }
+}
+
+/// Input to the workflow_call trigger.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct WorkflowCallInput {
+    /// A string description of the input parameter.
+    pub description: String,
+    /// A boolean to indicate whether the action requires the input parameter.
+    pub required:    bool,
+    /// A string representing the type of the input.
+    #[serde(flatten)]
+    pub r#type:      WorkflowCallInputType,
+}
+
+impl TryFrom<WorkflowDispatchInput> for WorkflowCallInput {
+    type Error = anyhow::Error;
+
+    fn try_from(value: WorkflowDispatchInput) -> Result<Self> {
+        Ok(Self {
+            description: value.description,
+            required:    value.required,
+            r#type:      value.r#type.try_into()?,
+        })
+    }
+}
+
+/// A workflow call output.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct WorkflowCallOutput {
+    /// A string description of the output parameter.
+    pub description: String,
+    /// Expression to defining the output parameter.
+    pub value:       String,
+}
+
+/// A workflow call secret parameter.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WorkflowCallSecret {
+    /// A string description of the secret parameter.
+    pub description: String,
+    /// A boolean specifying whether the secret must be supplied.
+    pub required:    bool,
+}
+
+/// A workflow call trigger.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct WorkflowCall {
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub inputs:  BTreeMap<String, WorkflowCallInput>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub outputs: BTreeMap<String, WorkflowCallOutput>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub secrets: BTreeMap<String, WorkflowCallSecret>,
+}
+
+impl TryFrom<WorkflowDispatch> for WorkflowCall {
+    type Error = anyhow::Error;
+
+    fn try_from(value: WorkflowDispatch) -> Result<Self> {
+        Ok(Self {
+            inputs: value
+                .inputs
+                .into_iter()
+                .map(|(k, v)| Result::Ok((k, v.try_into()?)))
+                .try_collect()?,
+            ..Default::default()
+        })
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub push:              Option<Push>,
@@ -405,6 +536,8 @@ pub struct Event {
     pub schedule:          Vec<Schedule>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow_dispatch: Option<WorkflowDispatch>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_call:     Option<WorkflowCall>,
 }
 
 impl Event {
@@ -433,6 +566,13 @@ impl Event {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum JobSecrets {
+    Inherit,
+    Map(BTreeMap<String, String>),
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Job {
@@ -441,7 +581,9 @@ pub struct Job {
     pub needs:           BTreeSet<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#if:            Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub runs_on:         Vec<RunnerLabel>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub steps:           Vec<Step>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub concurrency:     Option<Concurrency>,
@@ -453,6 +595,12 @@ pub struct Job {
     pub strategy:        Option<Strategy>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout_minutes: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uses:            Option<String>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub with:            BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secrets:         Option<JobSecrets>,
 }
 
 impl Job {
@@ -464,7 +612,12 @@ impl Job {
         let step = step_id.as_ref();
         let output = output_name.into();
         let value = format!("${{{{ steps.{step}.outputs.{output} }}}}");
-        self.outputs.insert(output, value);
+        if let Some(old_value) = self.outputs.insert(output.clone(), value) {
+            warn!(
+                "Overwriting output `{}` of job `{}` with value `{}`",
+                output, self.name, old_value
+            );
+        }
     }
 
     pub fn env(&mut self, name: impl Into<String>, value: impl Into<String>) {
@@ -478,7 +631,7 @@ impl Job {
     pub fn use_job_outputs(&mut self, job_id: impl Into<String>, job: &Job) {
         let job_id = job_id.into();
         for output_name in job.outputs.keys() {
-            let reference = format!("${{{{needs.{}.outputs.{}}}}}", job_id, output_name);
+            let reference = wrap_expression(format!("needs.{job_id}.outputs.{output_name}"));
             self.env.insert(output_name.into(), reference);
         }
         self.needs(job_id);
@@ -486,6 +639,15 @@ impl Job {
 
     pub fn needs(&mut self, job_id: impl Into<String>) {
         self.needs.insert(job_id.into());
+    }
+
+    pub fn with(&mut self, name: impl Into<String>, value: impl Into<String>) {
+        self.with.insert(name.into(), value.into());
+    }
+
+    pub fn with_with(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.with(name, value);
+        self
     }
 }
 
@@ -768,27 +930,27 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
 }
 
 pub trait JobArchetype {
-    fn id_key_base() -> String {
+    fn id_key_base(&self) -> String {
         std::any::type_name::<Self>().to_kebab_case()
     }
 
-    fn key(os: OS) -> String {
-        format!("{}-{}", Self::id_key_base(), os)
+    fn key(&self, os: OS) -> String {
+        format!("{}-{}", self.id_key_base(), os)
     }
 
-    fn job(os: OS) -> Job;
+    fn job(&self, os: OS) -> Job;
 
-    fn entry(os: OS) -> (String, Job) {
-        (Self::key(os), Self::job(os))
+    fn entry(&self, os: OS) -> (String, Job) {
+        (self.key(os), self.job(os))
     }
 
     // [Step ID] => [variable names]
-    fn outputs() -> BTreeMap<String, Vec<String>> {
+    fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         default()
     }
 
-    fn expose_outputs(job: &mut Job) {
-        for (step_id, outputs) in Self::outputs() {
+    fn expose_outputs(&self, job: &mut Job) {
+        for (step_id, outputs) in self.outputs() {
             for output in outputs {
                 job.expose_output(&step_id, output);
             }

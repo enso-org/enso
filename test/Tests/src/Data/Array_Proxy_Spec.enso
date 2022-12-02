@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type Proxy_Object
     Value length
