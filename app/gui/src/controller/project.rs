@@ -8,10 +8,12 @@ use crate::controller::ide::StatusNotificationPublisher;
 use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
+use engine_protocol::common::error::code;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
+use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
@@ -232,6 +234,35 @@ impl Project {
 }
 
 
+// === Project Snapshotting ===
+
+impl Project {
+    /// Saves a snapshot of the current state of the project to the VCS.
+    #[profile(Detail)]
+    pub fn save_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            let response = language_server.save_vcs(&root_path, &None).await;
+            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+                code: error_code, ..
+            })) = response
+            {
+                if error_code == code::FILE_NOT_FOUND {
+                    language_server.init_vcs(&root_path).await?;
+                    language_server.save_vcs(&root_path, &None).await?;
+                    return Ok(());
+                }
+            }
+            response?;
+            Ok(())
+        }
+    }
+}
+
+
 
 // =============
 // === Tests ===
@@ -242,6 +273,8 @@ mod tests {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use engine_protocol::language_server;
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn parse_supported_engine_version() {
@@ -284,5 +317,101 @@ mod tests {
         };
         expect_intact("main = 5");
         expect_intact(&format!("{}.main = 5", module_name));
+    }
+
+
+    // === Project Snapshotting ===
+
+    /// Structure that keeps track of whether the VCS is initialized and how many commits are made.
+    struct VcsMockState {
+        init:         Cell<bool>,
+        commit_count: Cell<usize>,
+    }
+
+    /// Mock project that updates a VcsMockState on relevant language server API calls.
+    fn setup_mock_project(vcs: Rc<VcsMockState>) -> model::Project {
+        let json_client = language_server::MockClient::default();
+        let project_root_id = crate::test::mock::data::ROOT_ID;
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let vcs_entry = language_server::response::SaveVcs {
+            commit_id: "commit_id".into(),
+            message:   "message".into(),
+        };
+        let vcs_err = RpcError::RemoteError(json_rpc::messages::Error {
+            code:    code::FILE_NOT_FOUND,
+            message: "VCS is not initialized.".into(),
+            data:    None,
+        });
+
+        let vcs_clone = vcs.clone();
+        let root_path_clone = root_path.clone();
+        json_client.expect.init_vcs(move |path| {
+            assert_eq!(path, &root_path_clone);
+            assert!(!vcs_clone.init.get(), "VCS is already initialized.");
+            vcs_clone.init.set(true);
+            Ok(())
+        });
+
+        let vcs_clone = vcs.clone();
+        let root_path_clone = root_path.clone();
+        let vcs_entry_clone = vcs_entry.clone();
+        json_client.expect.save_vcs(move |path, name| {
+            assert_eq!(path, &root_path_clone);
+            assert_eq!(name, &None);
+            if vcs_clone.init.get() {
+                let count = vcs_clone.commit_count.get();
+                vcs_clone.commit_count.set(count + 1);
+                Ok(vcs_entry_clone)
+            } else {
+                Err(vcs_err)
+            }
+        });
+
+        // Expect a 2nd call to `write_vcs` if the first failed because the VCS was not initialized.
+        json_client.expect.save_vcs(move |path, name| {
+            assert_eq!(path, &root_path);
+            assert_eq!(name, &None);
+            assert!(vcs.init.get(), "VCS is not initialized.");
+            let count = vcs.commit_count.get();
+            vcs.commit_count.set(count + 1);
+            Ok(vcs_entry)
+        });
+
+        let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
+        let mut project = model::project::MockAPI::new();
+        model::project::test::expect_root_id(&mut project, project_root_id);
+        project.expect_json_rpc().returning_st(move || ls.clone_ref());
+        Rc::new(project)
+    }
+
+    #[wasm_bindgen_test]
+    fn save_project_snapshot() {
+        TestWithLocalPoolExecutor::set_up().run_task(async move {
+            let vcs =
+                Rc::new(VcsMockState { init: Cell::new(true), commit_count: Cell::new(2) });
+            let project = setup_mock_project(vcs.clone());
+            let project_controller = controller::Project::new(project, default());
+            let result = project_controller.save_project_snapshot().await;
+            assert_matches!(result, Ok(()));
+            assert!(vcs.init.get(), "VCS is not initialized.");
+            assert_eq!(vcs.commit_count.get(), 3);
+        });
+    }
+
+    #[wasm_bindgen_test]
+    fn save_project_snapshot_vcs_not_init() {
+        TestWithLocalPoolExecutor::set_up().run_task(async move {
+            let vcs = Rc::new(VcsMockState {
+                init:         Cell::new(false),
+                commit_count: Cell::new(0),
+            });
+            let project = setup_mock_project(vcs.clone());
+            let project_controller = controller::Project::new(project, default());
+            let result = project_controller.save_project_snapshot().await;
+            assert_matches!(result, Ok(()));
+            assert!(vcs.init.get(), "VCS is not initialized.");
+            assert_eq!(vcs.commit_count.get(), 1);
+        });
     }
 }

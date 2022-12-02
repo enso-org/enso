@@ -6,7 +6,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.data.Vector;
@@ -42,7 +42,7 @@ public abstract class FromArrayBuiltinVectorNode extends Node {
   }
 
   private PanicException unsupportedException(Object arr) {
-    var ctx = Context.get(this);
+    var ctx = EnsoContext.get(this);
     var err = ctx.getBuiltins().error().makeTypeError("polyglot array", arr, "array");
     throw new PanicException(err, this);
   }

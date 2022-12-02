@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Common import Unsupported_File_Type
 
 from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
 
 spec =
     sample_xxx = enso_project.data / "sample.xxx"

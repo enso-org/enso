@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.pkg.Package;
@@ -17,7 +17,7 @@ public class EnsoProjectNode extends RootNode {
   private final Object result;
 
   public EnsoProjectNode(
-      TruffleLanguage<?> language, Context context, Optional<Package<TruffleFile>> pkgOpt) {
+      TruffleLanguage<?> language, EnsoContext context, Optional<Package<TruffleFile>> pkgOpt) {
     super(language);
     if (pkgOpt.isPresent()) {
       Package<TruffleFile> pkg = pkgOpt.get();

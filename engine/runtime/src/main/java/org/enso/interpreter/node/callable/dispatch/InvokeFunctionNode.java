@@ -13,7 +13,7 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.IndirectArgumentSorterNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -61,8 +61,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
-  Context getContext() {
-    return Context.get(this);
+  EnsoContext getContext() {
+    return EnsoContext.get(this);
   }
 
   @Specialization(

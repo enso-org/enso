@@ -45,12 +45,14 @@ Where `a.b.c-tag` is the version string, `a` is the major version, `b`, is the
 minor version, `c` is the patch version, and `tag` is additional metadata, the
 following hold:
 
+- major version `a` represents the year of the release, e.g. `2020.1.1` is the
+  first release of 2020.
 - Breaking changes to language behaviour or the public API will result in a
-  major version increase.
+  minor version increase.
 - Addition of functionality in a backwards-compatible manner will result in a
   minor version increase.
 - Backwards-compatible bug fixes will result in a patch version increase.
-- The tag will indicate pre-release or beta versions, and will increase when any
+- The tag will indicate pre-release versions, and will increase when any
   pre-release change is made. These are not intended to be stable.
 
 ### Launcher Versioning
@@ -58,162 +60,49 @@ following hold:
 The launcher is released alongside Enso releases, so the launcher version is
 tied to the Enso version that it is released with.
 
-## Release Branches
-
-A release branch in the Enso repository is a branch prefixed with `release/`.
-Release branches obey the following rules:
-
-- One release branch exists per major version, and is named `release/n.x`, where
-  `n` is the major version, and the rest is literal.
-- A release branch must contain _tags_ corresponding to released versions of
-  Enso. Once a release has been made, no further changes may be made to that
-  release.
-- A tagged release must contain a `RELEASES.md` file that describes the changes
-  contained in that release.
-
-It should be noted that general development still takes place on the `main`
-branch of the repository.
-
 ## Release Workflow
+
+Enso does not use release branches, but instead uses tags to mark releases. The
+same commit may be tagged multiple times, once for each release that it is a
+part of.
 
 Cutting a release for Enso proceeds as follows:
 
-1. If no release branch exists for the current major version, one should be
-   created.
-2. Create a branch called `wip/<initials/release-bump`. On this branch, ensure
-   that the release notes are up-to-date in `RELEASES.md` (follow the existing
-   format), and that the new version number and edition name have been set in
-   `build.sbt`. These new versions usually involve removing `-SNAPSHOT` from the
-   versions. This version and edition name should _not_ contain `SNAPSHOT`.
-3. Open a PR for this branch into `main`.
-4. Once the changes have been reviewed, merge the PR into main (getting commit
-   hash `xxxxxxx`). The message should be `Prepare for the $version release` as
-   this message has semantic meaning (it's used in the nightly tooling). Just
-   before merging, remember to notify the team on Discord to suppress any other
-   merges to the `main` branch until the next step (bumping versions) is
-   completed.
-5. Immediately push a commit to `main` that updates the version and edition in
-   `build.sbt` to the new snapshot version. If unclear, bump the patch version
-   by one and append `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The
-   edition name should have the number after the dot increased and `-SNAPSHOT`
-   appended, so that `2021.3` becomes `2021.4-SNAPSHOT`. The only exception is
-   when making the first release in a new year, where the first number should be
-   bumped to the next year and the second number should be set to 1, for example
-   `2022.1`. The message should be `Bump the snapshot version`.
-6. Find the commit hash of the last "Bump the snapshot version" commit. Let's
-   say this is `yyyyyyy`.
-7. Run a `rebase --onto` the release branch from the `yyyyyyy` commit to the
-   `xxxxxxx` commit. For example:
+1. Ensure that the release notes are up to date and that the top header refers
+   to the version that is being released.
+2. Invoke the "Promote Release" workflow, either by:
 
-```
-git rebase --onto origin/release/0.x yyyyyyy~1 xxxxxxx
-```
+   - Triggering it using
+     [web interface](https://github.com/enso-org/enso/actions/workflows/promote.yml);
+   - Triggering it using [GitHub CLI](https://cli.github.com/). The following
+     command should be issued from the root of the repository:
+     ```bash
+     gh workflow run promote.yml -f designator=<designator>
+     ```
+     where `<designator>` is denotes what kind of release is being made. It can
+     be one of:
+     - `stable` - a stable release (bump to minor version);
+     - `patch` - a patch release (stable release with a bump to patch version);
+     - `rc` - a release candidate for the next stable release;
+     - `nightly` - a nightly release.
 
-8.  This will put you into a "detached HEAD" state at commit `zzzzzzz`, so you
-    need to make a new branch: `git branch release-update zzzzzzz`
-9.  This new branch is a fast-forward merge away from the release branch. Check
-    out the release branch and then fast-forward merge `release-update` into it.
-    For example:
+   The `promote` workflow acts in the following steps:
 
-```
-git checkout release/0.x
-git merge --ff-only release-update
-```
+   - generate a new version string for the release;
+   - create a release draft on GitHub;
+   - build and upload assets for the release on all platforms;
+   - publish the release on GitHub.
 
-10. As long as the fast-forward proceeds cleanly, you can push the updated
-    release branch to the origin.
-11. Create a tag for the commit at the HEAD of the release branch. It should be
-    named as above. As the tag is signed, it must contain a message. The message
-    should be `Enso <version>`. For example:
+   The final step also tags the released commit with the version string.
 
-```
-git tag --sign enso-0.2.11
-```
-
-12. Push the tag to the remote (using `git push --follow-tags`). This will start
-    the release build automatically.
-13. CI will create a draft release for this tag, as well as build and upload the
-    appropriate artefacts. **Do not** create a release for this tag manually.
-14. The release notes for the version being released should be copied from the
-    new section in `RELEASES.md` into the GitHub release description with the
-    line breaks removed.
-15. The title of the release should be `Enso Engine <version>` (e.g.
-    `Enso Engine 0.2.11`).
-16. Once verification has been performed, the release can be published. It
-    should _not_ be a pre-releases as we reserve these for nightly builds.
-
-### Breaking Release Workflow
-
-If, however, the engine needs to release but the `HEAD` of `main` is not in a
-compatible state with the IDE, the process has to differ a little bit. Please
-note that the instructions here are more vague than the above, as exactly what
-is required may vary based on the situation.
-
-Consider a scenario where there are four new commits since the last release:
-`wwwwwww`, `xxxxxxx`, `yyyyyyy`, `zzzzzzz`. The commit `yyyyyyy` contains
-breaking changes that are _not yet integrated with the IDE_. Releasing a package
-containing that commit (and those that depend on it) would break the IDE, but we
-nevertheless want to release as much as possible:
-
-1.  If no release branch exists for the current major version, one should be
-    created.
-2.  Rebase the commits that are wanted onto the release branch:
-
-```
-git rebase --onto origin/release/0.x wwwwwww~1 xxxxxxx
-```
-
-3.  This will put you into a "detached HEAD" state at commit `aaaaaaa`, so you
-    need to make a new branch: `git branch release-update aaaaaaa`, whose `HEAD`
-    commit is the same as `xxxxxxx`.
-4.  This new branch is a fast-forward merge away from the release branch. Check
-    out the release branch and then fast-forward merge `release-update` into it.
-    For example:
-
-```
-git checkout release/0.x
-git merge --ff-only release-update
-```
-
-5.  On the release branch, ensure that the release notes are up to date in
-    `RELEASES.md` (follow the existing format), and that the new version number
-    and edition name have been set in `build.sbt`. This version and edition name
-    should _not_ contain `SNAPSHOT`.
-6.  Once this is done, create a tag for the commit at the HEAD of the release
-    branch. It should be named as above. The tag message should be
-    `Enso <version>`. For example:
-
-```
-git tag --sign enso-0.2.11
-```
-
-7.  Push the tag to the remote. This will start the release build.
-8.  CI will create a draft release for this tag, as well as build and upload the
-    appropriate artefacts. **Do not** create a release for this tag manually.
-9.  The release notes for the version being released should be copied from the
-    new section in `RELEASES.md` into the GitHub release description with the
-    line breaks removed.
-10. The title of the release should be `Enso Engine <version>` (e.g.
-    `Enso Engine 0.2.11`).
-11. Check out the main branch, and then synchronise the changes to `RELEASES.md`
-    on the release branch with the changes on `main`.
-12. In the same commit, Update the build version number in `build.sbt` to the
-    new snapshot version. If unclear, bump the patch version by one and append
-    `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The edition name
-    should have the number after the dot increased and `-SNAPSHOT` appended, so
-    that `2021.3` becomes `2021.4-SNAPSHOT`. The message should be
-    `Bump the snapshot version`.
-13. Push this commit into `origin/main`, or merge via PR if unable to directly
-    push.
-
-It is recommended that you instigate a freeze on merges to `main` whilst
-performing this process.
+3. If the release was stable or patch, immediately update the
+   [changelog](../CHANGELOG.md) by adding a new header for the next release, and
+   marking the released one with the version generated.
 
 ### Tag Naming
 
-Tags for releases are named as follows `enso-version`, where `version` is the
-semver string (see [versioning](#versioning)) representing the version being
-released.
+Tags for releases are named as follows `version`, where `version` is the semver
+string (see [versioning](#versioning)) representing the version being released.
 
 ### Manifest Files
 
@@ -378,88 +267,9 @@ that will persist the broken mark to S3 is not triggered for release drafts.
 > **When marking the release as broken, you should make sure that the workflow
 > persisting the broken mark to Se has succeeded and re-run it if necessary.**
 
-### Release Notes
-
-Release notes should contain a summary of the changes made between the last
-release and the current release. They should follow the template given below,
-and are contained in the `RELEASES.md` file in the repository root.
-
-```md
-# Enso x.y.z (YYYY-MM-DD)
-
-## Language
-
-- A list of language-level changes.
-
-## Interpreter/Runtime
-
-- A list of changes to the Enso interpreter.
-
-## Type System
-
-- A list of type-system changes.
-
-## Tooling
-
-- A list of changes to the Enso language tooling.
-
-## Libraries
-
-- A list of changes to the Enso core libraries.
-
-## Stabilised Features
-
-- A list of stabilised APIs and/or features.
-
-## Misc
-
-- A list of miscellaneous changes.
-
-## Internal Only
-
-- A list of changes that do not have user-facing impact, but represent
-  significant improvements to the internals of Enso and related tools.
-```
-
-If there are no changes for a section, the section may be removed.
-
-The releases file is an ongoing record of changes, and may diverge between
-`main` and the various release branches.
-
 ## Version Support
 
 We aim to support a given major version for some period of time after the
 release of the next major version. For a detailed breakdown of the major
 versions that are currently supported, please see the [security](./security.md)
 document.
-
-## Working on the Current Release
-
-When working on the current release, development should take place against the
-`main` branch. When it is time to cut a release, the new commits on the main
-branch are cherry-picked onto the current release branch. From there, the
-release proceeds as described in [release workflow](#release-workflow) above.
-
-## Backporting Fixes
-
-Supporting a major version for some time after the release of the next major
-version will sometimes require backporting a fix to the previous major version
-from the current version or from `main`.
-
-Backporting should only be used for applying _fixes_, not the addition of new
-features.
-
-The process for performing such a backport is as follows:
-
-1.  Create a new branch called `backport/version/fix-name`, where `version`
-    matches the version string of the corresponding release branch. This branch
-    should branch off the corresponding release branch.
-2.  Back-port the fix to the newly created `backport` branch. This can be done
-    by:
-    - Cherry-picking the commit and performing fixups (preferred).
-    - Re-implementing the fix manually (if cherry-picking will not work due to
-      progression of the codebase).
-3.  Submit your `backport/version/fix-name` branch for review as a pull-request
-    into the `release/version` branch.
-4.  Once the PR has passed CI and been approved by the appropriate reviewers, it
-    can be merged into the release branch.

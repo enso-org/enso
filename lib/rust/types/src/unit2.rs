@@ -39,6 +39,7 @@ mod ops {
 /// Unchecked unit conversion. You should use it only for unit conversion definition, never in
 /// unit-usage code.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait UncheckedFrom<T> {
     fn unchecked_from(t: T) -> Self;
 }
@@ -58,6 +59,7 @@ impl<V, R> const UncheckedFrom<R> for UnitData<V, R> {
 
 /// Unchecked unit conversion. See [`UncheckedFrom`] to learn more.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait UncheckedInto<T> {
     fn unchecked_into(self) -> T;
 }
@@ -326,11 +328,13 @@ impl<V, R> IntoUncheckedRawRange for ops::RangeFrom<UnitData<V, R>> {
 macro_rules! gen_ops {
     ($rev_trait:ident, $trait:ident, $op:ident) => {
         #[allow(missing_docs)]
+        #[const_trait]
         pub trait $trait<T> {
             type Output;
         }
 
         #[allow(missing_docs)]
+        #[const_trait]
         pub trait $rev_trait<T> {
             type Output;
         }
@@ -693,6 +697,7 @@ define_ops![
 
 /// Methods of the [`Duration`] unit.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait DurationOps {
     fn ms(t: f32) -> Duration;
     fn s(t: f32) -> Duration;
@@ -734,6 +739,7 @@ impl const DurationOps for Duration {
 
 /// Methods of the [`Duration`] unit as extensions for numeric types.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait DurationNumberOps {
     fn ms(self) -> Duration;
     fn s(self) -> Duration;

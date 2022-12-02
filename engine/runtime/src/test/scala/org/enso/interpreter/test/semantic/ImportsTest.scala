@@ -68,7 +68,10 @@ class ImportsTest extends PackageTest {
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
       .head should include("The name `Atom` could not be found.")
+  }
 
+  "Importing everything from the module" should "should not bring module into the scope when resolving names" in {
+    evalTestProject("Test_Import_Case") shouldEqual 0
   }
 
   "Exports system" should "detect cycles" in {
@@ -85,6 +88,20 @@ class ImportsTest extends PackageTest {
     outLines(1) shouldEqual "(Mk_C 52)"
     outLines(2) shouldEqual "20"
     outLines(3) shouldEqual "(Mk_C 10)"
+  }
+
+  "Importing module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_1") shouldEqual 42
+  }
+
+  "The unqualified import of a module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_2") shouldEqual 42
+  }
+
+  "Importing module's types" should "not bring extension methods into the scope " in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Extension_Methods_Failure"
+    ) should have message "Method `foo` of 1 (Integer) could not be found."
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {

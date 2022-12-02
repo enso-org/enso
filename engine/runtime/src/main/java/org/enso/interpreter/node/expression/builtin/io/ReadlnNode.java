@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 
 import java.io.IOException;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -26,7 +26,7 @@ public abstract class ReadlnNode extends Node {
   @TruffleBoundary
   Text doRead() {
     try {
-      return Text.create(Context.get(this).getInReader().readLine());
+      return Text.create(EnsoContext.get(this).getInReader().readLine());
     } catch (IOException e) {
       throw new PanicException("Empty input stream", this);
     }

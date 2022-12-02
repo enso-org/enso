@@ -204,7 +204,7 @@ pub mod new {
         }
     }
 
-    impl<Value, Borrowed: ?Sized> const RawVariable for SimpleVariable<Value, Borrowed> {
+    impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
         fn name(&self) -> &str {
             self.name
         }
@@ -220,6 +220,12 @@ pub mod new {
         }
         fn generate(&self, value: &Self::Borrowed) -> Result<String> {
             Ok(Borrowed::to_string(value))
+        }
+    }
+
+    impl<Value, Borrowed: ?Sized> Display for SimpleVariable<Value, Borrowed> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.name)
         }
     }
 

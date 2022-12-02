@@ -7,7 +7,7 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
@@ -43,7 +43,7 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Long);
     frame.setLong(frameSlotIdx, value);
 
-    return Context.get(this).getNothing();
+    return EnsoContext.get(this).getNothing();
   }
 
   /**
@@ -58,7 +58,7 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
     frame.setObject(frameSlotIdx, value);
 
-    return Context.get(this).getNothing();
+    return EnsoContext.get(this).getNothing();
   }
 
   boolean isLongOrIllegal(VirtualFrame frame) {
