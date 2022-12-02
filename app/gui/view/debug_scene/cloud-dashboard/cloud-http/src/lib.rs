@@ -146,7 +146,10 @@ impl Client {
 ///
 /// Use this function to connect to the Cloud Dashboard API when running a staging or testing
 /// deployment.
-pub fn base_url_for_api_gateway(api_gateway_id: ApiGatewayId, aws_region: AwsRegion) -> Result<reqwest::Url, Error> {
+pub fn base_url_for_api_gateway(
+    api_gateway_id: ApiGatewayId,
+    aws_region: AwsRegion,
+) -> Result<reqwest::Url, Error> {
     let url = format!("https://{api_gateway_id}.execute-api.{aws_region}.amazonaws.com").parse()?;
     Ok(url)
 }
@@ -163,7 +166,7 @@ async fn handle_error_response(response: reqwest::Response) -> Result<reqwest::R
             Ok(body) => {
                 let e = format!("Error \"{e:?}\" with error message body: {body}");
                 Err(e)?
-            },
+            }
             Err(body_error) => {
                 let e = format!("Failed to get error response body: \"{e:?}\"; {body_error}");
                 Err(e)?

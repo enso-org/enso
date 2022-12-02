@@ -8,8 +8,8 @@
 //!
 //! [`Project`]: ::enso_cloud_view::project::Project
 
-use ensogl::prelude::*;
 use enso_cloud_view::prelude::*;
+use ensogl::prelude::*;
 
 use enso_cloud_view as view;
 use ensogl::application;
