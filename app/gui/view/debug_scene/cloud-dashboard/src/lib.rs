@@ -46,7 +46,7 @@ use ensogl_hardcoded_theme as theme;
 
 
 
-mod projects_table;
+pub mod projects_table;
 
 
 
