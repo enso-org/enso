@@ -25,7 +25,7 @@ from project.Data.Boolean import Boolean, True, False
    Arguments:
    - value: The value of the atom in the meta representation.
 type Atom
-    Atom_Data value
+    Value value
 
     ## UNSTABLE
        ADVANCED
@@ -49,7 +49,7 @@ type Atom
    Arguments:
    - value: The value of the constructor in the meta representation.
 type Constructor
-    Constructor_Data value
+    Value value
 
     ## UNSTABLE
        ADVANCED
@@ -84,7 +84,7 @@ type Constructor
    Arguments:
    - value: The value of the primitive object in the meta representation.
 type Primitive
-    Primitive_Data value
+    Value value
 
 ## UNSTABLE
    ADVANCED
@@ -94,7 +94,7 @@ type Primitive
    Arguments:
    - value: The value of the unresolved symbol in the meta representation.
 type Unresolved_Symbol
-    Unresolved_Symbol_Data value
+    Value value
 
     ## UNSTABLE
        ADVANCED
@@ -130,7 +130,7 @@ type Unresolved_Symbol
    Arguments:
    - value: The payload of the error.
 type Error
-    Error_Data value
+    Value value
 
 ## UNSTABLE
    ADVANCED
@@ -140,7 +140,7 @@ type Error
    Arguments:
    - value: The polyglot value contained in the meta representation.
 type Polyglot
-    Polyglot_Data value
+    Value value
 
     ## UNSTABLE
        ADVANCED
@@ -273,12 +273,12 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Atom | Constructor | Primitive
-meta value = if is_atom value then Atom.Atom_Data value else
-    if is_atom_constructor value then Constructor.Constructor_Data value else
-        if is_polyglot value then Polyglot.Polyglot_Data value else
-            if is_unresolved_symbol value then Unresolved_Symbol.Unresolved_Symbol_Data value else
-                if is_error value then Error.Error_Data value.catch else
-                    Primitive.Primitive_Data value
+meta value = if is_atom value then Atom.Value value else
+    if is_atom_constructor value then Constructor.Value value else
+        if is_polyglot value then Polyglot.Value value else
+            if is_unresolved_symbol value then Unresolved_Symbol.Value value else
+                if is_error value then Error.Value value.catch else
+                    Primitive.Value value
 
 ## UNSTABLE
    ADVANCED
