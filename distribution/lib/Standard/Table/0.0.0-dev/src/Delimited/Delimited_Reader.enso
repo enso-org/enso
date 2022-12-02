@@ -1,7 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common as Errors
 import Standard.Base.System.File.Input_Stream
-    from Standard.Base.System.File import wrap_io_exception
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -231,7 +229,7 @@ handle_parsing_exception =
 
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
-    Error.throw (wrap_io_exception related_file java_exception)
+    Error.throw (File_Error.wrap_io_exception related_file java_exception)
 
 ## PRIVATE
 default_max_columns = 4096
