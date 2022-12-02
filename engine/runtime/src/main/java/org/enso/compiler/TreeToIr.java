@@ -1,5 +1,6 @@
 package org.enso.compiler;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
@@ -87,6 +88,76 @@ final class TreeToIr {
     */
   IR.Module translate(Tree ast) {
     return translateModule(ast);
+  }
+
+  /**
+   * Translates an inline program expression represented in the parser {@link Tree}
+   * to the compiler's {@link IR} representation.
+   *
+   * Inline expressions must <b>only</b> be expressions, and may not contain any
+   * type of definition.
+   *
+   * @param ast The tree representing the expression to translate.
+   * @return The {@link IR} representation of the given ast if it is valid, otherwise
+   *  {@link Option#empty()}.
+   */
+  Option<IR.Expression> translateInline(Tree ast) {
+    return switch(ast) {
+      case Tree.BodyBlock b -> {
+        List<IR.Expression> expressions = nil();
+        java.util.List<IR.IdentifiedLocation> locations = new ArrayList<>();
+        for (Line statement : b.getStatements()) {
+          Tree exprTree = statement.getExpression();
+          IR.Expression expr = switch (exprTree) {
+            case Tree.Export x -> null;
+            case Tree.Import x -> null;
+            case Tree.Invalid x -> null;
+            case null -> null;
+            default -> translateExpression(exprTree);
+          };
+          if (expr != null) {
+            expressions = cons(expr, expressions);
+            if (expr.location().isDefined()) {
+              locations.add(expr.location().get());
+            }
+          }
+        }
+        if (expressions.size() == 0) {
+          yield Option.empty();
+        } else if (expressions.size() == 1) {
+          yield Option.apply(expressions.apply(0));
+        } else {
+          Option<IdentifiedLocation> combinedLocation;
+          if (locations.isEmpty()) {
+            combinedLocation = Option.empty();
+          } else {
+            combinedLocation = Option.apply(
+                new IdentifiedLocation(
+                    new Location(
+                      locations.get(1).start(),
+                      locations.get(locations.size() - 1).end()
+                    ),
+                    Option.empty()
+                )
+            );
+          }
+
+          yield Option.apply(
+              new IR$Expression$Block(
+                  expressions,
+                  expressions.last(),
+                  combinedLocation,
+                  false,
+                  null,
+                  null
+              )
+          );
+        }
+      }
+      default -> {
+        throw new IllegalStateException();
+      }
+    };
   }
 
   /** Translate a top-level Enso module into [[IR]].

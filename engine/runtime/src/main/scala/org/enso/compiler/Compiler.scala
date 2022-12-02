@@ -549,9 +549,9 @@ class Compiler(
         "<interactive_source>"
       )
       .build()
-    val parsed: AST = parse(source)
+    val tree  = ensoCompiler.parse(source)
 
-    generateIRInline(parsed).flatMap { ir =>
+    ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
       Some(truffleCodegenInline(compilerOutput, source, newContext))
