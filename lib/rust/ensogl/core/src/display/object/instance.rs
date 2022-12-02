@@ -240,6 +240,99 @@ impl Display for InstanceDef {
 
 
 
+// ====================
+// === WeakInstance ===
+// ====================
+
+/// Weak display object instance. Will be dropped if no all strong instances are dropped.
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
+pub struct WeakInstance {
+    weak: Weak<Model>,
+}
+
+impl WeakInstance {
+    /// Upgrade the weak instance to strong one if it was not yet dropped.
+    pub fn upgrade(&self) -> Option<Instance> {
+        self.weak.upgrade().map(|rc| InstanceDef { rc }.into())
+    }
+
+    /// Checks whether this weak instance still exists (its strong instance was not dropped yet).
+    pub fn exists(&self) -> bool {
+        self.upgrade().is_some()
+    }
+}
+
+impl InstanceDef {
+    /// Create a new weak pointer to this display object instance.
+    pub fn downgrade(&self) -> WeakInstance {
+        let weak = Rc::downgrade(&self.rc);
+        WeakInstance { weak }
+    }
+}
+
+impl PartialEq for WeakInstance {
+    fn eq(&self, other: &Self) -> bool {
+        if self.exists() && other.exists() {
+            self.weak.ptr_eq(&other.weak)
+        } else {
+            false
+        }
+    }
+}
+
+
+
+// ============
+// === Root ===
+// ============
+
+/// A root element of a display object hierarchy. Unlike [`Instance`], [`Root`] is visible by
+/// default and has explicit methods to hide and show it.
+#[derive(Clone, CloneRef, Debug, Deref)]
+#[repr(transparent)]
+pub struct Root {
+    def: Instance,
+}
+
+impl Root {
+    /// Constructor.
+    pub fn new() -> Self {
+        let def = default();
+        Self { def }.init()
+    }
+
+    fn init(self) -> Self {
+        self.show();
+        self
+    }
+
+    /// Hide the display object.
+    pub fn hide(&self) {
+        self.def.hide()
+    }
+
+    /// Show the display object.
+    pub fn show(&self) {
+        self.def.show()
+    }
+}
+
+impl Default for Root {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Object for Root {
+    fn display_object(&self) -> &Instance {
+        &self.def
+    }
+}
+
+
+
 // =================================================================================================
 // === Hierarchy ===================================================================================
 // =================================================================================================
@@ -927,6 +1020,10 @@ generate_transformation_getters_and_setters!(position, scale, rotation);
 
 
 
+// =================================================================================================
+// === Event System ================================================================================
+// =================================================================================================
+
 // ======================
 // === Events & Focus ===
 // ======================
@@ -1097,7 +1194,26 @@ impl InstanceDef {
     }
 }
 
+impl Debug for InstanceDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DisplayObject")
+            .field("position", &self.position().as_slice())
+            .field("size", &self.layout.size.get().as_slice())
+            .finish()
+    }
+}
 
+impl Debug for Instance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.def, f)
+    }
+}
+
+
+
+// =================================================================================================
+// === Layout and Size =============================================================================
+// =================================================================================================
 
 // ======================================
 // === 2-dimensional Alignment Macros ===
@@ -1541,24 +1657,9 @@ macro_rules! gen_layout_object_builder_alignment_internal {
     }}
 }
 
-
 with_display_object_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment_internal);
 
 
-impl Debug for InstanceDef {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DisplayObject")
-            .field("position", &self.position().as_slice())
-            .field("size", &self.layout.size.get().as_slice())
-            .finish()
-    }
-}
-
-impl Debug for Instance {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.def, f)
-    }
-}
 
 // ===================
 // === LayoutModel ===
@@ -1673,22 +1774,19 @@ impl Model {
         }
         match self.layout.auto.get() {
             None => {
-                let children = self.children();
-                if !children.is_empty() {
-                    let mut max_size: Vector2<f32> = default();
-                    for child in children {
-                        child.refresh_layout();
-                        let child_size = child.size() + child.position().xy();
-                        max_size.x = max_size.x.max(child_size.x);
-                        max_size.y = max_size.y.max(child_size.y);
-                    }
-                    let resizing = self.layout.resizing.get();
-                    if resizing.x.is_hug() {
-                        self.layout.size.set_x(max_size.x);
-                    }
-                    if resizing.y.is_hug() {
-                        self.layout.size.set_y(max_size.y);
-                    }
+                let mut max_size: Vector2<f32> = default();
+                for child in self.children() {
+                    child.refresh_layout();
+                    let child_size = child.size() + child.position().xy();
+                    max_size.x = max_size.x.max(child_size.x);
+                    max_size.y = max_size.y.max(child_size.y);
+                }
+                let resizing = self.layout.resizing.get();
+                if resizing.x.is_hug() {
+                    self.layout.size.set_x(max_size.x);
+                }
+                if resizing.y.is_hug() {
+                    self.layout.size.set_y(max_size.y);
                 }
             }
             Some(AutoLayout::Horizontal(opts)) =>
@@ -1916,98 +2014,9 @@ impl Model {
 
 
 
-// ====================
-// === WeakInstance ===
-// ====================
-
-/// Weak display object instance. Will be dropped if no all strong instances are dropped.
-#[derive(Derivative)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
-pub struct WeakInstance {
-    weak: Weak<Model>,
-}
-
-impl WeakInstance {
-    /// Upgrade the weak instance to strong one if it was not yet dropped.
-    pub fn upgrade(&self) -> Option<Instance> {
-        self.weak.upgrade().map(|rc| InstanceDef { rc }.into())
-    }
-
-    /// Checks whether this weak instance still exists (its strong instance was not dropped yet).
-    pub fn exists(&self) -> bool {
-        self.upgrade().is_some()
-    }
-}
-
-impl InstanceDef {
-    /// Create a new weak pointer to this display object instance.
-    pub fn downgrade(&self) -> WeakInstance {
-        let weak = Rc::downgrade(&self.rc);
-        WeakInstance { weak }
-    }
-}
-
-impl PartialEq for WeakInstance {
-    fn eq(&self, other: &Self) -> bool {
-        if self.exists() && other.exists() {
-            self.weak.ptr_eq(&other.weak)
-        } else {
-            false
-        }
-    }
-}
-
-
-
-// ============
-// === Root ===
-// ============
-
-/// A root element of a display object hierarchy. Unlike [`Instance`], [`Root`] is visible by
-/// default and has explicit methods to hide and show it.
-#[derive(Clone, CloneRef, Debug, Deref)]
-#[repr(transparent)]
-pub struct Root {
-    def: Instance,
-}
-
-impl Root {
-    /// Constructor.
-    pub fn new() -> Self {
-        let def = default();
-        Self { def }.init()
-    }
-
-    fn init(self) -> Self {
-        self.show();
-        self
-    }
-
-    /// Hide the display object.
-    pub fn hide(&self) {
-        self.def.hide()
-    }
-
-    /// Show the display object.
-    pub fn show(&self) {
-        self.def.show()
-    }
-}
-
-impl Default for Root {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Object for Root {
-    fn display_object(&self) -> &Instance {
-        &self.def
-    }
-}
-
-
+// =================================================================================================
+// === Public API ==================================================================================
+// =================================================================================================
 
 // ==============
 // === Object ===
