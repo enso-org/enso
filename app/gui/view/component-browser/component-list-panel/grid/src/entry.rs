@@ -446,7 +446,7 @@ impl grid_view::Entry for View {
             eval layout_data ((((kind, style, grid_style), entry_sz))
                 data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ layout_data.map(|((_, _, grid_style), entry_sz)| {
+            out.contour <+ all_with(&grid_style, &input.set_size, |grid_style, entry_sz| {
                 Data::contour(grid_style, *entry_sz)
             });
             out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
