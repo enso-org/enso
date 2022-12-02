@@ -222,13 +222,11 @@ impl Model {
     pub fn init(self, style: StyleWatch) -> Self {
         let background_color = style.get_color(theme::background::color);
         let track_color = style.get_color(theme::track::color);
-        if let Some(display::style::Data::Text(font)) = style.get(theme::text::font) {
-            self.value_text_left.set_font(&font);
-            self.value_text_dot.set_font(&font);
-            self.value_text_right.set_font(&font);
-            self.value_text_edit.set_font(&font);
-            self.label.set_font(&font);
-        }
+        self.value_text_left.set_font(text::font::DEFAULT_FONT);
+        self.value_text_dot.set_font(text::font::DEFAULT_FONT);
+        self.value_text_right.set_font(text::font::DEFAULT_FONT);
+        self.value_text_edit.set_font(text::font::DEFAULT_FONT);
+        self.label.set_font(text::font::DEFAULT_FONT);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
         self.thumb.color.set(track_color.into());
