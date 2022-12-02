@@ -273,18 +273,18 @@ impl Model {
 
     fn model_for_entry(&self, position: Position) -> Option<(Position, EntryModel)> {
         let Position { row, .. } = position;
-        let entry_model;
         // If the row is the first one in the table, we're trying to render a header so we use that
         // model instead.
         if row == 0 {
-            entry_model = self.header_entry_model(position);
+            let entry_model = self.header_entry_model(position);
+            Some((position, entry_model))
         } else {
             let idx = self.project_index_for_entry(position)?;
             let column = column_for_entry(position)?;
             let project = &self.projects.raw.borrow()[idx];
-            entry_model = project_entry_model(project, column);
+            let entry_model = project_entry_model(project, column);
+            Some((position, entry_model))
         }
-        Some((position, entry_model))
     }
 
     /// Returns the index of the [`Project`] in the list of [`Project`]s that corresponds to the
