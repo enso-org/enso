@@ -622,7 +622,8 @@ impl View {
 fn populate_table_with_data(input: api::public::Input) -> Result<(), Error> {
     let api_gateway_id = enso_cloud_http::ApiGatewayId(API_GATEWAY_ID.to_string());
     let token = enso_cloud_http::AccessToken::new(TOKEN)?;
-    let client = enso_cloud_http::Client::new(api_gateway_id, AWS_REGION, token)?;
+    let base_url = enso_cloud_http::base_url_for_api_gateway(api_gateway_id, AWS_REGION)?;
+    let client = enso_cloud_http::Client::new(base_url, token)?;
     get_projects(client, input);
     Ok(())
 }

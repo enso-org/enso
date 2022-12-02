@@ -91,8 +91,7 @@ impl Client {
     ///
     /// For more info about how the arguments are used, see the documentation of the [`Client`]
     /// struct and its fields, or the type documentation for the arguments.
-    pub fn new(api_gateway_id: ApiGatewayId, aws_region: AwsRegion, token: AccessToken) -> Result<Self, Error> {
-        let base_url = format!("https://{api_gateway_id}.execute-api.{aws_region}.amazonaws.com").parse()?;
+    pub fn new(base_url: reqwest::Url, token: AccessToken) -> Result<Self, Error> {
         let http = reqwest::Client::new();
         Ok(Self { base_url, token, http })
     }
@@ -140,6 +139,16 @@ impl Client {
 
         Ok(response)
     }
+}
+
+/// Creates a base URL for the Cloud Dashboard (as described in the documentation of the [`Client`]
+/// struct) for an instance of the Cloud Dashboard running on AWS API Gateway.
+///
+/// Use this function to connect to the Cloud Dashboard API when running a staging or testing
+/// deployment.
+pub fn base_url_for_api_gateway(api_gateway_id: ApiGatewayId, aws_region: AwsRegion) -> Result<reqwest::Url, Error> {
+    let url = format!("https://{api_gateway_id}.execute-api.{aws_region}.amazonaws.com").parse()?;
+    Ok(url)
 }
 
 /// Converts an unsuccessful HTTP [`Response`] into an [`Error`], or returns the [`Response`].
@@ -222,9 +231,9 @@ pub struct AccessToken {
 
 impl AccessToken {
     /// Creates a new [`AccessToken`] from the given [`str`] slice.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the value of the [`str`] slice is not a properly-formatted JSON Web
     /// Token (JWT). Note that we do not return an error if the token is expired, etc. We only check
     /// that it is properly formatted.
