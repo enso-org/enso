@@ -39,9 +39,9 @@ write_file file table on_existing_file section headers match_columns _ xls_forma
     java_headers = Excel_Reader.make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
     result = handle_writer <| case section of
-        Worksheet sheet skip_rows row_limit ->
+        Excel_Section.Worksheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-        Cell_Range address skip_rows row_limit -> case address of
+        Excel_Section.Cell_Range address skip_rows row_limit -> case address of
             Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
             _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
 
