@@ -4,6 +4,7 @@ import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 
 from Standard.Test import Test, Test_Suite
@@ -65,7 +66,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = HTTP.fetch url_get
+            res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
@@ -83,7 +84,7 @@ spec =
             res = HTTP.fetch url_get
             res.to_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
-            HTTP.fetch "http://undefined_host" . should_fail_with HTTP.Request_Error.Error
+            HTTP.fetch "http://undefined_host" . should_fail_with Request_Error.Error
 
         Test.specify "should send Head request" <|
             res = HTTP.new.head url_get
