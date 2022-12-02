@@ -6590,8 +6590,8 @@ source = "git+https://github.com/svix/rust-ksuid#16468002c4da26932ca1004fcae190f
 dependencies = [
  "base-encode",
  "byteorder",
- "getrandom 0.2.7",
- "time 0.3.14",
+ "getrandom 0.2.8",
+ "time 0.3.17",
 ]
 
 [[package]]
