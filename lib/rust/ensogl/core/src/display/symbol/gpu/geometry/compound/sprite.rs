@@ -295,7 +295,7 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let initial_alignment = alignment::Dim2::center().as_number();
+        let initial_alignment = alignment::Dim2::center().normalized();
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
@@ -333,7 +333,7 @@ impl SpriteSystem {
 
     /// Set alignment of sprites.
     pub fn set_alignment(&self, alignment: alignment::Dim2) {
-        self.alignment.set(alignment.as_number());
+        self.alignment.set(alignment.normalized());
     }
 
     /// Run the renderer.

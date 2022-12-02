@@ -40,7 +40,7 @@ impl Dim1 {
 }
 
 impl Dim1 {
-    pub fn as_number(self) -> f32 {
+    pub fn normalized(self) -> f32 {
         match self {
             Dim1::Start => 0.0,
             Dim1::Center => 0.5,
@@ -72,52 +72,41 @@ pub struct Dim2 {
     pub vector: Vector2<Dim1>,
 }
 
-/// Constructors.
 #[allow(missing_docs)]
 impl Dim2 {
+    /// Constructor.
     pub fn new(horizontal: Dim1, vertical: Dim1) -> Self {
         Self { vector: Vector2(horizontal, vertical) }
     }
 
-    pub fn left_bottom() -> Self {
-        Self::new(Dim1::left(), Dim1::bottom())
-    }
-
-    pub fn left_center() -> Self {
-        Self::new(Dim1::left(), Dim1::center())
-    }
-
-    pub fn left_top() -> Self {
-        Self::new(Dim1::left(), Dim1::top())
-    }
-
-    pub fn center_bottom() -> Self {
-        Self::new(Dim1::center(), Dim1::bottom())
-    }
-
+    /// Constructor.
     pub fn center() -> Self {
-        Self::new(Dim1::center(), Dim1::center())
-    }
-
-    pub fn center_top() -> Self {
-        Self::new(Dim1::center(), Dim1::top())
-    }
-
-    pub fn right_bottom() -> Self {
-        Self::new(Dim1::right(), Dim1::bottom())
-    }
-
-    pub fn right_center() -> Self {
-        Self::new(Dim1::right(), Dim1::center())
-    }
-
-    pub fn right_top() -> Self {
-        Self::new(Dim1::right(), Dim1::top())
+        Self::center_center()
     }
 }
 
 impl Dim2 {
-    pub fn as_number(self) -> Vector2<f32> {
-        Vector2(self.vector.x.as_number(), self.vector.y.as_number())
+    pub fn normalized(self) -> Vector2<f32> {
+        Vector2(self.vector.x.normalized(), self.vector.y.normalized())
     }
 }
+
+#[macro_export]
+macro_rules! with_alignemnt_dim2_anchors {
+    ($f:path [$($args:tt)*]) => {
+        $f! { [$($args)*] [left center right] [bottom center top] }
+    };
+}
+
+macro_rules! gen_dim2_cons {
+    ([$([$x:ident $y:ident])*]) => { paste! {
+        impl Dim2 {$(
+            /// Constructor.
+            pub fn [<$x _ $y>]() -> Self {
+                Self::new(Dim1::$x(), Dim1::$y())
+            }
+        )*}
+    }}
+}
+
+with_alignemnt_dim2_anchors!(enso_shapely::cartesian[gen_dim2_cons]);

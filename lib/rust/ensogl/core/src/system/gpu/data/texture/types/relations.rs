@@ -102,7 +102,7 @@ macro_rules! with_texture_format_relations { ($f:ident $args:tt) => { $crate::$f
 #[macro_export]
 macro_rules! with_all_texture_types_cartesians {
     ([$f:ident] [$($out:tt)*]) => {
-        shapely::cartesian! { [[$f]] [Owned GpuOnly RemoteImage] [$($out)*] }
+        shapely::cartesian! { [$f] [Owned GpuOnly RemoteImage] [$($out)*] }
     };
     ([$f:ident _] $out:tt) => {
         $f! { $out }
