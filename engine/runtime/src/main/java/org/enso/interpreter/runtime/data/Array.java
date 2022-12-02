@@ -7,8 +7,11 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
@@ -17,18 +20,24 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
   private final Object[] items;
+  private @CompilerDirectives.CompilationFinal Boolean withWarnings;
 
   /**
    * Creates a new array
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
+  @Builtin.Method(
+      expandVarargs = 4,
+      description = "Creates an array with given elements.",
+      autoRegister = false)
   public Array(Object... items) {
     this.items = items;
+    this.withWarnings = hasWarningElements(items);
   }
 
   /**
@@ -36,7 +45,9 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
+  @Builtin.Method(
+      description = "Creates an uninitialized array of a given size.",
+      autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -68,11 +79,7 @@ public final class Array implements TruffleObject {
     if (index >= items.length || index < 0) {
       throw InvalidArrayIndexException.create(index);
     }
-    var e = items[(int) index];
-    if (e instanceof WithWarnings w) {
-      return w.getValue();
-    }
-    return e;
+    return items[(int) index];
   }
 
   public long length() {
@@ -126,6 +133,37 @@ public final class Array implements TruffleObject {
   @ExportMessage
   boolean hasType() {
     return true;
+  }
+
+  @ExplodeLoop
+  private boolean hasWarningElements(Object[] items) {
+    for (int i = 0; i < items.length; i++) {
+      if (items[i] instanceof WithWarnings) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean hasWarnings() {
+    if (withWarnings == null) {
+      withWarnings = hasWarningElements(items);
+    }
+    return withWarnings;
+  }
+
+  @ExportMessage
+  @ExplodeLoop
+  Warning[] getWarnings() {
+    ArrayRope<Warning> warnings = new ArrayRope<>();
+    for (int i = 0; i < items.length; i++) {
+      if (items[i] instanceof WithWarnings) {
+        WithWarnings withWarnings = (WithWarnings) items[i];
+        warnings = warnings.prepend(withWarnings.getWarnings());
+      }
+    }
+    return warnings.toArray(Warning[]::new);
   }
 
   @ExportMessage

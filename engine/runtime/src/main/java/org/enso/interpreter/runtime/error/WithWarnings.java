@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -42,8 +43,23 @@ public final class WithWarnings implements TruffleObject {
     return new WithWarnings(value, warnings.prepend(newWarnings));
   }
 
-  public Warning[] getWarningsArray() {
-    return warnings.toArray(Warning[]::new);
+  public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
+    Warning[] warningsArr = warnings.toArray(Warning[]::new);
+    Warning[] allWarnings;
+
+    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
+      try {
+        Warning[] valuesWarnings = warningsLibrary.getWarnings(value);
+        allWarnings = new Warning[valuesWarnings.length + warningsArr.length];
+        System.arraycopy(warningsArr, 0, allWarnings, 0, warningsArr.length);
+        System.arraycopy(valuesWarnings, 0, allWarnings, warningsArr.length, valuesWarnings.length);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    } else {
+      allWarnings = warningsArr;
+    }
+    return allWarnings;
   }
 
   public ArrayRope<Warning> getWarnings() {
@@ -51,7 +67,11 @@ public final class WithWarnings implements TruffleObject {
   }
 
   public ArrayRope<Warning> getReassignedWarnings(Node location) {
-    Warning[] warnings = getWarningsArray();
+    return getReassignedWarnings(location, null);
+  }
+
+  public ArrayRope<Warning> getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
+    Warning[] warnings = getWarningsArray(warningsLibrary);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }

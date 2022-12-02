@@ -17,12 +17,12 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
 public final class Vector implements TruffleObject {
   private final Object storage;
@@ -216,6 +216,17 @@ public final class Vector implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().vector();
+  }
+
+  @ExportMessage
+  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.hasWarnings(this.storage);
+  }
+
+  @ExportMessage
+  Warning[] getWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    return warnings.getWarnings(this.storage);
   }
 
   //

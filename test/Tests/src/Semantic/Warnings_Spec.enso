@@ -167,4 +167,21 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all c . map .value . should_equal ["b", "a"]
         Warning.get_all d . map .value . should_equal ["d", "b", "a"]
 
+    Test.specify "should be preserved after operations on Vector" <|
+        even x = (Warning.attach x x) % 2
+        res = [1,2,3,4].map even
+
+        res . should_equal [1, 0, 1, 0]
+        Warning.get_all res . map .value . should_equal [4, 3, 2, 1]
+        res.at 0 . should_equal 1
+        Warning.get_all (res.at 0) . map .value . should_equal [1]
+
+        slice = res.slice 1 4
+        Warning.get_all s . map .value . should_equal [4, 3, 2, 1]
+
+        first = even 0
+        Warning.get_all n . map .value . should_equal [0]
+
+
+
 main = Test_Suite.run_main spec
